@@ -2735,4 +2735,19 @@
         controlNodeOnly : true,
         value : "480",
     },
+    {
+        key : "workflow_suspend_on_error",
+        label : "Suspend on workflow ERROR",
+        description : "Suspend on an ERROR in a workflow or task instead of rollback by default",
+        type : "boolean",
+        userConfigurable : false, 
+        userMutable : true,
+        hidden : false,
+        advanced : false,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : false,
+        value : "true", 
+    }   
 ]

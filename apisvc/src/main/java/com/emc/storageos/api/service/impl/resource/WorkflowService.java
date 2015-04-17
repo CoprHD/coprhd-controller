@@ -10,9 +10,11 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -26,6 +28,7 @@ import com.emc.storageos.model.workflow.WorkflowStepRestRep;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.workflow.WorkflowController;
 
 /**
  * API interface for a Workflow and WorkflowStep.
@@ -208,6 +211,67 @@ public class WorkflowService extends ResourceService {
         return map(step, getChildWorkflows(step));
     }
 
+    /**
+     * Rolls back a suspended workflow.
+     * @preq none
+     * @brief Rolls back a suspended workflow
+     * @param uri - URI of the suspended workflow.
+     * @return - No data returned in response body
+     */
+    @PUT
+    @Path("/{id}/rollback")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public Response rollbackWorkflow(@PathParam("id") URI uri) {
+    	queryResource(uri);
+    	String taskId = UUID.randomUUID().toString();
+    	getController().rollbackWorkflow(uri, taskId);
+    	return Response.ok().build();
+    }
+    
+    /**
+     * Resumes a suspended workflow.
+     * @preq none
+     * @brief Resumes a suspended workflow
+     * @param uri - URI of the suspended workflow.
+     * @return - No data returned in response body
+     */
+    @PUT
+    @Path("/{id}/resume")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public Response resumeWorkflow(@PathParam("id") URI uri) {
+    	queryResource(uri);
+    	String taskId = UUID.randomUUID().toString();
+    	getController().resumeWorkflow(uri, taskId);
+    	return Response.ok().build();
+    }
+    
+    /**
+     * Suspends a workflow when it tries to execute a given step.
+     * @preq none
+     * @brief Resumes a suspended workflow
+     * @param uri - URI of the suspended workflow.
+     * @param stepURI - URI of the workflow step 
+     * @return - No data returned in response body
+     */
+    @PUT
+    @Path("/{id}/suspend/{stepId}")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public Response suspendWorkflow(@PathParam("id") URI uri, @PathParam("stepId") URI stepURI) {
+    	queryResource(uri);
+    	// Validate step id.
+    	WorkflowStep step = _dbClient.queryObject(WorkflowStep.class, stepURI);
+        ArgValidator.checkEntityNotNull(step, stepURI, isIdEmbeddedInURL(stepURI));
+    	String taskId = UUID.randomUUID().toString();
+    	getController().suspendWorkflowStep(uri, stepURI, taskId);
+    	return Response.ok().build();
+    }
+    
     private List<URI> getChildWorkflows(WorkflowStep step) {
         URIQueryResultList result = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -218,4 +282,8 @@ public class WorkflowService extends ResourceService {
         }
         return childWorkflows;
     }
+    
+    private WorkflowController getController() {
+    	return getController(WorkflowController.class, WorkflowController.WORKFLOW_CONTROLLER_DEVICE);
+}
 }

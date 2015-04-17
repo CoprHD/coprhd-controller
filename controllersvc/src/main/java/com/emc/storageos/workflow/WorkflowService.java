@@ -45,10 +45,12 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
+import com.emc.storageos.workflow.Workflow.WorkflowState;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.
@@ -62,7 +64,7 @@ import com.emc.storageos.workflow.Workflow.StepStatus;
  * 
  * @author Watson
  */
-public class WorkflowService {
+public class WorkflowService implements WorkflowController {
     private static final Logger _log = LoggerFactory.getLogger(WorkflowService.class);
     private static final Long MILLISECONDS_IN_SECOND = 1000L;
     private static volatile WorkflowService _instance = null;
@@ -73,6 +75,9 @@ public class WorkflowService {
     private ControllerLockingService _locker;
     private DistributedOwnerLockService _ownerLocker;
     private WorkflowScrubberExecutor _scrubber;
+
+    // Config properties
+    private final String WORKFLOW_SUSPEND_ON_ERROR_PROPERTY = "workflow_suspend_on_error";
 
     // Zookeeper paths, all proceeded by /workflow which is ZkPath.WORKFLOW
     private String _zkWorkflowPath = ZkPath.WORKFLOW.toString() + "/workflows/%s/%s/%s";
@@ -455,6 +460,8 @@ public class WorkflowService {
             }
         }
 
+        WorkflowState state = workflow.getWorkflowStateFromSteps();
+
         // Get composite status and status message
         if (workflow._successMessage == null) {
             workflow._successMessage = String.format(
@@ -463,7 +470,7 @@ public class WorkflowService {
                     workflow._orchTaskId);
         }
         String[] errorMessage = new String[] { workflow._successMessage };
-        StepState state = Workflow.getOverallState(statusMap, errorMessage);
+        // StepState state = Workflow.getOverallState(statusMap, errorMessage);
         _log.info(String.format("Workflow %s overall state: %s (%s)",
                 workflow.getOrchTaskId(), state, errorMessage[0]));
         ServiceError error = Workflow.getOverallServiceError(statusMap);
@@ -472,7 +479,7 @@ public class WorkflowService {
         }
 
         // Initiate rollback if needed.
-        if (automaticRollback && workflow.isRollbackState() == false && state == StepState.ERROR) {
+        if (automaticRollback && workflow.isRollbackState() == false && state == WorkflowState.ERROR) {
             if (workflow._rollbackHandler != null) {
                 workflow._rollbackHandler.initiatingRollback(workflow,
                         workflow._rollbackHandlerArgs);
@@ -480,11 +487,21 @@ public class WorkflowService {
             boolean rollBackStarted = initiateRollback(workflow);
             if (rollBackStarted) {
                 // Return now, wait until the rollback completions come here again.
+            	workflow.setWorkflowState(WorkflowState.ROLLING_BACK);
+            	persistWorkflow(workflow);
+            	logWorkflow(workflow, true);
                 return false;
+            } else {
+            	// Enter the suspend state on error
+            	state = WorkflowState.SUSPENDED_ERROR;
+            	workflow.setWorkflowState(state);
+            	persistWorkflow(workflow);
             }
         }
+        // Save the updated workflow state
+        workflow.setWorkflowState(state);
+        persistWorkflow(workflow);
 
-        // At this point we're committed to deleting the workflow.
         try {
             // Check if rollback completed.
             if (workflow.isRollbackState()) {
@@ -512,10 +529,9 @@ public class WorkflowService {
             if (workflow._taskCompleter != null) {
                 switch (state) {
                     case ERROR:
-                    case CANCELLED:
                         workflow._taskCompleter.error(_dbClient, _locker, error);
                         break;
-                    default:
+        		case SUCCESS:
                         workflow._taskCompleter.ready(_dbClient, _locker);
                         break;
                 }
@@ -527,7 +543,9 @@ public class WorkflowService {
             if (!removed) {
                 _log.error("Unable to release workflow locks for: " + workflow.getWorkflowURI().toString());
             }
-            // Destroy the workflow from ZK
+        	// Remove the workflow from ZK unless it is suspended (either for an error, or no error)
+            if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR 
+            		&& workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
             if (!workflow._nested) {
                 destroyWorkflow(workflow);
             } else {
@@ -535,8 +553,8 @@ public class WorkflowService {
                     _log.info(String.format(
                             "Workflow %s is nested, destruction deferred until parent destroys",
                             workflow.getWorkflowURI()));
-                }
             }
+            logWorkflow(workflow, true);
         }
         return true;
     }
@@ -568,6 +586,7 @@ public class WorkflowService {
         Workflow workflow = new Workflow(this, controller.getClass().getSimpleName(),
                 method, taskId, workflowURI);
         workflow.setRollbackContOnError(rollbackContOnError);
+        workflow.setSuspendOnError(Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(_coordinator, WORKFLOW_SUSPEND_ON_ERROR_PROPERTY)));
         // logWorkflow assigns the workflowURI.
         logWorkflow(workflow, false);
         // Keep track if it's a nested Workflow
@@ -781,9 +800,10 @@ public class WorkflowService {
         InterProcessLock lock = null;
         try {
             if (!workflow.getStepMap().isEmpty()) {
+            	_log.info("Executing workflow plan: " + workflow.getWorkflowURI() + " " + workflow.getOrchTaskId());
+            	workflow.setWorkflowState(WorkflowState.RUNNING);
                 persistWorkflow(workflow);
-                _log.info("Executing workflow plan: " + workflow.getWorkflowURI() + " " + workflow.getOrchTaskId());
-
+                
                 for (Step step : workflow.getStepMap().values()) {
                     persistWorkflowStep(workflow, step);
                 }
@@ -981,7 +1001,7 @@ public class WorkflowService {
      * Initiate a rollback of the entire workflow.
      * 
      * @param workflow - The workflow to be rolled back.
-     * @return true if rollback initiated
+     * @return true if rollback initiated, false if suspended.
      */
     public boolean initiateRollback(Workflow workflow) throws WorkflowException {
         // Verify all existing steps are in a terminal state.
@@ -993,7 +1013,14 @@ public class WorkflowService {
             }
         }
 
+        // Determine if we are suspending on error. If so, we don't initiate rollback.
+        if (workflow.isSuspendOnError()) {
+        	_log.info(String.format("Suspending workflow %s on error", workflow.getWorkflowURI()));
+        	return false;
+        }
+
         // Make sure all non-cancelled nodes have a rollback method.
+        // TODO: handle null rollback methods better.
         boolean norollback = false;
         for (Step step : workflow.getStepMap().values()) {
             if (step.status.state != StepState.CANCELLED && step.rollbackMethod == null) {
@@ -1145,7 +1172,8 @@ public class WorkflowService {
                 try {
                     Map<String, StepStatus> statusMap = workflow.getAllStepStatus();
                     String[] errorMessage = new String[] { workflow._successMessage };
-                    StepState state = workflow.getOverallState(statusMap, errorMessage);
+                    Workflow.getOverallState(statusMap, errorMessage);
+                    WorkflowState state = workflow.getWorkflowState();
                     logWorkflow.setCompletionState(state.name());
                     logWorkflow.setCompletionMessage(errorMessage[0]);
                 } catch (WorkflowException ex) {
@@ -1838,4 +1866,22 @@ public class WorkflowService {
     public void setOwnerLocker(DistributedOwnerLockService _ownerLocker) {
         this._ownerLocker = _ownerLocker;
     }
+
+	@Override
+	public void suspendWorkflowStep(URI workflow, URI stepId, String taskId)
+			throws ControllerException {
+		_log.info(String.format("Suspend request workflow: %s step: %s", workflow, stepId));
+}
+
+	@Override
+	public void resumeWorkflow(URI workflow, String taskId)
+			throws ControllerException {
+		_log.info(String.format("Resume request workflow: %s", workflow));
+	}
+
+	@Override
+	public void rollbackWorkflow(URI workflow, String taskId)
+			throws ControllerException {
+		_log.info(String.format("Rollback request(URI workflow, String taskId"));
+	}
 }

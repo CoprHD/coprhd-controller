@@ -24,6 +24,7 @@
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="SRDFController" value="rmi://localhost:10099/SRDFController" />
                 <entry key="ObjectController" value="rmi://localhost:10099/ObjectController"/>
+                <entry key="WorkflowController" value="rmi://localhost:10099/WorkflowController"/>
             </map>
         </property>
         <property name="version" value="1"/>
@@ -59,7 +60,7 @@
                 <value>xtremio</value>
                 <value>ecs</value>
                 <value>externaldevice</value>
-            </set>
+                <value>workflow</value>            </set>
         </property>
     </bean>
 </beans>

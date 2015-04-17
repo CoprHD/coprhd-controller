@@ -54,6 +54,18 @@ public class Workflow implements Serializable {
     Boolean _nested = false;   // this workflow is nested, run from within another workflow
     URI _workflowURI;            // URI for Cassandra logging record
     Set<URI> _childWorkflows = new HashSet<URI>();	// workflowURI of child workflows
+    Boolean _suspendOnError = true;  // suspend on error (rather than rollback)
+
+    public enum WorkflowState {
+    	CREATED, 				// Initial state
+    	RUNNING, 				// Running
+    	SUCCESS, 				// Terminated with SUCCESS
+    	ERROR,                   // Terminated with ERROR 
+    	ROLLING_BACK,                 // Working on rolling back after error 
+    	SUSPENDED_ERROR,          // Suspended 
+    	SUSPENDED_NO_ERROR    // Suspended, but no error currently
+    } ;
+    private WorkflowState _workflowState;
 
     // Define the serializable, persistent fields save in ZK
     private static final ObjectStreamField[] serialPersistentFields = {
@@ -74,6 +86,8 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_nested", Boolean.class),
             new ObjectStreamField("_stepMap", Map.class),
             new ObjectStreamField("_stepStatusMap", Map.class),
+            new ObjectStreamField("_suspendOnError", Boolean.class), 
+            new ObjectStreamField("_workflowState", WorkflowState.class)
     };
 
     private static final Logger _log = LoggerFactory.getLogger(Workflow.class);
@@ -329,6 +343,7 @@ public class Workflow implements Serializable {
         _orchMethod = methodName;
         _orchTaskId = taskId;
         _workflowURI = workflowURI;
+        _workflowState = WorkflowState.CREATED;
     }
 
     /**
@@ -647,6 +662,21 @@ public class Workflow implements Serializable {
     }
 
     /**
+     * Gets the overall Workflow State based on the underlying step states.
+     * @return WorkflowState
+     */
+    public WorkflowState getWorkflowStateFromSteps() {
+    	String[] errorMessage = new String[1];
+    	StepState stepState = getOverallState(getStepStatusMap(), errorMessage);
+    	switch(stepState) {
+    	case SUCCESS: return WorkflowState.SUCCESS;
+    	case ERROR: return WorkflowState.ERROR;
+    	default:
+    		return getWorkflowState();
+    	}
+    }
+
+    /**
      * Given a group of steps, determines an overall state. The precedence is:
      * 1. If any step is reporting ERROR, ERROR is returned along with that step's message.
      * 2. Otherwise if any step is reporting CANCELLED, CANCELLED is returned along with that step's message.
@@ -799,5 +829,21 @@ public class Workflow implements Serializable {
     public void setService(WorkflowService _service) {
         this._service = _service;
     }
+
+	public boolean isSuspendOnError() {
+		return _suspendOnError;
+}
+
+	public void setSuspendOnError(boolean suspendOnError) {
+		this._suspendOnError = suspendOnError;
+	}
+
+	public WorkflowState getWorkflowState() {
+		return _workflowState;
+	}
+
+	public void setWorkflowState(WorkflowState workflowState) {
+		this._workflowState = workflowState;
+	}
 
 }

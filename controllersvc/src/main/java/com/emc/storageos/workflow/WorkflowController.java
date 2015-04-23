@@ -6,7 +6,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 public interface WorkflowController extends Controller {
-	public final static String WORKFLOW_CONTROLLER_DEVICE = "WorkflowController";
+	public final static String WORKFLOW_CONTROLLER_DEVICE = "workflow";
 	
 	/**
 	 * Puts a Workflow into a suspended state as soon as possible after the requested Step could be queueued to run.

@@ -8019,11 +8019,23 @@ class Bourne:
     def workflow_get(self, uri):
         return self.api('GET', URI_WORKFLOW_INSTANCE.format(uri))
 
+    def workflow_show_task(self, uri, task):
+        workflow_task_uri = URI_WORKFLOW_INSTANCE + '/tasks/{1}'
+        return self.api('GET', workflow_task_uri.format(uri, task))
+
     def workflow_resume(self, uri):
-        return self.api('PUT', URI_WORKFLOW_RESUME.format(uri))
+        o = self.api('PUT', URI_WORKFLOW_RESUME.format(uri))
+        if (o['code'] > 0):
+             return o
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
 
     def workflow_rollback(self, uri):
-        return self.api('PUT', URI_WORKFLOW_ROLLBACK.format(uri))
+        o = self.api('PUT', URI_WORKFLOW_ROLLBACK.format(uri))
+        if (o['code'] > 0):
+             return o
+        result = self.api_sync_2(o['resource']['id'], o['op_id'], self.workflow_show_task)
+        return result
 
     def workflow_suspend(self, uri, step):
         return self.api('PUT', URI_WORKFLOW_SUSPEND.format(uri, step), null)

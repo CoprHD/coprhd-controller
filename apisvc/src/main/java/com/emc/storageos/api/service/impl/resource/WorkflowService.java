@@ -5,11 +5,15 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.WorkflowMapper.map;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.*;
@@ -19,8 +23,15 @@ import javax.ws.rs.core.Response;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.workflow.StepList;
 import com.emc.storageos.model.workflow.WorkflowList;
 import com.emc.storageos.model.workflow.WorkflowRestRep;
@@ -29,6 +40,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.workflow.WorkflowController;
+import com.emc.storageos.workflow.WorkflowState;
 
 /**
  * API interface for a Workflow and WorkflowStep.
@@ -41,7 +53,7 @@ import com.emc.storageos.workflow.WorkflowController;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
         Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
-public class WorkflowService extends ResourceService {
+public class WorkflowService extends TaskResourceService {
     protected Workflow queryResource(URI id) {
         ArgValidator.checkUri(id);
         Workflow workflow = _dbClient.queryObject(Workflow.class, id);
@@ -223,11 +235,13 @@ public class WorkflowService extends ResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public Response rollbackWorkflow(@PathParam("id") URI uri) {
-    	queryResource(uri);
+    public TaskResourceRep rollbackWorkflow(@PathParam("id") URI uri) {
+    	Workflow workflow = queryResource(uri);
+    	verifySuspendedWorkflow(workflow);
     	String taskId = UUID.randomUUID().toString();
+    	Operation op = initTaskStatus(workflow, taskId, Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_ROLLBACK);
     	getController().rollbackWorkflow(uri, taskId);
-    	return Response.ok().build();
+    	return toTask(workflow,taskId, op);
     }
     
     /**
@@ -242,11 +256,19 @@ public class WorkflowService extends ResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public Response resumeWorkflow(@PathParam("id") URI uri) {
-    	queryResource(uri);
+    public TaskResourceRep resumeWorkflow(@PathParam("id") URI uri) {
+    	Workflow workflow = queryResource(uri);
+    	verifySuspendedWorkflow(workflow);
     	String taskId = UUID.randomUUID().toString();
+        Operation op = initTaskStatus(workflow, taskId, Operation.Status.pending, ResourceOperationTypeEnum.WORKFLOW_RESUME);
     	getController().resumeWorkflow(uri, taskId);
-    	return Response.ok().build();
+    	return toTask(workflow, taskId, op);
+    }
+    
+    private void verifySuspendedWorkflow(Workflow workflow) {
+    	WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
+    	EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
+    	ArgValidator.checkFieldForValueFromEnum(state, "Workflow completion state", expected);
     }
     
     /**
@@ -286,4 +308,36 @@ public class WorkflowService extends ResourceService {
     private WorkflowController getController() {
     	return getController(WorkflowController.class, WorkflowController.WORKFLOW_CONTROLLER_DEVICE);
 }
+    
+    /**
+     * Convenience method for initializing a task object with a status
+     * 
+     * @paramworkflow export group 
+     * @param task task ID
+     * @param status status to initialize with
+     * @param opType operation type
+     * @return operation object
+     */
+    private Operation initTaskStatus(Workflow workflow, String task, Operation.Status status, ResourceOperationTypeEnum opType) {
+        if (workflow.getOpStatus() == null) {
+        	workflow.setOpStatus(new OpStatusMap());
+}
+        Operation op = new Operation();
+        op.setResourceType(opType);
+        if (status == Operation.Status.ready) {
+        	op.ready();
+        } 
+        _dbClient.createTaskOpStatus(Workflow.class, workflow.getId(), task, op);
+        return op;
+    }
+
+	@Override
+	protected URI getTenantOwner(URI id) {
+		return null;
+	}
+
+	@Override
+	protected ResourceTypeEnum getResourceType() {
+		return ResourceTypeEnum.WORKFLOW;
+	}
 }

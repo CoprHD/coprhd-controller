@@ -5,6 +5,7 @@
 package com.emc.storageos.workflow;
 
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 

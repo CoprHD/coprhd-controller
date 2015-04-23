@@ -55,16 +55,6 @@ public class Workflow implements Serializable {
     URI _workflowURI;            // URI for Cassandra logging record
     Set<URI> _childWorkflows = new HashSet<URI>();	// workflowURI of child workflows
     Boolean _suspendOnError = true;  // suspend on error (rather than rollback)
-
-    public enum WorkflowState {
-    	CREATED, 				// Initial state
-    	RUNNING, 				// Running
-    	SUCCESS, 				// Terminated with SUCCESS
-    	ERROR,                   // Terminated with ERROR 
-    	ROLLING_BACK,                 // Working on rolling back after error 
-    	SUSPENDED_ERROR,          // Suspended 
-    	SUSPENDED_NO_ERROR    // Suspended, but no error currently
-    } ;
     private WorkflowState _workflowState;
 
     // Define the serializable, persistent fields save in ZK
@@ -124,6 +114,7 @@ public class Workflow implements Serializable {
         public StepStatus status;
         /** URI of Cassandra logging record. */
         URI workflowStepURI;
+        public boolean isRollbackStep = false;
 
         /**
          * Created COP-37 to track hashCode() implemenatation in this class.
@@ -154,6 +145,7 @@ public class Workflow implements Serializable {
             Step rb = new Step();
             rb.stepId = UUID.randomUUID().toString() + UUID.randomUUID().toString();
             rb.description = "Rollback " + this.description;
+            rb.isRollbackStep = true;
             rb.waitFor = null;
             rb.deviceURI = this.deviceURI;
             rb.deviceType = this.deviceType;

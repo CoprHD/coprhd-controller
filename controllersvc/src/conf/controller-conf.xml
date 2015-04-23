@@ -1464,11 +1464,6 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="workflowController" class="com.emc.storageos.workflow.WorkflowControllerImpl">
-        <property name="dispatcher" ref="dispatcher"/>
-        <property name="controller" ref="workflowService" />
-    </bean>
-
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
         <property name="serviceName" value="BlockOrchestrationController"/>
         <property name="service" ref="blockOrchestrationController"/>
@@ -1490,6 +1485,11 @@
         <property name="dispatcher" ref="dispatcher"/>
         <property name="controller" ref="fileOrchestrationDeviceController" />
         <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="workflowController" class="com.emc.storageos.workflow.WorkflowControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="workflowService" />
     </bean>
 
     <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">

@@ -88,7 +88,10 @@ def print_steps(steps):
 def workflow_steps(args):
     bourne.connect(args.ip)
     wf = bourne.workflow_get(args.id)
-    print wf['orchestration_method'],  '   state: ', wf['completion_state'], '   task: ', wf['orchestration_task_id']
+    try:
+        print wf['orchestration_method'],  '   state: ', wf['completion_state'], '   task: ', wf['orchestration_task_id']
+    except:
+        print
     stepsx = bourne.workflow_steps(args.id)	
     #print stepsx
     steps = stepsx['workflow_step']

@@ -554,6 +554,9 @@ public class WorkflowService implements WorkflowController {
             if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR 
             		&& workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
             if (!workflow._nested) {
+        	    // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
+                    if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR
+                        && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
                 destroyWorkflow(workflow);
             } else {
                 if (isExistingWorkflow(workflow)) {
@@ -562,6 +565,7 @@ public class WorkflowService implements WorkflowController {
                             workflow.getWorkflowURI()));
             }
             logWorkflow(workflow, true);
+        }
         }
         return true;
     }
@@ -1863,23 +1867,6 @@ public class WorkflowService implements WorkflowController {
 	}
 	
 	/**
-	 * Load the Workflow from Zookeeper using the URI as a starting point by looking it up in the database.
-	 * @param workflowURI
-	 * @return
-	 * @throws ControllerException
-	 */
-	private Workflow loadWorkflowFromUri(URI workflowURI) throws ControllerException {
-		com.emc.storageos.db.client.model.Workflow dbWorkflow = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class, workflowURI);
-		if (dbWorkflow != null) {
-			Workflow workflow = new Workflow(this, dbWorkflow.getOrchControllerName(), dbWorkflow.getOrchMethod(), workflowURI);
-			workflow = loadWorkflow(workflow);
-			return workflow;
-		}
-		_log.info("Workflow not found in db: " + workflowURI.toString());
-		throw WorkflowException.exceptions.workflowNotFound(workflowURI.toString());
-	}
-	
-	/**
 	 * Removes all rollback steps from the Workflow. Used in resuming a workflow.
 	 * @param workflow Workflow
 	 */
@@ -1941,6 +1928,83 @@ public class WorkflowService implements WorkflowController {
 		}
 		workflow.setWorkflowState(WorkflowState.RUNNING);
 		logWorkflow(workflow, true);
+	}
+
+    /**
+     * Rolls back a workflow that is assumed to be a child of the given stepId.
+     * Updates the step status to EXECUTING if workflow is successfully initiated,
+     * and aranges for a rollback completer to mark the step as SUCCESS when
+     * the rollback completes.
+     * NOTE: The current state of the child workflow must be SUCCESS in order
+     * for rollback to be invoked.
+     * @param workflow -- the Inner workflow
+     * @param stepId -- assumed to be a stepId of the outer workflow
+     */
+    private void rollbackInnerWorkflow(Workflow workflow, String stepId)  {
+    	URI uri = workflow.getWorkflowURI();
+    	_log.info(String.format("Rollback requested workflow: %s", uri));
+    	
+    	// Make sure the workflow is in a successfull state.
+    	String[] message = new String[1];
+    	message[0] = "";
+    	StepState state = Workflow.getOverallState(workflow.getStepStatusMap(), message);
+    	if (state != StepState.SUCCESS) {
+    		_log.info(String.format("Workflow %s cannot be rollback because the overall state is not SUCCESS, but instead is %s", uri, state));
+    		ServiceCoded coded = WorkflowException.exceptions.workflowRollbackInWrongState(uri.toString(), "SUCCESS", state.toString());
+    		WorkflowStepCompleter.stepFailed(stepId, coded);;
+    	}
+    	
+    	// Update the rollback handlers. We do this in order to be able to fire a completer at the end of the workflow.
+    	Object[] args;
+    	if (workflow._rollbackHandler != null) {
+    		// Nested rollback handler, add our arguments to the end.
+    		// Our rollback handler will call the nested handler.
+    		args = new Object[workflow._rollbackHandlerArgs.length 
+    		                  + NestedWorkflowRollbackHandler.NUMBER_OF_ADDED_ARGS];
+    		for (int i=0; i < workflow._rollbackHandlerArgs.length; i++) {
+    			args[i] = workflow._rollbackHandlerArgs[i];    // copy original arguments
+    		}
+    		args[NestedWorkflowRollbackHandler.indexOfNestedHandler(args)] 
+    					= workflow._rollbackHandler; // append our new arguments, original rollback handler
+    		args[NestedWorkflowRollbackHandler.indexOfParentStepId(args)]
+    					= stepId;  // append stepId for completion
+    		
+    	} else {
+    		// No nested rollback handler.
+    		args = new Object[NestedWorkflowRollbackHandler.NUMBER_OF_ADDED_ARGS];
+    		args[NestedWorkflowRollbackHandler.indexOfNestedHandler(args)] = null;
+    		args[NestedWorkflowRollbackHandler.indexOfParentStepId(args)] = stepId;
+    	}
+    	workflow._rollbackHandler = new NestedWorkflowRollbackHandler();
+		workflow._rollbackHandlerArgs = args;
+
+    	boolean rollBackStarted = initiateRollback(workflow);
+    	if (rollBackStarted) {
+    		// Return now, wait until the rollback completions come here again.
+    		persistWorkflow(workflow);
+    		logWorkflow(workflow, true);
+    		WorkflowStepCompleter.stepExecuting(stepId);
+    		_log.info(String.format("Rollback initiated workflow %s" ,workflow.getWorkflowURI() ));
+    	} else {
+    		ServiceCoded coded = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
+    		WorkflowStepCompleter.stepFailed(stepId, coded);
+    	}
+    }
+	/**
+	 * Load the Workflow from Zookeeper using the URI as a starting point by looking it up in the database.
+	 * @param workflowURI
+	 * @return
+	 * @throws ControllerException
+	 */
+	private Workflow loadWorkflowFromUri(URI workflowURI) throws ControllerException {
+		com.emc.storageos.db.client.model.Workflow dbWorkflow = _dbClient.queryObject(com.emc.storageos.db.client.model.Workflow.class, workflowURI);
+		if (dbWorkflow != null) {
+			Workflow workflow = new Workflow(this, dbWorkflow.getOrchControllerName(), dbWorkflow.getOrchMethod(), workflowURI);
+			workflow = loadWorkflow(workflow);
+			return workflow;
+		}
+		_log.info("Workflow not found in db: " + workflowURI.toString());
+		throw WorkflowException.exceptions.workflowNotFound(workflowURI.toString());
 	}
 
     public static void completerStepSucceded(String stepId)

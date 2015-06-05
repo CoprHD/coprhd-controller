@@ -1,0 +1,88 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateNfsExportAndDatastore.File.VMware",
+  serviceId:"VMware-CreateNfsExportAndDatastore",
+  fields:{
+    datastoreName:{
+      type:"text",
+      validation:{
+        regEx:"[a-zA-Z0-9 \\-\\_]+",
+        min: 2,
+        max: 128
+      }
+    },
+    
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"shared"
+    },
+    
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+
+    virtualArray:{
+      type:"assetType.vipr.fileVirtualArray",
+      lockable: true
+    },
+    
+    virtualPool:{
+      type:"assetType.vipr.fileNfsVirtualPool",
+      lockable: true
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    volumeName:{
+      type:"text",
+      validation:{
+        regEx:"^[^\"\\\\/\\[\\]:|+;,?*=<>]+$",
+        min: 3,
+        max: 128
+      }
+    },
+    
+    comment:{
+      type:"text",
+      required: false,
+      validation:{
+        regEx:"[^\-\u0080-\u009f]*",
+        max:255
+      },
+      lockable: true
+    },
+
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    },
+    
+    storageIOControl: {
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },
+    
+    exportHosts:{
+      type:"text",
+      required:false
+    }
+    
+  }
+}

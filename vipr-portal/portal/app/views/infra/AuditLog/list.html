@@ -1,0 +1,156 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.adminDashboard', 'nav.auditLog'] /}
+
+%{
+	currentDate = params["date"]
+	if (currentDate == null) {
+		currentDate = new Date()
+	}
+	else {
+		currentDate = new Date(new Long(currentDate));
+	}
+}%
+
+#{set 'moreStyles'}
+<style type="text/css">
+
+    #auditLog thead th.time {
+        word-break: normal;
+        min-width: 120px;
+    }
+
+    #auditLog thead th.result {
+        word-break: normal;
+        min-width: 70px;
+    }
+
+    #auditLog thead th.description {
+        word-break: normal;
+        min-width: 250px;
+    }
+</style>
+#{/set}
+
+<div class="section-header"><h1>&{'audit.log.title'}</h1></div>
+
+<div class="well well-sm">
+    <form class="form-inline" onsubmit="refreshLog(); return false;" style="margin-bottom: 0px">
+    #{field 'auditLogDate'}
+    	%{
+    		field.value = currentDate
+    	}%
+        #{Form.dateTimePicker field:field, hideTime:true /}
+    #{/field}
+    &nbsp;Hour: <select id="hour-combobox" name="hour" class="form-control input-sm" style="width:6em">
+        #{list items:00..23, as:'hourOption'}
+            %{
+                prefix = hourOption<10?"0":""
+                hourString = prefix+hourOption
+            }%
+
+            <option value="${hourString}">${hourString}</option>
+        #{/list}
+    </select>
+
+    <input type="submit" class="btn btn-sm btn-primary" value="&{'system.logs.showLogs'}"/>
+    </form>
+</div>
+
+
+%{
+options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataProp': '""', 'bServerSide':false]
+}%
+#{DataTable.table id:'auditLog', 
+                  dataTable:dataTable,
+                  source:@logsJson(),
+                  expandable:true,
+                  cssClass:'editableRows',
+                  options:options /}
+#{DataTable.expandAction 'renderDetails', table:'auditLog', target:'tr'/}       
+#{set 'moreScripts'}
+	#{get 'moreScripts'/}
+	<script type="text/javascript">
+
+	$(document).ready(function() {
+		var initialDate = moment(#{if currentDate}${currentDate.getTime()}#{/if});
+		
+		var hourString = initialDate.format("HH");
+		$('#hour-combobox').val(hourString); 
+
+		initialDate.milliseconds(0);
+		initialDate.seconds(0);
+		initialDate.minutes(0);
+		initialDate.hours(0);
+
+		auditLogDate.setTime(initialDate);
+		
+	  });
+
+    function loadServerParams(aoData) {
+        aoData.push({"name" : "date", "value" : "${currentDate.getTime()}"});
+    }
+
+    function renderTime(o, val) {
+        var time_ms = o.aData._timeInMillis;
+        if (time_ms) {
+            return moment(time_ms).format('YYYY-MM-DD HH:mm')
+        }
+        return "";
+    }
+
+    function renderDetails(data) {
+        var details = "<pre style='margin:15px;' class='auditLogs'>" + data._description + "</pre>";
+        
+        return details;
+    }
+
+    function refreshLog() {
+        var time = getSelectedDateTime();
+
+        var uri = "@{list()}?date=" + time;
+
+        window.location.href = uri;
+    }
+
+    function renderResult(o, val) {
+        var operationalStatus = o.aData._operationalStatus;
+        if (operationalStatus) {
+            operationalStatus = operationalStatus.toUpperCase();
+            subClass = ""
+            if ("SUCCESS" == operationalStatus) {
+                subClass = "label-success"
+            }
+            else {
+                subClass = "label-danger"
+            }
+
+            return "<div class='text-center label " + subClass + "'>" + operationalStatus + "</div>"
+        }
+        return "";
+    }
+    
+    function renderDescription(o, val) {
+    	return "<div class='auditLogsDescription'>" + o.aData._description + "</div>"
+    }
+    
+    function getSelectedDateTime() {
+    	var time = auditLogDate.getTime();
+    	
+    	var newDate = moment(time);
+    	newDate.hours(0);
+    	newDate.minutes(0);
+    	newDate.seconds(0);
+    	newDate.milliseconds(0);
+    	
+    	var hourString = $("#hour-combobox").val();
+    	newDate.hours(hourString);
+
+    	return newDate.valueOf();
+    }
+    
+    
+	</script>
+#{/set}

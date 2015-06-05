@@ -1,0 +1,14 @@
+GET https://192.168.0.0:443/api/approvals/pending HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[
+  {
+    "id": "urn:storageos:ApprovalRequest:88c59702-f52b-4481-a890-8ed48d4192ba:",
+    "href": "/api/approvals/urn:storageos:ApprovalRequest:88c59702-f52b-4481-a890-8ed48d4192ba:"
+  }
+]

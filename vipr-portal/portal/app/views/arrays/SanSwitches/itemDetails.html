@@ -1,0 +1,9 @@
+<dl class="dl-horizontal">
+  <dt>&{'sanSwitch.version'}</dt>
+  <dd>${networkSystem.version ?: '-'}</dd>
+  
+  <dt>&{'sanSwitch.uptime'}</dt>
+  <dd>${networkSystem.uptime ?: '-'}</dd>
+  
+  #{discoveryDetails networkSystem/}
+</dl>

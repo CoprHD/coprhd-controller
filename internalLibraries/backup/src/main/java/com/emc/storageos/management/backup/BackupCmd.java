@@ -1,0 +1,255 @@
+/**
+* Copyright 2015 EMC Corporation
+* All Rights Reserved
+ */
+/**
+ * Copyright (c) 2014 EMC Corporation 
+ * All Rights Reserved 
+ *
+ * This software contains the intellectual property of EMC Corporation 
+ * or is licensed to EMC Corporation from third parties.  Use of this 
+ * software and the intellectual property contained therein is expressly 
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
+
+package com.emc.storageos.management.backup;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.PosixParser;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.text.Format;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+public class BackupCmd {
+
+    private static final Options options = new Options();
+    private static final String TOOL_NAME = "bkutils";
+    private static BackupOps backupOps;
+    private static CommandLine cli;
+    private static RestoreManager restoreManager;
+
+    private enum CommandType {
+        create("Create backup, default name is timestamp"),
+        list("List all backups"),
+        delete("Delete specific backup"),
+        restore("Purge ViPR data and restore specific backup\n" +
+                "with args: <backup dir> <name>"),
+        quota("Get backup quota info, unit:GB\n"),
+        force("Execute operation on quorum nodes"),
+        purge("Purge the existing ViPR data with arg\n" +
+                "[ismultivdc], yes or no(default)");
+
+        private String description;
+
+        private CommandType(String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+    }
+
+    static {
+        Option createOption = OptionBuilder.hasOptionalArg()
+                                        .withArgName("[backup]")
+                                        .withDescription(CommandType.create.getDescription())
+                                        .withLongOpt(CommandType.create.name())
+                                        .create("c");
+        options.addOption(createOption);
+        options.addOption("l", CommandType.list.name(), false, CommandType.list.getDescription());
+        options.addOption("d", CommandType.delete.name(), true, CommandType.delete.getDescription());
+        Option restoreOption = OptionBuilder.hasArgs()
+                                         .withArgName("args")
+                                         .withDescription(CommandType.restore.getDescription())
+                                         .withLongOpt(CommandType.restore.name())
+                                         .create("r");
+        options.addOption(restoreOption);
+        options.addOption("q", CommandType.quota.name(), false, CommandType.quota.getDescription());
+        options.addOption("f", CommandType.force.name(), false, CommandType.force.getDescription());
+        Option purgeOption = OptionBuilder.hasOptionalArg()
+                .withArgName("[ismultivdc]")
+                .withDescription(CommandType.purge.getDescription())
+                .withLongOpt(CommandType.purge.name())
+                .create("p");
+        options.addOption(purgeOption);
+    }
+
+    private static RestoreManager initRestoreManager() {
+        if (restoreManager == null) {
+            ApplicationContext context = new ClassPathXmlApplicationContext("backup-restore-conf.xml");
+            restoreManager = context.getBean("restoreManager", RestoreManager.class);
+        }
+        return restoreManager;
+    }
+
+    public static void main(String[] args) {
+        restoreManager = initRestoreManager();
+        CommandLineParser parser = new PosixParser();
+        HelpFormatter formatter = new HelpFormatter();
+        try {
+            if (args == null || args.length == 0)
+                throw new IllegalArgumentException("");
+            cli = parser.parse(options, args);
+            if (cli.getOptions().length == 0)
+                throw new IllegalArgumentException(
+                        String.format("Invalid argument: %s\n", Arrays.toString(args)));
+            String[] invalidArgs = cli.getArgs();
+            if (invalidArgs != null && invalidArgs.length != 0){
+                throw new IllegalArgumentException(
+                        String.format("Invalid argument: %s\n", Arrays.toString(invalidArgs)));
+            }
+        } catch (Exception p) {
+            System.err.print(p.getMessage());
+            p.printStackTrace();
+            formatter.printHelp(TOOL_NAME, options);
+            System.exit(-1);
+        }
+
+        try {
+            createBackup();
+            listBackup();
+            deleteBackup();
+            purgeViprData();
+            restoreBackup();
+            getQuota();
+        } catch (Exception ex) {
+            System.err.println("Error: " + ex.getMessage());
+            System.exit(-1);
+        }
+
+        System.exit(0);
+    }
+
+    /**
+     * Singleton method to get BackupOps instance
+     * @return the instance of BackupOps
+     */
+    private static synchronized BackupOps getBackupOps() {
+        if (backupOps == null) {
+            ApplicationContext context = new ClassPathXmlApplicationContext("backup-client-conf.xml");
+            backupOps = context.getBean("backupOps", BackupOps.class);
+        }
+        return backupOps;
+    }
+
+    private static void createBackup() {
+        if (!cli.hasOption(CommandType.create.name()))
+            return;
+        String backupName = cli.getOptionValue(CommandType.create.name());
+        if (backupName == null || backupName.isEmpty())
+            backupName = BackupOps.createBackupName();
+
+        boolean force = false;
+        if (cli.hasOption(CommandType.force.name())) { 
+            force = true;
+        }
+
+        System.out.println("Start to create backup...");
+        getBackupOps().createBackup(backupName, force);
+        System.out.println(
+                String.format("Backup (%s) is created successfully", backupName));
+    }
+
+    private static void listBackup() {
+        if (!cli.hasOption(CommandType.list.name()))
+            return;
+        System.out.println("Start to list backup...");
+        List<BackupSetInfo> backupList = getBackupOps().listBackup();
+        System.out.println(
+                String.format("Backups are listed successfully, total: %d", backupList.size()));
+        if (backupList.isEmpty())
+            return;
+        int maxLength = Integer.MIN_VALUE;
+        for (BackupSetInfo backupSetInfo : backupList) {
+            if (backupSetInfo.getName().length() > maxLength)
+                maxLength = backupSetInfo.getName().length();
+        }
+        maxLength = maxLength < 18 ? 20 : maxLength + 2;
+        String titleFormat = String.format(BackupConstants.LIST_BACKUP_TITLE, maxLength);
+        String infoFormat = String.format(BackupConstants.LIST_BACKUP_INFO, maxLength);
+
+        System.out.println(String.format(titleFormat, "NAME", "SIZE(MB)", "CREATION TIME"));
+        Format format = new SimpleDateFormat(BackupConstants.DATE_FORMAT);
+        StringBuilder builder = new StringBuilder();
+        for (BackupSetInfo backupSetInfo : backupList) {
+            double sizeMb = backupSetInfo.getSize() * 1.0 / BackupConstants.MEGABYTE;
+            builder.append(String.format(infoFormat,
+                    backupSetInfo.getName(), sizeMb,
+                    format.format(new Date(backupSetInfo.getCreateTime()))));
+            builder.append("\n");
+        }
+        System.out.print(builder.toString());
+    }
+
+    private static void deleteBackup() {
+        if (!cli.hasOption(CommandType.delete.name()))
+            return;
+        System.out.println("Start to delete backup...");
+        String backupName = cli.getOptionValue(CommandType.delete.name());
+        getBackupOps().deleteBackup(backupName);
+        System.out.println(
+                String.format("Backup (%s) is deleted successfully", backupName));
+    }
+
+    private static void purgeViprData() {
+        if (!cli.hasOption(CommandType.purge.name()))
+            return;
+        String multiVdcStr = cli.getOptionValue(CommandType.purge.name());
+        System.out.println("Start to purge ViPR data...");
+        if (multiVdcStr == null || "no".equalsIgnoreCase(multiVdcStr.trim()))
+            restoreManager.purge(false);
+        else if ("yes".equalsIgnoreCase(multiVdcStr.trim()))
+            restoreManager.purge(true);
+        else
+            throw new IllegalArgumentException("Invalid argument, must be yes or no(default)");
+        System.out.println("ViPR data has been purged successfully!");
+    }
+
+    private static void restoreBackup() {
+        if (!cli.hasOption(CommandType.restore.name()))
+            return;
+        String[] restoreArgs = cli.getOptionValues(CommandType.restore.name());
+        if(restoreArgs.length != 2){
+            System.out.println("Invalid number of restore args.");
+            new HelpFormatter().printHelp(TOOL_NAME, options);
+            System.exit(-1);
+        }
+
+        String restoreSrcDir = restoreArgs[0];
+        String snapshotName = restoreArgs[1];
+
+        boolean geoRestoreFromScratch = false;
+        if (cli.hasOption(CommandType.force.name())) {
+            geoRestoreFromScratch = true;
+        }
+
+        restoreManager.restore(restoreSrcDir, snapshotName, geoRestoreFromScratch);
+
+        System.out.println("***Important***");
+        System.out.println("Please start ViPR service after all nodes have been " +
+                "restored (command: \"service storageos start\").");
+        System.out.println("ViPR has risk of data lost before data repair finished, " +
+                "please check the db repair process by service log");
+    }
+
+    private static void getQuota() {
+        if (!cli.hasOption(CommandType.quota.name())) {
+            return;
+        }
+        System.out.println("Start to get quota of backup...");
+        int quota = getBackupOps().getQuotaGb();
+        System.out.println(String.format("Quota of backup is: %d GB", quota));
+    }
+}

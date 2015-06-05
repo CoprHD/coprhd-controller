@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<ConnectEMCConfig SchemaVersion="1.1.0">
+  <ConnectConfig Type="Email">
+    <Retries>3</Retries>
+    <Notification>Primary</Notification>
+    <Timeout>300</Timeout>
+    <Description>ConnectEMC Call Home Primary</Description>
+    <BsafeEncrypt>${system_connectemc_encrypt}</BsafeEncrypt>
+    <IPProtocol>${system_connectemc_ipprotocol}</IPProtocol>
+    <EmailServer>${system_connectemc_smtp_server_addr}:${smtp_server_port}</EmailServer>
+    <EmailAddress>${system_connectemc_smtp_emcto}</EmailAddress>
+    <EmailSender>${system_connectemc_smtp_from}</EmailSender>
+    <EmailFormat>HTML</EmailFormat>
+    <EmailSubject>ConnectEMC Call Home</EmailSubject>
+    <STARTTLS>no</STARTTLS>
+    <InsertBefore></InsertBefore>
+    <PreProcess></PreProcess>
+    <PostProcess></PostProcess>
+  </ConnectConfig>
+  <ConnectConfig Type="Email">
+    <Retries>3</Retries>
+    <Notification>onSuccess/onFailure</Notification>
+    <Timeout>300</Timeout>
+    <Description>ConnectEMC Success/Fail Customer Notification</Description>
+    <IPProtocol>${system_connectemc_ipprotocol}</IPProtocol>
+    <EmailServer>${system_connectemc_smtp_server_addr}:${smtp_server_port}</EmailServer>
+    <EmailAddress>${system_connectemc_smtp_to}</EmailAddress>
+    <EmailSender>${system_connectemc_smtp_from}</EmailSender>
+    <EmailFormat>HTML</EmailFormat>
+    <EmailSubject>ConnectEMC Success/Fail Customer Notification</EmailSubject>
+    <IncludeCallHomeData>yes</IncludeCallHomeData>
+  </ConnectConfig>
+</ConnectEMCConfig>

@@ -1,0 +1,242 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+ext {
+    internalLibrary = true
+    workingDir = project.file("working")
+}
+
+dependencies {
+    compile project(":coordinatorsvc"),
+            project(":dbsvc"),
+            project(":geodbsvc"),
+            project(":geosvc"),
+            project(":apisvc"),
+            project(":authsvc"),
+            project(":zkutils"),
+            project(":controllersvc"),
+            project(":com.iwave.platform")
+}
+
+sourceSets.main.resources {
+    srcDirs = [ "${workingDir}/conf" ]
+}
+
+task copyEtc(type: Copy) {
+    from "etc"
+    into "${workingDir}/etc"
+}
+
+task copyConfs(type: Copy, dependsOn:copyEtc) {
+    def etcURI = new File(workingDir, "etc").toURI().toString();
+    if (!etcURI.endsWith("/")) {
+        etcURI += "/"
+    }
+    into "${workingDir}/conf"
+    filter([replacements:[
+        '/data/': "${workingDir.absolutePath}/data/",
+        'file:///etc/': etcURI,
+        '<import resource="classpath:backup-conf.xml"/>': '',
+        '/opt/storageos/': "${workingDir.absolutePath}/"
+    ]], StringReplaceFilter)
+    rootProject.subprojects { project->
+        from project.file("src/conf")
+        from project.file("src/main/resources")
+    }
+    
+    from project(":com.iwave.platform").file("dist/conf")
+    from project(":com.iwave.platform").file("dev/conf")
+    // Copy dbclient configuration last to ensure it is the correct one
+    from project(":dbclient").file("src/conf/dbclient-conf.xml")
+}
+
+task copyBinaryFiles(type: Copy) {
+    into "${workingDir}/conf"
+    from project(":security").file("src/conf/cacerts")
+}
+copyConfs.finalizedBy(copyBinaryFiles)
+
+task generateConfigDefaults(dependsOn: copyConfs) << {
+    def properties = new Properties()
+    def metadata = new XmlSlurper().parse(file("${workingDir}/conf/sys-metadata-var.xml"))
+    metadata.children().each { bean->
+        def name = bean.@id
+        def value = bean.property.find { it.@name == 'value' }?.@value
+        properties.setProperty("${name}", "${value}")
+    }
+    
+    def input = file("etc/config.defaults").newInputStream()
+    try {
+        def override = new Properties()
+        override.load(input)
+        properties.putAll(override)
+    }
+    finally {
+        input.close()
+    }
+    
+    def output = file("${workingDir}/etc/config.defaults").newOutputStream()
+    try {
+        properties.store(output, "Runtime defaults")
+    }
+    finally {
+        output.close()
+    }
+}
+
+task copySasvcapi(type: Copy) {
+    into "${workingDir}/lib"
+    from project(":com.iwave.platform").file("dist/lib")
+}
+
+task copyAuthsvc(type: Copy, dependsOn:':authsvc:prepareWar') {
+    into "${workingDir}/conf/storageos-authsvc"
+    from { project(':authsvc').prepareWar.destinationDir }
+}
+
+task cleanRuntime(type: Delete) {
+    delete workingDir
+}
+
+task runtime(type: Copy, dependsOn:[copyConfs, generateConfigDefaults, copyAuthsvc, copySasvcapi]) {
+    into "${workingDir}/conf"
+    // Copy keystore
+    from file("keystore")
+    // Simpler log4j configuration
+    from file("log4j-runtime.properties")
+    doLast {
+        // Strip out the loggingMBean in jmx-conf.xml
+        stripBean(file("${workingDir}/conf/jmx-conf.xml"), "loggingMBean")
+        file("${workingDir}/logs").mkdirs()
+        file("${workingDir}/data").mkdirs()
+    }
+    finalizedBy('launchers')
+}
+
+def stripBean(def file, def id) {
+    file.text = file.text.replaceAll("(?s)<bean id=['\"]${id}['\"].*?</bean>", "")
+}
+
+def getLauncher(args, jvmArgs) {
+    def workingPath = relativePath(workingDir)
+    """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+    <launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+    <listEntry value="/${project.name}"/>
+    </listAttribute>
+    <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+    <listEntry value="4"/>
+    </listAttribute>
+    <booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_START_ON_FIRST_THREAD" value="true"/>
+    <booleanAttribute key="org.eclipse.jdt.launching.DEFAULT_CLASSPATH" value="true"/>
+    <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="com.emc.vipr.launcher.ViPRLauncher"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="${args}"/>
+    <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="${project.name}"/>
+    <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="${jvmArgs} -Dproduct.home=\${workspace_loc:${project.name}}/${workingPath} -Dapple.awt.UIElement=true -Djava.net.preferIPv4Stack=true"/>
+    <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="\${workspace_loc:${project.name}}/${workingPath}"/>
+    </launchConfiguration>"""
+}
+task copyViprBootConfig(type: Copy) {
+    from "vipr-boot.properties"
+    into workingDir
+    outputs.upToDateWhen { false }
+}
+task copyViprConfig(type: Copy) {
+    from "vipr.properties"
+    into workingDir
+    outputs.upToDateWhen { false }
+}
+task viprBootLauncher(dependsOn: [runtime, copyViprBootConfig]) {
+    ext.contents = getLauncher("vipr-boot.properties", "-Xmx1024m -XX:MaxPermSize=128m")
+    ext.launcher = project.file("${workingDir}/vipr-boot.launch")
+    
+    inputs.property "contents", contents
+    outputs.file launcher
+    doLast {
+        launcher.text = contents
+    }
+}
+task viprLauncher(dependsOn: [runtime, copyViprConfig]) {
+    ext.contents = getLauncher("vipr.properties", "-Xmx2048m -XX:MaxPermSize=256m")
+    ext.launcher = project.file("${workingDir}/vipr.launch")
+    
+    inputs.property "contents", contents
+    outputs.file launcher
+    doLast {
+        launcher.text = contents
+    }
+}
+task launchers(dependsOn: [viprBootLauncher, viprLauncher]) << {
+}
+
+def viprIdeaLauncher(name, maxPermSize, node) {
+    def component = node.find {it.attributes()["name"] == "ProjectRunConfigurationManager"} ?:
+                    node.appendNode('component', [name:"ProjectRunConfigurationManager"])
+
+    def builder = new groovy.util.NodeBuilder()
+    component.append builder.configuration(name: name, type: "Application", factoryName: "Application", singleton:true) {
+        option(name: "MAIN_CLASS_NAME", value: "com.emc.vipr.launcher.ViPRLauncher")
+        option(name: "VM_PARAMETERS", value: "-Xmx1024m -XX:MaxPermSize=${maxPermSize} -Dproduct.home=\"${workingDir}\" " +
+                "-Dapple.awt.UIElement=true -Djava.net.preferIPv4Stack=true")
+        option(name: "PROGRAM_PARAMETERS", value: "${name}.properties")
+        option(name: "WORKING_DIRECTORY", value: "file://${workingDir}")
+        module(name: "runtime")
+    }
+}
+
+project.rootProject.idea.project.ipr.withXml { provider ->
+    viprIdeaLauncher("vipr-boot", "128m", provider.node)
+    viprIdeaLauncher("vipr", "256m", provider.node)
+}
+
+// Configure IDE task dependencies
+tasks['eclipseClasspath'].dependsOn('runtime')
+tasks['ideaModule'].dependsOn('runtime')
+
+def getKeyAndCert() {
+    def output;
+    new ByteArrayOutputStream().withStream { os ->
+        project.javaexec {
+            classpath = project.sourceSets.main.runtimeClasspath +
+                        project.files(project.workingDir.absolutePath + "/conf")
+            main = "com.emc.storageos.zkutils.Main"
+            args = ["getkeyandcert"]
+            standardOutput = os
+        }
+        output = os.toString()
+    }
+    def extract = {str ->
+        (output =~ /(?s)-----BEGIN ${str}.*END ${str}-----/)[0]
+    }
+    return [key:extract("RSA PRIVATE KEY"), cert:extract("CERTIFICATE")]
+}
+
+task showKeyAndCert(dependsOn: [runtime, compileJava]) << {
+    def pair = getKeyAndCert()
+    println pair["key"]
+    println pair["cert"]
+}
+
+task writeKeyAndCert(dependsOn: [runtime, compileJava]) << {
+    def pair = getKeyAndCert()
+    if (!project.hasProperty('certDir')) {
+        throw new InvalidUserDataException("You must provide a certDir property. Try '-PcertDir=/path/to/nginx/cert/dir'")
+    }
+    new File("${project.certDir}/storageos.key").write(pair["key"])
+    new File("${project.certDir}/storageos.crt").write(pair["cert"])
+}
+
+import org.apache.tools.ant.filters.TokenFilter;
+class StringReplaceFilter extends TokenFilter {
+    public StringReplaceFilter(java.io.Reader reader) {
+        super(reader)
+    }
+    
+    public void setReplacements(Map<String, String> replacements) {
+        replacements.each {
+            TokenFilter.ReplaceString filter = new TokenFilter.ReplaceString()
+            filter.from = it.key
+            filter.to = it.value
+            addReplaceString(filter)
+        }
+    }
+}

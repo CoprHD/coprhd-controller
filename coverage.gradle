@@ -1,0 +1,148 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+/** Scripts included using apply from: '' do not share buildscript classpath. */
+buildscript {
+    repositories {
+        if (project.hasProperty("withMavenLocal")) {
+            mavenLocal()
+        }
+
+        if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+            mavenCentral()
+
+            // need a few artifacts not available from Maven Central
+
+            maven {
+                url coprHD_aux_repo
+            }
+
+        } else {
+            maven {
+                name "artifactory"
+                url artifactoryUrl
+            }
+        }
+
+    }
+    dependencies {
+        classpath "com.emc.vipr.platform:gradle-plugins:${gradlePluginsVersion}"
+    }
+}
+
+apply plugin: 'coverage'
+
+
+configurations {
+    jacocoAgent
+}
+dependencies {
+    jacocoAgent  "org.jacoco:org.jacoco.agent:${coverage.jacocoVersion}"
+}
+
+// Copies jacoco into the lib directory
+task copyJacoco(type: Copy) {
+    // The jacocoagent.jar is embedded within the jar
+    from zipTree(configurations.jacocoAgent.singleFile).filter { it.name == 'jacocoagent.jar' }.singleFile
+    into "${buildDir}/lib"
+    rename { "jacocoagent-${coverage.jacocoVersion}.jar" }
+}
+afterEvaluate {
+    assembly.dependsOn copyJacoco
+}
+
+allprojects {
+    // Because this is applied as a separate file, the plugin classes that have been applied to the projects will
+    // be from a different classloader so we can't use plugins.withType(com.emc.gradle.scripts.ScriptsPlugin)
+    plugins.matching{ it.getClass().name == 'com.emc.gradle.scripts.ScriptsPlugin' }.all {
+        project.extensions.scripts.all {
+            coverageJvmArgs += "-javaagent:${project.installDir}/lib/jacocoagent-${coverage.jacocoVersion}.jar="+
+                               "destfile=${project.installDir}/logs/${name}.exec,sessionid=${name}"
+        }
+    }
+}
+
+
+/**
+ * Fetches coverage files from a remote system
+ */
+task coverageData(type:com.emc.gradle.remote.SFTP) {
+    onlyIf { project.hasProperty('devkit') }
+    host = project.hasProperty('devkit') ? project.devkit : ''
+    port = project.hasProperty('devkitPort') ? project.devkitPort : 22
+    user = project.hasProperty('devkitUser') ? project.devkitUser : 'root'
+    password = project.hasProperty('devkitPassword') ? project.devkitPassword : 'ChangeMe'
+    
+    ext.outputDir = project.file("${project.buildDir}/coverage")
+    outputs.dir outputDir
+    action { sftp->
+        def execFiles = sftp.ls("/opt/storageos/logs/*.exec")
+        if (execFiles.isEmpty()) {
+            throw new GradleException("No coverage data found")
+        }
+        // Distinguish between no files and empty files (which means that the service has not been shutdown)
+        execFiles = execFiles.findAll { it.attrs?.size > 0 }
+        if (execFiles.isEmpty()) {
+            throw new GradleException("Coverage data files are empty, shutdown ViPR to flush coverage information")
+        }
+
+        outputDir.mkdirs()
+        execFiles.each { entry->
+            String source = "/opt/storageos/logs/${entry.filename}"
+            String destination = new File(outputDir, entry.filename).absolutePath
+            logger.info("Getting ${source} -> ${destination}")
+            sftp.get(source, destination)
+        }
+    }
+}
+
+/**
+ * Generates a coverage report based on the coverage data retrieved from a remote system
+ */
+task remoteCoverageReport(type:JacocoReport) {
+    dependsOn coverageData
+    executionData fileTree(coverageData.outputDir.absolutePath).include("*.exec")
+    sourceDirectories = files()
+    classDirectories = files()
+    subprojects.each {
+        it.afterEvaluate {
+            sourceDirectories += files(it.sourceSets.main.java.srcDirs)
+            classDirectories += it.sourceSets.main.output
+        }
+    }
+    reports {
+        html {
+            enabled true
+            destination "${buildDir}/reports/remoteCoverage"
+        }
+    }
+}
+
+/**
+ * Generates a coverage report from execution data stored locally based on the 'coverageDir'
+ * property.  If not set, coverageDir defaults to /opt/storageos/logs.
+ */
+task localCoverageReport(type:JacocoReport) {
+    ext.coverageDir = project.hasProperty('coverageDir') ? project.coverageDir : '/opt/storageos/logs'
+    ext.coverageFiles = fileTree(coverageDir).include("*.exec")
+    
+    doFirst {
+        if (coverageFiles.files.isEmpty()) {
+            throw new GradleException("No coverage data found in ${coverageDir}")
+        }
+    }
+    executionData coverageFiles
+    sourceDirectories = files()
+    classDirectories = files()
+    subprojects.each {
+        it.afterEvaluate {
+            sourceDirectories += files(it.sourceSets.main.java.srcDirs)
+            classDirectories += it.sourceSets.main.output
+        }
+    }
+    reports {
+        html {
+            enabled true
+            destination "${buildDir}/reports/localCoverage"
+        }
+    }
+}

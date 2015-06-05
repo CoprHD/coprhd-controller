@@ -1,0 +1,130 @@
+%{
+  titleKey = 'vdcs.' + (vdc?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'VirtualDataCenters.description';
+  image = '/public/img/assets/VDC.png';
+}%
+%{
+   remoteConnectedVdcs = vdcs?.findAll { !it.local && it.connectionStatus == 'CONNECTED' }
+}%
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      
+        // know where it came from so can navigate back;
+        // only set the referrerUrl if it has not been set at some earlier point 
+        // i.e. in multi-step flows take into account error-handling
+        var referrerUrl = $('input[name="vdc.referrerUrl"]').val();
+		if(!referrerUrl)
+		  referrerUrl = document.referrer;
+        
+		// navigate back only if referral URL is different than this one
+		if(referrerUrl && referrerUrl != document.URL) {
+	        $('input[name="vdc.referrerUrl"]').val(referrerUrl);
+			// navigate cancel button to referrer url
+			$('div.form-actions a.btn').attr('href', referrerUrl);
+		}
+		util.collapsible('form');
+    });
+   </script>
+#{/set}
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+  .panel-group + .button-bar {
+    margin-top: 10px;
+  }
+  .panel {
+    margin-top: 5px
+  }
+  .panel-group .panel {
+    overflow: visible;
+  }
+</style>
+#{/set}
+#{extends 'main.html'/}
+#{set navSelected: ['nav.virtualStorage', 'nav.vdcs'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'vdcs.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+
+%{ editing = vdc?.id }%
+
+#{form @save(), id:'vdcForm', class:'form form-horizontal', autocomplete:"off", enctype:'multipart/form-data'}
+  #{if vdc?.id}
+    #{field 'vdc.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}  
+  #{/if}
+  #{field 'vdc.referrerUrl'}
+     <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  
+  <fieldset>
+  
+    #{field 'vdc.name'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.required = true
+        field.fieldKey = 'vdc.name'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+	#{field 'vdc.description'}
+      %{
+      	field.required = true
+        field.fieldKey = 'vdc.description'
+      }%
+      #{Form.textAreaControlGroup field:field /}
+    #{/field}
+    #{if !editing}
+	    #{field 'vdc.apiEndpoint'}
+	    %{
+	        field.required = true
+	        field.fieldKey = 'vdc.apiEndpoint'
+	      }%
+	      #{Form.controlGroup field:field}
+	          #{Form.inputText field:field/}
+	      #{/Form.controlGroup}
+	    #{/field}
+	#{/if}
+    #{if !editing}
+	  <div class="panel-group">
+	  #{collapse 'vdc.security', icon:'vipricon-security', expanded:true}  
+	    #{field 'vdc.secretKey'}
+	      %{
+	        field.required = true
+	        field.fieldKey = 'vdc.secretKey'
+	      }%
+	      #{Form.inputTextControlGroup field:field /}
+	    #{/field}
+	    #{field 'vdc.certChain'}
+	      %{
+	        field.required = true
+	        field.fieldKey = 'vdc.certChain'
+	      }%
+	      #{Form.fileUploadControlGroup field:field/}
+	    #{/field}	 
+	   #{/collapse}
+  	</div>
+    #{/if}
+  </fieldset>
+  
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()}
+  	#{if !editing}
+  	<div style="padding:5px;">
+  		<div id="rebootRequiredMessage" class="text-danger">&{'vdc.rebootRequiredMessage'}</div>
+  		<div id="rebootRoleRemoveMessage" class="text-danger">&{'vdc.rebootRoleRemoveMessage'}</div>
+  	</div>
+    #{/if}
+  #{/Form.saveCancelButtonBar}
+#{/form}
+</div>

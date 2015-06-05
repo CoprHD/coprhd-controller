@@ -1,0 +1,25 @@
+GET https://192.168.0.0:4443/vdc/varrays/urn:storageos:VirtualArray:05b2ed06-064a-4869-835e-5d2e002868fe:/available-attributes HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<available_attributes>
+  <attribute>
+    <values>
+      <value>isilon</value>
+    </values>
+    <name>system_type</name>
+  </attribute>
+  <attribute>
+    <values>
+      <value>CIFS</value>
+      <value>NFS</value>
+    </values>
+    <name>protocols</name>
+  </attribute>
+</available_attributes>

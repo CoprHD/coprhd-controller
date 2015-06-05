@@ -1,0 +1,95 @@
+#{extends 'main.html'/}
+#{set navSelected: ['nav.adminDashboard', 'nav.systemHealthDashboard'] /}
+
+<div class="page-header">
+  <h3>{{'system.healthdashboard.title' | t}}</h3>
+</div>
+
+#{alerts/}
+<div class="row">
+  <div class="col-xs-4 subtitle">
+    <span class="statusContainer" ng-repeat="(status, count) in statusCount">
+      <span class="statusCount">{{count}}</span>
+      <status type="node" status="{{status}}"></status>
+    </span>
+  </div>
+  <div class="col-xs-8 subtitle subtitle-right">
+    <span class="statusContainer">
+      <span class="text-muted statusTitle">{{'system.nodes.total' | t}}</span> 
+      <span class="statusCount status">{{nodeCount}}</span>
+      <span class="text-muted statusTitle">{{'adminDashboard.clusterStatus' | t}}</span> 
+      <status type="cluster" status="{{clusterInfo.currentState}}"></status>
+    </span>
+  </div>
+</div>
+  
+<div class="row">
+  <div class="col-sm-12">
+    #{DataTable.table id:'systemNodes',
+                      source: @listNodesJson(),
+                      dataTable:dataTable,
+                      expandable:true } 
+      #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}                   
+        #{DataTable.buttonBar}
+          <a href="@{AdminDashboard.clusterPoweroff}" class="btn btn-sm btn-danger" onclick="return confirm(Messages.get('adminDashboard.confirm.poweroff'))">#{icon 'off'/} &{'adminDashboard.cluster.poweroff'}</a>
+        #{/DataTable.buttonBar} 
+      #{/deadbolt.restrict}             
+    #{/DataTable.table}
+    #{DataTable.expandHtml @nodeDetails(':name'), table:'systemNodes'/}
+  </div>
+</div>
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group">
+        <a class="btn btn-default btn-xs" role="button" href="{{serviceUrl}}">{{'system.stats.services' | t}}</a>
+        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">{{'system.stats.actions'| t}}<span class='caret'></span></button>
+        <ul class="dropdown-menu dropdown-menu-right" role="menu">
+            <li><a href="@{logs()}?nodeId={{row.name}}{{allServices}}&startTime={{time}}">{{'system.stats.logs' | t}}</a></li>
+            #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+                <li ng-show="isRebootable" ><a href="{{rebootUrl}}" onclick="if (!confirm('&{'adminDashboard.confirm.reboot'}')){return false;}")>{{'system.stats.reboot' | t}}</a></li>
+            #{/deadbolt.restrict}
+        </ul>
+    </div>
+</script>
+
+<script id="inlineLink.html" type="text/ng-template">
+    <a href="@{systemHealth()}/{{row.name}}">{{row.name}}</a>
+</script>
+  
+<script type="text/javascript">
+   var nodeServiceUrl = #{jsAction @services(':nodeId') /}
+   var nodeRebootUrl = #{jsAction @nodeReboot(':nodeId') /}
+   angular.module('tags').directive({
+    actions: function() {
+        return {
+            restrict: "E",
+            templateUrl: "inlineActions.html",
+            link: function(scope, elem, attrs) {
+                scope.serviceUrl = nodeServiceUrl({'nodeId': scope.row.name});
+                scope.rebootUrl = nodeRebootUrl({'nodeId': scope.row.name});
+                scope.isRebootable = false;
+                if(scope.row.status.toUpperCase() == "GOOD"){
+                	scope.isRebootable = true;
+                }
+                scope.time = new Date().getTime() - (3600000);
+                scope.allServices = #{list items:allServices, as:'service'}#{ifnot service_isFirst}+#{/ifnot}"&service=${service}"#{/list};
+            }
+        }
+    },
+    url: function() {
+        return {
+            restrict: "E",
+            templateUrl: "inlineLink.html"
+        }
+    }
+   });
+   
+   function renderButtonBar(o,val) {
+       return "<actions></actions>";
+       
+   }
+   
+   function renderLink(o, val) {
+       return "<url></url>";
+   }
+</script>

@@ -1,0 +1,52 @@
+POST https://192.168.0.0:4443/vdc/auto-tier-policies/bulk
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:AutoTieringPolicy:15851e12-e4a2-4492-a730-4813e5978c3e:</id>
+    <id>urn:storageos:AutoTieringPolicy:43566560-2bb5-400d-baff-dfac323eaebd:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_auto_tiering_policies>
+    <auto_tiering_policy>
+        <creation_time>1379168993544</creation_time>
+        <id>urn:storageos:AutoTieringPolicy:43566560-2bb5-400d-baff-dfac323eaebd:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:43566560-2bb5-400d-baff-dfac323eaebd:" rel="self"/>
+        <name>FFSPolicy1</name>
+        <tags/>
+        <native_guid>SYMMETRIX+000195700363+FASTPOLICY+FFSPolicy1</native_guid>
+        <policy_enabled>true</policy_enabled>
+        <policy_name>FFSPolicy1</policy_name>
+        <provisioning_type>ThicklyProvisioned</provisioning_type>
+        <storage_system>
+            <id>urn:storageos:StorageSystem:515b836d-4612-468a-ae4e-f7d4efa812ac:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:515b836d-4612-468a-ae4e-f7d4efa812ac:" rel="self"/>
+        </storage_system>
+        <storage_pools>urn:storageos:StoragePool:00144972-bed4-4ada-9d36-fc617c74b280:</storage_pools>
+        <storage_pools>urn:storageos:StoragePool:16d6ae97-1848-4d33-850d-9aa5ca810e07:</storage_pools>
+        <storage_pools>urn:storageos:StoragePool:1190c284-110a-415f-b33f-b902b30bd970:</storage_pools>
+        <system_type>vmax</system_type>
+    </auto_tiering_policy>
+    <auto_tiering_policy>
+        <creation_time>1379168864106</creation_time>
+        <id>urn:storageos:AutoTieringPolicy:15851e12-e4a2-4492-a730-4813e5978c3e:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:15851e12-e4a2-4492-a730-4813e5978c3e:" rel="self"/>
+        <name>DEFAULT_NO_MOVEMENT</name>
+        <tags/>
+        <native_guid>CLARiiON+APM00121500018+FASTPOLICY+DEFAULT_NO_MOVEMENT</native_guid>
+        <policy_enabled>true</policy_enabled>
+        <policy_name>DEFAULT_NO_MOVEMENT</policy_name>
+        <provisioning_type>All</provisioning_type>
+        <storage_system>
+            <id>urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:" rel="self"/>
+        </storage_system>
+        <system_type>vnxblock</system_type>
+    </auto_tiering_policy>
+</bulk_auto_tiering_policies>

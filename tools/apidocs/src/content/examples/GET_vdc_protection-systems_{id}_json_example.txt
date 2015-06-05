@@ -1,0 +1,36 @@
+GET https://192.168.0.0:4443/vdc/protection-systems/urn:storageos:ProtectionSystem:10cdc65d-3d36-4e19-b1f6-c9f396df27e7:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "compatibility_status": "COMPATIBLE",
+    "creation_time": 1380721813332,
+    "id": "urn:storageos:ProtectionSystem:10cdc65d-3d36-4e19-b1f6-c9f396df27e7:",
+    "inactive": false,
+    "installation_id": "6b93babb3bc882b3a1695247e2d9b78f13ebddc0",
+    "ip_address": "example.com",
+    "job_discovery_status": "COMPLETE",
+    "job_metering_status": "CREATED",
+    "last_discovery_run_time": 1380721825711,
+    "last_discovery_status_message": "Discovery completed successfully for Protection System: urn:storageos:ProtectionSystem:10cdc65d-3d36-4e19-b1f6-c9f396df27e7:",
+    "last_metering_run_time": 0,
+    "link": {
+        "href": "/vdc/protection-systems/urn:storageos:ProtectionSystem:10cdc65d-3d36-4e19-b1f6-c9f396df27e7:",
+        "rel": "self"
+    },
+    "major_version": "3.5.SP2(p.74)",
+    "name": "rp_protection_system",
+    "native_guid": "RP+6b93babb3bc882b3a1695247e2d9b78f13ebddc0",
+    "next_discovery_run_time": 1380725413402,
+    "next_metering_run_time": 0,
+    "port_number": 7225,
+    "registration_status": "REGISTERED",
+    "secondary_ip": "192.168.0.10",
+    "system_type": "rp",
+    "tags": [],
+    "user_name": "admin"
+}

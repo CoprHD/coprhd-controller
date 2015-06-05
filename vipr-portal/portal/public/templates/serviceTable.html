@@ -1,0 +1,29 @@
+<div class="form-group">
+  <label class="control-label col-sm-3">{{table.label}}:</label>
+  <div class="col-sm-9 controls">
+    <table class="table">
+      <thead>
+      <tr>
+        <th ng-repeat="item in table.items | values | unlocked">{{item.label}}</th>
+        <th>&nbsp;</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr ng-repeat='row in table.value' ng-init="initRow()">
+        <td ng-repeat="item in row | values | unlocked">
+          <service-field name="{{table.name}}[{{$parent.$parent.$index}}].{{item.name}}" item="item" control-only='true'></service-field>
+        </td>
+        <td><a ng-click="deleteRow($index)" class="close">&times;</a></td>
+      </tr>
+      </tbody>
+      <tfoot>
+      <tr>
+        <td colspan="{{table.value.length}}">
+          <button type='button' class='btn btn-sm btn-success' ng-click="addRow()"><i v-icon='plus'></i>{{'button.add' | t}}</button>
+        </td>
+      </tr>
+      </tfoot>
+    </table>
+    <span ng-show="table.description" class="help-block">{{table.description}}</span>
+  </div>
+</div>

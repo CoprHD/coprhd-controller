@@ -1,0 +1,16 @@
+GET https://192.168.0.0:4443/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:8acf6bb6-f306-4931-a417-e6f1957fb910:/storage-tiers HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <storage_tiers>
+       <storage_tier>
+            <id>urn:storageos:StorageTier:719d2d85-dc2e-44ef-a4c6-9a1af2303b23:</id>
+            <link href="/vdc/storage-tiers/urn:storageos:StorageTier:719d2d85-dc2e-44ef-a4c6-9a1af2303b23:" rel="self"/>
+            <name>SYMMETRIX+000195700363+TIER+KT_TIER1</name>
+       </storage_tier>
+  </storage_tiers>

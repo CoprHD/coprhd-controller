@@ -1,0 +1,22 @@
+%{
+  clusterInfo = controllers.Common.getClusterInfoWithRoleCheck()
+}%
+
+#{if clusterInfo?.isNotStable() }
+  <div class="alert alert-info" ng-init="clusterUnstable = true">
+    <span id="clusterState" data-state="${clusterInfo.currentState}" style="margin-right: 1em;"></span>
+  &{'configProperties.clusterNotStable'}
+  </div>
+
+
+  #{set 'moreScripts'}
+    #{get 'moreScripts'/}
+    <script type="text/javascript">
+    $(function() {
+      render.clusterStatus('#clusterState', $('#clusterState').data('state'));
+    });
+    </script>
+  #{/set}
+#{/if}
+
+

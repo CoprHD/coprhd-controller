@@ -1,0 +1,32 @@
+PUT https://192.168.0.0:4443/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd: HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+   "name": "mds-a",
+   "ip_address": "192.168.0.2",
+   "port_number": "22",
+   "user_name": "no-user",
+   "password": "nopass"
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+   "op_id": "9e3d8548-b533-4bd4-be33-c431d4a0d4a9",
+   "resource": {
+      "id": "urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:",
+      "link": {
+         "href": "/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:",
+         "rel": "self"
+      },
+      "name": "mds-a"
+   },
+   "link": {
+      "href": "/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:/tasks/9e3d8548-b533-4bd4-be33-c431d4a0d4a9",
+      "rel": "self"
+   },
+   "start_time": "1380749215883",
+   "state": "pending"
+}

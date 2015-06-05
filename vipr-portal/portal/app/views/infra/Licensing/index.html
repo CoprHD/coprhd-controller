@@ -1,0 +1,71 @@
+%{
+  titleKey = 'system.healthdashbaord.title';
+  applicationName = util.BrandingTags.getApplicationName();
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.settings', 'nav.license'] /}
+
+#{DataTable.header titleKey:'system.about.license' /}
+#{DataTable.table id:'licenseFeature', dataTable:dataTable, expandable: true, source: @listJson()/}
+#{DataTable.expandHtml @itemDetails(':id'), table:'licenseFeature'/}
+
+#{if !util.SetupUtils.isOssBuild()}
+    #{Form.header titleKey:'system.about.licenseUpload', descriptionKey:'system.about.licenseUpload.help'/}
+    #{form @uploadLicense(), enctype:'multipart/form-data', method:'POST', id: 'licenseForm', class:'form form-horizontal', autocomplete:"off"}
+      #{field 'newLicenseFile'}
+        #{Form.fileUploadControlGroup field:field/}
+      #{/field}
+      #{Form.buttonBar}
+      <button type="submit" class="btn btn-default">#{icon 'upload'/} &{'license.uploadButton'}</button>
+      #{/Form.buttonBar}
+    #{/form}
+#{/if}
+
+#{script "systemhealth.js" /}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+  $(document).ready(function() {
+      $('form').on('submit', function() {
+        var button = $('button[type=submit]', this);
+        button.prop('disabled', true);
+        button.addClass('disabled');
+        $('i.glyphicon-repeat', button).show();
+        $('i.glyphicon-upload', button).hide();
+      });
+  });
+
+  function renderLicenseStatus(o, val) {
+    if (!val) {
+      return "";
+    }
+
+    var labels = {
+      'OVER_CAPACITY': 'text-warning',
+      'EXPIRED': 'text-danger',
+      'OK': 'text-success',
+      'OPEN_SOURCE': 'text-success'
+    }
+    var icons = {
+      'OVER_CAPACITY': 'glyphicon glyphicon-warning-sign',
+      'EXPIRED': 'glyphicon glyphicon-remove',
+      'OK': 'glyphicon glyphicon-ok',
+      'OPEN_SOURCE': 'glyphicon glyphicon-ok'
+    };
+
+    var messages = {
+      'OVER_CAPACITY': '&{'license.overCapacity'}',
+      'EXPIRED': '&{'license.expired'}',
+      'OK': '&{'license.licensed'}',
+      'OPEN_SOURCE': '&{'license.opensource'}'
+    };
+
+    var label = defaultValue(labels[val], '');
+    var icon = defaultValue(icons[val], 'glyphicon glyphicon-question-sign');
+    var message = defaultValue(messages[val], '&{'license.unknown'}');
+
+    return '<span class="' + label + '"><span class="' + icon + '"></span></span> <span>' + message+'</span>';
+  }
+</script>
+#{/set}

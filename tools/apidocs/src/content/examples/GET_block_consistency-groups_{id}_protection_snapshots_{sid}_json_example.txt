@@ -1,0 +1,58 @@
+GET https://192.168.0.0:4443/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:/protection/snapshots/urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:.json HTTP/.1.
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "name": "blockcgsnap1",
+  "id": "urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:",
+  "link": {
+    "rel": "self",
+    "href": "/block/snapshots/urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "wwn": "600601605D312F0070D78F421522E311",
+  "protocols": [
+    "FC"
+  ],
+  "parent": {
+    "id": "urn:storageos:Volume:7ab81667-500d-4e3c-b05a-f033384f05fb:",
+    "link": {
+      "rel": "self",
+      "href": "/block/volumes/urn:storageos:Volume:7ab81667-500d-4e3c-b05a-f033384f05fb:"
+    }
+  },
+  "project": {
+    "id": "urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:",
+    "link": {
+      "rel": "self",
+      "href": "/projects/urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:"
+    }
+  },
+  "creation_time": 1379679332152,
+  "storage_controller": "urn:storageos:StorageSystem:ed5035a8-5f72-43e8-b970-847b4d76e17c:",
+  "varray": {
+    "id": "urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:"
+    }
+  },
+  "device_label": "smi00796_7AC694B5_523C7D23_1",
+  "native_id": "16307",
+  "consistency_group": {
+    "id": "urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:",
+    "link": {
+      "rel": "self",
+      "href": "/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:"
+    }
+  },
+  "source_native_id": "00796",
+  "is_sync_active": true
+}

@@ -1,0 +1,17 @@
+GET https://192.168.0.0:4443/vdc/data-stores/ HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <data_stores>
+       <data_store>
+            <id>urn:storageos:HostingDeviceInfo:c850824c-955a-4f17-b49a-2d706076b3bf:</id>
+            <link href="/vdc/data-stores/filesystems/urn:storageos:HostingDeviceInfo:c850824c-955a-4f17-b49a-2d706076b3bf:" rel="self"/>
+            <name>store1</name>
+            <resource_type>filesystems</resource_type>
+       </data_store>
+  </data_stores>

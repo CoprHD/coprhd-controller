@@ -1,0 +1,14 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# VASA storage alarm messages for English localization
+#
+Alarm.ThinProvisioned = Storage lun thin provisioning capacity threshold {state}
+Alarm.Capability = system capability requirements {state}
+Alarm.Object = {object} health {state}
+StorageOS.commAlert = "Array Synchronization Operation Succeeded"
+StorageOS.SystemError = " System error {msg}"
+StorageOS.ArrayGeneric = " {msg}"
+StorageOS.AlertIndication = " Alert {msg} "
+

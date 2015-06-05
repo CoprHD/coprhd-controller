@@ -1,0 +1,18 @@
+GET https://192.168.0.0:4443/compute/hosts/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:Host:01ac679f-01f2-47ce-9342-9507f3fd12bd:',
+            'urn:storageos:Host:06d0fc6a-152e-40b9-bdbc-50a5ed224af8:',
+            'urn:storageos:Host:08f65438-5853-4560-a6f7-efcf8d5234ba:',
+            'urn:storageos:Host:0e747043-9ffb-4505-b280-488c4b0fff0f:'
+        ]
+    }
+}

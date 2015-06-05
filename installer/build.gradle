@@ -1,0 +1,21 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    installer {
+        mainClass = "com.emc.storageos.installer.InstallerMain"
+
+        jvmArgs += " -Djava.library.path=${project.installDir}/lib -XX:-PrintGCDateStamps -XX:-PrintGCDetails"
+    }
+}
+
+dependencies {
+    compile library(commons_logging),
+            library(commons_codec),
+            library(slf4j),
+            library(charva),
+            project(":serviceutils"),
+            project(":jmx")
+}
+

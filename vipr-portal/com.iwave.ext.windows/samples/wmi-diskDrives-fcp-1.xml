@@ -1,0 +1,180 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+  <s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/PullResponse</a:Action>
+    <a:MessageID>uuid:D2579BE3-5E45-4AB3-A2F9-6F70429C9D5A</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:51be9206-5602-4eab-a9e5-f7eeebf92e11</a:RelatesTo>
+  </s:Header>
+  <s:Body>
+    <n:PullResponse>
+      <n:Items>
+        <p:Win32_DiskDrive xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_DiskDrive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_DiskDrive_Type">
+          <p:Availability xsi:nil="true"/>
+          <p:BytesPerSector>512</p:BytesPerSector>
+          <p:Capabilities>3</p:Capabilities>
+          <p:Capabilities>4</p:Capabilities>
+          <p:CapabilityDescriptions>Random Access</p:CapabilityDescriptions>
+          <p:CapabilityDescriptions>Supports Writing</p:CapabilityDescriptions>
+          <p:Caption>DGC VRAID  Multi-Path Disk Device</p:Caption>
+          <p:CompressionMethod xsi:nil="true"/>
+          <p:ConfigManagerErrorCode>0</p:ConfigManagerErrorCode>
+          <p:ConfigManagerUserConfig>false</p:ConfigManagerUserConfig>
+          <p:CreationClassName>Win32_DiskDrive</p:CreationClassName>
+          <p:DefaultBlockSize xsi:nil="true"/>
+          <p:Description>Disk drive</p:Description>
+          <p:DeviceID>\\.\PHYSICALDRIVE1</p:DeviceID>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FirmwareRevision>0430</p:FirmwareRevision>
+          <p:Index>1</p:Index>
+          <p:InstallDate xsi:nil="true"/>
+          <p:InterfaceType>SCSI</p:InterfaceType>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:Manufacturer>(Standard disk drives)</p:Manufacturer>
+          <p:MaxBlockSize xsi:nil="true"/>
+          <p:MaxMediaSize xsi:nil="true"/>
+          <p:MediaLoaded>true</p:MediaLoaded>
+          <p:MediaType>Fixed hard disk media</p:MediaType>
+          <p:MinBlockSize xsi:nil="true"/>
+          <p:Model>DGC VRAID  Multi-Path Disk Device</p:Model>
+          <p:Name>\\.\PHYSICALDRIVE1</p:Name>
+          <p:NeedsCleaning xsi:nil="true"/>
+          <p:NumberOfMediaSupported xsi:nil="true"/>
+          <p:Partitions>0</p:Partitions>
+          <p:PNPDeviceID>MPIO\DISK&amp;VEN_DGC&amp;PROD_VRAID&amp;REV_0430\1&amp;7F6AC24&amp;0&amp;3630363136304642343732453039383742383031323243343945323131</p:PNPDeviceID>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:SCSIBus>0</p:SCSIBus>
+          <p:SCSILogicalUnit>1</p:SCSILogicalUnit>
+          <p:SCSIPort>3</p:SCSIPort>
+          <p:SCSITargetId>0</p:SCSITargetId>
+          <p:SectorsPerTrack>63</p:SectorsPerTrack>
+          <p:SerialNumber>APM00113903177</p:SerialNumber>
+          <p:Signature>0</p:Signature>
+          <p:Size>3216084480</p:Size>
+          <p:Status>OK</p:Status>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SystemCreationClassName>Win32_ComputerSystem</p:SystemCreationClassName>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:TotalCylinders>391</p:TotalCylinders>
+          <p:TotalHeads>255</p:TotalHeads>
+          <p:TotalSectors>6281415</p:TotalSectors>
+          <p:TotalTracks>99705</p:TotalTracks>
+          <p:TracksPerCylinder>255</p:TracksPerCylinder>
+        </p:Win32_DiskDrive>
+        <p:Win32_DiskDrive xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_DiskDrive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_DiskDrive_Type">
+          <p:Availability xsi:nil="true"/>
+          <p:BytesPerSector>512</p:BytesPerSector>
+          <p:Capabilities>3</p:Capabilities>
+          <p:Capabilities>4</p:Capabilities>
+          <p:CapabilityDescriptions>Random Access</p:CapabilityDescriptions>
+          <p:CapabilityDescriptions>Supports Writing</p:CapabilityDescriptions>
+          <p:Caption>DGC VRAID  Multi-Path Disk Device</p:Caption>
+          <p:CompressionMethod xsi:nil="true"/>
+          <p:ConfigManagerErrorCode>0</p:ConfigManagerErrorCode>
+          <p:ConfigManagerUserConfig>false</p:ConfigManagerUserConfig>
+          <p:CreationClassName>Win32_DiskDrive</p:CreationClassName>
+          <p:DefaultBlockSize xsi:nil="true"/>
+          <p:Description>Disk drive</p:Description>
+          <p:DeviceID>\\.\PHYSICALDRIVE2</p:DeviceID>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FirmwareRevision>0430</p:FirmwareRevision>
+          <p:Index>2</p:Index>
+          <p:InstallDate xsi:nil="true"/>
+          <p:InterfaceType>SCSI</p:InterfaceType>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:Manufacturer>(Standard disk drives)</p:Manufacturer>
+          <p:MaxBlockSize xsi:nil="true"/>
+          <p:MaxMediaSize xsi:nil="true"/>
+          <p:MediaLoaded>true</p:MediaLoaded>
+          <p:MediaType>Fixed hard disk media</p:MediaType>
+          <p:MinBlockSize xsi:nil="true"/>
+          <p:Model>DGC VRAID  Multi-Path Disk Device</p:Model>
+          <p:Name>\\.\PHYSICALDRIVE2</p:Name>
+          <p:NeedsCleaning xsi:nil="true"/>
+          <p:NumberOfMediaSupported xsi:nil="true"/>
+          <p:Partitions>0</p:Partitions>
+          <p:PNPDeviceID>MPIO\DISK&amp;VEN_DGC&amp;PROD_VRAID&amp;REV_0430\1&amp;7F6AC24&amp;0&amp;36303631363046423437324530394634433835303242343945323131</p:PNPDeviceID>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:SCSIBus>0</p:SCSIBus>
+          <p:SCSILogicalUnit>0</p:SCSILogicalUnit>
+          <p:SCSIPort>4</p:SCSIPort>
+          <p:SCSITargetId>0</p:SCSITargetId>
+          <p:SectorsPerTrack>63</p:SectorsPerTrack>
+          <p:SerialNumber>APM00113903177</p:SerialNumber>
+          <p:Signature>0</p:Signature>
+          <p:Size>4293596160</p:Size>
+          <p:Status>OK</p:Status>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SystemCreationClassName>Win32_ComputerSystem</p:SystemCreationClassName>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:TotalCylinders>522</p:TotalCylinders>
+          <p:TotalHeads>255</p:TotalHeads>
+          <p:TotalSectors>8385930</p:TotalSectors>
+          <p:TotalTracks>133110</p:TotalTracks>
+          <p:TracksPerCylinder>255</p:TracksPerCylinder>
+        </p:Win32_DiskDrive>
+        <p:Win32_DiskDrive xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_DiskDrive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_DiskDrive_Type">
+          <p:Availability xsi:nil="true"/>
+          <p:BytesPerSector>512</p:BytesPerSector>
+          <p:Capabilities>3</p:Capabilities>
+          <p:Capabilities>4</p:Capabilities>
+          <p:CapabilityDescriptions>Random Access</p:CapabilityDescriptions>
+          <p:CapabilityDescriptions>Supports Writing</p:CapabilityDescriptions>
+          <p:Caption>ATA Hitachi HDE72101 SCSI Disk Device</p:Caption>
+          <p:CompressionMethod xsi:nil="true"/>
+          <p:ConfigManagerErrorCode>0</p:ConfigManagerErrorCode>
+          <p:ConfigManagerUserConfig>false</p:ConfigManagerUserConfig>
+          <p:CreationClassName>Win32_DiskDrive</p:CreationClassName>
+          <p:DefaultBlockSize xsi:nil="true"/>
+          <p:Description>Disk drive</p:Description>
+          <p:DeviceID>\\.\PHYSICALDRIVE0</p:DeviceID>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FirmwareRevision>A3AA</p:FirmwareRevision>
+          <p:Index>0</p:Index>
+          <p:InstallDate xsi:nil="true"/>
+          <p:InterfaceType>SCSI</p:InterfaceType>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:Manufacturer>(Standard disk drives)</p:Manufacturer>
+          <p:MaxBlockSize xsi:nil="true"/>
+          <p:MaxMediaSize xsi:nil="true"/>
+          <p:MediaLoaded>true</p:MediaLoaded>
+          <p:MediaType>Fixed hard disk media</p:MediaType>
+          <p:MinBlockSize xsi:nil="true"/>
+          <p:Model>ATA Hitachi HDE72101 SCSI Disk Device</p:Model>
+          <p:Name>\\.\PHYSICALDRIVE0</p:Name>
+          <p:NeedsCleaning xsi:nil="true"/>
+          <p:NumberOfMediaSupported xsi:nil="true"/>
+          <p:Partitions>2</p:Partitions>
+          <p:PNPDeviceID>SCSI\DISK&amp;VEN_ATA&amp;PROD_HITACHI_HDE72101\5&amp;125ACDE&amp;0&amp;000000</p:PNPDeviceID>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:SCSIBus>0</p:SCSIBus>
+          <p:SCSILogicalUnit>0</p:SCSILogicalUnit>
+          <p:SCSIPort>2</p:SCSIPort>
+          <p:SCSITargetId>0</p:SCSITargetId>
+          <p:SectorsPerTrack>63</p:SectorsPerTrack>
+          <p:SerialNumber>      STN608MQ0AZ8HF</p:SerialNumber>
+          <p:Signature>1124813769</p:Signature>
+          <p:Size>1000202273280</p:Size>
+          <p:Status>OK</p:Status>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SystemCreationClassName>Win32_ComputerSystem</p:SystemCreationClassName>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:TotalCylinders>121601</p:TotalCylinders>
+          <p:TotalHeads>255</p:TotalHeads>
+          <p:TotalSectors>1953520065</p:TotalSectors>
+          <p:TotalTracks>31008255</p:TotalTracks>
+          <p:TracksPerCylinder>255</p:TracksPerCylinder>
+        </p:Win32_DiskDrive>
+      </n:Items>
+      <n:EndOfSequence/>
+    </n:PullResponse>
+  </s:Body>
+</s:Envelope>

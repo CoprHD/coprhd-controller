@@ -1,0 +1,8 @@
+%{
+    id = "root_${_arg}"
+    subnav = "menu_${_arg}"
+    title = "nav.${_arg}"
+    active = navSelected?.find { it == title }
+}%
+<a href="${_href}" id="${id}" class="rootNav ${active ? 'active' : ''}" data-toggle="tooltip" data-placement="right" title="&{title}" 
+>#{icon _icon/}</a>

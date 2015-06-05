@@ -1,0 +1,24 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateFileSnapshot.File",
+  serviceId:"CreateFileSnapshot",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileSnapshotFilesystem"
+    },
+    
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    }         
+  }
+}

@@ -1,0 +1,23 @@
+%{
+  locked = _locked
+  field = _field
+}%
+#{if locked}
+  %{ 
+    field.disabled = true
+    if (!field.atts) {
+        field.atts = [:]
+    }
+    field.atts.put('data-readonly', 'true')
+  }%
+  #{if field.value instanceof java.util.Collection}
+    <div class="locked">
+      #{list items:field.value, as:'value'}
+        <input id="${field.id}_locked${value_index}" class="locked" type="hidden" name="${field.name}" value="${value}">
+      #{/list}
+    </div>
+  #{/if}
+  #{else}
+    <input id="${field.id}_locked" class="locked" type="hidden" name="${field.name}" value="${field.value}">
+  #{/else}
+#{/if}

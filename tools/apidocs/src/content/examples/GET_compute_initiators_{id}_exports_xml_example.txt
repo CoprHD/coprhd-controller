@@ -1,0 +1,179 @@
+GET https://192.168.0.0:4443/compute/initiators/urn:storageos:Host:0ad4cab1-77b6-4919-bfb5-07e1fc3f3ac5:/exports HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+<itls>
+       <itl>
+              <device>
+                     <id>urn:storageos:Volume:d84159a9-5ef0-4415-ac73-7c8548fc40ab:</id>
+                     <link
+                           href="/block/volumes/urn:storageos:Volume:d84159a9-5ef0-4415-ac73-7c8548fc40ab:"
+                           rel="self" />
+                     <wwn>60000970000195900701533234043614</wwn>
+              </device>
+              <export>
+                     <id>urn:storageos:ExportGroup:223e6ecb-2fff-4160-92cf-b440331b40c5:
+                     </id>
+                     <link
+                           href="/block/exports/urn:storageos:ExportGroup:223e6ecb-2fff-4160-92cf-b440331b40c5:"
+                           rel="self" />
+                     <name>PnS-ExportGroup-dphcfbq5</name>
+              </export>
+              <hlu>144</hlu>
+              <initiator>
+                     <id>urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:
+                     </id>
+                     <link
+                           href="/compute/initiators/urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:"
+                           rel="self" />
+                     <port>B3:00:00:00:00:00:00:01</port>
+              </initiator>
+              <target>
+                     <id>urn:storageos:StoragePort:12146d6c-b266-4e58-b285-f3af231b3a25:
+                     </id>
+                     <link
+                           href="/vdc/storage-systems/urn:storageos:StorageSystem:de355bca-1254-4d39-a040-7eb6508aed29:/storage-ports/urn:storageos:StoragePort:12146d6c-b266-4e58-b285-f3af231b3a25:"
+                           rel="self" />
+                     <port>50:00:09:82:94:A7:EC:01</port>
+              </target>
+       </itl>
+       <itl>
+              <device>
+                     <id>urn:storageos:Volume:d84159a9-5ef0-4415-ac73-7c8548fc40ab:</id>
+                     <link
+                           href="/block/volumes/urn:storageos:Volume:d84159a9-5ef0-4415-ac73-7c8548fc40ab:"
+                           rel="self" />
+                     <wwn>60000970000195900701533234043614</wwn>
+              </device>
+              <export>
+                     <id>urn:storageos:ExportGroup:223e6ecb-2fff-4160-92cf-b440331b40c5:
+                     </id>
+                     <link
+                           href="/block/exports/urn:storageos:ExportGroup:223e6ecb-2fff-4160-92cf-b440331b40c5:"
+                           rel="self" />
+                     <name>PnS-ExportGroup-dphcfbq5</name>
+              </export>
+              <hlu>144</hlu>
+              <initiator>
+                     <id>urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:
+                     </id>
+                     <link
+                           href="/compute/initiators/urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:"
+                           rel="self" />
+                     <port>B3:00:00:00:00:00:00:01</port>
+              </initiator>
+              <target>
+                     <id>urn:storageos:StoragePort:417ac395-73fc-4f24-9e49-7dc9762e7b5f:
+                     </id>
+                     <link
+                           href="/vdc/storage-systems/urn:storageos:StorageSystem:de355bca-1254-4d39-a040-7eb6508aed29:/storage-ports/urn:storageos:StoragePort:417ac395-73fc-4f24-9e49-7dc9762e7b5f:"
+                           rel="self" />
+                     <port>50:00:09:82:35:98:94:DC</port>
+              </target>
+       </itl>
+       <itl>
+              <device>
+                     <id>urn:storageos:Volume:9b23747c-6292-4fa1-8091-07a479a1f4ea:</id>
+                     <link
+                           href="/block/volumes/urn:storageos:Volume:9b23747c-6292-4fa1-8091-07a479a1f4ea:"
+                           rel="self" />
+                     <wwn>60000970000195900701533301876434</wwn>
+              </device>
+              <export>
+                     <id>urn:storageos:ExportGroup:8249ee4b-ed65-4042-87d0-b4094db82a6d:
+                     </id>
+                     <link
+                           href="/block/exports/urn:storageos:ExportGroup:8249ee4b-ed65-4042-87d0-b4094db82a6d:"
+                           rel="self" />
+                     <name>PnS-ExportGroup-8hdwo8sr</name>
+              </export>
+              <hlu>115</hlu>
+              <initiator>
+                     <id>urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:
+                     </id>
+                     <link
+                           href="/compute/initiators/urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:"
+                           rel="self" />
+                     <port>B3:00:00:00:00:00:00:01</port>
+              </initiator>
+              <target>
+                     <id>urn:storageos:StoragePort:12146d6c-b266-4e58-b285-f3af231b3a25:
+                     </id>
+                     <link
+                           href="/vdc/storage-systems/urn:storageos:StorageSystem:de355bca-1254-4d39-a040-7eb6508aed29:/storage-ports/urn:storageos:StoragePort:12146d6c-b266-4e58-b285-f3af231b3a25:"
+                           rel="self" />
+                     <port>50:00:09:82:94:A7:EC:01</port>
+              </target>
+       </itl>
+       <itl>
+              <device>
+                     <id>urn:storageos:Volume:9b23747c-6292-4fa1-8091-07a479a1f4ea:</id>
+                     <link
+                           href="/block/volumes/urn:storageos:Volume:9b23747c-6292-4fa1-8091-07a479a1f4ea:"
+                           rel="self" />
+                     <wwn>60000970000195900701533301876434</wwn>
+              </device>
+              <export>
+                     <id>urn:storageos:ExportGroup:8249ee4b-ed65-4042-87d0-b4094db82a6d:
+                     </id>
+                     <link
+                           href="/block/exports/urn:storageos:ExportGroup:8249ee4b-ed65-4042-87d0-b4094db82a6d:"
+                           rel="self" />
+                     <name>PnS-ExportGroup-8hdwo8sr</name>
+              </export>
+              <hlu>115</hlu>
+              <initiator>
+                     <id>urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:
+                     </id>
+                     <link
+                           href="/compute/initiators/urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:"
+                           rel="self" />
+                     <port>B3:00:00:00:00:00:00:01</port>
+              </initiator>
+              <target>
+                     <id>urn:storageos:StoragePort:417ac395-73fc-4f24-9e49-7dc9762e7b5f:
+                     </id>
+                     <link
+                           href="/vdc/storage-systems/urn:storageos:StorageSystem:de355bca-1254-4d39-a040-7eb6508aed29:/storage-ports/urn:storageos:StoragePort:417ac395-73fc-4f24-9e49-7dc9762e7b5f:"
+                           rel="self" />
+                     <port>50:00:09:82:35:98:94:DC</port>
+              </target>
+       </itl>
+       <itl>
+              <device>
+                     <id>urn:storageos:Volume:ca330f32-cc35-4acb-b57f-03683a1f55a4:</id>
+                     <link
+                           href="/block/volumes/urn:storageos:Volume:ca330f32-cc35-4acb-b57f-03683a1f55a4:"
+                           rel="self" />
+                     <wwn>60000970000195900701533914036039</wwn>
+              </device>
+              <export>
+                     <id>urn:storageos:ExportGroup:c6b6946d-ffe6-4c29-9b03-a855688aae80:
+                     </id>
+                     <link
+                           href="/block/exports/urn:storageos:ExportGroup:c6b6946d-ffe6-4c29-9b03-a855688aae80:"
+                           rel="self" />
+                     <name>PnS-ExportGroup-4o1o5bdd</name>
+              </export>
+              <hlu>-1</hlu>
+              <initiator>
+                     <id>urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:
+                     </id>
+                     <link
+                           href="/compute/initiators/urn:storageos:Initiator:7a9b693f-7fc0-416b-ba58-a9e5acab72cc:"
+                           rel="self" />
+                     <port>B3:00:00:00:00:00:00:01</port>
+              </initiator>
+              <target>
+                     <id>urn:storageos:StoragePort:d169f888-ef35-4e11-be05-281eadf775f4:
+                     </id>
+                     <link
+                           href="/vdc/storage-systems/urn:storageos:StorageSystem:9d6ffd3b-b509-4bf7-8e1e-7279cf8d8876:/storage-ports/urn:storageos:StoragePort:d169f888-ef35-4e11-be05-281eadf775f4:"
+                           rel="self" />
+                     <port>50:00:09:82:EA:40:8F:51</port>
+              </target>
+       </itl>
+</itls>

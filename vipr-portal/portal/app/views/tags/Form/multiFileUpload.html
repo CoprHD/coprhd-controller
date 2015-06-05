@@ -1,0 +1,20 @@
+%{
+  field = _field;
+}%
+<div class="multi-file-upload-container">
+    <div class="multi-file-upload">
+    #{Form.controlGroup field:field, hasLoading:true }
+      <div class="input-group file-input ${field.cssClass}">
+        <input type="text" class="form-control" readonly>
+        <span class="input-group-btn">
+          <span class="btn btn-default btn-file">
+            &{'fileUpload.button.browse'} <input type="file" data-name="${field.name}" data-validator="${_validator}">
+          </span>
+          <span class="btn btn-default btn-file remove btn-danger disabled" title="&{'multiFileUpload.cancelUpload'}">
+              #{icon "trash", class:"white"/}
+          </span>
+        </span>
+      </div>
+    #{/Form.controlGroup}
+  </div>
+</div>

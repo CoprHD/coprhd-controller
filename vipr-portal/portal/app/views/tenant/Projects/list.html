@@ -1,0 +1,9 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.projects'] /}
+
+#{tenantSelector/}
+#{DataTable.header titleKey:'projects.list.title' /}
+#{DataTable.crudTable id:'projects', dataTable:dataTable, deleteConfirm:messages.get('projects.deleteConfirm')/}

@@ -1,0 +1,11 @@
+%{
+  field = _field;
+}%
+<div class="input-group file-input ${field.cssClass}">
+  <input type="text" class="form-control" readonly>
+  <span class="input-group-btn"> 
+    <span class="btn btn-default btn-file">
+      &{'fileUpload.button.browse'} <input type="file" id="${field.id}" name="${field.name}">
+    </span>
+  </span>
+</div>

@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/vdc/networks/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:Network:11e757b8-db6e-437e-b2c4-a859dfe014f8:',
+            'urn:storageos:Network:14d241e0-4cf1-4837-bb2d-6b94efa8928e:',
+            'urn:storageos:Network:196ee2c8-1666-479e-a793-f09aad198144:',
+            'urn:storageos:Network:19ed8220-df0d-40e7-8e70-c709e73ad39e:',
+            'urn:storageos:Network:7f895d5e-f21a-4944-909c-f2eccb579160:',
+            'urn:storageos:Network:9b1c27ba-d22c-4d83-87c6-62a10e9a15ef:'
+        ]
+    }
+}

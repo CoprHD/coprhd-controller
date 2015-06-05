@@ -1,0 +1,9 @@
+/var/log/ntp {
+    notifempty
+    missingok
+    copytruncate
+    postrotate
+        chmod 644 /var/log/ntp
+    endscript
+}
+

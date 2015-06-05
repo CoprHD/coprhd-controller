@@ -1,0 +1,9 @@
+<div id="Order_executionLogs" #{if !details.logs}style="display:none"#{/if}>
+  <div class="master-detail">
+    <div class="header"><i class="indicator"></i>&{'order.executionLogs'}</div>
+    <div class="content" style="display:none">
+      #{Orders.logs logs:details.logs/}
+    </div>
+  </div>
+  <script>initStaticMasterDetail('#Order_executionLogs .master-detail');</script>
+</div>

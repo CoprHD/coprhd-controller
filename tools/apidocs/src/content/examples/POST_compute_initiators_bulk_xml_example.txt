@@ -1,0 +1,48 @@
+POST https://192.168.0.0:4443/compute/initiators/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:Initiator:0184b1ec-3ba4-4000-a82d-3034f18b60d3:</id>
+    <id>urn:storageos:Initiator:0e1e1d63-86d2-4041-a5ce-66c59ebcb052:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk-initiators>
+    <initiators>
+        <creation_time>1379175922082</creation_time>
+        <id>urn:storageos:Initiator:0e1e1d63-86d2-4041-a5ce-66c59ebcb052:</id>
+        <inactive>false</inactive>
+        <link href="/compute/initiators/urn:storageos:Initiator:0e1e1d63-86d2-4041-a5ce-66c59ebcb052:" rel="self"/>
+        <name>vmhba3</name>
+        <tags/>
+        <host>
+            <id>urn:storageos:Host:f9f4a3b7-6e04-41ff-9a33-630d8a760484:</id>
+            <link href="/compute/hosts/urn:storageos:Host:f9f4a3b7-6e04-41ff-9a33-630d8a760484:" rel="self"/>
+        </host>
+        <protocol>FC</protocol>
+        <hostname>lrmp086.lss.emc.com</hostname>
+        <initiator_node>20:00:00:00:C9:64:96:24</initiator_node>
+        <initiator_port>10:00:00:00:C9:64:96:24</initiator_port>
+    </initiators>
+    <initiators>
+        <creation_time>1379513850194</creation_time>
+        <id>urn:storageos:Initiator:0184b1ec-3ba4-4000-a82d-3034f18b60d3:</id>
+        <inactive>false</inactive>
+        <link href="/compute/initiators/urn:storageos:Initiator:0184b1ec-3ba4-4000-a82d-3034f18b60d3:" rel="self"/>
+        <name>vmhba1</name>
+        <tags/>
+        <host>
+            <id>urn:storageos:Host:c88a1338-d9e0-41aa-8d26-f61d0f2b19a2:</id>
+            <link href="/compute/hosts/urn:storageos:Host:c88a1338-d9e0-41aa-8d26-f61d0f2b19a2:" rel="self"/>
+        </host>
+        <protocol>FC</protocol>
+        <hostname>lrma059.lss.emc.com</hostname>
+        <initiator_node>20:00:00:00:C9:86:5A:74</initiator_node>
+        <initiator_port>10:00:00:00:C9:86:5A:74</initiator_port>
+    </initiators>
+</bulk-initiators>

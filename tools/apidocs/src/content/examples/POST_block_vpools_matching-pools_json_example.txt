@@ -1,0 +1,58 @@
+POST https://192.168.0.0:4443/block/vpools/matching-pools.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "use_matched_pools" : "true",
+    "system_type" : "vnxblock",
+    "provisioning_type" : "thin"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "storage_pool": [
+    {
+      "name": "CLARIION+APM00120400480+POOL+U+Pool 2",
+      "id": "urn:storageos:StoragePool:5ec6fa92-1c94-4315-8b85-cbf9c91e25e9:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:ed5035a8-5f72-43e8-b970-847b4d76e17c:/storage-pools/urn:storageos:StoragePool:5ec6fa92-1c94-4315-8b85-cbf9c91e25e9:"
+      }
+    },
+    {
+      "name": "CLARIION+APM00121202922+POOL+U+Pool 2",
+      "id": "urn:storageos:StoragePool:d4c6dd87-348f-422f-b3c4-2a6239734cb2:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:dc56440b-296c-4b7a-bd77-bf222cba45e2:/storage-pools/urn:storageos:StoragePool:d4c6dd87-348f-422f-b3c4-2a6239734cb2:"
+      }
+    },
+    {
+      "name": "CLARIION+APM00120701245+POOL+U+ViPR Development",
+      "id": "urn:storageos:StoragePool:53e905a7-9b4c-4e57-9a77-f98ddb67b66e:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:b03f9168-a7c8-49e1-a395-9d23a9999617:/storage-pools/urn:storageos:StoragePool:53e905a7-9b4c-4e57-9a77-f98ddb67b66e:"
+      }
+    },
+    {
+      "name": "CLARIION+APM00121202922+POOL+U+Mixed Disk",
+      "id": "urn:storageos:StoragePool:31d0cd23-d7b0-4c88-af71-690f5a4d3058:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:dc56440b-296c-4b7a-bd77-bf222cba45e2:/storage-pools/urn:storageos:StoragePool:31d0cd23-d7b0-4c88-af71-690f5a4d3058:"
+      }
+    },
+    {
+      "name": "CLARIION+APM00121202922+POOL+U+cli",
+      "id": "urn:storageos:StoragePool:ffa42140-feea-4f92-aeac-5d787af599e6:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:dc56440b-296c-4b7a-bd77-bf222cba45e2:/storage-pools/urn:storageos:StoragePool:ffa42140-feea-4f92-aeac-5d787af599e6:"
+      }
+    }
+  ]
+}

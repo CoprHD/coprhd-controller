@@ -1,0 +1,177 @@
+%{
+    titleKey = 'userGroup.' + (userGroup?.id ? 'edit' : 'create') + '.title';
+    descriptionKey = 'userGroup.' + (userGroup?.id ? 'edit' : 'create') + '.description';
+    image = '/public/img/assets/UserGroup.png';
+
+    useFlashData = false;
+    attributes = [];
+    attributeIndex = -1;
+    for (e in flash.data) {
+        attributePrefix = "userGroup.attributes"
+        maxAttributeIndex = 0;
+        if (e.key.contains(attributePrefix + "[") && e.key.contains("].key")) {
+            attributeIndex = e.key.substring(e.key.lastIndexOf("[") + 1, e.key.lastIndexOf("]"))
+            attributeKey = flash[attributePrefix + "[" + attributeIndex + "]" + ".key"]
+            attributeValues = flash[attributePrefix + "[" + attributeIndex + "]" + ".values"]
+
+            attributeMapping = new controllers.auth.UserGroup.UserGroupForm.AttributeMapping()
+            attributeMapping.key = attributeKey
+            attributeMapping.values = attributeValues
+
+            attributes.putAt(Integer.valueOf(attributeIndex), attributeMapping)
+            maxAttributeIndex = Math.max(maxAttributeIndex, Integer.valueOf(attributeIndex));
+        }
+        useFlashData = true;
+    }
+
+    if(useFlashData) {
+        userGroup.attributes = attributes
+    }
+}%
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.security', 'nav.userGroup'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:userGroup?.id ? true : false/}
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  var editMode = #{get 'editMode'/};
+  var errors = #{get 'errors'/};
+
+   $(document).ready(function() {
+		if (!editMode && !errors) {
+    		setDefaults();
+        }
+        $(document).on('click', 'button[name="addAttributeButton"]', addAttribute);
+        $(document).on('click', 'button[name="deleteAttributeButton"]', deleteAttribute);
+    });
+    
+    function setDefaults() {
+    }
+
+    function addAttribute() {
+        var attributeIndex = ${attributeIndex};
+
+        attributeTable = $(this).closest('table');
+        attributeTable.find("input[name$='].key']").each(
+                function() {
+                    attributeIndex = Math.max(attributeIndex, $(this).data("attributeindex"));
+                }
+        )
+
+        attributeIndex = attributeIndex + 1
+        attributeTable.append('<tr><td><input class="form-control input-sm" type="text" name="userGroup.attributes['+attributeIndex+'].key" value="" data-attributeindex="'+attributeIndex+'"></td><td>=</td><td><textarea class="form-control input-sm" rows="2" name="userGroup.attributes['+attributeIndex+'].values"></textarea><span class="help-block">&{'userGroup.attribute.help'}</span></td><td><button type="button" name="deleteAttributeButton" class="btn btn-danger btn-xs left-space">#{icon 'trash', class:'white'/}</button></td></tr>')
+    }
+
+    function deleteAttribute() {
+        $(this).closest('tr').remove();
+        return false;
+    }
+
+  </script>
+#{/set}
+
+
+<div class="container">
+	#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+	
+	#{alerts/}
+	
+#{form @save(), id:'userGroupForm', class:'form form-horizontal', autocomplete:"off"}
+
+    <fieldset>
+    #{field 'userGroup.name'}
+     %{
+        field.required = true
+        field.disabled = editMode == true
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'userGroup.domain'}
+     %{
+        field.options = domainsJson
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup field:field /}
+    #{/field}
+
+    </fieldset>
+
+    <fieldset>
+        <legend>&{'userGroup.attributesList'}<small>&{'userGroup.attributesList.description'}</small></legend>
+                <table id="attributesTable" class="table" style="width: 700px;">
+                    <thead>
+                    <tr>
+                        <th style="...">&{'userGroup.attributes.table.header.name'}</th>
+                        <th style="..."></th>
+                        <th style="...">&{'userGroup.attributes.table.header.values'}</th>
+                        <th style="...">&nbsp;</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    #{list items:userGroup.attributes, as:'attribute'}
+                        #{if attribute}
+                            <tr>
+                                <td>
+                                    #{field 'userGroup.attributes[' + (attribute_index - 1) +'].key'}
+                                        %{
+                                            field.required = true
+                                        }%
+                                        <div id="${field.id}ControlGroup" class="${field.error ? "has-error" : ""}">
+                                            <input id="${field.id}" class="form-control input-sm" type="text" name="userGroup.attributes[${(attribute_index-1)}].key" value="${attribute.key}" data-attributeindex="${(attribute_index-1)}">
+                                            #{if field.error}<p class="help-inline clearfix">${field.error}</p>#{/if}
+                                        </div>
+                                    #{/field}
+                                </td>
+                                <td>=</td>
+                                <td>
+                                    #{field 'userGroup.attributes[' + (attribute_index - 1) +'].values'}
+                                        %{
+                                            field.required = true
+                                            field.helpTextKey = 'userGroup.attribute.help'
+                                        }%
+                                        <div id="${field.id}ControlGroup" class="${field.error ? "has-error" : ""}">
+                                            <textarea id="${field.id}" class="form-control input-sm" rows="2" name="userGroup.attributes[${(attribute_index-1)}].values">${attribute.values}</textarea>
+                                            #{if field.error}<p class="help-inline clearfix">${field.error}</p>#{/if}
+                                        </div>
+                                    #{/field}
+                                </td>
+                                <td><button style="margin-left:5px" type="button" name="deleteAttributeButton" class="btn btn-danger btn-xs left-space" alt="Delete Attribute">#{icon 'trash', class:'white'/}</button></td>
+                            </tr>
+                        #{/if}
+                    #{/list}
+                    <tfoot>
+                    <tr>
+                        <td colspan="4">
+                            <button type="button" name="addAttributeButton" class="btn btn-xs btn-success">&{'userGroup.add.attr'}</button>
+                        </td>
+                    </tr>
+                    </tfoot>
+                    </tbody>
+                </table>
+    </fieldset>
+
+    #{if userGroup?.id}
+        #{field 'userGroup.id'}
+            <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+
+        #{field 'userGroup.name'}
+            <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+
+    #{Form.saveCancel  /}
+#{/form}
+</div>

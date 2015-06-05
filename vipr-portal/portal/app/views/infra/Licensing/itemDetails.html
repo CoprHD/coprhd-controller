@@ -1,0 +1,15 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if lf?.errorMessage}
+  <p class="alert">${lf.errorMessage}</p>
+#{/if}
+
+<dl class="dl-horizontal col-sm-8">
+  <dt>&{'license.notice'}</dt>
+  <dd>${lf.notice}</dd>
+  #{if util.LicenseUtils.hasCapacity(lf)}
+    <dt>&{'license.storageCapacity'}</dt>
+    <dd><div style="width:100%">#{licenseProgressBar licenseFeature: lf, storageStatsWrapper: storageStatsWrapper /}</div></dd>
+  #{/if}
+</dl>

@@ -1,0 +1,74 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    geosvc {
+        mainClass = "com.emc.storageos.geo.service.impl.Main"
+        debugPort = "8104"
+        maxMemory = "86.2m"
+        maxMemoryFactor = "0.0106"
+        jvmArgs += " -DentityExpansionLimit=-1 -DbuildType=" + buildType
+        startupTimeoutSec = "180"
+    }
+}
+
+dependencies {
+
+    compile project(":geomodels"),
+            project(":security"),
+            project(":geodbsvc"),
+            // TODO: The following dependency is only for a temp solution. To be removed later
+            project(":syssvc"),
+            project(":apisvc")
+
+    testCompile library(enunciate)
+}
+
+test { 
+    outputs.upToDateWhen { false }
+    jvmArgs "-Dlog4j.configuration=geosvctest-log4j.properties"
+
+    exclude "com/emc/storageos/geo/service/GeoTest.class"
+    exclude "com/emc/storageos/geo/service/SSOTest.class"
+    exclude "com/emc/storageos/geo/service/RoleChangeTest.class"
+}
+
+task ApiTest(type: Test, dependsOn: compileTestJava) {
+
+    outputs.upToDateWhen { false }
+
+    include "com/emc/storageos/geo/service/GeoTest.class"
+    environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "false"
+    environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
+}
+
+// ./gradlew RoleChangeTest -PAPP_HOST_NAMES=lglwxxxxxx.lss.emc.com -PREMOTE_VDC_VIP=lglwxxx.lss.emc.com
+// prerequisite:
+//   1) add AD server 10.247.100.165 (sanity.local),
+//   2) assign super_sanity@Sanity.Local as SECURITY_ADMIN and SYSTEM_ADMIn
+//   3) 2 VDCs link together
+task RoleChangeTest (type: Test, dependsOn: compileTestJava) {
+
+    outputs.upToDateWhen { false }
+
+    include "com/emc/storageos/geo/service/RoleChangeTest.class"
+    environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "true"
+    environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
+    // "target" VDC (aka VDC2)
+    environment "REMOTE_VDC_VIP", project.ext.has('REMOTE_VDC_VIP') ? project.ext.REMOTE_VDC_VIP : ""
+}
+
+// ./gradlew SSOTest -PAPP_HOST_NAMES=lglwxxxxxx.lss.emc.com -PREMOTE_VDC_VIP=lglwxxx.lss.emc.com
+task SSOTest(type: Test, dependsOn: compileTestJava) {
+	
+    outputs.upToDateWhen { false }
+
+    include "com/emc/storageos/geo/service/SSOTest.class"
+    environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "true"
+    environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
+    // "target" VDC (aka VDC2)
+    environment "REMOTE_VDC_VIP", project.ext.has('REMOTE_VDC_VIP') ? project.ext.REMOTE_VDC_VIP : ""
+    // Run extended tests, requires applliance configuration, see SSOTest.java for details.
+    environment "RUN_EXTENDED_TESTS", project.ext.has('RUN_EXTENDED_TESTS') ? project.ext.RUN_EXTENDED_TESTS : "false"
+}

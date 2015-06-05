@@ -1,0 +1,47 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateBareMetalCluster.Compute",
+  serviceId:"CreateBareMetalCluster",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    },
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+    computeVirtualPool: {
+      type:"assetType.vipr.computeVirtualPool"
+    },
+    hosts:{
+	  type:"table",
+	  items:{
+	      fqdns:{ type:"text",
+	        validation:{
+            max:255
+          }
+	    }
+	  }
+    },
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true,
+      group:1
+    },
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    }
+  }  
+}

@@ -1,0 +1,24 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"RemoveBlockStorageForHost.Block",
+  serviceId:"RemoveBlockStorageForHost",
+  destructive: true,
+  fields: {
+    host:{
+      type:"assetType.vipr.host"
+    },
+    
+    volumes: {
+      type:"assetType.vipr.unmountedBlockResourceNoTargets",
+      select:"many" 
+    },
+
+    deletionType:{
+      type:"assetType.vipr.fullOnlyDeletionType",
+      lockable:true,
+      initialValue:"FULL",
+      select:"one"
+    }
+  }
+}

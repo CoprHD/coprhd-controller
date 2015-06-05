@@ -1,0 +1,99 @@
+/object/networks
+    GET getObjectNetwork
+    POST setObjectNetwork
+    /object/networks/{id}
+        GET getObjectNetworkById
+        PUT updateObjectNetwork
+    /object/networks/{id}/deactivate
+        POST deleteObjectNetwork
+/object/secret-keys
+    GET getKeys
+    POST createNewKey
+    /object/secret-keys/deactivate
+        POST deleteAllKeys
+/vdc/data-stores
+    GET getDataStoreList
+    /vdc/data-stores/{id}/deactivate
+        POST deactivateDataStore
+    /vdc/data-stores/{id}/tasks/{op_id}/
+        GET getTask
+    /vdc/data-stores/filesystems
+        POST createDataStoreOnFileSystem
+    /vdc/data-stores/nfsexportpoints
+        POST createDataStoreOnExportPoint
+    /vdc/data-stores/filesystems/{id}
+        PUT modifyFileSystemDataStore
+        GET getFileSystemsDataStore
+    /vdc/data-stores/nfsexportpoints/{id}
+        PUT modifyExportPointsDataStore
+        GET getNfsExportPointsDataStore
+    /vdc/data-stores/{id}/tasks
+        GET getTasks
+    /vdc/data-stores/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/data-stores/search
+        GET search
+    /vdc/data-stores/{id}/tags
+        GET getTags
+        PUT assignTags
+/object/baseurl
+    POST createBaseUrl
+    GET getBaseUrls
+    /object/baseurl/{id}/deactivate
+        POST deleteBaseUrl
+    /object/baseurl/{id}
+        PUT modifyBaseUrl
+        GET getBaseUrl
+/object/namespaces
+    GET getNamespaces
+    /object/namespaces/namespace/{id}
+        GET getNamespace
+    /object/namespaces/tenant/{id}
+        GET getTenantNamespace
+    /object/namespaces/namespace
+        POST createNamespace
+    /object/namespaces/namespace/{namespace}
+        PUT updateNamespace
+    /object/namespaces/namespace/{namespace}/deactivate
+        POST deactivateNamespace
+/object/data-services-vpools
+    POST createObjectStore
+    GET getObjectStores
+    /object/data-services-vpools/{id}/data-stores
+        GET getDataStoreList
+    /object/data-services-vpools/{id}
+        GET getObjectStore
+        PUT putObjectStore
+    /object/data-services-vpools/{id}/deactivate
+        POST deleteObjectStore
+/object/users
+    POST addUser
+    GET getAllUsers
+    /object/users/deactivate
+        POST removeUser
+/object/user-secret-keys
+    /object/user-secret-keys/{uid}
+        GET getKeysForUser
+        POST createNewKeyForUser
+    /object/user-secret-keys/{uid}/deactivate
+        POST deleteKeyForUser
+/object/atmos-importer
+    POST registerDevice
+    GET listAtmosDevices
+    /object/atmos-importer/{id}
+        PUT updateDataStore
+        GET getAtmosDevice
+    /object/atmos-importer/{id}/tasks/{op_id}/
+        GET getTask
+    /object/atmos-importer/{id}/tasks
+        GET getTasks
+    /object/atmos-importer/{id}/deactivate
+        POST deactivateAtmosDevice
+/object/user-password
+    /object/user-password/{uid}
+        PUT createPasswordGroupForUser
+        POST updatePasswordGroupForUser
+        GET getGroupsForUser
+    /object/user-password/{uid}/deactivate
+        POST removePasswordGroupForUser

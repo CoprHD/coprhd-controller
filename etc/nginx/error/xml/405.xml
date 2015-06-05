@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<error>
+  <code>6405</code>
+  <description>Method Not Allowed</description>
+  <details>Method not allowed.</details>
+  <retryable>false</retryable>
+</error>

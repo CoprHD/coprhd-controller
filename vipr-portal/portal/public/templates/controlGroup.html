@@ -1,0 +1,12 @@
+<div id="{{field.id}}ControlGroup" class="form-group {{required}} {{field.error ? 'has-error' : ''}}">
+  <div ng-show="noLabel" class="col-sm-{{labelWidth}}"></div>
+  <label ng-show="!noLabel" class="control-label col-sm-{{labelWidth}}" for="{{field.id}}">{{field.label || field.name}}:</label>
+  <div class="col-sm-{{width}} controls">
+    <content />
+    <span ng-show="field.helpText" class="help-block">{{field.helpText}}</span>
+  </div>
+  <div class="col-sm-{{errorWidth}}">
+    <span class="help-inline">{{field.error}}</span>
+    <loading ng-show='field.loading'></loading>
+  </div>
+</div>

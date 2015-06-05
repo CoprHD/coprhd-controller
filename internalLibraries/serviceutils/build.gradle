@@ -1,0 +1,14 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile project(":errorhandling"),
+            library(guava),
+            library(log4j),
+            library(slf4j),
+            library(jersey),
+            library(google_gson),
+            library(httpclient3),
+            library(spring),
+            library(commons_lang),
+            library(jmdns)
+}

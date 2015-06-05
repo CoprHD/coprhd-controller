@@ -1,0 +1,8 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.security', 'nav.providers'] /}
+
+#{DataTable.header titleKey:'LDAPsources.list.title' /}
+#{DataTable.crudTable id:'ldapSources', dataTable:dataTable, deleteConfirm:messages.get('LDAPsources.deleteConfirm')/}

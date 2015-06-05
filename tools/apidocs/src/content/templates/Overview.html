@@ -1,0 +1,41 @@
+<@include "StartHead.html">
+    <script>
+        \$(document).ready(function() {
+            addSearchKeyBinding();
+            setupTOC("${apiService.overviewFileName}");
+        });
+    </script>
+<@include "EndHead.html">
+
+<@include "StartBody.html">
+<@include "details/ChangeNotification.html">
+    <h3>${apiService.title}</h3>
+    <div class="resource">${apiService.path}</div>
+<% if (apiService.isDeprecated) { %>
+<div class="alert alert-warning">
+    This service has been deprecated and will be removed in future versions
+</div>
+<% } %>
+    <p class="description">${apiService.description}</p>
+    <table class="resourceTable table-striped">
+        <thead>
+        <tr>
+            <td width="60%">Resource</td>
+            <td>Description</td>
+        </tr>
+        </thead>
+        <tbody>
+
+        <%apiService.methods.each{ method -> %>
+
+        <tr>
+            <td><a href="${method.detailFileName}">${method.httpMethod} ${method.path}</a></td>
+            <td>${method.brief}</td>
+        </tr>
+
+        <% } %>
+
+        </tbody>
+
+    </table>
+<@include "EndBody.html">

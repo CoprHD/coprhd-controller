@@ -1,0 +1,38 @@
+PUT https://192.168.0.0:4443/vdc/admin/authnproviders/urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+ "group_whitelist_value_changes": 
+    {"remove": [ {"group_whitelist_value": "*Review"} ]
+   }
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "id": "urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:",
+  "link": {
+    "rel": "self",
+    "href": "/vdc/admin/authnproviders/urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "mode": "ldap",
+  "domains": [
+    "tenant.domain"
+  ],
+  "disable": false,
+  "creation_time": 1379170785677,
+  "server_urls": [
+    "ldap://192.168.0.10"
+  ],
+  "group_whitelist_values": [
+    "*Admins*",
+    "*Test*"
+  ]
+}

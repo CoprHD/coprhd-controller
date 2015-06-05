@@ -1,0 +1,18 @@
+GET https://192.168.0.0:4443/object/namespaces HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<namespaces>
+  <namespace>
+    <id>bob_namespace</id>
+    <link href="/object/namespaces/namespace/bob_namespace" rel="self"/>
+    <name>bob_namespace</name>
+  </namespace>
+</namespaces>

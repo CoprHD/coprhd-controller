@@ -1,0 +1,17 @@
+<authnprovider_create>
+    <mode>ad</mode>
+    <name>AD-lglw1197</name>
+    <server_urls>
+        <server_url>ldap://10.247.101.197</server_url>
+    </server_urls>
+    <domains>
+        <domain>secqe.com</domain>
+    </domains>
+    <manager_dn>CN=Administrator,CN=Users,DC=secqe,DC=com</manager_dn>
+    <manager_password>Dangerous1</manager_password>
+    <group_attribute>CN</group_attribute>
+    <search_base>CN=Users,DC=secqe,DC=com</search_base>
+    <search_filter>userPrincipalName=%u</search_filter>
+    <group_whitelist_values>
+    </group_whitelist_values>
+</authnprovider_create>

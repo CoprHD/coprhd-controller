@@ -1,0 +1,17 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# /etc/sysconfig/@product_name@
+#
+# @product_brand@ configuration parameters
+#
+
+# @product_brand@ installation top directory
+#
+STORAGEOS_DIR='@product_prefix@'
+
+# @product_brand@ log directory 
+#
+STORAGEOS_LOGS="${STORAGEOS_DIR}/logs"
+

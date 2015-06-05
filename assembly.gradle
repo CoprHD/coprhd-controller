@@ -1,0 +1,161 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+configurations {
+    cassandra
+}
+
+dependencies {
+    cassandra "org.apache.cassandra:apache-cassandra:2.0.7:bin@tar.gz"
+}
+
+task unpackCassandra(type: Copy) {
+    from tarTree(configurations.cassandra.singleFile)
+    into "${buildDir}/tmp"
+}
+
+task assembleCqlsh(type: Copy, dependsOn: unpackCassandra) {
+    def cassandraDir = "${buildDir}/tmp/apache-cassandra-2.0.7"
+    into "${buildDir}"
+    from ("${cassandraDir}/bin/cqlsh") {
+        into "bin"
+        fileMode = 0755
+    }
+    from ("${cassandraDir}/lib/cql-internal-only-1.4.1.zip") {
+        into "lib"
+    }
+    from ("${cassandraDir}/lib/thrift-python-internal-only-0.9.1.zip") {
+        into "lib"
+    }
+    from ("${cassandraDir}/pylib") {
+        into "pylib"
+    }
+}
+
+// Creates symlinks for shared objects, all pointing to the most specific version in the same directory
+def createSharedLibrarySymlinks(File f) {
+    def targetFile = f
+    // Find all other files that match and target the one with the longest name (most specific version)
+    def matchingFiles = f.parentFile.listFiles()?.findAll {
+        def matches = it.name.startsWith(f.name)
+        if (matches && (it.name.length() > targetFile.name.length())) {
+            targetFile = it
+        }
+        matches
+    }
+    
+    // Erase all other files and re-create as links to the target
+    matchingFiles.each {
+        if (it != targetFile) {
+            ant.symlink(link:it.absolutePath, resource:targetFile.name, overwrite:true)
+        }
+    }
+}
+
+// Internal flag is used to indicate if a project should not be included in the main build/rpm
+def eachExternalProject(Closure closure) {
+    subprojects.each {project ->
+        // Configure target after evaluate, so subproject configurations are created, including internal flag
+        project.afterEvaluate {
+            def skipForOss = buildType == "oss" && ( project.name == "vasa" || project.name == "installer" )
+            if ( !skipForOss && (!project.ext.has('internalLibrary') || !project.internalLibrary)) {
+                closure(project)
+            }
+        }
+    }
+}
+
+task assembleLibs(type: Copy) {
+    into "${buildDir}/lib"
+    eachExternalProject { project->
+        from project.configurations.runtime
+        from project.configurations.runtime.allArtifacts.files
+        from project.configurations.packagingLib
+    }
+    exclude "**/hamcrest-*.jar"
+    from "${jdkHome}/lib/tools.jar"
+}
+
+task assembleWars() {
+    ext.externalProjects = []
+    eachExternalProject { project->
+        dependsOn project.tasks.getByName('assemble')
+        externalProjects << project
+    }
+    doLast {
+        def destDir = "${buildDir}/lib"
+        externalProjects.each { project->
+            def wars = project.fileTree("${project.buildDir}/libs").include("*.war")
+            wars.each { file->
+                def warName = file.name.replaceAll("\\.war\$", "")
+                def warDir = rootProject.file("${destDir}/${warName}")
+                if (warDir.isDirectory()) {
+                    warDir.deleteDir()
+                }
+                ant.unzip(src:file, dest:warDir.path, overwrite:true)
+            }
+        }
+    }
+}
+
+task assembleScripts(type: Copy) {
+    eachExternalProject { project->
+        // FIXME: hardcode to openjdk for now, need to find a way for customer to override it.
+        if (buildType == 'oss')
+            project.jdkHome = '/usr/lib64/jvm/java-1.7.0-openjdk'
+
+        from "${project.buildDir}/bin"
+        dependsOn project.tasks.getByName('assemble')
+    }
+    into "${buildDir}/bin"
+    fileMode = 0755
+}
+
+task assembleConfs(type: Copy) {
+    eachExternalProject {
+        from "${it.projectDir}/src/conf"
+        from "${it.projectDir}/src/${buildType}/conf"
+        from "${it.projectDir}/src/main/resources"
+    }
+    def platformDir = project(":com.iwave.platform").projectDir
+    from "${platformDir}/dist/conf"
+    into "${buildDir}/conf"
+}
+
+task assemblePortal(type: Copy, dependsOn: ":portal:assemble") {
+    def portal = project(":portal")
+    into buildDir
+    into("portal") {
+        from "${portal.buildDir}/dist"
+    }
+    into("play") {
+        includeEmptyDirs = false
+        from { "${portal.buildDir}/play/play-${portal.extensions.play.version}" }
+        exclude "documentation/"
+        exclude "samples-and-tests/"
+        exclude "support/"
+        exclude "**/junit-*.jar"
+    }
+    into("conf") {
+        from "${portal.buildDir}/dist/conf"
+        include "log4j-prod.properties"
+        rename {"portalsvc-log4j.properties"}
+    }
+    doLast {
+        // Create a symlink for the log4j config
+        if (!rootProject.isWindows) {
+            ant.symlink(
+                link: "${buildDir}/portal/conf/log4j-prod.properties",
+                resource: "../../conf/portalsvc-log4j.properties",
+                overwrite:true)
+        }
+    }
+}
+
+task assemblePlatform(type: Copy) {
+    def platformDir = project(":com.iwave.platform").projectDir
+    from "${platformDir}/dist/conf"
+    into "${buildDir}/conf"
+}
+
+task assembly(dependsOn: [assembleLibs, assembleWars, assembleConfs, assembleScripts, assemblePortal, assembleCqlsh]) << {
+}

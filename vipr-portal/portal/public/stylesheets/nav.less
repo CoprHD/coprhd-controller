@@ -1,0 +1,276 @@
+@root-menu-width: 60px;
+@root-menu-icon-color: #798790;
+@root-menu-font-size: 30px;
+@root-menu-background-color: #eaeaea;
+
+@root-menu-item-selected-color: #ffffff;
+@root-menu-item-selected-background-color: #555555;
+
+@menu-pin-color: #fff;
+@menu-title-color: #fff;
+
+@menu-item-active-color: #ffffff;
+@menu-item-active-background-color: @navbar-inverse-bg;
+@nav-arrow-size: 25px;
+
+@sub-menu-width: 190px;
+@sub-menu-padding: 20px;
+@sub-menu-color: #fff;
+@sub-menu-background-color: rgba(85, 85, 85, 0.95);
+@sub-menu-hover-color: #fff;
+@sub-menu-hover-background-color: #a5a5a5;
+
+#mainMenu {
+	position: fixed;
+	top: @navbar-height;
+	left: 0;
+	bottom: 0;
+	width: @root-menu-width;
+	z-index: 999;
+	background-color: @root-menu-background-color;
+}
+
+.menuPin {
+  padding-top: 6px;
+  padding-right: 6px;
+  cursor: pointer;
+  float: right;
+  color: @menu-pin-color;
+  font-size: 12px;
+  opacity: 0.4;
+}
+.menuPin.menu-pinned {
+  opacity: 1;
+}
+
+.menuTitle {
+  clear: right;
+  margin-bottom: 20px;
+  text-align: center;
+  color: @menu-title-color;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.rootNav span {
+	font-size: @root-menu-font-size;
+	color: @root-menu-icon-color;
+}
+.rootNav img {
+	width: 30px;
+}
+a.rootNav {
+	padding: 7px 15px;
+	margin-top: 12px;
+	display: block;
+	opacity: 0.75;
+	filter: alpha(opacity=75);
+	position: relative;
+	outline: none;
+}
+
+a.rootNav:hover, a.rootNav:focus {
+	opacity: 0.99;
+	filter: alpha(opacity=99);
+	text-decoration: none;
+}
+
+a.rootNav:hover .fa, a.rootNav:focus .fa {
+	position: relative;
+}
+
+a.rootNav.active, 
+a.rootNav.active.selected {
+	opacity: 1.0;
+	filter: alpha(opacity=100);
+	background-color: @menu-item-active-background-color;
+}
+a.rootNav.active span {
+    color: @menu-item-active-color
+}
+
+a.rootNav.active.blueArrow:after {
+   content: '';
+   position: absolute;
+   display: inline-block;
+   left: @root-menu-width;
+   top: 0px;
+   border-top: @nav-arrow-size solid transparent;
+   border-bottom: @nav-arrow-size solid transparent;
+   border-left: floor(@nav-arrow-size/2) solid @menu-item-active-background-color;
+   z-index: 1000;
+   visibility: visible;
+   opacity: 1;
+   box-shadow: none;
+}
+a.rootNav.selected {
+    opacity: 1;
+    filter: alpha(opacity=100);
+    background-color: @root-menu-item-selected-background-color;
+    color: @root-menu-item-selected-color;
+}
+a.rootNav.selected:before,
+a.rootNav.selected:hover:before,
+a.rootNav.selected:focus:before {
+	display: none;
+}
+a.rootNav.selected:after,
+a.rootNav.selected:hover:after,
+a.rootNav.selected:focus:after {
+	display: none;
+}
+a.rootNav.selected span {
+    color: @root-menu-item-selected-color;
+}
+
+.navMenu {
+	position: fixed;
+	display: block;
+	visibility: hidden;
+	opacity: 0;
+	top: @navbar-height;
+	left: -@sub-menu-width;
+	bottom: 0;
+	width: @sub-menu-width;
+	z-index: 998;
+    background-color: @sub-menu-background-color;
+	color: @sub-menu-color;
+	overflow: auto;
+	-webkit-transition: all .2s ease;
+       -moz-transition: all .2s ease;
+        -ms-transition: all .2s ease;
+         -o-transition: all .2s ease;
+            transition: all .2s ease;
+}
+.navMenu.menu-open {
+	visibility: visible;
+	opacity: 1;
+	left: @root-menu-width;
+}
+
+.menuTree ul {
+	padding-left: @sub-menu-padding;
+}
+.menuTree > ul {
+	padding-left: @sub-menu-padding;
+}
+.menuTree li {
+	list-style: none;
+	font-weight: normal;
+}
+.menuTree li a {
+	padding: 14px 5px;
+	display: block;
+	position: relative;
+	color: @sub-menu-color;
+	font-size: 14px;
+	outline: none;
+}
+.menuTree li a:hover {
+	background-color: @sub-menu-hover-background-color;
+	color: @sub-menu-hover-color;
+	cursor: pointer;
+	text-decoration: none;
+}
+.menuTree li a:hover:before {
+	content: '';
+	position: absolute;
+	display: inline-block;
+	left: -@sub-menu-padding;
+	background-color: @sub-menu-hover-background-color;
+	z-index: 999;
+	width: @sub-menu-padding;
+	height: 100%;
+	margin-top: -14px;
+}
+.menuTree li.active a {
+  background-color: @menu-item-active-background-color;
+}
+.menuTree li.active {
+  background-color: @menu-item-active-background-color;
+}
+.menuTree li.active a:before {
+   content:'';
+   position:absolute;
+   height:100%;
+  background-color: @menu-item-active-background-color;
+  left: -@sub-menu-padding;
+  width: @sub-menu-padding;
+  margin-top: -14px;
+}
+.menuTree li.active a:hover:before {
+  background-color: @menu-item-active-background-color;
+}
+.menuTree hr {
+	margin-top: 4px;
+	margin-bottom: 4px;
+	margin-right: @sub-menu-padding;
+	border: 0;
+	border-top: 1px dashed @sub-menu-hover-background-color;
+}
+
+/* --- Content Area --- */
+#contentArea {
+  padding-top: 15px;
+  margin-left: @root-menu-width;
+  background-color: @body-bg;
+}
+#contentArea.menu-pinned.menu-open {
+  margin-left: @root-menu-width + @sub-menu-width;
+}
+#menuCloser {
+  position: fixed;
+  top: 0;
+  left: @root-menu-width + @sub-menu-width;
+  right: 0;
+  bottom: 0;
+  z-index: 901;
+  display: none;
+}
+#contentArea.menu-pinned #menuCloser {
+  display: none !important
+}
+#contentArea.menu-open #menuCloser {
+  display: block;
+}
+.mainContent {
+  width: auto;
+  padding: 0px 15px;
+  background-color: @body-bg;
+}
+
+/* Adjust container sizing from bootstrap because of reduced viewport size. */
+.container {
+  padding: 0;
+}
+@media (min-width: 768px) {
+  @container-width: 660px;
+  .container {
+    width: @container-width;
+  }
+  #contentArea.menu-pinned.menu-open .container {
+    width: @container-width - @sub-menu-width;
+  }
+}
+
+@media (min-width: 992px) {
+  @container-width: 880px;
+  .container {
+    width: @container-width;
+  }
+  #contentArea.menu-pinned.menu-open .container {
+    width: @container-width - @sub-menu-width;
+  }
+}
+
+@media (min-width: 1200px) {
+  @container-width: 1080px;
+  .container {
+    width: @container-width;
+  }
+  #contentArea.menu-pinned.menu-open .container {
+    width: @container-width - @sub-menu-width;
+  }
+}

@@ -1,0 +1,38 @@
+GET https://192.168.0.0:443/api/orders HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[
+  {
+    "id": "urn:storageos:Order:68d203fc-5d6c-4ae7-ac9b-74d450c8bedc:",
+    "href": "/api/orders/urn:storageos:Order:68d203fc-5d6c-4ae7-ac9b-74d450c8bedc:"
+  },
+  {
+    "id": "urn:storageos:Order:706d6a75-95cb-40fc-8a75-b7d9f3d56b31:",
+    "href": "/api/orders/urn:storageos:Order:706d6a75-95cb-40fc-8a75-b7d9f3d56b31:"
+  },
+  {
+    "id": "urn:storageos:Order:877f594d-b00b-426d-9625-4c222ecfbd02:",
+    "href": "/api/orders/urn:storageos:Order:877f594d-b00b-426d-9625-4c222ecfbd02:"
+  },
+  {
+    "id": "urn:storageos:Order:88d335b0-9af5-454a-8121-c714a8e0dbd4:",
+    "href": "/api/orders/urn:storageos:Order:88d335b0-9af5-454a-8121-c714a8e0dbd4:"
+  },
+  {
+    "id": "urn:storageos:Order:8ed565e0-daf3-4d46-8cef-d24dca3b971f:",
+    "href": "/api/orders/urn:storageos:Order:8ed565e0-daf3-4d46-8cef-d24dca3b971f:"
+  },
+  {
+    "id": "urn:storageos:Order:fad6d262-7996-4153-b665-ad371bd6ee56:",
+    "href": "/api/orders/urn:storageos:Order:fad6d262-7996-4153-b665-ad371bd6ee56:"
+  },
+  {
+    "id": "urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11:",
+    "href": "/api/orders/urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11:"
+  }
+]

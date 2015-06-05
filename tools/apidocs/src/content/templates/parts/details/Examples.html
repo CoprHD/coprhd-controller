@@ -1,0 +1,31 @@
+<% if (apiMethod.xmlExample != null || apiMethod.jsonExample != null) { %>
+<hr/>
+<% } %>
+
+<% if (apiMethod.xmlExample != null && apiMethod.jsonExample != null) { %>
+<h4>Examples</h4>
+<select id="example" onchange="showExample();">
+    <option value="xmlExample">XML Example</option>
+    <option value="jsonExample">JSON Example</option>
+</select>
+<% } %>
+
+<% if (apiMethod.xmlExample != null) { %>
+${apiMethod.jsonExample == null?"<h4>XML Example</h4>":""}
+<div id="xmlExample">
+    <h6>Request</h6>
+    <pre>${apiMethod.xmlExample[0]}</pre>
+    <h6>Response</h6>
+    <pre>${apiMethod.xmlExample[1]}</pre>
+</div>
+<% } %>
+
+<% if (apiMethod.jsonExample != null) { %>
+${apiMethod.xmlExample == null?"<h4>JSON Example</h4>":""}
+<div id="jsonExample" style="${apiMethod.xmlExample == null?"":"display:none"}">
+<h6>Request</h6>
+<pre>${apiMethod.jsonExample[0]}</pre>
+<h6>Response</h6>
+<pre>${apiMethod.jsonExample[1]}</pre>
+</div>
+<% }%>

@@ -1,0 +1,433 @@
+%{
+  titleKey = "BlockVirtualPools.${vpool?.new ? 'create' : 'edit'}.title"
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.block.virtualPools'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+  .panel-group + .button-bar {
+    margin-top: 10px;
+  }
+  .panel {
+    margin-top: 5px
+  }
+  .panel-group .panel {
+    overflow: visible;
+  }
+
+  #rpCopyDialog .modal-body {
+    max-height: none;
+    overflow-y: visible;
+  }
+  .table.rpCopy {
+    margin-bottom: 0;
+  }
+  .table.rpCopy .edit {
+    cursor: pointer;
+  }
+  .table.rpCopy .virtualArray {
+    width: 18%;
+  }
+  .table.rpCopy .virtualPool {
+    width: 18%;
+  }
+  .table.rpCopy .journalSize {
+    width: 13%;
+  }
+  table.rpCopy .journalVArray {
+    width: 25%;
+  }
+  .table.rpCopy .journalVPool {
+    width: 25%;
+  }
+  .table.rpCopy td.virtualArray,
+  .table.rpCopy td.virtualPool,
+  .table.rpCopy td.journalSize,
+  .table.rpCopy .journalVArray,
+  .table.rpCopy .journalVpool {
+    padding-left: 2px;
+  }
+  .table.rpCopy .actions {
+    width: 1%;
+    text-align: center;
+  }
+  .table.rpCopy .disabled {
+    opacity: 0.5;
+  }
+</style>
+#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'BlockVirtualPools.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div id="virtualPool" class="container" ng-controller="BlockVirtualPoolsCtrl">
+#{form @save(), class:'form form-horizontal', autocomplete:"off"}
+
+  <form-header title-key="BlockVirtualPools.{{state}}.title"
+               description-key="BlockVirtualPools.{{state}}.description"
+               image-val="/public/img/assets/VirtualPool.png"></form-header>
+
+  #{alerts/}
+
+  <div ng-show="locked" class="alert alert-info">{{'VirtualPools.locked' | t}}</div>
+
+  #{field 'referrer'}
+    *{ Allow referrer from the flash only }*
+    #{if flash[field.name]}#{Form.hidden field:field/}#{/if}
+  #{/field}
+
+  <div class="storagePoolCriteria" ng-if="!vpool.new">
+    <input type="hidden" name="vpool.id" value="{{vpool.id}}">
+    <input type="hidden" name="vpool.numResources" value="{{vpool.numResources}}">
+  </div>
+
+  <control-group v-field="vpool.name" required>
+    <input-text class="initialFocus"></input-text>
+  </control-group>
+
+  <control-group v-field="vpool.description" required>
+    <input-text></input-text>
+  </control-group>
+
+  <control-group v-field="vpool.virtualArrays" class="storagePoolCriteria" type="array" >
+    <select-many options="virtualArrayOptions" ></select-many>
+  </control-group>
+
+  <control-group v-field="vpool.enableQuota">
+    <boolean-checkbox v-default-value="false"></boolean-checkbox>
+  </control-group>
+
+  <div ng-if="vpool.enableQuota">
+    <control-group v-field="vpool.quota" width="3">
+      <div class="input-group">
+        <input-text></input-text>
+        <span class="input-group-addon">{{'GB' | t}}</span>
+      </div>
+    </control-group>
+  </div>
+
+  <div class="panel-group">
+    <div class="storagePoolCriteria">
+      <collapse title-key='vpool.group.hardware' icon='align-justify'>
+        <control-group v-field='vpool.provisioningType' required>
+          <select-one options="provisioningTypeOptions" auto-default v-disabled='locked'></select-one>
+        </control-group>
+
+        <control-group v-field='vpool.protocols'  type="array" required>
+          <select-many options="protocolsAvailableOptions" v-disabled='locked'></select-many>
+        </control-group>
+
+        <control-group v-field='vpool.driveType' required>
+          <select-one options="driveTypeOptions" auto-default available="driveTypeAvailableOptions" v-disabled='locked'></select-one>
+        </control-group>
+
+        <control-group v-field='vpool.systemType' required>
+          <select-one options="systemTypeOptions" auto-default available="systemTypeAvailableOptions" v-disabled='locked'></select-one>
+        </control-group>
+
+        <div ng-if="['${models.StorageSystemTypes.NONE}','${models.StorageSystemTypes.SCALEIO}','${models.StorageSystemTypes.XTREMIO}','${models.StorageSystemTypes.IBMXIV}'].indexOf(vpool.systemType) == -1">
+          <control-group v-field='vpool.raidLevels' type="array" >
+            <select-many options="raidLevelsAvailableOptions" no-max-height search-threshold="{{raidLevelsOptions.length}}" v-disabled='locked'></select-many>
+          </control-group>
+        </div>
+        <div ng-if="vpool.provisioningType == '${models.ProvisioningTypes.THIN}'">
+          <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.NONE}'].indexOf(vpool.systemType) > -1">
+            <control-group v-field='vpool.thinPreAllocationPercent'>
+              <div class="input-group">
+                <input-text v-disabled='locked'></input-text>
+                <span class="input-group-addon">%</span>
+              </div>
+            </control-group>
+          </div>
+        </div>
+        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
+          <control-group v-field='vpool.uniqueAutoTierPolicyNames'>
+            <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+          </control-group>
+        </div>
+        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}','${models.StorageSystemTypes.HITACHI}','${models.StorageSystemTypes.VNXe}'].indexOf(vpool.systemType) > -1">
+          <control-group v-field='vpool.autoTierPolicy'>
+            <select-one v-disabled="locked" auto-default options="autoTierPolicyOptions" empty-option="none"></select-one>
+          </control-group>
+        </div>
+        <control-group v-field='vpool.multiVolumeConsistency'>
+          <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+        </control-group>
+
+        <control-group v-field='vpool.expandable'>
+          <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+        </control-group>
+
+        <div ng-if="['${models.StorageSystemTypes.VMAX}','${models.StorageSystemTypes.VNX_BLOCK}', '${models.StorageSystemTypes.VNXe}',',${models.StorageSystemTypes.HITACHI}'].indexOf(vpool.systemType) > -1">
+          <div ng-if="vpool.expandable">
+            <control-group v-field='vpool.fastExpansion'>
+              <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+            </control-group>
+          </div>
+        </div>
+        
+        <div ng-if="['${models.StorageSystemTypes.VMAX}'].indexOf(vpool.systemType) > -1">
+            <control-group v-field='vpool.hostIOLimitBandwidth'>
+              <div class="input-group">
+                <input-text v-disabled='locked'></input-text>
+              </div>
+            </control-group>
+        </div>
+        
+        <div ng-if="['${models.StorageSystemTypes.VMAX}'].indexOf(vpool.systemType) > -1">
+            <control-group v-field='vpool.hostIOLimitIOPs'>
+              <div class="input-group">
+                <input-text v-disabled='locked'></input-text>
+              </div>
+            </control-group>
+        </div>
+      </collapse>
+      
+      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}'">
+        <collapse title-key='vpool.group.sanPaths' icon='random'>
+          <control-group v-field='vpool.minPaths'>
+            <select-one v-disabled='locked' auto-default options="numPathsOptions" type="number" required></select-one>
+          </control-group>
+
+          <control-group v-field='vpool.maxPaths'>
+            <select-one v-disabled='locked' auto-default options="numPathsOptions" type="number" required></select-one>
+          </control-group>
+
+          <control-group v-field='vpool.initiatorPaths'>
+            <select-one v-disabled='locked' auto-default options="numPathsOptions" type="number" required></select-one>
+          </control-group>
+        </collapse>
+      </div>
+
+      <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}'">
+        <collapse title-key='vpool.group.highAvailability' icon='globe'>
+          <control-group v-field='vpool.highAvailability'>
+            <select-one options=highAvailabilityOptions auto-default empty-option="none"></select-one>
+          </control-group>
+
+          <div ng-if="vpool.highAvailability == '${models.HighAvailability.VPLEX_DISTRIBUTED}'">
+            <control-group v-field='vpool.haVirtualArray'>
+              <select-one options="haVirtualArrayOptions" auto-default v-disabled="locked" required empty-option="none"></select-one>
+            </control-group>
+
+            <control-group v-field='vpool.haVirtualPool'>
+              <select-one options="haVirtualPoolOptions" auto-default v-disabled="locked" empty-option="none"></select-one>
+            </control-group>
+            
+            <control-group v-field='vpool.enableAutoCrossConnExport'>
+              <boolean-checkbox v-default-value="true" v-disabled="locked"></boolean-checkbox>
+            </control-group>
+            
+          </div>
+          
+          <div ng-if="vpool.highAvailability == '${models.HighAvailability.VPLEX_LOCAL}'">
+            <control-group v-field='vpool.enableAutoCrossConnExport'>
+              <boolean-checkbox v-default-value="true" v-disabled="locked"></boolean-checkbox>
+            </control-group>
+          </div>
+        </collapse>
+      </div>
+
+      <collapse title-key='vpool.group.protection' icon='vipricon-protectionv8'>
+        <control-group v-field='vpool.maxSnapshots'>
+          <input-text></input-text>
+        </control-group>
+
+        <div ng-if="vpool.systemType != '${models.StorageSystemTypes.SCALEIO}' && vpool.systemType != '${models.StorageSystemTypes.IBMXIV}' && vpool.systemType != '${models.StorageSystemTypes.VNXe}'">
+          <control-group v-field='vpool.maxContinuousCopies'>
+            <input-text ng-disabled="vpool.expandable"></input-text>
+          </control-group>
+          <control-group v-field='vpool.continuousCopyVirtualPool'>
+            <select-one v-disabled="locked" options="continuousCopyVirtualPoolOptions" auto-default empty-option="none"></select-one>
+          </control-group>
+
+          <control-group v-field='vpool.remoteProtection'>
+            <select-one v-disabled="locked" options="remoteProtectionOptions" auto-default empty-option="none"></select-one>
+          </control-group>
+        </div>
+
+        <div ng-if="vpool.remoteProtection == '${models.ProtectionSystemTypes.RECOVERPOINT}'">
+          <control-group v-field='vpool.rpRemoteCopyMode'>
+            <select-one v-disabled="locked" options="rpRemoteCopyModeOptions" auto-default disable-search></select-one>
+          </control-group>
+
+          <div ng-if="vpool.rpRemoteCopyMode == '${models.RemoteCopyMode.ASYNCHRONOUS}'">
+            <control-group v-field='vpool.rpRpoValue'>
+              <div class="row col-gap-sm">
+                <div class="col-md-6">
+                  <input-text v-disabled="locked" style="vertical-align: top"></input-text>
+                </div>
+
+                <div class="col-md-6" v-field="vpool.rpRpoType">
+                  <select-one v-disabled="locked" options="rpRpoTypeOptions" auto-default disable-search></select-one>
+                </div>
+              </div>
+            </control-group>
+          </div>
+
+          <control-group v-field='vpool.rpJournalSize' required>
+            <div class="row col-gap-sm">
+              <div class="col-md-6">
+                <input-text v-disabled="locked" style="vertical-align: top"></input-text>
+              </div>
+
+              <div class="col-md-6" v-field="vpool.rpJournalSizeUnit">
+                  <select-one v-disabled="locked" options="rpJournalSizeUnitOptions" v-default-value="'${models.SizeUnit.GB}'" disable-search></select-one>
+              </div>
+            </div>
+          </control-group>
+
+          <input type="hidden" name="vpool.rpCopiesJson" value="{{vpool.rpCopies | json}}">
+
+          <control-group v-field="vpool.rpCopies">
+            <table class="table table-hover rpCopy">
+              <thead>
+              <tr>
+                <th class="virtualArray">{{'rpCopy.virtualArray' | t}}</th>
+                <th class="virtualPool">{{'rpCopy.virtualPool' | t}}</th>
+                <th class="journalVArray">{{'rpCopy.journalVArray' | t}}</th>
+                <th class="journalVPool">{{'rpCopy.journalVPool' | t}}</th>
+                <th class="journalSize">{{'rpCopy.journalSize' | t}}</th>
+                <th class="actions"></th>
+              </tr>
+              </thead>
+              <tbody>
+              <tr ng-repeat="rpCopy in vpool.rpCopies" ng-class="{disabled:locked, edit:!locked}" ng-click="!locked && editRecoverPointCopy(rpCopy, $index, $event);">
+                <td class="virtualArray">{{rpCopy.virtualArrayName}}</td>
+                <td class="virtualPool">{{rpCopy.virtualPoolName}}</td>
+                <td class="journalVArray">{{rpCopy.journalVArrayName}}</td>
+                <td class="journalVPool">{{rpCopy.journalVPoolName}}</td>
+                <td class="journalSize">{{rpCopy.formattedJournalSize}}</td>
+                <td class="actions">
+                  <a ng-if="!locked" href="#" ng-click="deleteRecoverPointCopy($index, $event);"><i v-icon='remove'></i></a>
+                </td>
+              </tr>
+              </tbody>
+              <tfoot>
+              <tr ng-if="!locked" class="add">
+                <td class="virtualArray"></td>
+                <td class="virtualPool"></td>
+                <td class="journalVArray">
+                  <a href="#" ng-click="addRecoverPointCopy($event)"><i>{{'vpool.rpCopies.add' | t}}</i></a>
+                </td>
+                <td class="journalVPool"> </td>
+                <td class="journalSize"></td>
+                <td class="actions"></td>
+              </tr>
+              </tfoot>
+            </table>
+            <table style="display:none">
+              <tbody id="rpCopy">
+
+              </tbody>
+            </table>
+          </control-group>
+          
+           <collapse title-key="vpool.rpAdvanceSetting" class="col-sm-10 col-sm-offset-1" >
+            <control-group v-field='vpool.protectSourceSite' v-disable-children="vpool.highAvailability != '${models.HighAvailability.VPLEX_DISTRIBUTED}' ">
+              <boolean-checkbox v-disabled="locked"></boolean-checkbox>
+            </control-group>
+            
+            <control-group v-field='vpool.journalSetting' ng-show="vpool.protectSourceSite">
+        		<div class="row col-gap-sm">
+                <div class="col-md-6" v-field="vpool.sourceJournalVArray">
+                  <select-one style="width: auto;" options="vpoolSourceJournalVirtualArrayOptions" v-disabled='locked' empty-option="none"></select-one>
+                </div>
+
+                <div class="col-md-6" v-field="vpool.sourceJournalVPool">
+                  <select-one  style="width: auto;" options="vpoolSourceJournalVirtualPoolOptions" v-disabled='locked' empty-option="none"></select-one>
+                </div>
+              </div>
+      		</control-group>
+            <control-group v-field='vpool.protectHASite' v-disable-children="vpool.highAvailability != '${models.HighAvailability.VPLEX_DISTRIBUTED}' ">
+              <boolean-checkbox v-disabled="locked"></boolean-checkbox>
+            </control-group>
+            <control-group v-field='vpool.journalSetting' ng-show="vpool.protectHASite">
+        		<div class="row col-gap-sm">
+                <div class="col-md-6" v-field="vpool.haJournalVArray">
+                  <select-one options="vpoolHAJournalVirtualArrayOptions" v-disabled='locked' empty-option="none"></select-one>
+                </div>
+
+                <div class="col-md-6" v-field="vpool.haJournalVPool">
+                  <select-one options="vpoolHAJournalVirtualPoolOptions" v-disabled='locked' empty-option="none"></select-one>
+                </div>
+              </div>
+      		</control-group>
+            <control-group v-field='vpool.activeSite' v-disable-children="vpool.highAvailability != '${models.HighAvailability.VPLEX_DISTRIBUTED}' ">
+              <select-one options="vplexActiveSiteOptions" auto-default v-disabled="locked || (!vpool.protectSourceSite || !vpool.protectHASite)"></select-one>
+            </control-group>
+          </collapse>
+        </div>
+
+        <div ng-if="vpool.remoteProtection == '${models.ProtectionSystemTypes.SRDF}'">
+          <control-group v-field='vpool.srdfCopyMode'>
+            <select-one v-disabled="locked" options="srdfCopyModeOptions" auto-default ></select-one>
+          </control-group>
+
+          #{include 'arrays/BlockVirtualPools/srdfCopies.html' /}
+        </div>
+      </collapse>
+    </div>
+
+
+    <collapse ng-if="tenantOptions" title-key='vpool.group.accessControl' icon='user'>
+      <control-group v-field='vpool.enableTenants'>
+        <boolean-checkbox></boolean-checkbox>
+      </control-group>
+
+      <div ng-if="vpool.enableTenants == true">
+        <control-group v-field='vpool.tenants' type="array" >
+          <select-many options="tenantOptions"></select-many>
+        </control-group>
+      </div>
+    </collapse>
+
+    #{include 'arrays/VirtualPools/storagePools.html'/}
+  </div>
+
+  #{Form.saveCancel cancelHref:flash['referrer']/}
+#{/form}
+#{Modal.dialog id:'rpCopyDialog', titleKey:'rpCopy.title'}
+  <form id="rpCopyForm" class="form form-horizontal" onSubmit="return false;">
+    #{Modal.body}
+      <control-group v-field='rpCopy.virtualArray' required>
+        <select-one options="rpVirtualArrayOptions" empty-option="none"></select-one>
+      </control-group>
+      <control-group v-field='rpCopy.virtualPool'>
+        <select-one options="rpVirtualPoolOptions" empty-option="none"></select-one>
+      </control-group>
+      
+       <control-group v-field='rpCopy.journalVArray' >
+        <select-one options="rpJournalVirtualArrayOptions" empty-option="none"></select-one>
+      </control-group>
+      <control-group v-field='rpCopy.journalVPool' >
+        <select-one options="rpJournalVirtualPoolOptions" empty-option="none"></select-one>
+      </control-group>
+
+      <control-group v-field='rpCopy.journalSize'>
+        <div class="row col-gap-sm">
+          <div class="col-md-6"><input-text style="vertical-align:top"></input-text></div>
+
+          <div class="col-md-6" v-field="rpCopy.journalSizeUnit">
+            <select-one options="rpJournalSizeUnitOptions"></select-one>
+          </div>
+        </div>
+      </control-group>
+    #{/Modal.body}
+    #{Modal.footer}
+      <button class="btn btn-primary" ng-click="saveRecoverPointCopy(rpCopy, $event)">
+        <i v-icon='ok-sign'></i> {{'button.done' | t }}
+      </button>
+      <button class="btn btn-default" data-dismiss="modal">
+        <i v-icon='trash'></i> {{'button.cancel' | t }}
+      </button>
+    #{/Modal.footer}
+  </form>
+#{/Modal.dialog}
+#{get 'forms'/}
+</div>

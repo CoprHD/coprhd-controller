@@ -1,0 +1,22 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if migrations}
+    <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.migration.name'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:migrations, as:'migration'}
+      <tr>
+        <td>${migration.name}</td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.migrations.none'}
+#{/else}

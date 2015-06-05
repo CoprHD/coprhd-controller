@@ -1,0 +1,42 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.pendingOrders'] /}
+#{set 'moreScripts'}
+<script type="text/javascript">
+  $(document).ready(function() {
+    #{if nextWindowTime} 
+      $("#nextWindowTimeDiv").html(formatLocalDateTime(${nextWindowTime?.time}));
+    #{/if}
+  });
+</script>
+#{/set}
+
+#{tenantSelector/}
+
+<p class="clear alert alert-info"><span class="badge badge-info">#{icon 'time'/}</span>
+  #{if !nextWindowTime}
+    &{"ScheduledOrder.noWindow"}
+  #{/if}
+  #{else}
+    &{"ScheduledOrder.nextWindow", nextWindowName, "<span id='nextWindowTimeDiv'></span>"}
+  #{/else}
+</p>
+
+#{DataTable.header titleKey:'ScheduledOrders.list.title'/}
+#{DataTable.table id:'scheduledOrders', dataTable:dataTable, source: @listJson(), selectable:true, cssClass:'editableRows'}
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.cancel', class:'danger', icon:'ban-circle', submit:'cancelForm',
+                  data:['enabled':'selected']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+#{DataTable.formAction @cancel(), id:'cancelForm', table:'scheduledOrders', confirm:messages.get('ScheduledOrder.cancel.confirm')/}
+
+<script type="text/javascript">
+table.scheduledOrders.dataTable.afterCreate(function(table) {
+    var dataTable = table.getDataTable();
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchOrderStatus(dataTable, itemsJson, ['executionWindow', 'executionWindowId']);
+});
+</script>

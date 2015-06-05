@@ -1,0 +1,20 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.security', 'nav.userGroup'] /}
+
+#{DataTable.header titleKey:'userGroup.list.title' /}
+
+#{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+    #{DataTable.crudTable id:'userGroup',
+                            dataTable:dataTable,
+                            deleteConfirm:messages.get('userGroup.deleteConfirm')/}
+#{/deadbolt.restrict}
+
+#{deadbolt.restrict roles:[['!SECURITY_ADMIN']]}
+    #{DataTable.baseCrudTable id:'userGroup',
+                            dataTable:dataTable,
+                            disableSelectable:true/}
+#{/deadbolt.restrict}
+

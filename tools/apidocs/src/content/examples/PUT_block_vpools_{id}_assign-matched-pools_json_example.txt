@@ -1,0 +1,106 @@
+PUT https://192.168.0.0:4443/block/vpools/urn:storageos:VirtualPool:435a1c41-bb29-4c47-aacf-a2e40218647f:/assign-matched-pools.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "assigned_pool_changes": {
+        "add": {
+            "storage_pool": [
+                "urn:storageos:StoragePool:45bdac6e-fc2c-4a04-80d0-cf3b9a3e0e56:",
+                "urn:storageos:StoragePool:7839784a-812f-4a06-b2d1-0103ef98365b:",
+                "urn:storageos:StoragePool:be888581-7801-49a2-a9fa-e147a770c5e2:"
+            ]
+        }
+    }
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "assigned_storage_pools": [
+        {
+            "id": "urn:storageos:StoragePool:45bdac6e-fc2c-4a04-80d0-cf3b9a3e0e56:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:f4afd0a7-d59d-4349-8cd5-f5b201a5f145:/storage-pools/urn:storageos:StoragePool:45bdac6e-fc2c-4a04-80d0-cf3b9a3e0e56:",
+                "rel": "self"
+            }
+        },
+        {
+            "id": "urn:storageos:StoragePool:7839784a-812f-4a06-b2d1-0103ef98365b:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:f4afd0a7-d59d-4349-8cd5-f5b201a5f145:/storage-pools/urn:storageos:StoragePool:7839784a-812f-4a06-b2d1-0103ef98365b:",
+                "rel": "self"
+            }
+        },
+        {
+            "id": "urn:storageos:StoragePool:be888581-7801-49a2-a9fa-e147a770c5e2:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:f4afd0a7-d59d-4349-8cd5-f5b201a5f145:/storage-pools/urn:storageos:StoragePool:be888581-7801-49a2-a9fa-e147a770c5e2:",
+                "rel": "self"
+            }
+        }
+    ],
+    "creation_time": 1380721840553,
+    "description": "CoS for RP FC+ISCSI",
+    "expandable": true,
+    "id": "urn:storageos:VirtualPool:435a1c41-bb29-4c47-aacf-a2e40218647f:",
+    "inactive": false,
+    "invalid_matched_pools": [],
+    "link": {
+        "href": "/block/vpools/urn:storageos:VirtualPool:435a1c41-bb29-4c47-aacf-a2e40218647f:",
+        "rel": "self"
+    },
+    "matched_storage_pools": [
+        {
+            "id": "urn:storageos:StoragePool:45bdac6e-fc2c-4a04-80d0-cf3b9a3e0e56:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:f4afd0a7-d59d-4349-8cd5-f5b201a5f145:/storage-pools/urn:storageos:StoragePool:45bdac6e-fc2c-4a04-80d0-cf3b9a3e0e56:",
+                "rel": "self"
+            }
+        },
+        {
+            "id": "urn:storageos:StoragePool:7839784a-812f-4a06-b2d1-0103ef98365b:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:f4afd0a7-d59d-4349-8cd5-f5b201a5f145:/storage-pools/urn:storageos:StoragePool:7839784a-812f-4a06-b2d1-0103ef98365b:",
+                "rel": "self"
+            }
+        },
+        {
+            "id": "urn:storageos:StoragePool:be888581-7801-49a2-a9fa-e147a770c5e2:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:f4afd0a7-d59d-4349-8cd5-f5b201a5f145:/storage-pools/urn:storageos:StoragePool:be888581-7801-49a2-a9fa-e147a770c5e2:",
+                "rel": "self"
+            }
+        }
+    ],
+    "name": "cos_rp",
+    "num_paths": 1,
+    "protection": {
+        "continuous_copies": {
+            "max_native_continuous_copies": 0
+        },
+        "snapshots": {
+            "max_native_snapshots": 10
+        }
+    },
+    "protocols": [
+        "FC"
+    ],
+    "provisioning_type": "Thin",
+    "raid_levels": [],
+    "tags": [],
+    "type": "block",
+    "unique_auto_tier_policy_names": false,
+    "use_matched_pools": true,
+    "varrays": [
+        {
+            "id": "urn:storageos:VirtualArray:3746b1cc-1980-4fe0-b897-a018ac08f224:",
+            "link": {
+                "href": "/vdc/varrays/urn:storageos:VirtualArray:3746b1cc-1980-4fe0-b897-a018ac08f224:",
+                "rel": "self"
+            }
+        }
+    ]
+}

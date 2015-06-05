@@ -1,0 +1,129 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+  <s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/PullResponse</a:Action>
+    <a:MessageID>uuid:AC8CB5BE-D0EA-4377-9EC7-07D90BE04352</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:18ff4559-7bb5-4694-87cf-c053e8b719fa</a:RelatesTo>
+  </s:Header>
+  <s:Body>
+    <n:PullResponse>
+      <n:Items>
+        <p:MSiSCSIInitiator_SessionClass xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_SessionClass" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:MSiSCSIInitiator_SessionClass_Type">
+          <p:ConnectionInformation xmlns:p1="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_ConnectionInformation" xsi:type="p1:MSiSCSIInitiator_ConnectionInformation_Type">
+            <p1:CID>1</p1:CID>
+            <p1:CID>0</p1:CID>
+            <p1:ConnectionID>fffffa8003cb5018-0000000000000008</p1:ConnectionID>
+            <p1:InitiatorAddress>0.0.0.0</p1:InitiatorAddress>
+            <p1:InitiatorPort>50431</p1:InitiatorPort>
+            <p1:TargetAddress>10.100.0.100</p1:TargetAddress>
+            <p1:TargetPort>3260</p1:TargetPort>
+          </p:ConnectionInformation>
+          <p:Devices xmlns:p2="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_DeviceOnSession" xsi:type="p2:MSiSCSIInitiator_DeviceOnSession_Type">
+            <p2:DeviceInterfaceGuid>53f56307-b6bf-11d0-94f20a0c91efb8b</p2:DeviceInterfaceGuid>
+            <p2:DeviceInterfaceName>\\?\scsi#disk&amp;ven_compelnt&amp;prod_compellent_vol#1&amp;1c121344&amp;0&amp;000101#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}</p2:DeviceInterfaceName>
+            <p2:DeviceNumber>1</p2:DeviceNumber>
+            <p2:DeviceType>7</p2:DeviceType>
+            <p2:InitiatorName>Root\ISCSIPRT\0000_0</p2:InitiatorName>
+            <p2:LegacyName>\\.\PhysicalDrive1</p2:LegacyName>
+            <p2:PartitionNumber>0</p2:PartitionNumber>
+            <p2:ScsiLun>1</p2:ScsiLun>
+            <p2:ScsiPathId>0</p2:ScsiPathId>
+            <p2:ScsiPortNumber>3</p2:ScsiPortNumber>
+            <p2:ScsiTargetId>1</p2:ScsiTargetId>
+            <p2:TargetName>iqn.2002-03.com.compellent:5000d310003e2535</p2:TargetName>
+          </p:Devices>
+          <p:Devices xmlns:p3="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_DeviceOnSession" xsi:type="p3:MSiSCSIInitiator_DeviceOnSession_Type">
+            <p3:DeviceInterfaceGuid>53f56307-b6bf-11d0-94f20a0c91efb8b</p3:DeviceInterfaceGuid>
+            <p3:DeviceInterfaceName>\\?\scsi#disk&amp;ven_compelnt&amp;prod_compellent_vol#1&amp;1c121344&amp;0&amp;000102#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}</p3:DeviceInterfaceName>
+            <p3:DeviceNumber>2</p3:DeviceNumber>
+            <p3:DeviceType>7</p3:DeviceType>
+            <p3:InitiatorName>Root\ISCSIPRT\0000_0</p3:InitiatorName>
+            <p3:LegacyName>\\.\PhysicalDrive2</p3:LegacyName>
+            <p3:PartitionNumber>0</p3:PartitionNumber>
+            <p3:ScsiLun>2</p3:ScsiLun>
+            <p3:ScsiPathId>0</p3:ScsiPathId>
+            <p3:ScsiPortNumber>3</p3:ScsiPortNumber>
+            <p3:ScsiTargetId>1</p3:ScsiTargetId>
+            <p3:TargetName>iqn.2002-03.com.compellent:5000d310003e2535</p3:TargetName>
+          </p:Devices>
+          <p:InitiatorName>iqn.1991-05.com.microsoft:iwave-lab1-windows-dev1.iwave.local</p:InitiatorName>
+          <p:ISID>64</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:ISID>1</p:ISID>
+          <p:ISID>55</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:SessionId>fffffa8003cb5018-4000013700000009</p:SessionId>
+          <p:TargetName>iqn.2002-03.com.compellent:5000d310003e2535</p:TargetName>
+          <p:TargetNodeName xsi:nil="true"/>
+          <p:TSID>47</p:TSID>
+          <p:TSID>0</p:TSID>
+        </p:MSiSCSIInitiator_SessionClass>
+        <p:MSiSCSIInitiator_SessionClass xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_SessionClass" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:MSiSCSIInitiator_SessionClass_Type">
+          <p:ConnectionInformation xmlns:p1="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_ConnectionInformation" xsi:type="p1:MSiSCSIInitiator_ConnectionInformation_Type">
+            <p1:CID>1</p1:CID>
+            <p1:CID>0</p1:CID>
+            <p1:ConnectionID>fffffa8003cb5018-0000000000000009</p1:ConnectionID>
+            <p1:InitiatorAddress>0.0.0.0</p1:InitiatorAddress>
+            <p1:InitiatorPort>50687</p1:InitiatorPort>
+            <p1:TargetAddress>10.200.0.100</p1:TargetAddress>
+            <p1:TargetPort>3260</p1:TargetPort>
+          </p:ConnectionInformation>
+          <p:InitiatorName>iqn.1991-05.com.microsoft:iwave-lab1-windows-dev1.iwave.local</p:InitiatorName>
+          <p:ISID>64</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:ISID>1</p:ISID>
+          <p:ISID>55</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:SessionId>fffffa8003cb5018-400001370000000a</p:SessionId>
+          <p:TargetName>iqn.2002-03.com.compellent:5000d310003e2536</p:TargetName>
+          <p:TargetNodeName xsi:nil="true"/>
+          <p:TSID>48</p:TSID>
+          <p:TSID>0</p:TSID>
+        </p:MSiSCSIInitiator_SessionClass>
+        <p:MSiSCSIInitiator_SessionClass xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_SessionClass" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:MSiSCSIInitiator_SessionClass_Type">
+          <p:ConnectionInformation xmlns:p1="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_ConnectionInformation" xsi:type="p1:MSiSCSIInitiator_ConnectionInformation_Type">
+            <p1:CID>1</p1:CID>
+            <p1:CID>0</p1:CID>
+            <p1:ConnectionID>fffffa8003cb5018-000000000000000a</p1:ConnectionID>
+            <p1:InitiatorAddress>0.0.0.0</p1:InitiatorAddress>
+            <p1:InitiatorPort>15589</p1:InitiatorPort>
+            <p1:TargetAddress>10.100.0.25</p1:TargetAddress>
+            <p1:TargetPort>3260</p1:TargetPort>
+          </p:ConnectionInformation>
+          <p:Devices xmlns:p2="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_DeviceOnSession" xsi:type="p2:MSiSCSIInitiator_DeviceOnSession_Type">
+            <p2:DeviceInterfaceGuid>53f56307-b6bf-11d0-94f20a0c91efb8b</p2:DeviceInterfaceGuid>
+            <p2:DeviceInterfaceName>\\?\scsi#disk&amp;ven_netapp&amp;prod_lun#1&amp;1c121344&amp;0&amp;000200#{53f56307-b6bf-11d0-94f2-00a0c91efb8b}</p2:DeviceInterfaceName>
+            <p2:DeviceNumber>3</p2:DeviceNumber>
+            <p2:DeviceType>7</p2:DeviceType>
+            <p2:InitiatorName>Root\ISCSIPRT\0000_0</p2:InitiatorName>
+            <p2:LegacyName>\\.\PhysicalDrive3</p2:LegacyName>
+            <p2:PartitionNumber>0</p2:PartitionNumber>
+            <p2:ScsiLun>0</p2:ScsiLun>
+            <p2:ScsiPathId>0</p2:ScsiPathId>
+            <p2:ScsiPortNumber>3</p2:ScsiPortNumber>
+            <p2:ScsiTargetId>2</p2:ScsiTargetId>
+            <p2:TargetName>iqn.1992-08.com.netapp:sn.1788979378</p2:TargetName>
+          </p:Devices>
+          <p:InitiatorName>iqn.1991-05.com.microsoft:iwave-lab1-windows-dev1.iwave.local</p:InitiatorName>
+          <p:ISID>64</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:ISID>1</p:ISID>
+          <p:ISID>55</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:ISID>0</p:ISID>
+          <p:SessionId>fffffa8003cb5018-400001370000000b</p:SessionId>
+          <p:TargetName>iqn.1992-08.com.netapp:sn.1788979378</p:TargetName>
+          <p:TargetNodeName xsi:nil="true"/>
+          <p:TSID>18</p:TSID>
+          <p:TSID>0</p:TSID>
+        </p:MSiSCSIInitiator_SessionClass>
+      </n:Items>
+      <n:EndOfSequence/>
+    </n:PullResponse>
+  </s:Body>
+</s:Envelope>

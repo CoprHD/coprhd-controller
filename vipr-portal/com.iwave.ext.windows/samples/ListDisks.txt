@@ -1,0 +1,17 @@
+
+Microsoft DiskPart version 6.1.7600
+Copyright (C) 1999-2008 Microsoft Corporation.
+On computer: TESTAD
+
+DISKPART> 
+Please wait while DiskPart scans your configuration...
+
+DiskPart has finished scanning your configuration.
+
+DISKPART> 
+  Disk ###  Status         Size     Free     Dyn  Gpt
+  --------  -------------  -------  -------  ---  ---
+  Disk 0    Online           40 GB      0 B         
+
+DISKPART> 
+Leaving DiskPart...

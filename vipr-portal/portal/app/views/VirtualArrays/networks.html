@@ -1,0 +1,79 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.virtualArrays'] /}
+#{set 'title'}&{'VirtualArray.networks.title'}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'VirtualArrays.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @edit(virtualArray?.id)}${virtualArray?.name}#{/breadcrumb.item}
+  #{breadcrumb.dropdown currentPage:'VirtualArray.networks.title'}
+    #{breadcrumb.item @VirtualArrays.storagePools(virtualArray?.id)}&{'VirtualArray.storagePools.title'}#{/breadcrumb.item}
+    #{breadcrumb.item @VirtualArrays.storagePorts(virtualArray?.id)}&{'VirtualArray.storagePorts.title'}#{/breadcrumb.item}
+  #{/breadcrumb.dropdown}
+#{/breadcrumb.container}
+
+%{ formFields = ['virtualArrayId': virtualArray?.id] }%
+#{DataTable.formAction @addNetworks(), id:'addForm', table:'availableNetworks', fields:formFields/}
+#{DataTable.formAction @removeNetworks(), id:'removeForm', table:'networks', fields:formFields,
+                       confirm:messages.get('networks.deleteConfirm', virtualArray?.name)/}
+
+#{DataTable.header titleKey:'VirtualArray.networks.title'/}
+#{DataTable.table id:'networks',
+                  dataTable: dataTable,
+                  selectable: true,
+                  source: @networksJson(virtualArray?.id)}
+  #{DataTable.buttonBar}
+    #{Form.button name:'Networks.createIpNetwork', class:'success', icon:'plus', action:'$("#createDialog").modal("show")'/}
+    #{Form.button name:'button.addExisting', class:'default', icon:'plus', action:'showAddNetworks()'/}
+    #{Form.button name:'button.remove', class:'default', icon:'minus', submit:'removeForm', data:['enabled': 'selected', 'property':'assigned', 'value':'true']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+
+#{Modal.dialog id:'addDialog', cssClass:'widest'}
+    #{Modal.body}
+    %{ 
+      dataTable.alterColumn("name").renderFunction = null
+      dataTable.alterColumn("assigned").hidden()
+    }%
+    #{DataTable.header titleKey:'VirtualArray.addNetworks.title', hideAlerts:true/}
+    #{DataTable.table id:'availableNetworks',
+                      prefix: 'networks',
+                      dataTable: dataTable,
+                      source: @availableNetworksJson(virtualArray?.id),
+                      selectable: true,
+                      delayCreate: true,
+                      options: ['iDisplayLength': '8'] /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button 'button.add', class:'primary', icon:'plus', submit:'addForm', 
+                   data:['enabled': 'selected', 'table':'availableNetworks']/}
+    #{Form.button 'button.cancel', icon:'trash', data:['dismiss': 'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+
+#{include 'arrays/Networks/createDialog.html'/}
+
+<script type="text/javascript">
+function showDialog() {
+    table.availableNetworks.dataTable.create();
+    table.availableNetworks.dataTable.updateSelectedFooter();
+    table.availableNetworks.dataTable.reset();
+    $('#addDialog').modal();
+}
+
+function hideDialog() {
+    $('#addDialog').modal('hide');
+}
+
+function showAddNetworks() {
+    showDialog();
+}
+
+function renderLink(o, val) {
+    var id = o.aData.id;
+    var url = #{jsAction @arrays.Networks.edit(':id')/}({ 'id': id })
+    return "<a href='"+url+"?virtualArrayId=${virtualArray?.id}'>"+o.aData.name+"</a>";
+}
+</script>

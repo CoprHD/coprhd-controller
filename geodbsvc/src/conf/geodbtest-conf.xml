@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <import resource="classpath:coordinatorclient-var.xml"/>
+    <import resource="classpath:dbversion-info.xml"/>
+    <import resource="classpath:geodb-var.xml"/>
+    <import resource="classpath:geodb-jmx-var.xml"/>
+    <import resource="classpath:db-custom-migration-callbacks.xml"/>
+    <import resource="classpath:dbclient-conf.xml"/>
+    <context:annotation-config/>
+
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
+    <bean id="statusChecker" class="com.emc.storageos.db.common.DbServiceStatusChecker">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="clusterNodeCount" ref="nodeCount"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="serviceName" value="geodbsvc"/>
+    </bean>
+
+    <bean id="dataObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
+        <property name="packages">
+            <array>
+                <value>com.emc.storageos.db.client.model</value>
+            </array>
+        </property>
+        <property name="dualDbSvcMode" value="true"/>
+    </bean>
+
+    <bean id="migrationHandler" class="com.emc.storageos.db.server.impl.MigrationHandlerImpl">
+        <property name="packages">
+            <array>
+                <value>com.emc.storageos.db.client.model</value>
+            </array>
+        </property>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="service" ref="serviceinfo"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="schemaUtil" ref="dbschemautil"/>
+        <property name="customMigrationCallbacks" ref="versionedCustomMigrationCallbacks"/>
+    </bean>
+
+    <bean id="unencryptedGeoDbContext" class="com.emc.storageos.db.client.impl.DbClientContext">
+    	<property name="clusterName" value="GeoStorageOS"/>
+    	<property name="keyspaceName" value="GeoStorageOS"/>
+    </bean>
+    
+    <bean id="dbclient" class="com.emc.storageos.db.client.upgrade.InternalDbClient">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="bypassMigrationLock" value="true"/>
+        <property name="geoContext" ref="unencryptedGeoDbContext"/>
+        <property name="localContext" ref="dbclientcontext"/>
+    </bean>
+
+	<bean id="globalGC" class="com.emc.storageos.db.gc.GlobalGCExecutorLoop">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+        
+    <bean id="garbagecollector" class="com.emc.storageos.db.gc.GarbageCollectionExecutor">
+        <property name="dataObjectScanner" ref="dataObjectScanner"/>
+        <property name="gcExecutor" ref="globalGC"/>
+    </bean>
+
+    <bean id="dbsvc" class="com.emc.storageos.db.server.impl.DbServiceImpl">
+        <!-- path to db-one.yaml needs to be in classpath -->
+        <property name="config" value="geodb-test.yaml"/>
+        <property name="dbDir" value="geodbtest"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="schemaUtil" ref="dbschemautil"/>
+        <property name="migrationHandler" ref="migrationHandler"/>
+        <property name="garbageCollector" ref="garbagecollector"/>
+        <property name="service" ref="serviceinfo"/>
+        <property name="jmxServerWrapper" ref="jmxServerWrapper"/> 
+        <property name="dbClient" ref="dbclient"/>
+        <property name="beacon" ref="beacon"/>
+    </bean>
+</beans>

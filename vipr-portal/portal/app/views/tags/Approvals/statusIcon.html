@@ -1,0 +1,9 @@
+%{
+  icons = [
+    (com.emc.storageos.db.client.model.uimodels.ApprovalStatus.PENDING.name()): 'glyphicon-flag',
+    (com.emc.storageos.db.client.model.uimodels.ApprovalStatus.APPROVED.name()): 'glyphicon-ok',
+    (com.emc.storageos.db.client.model.uimodels.ApprovalStatus.REJECTED.name()): 'glyphicon-remove'
+  ]
+  icon = icons[_status]
+}%
+#{icon icon/}

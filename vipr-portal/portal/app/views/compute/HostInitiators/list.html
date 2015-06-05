@@ -1,0 +1,88 @@
+%{
+  titleKey = 'Hosts.initiators.title';
+  descriptionKey = 'Hosts.initiators.description';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.hosts'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @compute.Hosts.list()}&{'Hosts.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @compute.Hosts.edit(host?.id)}${host?.name}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey: titleKey/}
+#{DataTable.table id:'initiators',
+                      dataTable:dataTable,
+                      source:@listJson(host?.id),
+                      selectable:true}
+  #{DataTable.buttonBar}
+    #{if initiatorsEditable}
+      #{Form.button name:'button.add', class:'success', icon:'plus', action:'showDialogClick()'/}
+      #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', 
+                    data:['enabled':'selected']/}
+    #{/if}
+    #{Form.button name:'button.register', icon:'ok', submit:'registerForm', 
+                  data:['enabled':'selected', 'property':'registrationStatus', value:'UNREGISTERED']/}
+    #{Form.button name:'button.deregister', icon:'remove', submit:'deregisterForm',
+                  data:['enabled':'selected', 'property':'registrationStatus', value:'REGISTERED']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+
+%{ formFields = ['hostId': host.id] }%
+#{DataTable.formAction @delete(), id:'deleteForm', table:'initiators', fields:formFields, confirm: messages.get('initiator.deleteConfirm')/}
+#{DataTable.formAction @registerHostInitiators(), id:'registerForm', table:'initiators', fields:formFields/}
+#{DataTable.formAction @deregisterHostInitiators(), id:'deregisterForm', table:'initiators', fields:formFields/}
+
+#{Modal.dialog id:'addDialog', cssClass:'wide', titleKey:'Hosts.initiators.add.title'}
+  #{form @create(), id:'initiatorForm', class:'form form-horizontal', autocomplete:"off"}
+    <input type="hidden" name="hostId" value="${host?.id}">   
+    #{Modal.body}
+      #{field 'initiator.node'}
+        %{
+          field.cssClass = "span6 initialFocus"
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+
+      #{field 'initiator.port'}
+        %{
+          field.required = true
+        }%
+        #{Form.inputTextControlGroup field:field /}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'initiatorForm'/}
+      #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
+  
+<script>
+  #{ifErrors}
+    $(document).ready(function() {
+      showDialog();
+    });
+  #{/ifErrors}
+
+  function showDialogClick() {
+	clearErrors();
+    showDialog();
+  }
+
+  function showDialog() {
+    $('.modal').modal();
+  }
+  
+  function clearErrors() {
+    var $modal = $('.modal');
+    $('.form-group', $modal).removeClass("has-error");
+    $('.help-inline', $modal).html("");    
+  }
+
+  function hideDialog() {
+    $('.modal').modal('hide');
+  }
+</script>

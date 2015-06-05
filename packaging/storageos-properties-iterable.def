@@ -1,0 +1,28 @@
+[
+    {
+        key : "network_${iter}_ipaddr",
+        label : "server ${iter} IPv4 address",
+        description :  "IPv4 address of ViPR server ${iter}. This property is used for initial deployment; subsequent modifications are not applied.",
+        type : "ipaddr",
+        userConfigurable : true,
+        userMutable : false,
+        tag : "Network",
+        reconfigRequired : true,
+        rebootRequired : true,
+        controlNodeOnly : false,
+        value : "0.0.0.0"
+    },
+    {
+        key : "network_${iter}_ipaddr6",
+        label : "server ${iter} IPv6 address",
+        description :  "IPv6 address of ViPR server ${iter}.",
+        type : "ipv6addr",
+        userConfigurable : true,
+        userMutable : false,
+        tag : "Network",
+        reconfigRequired : true,
+        rebootRequired : true,
+        controlNodeOnly : false,
+        value : "::0"
+    },
+]

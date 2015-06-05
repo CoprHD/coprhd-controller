@@ -1,0 +1,21 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+[Unit]
+Description=Nginx service
+
+Wants=network.service storageos-installer.service ipchecktool.service 
+After=network.service storageos-installer.service ipchecktool.service ntpd.service
+ConditionFileNotEmpty=/opt/storageos/conf/storageos.key
+ConditionFileNotEmpty=/opt/storageos/conf/storageos.crt
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=forking
+PIDFile=/var/run/nginx.pid
+ExecStart=/etc/nginx/nginx.wrapper /usr/sbin/nginx -c /etc/nginx/nginx.conf
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    geniso {
+        mainClass = 'com.emc.storageos.geniso.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+        jvmArgs += " -DbuildType=" + buildType
+    }
+}
+
+dependencies {
+    compile project(":syssvc")
+}

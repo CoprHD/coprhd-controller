@@ -1,0 +1,75 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(spring_security),
+            library(jetty),
+            library(commons_codec),
+            project(":geomodels"),
+            project(":coordinatorsvc"),
+            project(":dbclient"),
+            "javax.mail:mail:1.4.3"
+
+	if (project.hasProperty("buildType") && project.getProperty("buildType") == "emc") {
+		compile emclibrary(rsa_bsafe)
+	}
+
+    testCompile library(junit),
+            project(":vipr-client")
+}
+
+test {
+    exclude "com/emc/storageos/security/helpers/UserInfoHelperTest.class"
+    exclude "com/emc/storageos/security/keystore/*.class"
+    exclude "com/emc/storageos/usermanagement/**/*.class"
+}
+
+// gradlew SecurityTest
+// This test assumes the devkit is licensed and that the authentication provider 
+// for the specified users has been added
+task SecurityTest(type: Test, dependsOn: compileTestJava) {
+    forkEvery = 1
+    maxHeapSize = "1024m"
+
+    include "com/emc/storageos/security/helpers/UserInfoHelperTest.class"
+    environment "USER_WRONG_DOMAIN", project.ext.has('USER_WRONG_DOMAIN') ? project.ext.USER_WRONG_DOMAIN : "invaliduser@invalidDomain.com"
+    environment "USER_DOESNT_EXIST", project.ext.has('USER_DOESNT_EXIST') ? project.ext.USER_DOESNT_EXIST : "iShouldntExistAnywhereInTheWholeWideWorld@sanity.local"
+    environment "EXISTING_USER", project.ext.has('EXISTING_USER') ? project.ext.EXISTING_USER : "userGroupsTestUser@sanity.local"
+    environment "EXISTING_USER_NUM_OF_GROUPS", project.ext.has('EXISTING_USER_NUM_OF_GROUPS') ? project.ext.EXISTING_USER_NUM_OF_GROUPS : "3"
+}
+
+// gradlew KeystoreTests
+// This test can only be run on a the devkit
+task KeystoreTests(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/security/keystore/*.class"
+    environment "LOCALHOST_IP", project.ext.has('LOCALHOST_IP') ? project.ext.LOCALHOST_IP : "localhost"
+    environment "buildType", project.ext.has('buildType') ? project.ext.buildType: "emc"
+    jvmArgs "-DbuildType=" + buildType
+}
+
+// gradlew UserManagementTests -PAPP_HOST_NAMES="lglw0061.lss.emc.com"
+task UserManagementTests(type: Test, dependsOn: compileTestJava) {
+    outputs.upToDateWhen { false }
+    include "com/emc/storageos/usermanagement/*.class"
+    environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "true"
+    environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
+
+    testLogging {
+        testLogging {
+            events "passed", "skipped", "failed"
+        }
+
+        afterSuite { desc, result ->
+            if (!desc.parent) { // will match the outermost suite
+                println "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+            }
+        }
+    }
+}
+
+// gradlew -PbuildType=<oss/emc> SecurityUtilTest
+task SecurityUtilTest(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/security/helpers/SecurityUtilTest.class"
+    environment "buildType", project.ext.has('buildType') ? project.ext.buildType: "emc"
+    jvmArgs "-DbuildType=" + buildType
+}
+

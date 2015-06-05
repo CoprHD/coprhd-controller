@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 404,
+  "description": "&{'errors.404.title'}",
+  "details": "${result?.message ?: messages.get("errors.404.title")}",
+  "retryable": false
+}

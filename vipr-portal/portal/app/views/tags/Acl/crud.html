@@ -1,0 +1,126 @@
+%{
+  field = _field;
+  fieldName = field.name; 
+  fieldId = field.id;
+  aclEntries = field.aclEntries;
+  aclTypes = field.aclTypes;
+  acls = field.aclAccess;
+  
+  maxAclIndex = (!aclEntries?.isEmpty()) ? aclEntries.size() : -1;
+  flashAclEntries = null
+  for (e in flash.data) {
+    if (e.key.contains(fieldName + "[") && e.key.contains("].aclName")) {
+      prefix = e.key.substring(0, e.key.indexOf(".aclName"))
+      index = e.key.substring(e.key.indexOf("[") + 1, e.key.indexOf("]"))
+      aclName = flash[prefix + ".aclName"]
+      type = flash[prefix + ".type"]
+      access = flash[prefix + ".access"]
+      
+      aclEntryForm = new controllers.tenant.AclEntryForm()
+      aclEntryForm.aclName = aclName
+      aclEntryForm.type = type
+      aclEntryForm.access = access
+      
+      if (flashAclEntries == null) {
+        flashAclEntries = []
+      }
+      
+      aclIndex = Integer.parseInt(index)
+      flashAclEntries.putAt(aclIndex, aclEntryForm)
+      maxAclIndex = Math.max(maxAclIndex, aclIndex)      
+    }
+  }
+}%
+
+<fieldset>
+  <legend>&{'security.accessControlList'}<small>&{'security.accessControlList.description'}</small></legend>
+
+  <table id="accessControlListTable" class="table" style="width: 700px;">
+    <thead>
+      <tr>
+        <th style="width: 50%;">&{'security.accessControlList.aclName'}</th>
+        <th style="width: 20%;">&{'security.accessControlList.type'}</th>
+        <th style="width: 20%;">&{'security.accessControlList.access'}</th>
+        <th style="text-align: center; width: 10%;">&nbsp;</th>
+      </tr>
+    </thead>
+    <tbody> 
+      #{list items: flashAclEntries != null ? flashAclEntries : aclEntries, as:'aclEntry'}
+        #{if aclEntry}
+          <tr>
+            <td>
+              #{field fieldName + '[' + (aclEntry_index - 1) + '].aclName'}
+                <div id="${field.id}ControlGroup" class="${field.error ? "has-error" : ""}">
+                  <input type="text" id="${field.id}" class="form-control input-sm" name="${field.name}" value="${aclEntry.aclName}">
+                  #{if field.error}<p class="help-inline clearfix">${field.error}</p>#{/if}
+                </div>                
+              #{/field}         
+            </td>
+            <td>
+              #{field fieldName + '[' + (aclEntry_index - 1) + '].type'}
+                %{
+                  field.options = aclTypes
+                  value = String.valueOf(aclEntry.type)
+                }%
+                <div id="${field.id}ControlGroup" class="${field.error ? "has-error" : ""}">
+                  <select id="${field.id}" name="${field.name}" class="form-control input-sm">
+                    #{list items:field.options, as:'option'}
+                      %{
+                        optionValue = String.valueOf(option['id']) 
+                        selected = value.equals(optionValue)
+                       }%
+                      <option value="${option['id']}" #{if selected}selected="selected"#{/}>${option['name']}</option>
+                    #{/}
+                  </select>
+                  #{if field.error}<p class="help-inline clearfix">${field.error}</p>#{/if}
+                </div>                
+              #{/field}              
+            </td>
+            <td>
+              #{field fieldName + '[' + (aclEntry_index - 1) + '].access'}
+                %{
+                  field.options = acls
+                  value = String.valueOf(aclEntry.access)
+                }%
+                <div id="${field.id}ControlGroup" class="${field.error ? "has-error" : ""}">
+                  <select id="${field.id}" name="${field.name}" class="form-control input-sm">
+                    #{list items:field.options, as:'option'}
+                      %{
+                        optionValue = String.valueOf(option['id']) 
+                        selected = value.equals(optionValue)
+                       }%
+                      <option value="${option['id']}" #{if selected}selected="selected"#{/}>${option['name']}</option>
+                    #{/}
+                  </select>
+                  #{if field.error}<p class="help-inline clearfix">${field.error}</p>#{/if}
+                </div>                
+              #{/field}              
+            </td>
+            <td>
+              <button name="aclRemoveButtons" class="btn btn-sm btn-danger" type="button">&{'security.accessControlList.button.remove'}</button>
+            </td>
+          </tr>
+        #{/if}
+      #{/list}
+    </tbody>
+  </table>
+  <button id="addAclButton" class="btn btn-sm btn-success" type="button">&{'acl.add.button'}</button>
+</fieldset>
+<script type="text/javascript">
+  var maxAclIndex = ${maxAclIndex};
+  $(document).ready(function() {
+    $('#addAclButton').click(function() {
+      maxAclIndex++;
+      var prefix = "${fieldName}[" + maxAclIndex + "]";
+      $('#accessControlListTable > tbody:last').append('<tr><td><input name="' + prefix + '.aclName" type="text" class="form-control input-sm"/></td><td><select name="' + prefix + '.type" class="form-control input-sm">#{list items:aclTypes, as:"aclType"}<option value="${aclType.id}" #{if aclType.id == "GROUP"}selected="selected"#{/if}>${aclType.name}</option>#{/list}</select></td><td><select name="' + prefix + '.access" class="form-control input-sm">#{list items:acls, as:"acl"}<option value="${acl.id}" #{if acl.id == "ALL"}selected="selected"#{/if}>${acl.name}</option>#{/list}</select></td><td><button name="aclRemoveButtons" class="btn btn-sm btn-danger" type="button">Remove</button></td></tr>');
+      $('button[name="aclRemoveButtons"]').each(function() {
+          $(this).bind('click', function(){ 
+              $(this).closest('tr').remove(); 
+          });
+      });
+    });
+    $('button[name="aclRemoveButtons"]').on('click', function(){ 
+      $(this).closest('tr').remove(); 
+    });
+  });
+ </script>

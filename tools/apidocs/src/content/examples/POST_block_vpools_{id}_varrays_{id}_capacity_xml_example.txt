@@ -1,0 +1,16 @@
+POST https://192.168.0.0:4443/block/vpools/urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:/varrays/urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:/capacity HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <capacity>
+       <free_gb>32447</free_gb>
+       <used_gb>0</used_gb>
+       <provisioned_gb>0</provisioned_gb>
+       <percent_used>0</percent_used>
+       <percent_provisioned>0</percent_provisioned>
+  </capacity>

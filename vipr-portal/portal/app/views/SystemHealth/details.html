@@ -1,0 +1,90 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.adminDashboard', 'nav.systemHealthDashboard'] /}
+
+<breadcrumb-container>
+  <breadcrumb url="@{SystemHealth.systemHealth()}" title-key="system.healthdashboard.title"></breadcrumb>
+  <breadcrumb active="true" title-key="{{nodeId}}"></breadcrumb>
+</breadcrumb-container>
+
+<div class="page-header">
+  <h1>{{nodeId}} ({{nodeIp}}) <small>{{nodeType}}</small></h1>
+</div>
+
+#{alerts/}
+
+<div class="row">
+  <div class="col-xs-8">
+    <span class="statusContainer">
+      <span class="text-muted">{{'system.stats.node.status'| t}}</span>
+      <status type="node" status="{{nodeStatus}}"></status>
+    </span>
+  </div>
+  <div class="col-xs-4">
+    <div class="btn-group button-bar">
+      <a class="btn btn-default" href="@{SystemHealth.services(nodeId)}">{{'system.stats.services' | t}}</a>
+      <button type="button" class="btn btn-default dropdown-toggle" role="menu" data-toggle="dropdown">{{'button.actions' | t }}<span class="caret"></span></button> 
+      <ul class="dropdown-menu dropdown-menu-right" role="menu">
+        <li><a href="@{logs()}?nodeId={{nodeId}}">{{'system.stats.logs' | t}}</a></li>
+        <li><a href="@{nodeReboot(nodeId)}" onclick="if (!confirm('&{'adminDashboard.confirm.reboot'}')){return false;}">{{'system.stats.reboot' | t}}</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  #{include 'SystemHealth/nodeDetails.html' /}
+</div>
+<div class="row">
+  <div class="col-sm-8">
+    <div class="diskStatsContainer">
+      <span class="nodeDetailsTitle">{{'system.stats.disk.title' | t}}</span>
+      <table class="table table-condensed table-striped">
+        <thead>
+          <tr>
+            <th>{{'system.stats.disk.name'| t}}</th>
+            <th>{{'system.stats.disk.read' | t}}</th>
+            <th>{{'system.stats.disk.write' | t}}</th>
+            <th>{{'system.stats.disk.util' | t}}</th>
+            <th>{{'system.stats.disk.avgwait' | t}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat="disk in diskStats" id="{{disk.diskId}}">
+            <td class="id">{{disk.diskId}}</td>
+            <td class="readIOPS">{{disk.readPerSec}}</td>
+            <td class="writeIOPS">{{disk.writePerSec}}</td>
+            <td class="utilization">{{disk.utilPerc/100 | percentage:2}}</td>
+            <td class= "averageWait">{{disk.avgWait}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="row" ng-if="!isCommodity">
+  <div class="col-sm-8">
+    <div class="diagnosticsContainer" ng-controller='HealthDiagnosticCtrl'> 
+      <span class="nodeDetailsTitle">{{'system.stats.diagnostics' | t}}</span>
+      <table ng-show="diagTests" class="table table-condensed table-styled table-striped">
+        <thead>
+          <tr>
+            <th class="rowName">{{'system.stats.diagnostics.name' | t}}</th>
+            <th>{{'system.stats.diagnostics.status' |  t}}</th>
+          </tr>
+        </thead>
+        <tbody >
+          <tr ng-repeat="diagTest in diagTests">
+            <td>{{diagTest.name}}</td>
+            <td>{{diagTest.status}}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="loading-box" ng-show="!diagTests">
+        <img src="/public/img/loading-huge.gif" height="64" width="64">
+      </div>
+    </div>
+  </div>
+</div>

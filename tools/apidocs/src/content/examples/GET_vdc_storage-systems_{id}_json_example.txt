@@ -1,0 +1,76 @@
+GET https://192.168.0.0:4443https://192.168.0.0:4443/vdc/storage-systems/urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:.json HTTP/1.1  
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json  
+
+{
+  "name": "CLARIION+APM00121500018",
+  "id": "urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:",
+  "link": {
+    "rel": "self",
+    "href": "/vdc/storage-systems/urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "protocols": [
+    
+  ],
+  "model": "Rack Mounted VNX5500",
+  "creation_time": 1379168798477,
+  "native_guid": "CLARIION+APM00121500018",
+  "system_type": "vnxblock",
+  "job_discovery_status": "COMPLETE",
+  "job_metering_status": "COMPLETE",
+  "last_discovery_status_message": "Discovery completed successfully for Storage System: urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:",
+  "last_discovery_run_time": 1379821070152,
+  "next_discovery_run_time": 1379823999626,
+  "last_metering_run_time": 1379820248491,
+  "next_metering_run_time": 1379823845432,
+  "compatibility_status": "COMPATIBLE",
+  "registration_status": "REGISTERED",
+  "serial_number": "APM00121500018",
+  "ip_address": "192.168.0.0",
+  "secondary_ips": [
+    
+  ],
+  "smis_provider_ip": "192.168.0.0",
+  "smis_port_number": 5988,
+  "smis_user_name": "admin",
+  "smis_use_ssl": false,
+  "export_masks": [
+    
+  ],
+  "reachable": true,
+  "firmware_version": "05.32.000.5.207",
+  "active_provider_uri": {
+    "id": "urn:storageos:SMISProvider:ffe14856-cca6-4fbf-a1ef-e29037bbe72c:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/smis-providers/urn:storageos:SMISProvider:ffe14856-cca6-4fbf-a1ef-e29037bbe72c:"
+    }
+  },
+  "smis_providers": [
+    {
+      "id": "urn:storageos:SMISProvider:ffe14856-cca6-4fbf-a1ef-e29037bbe72c:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/smis-providers/urn:storageos:SMISProvider:ffe14856-cca6-4fbf-a1ef-e29037bbe72c:"
+      }
+    }
+  ],
+  "assocociated_systems": [
+    
+  ],
+  "supported_provisioning_type": "THIN_AND_THICK",
+  "async_actions": [
+    "CreateGroupReplica",
+    "CreateElementReplica"
+  ],
+  "max_resources": -1,
+  "num_resources": 0
+}

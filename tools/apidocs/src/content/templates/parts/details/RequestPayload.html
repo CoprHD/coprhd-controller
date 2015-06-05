@@ -1,0 +1,57 @@
+<% if (apiMethod.httpMethod != "GET") { %>
+<hr/>
+<h4>Request Payload</h4>
+<% if (apiMethod.hasRequestPayload()) { %>
+
+
+<select id="payloadSelect" onchange="requestViewChange()">
+    <option selected value="table">Table</option>
+    <option value="xml">XML</option>
+    <option value="json">JSON</option>
+</select>
+
+<pre id="requestXml" style="display:none">
+${com.emc.apidocs.Utils.generateXml(apiMethod.input)}
+</pre>
+
+<pre id="requestJSON" style="display:none">
+${com.emc.apidocs.Utils.generateJson(apiMethod.input)}
+</pre>
+
+
+
+<div id="requestTable">
+    <p>All parameters are required unless otherwise stated.</p>
+    <table class="payload table table-striped">
+        <thead>
+        <tr>
+            <td width="300">Field</td>
+            <td width="40%">Description</td>
+            <td width="30">Type</td>
+            <td width="20%">Notes</td>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>&lt;${apiMethod.input.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <% apiMethod.input.fields.each { field ->
+        addPayloadLine(field, 1)
+        } %>
+        <tr>
+            <td>&lt;/${apiMethod.input.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<% } else { %>
+<p>No Request Payload</p>
+<% } %>
+<% } %>

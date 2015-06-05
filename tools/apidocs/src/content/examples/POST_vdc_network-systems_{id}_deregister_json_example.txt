@@ -1,0 +1,33 @@
+POST https://192.168.0.0:4443/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:/deregister.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+   "creation_time": "1380749105100",
+   "id": "urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:",
+   "inactive": "false",
+   "link": {
+      "href": "/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:",
+      "rel": "self"
+   },
+   "name": "mds-a",
+   "tags": [],
+   "native_guid": "MDS+192.168.0.3+22",
+   "compatibility_status": "INCOMPATIBLE",
+   "job_discovery_status": "ERROR",
+   "last_discovery_run_time": "1380749233621",
+   "last_discovery_status_message": "Failed to get version: Failed to connect\n              to device mds-a : Authorization Failed",
+   "last_metering_run_time": "0",
+   "job_metering_status": "CREATED",
+   "next_discovery_run_time": "1380752815912",
+   "next_metering_run_time": "0",
+   "registration_status": "UNREGISTERED",
+   "system_type": "mds",
+   "ip_address": "192.168.0.3",
+   "port_number": "22",
+   "smis_use_ssl": "false",
+   "user_name": "no-user"
+}

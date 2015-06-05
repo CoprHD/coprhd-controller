@@ -1,0 +1,56 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if continuousCopies}
+%{
+ // actual values from controllers side found in BlockMirror.java
+ final UNKNOWN = '0'
+ final RESYNCHRONIZING = '5'
+ final SYNCHRONIZED = '6'
+ final FRACTURED = '13'
+ final COPYINPROGRESS = '15'
+}%
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.continuouscopy.name'}</th>
+      <th>&{'resources.continuouscopy.synctype'}</th>
+      <th>&{'resources.continuouscopy.syncstate'}</th>
+      <th>&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list continuousCopies, as:'continuousCopy'}
+      <tr>
+        <td>
+          <a href="@{volume(continuousCopy.source.id, continuousCopy.id)}"
+          ><img src="/public/img/assets/Continuous_Copy.png" style="width: 32px;"/> ${continuousCopy.name}</a>
+        </td>
+        <td>#{if continuousCopy?.syncType}#{Resources.continuousCopySyncType continuousCopy.syncType /}#{/if}</td>
+        <td>#{if continuousCopy?.syncState}#{Resources.continuousCopySyncState continuousCopy?.syncState /}#{/if}</td>
+        <td style="text-align: right;">
+          <div class="btn-group">
+            #{if continuousCopy?.id?.toString().contains('BlockMirror')}
+              <a href="@{pauseContinuousCopy(continuousCopy.source.id, continuousCopy.id)}"
+                onclick="#{if continuousCopy.syncState == FRACTURED}return false;#{/if}"
+                class="btn btn-default #{if continuousCopy.syncState == FRACTURED}disabled#{/if}"
+              >&{'resources.continuouscopy.pauseButton'}</a>
+              <a href="@{resumeContinuousCopy(continuousCopy.source.id, continuousCopy.id)}"
+                onclick="#{if continuousCopy.syncState != FRACTURED}return false;#{/if}"
+                class="btn btn-default #{if continuousCopy.syncState != FRACTURED}disabled#{/if}"
+              >&{'resources.continuouscopy.resumeButton'}</a>
+            #{/if}           
+            <a href="@{stopContinuousCopy(continuousCopy.source.id, continuousCopy.id)}"
+              class="btn btn-default"
+              onclick="return confirm('&{'resources.continuouscopy.stopConfirm'}');"
+            >&{'resources.continuouscopy.stopButton'}</a>             
+          </div>
+        </td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.continuouscopies.none'}
+#{/else}

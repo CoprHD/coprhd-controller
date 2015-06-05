@@ -1,0 +1,18 @@
+%{
+    active = _active ?: false;
+    page = _page;
+    name = page.name;
+    
+    labelKey = "configProperties." + name.slugify();
+    label = messages.get(labelKey);
+    if (labelKey.equals(label)) {
+        label = name;
+    }
+    cssClass = active ? 'active ' : '';
+    if (page.hasErrors()) {
+        cssClass += 'error';
+    }
+}%
+<li #{if cssClass}class="${cssClass}"#{/if}>
+  <a href="#${name.slugify()}" data-toggle="tab">${label}</a>
+</li>

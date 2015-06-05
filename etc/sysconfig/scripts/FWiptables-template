@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2012-2014 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/sysconfig/scripts/FWiptables
+#
+# This script invokes iptables and ip6tables commands for the deployed appliance
+# The invocation of this script is in /etc/sysconfig/scripts/SuSEfirewall2-custom
+#
+
+fw_custom_iptables() {
+
+    # Section for a given VDC (other nodes in the same system)
+    NETWORK_NODES_IPV4="${network_nodes_ipv4} ${network_vip}"
+    NETWORK_NODES_IPV6="${network_nodes_ipv6} ${network_vip6}"
+
+    # TCP ingres ports for inter-node communication:
+    #   2181 - coordinatorsvc
+    #   2888 - coordinatorsvc (??? isn't it the source port)
+    #   2889 - coordinatorsvc
+    #   6443 - portalsvc (UI Portal) 
+    #   7000 - dbsvc (storage non-SSL port)
+    #   7001 - dbsvc (storage SSL port - dbsvc/src/conf/db-conf.yaml)
+    #   7100 - geodbsvc (storage non-SSL port)
+    #   7101 - geodbsvc (storage SSL port)
+    #   7199 - dbsvc (jmx server and register ports)
+    #   7200 - dbsvc (jmx server and register ports)
+    #   7299 - geodbsvc (jmx server and register ports)
+    #   7300 - geodbsvc (jmx server and register ports)
+    #   7399 - coordinatorsvc (jmx server)
+    #   7400 - coordinatorsvc(jmx server)
+    #   7443 - authsvc
+    #   8080 - apisvc
+    #   8443 - apisvc
+    #   8444 - sasvc
+    #   8543 - geosvc
+    #   9093 - vasasvc
+    #   9160 - dbsvc
+    #   9260 - geodbsvc
+    #   9993 - syssvc (SSL)
+    #   9998 - syssvc (non-SSL)
+    #  10099 - controllersvc (RMI)
+    #  40201 - controllersvc (RMI)
+    #
+    # NOTE: iptables/ip6tables accepts up to maximun of ports is 15 in the argument list, please do not exceed the limit
+    #
+    INGRES_PORTS_PART1="2181,2888,2889,6443,7000,7001,7100,7101,7199,7200,7299,7300,7399,7400"
+    INGRES_PORTS_PART2="7443,8080,8443,8444,8543,9093,9160,9260,9993,10099,10199,40201"
+
+    # TODO support multiple nics
+    NIC_NAME="${network_nic_name}"
+    for sourceNode in ${NETWORK_NODES_IPV4} ; do
+        iptables  -I input_ext -i ${NIC_NAME} -p igmp -s ${sourceNode} -j ACCEPT
+        iptables  -I input_ext -i ${NIC_NAME} -p vrrp -s ${sourceNode} -j ACCEPT
+        iptables  -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART1} -j ACCEPT
+        iptables  -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART2} -j ACCEPT
+    done
+    for sourceNode in ${NETWORK_NODES_IPV6} ; do
+        ip6tables -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART1} -j ACCEPT
+        ip6tables -I input_ext -i ${NIC_NAME} -p igmp -s ${sourceNode} -j ACCEPT
+        ip6tables -I input_ext -i ${NIC_NAME} -p vrrp -s ${sourceNode} -j ACCEPT
+        ip6tables -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART2} -j ACCEPT
+    done
+
+    # Section for inter VDC communication
+    VDC_NODES_IPV4="${vdc_nodes_ipaddr}"
+    VDC_NODES_IPV6="${vdc_nodes_ipaddr6}"
+
+    # TCP ingres ports for inter-VDC communication:
+    #   7101 - 
+    #
+    # NOTE: The commands below must contain only one port. If multiple ports are needed, add the multiport option
+    INTERVDC_PORT="7101"
+
+    for sourceNode in ${VDC_NODES_IPV4} ; do
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT} -j ACCEPT
+    done
+    for sourceNode in ${VDC_NODES_IPV6} ; do
+        ip6tables -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT} -j ACCEPT
+    done
+    
+    true
+}
+

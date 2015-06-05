@@ -1,0 +1,69 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set 'title'}&{'PasswordForm.title'}#{/set}
+#{script 'PasswordValidator.js'/}
+  #{set 'moreScripts'}
+    #{get 'moreScripts'/}
+    <script type="text/javascript">
+        $(document).ready(function() {
+        	validatePasswordStrength('passwordForm_newPassword','@{validatePasswords}','${session.authenticityToken}');
+            validateConfPwField('passwordForm_newPassword','passwordForm_confirmPassword');
+        });
+    </script>
+  #{/set}
+#{if clusterInfo}
+  #{set 'moreScripts'}
+    #{get 'moreScripts'/}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            render.clusterStatus('#clusterState', $('#clusterState').data('state'));
+        });
+    </script>
+  #{/set}
+#{/if}
+
+
+<div class="container">
+  #{Form.header titleKey:'PasswordForm.title' /}
+
+  #{alerts/}
+  %{ unstable = clusterInfo?.isNotStable() }%
+  #{if unstable}
+    <div class="alert alert-info">
+      <span id="clusterState" data-state="${clusterInfo.currentState}" style="margin-right: 1em;"></span>
+      &{'configProperties.passwordChange.clusterNotStable'}
+    </div>
+  #{/if}
+
+  <div class="alert alert-warning">
+    #{icon 'warning-sign' /}
+    &{'configProperties.passwordChange.warning'}
+  </div>
+
+  #{form @save(), class:'form form-horizontal', autocomplete:"off"}
+    #{field "passwordForm.oldPassword"}
+      %{
+        field.cssClass = fieldCssClass
+        field.required = true
+      }%
+      #{Form.inputPasswordControlGroup field:field/}
+    #{/field}
+    #{field "passwordForm.newPassword"}
+      %{
+        field.cssClass = fieldCssClass
+        field.required = true
+      }%
+      #{Form.inputPasswordControlGroup field:field/}
+    #{/field}
+    #{field "passwordForm.confirmPassword"}
+      %{
+        field.cssClass = fieldCssClass
+        field.required = true
+      }%
+      #{Form.inputPasswordControlGroup field:field/}
+    #{/field}
+    #{Form.saveCancel cancelHref:@cancel() /}
+  #{/form}
+</div>

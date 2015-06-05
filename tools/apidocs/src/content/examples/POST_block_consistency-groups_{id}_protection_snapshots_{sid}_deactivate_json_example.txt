@@ -1,0 +1,25 @@
+POST https://192.168.0.0:4443/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:/protection/snapshots/urn:storageos:BlockSnapshot:e43bc8f0-9fce-4fb4-9790-f057dc998d70:/deactivate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+  "resource": {
+    "name": "block_snapshot_20",
+    "id": "urn:storageos:BlockSnapshot:e43bc8f0-9fce-4fb4-9790-f057dc998d70:",
+    "link": {
+      "rel": "self",
+      "href": "/block/snapshots/urn:storageos:BlockSnapshot:e43bc8f0-9fce-4fb4-9790-f057dc998d70:"
+    }
+  },
+  "state": "pending",
+  "start_time": 1380603154981,
+  "op_id": "cf2549dd-8647-4d8d-9570-094d3a596e1a",
+  "link": {
+    "rel": "self",
+    "href": "/block/snapshots/urn:storageos:BlockSnapshot:e43bc8f0-9fce-4fb4-9790-f057dc998d70:/tasks/cf2549dd-8647-4d8d-9570-094d3a596e1a"
+  }
+}

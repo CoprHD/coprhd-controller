@@ -1,0 +1,32 @@
+POST https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:/expand.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "new_size": "26214400"
+}
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+    "link": {
+        "href": "/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:/tasks/2f108ca5-6cb0-44c0-b4bb-f6aed1324520", 
+        "rel": "self"
+    }, 
+    "op_id": "2f108ca5-6cb0-44c0-b4bb-f6aed1324520", 
+    "resource": {
+        "id": "urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:", 
+        "link": {
+            "href": "/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:", 
+            "rel": "self"
+        }, 
+        "name": "fs-cosnetappf-00:50:56:91:58:91"
+    }, 
+    "start_time": 1379958417856, 
+    "state": "pending"
+}
+{'op_id': '2f108ca5-6cb0-44c0-b4bb-f6aed1324520', 'link': {'href': '/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:/tasks/2f108ca5-6cb0-44c0-b4bb-f6aed1324520', 'rel': 'self'}, 'state': 'pending', 'resource': {'link': {'href': '/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:', 'rel': 'self'}, 'name': 'fs-cosnetappf-00:50:56:91:58:91', 'id': 'urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:'}, 'start_time': 1379958417856}
+
+

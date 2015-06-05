@@ -1,0 +1,10 @@
+/var/log/audit/audit.log {
+  delaycompress
+  missingok
+  nocreate
+  sharedscripts
+  postrotate
+    test ! -f /var/run/auditd.pid || kill -USR1 `cat /var/run/auditd.pid`
+  endscript
+}
+

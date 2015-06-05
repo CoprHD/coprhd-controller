@@ -1,0 +1,56 @@
+<div id="physicalAssetsPanel">
+  <div class="panel panel-default">
+    <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.physicalAssets'}</h3></div>
+    #{if storageArrayCount == null}
+      <div class="panel-body">
+        <div class="loadingBox">
+           <img src="/public/img/loading-huge.gif" height="64" width="64">
+        </div>      
+      </div>
+      #{/if}
+    #{if storageArrayCount != null}
+      <ul class="list-group">
+        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin()}
+          #{license.ifController}
+            <a class="list-group-item" href="@{arrays.StorageSystems.list()}">&{'adminDashboard.storageArrays'} #{badgeNumber storageArrayCount/}</a>
+            <a class="list-group-item" href="@{arrays.StorageProviders.list()}">&{'adminDashboard.smisProviders'} #{badgeNumber smisProviderCount/}</a>
+            <a class="list-group-item" href="@{arrays.DataProtectionSystems.list()}">&{'adminDashboard.dataProtectionSystems'} #{badgeNumber dataProtectionSystemCount/}</a>
+            <a class="list-group-item" href="@{arrays.SanSwitches.list()}">&{'adminDashboard.fabricManagers'} #{badgeNumber fabricManagerCount/}</a>
+            <a class="list-group-item" href="@{arrays.Networks.list()}">&{'adminDashboard.networks'} #{badgeNumber networksCount/}</a>
+            <a class="list-group-item" href="@{compute.ComputeImages.list()}">&{'adminDashboard.computeImages'} #{badgeNumber computeImageCount/}</a>
+            <a class="list-group-item" href="@{compute.ComputeSystems.list()}">&{'adminDashboard.computeSystems'} #{badgeNumber computeSystemCount/}</a>
+            #{/license.ifController}
+        #{/if}
+        #{else}
+          #{license.ifController}
+            <li class="list-group-item">&{'adminDashboard.storageArrays'} #{badgeNumber storageArrayCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.smisProviders'} #{badgeNumber smisProviderCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.dataProtectionSystems'} #{badgeNumber dataProtectionSystemCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.fabricManagers'} #{badgeNumber fabricManagerCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.networks'} #{badgeNumber networksCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.computeImages'} #{badgeNumber computeImageCount/}</a>
+            <li class="list-group-item">&{'adminDashboard.computeSystems'} #{badgeNumber computeSystemCount/}</a>
+          #{/license.ifController}
+        #{/else}
+        #{license.ifController}
+          #{if controllers.security.Security.isTenantAdmin()}
+            <a class="list-group-item" href="@{compute.Hosts.list()}">&{'adminDashboard.hosts'} #{badgeNumber hostCount/}</a>
+            <a class="list-group-item" href="@{compute.HostClusters.list()}">&{'adminDashboard.clusters'} #{badgeNumber clusterCount/}</a>
+            <a class="list-group-item" href="@{compute.VCenters.list()}">&{'adminDashboard.vcenters'} #{badgeNumber vcenterCount/}</a>
+          #{/if}
+          #{else}
+            <li class="list-group-item">&{'adminDashboard.hosts'} #{badgeNumber hostCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.clusters'} #{badgeNumber clusterCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.vcenters'} #{badgeNumber vcenterCount/}</li>
+          #{/else}
+        #{/license.ifController}
+      </ul>
+    #{/if}
+    #{if storageArrayCountLastUpdated}
+      <div class="panel-footer">
+        <small>&{'adminDashboard.lastUpdated'} <span data-format-relative-time="${storageArrayCountLastUpdated.getTime()}"></span></small>
+      </div> 
+    #{/if}
+  </div>    
+</div>
+

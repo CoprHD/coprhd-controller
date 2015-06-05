@@ -1,0 +1,138 @@
+*{
+  @param field - the field map
+         field.id - the ID of the field
+         field.name - the name of the field
+         field.value - the current field value
+         field.options - the possible options for the field.
+         field.valueType - type of the value (defaults to String.class)
+         field.valueProperty - the property name of each option value (defaults to 'id')
+         field.labelProperty - the property name of each option label (defaults to 'name')
+         field.subLabelProperty - the property name of each option label
+         field.cssClass - the CSS class for the control (defaults to 'span4')
+         field.optionProperties - beside item label, there are other properties which each item needs to conserve in UI, similar to table row object. 
+                                  This is an array of property names.  The actual data is store in item's jquery data("optionObject") for later retrieval.
+         
+  This is a common layout for a select many control.  The control should be wrapped in a #{field} tag, and the options
+  must be specified within the tag.  Each option has a value and label, which default to 'id' and 'name' respectively.
+  The value and label properties may be overriden using the 'valueProperty' and 'labelProperty' properties on the field.
+  The value type defaults to Long, but may be overridden using the 'valueType' property. 
+  
+  #{field 'fromModels'}
+    %{ field.options = someReferenceData; }%
+    #{Form.selectMany field:field/}
+  #{/field}
+  
+  #{field 'fromMap'}
+    %{
+      field.options = [
+        1:'Value 1',
+        2:'Value 2'
+      ]
+      field.valueProperty = 'key'; // Key from the map
+      field.labelProperty = 'value'; // Value from the map
+    }%
+    #{Form.selectMany field:field/}
+  #{/}
+  
+  #{field 'fromStringMap'}
+    %{
+      field.options = [
+        'value1':'Value 1',
+        'value2':'Value 2'
+      ]
+      field.valueType = String.class;
+      field.valueProperty = 'key'; // Key from the map
+      field.labelProperty = 'value'; // Value from the map
+    }%
+    #{Form.selectMany field:field/}
+  #{/}
+}*
+%{
+  field = _field;
+  type = field.valueType ?: String.class;
+  valueProperty = field.valueProperty ?: "id";
+  labelProperty = field.labelProperty ?: "name";
+  subLabelProperty = field.subLabelProperty;
+  value = flash[field.name] ? flash[field.name]?.split(type) : field.value;
+  cssClass = field.cssClass ?: "span6";
+  disabled = field.disabled ?: false
+}%
+<script type="text/javascript">
+ var ${field.id} = new SelectMany('#${field.id}'); 
+ $(document).ready(function() {
+   var searchField = $("#${field.id}Search");
+   searchField.keyup(function() {
+     delay(function(){
+       ${field.id}.filter(searchField.val());
+     }, 300 );     
+   });
+
+   var searchThreshold = ${field.searchThreshold ?: 4};
+   //
+   // show/hide search component in list box with more items than the search threshold
+   //
+   var selectManyContent = $('#${field.id}');
+   var selectManyParentControl = selectManyContent.closest('div.selectMany');
+   showSearchBox(selectManyContent.find("input:checkbox").length > searchThreshold);
+   
+   //
+   // trgger listener when new item is added or removed from selectMany.  Then,
+   // show the search if there are more checkboxes than the threshold. Hide, otherwise.
+   //
+   selectManyContent.on('DOMNodeInserted DOMNodeRemoved', function () {
+      showSearchBox(selectManyContent.find("input:checkbox").length > searchThreshold);
+   });
+   
+   function showSearchBox( show ) {
+       var disabled = selectManyParentControl.data('disabled') == 'disabled';
+       if ( show && !disabled) {
+           selectManyParentControl.find('.selectManySearch').show();           
+       } else {
+           selectManyParentControl.find('.selectManySearch').hide();           
+       }
+   }
+ }); 
+ var delay = (function(){
+   var timer = 0;
+   return function(callback, ms){
+     clearTimeout (timer);
+     timer = setTimeout(callback, ms);
+   };
+ })(); 
+   
+</script>
+<div class="selectMany ${cssClass} ${disabled ? "disabled" : ""}"#{if disabled} data-disabled="disabled"#{/if}>
+  <div class="selectManySearch row col-gap-sm">
+    <div class="col-sm-8">
+      <input id="${field.id}Search" type="text" class="form-control input-sm" autocomplete="off" #{if disabled}disabled="true"#{/if}/>
+    </div>
+    <span class="btn-group selectManyButtons col-sm-4">
+      <button id="${field.id}Check" type="button" class="btn btn-default btn-sm" onclick="window.${field.id}.checkAll()" #{if disabled}disabled="true"#{/if}>#{icon 'check'/} {{'tags.selectMany.all' | t}}</button>
+      <button id="${field.id}Uncheck" type="button" class="btn btn-default btn-sm" onclick="window.${field.id}.uncheckAll()" #{if disabled}disabled="true"#{/if}>#{icon 'remove-circle'/} {{'tags.selectMany.none' | t}}</button>
+    </span>
+  </div>
+  <div id="${field.id}" name="${field.name}" class="selectManyContent"#{Form.extraAtts atts:field.atts/}>
+  #{list items:field.options, as:'option'}
+    %{ checkboxId = "${field.id}${option[valueProperty]?.htmlId()}" }%
+    <div class="checkbox">
+    <label for="${checkboxId}">
+      <input id="${checkboxId}" name="${field.name}" type="checkbox"
+        #{if (value)?.contains(option[valueProperty])}checked="checked"#{/} value="${option[valueProperty]}" #{if disabled}disabled="true"#{/if}>
+        ${option[labelProperty]}
+        #{if subLabelProperty && option[subLabelProperty]}<br>&nbsp;&nbsp;${option[subLabelProperty]}#{/if}  
+    </label>
+    </div>
+    <div class="clearfix"></div>
+    #{if field.optionProperties}
+      <script>
+       var optionObject = {}
+       #{list items:field.optionProperties, as:'property'}
+           optionObject['${property}'] = '${option[property]}';
+       #{/list}
+       $('input:checkbox[id="${checkboxId}"]').data("optionObject", optionObject);
+       
+      </script>
+    #{/if}    
+  #{/list}
+  </div>
+</div>

@@ -1,0 +1,24 @@
+<dl class="dl-horizontal">
+#{if project}
+  <dt>&{'project'}</dt>
+  <dd>${project.name}</dd>
+#{/if}
+
+#{if vcenter}
+  <dt>&{'vCenter'}</dt>
+  <dd><a href="@{compute.VCenters.edit(vcenter.id)}">${vcenter.name}</a></dd>
+  
+  #{if dataCenter}
+  <dt>&{'vCenter.datacenter'}</dt>
+  <dd>${dataCenter.name}</dd>
+  #{/if}
+#{/if}
+  
+  <dt>&{'cluster.hosts'}</dt>
+  <dd>
+    #{list hosts, as:'host'}
+      <a href="@{compute.Hosts.edit(host.id)}">${host.name}</a>#{if !host_isLast}, #{/if}
+    #{/list}
+    #{else}&nbsp;#{/else}
+  </dd>
+</dl>

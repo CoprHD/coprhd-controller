@@ -1,0 +1,21 @@
+<div ng-class="'selectMany ' + cssClass">
+  <div ng-show="options.length > searchThreshold" class="selectManySearch row col-gap-sm">
+    <div class="col-sm-8">
+      <input ng-model="searchQuery" type="text" class="form-control input-sm" autocomplete="off" ng-disabled="disabled"/>
+    </div>
+    <span class="btn-group selectManyButtons col-sm-4" class="test" >
+      <button type="button" class="btn btn-default btn-sm" ng-disabled="disabled" ng-click="checkAll($event)"><i v-icon='check'></i>{{'tags.selectMany.all' | t }}</button>
+      <button type="button" class="btn btn-default btn-sm" ng-disabled="disabled" ng-click="uncheckAll($event)"><i v-icon='remove-circle'></i>{{'tags.selectMany.none' | t }}</button>
+    </span>
+  </div>
+  <div id="{{field.id}}" name="{{field.name}}" class="selectManyContent" style="{{noMaxHeight && 'max-height:none'}}" todo-extra-attributes>
+    <div ng-repeat="option in visibleOptions">
+      <div class="checkbox">
+        <label for="{{field.id}}_{{$index}}">
+          <input ng-disabled="disabled" id="{{field.id}}_{{$index}}" ng-model="selections[option[valueProperty]]" name="{{field.name}}" type="checkbox" value="{{option[valueProperty]}}">{{option[labelProperty]}}
+        </label>
+      </div>
+      <div class="clearfix"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,21 @@
+<div class="row row-gap-sm col-gap-sm">
+  #{field "${_fieldName}_name"}
+    %{
+      field.id = null
+      field.value = _name
+      field.cssClass = 'form-control-editable'
+      field.atts = ['placeholder': messages.get(field.name+'.placeholder')]
+    }%
+    <div class="col-xs-5">#{Form.inputText field:field/}</div>
+  #{/field}
+  #{field "${_fieldName}_value"}
+    %{
+      field.id = null
+      field.value = _value
+      field.cssClass = 'form-control-editable'
+      field.atts = ['placeholder': messages.get(field.name+'.placeholder')]
+    }%
+    <div class="col-xs-6">#{Form.inputText field:field/}</div>
+  #{/field}
+  <div class="col-xs-1"><button type="button" class="close" data-remove="entry">&times;</button></div>
+</div>

@@ -1,0 +1,28 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if play.mode.isDev()}
+  #{500 exception /}
+#{/if}
+#{else}
+  #{extends 'nonav-wide-layout.html' /}
+  #{set title: "&{'errors.500.title'}"/}
+  <div class="well">
+    <div class="section-header">
+      <h1>&{"errors.500.title"}</h1>
+    </div>
+    #{if result}
+      <p class="text-danger">${result.message}</p>
+    #{/if}
+    #{else}
+      <p class="text-danger">${exception?.message}</p>
+    #{/else}
+    <p>
+      &{"errors.500.description"}
+      #{if exception instanceof play.exceptions.PlayException}
+        &{"errors.500.title", exception.id}
+      #{/if}
+    </p>
+    <p>&{'errors.500.return'}</p>
+  </div>
+#{/else}

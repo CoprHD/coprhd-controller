@@ -1,0 +1,26 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    zkutils {
+        mainClass = "com.emc.storageos.zkutils.Main"
+        maxMemory = "512m"
+        service = false
+        gcDetails = false
+        jvmArgs += " -DbuildType=" + buildType
+    }
+    genkeystore {
+        mainClass = "com.emc.storageos.zkutils.Main"
+        args = "exportkeystore"
+        maxMemory = "128m"
+        service = false
+        gcDetails = false 
+        jvmArgs += " -DbuildType=" + buildType
+    }
+}
+
+dependencies {
+    compile project(":coordinatorsvc"),
+            project(":syssvc")
+}

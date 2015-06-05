@@ -1,0 +1,17 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"RestoreBlockSnapshot.Block",
+  serviceId:"RestoreBlockSnapshot",
+  destructive: true,
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    snapshots:{
+      type:"assetType.vipr.blockSnapshot"
+    }       
+  }
+}

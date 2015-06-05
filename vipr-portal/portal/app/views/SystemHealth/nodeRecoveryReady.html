@@ -1,0 +1,72 @@
+
+<div class="container">
+    
+    <div id="clusterHealthPanel">
+        #{include 'SystemHealth/clusterHealth.html'/}
+    </div>
+           
+	<div>
+	<h4>Recovery Steps</h4>
+	<ol>
+	  <li>Remove the virtual machine (VM) for each of the failed nodes from your hypervisor environment.</li>
+	  <li>Save the network configuration parameters to a local properties file using the download button below.</li>
+	  <li>Use the ViPR deployment script to redeploy a VM for each of the failed nodes, using the properties file created in
+	      step 2 as the file argument.  Do not power on the redeployed VM(s).</li>
+	  <li>Activate the recovery process using the Start Node Recovery button.</li>
+	  <li>Power on the redeployed VM(s).</li>
+	  <li>Monitor this page for status updates until the process completes.</li>  
+	</ol>
+	</div>
+	<p>
+
+    <div id="message"></div>
+    #{form @SystemHealth.startNodeRecovery()}
+        <button id="startNodeRecoveryBtn" class="btn btn-primary"> &{'systemHealth.startNodeRecovery'}</button>
+    #{/form}
+
+    <div id="recoveryResults">
+      <table style="margin-top:25px;width:100%">
+          <caption style="display: table-caption;text-align: left;"><h3>Recovery Status</h3></caption>
+		  <tr>
+		    <th>Status</th>
+		    <th>Start Time</th> 
+		    <th>End Time</th>
+		  </tr>
+		  <tr>
+		    <td>
+		      <div id="recStatus" style="display:block">
+		  	    <status id="recoveryStatus"></status>
+		      </div>
+		      <div id="recStatusAnim" style="display:none">
+		  	    <status id="recoveryStatusAnim"></status>#{loading/}
+		      </div>
+		    </td>
+		    <td><span id="startTime"></span></td> 
+		    <td><span id="endTime"></span></td>
+		  </tr>
+	  </table>
+	</div>
+    
+    <div id="errorHistory" style="display:none">
+	    <table style="margin-top:25px;width:100%">
+	      <tr>
+	        <td><status id="errorMsg"></status></td>
+	        <td><status id="errorTime"></status></td>
+	        <td><status id="errorResult"></status></td>
+	      </tr>
+	    </table>
+    </div>
+		
+	<p>
+	<p>
+		
+	<div id="download">
+	#{form @SystemHealth.downloadConfigParameters()}
+	    <button id="startConfigDownload" class="btn btn-primary"> &{'systemHealth.downloadConfigParameters'}</button>
+	#{/form}
+	</div>
+</div>
+
+
+
+    

@@ -1,0 +1,26 @@
+GET https://192.168.0.0:4443/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:5adadd56-ea64-4a6c-9467-d2643fc8d8f1:
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <auto_tiering_policy>
+       <creation_time>1379168889435</creation_time>
+       <id>urn:storageos:AutoTieringPolicy:5adadd56-ea64-4a6c-9467-d2643fc8d8f1:</id>
+       <inactive>false</inactive>
+       <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:5adadd56-ea64-4a6c-9467-d2643fc8d8f1:" rel="self"/>
+       <name>DEFAULT_HIGHEST_AVAILABLE</name>
+       <tags/>
+       <native_guid>CLARiiON+APM00112900836+FASTPOLICY+DEFAULT_HIGHEST_AVAILABLE</native_guid>
+       <policy_enabled>true</policy_enabled>
+       <policy_name>DEFAULT_HIGHEST_AVAILABLE</policy_name>
+       <provisioning_type>All</provisioning_type>
+       <storage_system>
+            <id>urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:" rel="self"/>
+       </storage_system>
+       <system_type>vnxblock</system_type>
+  </auto_tiering_policy>

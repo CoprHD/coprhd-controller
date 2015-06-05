@@ -1,0 +1,9 @@
+<dl class="dl-horizontal">
+  <dt>&{'vCenter.version'}</dt>
+  <dd>${vcenter.osVersion ?: '-'}</dd>
+  
+  <dt>&{'vCenter.datacenters'}</dt>
+  <dd>${ dataCenters.collect{ it.name }.join(", ") ?: '-' }</dd>
+  
+  #{discoveryDetails vcenter/}
+</dl>

@@ -1,0 +1,8 @@
+SAY ViPR - Press the <ENTER> key to boot from disk.
+PROMPT 0
+ 
+DEFAULT hdboot
+ 
+LABEL hdboot
+localboot 0
+

@@ -1,0 +1,50 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+//
+// For OSS mode build we need to download the SBLIM zip file and extract out 
+// the sblim client jar file.  The jar file needs to be renamed and placed under 
+// net.sourceforge.sblim folder in order for the artifact to be found
+//
+// How to run by hand:  ../gradlew -g.gradle assembleSBLIM 
+//
+repositories {
+    maven {
+        url "http://sourceforge.net/projects/"
+    }
+}
+
+configurations {
+    mysblim
+}
+
+project.ext {
+    distDir = "net.sourceforge.sblim"
+    gradleDir = ".gradle"
+    sblimOldName = "sblim-cim-client2"
+    sblimNewName = "sblim-cim-client"
+    sblimVersion = "2.2.3"
+}
+
+dependencies {
+    mysblim "sblim.files:${project.sblimOldName}:${project.sblimVersion}:bin@zip"
+}
+
+task clean<<{
+    delete "${project.distDir}"
+    delete "${project.gradleDir}"
+    delete "${project.buildDir}"
+}
+
+task unpackSBLIM(type: Copy) {
+    from configurations.mysblim.files.collect { zipTree(it) }
+        rename '(.*)', "${project.sblimNewName}-${project.sblimVersion}.jar"
+        include "${project.sblimOldName}-${project.sblimVersion}-bin/lib/${project.sblimOldName}-${project.sblimVersion}.jar"
+    into "${project.buildDir}/tmp"
+}
+
+task assembleSBLIM(type: Copy, dependsOn: unpackSBLIM ) {
+    from("${project.buildDir}/tmp/${project.sblimOldName}-${project.sblimVersion}-bin/lib")
+    include('*.jar')
+    into "${project.distDir}"
+}
+

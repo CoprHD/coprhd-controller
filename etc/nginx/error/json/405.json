@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 6405,
+  "description": "Method Not Allowed",
+  "details": "Method not allowed.",
+  "retryable": false
+}

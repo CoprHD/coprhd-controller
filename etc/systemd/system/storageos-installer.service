@@ -1,0 +1,24 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+[Unit]
+Description=StorageOS installer for baremetal
+
+Wants=network.service SuSEfirewall2.service
+After=network.service SuSEfirewall2.service
+Before=getty@tty1.service user.slice ntpd.service systemd-tmpfiles-clean.timer
+
+[Service]
+Type=oneshot
+ExecStart=/etc/storageos/installer
+RemainAfterExit=yes
+Restart=no
+TimeoutSec=0
+StandardOutput=tty
+StandardInput=tty-force
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=multi-user.target

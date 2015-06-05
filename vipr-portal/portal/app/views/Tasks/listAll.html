@@ -1,0 +1,143 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.storage', 'nav.tasks'] /}
+#{set 'title'}&{'resources.tasks'}#{/set}
+
+<div id="tasks" class="tasks-container">
+  <div class="content">
+
+      <div class="section-header" >
+          <h1>#{icon 'tasks'/} &{'resources.tasks'}</h1>
+      </div>
+
+  #{alerts/}
+
+  #{if tenants || isSystemAdmin}
+      <ul id="taskTabs" class="nav nav-tabs" role="tablist" style="margin-bottom:1em;">
+        #{if tenants?.size() > 1}
+          <li class="dropdown #{ifnot systemTasks}active#{/ifnot}">
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+              %{
+                currentTenantName = tenants.find{it.id.equals(currentTenantId)}.name
+              }%
+              &{'resources.tasks.tenant.label', currentTenantName} <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              #{list items:tenants, as:'tenant'}
+                <li #{if tenant.id.equals(currentTenantId)}class="active"#{/if}>
+                  <a href="@{tenant.TenantSelector.selectTenant(tenant.id, request.path)}">&{'resources.tasks.tenant.label', tenant.name}</a>
+                </li>
+              #{/list}
+            </ul>
+          </li>
+        #{/if}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+            #{if tenants?.size() == 1}
+                <li id="tenantTasksTab" #{ifnot systemTasks}class="active"#{/ifnot}><a href="@{listAll()}">&{'resources.tasks.tenant'}</a></li>
+            #{/if}
+            <li id="systemTasksTab" #{if systemTasks}class="active"#{/if}><a href="@{listAll(true)}">&{'resources.tasks.system'}</a></li>
+        #{/deadbolt.restrict}
+      </ul>
+   #{/if}
+
+    <div class="pull-left" style="vertical-align: middle; line-height: 20px;" ng-controller="summaryCountCtrl">
+      <span class="text-info" style="margin-right:25px">
+          <a href="#" ng-click="filterTasks('pending')" class="no-decoration">
+            <span style="font-size: 2em;vertical-align: middle;" class="text-info">
+                <span ng-show="dataReady">{{pending}}</span>
+                <span ng-show="!dataReady">--</span>
+            </span>
+            <span style="vertical-align: middle;" class="text-info">&{'resources.tasks.pending'}</span>
+          </a>
+      </span>
+      <span class="text-danger" style="margin-right:20px" class="nounderline">
+          <a href="#" ng-click="filterTasks('error')" class="no-decoration">
+            <span style="font-size: 2em;vertical-align: middle;" class="text-danger">
+              <span ng-show="dataReady">{{error}}</span>
+              <span ng-show="!dataReady">--</span>
+            </span>
+            <span style="vertical-align: middle;" class="text-danger">&{'resources.tasks.error'}</span>
+          </a>
+      </span>
+      <span class="text-success" style="margin-right:20px" >
+        <a href="#" ng-click="filterTasks('complete')" class="no-decoration">
+          <span style="font-size: 2em;vertical-align: middle;" class="text-success">
+              <span ng-show="dataReady">{{ready}}</span>
+              <span ng-show="!dataReady">--</span>
+          </span>
+          <span style="vertical-align: middle;" class="text-success">&{'resources.tasks.ready'}</span>
+        </a>
+      </span>
+      <span class="text-muted" style="margin-right:20px" >
+        <a href="#" ng-click="filterTasks('')" class="no-decoration">
+          <span style="font-size: 2em;vertical-align: middle;" class="text-muted">
+              <span ng-show="dataReady">{{total}}</span>
+              <span ng-show="!dataReady">--</span>
+          </span>
+            <span style="vertical-align: middle;" class="text-muted">&{'resources.tasks.total'}</span>
+        </a>
+      </span>
+    </div>
+
+    %{
+     options = [
+         'fnServerParams': 'loadServerParams'
+     ]
+
+      messageOverrides = [
+        "sSearchPlaceHolder": "datatable.placeholder.filter",
+        "sInfo": "datatable.task.info",
+        "sInfoFiltered" : "datatable.task.filtered",
+        "sEmptyTable" : "datatable.tasks.empty",
+        "sInfoEmpty": "datatable.tasks.empty"
+     ]
+    }%
+    #{DataTable.table id:'tasks',
+        dataTable:dataTable, 
+        source:@Tasks.listAllJson(), 
+        lastUpdatedField:"start",
+        cssClass:'editableRows table-striped',
+        options:options,
+        actionsTitleKey:'resources.actions',
+        messageOverrides : messageOverrides
+    /}
+  </div>
+</div>
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+
+  <script type="text/javascript">
+    var tenantId = '${tenantId}';
+
+    table.tasks.dataTable.setMaxRows(1000, function(data) {
+        var oldestTime = -1;
+        var oldestIndex = -1;
+
+        for (var t = 0; t < data.length; t++) {
+            if (oldestTime == -1) {
+                oldestTime = data[t].creationTime;
+            } else if (data[t].creationTime < oldestTime) {
+                oldestIndex = t;
+                oldestTime = data[t].creationTime;
+            }
+        }
+
+        return oldestIndex;
+    });
+
+    table.tasks.dataTable.afterCreate(function(dataTable) {
+        var itemsJson = #{jsAction @Tasks.itemsJson(':ids')/};
+        watchTaskState(dataTable.getDataTable(), itemsJson);
+    });
+    
+    function loadServerParams(aoData) {
+      aoData.push({"name": "systemTasks", "value" : ${systemTasks}});
+    }    
+    
+  </script>    
+
+#{/set}      

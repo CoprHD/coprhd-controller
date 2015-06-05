@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="classpath:dbcommon-var.xml"/>
+    <import resource="classpath:dbversion-info.xml"/>
+    <import resource="classpath:coordinatorclient-var.xml"/>
+    <import resource="classpath:dbclient-conf.xml"/>
+
+    <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="dbsvc"/>
+        <property name="id" value="db-${node_index}"/>
+        <property name="endpoint" value="thrift://${node_name}:9160"/>
+        <property name="version" ref="dbSchemaVersion"/>
+    </bean>
+
+    <bean id="dbschemautil" class="com.emc.storageos.db.server.impl.SchemaUtil">
+        <property name="service" ref="serviceinfo"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dataObjectScanner" ref="dataObjectScanner"/>
+        <property name="vdcShortId" value="${vdc_myid}"/>
+        <property name="vdcEndpoint" value="${network_vip_service}"/>
+        <property name="clientContext" ref="dbclientcontext"/>
+        <property name="vdcNodeList">
+            <list>
+                <!-- cluster config, for each node n - repeat the following -->
+                <foreach iterator="iter">
+                <value>${network_${iter}_ipaddr_service}</value>
+                </foreach>
+            </list>
+        </property>
+        <property name="dbCommonInfo" ref="dbcommoninfo"/>
+        <property name="passwordUtils" ref="passwordUtils"/>
+    </bean>
+
+    <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">
+        <property name="defaultProperties" ref="defaultProperties"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+</beans>

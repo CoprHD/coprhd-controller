@@ -1,0 +1,100 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateVolumeAndVmfsDatastore.Block.VMware",
+  serviceId:"VMware-CreateVolumeAndVmfsDatastore",
+  fields:{
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"shared"
+    },
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+    
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    datastores:{
+      type:"table",
+      items:{
+        datastoreName:{
+          type:"text",
+          validation:{
+            regEx:"[a-zA-Z0-9 \\-\\_]+",
+            min: 2,
+            max: 128
+          }
+        },
+        name:{
+          type:"text",
+          validation:{
+            min:2,
+            max:128
+          }
+        },
+        size:{
+          type:"storageSize",
+          validation:{
+            min:1
+          }
+        }
+      }
+    },
+    
+    consistencyGroup:{
+      type:"assetType.vipr.consistencyGroup",
+      required:false
+    },
+    
+    multipathPolicy: {
+        type: "choice",
+        initialValue: "DEFAULT",
+        select: "one",
+        options: {
+          "DEFAULT": "Default",
+          "VMW_PSP_FIXED": "Fixed",
+          "VMW_PSP_MRU": "Most Recently Used",
+          "VMW_PSP_RR": "Round Robin"
+        },
+        required: false,
+        lockable: true
+    },
+    
+    storageIOControl: {
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },
+
+    hlu: {
+      type:"number",
+      lockable: true,
+      required: false,
+      initialValue: "-1",
+      validation: {
+        min:-1
+      }
+    }
+  }
+}

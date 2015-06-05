@@ -1,0 +1,8 @@
+%{
+  field = _field
+  value = flash[field.name] != null ? flash[field.name] : field.value
+  if (_atts) {
+    field.atts = _atts
+  }
+}%
+<input type="hidden" id="${field.id}" name="${field.name}" value="${value}" #{if field.disabled}disabled="disabled"#{/if}#{Form.extraAtts atts:field.atts/}>

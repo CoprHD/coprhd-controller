@@ -1,0 +1,52 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if shares}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.filesystem.share.name'}</th>
+      <th>&{'resources.filesystem.share.mountpoint'}</th>
+      <th>&{'resources.filesystem.share.description'}</th>
+      <th></th>
+      <th>&{'resources.filesystem.share.path'}</th>
+      <th style="text-align:right;">&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:shares, as:'share'}
+      <tr>
+        <td>
+          <img src="/public/img/serviceCatalog/icon_folder_CIFS.png" style="width: 32px;"/> ${share.shareName}
+        </td>
+        <td>
+          ${share.mountPoint}
+        </td>        
+        <td>
+          ${share.description}
+        </td>
+        <td>
+        </td>
+        <td>
+           ${share.path}
+        </td>
+        <td style="text-align:right;">
+          <a href="@{listSnapShotAcl(params.snapshotId, share.shareName)}" class="btn btn-default btn-xs" >&{'button.updateAcl'}</a>
+          <a href="@{deleteSnapshotShare(params.snapshotId, share.shareName)}" 
+            class="btn btn-danger btn-xs"
+            onclick="return confirm('&{'resources.filesnapshot.share.delete.confirm'}')"
+          >&{'button.delete'}</a>
+        </td>        
+      </tr>
+    #{/list}
+    <tr>
+      <td colspan="6"><div class="pull-right">
+      <button type="button" onclick="addSnapShotSubDir()" class="btn btn-xs btn-success"><i v-icon=plus></i> &{'button.addSubDir'}</button>
+      </div></td>
+    </tr>
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.filesystem.share.none'}
+#{/else}

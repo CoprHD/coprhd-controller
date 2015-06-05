@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp spec="1.0+" codebase="https://${request.domain}/public/scaleio-1.20">
+
+  <information>
+    <title>Scale iO</title>
+    <vendor>EMC Corporation</vendor>
+    <homepage href="https://${request.domain}" />
+  </information>
+
+  <security>
+    <all-permissions/>
+  </security>
+
+  <resources>
+    <j2se version="1.7+"/>
+    <jar href="scaleio-dashboard-1.20.0.501.jar" />
+  </resources>
+
+  <application-desc main-class="com.scaleio.dashboard.Dashboard">
+    <argument>--host=${provider.iPAddress}</argument>
+    <argument>--password=</argument>
+    <argument>--port=6611</argument>
+  </application-desc>
+</jnlp>

@@ -1,0 +1,12 @@
+%{
+  tags = _tags
+}%
+
+#{if tags}
+<div id="tags" class="tags">
+    <span class="title">&{'tags'}:</span>
+    #{list tags, as:'tag'}
+      <span class="label label-default">${tag}</span>
+    #{/list}
+</div>
+#{/if}

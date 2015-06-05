@@ -1,0 +1,35 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ExpandVmfsDatastore.Block.VMware",
+  serviceId:"VMware-ExpandVmfsDatastore",
+  fields:{
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"shared"
+    },
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+    datastoreName:{
+      type:"assetType.vipr.blockdatastore"
+    },
+    volumes: {
+      type:"assetType.vipr.mountedBlockVolume",   
+      select:"one" 
+    },
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    }          
+  }
+}

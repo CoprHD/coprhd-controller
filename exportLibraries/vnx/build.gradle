@@ -1,0 +1,7 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+	compile	library(jsch),
+            project(":errorhandling")
+}
+

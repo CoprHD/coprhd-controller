@@ -1,0 +1,15 @@
+tmp/
+dist/
+eclipse/
+modules/
+lib/
+test-result/
+logs/
+precompiled/
+*.pyc
+*.iml
+*.ipr
+*.iws
+*.ids
+server.pid
+node_modules

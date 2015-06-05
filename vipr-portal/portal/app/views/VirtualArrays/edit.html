@@ -1,0 +1,170 @@
+%{
+  titleKey = 'VirtualArray.' + (virtualArray?.new ? 'create' : 'edit') + '.title';
+  descriptionKey = 'VirtualArray.' + (virtualArray?.new ? 'create' : 'edit') + '.description';
+  image = '/public/img/assets/VirtualArray.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.virtualArrays'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @VirtualArrays.list()}&{'VirtualArrays.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{set 'moreScripts'}
+  #{get 'moreScripts'/}
+<script type="text/javascript">
+  function updateVpools(oSettings) {
+    var count = $('#virtualPools table').dataTable({ bRetrieve: true }).fnGetData().length;
+    if (count != '0') {
+      $('#vpoolsCountBadge').text(count);
+    }
+  }
+
+  function updateStorageSystems(oSettings) {
+    var count = $('#storageArray table').dataTable({ bRetrieve: true }).fnGetData().length;
+    if (count != '0') {
+      $('#arraysCountBadge').text(count);
+    }
+  }
+
+  function addStorageSystem() {
+    table.storageSystems.dataTable.create();
+    table.storageSystems.dataTable.updateSelectedFooter();
+    table.storageSystems.dataTable.reset();
+    $('#addStorageSystem').modal('show');
+  }
+  
+  $(document).ready(function() {
+    util.collapsible('.panel-group');
+    $('#virtualArray_enableTenants').on('change', function() {
+        util.setVisible('#virtualArray_tenantsControlGroup', $(this).prop('checked'));
+    }).trigger('change');
+  });
+</script>
+#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+
+#{form @save(), class:'form form-horizontal', autocomplete:'off'}
+    #{field 'virtualArray.id'}
+      #{if field.value}
+        <input type="hidden" name="${field.name}" value="${field.value}"/>
+      #{/if}
+    #{/field}
+    
+    #{field 'virtualArray.name'}
+        %{ 
+          field.cssClass = 'initialFocus'
+          field.required = true 
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{license.ifController}
+      #{field 'virtualArray.autoSanZoning'}
+        %{
+        field.cssClass = 'span3'
+        field.valueType = Boolean.class
+        field.valueProperty = 'key'
+        field.labelProperty = 'value'
+        field.options = autoSanZoningOptions
+        }%
+        #{Form.selectOneControlGroup field:field /}
+      #{/field}
+    #{/license.ifController}
+
+    *{ tenantOptions are only available for users that can set tenant ACLs }*
+    #{if tenantOptions}
+    <fieldset>
+	  <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.varray'}</small></legend>
+	  #{field 'virtualArray.enableTenants'}
+        #{Form.booleanCheckBoxControlGroup field:field /}
+      #{/field}
+      <div class="virtualArray_enableTenants" data-show="true">
+      #{field 'virtualArray.tenants'}
+    	#{Form.selectManyControlGroup field:field, options:tenantOptions /}
+  	  #{/field}
+  	  </div>
+	</fieldset>
+    #{/if}
+    
+    #{Form.saveCancelButtonBar size:'large'}
+    #{/Form.saveCancelButtonBar}
+#{/form}
+
+#{if virtualArray?.id}
+<div class="row">
+  <div class="col-sm-5">
+    #{license.ifController}
+      <div class="panel panel-primary">
+        <div class="panel-heading"><h3 class="panel-title">&{'virtualArray.blockFileTitle'}</h3></div>
+        <div class="panel-body">&{'virtualArray.blockFileDescription'}</div>
+        <div class="list-group">
+          <a class="list-group-item" href="@{VirtualArrays.networks(virtualArray?.id)}">&{'virtualArray.editNetworks'} <span class="badge">${networksCount?:0}</span></a>
+          <a class="list-group-item" href="@{VirtualArrays.storagePorts(virtualArray?.id)}">&{'virtualArray.editStoragePorts'} <span class="badge">${storagePortsCount?:0}</span></a>
+          <a class="list-group-item" href="@{VirtualArrays.storagePools(virtualArray?.id)}">&{'virtualArray.editStoragePools'} <span class="badge">${storagePoolsCount?:0}</span></a>
+        </div>
+        <div class="panel-footer">
+          #{Form.button 'virtualArray.addStorageSystem', icon:'plus', size:'sm', action:'addStorageSystem()'/}
+        </div>
+      </div>
+    #{/license.ifController}
+  </div>
+
+  <div class="col-sm-7">
+    <div class="panel-group">
+      #{license.ifController}
+        #{collapse 'VirtualArrays.StorageSystems.list.title', badge: 'arraysCountBadge', noPanelBody: true}
+          <div class="panel-body">&{'virtualArray.storageSystems'}</div>
+          #{DataTable.table id:'storageArray',
+                            dataTable:storageSystems,
+                            source:@storageSystemsJson(virtualArray?.id),
+                            options:['iDisplayLength': '5', 'fnDrawCallback': 'updateStorageSystems']/}
+        #{/collapse}
+
+        #{collapse 'VirtualArrays.VirtualPools.list.title', badge: 'vpoolsCountBadge', noPanelBody: true}
+          <div class="panel-body">&{'virtualArray.virtualPools'}</div>
+          #{DataTable.table id:'virtualPools',
+                            dataTable:virtualPools,
+                            source:@virtualPoolsJson(virtualArray?.id),
+                            options:['iDisplayLength': '5', 'fnDrawCallback': 'updateVpools']/}
+        #{/collapse}
+      #{/license.ifController}
+    </div>
+  </div>
+</div>
+#{/if}
+
+</div>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    var dataTable = table.storageArray.dataTable.getDataTable()
+    var itemsJson = #{jsAction @arrays.StorageSystems.itemsJson(':ids')/};
+    watchDiscoveryStatus(dataTable, itemsJson, ['version', 'registrationStatus']);
+  });
+</script>
+
+%{ formFields = ['virtualArrayId':virtualArray?.id] }%
+#{DataTable.formAction @addStorageSystems(), id:'addForm', table:'storageSystems', fields:formFields /}
+#{Modal.dialog id:'addStorageSystem', cssClass:'widest'}
+  #{Modal.body}
+    #{DataTable.header titleKey:'virtualArray.addStorageSystem', hideAlerts:true/}
+    #{DataTable.table id:'storageSystems', 
+                      prefix:'storageArray', 
+                      dataTable:storageSystems,
+                      selectable:true,
+                      delayCreate: true,
+                      source:@addStorageSystemsJson(virtualArray?.id) /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addForm', 
+                  data:['enabled':'selected', 'table':'storageSystems']/}
+    #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}

@@ -1,0 +1,22 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    dbutils {
+        mainClass = 'com.emc.storageos.dbutils.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+        jvmArgs += " -DbuildType=" + buildType
+    }
+}
+
+dependencies {
+    compile library(commons_io),
+            library(commons_codec),
+            library(commons_compress),
+            project(":dbsvc"),
+            project(":geosvc"),
+            project(":com.emc.sa.model")
+}

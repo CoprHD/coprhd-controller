@@ -1,0 +1,15 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+
+    compile project(":errorhandling"),
+    project(":serviceutils"),
+            "com.emc.recoverpoint:fapi:4.1.0.26.d7f820a"
+
+    testCompile library(easymock)
+}
+
+test {
+    exclude "com/emc/storageos/recoverpoint/RecoverPointClientIntegrationTest.class"
+    exclude "com/emc/storageos/recoverpoint/RecoverPointClientTest.class"
+}

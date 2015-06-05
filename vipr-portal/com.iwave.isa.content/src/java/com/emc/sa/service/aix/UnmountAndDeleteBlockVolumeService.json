@@ -1,0 +1,17 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+    baseKey:"UnmountAndDeleteBlockVolume.Block.Aix",
+    serviceId:"Aix-UnmountAndDeleteBlockVolume",
+    destructive: true,
+    fields: {
+        host:{
+            type:"assetType.vipr.aixHost"
+        },
+
+        volumes: {
+            type:"assetType.vipr.mountedBlockResourceNoTargets",
+            select:"many"
+        }
+    }
+}

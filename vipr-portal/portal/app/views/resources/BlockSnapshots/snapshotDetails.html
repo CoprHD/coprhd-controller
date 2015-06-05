@@ -1,0 +1,50 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.snapshots'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @snapshots()}&{'resources.snapshots'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${blockSnapshot?.blockSnapshot?.name}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="clear"></div>
+
+<div id="snapshotDetails" class="container" style="margin-bottom: 2em;">
+#{alerts/}
+
+#{if blockSnapshot}
+
+#{Resources.header resource:blockSnapshot.blockSnapshot, typeKey: 'affectedResources.blockSnapshot'/}
+#{Resources.actions hide:blockSnapshot?.blockSnapshot?.inactive }
+    <a href="@{deleteSnapshot(blockSnapshot.blockSnapshot.id)}"
+      onclick="return confirm('&{'resources.snapshot.deleteConfirm'}');"
+    >&{'resources.snapshot.deleteLink'}</a><br/>
+ #{/Resources.actions}
+  <dl class="dl-horizontal pull-left">
+
+      <dt>&{'affectedResources.blockSnapshot.wwn'}:</dt>
+      <dd>#{spaceForNull blockSnapshot?.blockSnapshot.wwn/}</dd>
+      
+      <dt>&{'affectedResources.blockSnapshot.volume'}:</dt>
+      <dd><img src="/public/img/assets/Volume.png" style="width: 32px;"/><a href="@{resources.BlockVolumes.volume(blockSnapshot.volume.id)}">#{spaceForNull blockSnapshot.volume?.name/}</a></dd>
+      
+      <dt>&{'affectedResources.blockSnapshot.varray'}:</dt>
+      <dd><img src="/public/img/serviceCatalog/Virtual_Array.png" style="width: 32px;"/>#{spaceForNull blockSnapshot.neighborhood?.name/}</dd>
+    
+    #{Resources.commonAttributes resource:blockSnapshot.blockSnapshot /}
+  </dl>
+
+  <div class="clearfix"></div>
+
+  #{expandPanel titleKey:'resources.snapshot.exports', url: @snapshotExports(blockSnapshot.blockSnapshot.id) /}
+
+  #{Resources.tasks resourceId:blockSnapshot.blockSnapshot.id /}
+#{/if}
+#{else}
+<span class="errorMessage">&{'resources.snapshot.notFound'}</span>
+#{/else}
+
+</div>
+

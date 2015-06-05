@@ -1,0 +1,16 @@
+GET https://192.168.0.0:4443/tenants/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:TenantOrg:c7ba7600-1a02-4558-954d-3de642eeacce:',
+            'urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:'
+        ]
+    }
+}

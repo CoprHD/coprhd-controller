@@ -1,0 +1,16 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"DiscoverUnmanagedFilesystems.File",
+  serviceId:"DiscoverUnmanagedFilesystems",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+    storageSystems:{
+      type:"assetType.vipr.fileStorageSystem",
+      select: "many",
+      lockable: true
+    }
+  }
+}

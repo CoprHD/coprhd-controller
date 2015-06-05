@@ -1,0 +1,21 @@
+GET https://192.168.0.0:4443/object/namespaces.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+   "namespace" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/object/namespaces/namespace/bob_namespace"
+         },
+         "name" : "bob_namespace",
+         "id" : "bob_namespace"
+      }
+   ]
+}

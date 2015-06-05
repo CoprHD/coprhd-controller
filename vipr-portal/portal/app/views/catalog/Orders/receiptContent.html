@@ -1,0 +1,200 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{set 'breadcrumbs'}
+  #{ServiceCatalog.breadcrumb items:breadcrumbs, baseUrl:@catalog.ServiceCatalog.view(), visible:true /}
+#{/set}
+
+#{set 'title'}&{'order.title.receipt', details?.order?.orderNumber, details?.catalogService?.title}#{/}
+#{set 'moreScripts'}
+  <script>
+    var Receipt = DynamicContent();
+    function keepPolling() {
+        var status = $('#orderStatus .value').html();
+        switch (status) {
+        case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.PENDING}':
+        case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.APPROVED}':
+        case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.EXECUTING}':
+        case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.SCHEDULED}':
+        case '${com.emc.storageos.db.client.model.uimodels.OrderStatus.APPROVAL}':
+            return true;
+        }
+        return false;
+    }
+    
+    function updateReceipt(orderId) {
+        if (!keepPolling()) {
+            return;
+        }
+        var lastUpdated = $('#orderDetails #lastUpdated').html();
+        var url = routes.Orders_receiptContent({orderId: orderId, lastUpdated: lastUpdated});
+        $.get(url, function(data) {
+            Receipt.update(data);
+            updateLocalDateTime();
+            updateTimes();
+        }).always(function() {
+            updateReceipt(orderId);
+        });
+    }
+    
+    $(document).ready(function() {
+        Receipt.watchValue('#orderDetails #lastUpdated');
+        Receipt.watchValue('#orderDetails #orderStatus');
+        Receipt.watchDisplay('#orderDetails .executionTime');
+        Receipt.watchValue('#orderDetails #executionTime');
+        Receipt.watchValue('#orderDetails #currentStep');
+        Receipt.watchDisplay('#orderDetails #loading');
+        Receipt.watchValueAndDisplay('#orderDetails #orderMessage');
+        Receipt.watchValueAndDisplay('#orderDetails #approval');
+        Receipt.watchValueAndDisplay('#orderDetails #executionWindow');
+        
+        Receipt.watchDisplay('#orderDetails dt.precheckTasks');
+        Receipt.watchValueAndDisplay('#orderDetails dd.precheckTasks');
+        Receipt.watchDisplay('#orderDetails dt.executeTasks');
+        Receipt.watchValueAndDisplay('#orderDetails dd.executeTasks');
+        Receipt.watchDisplay('#orderDetails dt.rollbackTasks');
+        Receipt.watchValueAndDisplay('#orderDetails dd.rollbackTasks');
+        
+        Receipt.watchDisplay('#affectedResources');
+        Receipt.watchValue('#affectedResources .content');
+        
+        Receipt.watchDisplay('#Order_executionLogs');
+        Receipt.watchDisplay('#Order_executionLogs table');
+        Receipt.watchChildren('#Order_executionLogs table > tbody', 'tr');
+        
+        Receipt.watchDisplay('#Order_precheckTasks');
+        Receipt.watchDisplay('#Order_precheckTasks table');
+        Receipt.watchChildren('#Order_precheckTasks table > tbody', 'tr');
+        
+        Receipt.watchDisplay('#Order_executeTasks');
+        Receipt.watchDisplay('#Order_executeTasks table');
+        Receipt.watchChildren('#Order_executeTasks table > tbody', 'tr');
+        
+        Receipt.watchDisplay('#Order_rollbackTasks');
+        Receipt.watchDisplay('#Order_rollbackTasks table');
+        Receipt.watchChildren('#Order_rollbackTasks table > tbody', 'tr');
+
+        Receipt.watchValueAndDisplay('#reorderForm');
+
+        Receipt.watchDisplay('#Order_viprTasks');
+        Receipt.watchChildren('#Order_viprTasks table > tbody','tr');
+        
+        updateReceipt('${orderId}');
+    });
+  </script>
+#{/set}
+<div>
+<div id="orderDetails" class="container" style="margin-bottom: 2em;">
+  #{Orders.serviceHeader service:details.catalogService /}
+  
+  #{alerts disappear:true, duration:10 /}
+
+  <div id="lastUpdated" style="display:none">${details.lastUpdated}</div>
+  <div class="pull-left span5">
+    <dl class="dl-horizontal nomargin">
+      <dt>&{'order.number'}:</dt>
+      <dd>${details.order.orderNumber}&nbsp;</dd>
+      
+      <dt>&{'order.dateSubmitted'}:</dt>
+      <dd>#{localDateTime details.order.creationTime?.time/}&nbsp;</dd>
+      
+      <dt>&{'order.submittedBy'}:</dt>
+      <dd>${details.order.submittedBy}&nbsp;</dd>
+      
+      <dt>&{'order.status'}:</dt>
+      <dd>
+        *{ keep the raw order status in the page, as well as the formatted display value }*
+        <span id="orderStatus">
+          #{Orders.statusIcon status: details.order.orderStatus/}
+          &{'OrderStatus.' + details.order.orderStatus}
+          <span class="value" style="display:none">${details.order.orderStatus}</span>
+        </span>&nbsp;
+      <dd>
+      
+      %{ showExecutionTime = details.executionState?.endDate }%
+      <dt class="executionTime" #{if !showExecutionTime}style="display: none"#{/if}>&{'order.executionTime'}:</dt>
+      <dd class="executionTime" #{if !showExecutionTime}style="display: none"#{/if}>
+        <span id="executionTime">
+          ${details.executionState?.endDate?.elapsed(details.executionState?.startDate)}
+        </span>
+      </dd>
+      
+      #{Orders.progress 
+          styleClass: 'precheckTasks',
+          labelKey: 'order.precheckTasks',
+          tasks: details.precheckTaskLogs /}
+      
+      #{Orders.progress 
+          styleClass: 'executeTasks',
+          labelKey: 'order.executeTasks',
+          tasks: details.executeTaskLogs /}
+      
+      #{Orders.progress 
+          styleClass: 'rollbackTasks',
+          labelKey: 'order.rollbackTasks',
+          tasks: details.rollbackTaskLogs /}
+      
+      <dt>&nbsp;</dt>
+      <dd>
+        %{ isLoading = details.order.isExecuting() || details.order.isPending() }%
+        *{ <span id="loading" #{if !isLoading}style="display:none"}#{/if}>&nbsp;<img src="@{'/public/img/loading.gif'}"></span> }*
+        <span id="currentStep">${details.runningTaskLogs?.collect{ it.message }.join(", ")}</span>
+      </dd>
+    </dl>
+  </div>
+
+  <div class="pull-left span6" style="overflow:hidden">
+    #{include 'catalog/Orders/orderParameters.html'/}
+  </div>
+
+  <div style="clear:both"></div>
+  
+  #{tags tags:details?.tags?.tag/}
+  
+  <div id="orderMessage" #{if !details.order.message}style="display: none"#{/if}>
+     <div class="alert ${details.order.isErrorMessage() ? 'alert-danger' : 'alert-info'}">${details.order?.message?.trim()}</div>
+  </div>
+  
+  <div id="approval" #{if !details.catalogService.approvalRequired}style="display: none"#{/if}>
+    #{if details.catalogService.approvalRequired}
+      #{if details.approval?.isPending()}
+        <div class="alert alert-info"><span class="badge badge-info">#{icon 'time'/}</span>
+          &{'service.requiresApproval'}
+        </div>
+      #{/if}
+      #{elseif details.approval?.isApproved()}
+        <div class="alert alert-info"><span class="badge badge-info">#{icon 'ok'/}</span> 
+          &{'approval.orderApproved', details.approval.approvedBy, details.approval.dateActioned?.time, details.approval.message}
+        </div>
+      #{/elseif}
+      #{elseif details.approval?.isRejected()}
+        <div class="alert alert-danger"><span class="badge badge-important">#{icon 'remove'/}</span> 
+          &{'approval.orderRejected', details.approval.approvedBy, details.approval.dateActioned?.time, details.approval.message}
+        </div>
+      #{/elseif}
+    #{/if}
+  </div>
+  <div id="executionWindow">
+  #{if details.catalogService.executionWindowRequired && (details.order.isPending() || details.order.isScheduled())}
+    #{Services.executionWindow details.catalogService/}
+  #{/if}
+  </div>
+  
+  <div id="affectedResources" #{if !details.affectedResources}style="display:none"#{/if}>
+    <div class="section-header"><h1>&{'order.affectedResources'}</h1></div>
+    <div class="content">
+      #{list items:details.affectedResources, as:'resource'}
+        #{Orders.affectedResource resource:resource, otherResources:details.affectedResources.find{it != resource} /}
+      #{/list}
+    </div>
+  </div>
+  
+  #{include 'catalog/Orders/executionLogs.html'/}
+  
+  #{include 'catalog/Orders/executionTaskLogs.html'/}
+  
+  #{include 'catalog/Orders/tasks.html'/}
+  
+  <div style="padding-bottom: 1em;"></div>
+</div>
+</div>

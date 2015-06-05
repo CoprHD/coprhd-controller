@@ -1,0 +1,35 @@
+GET https://192.168.0.0:4443/vdc/storage-ports/urn:storageos:StoragePort:06897e96-10ef-4aa3-a207-769ad63ffa2b: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<storage_port>
+    <creation_time>1379168886761</creation_time>
+    <id>urn:storageos:StoragePort:06897e96-10ef-4aa3-a207-769ad63ffa2b:</id>
+    <inactive>false</inactive>
+    <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:/storage-ports/urn:storageos:StoragePort:06897e96-10ef-4aa3-a207-769ad63ffa2b:" rel="self"/>
+    <name>CLARIION+APM00112900836+PORT+iqn.1992-04.com.emc:cx.apm00112900836.a5</name>
+    <tags/>
+    <native_guid>CLARIION+APM00112900836+PORT+iqn.1992-04.com.emc:cx.apm00112900836.a5</native_guid>
+    <ip_address>192.168.0.0</ip_address>
+    <operational_status>OK</operational_status>
+    <port_endpoint_id>iqn.1992-04.com.emc:cx.apm00112900836.a5,t,0x0001</port_endpoint_id>
+    <port_group>SP_A</port_group>
+    <port_name>SP_A:5</port_name>
+    <port_network_id>iqn.1992-04.com.emc:cx.apm00112900836.a5</port_network_id>
+    <port_speed_gbps>1</port_speed_gbps>
+    <port_type>frontend</port_type>
+    <registration_status>REGISTERED</registration_status>
+    <storage_system>
+        <id>urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:</id>
+        <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:" rel="self"/>
+    </storage_system>
+    <tcp_port_number>3260</tcp_port_number>
+    <transport_type>IP</transport_type>
+</storage_port>

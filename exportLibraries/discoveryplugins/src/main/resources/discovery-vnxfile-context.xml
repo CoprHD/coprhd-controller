@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<import resource="classpath:discovery-vnxfile-storagepool.xml" />
+	<import resource="classpath:discovery-vnxfile-controlstation.xml" />
+	<import resource="classpath:discovery-vnxfile-portgroups.xml" />
+	<import resource="classpath:discovery-vnxfile-ports.xml" />
+        <import resource="classpath:discovery-vnxfile-vdms.xml" />
+    <import resource="classpath:discovery-vnxfile-filesystems.xml" />
+
+	<bean id="vnxfile"
+		class="com.emc.storageos.volumecontroller.impl.plugins.VNXFileCommunicationInterface">
+		<property name="discExecutor" ref="vnxfilediscexecutor" />
+		<property name="discNamespaces" ref="discoverynamespaces" />
+        <property name="partitionManager" ref="partitionManager"/>
+	</bean>
+
+	<bean id="vnxfilediscexecutor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor">
+		<property name="_generator" ref="commandgenerator" />
+		<property name="_util" ref="utility" />
+	</bean>
+
+	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+
+	<bean id="commandgenerator"
+		class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">
+		<property name="util" ref="utility" />
+	</bean>
+
+	<bean id="discoverynamespaces"
+		class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
+		<property name="nsList">
+			<map>
+				<entry key="vnxfileControlStation" value-ref="vnxControlStationSpace" />
+				<entry key="vnxfileStoragePool" value-ref="vnxfileStoragePoolNameSpace" />
+				<entry key="vnxfileStoragePortGroup" value-ref="vnxfileStoragePortGroupSpace" />
+				<entry key="vnxfileStoragePort" value-ref="vnxfileStoragePortSpace" />
+                                <entry key="vnxfileSystem" value-ref="vnxfileFileSystemSpace" />
+                                <entry key="vnxfileSelectedFileSystem" value-ref="vnxfileSelectedFileSystemSpace" />
+                                <entry key="vnxfileCifsConfig" value-ref="vnxfileCifsConfigSpace" />
+                                <entry key="vnxfileVdm" value-ref="vnxfileVdmSpace" />
+			</map>
+		</property>
+	</bean>
+
+	<bean id="loginoperation" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_processor" ref="authprocessor" />
+		<property name="instance" ref="retriever" />
+		<property name="_method" value="dologin" />
+		<property name="_arguments">
+			<list>
+				<ref bean="authuri" />
+				<ref bean="username" />
+				<ref bean="password" />
+                <ref bean="portnumber" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="sessioncleanoperation" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="instance" ref="retriever" />
+		<property name="_method" value="disconnect" />
+		<property name="_arguments">
+			<list>
+				<ref bean="uri" />
+				<ref bean="cookie" />
+				<ref bean="session" />
+			</list>
+		</property>
+	</bean>
+
+	<bean id="authprocessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXLoginProcessor">
+	</bean>
+
+	<!-- Bean id for DataRetriever -->
+	<bean id="retriever"
+		class="com.emc.storageos.plugins.metering.vnxfile.DataRetriever">
+		<property name="client" ref="client" />
+		<property name="protocol" ref="protocol" />
+		<!-- Set timeout in millis -->
+                <property name="timeout" value="60000" />
+        </bean>
+
+        <bean id="protocol"
+                class="com.emc.storageos.plugins.metering.vnxfile.VNXFileProtocol">
+                <property name="protocolType" value="https" />
+                <property name="protocolSocketFactory" ref="protocolfactory" />
+        </bean>
+
+	<bean id="protocolfactory"
+		class="com.emc.storageos.plugins.metering.vnxfile.VNXFileProtocolSocketFactory">
+		<property name="trustManagers" ref="trustManagers" />
+	</bean>
+
+	<bean id="trustManagers"
+		class="com.emc.storageos.plugins.metering.vnxfile.VNXFileX509TrustManager" />
+
+	<bean id="authuri" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="authuri" />
+	</bean>
+
+	<bean id="username" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="username" />
+	</bean>
+
+	<bean id="password" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="password" />
+	</bean>
+
+    <bean id="portnumber" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="portnumber" />
+    </bean>
+
+	<bean id="cookie" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="Cookie" />
+	</bean>
+
+	<bean id="session" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="CelerraConnector-Sess" />
+	</bean>
+
+	<bean id="uri" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="uri" />
+	</bean>
+
+	<bean id="argscreator"
+		class="com.emc.storageos.plugins.metering.vnxfile.VNXFileArgsCreator">
+		<constructor-arg ref="utility" />
+		<property name="vnxFileRequest" ref="vnxFileRequest" />
+	</bean>
+
+	<!-- Bean id for httpclient instance -->
+	<bean id="client" class="org.apache.commons.httpclient.HttpClient" />
+
+	<!-- Bean id for utility -->
+	<bean id="utility" class="com.emc.storageos.plugins.common.Util" />
+
+	<bean id="zeroRecordGenerator"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileZeroRecordGenerator" />
+
+	<bean id="marshaller" factory-bean="jaxbContext" factory-method="createMarshaller" />
+
+	<bean id="unmarshaller" factory-bean="jaxbContext" factory-method="createUnmarshaller" />
+
+	<bean id="jaxbContext" class="javax.xml.bind.JAXBContext"
+		factory-method="newInstance">
+		<constructor-arg>
+			<value>com.emc.nas.vnxfile.xmlapi</value>
+		</constructor-arg>
+	</bean>
+
+	<bean id="vnxFileRequest"
+		class="com.emc.storageos.plugins.metering.vnxfile.VNXFileInputRequestBuilder">
+		<property name="marshaller" ref="marshaller" />
+	</bean>
+
+</beans>

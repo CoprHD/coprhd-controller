@@ -1,0 +1,38 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ExportVolume.Block",
+  serviceId:"ExportVolume",
+  fields:{
+    storageType:{
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"exclusive"
+    },
+
+    host:{
+      type:"assetType.vipr.host"
+    },
+    
+    project: {
+    	type:"assetType.vipr.project"
+    },
+    
+    volumes:{
+    	type:"assetType.vipr.unassignedBlockVolume",
+    	select: "many"
+    },
+
+    hlu: {
+      type:"number",
+      lockable: true,
+      required: false,
+      initialValue: "-1",
+      validation: {
+        min:-1
+      }
+    }
+
+  }
+  
+}

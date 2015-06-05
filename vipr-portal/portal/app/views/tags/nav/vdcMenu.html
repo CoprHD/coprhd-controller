@@ -1,0 +1,22 @@
+%{
+   vdcs = _vdcs
+   currentVDC = vdcs.find { it.local }
+   
+   remoteConnectedVdcs = vdcs?.findAll { !it.local && it.connectionStatus == 'CONNECTED' }
+   
+   token = _token;
+}%
+#{if remoteConnectedVdcs}
+   <li class="dropdown">
+     <a href="#" class="dropdown-toggle" data-toggle="dropdown">#{icon 'vipricon-vdc'/} ${currentVDC?.name? currentVDC.name : 'localhost'} <b class="caret"></b></a>
+     <ul class="dropdown-menu">
+         #{list items:remoteConnectedVdcs, as:'vdc'}
+         	#{nav.vdcItem vdc.name, host:vdc.apiEndpoint, token:token/}
+         #{/list}
+         #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SECURITY_ADMIN'], ['SYSTEM_MONITOR']]}
+	         <li class="divider"></li>
+	         #{nav.item 'vdcs', href: @infra.VirtualDataCenters.list()/}
+	     #{/deadbolt.restrict}      
+     </ul>
+   </li> 
+#{/if}

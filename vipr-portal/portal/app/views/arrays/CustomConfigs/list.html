@@ -1,0 +1,135 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.customConfigs'] /}
+
+#{authenticityToken /}
+
+<div class="container" ng-controller="CustomConfigCtrl">
+  <div class="form-header">
+    <div class="image">
+      <img src="/public/img/assets/StorageArray.png"/>
+    </div>
+    <div class="description">
+      <h2>&{"CustomConfigs.list.title"}</h2>
+      <p>&{"CustomConfigs.description"}</p>
+    </div>
+  </div>
+  <div style="clear: both;"></div>
+  #{alerts/}
+  <div>
+    <div>
+      <div class="col-sm-12">
+        <p>
+          <ul class="nav nav-pills">
+            <li ng-repeat="category in categories" ng-hide="category === 'Other' && !categoryOptions[category]">
+              <a id="{{category}}" ng-href="{{'#' + category}}" ng-click="setCategory(category)" data-toggle="pill" ng-class="{'text-danger': numErrors(category) > 0}">
+                {{"CustomConfigs.category." + category | t}}
+              </a>
+            </li>
+          </ul>
+        </p>
+        <p v-field="configType" class="col-sm-4">
+          <select-one id="customConfigType" class="ng-cloak" options="getConfigTypeOptions()" highlight-option-errors="errorCount" ng-change="configTypeChanged(this.field.value)"></select-one>
+        </p>
+      </div>
+      <div class="col-sm-12">
+        <div class="dataTables_wrapper">
+          <table class="table table-hover table-condensed dataTable" style="table-layout: fixed;">
+            <thead>
+              <tr>
+                <th style="width: 160px;">&{"CustomConfigs.scopeType"}</th>
+                <th style="width: 160px;">&{"CustomConfigs.scopeValue"}</th>
+                <th>&{"CustomConfigs.value"}</th>
+                <th style="width: 25px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="config in getFilteredConfigs()" class="animate-repeat" watch-for-errors="config">
+                <td class="col-xs-2" v-field="config.scopeType">
+                  <select-one class="ng-cloak" options="getTypeOptions()" ng-change="config.dirty = true; config.scopeValue = null" ng-disabled="config.systemDefault"></select-one>
+                </td>
+                <td class="col-xs-2" v-field="config.scopeValue">
+                  <select-one class="ng-cloak" options="getValueOptions(config)" ng-change="config.dirty = true" ng-disabled="config.systemDefault"></select-one>
+                </td>
+                <td class="col-xs-8" v-field="config.value">
+                  <select-one options="getBooleanOptions()" class="ng-cloak" ng-change="config.dirty = true" ng-if="getSelectedConfigType().type === 'Boolean'" ng-disabled="config.systemDefault"></select-one>
+                  <input-text ng-class="{errorMessage: config.error}" ng-change="config.dirty = true" ng-if="getSelectedConfigType().type !== 'Boolean'" ng-readonly="config.systemDefault" ng-focus="config.focused = true" ng-blur="config.focused = false"></input-text>
+                  <div class="text-info" ng-show="config.focused && (getSelectedConfigType().type === 'String' || config.error)">
+                    <small generate-preview="config" ng-class="{'text-danger': config.error}"></small>
+                  </div>
+                </td>
+                <td class="col-xs-1">
+                  <button type="button" class="close" ng-hide="config.systemDefault" ng-click="remove(config)">&times;</button>
+                </td>
+              </tr>
+            </tbody>
+            <tbody ng-if="filteredConfigs.length === 0">
+              <tr>
+                <td colspan="4"><loading></loading></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="button-bar">
+          <button type="submit" class="btn btn-success" ng-click="add()" ng-disabled="!configType"><i v-icon=plus></i> &{"CustomConfigs.add"}</button>
+        </div>
+        <p></p>
+        <button-bar>
+          <button type="submit" ng-click="save()" class="btn btn-primary" ng-disabled="numChanges() === 0 || numErrors('') > 0" v-submit-form><i v-icon=ok-sign></i> &{"CustomConfigs.save"}</button>
+          <button type="submit" ng-click="cancel()" class="btn btn-default" ng-disabled="numChanges() === 0"><i v-icon=trash></i> &{"CustomConfigs.cancel"}</button>
+          <span class="text-warning col-sm-offset-1" ng-show="numChanges() > 0 && numErrors('') == 0">{{"CustomConfigs.fieldsChanged.noErrors" | t:numChanges()}}</span>
+          <span class="text-danger col-sm-offset-1" ng-show="numChanges() > 0 && numErrors('') > 0">{{"CustomConfigs.fieldsChanged.errors" | t:numChanges():numErrors("")}}</span>
+        </button-bar>
+      </div>
+    </div>
+    <p>&nbsp;</p>
+    <div class="text-muted" ng-show="variables">
+      <p><strong>&{"CustomConfigs.variables.description"}</strong></p>
+      <div class="col-md-6">
+        <small>
+          <table class="table table-condensed">
+            <thead>
+              <tr>
+                <th>{{"CustomConfigs.variables.name.title" | t}}</th>
+                <th>{{"CustomConfigs.variables.sample.title" | t}}</th>
+                <th>{{"CustomConfigs.variables.description.title" | t}}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="variable in variables | limitTo:variables.length / 2 + variables.length % 2">
+                <th style="width:30%">{{variable.name}} <span ng-if="variable.isRecommended">*</span></th>
+                <td style="width:30%">{{variable.sampleValue}}</td>
+                <td style="width:40%">{{"CustomConfigs." + variable.name + ".description" | t}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </small>
+      </div>
+      <div class="col-md-6">
+        <small>
+          <table class="table table-condensed">
+            <thead>
+            <tr>
+              <th>{{"CustomConfigs.variables.name.title" | t}}</th>
+              <th>{{"CustomConfigs.variables.sample.title" | t}}</th>
+              <th>{{"CustomConfigs.variables.description.title" | t}}</th>
+            </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="variable in variables | limitTo:-(variables.length / 2)">
+                <th style="width:30%">{{variable.name}} <span ng-if="variable.isRecommended">*</span></th>
+                <td style="width:30%">{{variable.sampleValue}}</td>
+                <td style="width:40%">{{"CustomConfigs." + variable.name + ".description" | t}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </small>
+      </div>
+      <p class="col-md-12">&{"CustomConfigs.variables.isRecommended"}</p>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript" src="/public/javascripts/ng/controllerConfig.js"></script>

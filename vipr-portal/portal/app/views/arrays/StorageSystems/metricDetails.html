@@ -1,0 +1,26 @@
+<div class="metricDetails">
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'storageArrayPorts.portPercentBusy'}</dt>
+		  <dd>${port?.portPercentBusy != null ? ((int) Math.round(port?.portPercentBusy * 100) / 100) + '%' : messages.get('StoragePortDataTable.notApplicable')}</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'storageArrayPorts.cpuPercentBusy'}</dt>
+		  <dd>${port?.cpuPercentBusy != null ? ((int) Math.round(port?.cpuPercentBusy * 100) / 100) + '%' : messages.get('StoragePortDataTable.notApplicable')}</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'storageArrayPorts.initiatorLoad'}</dt>
+		  <dd>${port?.initiatorLoad != null ? port?.initiatorLoad : messages.get('StoragePortDataTable.notApplicable')}</dd>
+	  </dl>
+	</div>
+	<div class="col-md-2 col-sm-3 col-xs-6">
+	  <dl>
+		  <dt>&{'storageArrayPorts.volumeLoad'}</dt>
+		  <dd>${port?.volumeLoad != null ? port?.volumeLoad : messages.get('StoragePortDataTable.notApplicable')}</dd>
+	  </dl>
+	</div>
+</div>

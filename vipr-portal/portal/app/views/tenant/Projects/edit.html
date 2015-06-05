@@ -1,0 +1,112 @@
+%{
+  titleKey = 'projects.' + (project?.id ? 'edit' : 'create') + '.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.projects'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @save(), id:'projectForm', class:'form form-horizontal', autocomplete:"off"}
+  #{if project?.id}
+    #{field 'project.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}  
+  #{/if}
+  #{field 'project.tenantId'}
+        <input type="hidden" name="${field.name}" value="${field.value}"/>
+  #{/field}
+  #{field 'project.referrerUrl'}
+     <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  
+  <fieldset>
+  
+    #{field 'project.name'}
+      %{
+        field.cssClass = 'initialFocus';
+        field.required = true
+        field.fieldKey = 'projects.name'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{if project?.id}
+      #{field 'project.owner'}
+        %{ field.required = true }%
+        #{Form.inputTextControlGroup field:field /}    
+      #{/field}
+    #{/if}
+    
+    #{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+      
+      #{field 'project.enableQuota'}
+        #{Form.booleanCheckBoxControlGroup field:field /}
+      #{/field}
+    
+      #{field 'project.quota'}
+        #{Form.controlGroup field:field, width:3}
+          <div class="input-group">
+            #{Form.inputText field:field/}
+            <span class="input-group-addon">&{'GB'}</span>
+          </div>
+        #{/Form.controlGroup}
+      #{/field}
+      
+    #{/deadbolt.restrict}
+
+  </fieldset>
+  
+  #{field 'project.aclEntries'}
+    %{
+      field.aclEntries = project.aclEntries;
+      field.aclAccess = acls;
+      field.aclTypes = aclTypes;
+    }%
+    #{Acl.crud field:field /}
+  #{/field}  
+
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list()/}
+#{/form}
+</div>
+
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      
+        // know where it came from so can navigate back;
+        // only set the referrerUrl if it has not been set at some earlier point 
+        // i.e. in multi-step flows take into account error-handling
+        var referrerUrl = $('input[name="project.referrerUrl"]').val();
+		if(!referrerUrl)
+		  referrerUrl = document.referrer;
+        
+		// navigate back only if referral URL is different than this one
+		if(referrerUrl && referrerUrl != document.URL) {
+	        $('input[name="project.referrerUrl"]').val(referrerUrl);
+			// navigate cancel button to referrer url
+			$('div.form-actions a.btn').attr('href', referrerUrl);
+		}
+		
+		#{deadbolt.restrict roles:[['TENANT_ADMIN']]}
+          //
+          // register handler to enable/disable quota entry when
+          // enable Quota check is performed
+          //
+          $('#project_enableQuota').on('change', function() {
+              var enabled = $(this).prop('checked');
+              if (enabled) {
+                  $('#project_quotaControlGroup').show();
+              }
+              else {
+                  $('#project_quotaControlGroup').hide();
+              }
+          }).trigger('change');
+        #{/deadbolt.restrict}
+    });
+   </script>
+#{/set}

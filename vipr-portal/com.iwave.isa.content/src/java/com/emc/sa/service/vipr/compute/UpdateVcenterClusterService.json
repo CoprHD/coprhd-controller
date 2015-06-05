@@ -1,0 +1,24 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"UpdateVcenterCluster.Compute",
+  serviceId:"UpdateVcenterCluster",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    cluster:{
+      type:"assetType.vipr.esxCluster",
+      lockable: true
+    },
+    vcenter:{
+      type:"assetType.vipr.vcentersForEsxCluster",
+      lockable: true
+    },
+    datacenter:{
+      type:"assetType.vipr.datacentersForEsxCluster",
+      lockable: true
+    }
+  }  
+}

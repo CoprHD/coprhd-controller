@@ -1,0 +1,106 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if error}
+  <div class="clear"></div>
+  <p class="alert alert-danger">${error}</p>
+#{/if}
+
+<form id="executionWindowForm" class="form-horizontal">
+  #{authenticityToken /}
+  #{field 'executionWindowForm.timezoneOffsetInMinutes'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  #{field 'executionWindowForm.tenantId'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  #{if executionWindowForm.id != null}
+    #{field 'executionWindowForm.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}  
+    #{field 'executionWindowForm.name'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+  #{/if}
+
+  %{ width = 7 }%
+  #{field 'executionWindowForm.name'}
+    %{
+      field.required = true
+      field.disabled = (executionWindowForm.id != null)
+    }%
+    #{Form.inputTextControlGroup field: field, width:width /}
+  #{/field}
+  #{field 'executionWindowForm.hourOfDay'}
+    %{
+      field.options = hoursOfDay
+      field.valueProperty = 'key'
+      field.labelProperty = 'value'
+      field.helpTextArgs = serverTimeZone
+      field.required = true
+    }%
+    #{Form.selectOneControlGroup field:field, width:width /}
+  #{/field}
+  #{field 'executionWindowForm.length'}
+    %{ field.required = true }%
+    #{Form.controlGroup field:field, width:width}
+      <div class="row col-gap-sm">
+        <div class="col-xs-6">
+          #{Form.inputText field: field/}
+        </div>
+        <div class="col-xs-6">
+          #{field 'executionWindowForm.lengthType'}
+            %{
+              field.options = timeDuration
+              field.valueProperty = 'key'
+              field.labelProperty = 'value'
+            }%
+            #{Form.selectOne field: field/}
+          #{/field}
+        </div>
+      </div>
+    #{/Form.controlGroup}
+  #{/field}
+  
+  #{field 'executionWindowForm.type'}
+    #{Form.controlGroup field:field, width:width}
+      %{ typeField = field }%
+      #{Form.radio field:typeField, value: "DAILY", label: messages.get("executionWindowType.daily")/}
+      
+      #{Form.radio field:typeField, value: "WEEKLY", label: messages.get("executionWindowType.weekly")/}
+      #{field 'executionWindowForm.dayOfWeek'}
+        %{
+          field.options = daysOfWeek
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-sm">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'executionWindowForm.dayOfWeek'}:</label>
+          </div>
+          <div class="col-xs-7"> 
+            #{Form.selectOne field:field /}
+          </div>
+        </div>
+      #{/field}
+      
+      #{Form.radio field:typeField, value: "MONTHLY", label: messages.get("executionWindowType.monthly")/}
+      #{field 'executionWindowForm.dayOfMonth'}
+        %{
+          field.options = daysOfMonth
+          field.valueProperty = 'key'
+          field.labelProperty = 'value'
+        }%
+        <div class="row col-gap-sm">
+          <div class="col-xs-4 col-xs-offset-1">
+            <label class="control-label">&{'executionWindowForm.dayOfMonth'}:</label>
+          </div>
+          <div class="col-xs-7">
+            #{Form.selectOne field:field /}
+          </div>
+        </div>
+      #{/field}
+    #{/Form.controlGroup}
+  #{/field}
+  </div>
+</form>

@@ -1,0 +1,81 @@
+%{
+  titleKey = 'SMISProviders.' + (smisProvider?.id ? 'edit' : 'create') + '.title';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.storageProviders'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'SMISProviders.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container" ng-controller="storageProviderCtrl">
+  <form-header title-key="${titleKey}"
+               description-key="SMISProviders.description"
+               image-val="/public/img/assets/StorageArray.png"></form-header>
+
+  #{alerts/}
+
+  #{form @save(), id:'smisProviderForm', class:'form form-horizontal', autocomplete:"off"}
+    #{field 'referrer'}
+      <input type="hidden" name="${field.name}" value="${referrer}">
+    #{/field}
+
+    <input type="hidden" name="smisProvider.id" value="{{smisProvider.id}}" ng-if="smisProvider.id">
+
+    <fieldset>
+      <control-group v-field="smisProvider.name" required>
+        <input-text class="initialFocus"></input-text>
+      </control-group>
+
+      <control-group v-field="smisProvider.interfaceType" required>
+        <select-one options="interfaceTypeOptions" ng-disabled="editMode"></select-one>
+      </control-group>
+
+      <control-group v-field="smisProvider.ipAddress" required>
+        <input-text></input-text>
+      </control-group>
+
+      <control-group v-field="smisProvider.useSSL" ng-hide="isHideSSLCheckboxStorageSystem() || smisProvider.interfaceType === 'ddmc'">
+        <boolean-checkbox></boolean-checkbox>
+      </control-group>
+
+
+      <control-group v-field="smisProvider.portNumber" required ng-hide="smisProvider.interfaceType === 'ddmc'">
+        <input-text></input-text>
+      </control-group>
+
+      <control-group v-field="smisProvider.userName" required="!editMode">
+        <input-text></input-text>
+      </control-group>
+
+      <control-group v-field="smisProvider.password" required="!editMode">
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="smisProvider.confirmPassword" required="!editMode">
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="smisProvider.secondaryUsername" ng-show="isMDMDefaultType()">
+        <input-text></input-text>
+      </control-group>
+
+      <control-group v-field="smisProvider.secondaryPassword" ng-show="isMDMDefaultType()">
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="smisProvider.secondaryPasswordConfirm" ng-show="isMDMDefaultType()">
+        <input-password></input-password>
+      </control-group>
+
+      <control-group v-field="smisProvider.elementManagerURL" ng-show="isElementManagerType()">
+        <input-text></input-text>
+      </control-group>
+
+    </fieldset>
+
+    #{Form.saveCancel cancelHref:referrer/}
+  #{/form}
+</div>

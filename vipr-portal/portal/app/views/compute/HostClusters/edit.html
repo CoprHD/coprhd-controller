@@ -1,0 +1,45 @@
+%{
+  titleKey = 'HostClusters.' + (hostCluster?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'HostClusters.description';
+  image = '/public/img/assets/Cluster.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.hostClusters'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'HostClusters.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+
+#{form @save(), id:'hostClusterForm', class:'form form-horizontal', autocomplete:"off"}
+  #{if hostCluster?.id}
+    #{field 'hostCluster.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+  #{/if}
+  #{field 'hostCluster.tenantId'}
+     <input type="hidden" name="${field.name}" value="${field.value}"/>
+  #{/field}
+
+  #{field 'hostCluster.name'}
+    %{
+      field.required = true
+      field.cssClass = 'span6 initialFocus'
+    }%
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+
+  #{Form.saveCancelButtonBar size:'large'}
+    #{if hostCluster?.id}
+      #{Form.button 'HostClusters.editHosts.shortTitle', icon:'edit', size:'large', href:@editHosts(hostCluster.id)/} 
+    #{/if}
+  #{/Form.saveCancelButtonBar}
+#{/form}
+
+</div>

@@ -1,0 +1,11 @@
+PUT https://192.168.0.0:4443/projects/urn:storageos:Project:d13fc87f-f67d-4b60-a91d-f5bb9abc97d9:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+   "name" : "testproject1"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json

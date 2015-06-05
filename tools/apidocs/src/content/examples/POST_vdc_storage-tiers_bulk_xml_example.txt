@@ -1,0 +1,42 @@
+POST https://192.168.0.0:4443/vdc/storage-tiers/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:StorageTier:1c47b776-4478-40d3-ba82-6d30d6e4f962:</id>
+    <id>urn:storageos:StorageTier:2bbc9a8e-e355-42ff-af71-7025d30c2214:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_storage_tiers>
+    <storage_tier>
+        <creation_time>1379168819451</creation_time>
+        <id>urn:storageos:StorageTier:1c47b776-4478-40d3-ba82-6d30d6e4f962:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/storage-tiers/urn:storageos:StorageTier:1c47b776-4478-40d3-ba82-6d30d6e4f962:" rel="self"/>
+        <name>Capacity</name>
+        <tags/>
+        <native_guid>CLARiiON+APM00121202922+TIER+Mixed Disk+Capacity</native_guid>
+        <disk_drive_technology>SATA</disk_drive_technology>
+        <percentage>100</percentage>
+        <total_capacity>1917389783</total_capacity>
+    </storage_tier>
+    <storage_tier>
+        <creation_time>1379168891083</creation_time>
+        <id>urn:storageos:StorageTier:2bbc9a8e-e355-42ff-af71-7025d30c2214:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/storage-tiers/urn:storageos:StorageTier:2bbc9a8e-e355-42ff-af71-7025d30c2214:" rel="self"/>
+        <name>SATA</name>
+        <tags/>
+        <native_guid>SYMMETRIX+000195701430+TIER+SATA</native_guid>
+        <auto_tier_policy>urn:storageos:AutoTieringPolicy:90ffa05d-6e99-475c-8a1b-27ae8b974695:</auto_tier_policy>
+        <auto_tier_policy>urn:storageos:AutoTieringPolicy:92fa5d55-a98e-4c07-b994-b02311deac62:</auto_tier_policy>
+        <disk_drive_technology>SATA</disk_drive_technology>
+        <percentage>60</percentage>
+        <total_capacity>1</total_capacity>
+    </storage_tier>
+</bulk_storage_tiers>

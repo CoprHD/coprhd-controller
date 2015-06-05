@@ -1,0 +1,14 @@
+*{
+  Adds expandable row support which calls a jsTemplate for a given property
+  
+  arg: the table name
+  template: the template name, defaults to ${_arg}Expand
+  property: the property that triggers the expandable nature of the row, if not provided the row is always expandable
+}*
+%{ template = _template ?: "${_arg}Expand" }%
+<script type="text/javascript">
+  table.${_arg}.dataTable.beforeCreate(function(dataTable) {
+      dataTable.setSimpleExpandable('${template}'#{if _property}, '${_property}'#{/if});
+  });
+</script>
+#{jsTemplate template}#{doBody/}#{/jsTemplate}

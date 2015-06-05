@@ -1,0 +1,68 @@
+POST https://192.168.0.0:4443/tenants/bulk
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+    <id>urn:storageos:TenantOrg:c7ba7600-1a02-4558-954d-3de642eeacce:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_tenants>
+    <tenant>
+        <creation_time>1379170786621</creation_time>
+        <id>urn:storageos:TenantOrg:c7ba7600-1a02-4558-954d-3de642eeacce:</id>
+        <inactive>false</inactive>
+        <link href="/tenants/urn:storageos:TenantOrg:c7ba7600-1a02-4558-954d-3de642eeacce:" rel="self"/>
+        <name>tenant</name>
+        <tags/>
+        <parent_tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        </parent_tenant>
+        <user_mappings>
+            <user_mapping>
+                <attributes>
+                    <attribute>
+                        <key>OU</key>
+                        <value>tenant.com</value>
+                    </attribute>
+                </attributes>
+                <domain>tenant.domain</domain>
+                <groups/>
+            </user_mapping>
+        </user_mappings>
+    </tenant>
+    <tenant>
+        <creation_time>1379168259060</creation_time>
+        <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+        <inactive>false</inactive>
+        <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        <name>Provider Tenant</name>
+        <tags/>
+        <description>Root Provider Tenant</description>
+        <user_mappings>
+            <user_mapping>
+                <attributes>
+                    <attribute>
+                        <key>ou</key>
+                        <value>sanity</value>
+                    </attribute>
+                </attributes>
+                <domain>sanity.local</domain>
+                <groups/>
+            </user_mapping>
+            <user_mapping>
+                <attributes/>
+                <domain>sanity.local</domain>
+                <groups>
+                    <group>test Group</group>
+                </groups>
+            </user_mapping>
+        </user_mappings>
+    </tenant>
+</bulk_tenants>

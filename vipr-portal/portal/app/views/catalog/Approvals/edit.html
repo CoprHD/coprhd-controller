@@ -1,0 +1,72 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.catalog', 'nav.approvals'] /}
+#{set 'title'}&{'approvals.title'}#{/set}
+
+<div class="container">
+  #{Orders.serviceHeader service:service/}
+ 
+  #{if flash.message}
+    <div class="alert alert-success">${flash.message}</div>
+  #{/if}
+
+  <div class="pull-left span5">
+    <dl class="dl-horizontal nomargin">
+      <dt>&{'order.number'}:</dt>
+      <dd>${order.orderNumber}</dd>
+      
+      <dt>&{'order.dateSubmitted'}:</dt>
+      <dd>#{localDateTime order.creationTime?.time/}&nbsp;</dd>
+      
+      <dt>&{'order.submittedBy'}:</dt>
+      <dd>${order.submittedBy}&nbsp;</dd>
+      
+      <dt>&{'approval.status'}:</dt>
+      <dd>#{Approvals.statusIcon status:approval.approvalStatus/}
+          &{'ApprovalStatus.' + approval.approvalStatus}</dd>
+    </dl>
+  </div>
+  
+  <div class="pull-left span6" style="overflow:hidden">
+    #{Orders.parameters parameters:order?.parameters /}
+  </div>
+  
+  <div class="clear"></div>
+  <hr>
+  #{if approval.isPending()}
+    %{ id = approval.id.toString() }%
+      #{form @submit(id), id:'approval', class:'form form-horizontal', autocomplete:"off"}
+          #{field 'approval.message'}
+             %{ 
+               field.required = true 
+             }%
+              #{Form.inputTextControlGroup field:field/}
+          #{/field}
+
+          #{Form.buttonBar}
+              <button type="submit" name="approval.submit" class="btn btn-success" value="approve">
+                  #{icon 'ok'/}
+          &{'approval.approve'}
+              </button>
+              <button type="submit" name="approval.submit" class="btn btn-danger" value="reject">
+                  #{icon 'remove'/}
+          &{'approval.reject'}
+              </button>
+          #{/Form.buttonBar}
+      #{/form}
+      #{/if}
+  #{elseif approval.isApproved()}
+    <div style="margin-top:1em;" class="alert alert-info">
+      <span class="badge badge-info">#{icon 'ok'/}</span> 
+      &{'approval.orderApproved', approval.approvedBy, approval.dateActioned?.time, approval.message}
+    </div>
+  #{/elseif}
+  #{elseif approval?.isRejected()}
+    <div style="margin-top:1em;" class="alert alert-danger">
+      <span class="badge badge-important">#{icon 'remove'/}</span> 
+      &{'approval.orderRejected', approval.approvedBy, approval.dateActioned?.time, approval.message}
+    </div>
+  #{/elseif}
+</div>

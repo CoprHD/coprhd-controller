@@ -1,0 +1,27 @@
+POST https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/full-copies/urn:storageos:Volume:c6324360-637e-4e28-94db-b268b6cdd4f2:/activate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+ 
+{
+    "resource":{
+        "name":"full_copy_inactive",
+            "id":"urn:storageos:Volume:c6324360-637e-4e28-94db-b268b6cdd4f2:",
+            "link":{
+                "rel":"self",
+                "href":"/block/volumes/urn:storageos:Volume:c6324360-637e-4e28-94db-b268b6cdd4f2:"
+            }
+    },
+        "message":"Operation completed successfully",
+        "state":"ready",
+        "start_time":1380815813313,
+        "end_time":1380815817585,
+        "op_id":"7e49a3ce-76bd-4679-8328-2cb2b12d845f",
+        "link":{
+            "rel":"self",
+            "href":"/block/volumes/urn:storageos:Volume:c6324360-637e-4e28-94db-b268b6cdd4f2:/tasks/7e49a3ce-76bd-4679-8328-2cb2b12d845f"
+        }
+}

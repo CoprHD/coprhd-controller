@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/vdc/role-assignments HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<role_assignments_create>
+     <link href="/vdc/role-assignments" rel="self"/>
+     <role_assignment>
+          <role>SYSTEM_AUDITOR</role>
+          <role>SECURITY_ADMIN</role>
+          <role>SYSTEM_MONITOR</role>
+          <role>SYSTEM_ADMIN</role>
+          <subject_id>super_sanity@sanity.local</subject_id>
+     </role_assignment>
+</role_assignments_create>

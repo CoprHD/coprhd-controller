@@ -1,0 +1,68 @@
+POST https://192.168.0.0:4443/compute/vcenters/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:Vcenter:fc18d68e-dc2e-4325-8d0d-3db1bce12680:</id>
+    <id>urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_vcenters>
+    <vcenter>
+        <creation_time>1379549055181</creation_time>
+        <id>urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:</id>
+        <inactive>false</inactive>
+        <link href="/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:" rel="self"/>
+        <name>lglw8063</name>
+        <tags/>
+        <native_guid/>
+        <compatibility_status>COMPATIBLE</compatibility_status>
+        <job_discovery_status>COMPLETE</job_discovery_status>
+        <last_discovery_run_time>1380723424191</last_discovery_run_time>
+        <last_discovery_status_message/>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>0</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        </tenant>
+        <ip_address>lglw8063.example.com</ip_address>
+        <port_number>443</port_number>
+        <use_ssl>false</use_ssl>
+        <user_name>root</user_name>
+    </vcenter>
+    <vcenter>
+        <creation_time>1379175885408</creation_time>
+        <id>urn:storageos:Vcenter:fc18d68e-dc2e-4325-8d0d-3db1bce12680:</id>
+        <inactive>false</inactive>
+        <link href="/compute/vcenters/urn:storageos:Vcenter:fc18d68e-dc2e-4325-8d0d-3db1bce12680:" rel="self"/>
+        <name>lrmb168</name>
+        <tags/>
+        <native_guid/>
+        <compatibility_status>COMPATIBLE</compatibility_status>
+        <job_discovery_status>COMPLETE</job_discovery_status>
+        <last_discovery_run_time>1380723491046</last_discovery_run_time>
+        <last_discovery_status_message/>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>0</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        </tenant>
+        <ip_address>lrmb168.example.com</ip_address>
+        <port_number>443</port_number>
+        <use_ssl>false</use_ssl>
+        <user_name>administrator</user_name>
+    </vcenter>
+</bulk_vcenters>

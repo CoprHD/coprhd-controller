@@ -1,0 +1,53 @@
+#!/bin/bash 
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2013 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/powerofftool
+#
+
+export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
+
+
+_usage() {
+    set +Ex
+    echo "Usage: $0 Need no parameters"             >&2
+    exit 2
+}
+
+# Get OVF property with the key provided as $1
+_get_ovf_property() {
+    [ -n "$1" ] && sed -n "s/^${1}=\(.*\)/\1/p" '/etc/ovfenv.properties'
+}
+
+_power_off_all() {
+    local nodeCount=$(_get_ovf_property 'node_count')
+    local nodeid=$(_get_ovf_property 'node_id')
+    local nodeNumber=${nodeid#vipr}
+    local ipList=()
+    for (( n=1; n<=${nodeCount}; n++ )) ; do
+        if [ ${n} != ${nodeNumber} ]; then
+            ipList+=($(_get_ovf_property "network_${n}_ipaddr"))
+        fi
+    done
+
+    if [ ${#ipList[@]} -gt 0 ]; then
+        for ip in ${ipList[@]} ; do
+            ssh storageos@${ip} sudo /etc/systool --poweroff
+        done
+    fi
+    /etc/systool --poweroff
+}
+
+ [ ${#} -ne 0 ] && _usage
+
+ _power_off_all

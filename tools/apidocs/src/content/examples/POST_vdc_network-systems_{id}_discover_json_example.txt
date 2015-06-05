@@ -1,0 +1,24 @@
+POST /vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:/discover.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+<task>
+       <op_id>ac9e620e-2f95-45a5-844f-afaf09c38284</op_id>
+       <resource>
+              <id>urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:
+              </id>
+              <link
+                     href="/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:"
+                     rel="self" />
+              <name>mds-a</name>
+       </resource>
+       <link
+              href="/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:/tasks/ac9e620e-2f95-45a5-844f-afaf09c38284"
+              rel="self" />
+       <start_time>1380749404415</start_time>
+       <state>pending</state>
+</task>

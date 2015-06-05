@@ -1,0 +1,7 @@
+%{
+  field = _field;
+  value = flash[field.name] ?: field.value;
+  cssClass = field.cssClass ?: "col-md-6";
+  rows = _rows ?: 3;
+}%
+<textarea class="form-control ${cssClass}" id="${field.id}" name="${field.name}" rows="${rows}" autocomplete="off" #{Form.extraAtts atts:field.atts/}>${value}</textarea>

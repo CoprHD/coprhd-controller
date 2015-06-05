@@ -1,0 +1,239 @@
+%{
+  titleKey = 'LDAPsources.' + (ldapSources?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'LDAPsources.description';
+  image = '/public/img/assets/AuthProvider.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.security', 'nav.providers'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:ldapSources?.id ? true : false/}
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  var editMode = #{get 'editMode'/};
+  var errors = #{get 'errors'/};
+
+    $(document).ready(function() {
+		if (!editMode && !errors) {
+    		setDefaults();
+        }
+
+    	$('#ldapSources_mode').on('change', setFormByType);
+    	$('#ldapSources_mode').on('change', setDefaults);
+
+        setFormByType();       
+    });
+    
+    function setFormByType() {
+    	var authType = $('#ldapSources_mode').val();
+    	var $ctrlElements = $("fieldset");
+
+    	if (authType == 'ldap'){
+    	    if (${showLdapGroup}){
+    	        $('#ldapSources_groupObjectClasses').closest($ctrlElements).show();
+    	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).show();
+    	        $('#ldapSources_groupAttribute').closest($ctrlElements).show();
+    	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
+    	    } else {
+    	        $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
+    	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
+    	        $('#ldapSources_groupAttribute').closest($ctrlElements).hide();
+    	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).hide();
+    	    }
+        } else {
+            $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
+            $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
+            $('#ldapSources_groupAttribute').closest($ctrlElements).show();
+            $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
+        }
+    }
+    
+    function setDefaults() {
+        var authType = $('#ldapSources_mode').val();
+        var group = $('#ldapSources_groupAttribute');
+        var search = $('#ldapSources_searchFilter');
+
+        if (!group.val()) {
+            group.val('CN');
+        }
+        
+        if (authType == '${ldapType}') {
+        	if (!search.val() || search.val() == 'userPrincipalName=%u') {
+                search.val('uid=%U');
+            }
+        }
+        else{
+        	if (!search.val() || search.val() == 'uid=%U') {
+                search.val('userPrincipalName=%u');
+            }
+        }
+    }
+    
+  </script>
+#{/set}
+
+
+<div class="container">
+	#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+	
+	#{alerts/}
+	
+#{form @save(), id:'ldapSourceForm', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+    #{field 'ldapSources.name'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.mode'}
+     %{
+        field.options = authSourceTypeList
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.description'}
+     %{
+        field.required = false
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    
+    #{field 'ldapSources.domains'}
+     %{
+        field.required = true
+        field.value = domainString
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.serverUrls'}
+     %{
+        field.required = true
+        field.value = serverUrlsString
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.managerDn'}
+     %{
+        field.required = true
+        field.cssClass = 'span8'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.managerPassword'}
+     %{
+        field.required =!editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.disable'}
+        %{
+          field.cssClass = 'span0'
+          field.required = false
+        }%
+      #{Form.booleanCheckBoxControlGroup field:field/}
+    #{/field} 
+
+    </fieldset>
+    <fieldset>
+    <legend>Group</legend>
+    #{field 'ldapSources.groupAttribute'}
+     %{
+        field.required = true
+        if (readOnlyGroupAttribute) {
+            field.atts = ['readonly':'readonly']
+        }
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.groupWhiteListValues'}
+     %{
+        field.required = false
+        field.value = groupWhiteListString
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field /}
+    #{/field}
+    </fieldset>
+
+    <fieldset>
+    #{field 'ldapSources.groupObjectClasses'}
+     %{
+        field.required = false
+        field.value = groupObjectClassesString
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field, rows:4/}
+    #{/field}
+    
+    #{field 'ldapSources.groupMemberAttributes'}
+     %{
+        field.required = false
+        field.value = groupMemberAttributesString
+        field.helpTextKey = field.name + '.description'
+      }%
+      #{Form.textAreaControlGroup field:field, rows:4 /}
+    #{/field}
+    </fieldset>
+    
+    <fieldset>
+    <legend>Search</legend>
+    
+    #{field 'ldapSources.searchScope'}
+     %{
+        field.options = searchScopeTypeList
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.selectOneControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.searchBase'}
+     %{
+        field.required = true
+        field.cssClass = 'span8'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'ldapSources.searchFilter'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    </fieldset>
+
+    #{if ldapSources?.id}
+	    #{field 'ldapSources.id'}
+	      <input type="hidden" name="${field.name}" value="${field.value}">
+	    #{/field}
+    
+	  #{/if}    
+
+
+  </fieldset>
+  #{Form.saveCancel  /}
+#{/form}
+</div>

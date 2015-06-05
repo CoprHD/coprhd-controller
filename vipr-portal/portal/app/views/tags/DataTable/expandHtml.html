@@ -1,0 +1,37 @@
+*{
+  Adds expandable row support that calls back to a JSAction using the row data to resolve the URL. 
+   
+  arg: the source for the JS Action
+  table: the name of the table
+  property: the name of the property to store the data in (defaults to 'expandDetails')
+}*
+<script type="text/javascript">
+table.${_table}.expandRow = function(result, data, row) {
+    var onRowUpdated = function() {
+        updateLocalDateTime();
+        updateRelativeTime();
+    }
+    var property = "${_property ?: 'expandDetails'}";
+    if (property && data[property]) {
+        result.resolve(data[property]);
+        onRowUpdated();
+    }
+    else {
+        var url = #{jsAction _arg /}(data);
+        $.get(url, function(content) {
+            //Used to compile angular code inside the content, If there is no angular directive this will function normally
+            content = portalApp.render(content, null, angular.element(row).scope());
+            if (property) {
+                data[property] = content;
+            }
+            result.resolve(content);
+        }).fail(function(jqXHR, textStatus, errorThrown) {
+            var error = util.getAjaxError(jqXHR, textStatus, errorThrown);
+            result.reject('<span class="error">'+error+'</span>');
+        });
+    }
+}
+table.${_table}.dataTable.beforeCreate(function(dataTable) {
+    dataTable.setDefaultExpandable({'expandRow': table.${_table}.expandRow});
+});
+</script>

@@ -1,0 +1,67 @@
+GET https://192.168.0.0:4443/upgrade/cluster-state/.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json  
+
+{
+  "control_nodes": {
+    "entry": [
+      {
+        "key": "vipr3",
+        "value": {
+          "available_versions": {
+            "available_version": "vipr-1.0.0.7.1024"
+          },
+          "current_version": "vipr-1.0.0.7.1024",
+          "config_version": "1379169363901"
+        }
+      },
+      {
+        "key": "vipr2",
+        "value": {
+          "available_versions": {
+            "available_version": "vipr-1.0.0.7.1024"
+          },
+          "current_version": "vipr-1.0.0.7.1024",
+          "config_version": "1379169363901"
+        }
+      },
+      {
+        "key": "vipr1",
+        "value": {
+          "available_versions": {
+            "available_version": "vipr-1.0.0.7.1024"
+          },
+          "current_version": "vipr-1.0.0.7.1024",
+          "config_version": "1379169363901"
+        }
+      }
+    ]
+  },
+  "target_state": {
+    "available_versions": {
+      "available_version": "vipr-1.0.0.7.1024"
+    },
+    "current_version": "vipr-1.0.0.7.1024",
+    "config_version": "1379169363901"
+  },
+  "new_versions": {
+    "new_version": [
+      "vipr-1.0.0.7.1056",
+      "vipr-1.0.0.7.1053",
+      "vipr-1.0.0.7.1050",
+      "vipr-1.0.0.7.1048",
+      "vipr-1.0.0.7.1047",
+      "vipr-1.0.0.7.1042",
+      "vipr-1.0.0.7.1041",
+      "vipr-1.0.0.7.1040",
+      "vipr-1.0.0.7.1025"
+    ]
+  },
+  "removable_versions": null,
+  "cluster_state": "STABLE"
+}

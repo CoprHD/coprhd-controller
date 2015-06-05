@@ -1,0 +1,34 @@
+VNXBLOCK (FC) and VMAX Block operations commands:
+================================================
+
+viprcli project create -n BLOCK_PROJECT
+
+viprcli volume create -n Test_Volume -s 1G -pr BLOCK_PROJECT -vpool BLOCK_COS -va BANGALORE
+
+viprcli volume list -pr BLOCK_PROJECT
+
+viprcli snapshot create -n Test_Snapshot -pr BLOCK_PROJECT -vol Test_Volume
+
+viprcli snapshot list -pr BLOCK_PROJECT -vol Test_Volume
+
+viprcli exportgroup create -n Test_Export_Group -pr BLOCK_PROJECT -va BANGALORE
+
+viprcli host create -hn Test_Host -type Linux -hl Test_Host -hp 443 -un root
+
+viprcli initiator create -hl Test_Host -pt FC -pwwn 21:00:00:E0:8B:80:48:49 -wwn 20:00:00:E0:8B:80:48:49
+
+viprcli exportgroup add_initiator -n Test_Export_Group -in 21:00:00:E0:8B:80:48:49  -pr BLOCK_PROJECT -hl Test_Host
+
+viprcli exportgroup add_vol -n Test_Export_Group -v Test_Volume -pr BLOCK_PROJECT
+
+viprcli exportgroup add_vol -n Test_Export_Group -v Test_Volume  -pr BLOCK_PROJECT -lun 7 -sh Test_Snapshot
+
+viprcli exportgroup list -pr BLOCK_PROJECT -l
+
+viprcli exportgroup remove_vol -n Test_Export_Group -v Test_Volume -pr BLOCK_PROJECT
+
+viprcli exportgroup remove_vol -n Test_Export_Group -v Test_Volume -pr BLOCK_PROJECT -sh Test_Snapshot
+
+viprcli snapshot delete -n Test_Snapshot -pr BLOCK_PROJECT -vol Test_Volume
+
+viprcli  volume delete -n Test_Volume -pr BLOCK_PROJECT

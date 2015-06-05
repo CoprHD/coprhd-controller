@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Source /etc/sysconfig/storageos and make the basic checks
+#
+STORAGEOS_DIR=${STORAGEOS_DIR:-'/opt/storageos'}
+test -d "${STORAGEOS_DIR}"             || exit 2
+
+STORAGEOS_LOGS=${STORAGEOS_LOGS:-"${STORAGEOS_DIR}/logs"}
+test -d "${STORAGEOS_LOGS}"            || exit 3
+
+# only remove compressed log files for now
+LOG_FILE_PATTERN="*.log*.gz" # the index/timestamp could be before or after the .log infix
+HPROF_PATTERN="*.hprof"
+HPROF_ARCHIVE_PATTERN="*.hprof*" # this will grab both archived and non-archived heap dumps
+RESERVE_DAYS=7
+CHECK_INTERVAL=100
+
+datadisk_sz=$(df -k /data | awk '!/Filesystem/{print $2}')
+LOG_LIMIT_RATIO=10 # Percentage which logs should occupy at most in the data disk
+log_limit=`expr ${datadisk_sz} \* ${LOG_LIMIT_RATIO} / 100`
+
+du_limit=10485760 # At least 10GB to avoid disk is out of space quickly after setting log level to DEBUG
+
+# du_limit is max( 10GB, datadisk_sz * LOG_LIMIT_RATIO / 100 )
+if [ ${du_limit} -lt ${log_limit} ]; then
+    du_limit=${log_limit}
+fi
+
+# cleanup the log files older than RESERVE_DAYS
+logger -p cron.notice "start to clean up log files older than ${RESERVE_DAYS} days"
+find ${STORAGEOS_LOGS} \( -name "${LOG_FILE_PATTERN}" -o -name "${HPROF_ARCHIVE_PATTERN}" \) -mtime +${RESERVE_DAYS} | xargs rm -f
+logger -p cron.notice "finish clean up log files older than ${RESERVE_DAYS} days"
+
+# Find and compress any uncompressed hprof files
+find /var/log -name ${HPROF_PATTERN}  -exec gzip {} \;
+
+# some log files might not get compressed in error conditions,
+# compress them if not modified for a day.
+# assume the file name will be like
+#     messages-20140825-1409004745
+#     rm.log.20140826-165818
+NOT_COMPRESSED_PATTERN=".*20[0-9]{6}-[0-9]{6,10}$"
+find ${STORAGEOS_LOGS} -regextype posix-egrep -regex "${NOT_COMPRESSED_PATTERN}" \
+    -mtime +1 -exec gzip {} +
+
+# backup dir name for zk
+ZK_BACKUP_DIR=zookeeper_backup
+
+# if the size of the log folder exceeds the disk quota, deleting from oldest log files
+while [[ $(du -skL ${STORAGEOS_LOGS} --exclude ${ZK_BACKUP_DIR} | cut -f1) -gt ${du_limit} ]]; do
+    logger -p cron.alert "start to clean up log files within ${RESERVE_DAYS} days"
+
+    LOG_LIST_FILE=${STORAGEOS_LOGS}/log_list
+
+    # list files in time order
+    find ${STORAGEOS_LOGS} \( -name "${LOG_FILE_PATTERN}" -o -name "${HPROF_ARCHIVE_PATTERN}" \) -exec stat -c "%Y %n" {} + | \
+        sort -n | awk '{print $2}' > ${LOG_LIST_FILE}
+
+    # remove one by one
+    i=0
+    while read file; do
+        rm -f $file
+
+        # check du less frequently to speed up removal
+        i=$(((i+1)%CHECK_INTERVAL))
+        if [[ $i -eq 0 && $(du -skL ${STORAGEOS_LOGS} | cut -f1) -le ${du_limit} ]]; then
+            break
+        fi
+    done < ${LOG_LIST_FILE}
+
+    rm -f ${LOG_LIST_FILE}
+
+    # it is possible that log size is larger than quota again while removing,
+    # loop and check again
+    logger -p cron.notice "finish one round of quota based log file clean up"
+done
+

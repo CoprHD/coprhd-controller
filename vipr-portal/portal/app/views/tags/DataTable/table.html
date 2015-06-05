@@ -1,0 +1,170 @@
+%{
+  id = _id
+  cssClass = _cssClass
+  dataTable = _dataTable
+  prefix = _prefix ? _prefix : id
+  expandable = _expandable
+  selectable = _selectable
+  actions = _actions
+  actionsTitleKey = _actionsTitleKey ? _actionsTitleKey : 'dataTable.actions'
+  selector = "#${id} table"
+  messageOverrides = _messageOverrides
+  delayCreate = _delayCreate ? _delayCreate : false
+
+  sortOffset = 0
+  columns = [];
+  if (selectable) {
+    sortOffset++;
+    columns << new util.datatable.RenderedColumn("selection", "table.${id}.renderSelection", "selection")
+  }
+  if (expandable) {
+    sortOffset++
+    columns << new util.datatable.RenderedColumn("expand", "table.${id}.renderExpand", "expandable")
+  }
+  columns.addAll(dataTable.columns);
+  if (actions) {
+    columns << new util.datatable.RenderedColumn("actions", "table.${id}.renderActions", "actions")
+  }
+  
+  options = [:]
+  if (dataTable.rowCallback) {
+    options['fnRowCallback'] = dataTable.rowCallback
+  }
+  if (_options) {
+    options.putAll(_options)
+  }
+}%
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+var table = table || {}
+table.${id} = {}
+table.${id}.dataTable = DataTable('#${id}');
+
+table.${id}.renderExpand = function(o, val) {
+    return '<span class="expand-indicator"></span>'
+}
+
+table.${id}.updateSelection = function(checkbox) {
+    var data = table.${id}.dataTable.getRowData(checkbox);
+    if (data) {
+        data.selected = $(checkbox).is(':checked');
+    }
+#{if selectable}
+    table.${id}.dataTable.updateSelectedFooter();
+ #{/if}
+}
+
+table.${id}.renderSelection = function(o, val) {
+    var id = o.aData.id;
+    var checkbox = '<input type="checkbox" name="selected" value="'+id+'" onchange="table.${id}.updateSelection(this)"';
+    if (o.aData.selected) {
+        checkbox += ' checked="checked"';
+    }
+    checkbox += '>';
+    return checkbox;
+}
+
+#{if actions}
+table.${id}.renderActions = function(o, val) {
+    var data = o.aData;
+    var url;
+    var actions = '<div class="btn-group">';
+#{list items:actions, as:'action'}
+    url = #{jsAction action.value/}(data);
+    actions += '<a class="btn btn-default btn-xs" href="'+url+'">&{action.key}</a>';
+#{/list}
+    actions += '</div>';
+    return actions;
+}
+#{/if}
+
+$(document).ready(function() {
+    var dataTable = table.${id}.dataTable;
+    #{if _source}
+    dataTable.setSource("${_source}");
+	#{/if}
+    dataTable.setColumns([
+#{list items:columns, as:'column'}
+    { "property": #{if column.property}"${column.property}"#{/}#{else}null#{/},
+#{if column.sortDataColumn != null && column.sortDataColumn >= 0}      "sortDataColumn": ${column.sortDataColumn + sortOffset},
+#{/if}
+      "cssClass": "${column.cssClass}",
+      "sortable": ${column.sortable == true},
+#{if !column.visible}      "visible":  ${column.visible == true},
+#{/if}
+#{if !column.searchable}   "searchable": ${column.searchable == true}, 
+#{/if}
+      "renderFunction": ${column.renderFunction ?: "null"},
+      "useRendered": ${column.useRendered == true}  }#{if !column_isLast},#{/if}
+      
+#{/list}
+    ]);
+#{if dataTable.defaultSortIndex > -1}
+    dataTable.setDefaultSorting(${dataTable.defaultSortIndex + sortOffset}, "${dataTable.defaultSortOrder}");
+#{/if}
+#{if selectable}
+    dataTable.addSelectAllHandler();
+#{/if}
+#{if options}
+    dataTable.addOptions({
+#{list items:options, as:'option'}
+      "${option.key}": ${option.value?.raw()}#{if !option_isLast},#{/if}
+#{/list}
+    });
+#{/if}
+
+#{if messageOverrides}
+    dataTable.addOptions({
+        "oLanguage": {
+            #{list items:messageOverrides, as:'messageOverride'}
+                "${messageOverride.key}": "&{messageOverride.value}"#{if !messageOverride_isLast},#{/if}
+            #{/list}
+        }
+    });
+#{/if}
+
+#{if _lastUpdatedField}
+	dataTable.setLastUpdatedField("${_lastUpdatedField}");
+#{/if}
+
+#{if !delayCreate}
+    dataTable.create();
+ #{/if}
+    $('#${id} .dataTables_processing').prepend(#{loadingImageJs/});
+ #{if selectable && !delayCreate}
+    dataTable.updateSelectedFooter();
+ #{/if}
+});
+</script>
+#{/set}
+
+<div v-require-controller v-track id="${id}" class="dataTableContainer">
+<table class="table table-hover table-condensed table-styled dataTable ${cssClass}">
+  <thead>
+    <tr>
+      #{if selectable}
+        #{if selectable instanceof java.lang.String}
+          <th>&{selectable}</th>
+        #{/if}
+        #{else}
+          <th class="selection"><input type="checkbox" name="selectAll"/></th>
+        #{/else}
+      #{/if}
+      #{if expandable}
+        <th class="expandable"></th>
+      #{/if}
+      #{list items:dataTable.columns, as:'column'}
+        %{ key = prefix + "." + column.name }%
+        <th class="${column.cssClass}">&{key}</th>
+      #{/list}
+      #{if actions}
+        <th class="actions">&{actionsTitleKey}</th>
+      #{/if}
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+#{doBody/}
+</div>

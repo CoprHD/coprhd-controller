@@ -1,0 +1,34 @@
+%{
+  image = _image;
+  title = _title;
+  titleKey = _titleKey;
+  description = _description;
+  descriptionKey = _descriptionKey;
+}%
+<div class="form-header">
+  <div class="image" #{ifnot image}style="display:none"#{/ifnot}>
+    #{if image}<img src="${image}"/>#{/if}
+  </div>
+
+  *{ Title + Description Display }*
+  #{if description || descriptionKey}
+    <div class="description">
+      <h2>
+        #{if title}${title}#{/if}
+        #{else}&{titleKey}#{/else}
+      </h2>
+      #{if description}<p>${description}</p>#{/if}
+      #{elseif descriptionKey}<p>&{descriptionKey}</p>#{/elseif}
+    </div>
+  #{/if}
+  *{ Title Only Display }*
+  #{else}
+    <div class="title">
+      <h2>
+        #{if title}${title}#{/if}
+	    #{else}&{titleKey}#{/else}
+      </h2>
+    </div>
+  #{/else}
+  <div style="clear:both"></div>
+</div>

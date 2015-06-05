@@ -1,0 +1,23 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(guava),
+            library(sblim_cim_client2),
+            library(xmlapi),
+
+            project(":dbsvc"),
+            project(":errorhandling"),
+            project(":isilon"),
+            project(":vplex"),
+            project(":cimadapter")
+            
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "emc") {
+        compile project(":com.iwave.ext.netapp"),
+                project(":com.iwave.ext.netappc")
+    }
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+        compile library(netapp)
+    }
+
+}
+

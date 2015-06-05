@@ -1,0 +1,19 @@
+GET https://192.168.0.0:4443/vdc/storage-ports/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+	<id>urn:storageos:StoragePort:00359fd4-72b6-47cd-b997-3d6d3d5b89ac:</id>
+	<id>urn:storageos:StoragePort:00668013-f11e-41e6-91b8-e9be0778238a:</id>
+	<id>urn:storageos:StoragePort:006822df-d0de-4b42-85a1-b348f53984cd:</id>
+	<id>urn:storageos:StoragePort:0222fe28-6625-4e10-9068-8eef6a39d063:</id>
+	<id>urn:storageos:StoragePort:03acdba2-e1e7-4fb0-8683-0c9cfb38fcb4:</id>
+	<id>urn:storageos:StoragePort:03bebfbc-1529-400a-b064-050181c73a48:</id>
+	<id>urn:storageos:StoragePort:0486b945-4d89-4969-8f17-dcebf77d90ed:</id>
+	<id>urn:storageos:StoragePort:060c5467-d782-48fe-9a2e-f51df469adaa:</id>
+</ids>

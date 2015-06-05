@@ -1,0 +1,165 @@
+#!/usr/bin/python
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# gentmpl [--foreach(iter: ival1 ...)] prop1=val2 [prop2=val2] ...
+#
+
+import sys
+import re
+import traceback
+
+def usage(errmsg=None):
+    if errmsg:
+        print >>sys.stderr, errmsg
+    print >>sys.stderr, "Usage: " + sys.argv[0] + " [--foreach:iter:ival,...] prop1=val2 [prop2=val2] ..."
+    sys.exit(2)
+
+def fatal(errmsg):
+    print >>sys.stderr, sys.argv[0] + ": Error: " + errmsg
+    sys.exit(1)
+
+def debug(arg):
+    #print >>sys.stderr, "DEBUG: %s" % (arg,) 
+    pass
+
+def fileread(path):
+    try:
+        f = open(path)
+    except Exception, e:
+        fatal("Failed to include %s: %s" % (path, e))
+
+    try:
+        s = f.read()
+        if s.endswith("\n"):
+            s = s[:-1]
+        return s
+    except Exception, e:
+        fatal("Failed to include %s: %s" % (path, e))
+    finally:
+        f.close()
+
+def parse_args(args):
+    def _parse_foreach(arg, foreach):
+        m = re.match(r"^\s*--foreach:([^:]+):(.*)\s*$", arg)
+        if m != None:
+            g = m.groups()
+            foreach.update( { g[0] : re.split(r"[:, \t]", g[1]) } )
+            return True
+        return None
+
+    def _parse_prop(arg, props):
+        m = re.match(r"^\s*([^=\s]+)\s*=\s*(()|([^\'\"].*)|\"(.*)\"|\'(.*)\')$", arg)
+        if m != None:
+            g = m.groups()
+            for _g in g[2:]:
+                if _g != None:
+                    props.append((g[0], _g))
+                    return True
+            else:
+                fatal("Internal parsing error: %r" % (arg,))
+        return None
+
+    if not args:
+        usage()
+
+    foreach = {}
+    props   = []
+    for arg in args:
+        if _parse_foreach(arg, foreach): continue
+        if _parse_prop(arg, props):      continue
+        usage("Invalid argument: %s" %(arg,))
+    return ( foreach, props )
+
+def sub_foreach(s, foreach):
+
+    def _next_closing_tag(s):
+        r2 = re.compile(r"(^\s*</foreach>\s*\n|</foreach>)", re.MULTILINE)
+        match = r2.search(s)
+        if not match:
+	    fatal("Missing </foreach>")
+        debug(match.groups())
+        return match
+                
+    r1 = re.compile(r"(^\s*<foreach\s+iterator=\"([^\"]+)\"(()|\s+separator=\"([^\"]*)\")\s*>\s*\n)|(<foreach\s+iterator=\"([^\"]+)\"(()|\s+separator=\"([^\"]*)\")\s*>)", re.MULTILINE)
+    head = ""
+    tail = s
+    while True:
+        m1 = r1.search(tail)
+        if not m1:
+            return head + tail
+        else:
+            g = m1.groups()
+            debug(g)
+            if g[1] != None:
+                 k = g[1] # iter specifier
+            else:
+                 k = g[6] # the other half of re
+            if g[4] != None:
+                 sep = g[4] # separator
+            elif g[9] != None:
+                 sep = g[9]
+            else:
+                 sep = ""
+            debug("separator=%r" % (sep,))
+            if not k in foreach:
+                fatal("Invalid iterator in: %s" % (m1.groups()[0],))
+            m2 = _next_closing_tag(tail[m1.end():])
+            q = tail[m1.end():m1.end() + m2.start()]
+            debug("s=%r" % (q,))
+                
+            r = re.compile(r"\$\{" +  k + "\}")
+            head += tail[:m1.start()]
+            for i in range(len(foreach[k])):
+                v = foreach[k][i]
+                if i == 0:
+                    sub_str = r.sub(v , q)
+                else:
+                    sub_str = sep + r.sub(v, q)
+                head += sub_str
+            tail  = tail[m1.end() + m2.end():]
+            continue
+                
+def sub_includes(s):
+    r = re.compile(r"(\$\{include=\"([^\"]+)\"\})")
+    head = ""
+    tail = s
+    while True:
+        m = r.search(tail)
+        if not m:
+              return head + tail
+        else:
+              debug("include %r" % (m.groups()[1],))
+              head += tail[:m.start()] + fileread(m.groups()[1])
+              tail  = tail[m.end():]
+
+def sub_props(s, props):
+    for prop in props:
+        debug("subst %s" % (prop,))
+        s = re.sub(r"\$\{" +  prop[0] + "\}", prop[1], s)
+    return s
+
+
+if __name__ == "__main__":
+    try:
+        ( foreach, props ) = parse_args(sys.argv[1:])
+        s = sys.stdin.read()
+        s = sub_includes(s)
+        s = sub_foreach(s, foreach)
+        s = sub_props(s, props)
+        sys.stdout.write(s)
+        sys.exit(0)
+    except Exception, e:
+        traceback.print_exc()
+        fatal("Internal error: %s" % (e,))
+

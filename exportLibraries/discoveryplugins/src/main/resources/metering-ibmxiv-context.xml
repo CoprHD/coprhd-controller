@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- List of Namespaces -->
+    <bean id="namespaces"
+        class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
+        <property name="nsList">
+            <map>
+                <entry key="metering" value-ref="collectMetering" />
+            </map>
+        </property>
+    </bean>
+    
+    <!-- List of operations for this performance namespace -->
+    <bean id="collectMetering"
+        class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="ibmxiv"
+        class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
+        <property name="_executor" ref="executor" />
+        <property name="_namespaces" ref="namespaces" />
+        <property name="xmlDumpGenerator" ref="blockXMLDumpgenerator"/>
+        <property name="partitionManager" ref="partitionManager"/>
+    </bean>
+
+    <!-- SMIUtility -->
+    <bean id="smiutility" class="com.emc.storageos.plugins.common.Util" />
+    
+    <bean id="commandgenerator"
+        class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">
+        <property name="util" ref="smiutility" />
+    </bean>
+
+    <bean id="executor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor">
+        <property name="_util" ref="smiutility" />
+        <property name="_generator" ref="commandgenerator" />
+    </bean>
+
+    <bean id="blockXMLDumpgenerator" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.BlockXMLStatsDumpGenerator" />
+
+    <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
+</beans>

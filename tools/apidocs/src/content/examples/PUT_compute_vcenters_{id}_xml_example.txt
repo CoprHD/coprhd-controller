@@ -1,0 +1,25 @@
+PUT https://192.168.0.0:4443/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<vcenter_update>
+     <name>vCenter_west</name>
+</vcenter_update>
+==Response
+HTTP/1.1 202 Accepted 
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<task>
+     <message>Operation completed successfully</message>
+     <op_id>338ec6da-80b9-4c35-93d8-fa8298bf27c6</op_id>
+     <resource>
+          <id>urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:</id>
+          <link href="/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:" rel="self"/>
+          <name>vCenter_west</name>
+     </resource>
+     <link href="/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:/tasks/338ec6da-80b9-4c35-93d8-fa8298bf27c6" rel="self"/>
+     <start_time>1379648609875</start_time>
+     <state>ready</state>
+</task>

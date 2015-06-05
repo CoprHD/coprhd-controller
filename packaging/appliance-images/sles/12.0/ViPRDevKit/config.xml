@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<image schemaversion="5.8" name="__NAME__">
+  <description type="system">
+    <author>ADG</author>
+    <contact>Ionix_Appliance_Development_Group@emc.com</contact>
+    <specification>A SUSE Linux Enterprise Server 12 product appliance</specification>
+  </description>
+  <profiles>
+    <profile name="appliance" description="DevKit Appliance" import="true"/>
+    <profile name="base" description="ADG default"/>
+  </profiles>
+  <preferences>
+    <version>__VERSION__</version>
+    <packagemanager>zypper</packagemanager>
+    <bootsplash-theme>SLES</bootsplash-theme>
+    <bootloader-theme>SLES</bootloader-theme>
+    <rpm-excludedocs>false</rpm-excludedocs>
+    <locale>en_US</locale>
+    <keytable>us.map.gz</keytable>
+    <timezone>US + Canada/Eastern Time</timezone>
+    <hwclock>utc</hwclock>
+    <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=1">
+      <systemdisk name="systemVG">
+        <volume name="swap" size="6144"/>
+      </systemdisk>
+      <machine memory="8192" guestOS="sles12-64" ncpus="2" HWversion="7" arch="x86_64">
+        <vmdisk controller="lsilogic" id="0"/>
+        <vmdvd  controller="ide" id="0"/>
+        <vmnic driver="vmxnet3" interface="0" mode="bridged"/>
+      </machine>
+      <size unit="G">50</size>
+    </type>
+    <type image="tbz" container="__NAME__" primary="false" />
+    <type image="oem" filesystem="ext3" boot="oemboot/suse-SLES12" installiso="true" installboot="install" bootloader="grub2" boottimeout="0" installprovidefailsafe="false" primary="false">
+      <oemconfig>
+        <oem-boot-title>__NAME__-__VERSION__</oem-boot-title>
+        <oem-swap>true</oem-swap>
+        <oem-swapsize>4096</oem-swapsize>
+        <oem-systemsize>8192</oem-systemsize>
+        <oem-unattended>true</oem-unattended>
+        <oem-skip-verify>true</oem-skip-verify>
+      </oemconfig>
+    </type>
+    <type image="iso" primary="false" boot="isoboot/suse-SLES12" flags="compressed" hybrid="true"/>
+  </preferences>
+  <users group="root">
+    <user password="$6$/8n4NZ4P$7PJqY3T/4/jp3Aq0GsrEvSdw.RfLcvia8RIt451qOcj0.f975gObHNVP8kBbjMqp86/lE4MW79NKXeHwPd796/" home="/root" name="root"/>
+  </users>
+  <repository type="yast2" priority="3">
+    <source path="/slesmedia/12-SLES-DVD1"/>
+  </repository>
+  <repository type="rpm-md" priority="2">
+    <source path="http://lglaf020.lss.emc.com/kiwi_build_requires"/>
+  </repository>
+  <packages type="image" profiles="base,appliance">
+    <package name="audit"/>
+	<package name="apache-commons-daemon"/>
+	<package name="apache-commons-logging"/>
+	<package name="apache2-utils"/>
+    <package name="atmel-firmware"/>
+    <package name="augeas-lenses"/>
+    <package name="autoyast2-installation"/>
+    <package name="bash-doc"/>
+    <package name="bc"/>
+    <package name="bison"/>
+    <package name="boost-license1_54_0"/>
+    <package name="bridge-utils"/>
+    <package name="clamav"/>
+    <package name="coreutils-lang"/>
+    <package name="cpio"/>
+    <package name="cpio-lang"/>
+    <package name="cryptsetup"/>
+    <package name="cvs"/>
+    <package name="cyrus-sasl"/>
+    <package name="curl"/>
+    <package name="dbus-1-glib"/>
+    <package name="desktop-translations"/>
+    <package name="dracut"/>
+    <package name="ecj"/>
+    <package name="efibootmgr"/>
+    <package name="flex"/>
+    <package name="freetype2"/>
+    <package name="gdbm"/>
+    <package name="glib2"/>
+    <package name="glib2-branding-SLE"/>
+    <package name="gpm"/>
+    <package name="grub2"/>
+    <package name="hwinfo"/>
+    <package name="initviocons"/>	
+    <package name="iproute2"/>
+    <package name="iptables"/>
+    <package name="iputils"/>
+    <package name="ipw-firmware"/>
+    <package name="irqbalance"/>
+    <package name="jakarta-commons-pool-tomcat5"/>
+    <package name="kernel-default"/>
+    <package name="kernel-firmware"/>
+    <package name="latex2html-pngicons"/>
+    <package name="lcms2"/>
+    <package name="lsscsi"/>
+    <package name="master-boot-code"/>
+    <package name="mdadm"/>
+    <package name="metamail"/>
+    <package name="mingetty"/>
+    <package name="mpi-selector"/>
+    <package name="mpt-firmware"/>
+    <package name="net-tools"/>
+    <package name="openldap2-client"/>
+    <package name="openmpi"/>
+    <package name="openssh"/>
+    <package name="pam-modules"/>
+    <package name="parted"/>
+	<package name="pciutils"/>
+	<package name="pciutils-ids"/>
+    <package name="perl-Config-Crontab"/>
+    <package name="perl-IO-Socket-INET6"/>
+    <package name="perl-XML-Writer"/>
+    <package name="perl-XML-XPath"/>
+    <package name="perl-doc"/>
+    <package name="perl-gettext"/>
+    <package name="python-argparse"/>
+    <package name="readline-doc"/>
+    <package name="rsyslog"/>
+    <package name="sharutils"/>
+    <package name="shim"/>
+    <package name="sles-release"/>
+    <package name="subscription-tools"/>
+    <package name="suse-build-key"/>
+    <package name="sysfsutils"/>
+    <package name="systemd"/>
+    <package name="systemd-sysvinit"/>
+    <package name="SuSEfirewall2"/>
+    <package name="tar"/>
+    <package name="tcpd"/>
+    <package name="tigervnc"/>
+    <package name="timezone"/>
+    <package name="tomcat"/>
+    <package name="tomcat-el-2_2-api"/>
+    <package name="tomcat-jsp-2_2-api"/>
+    <package name="tomcat-lib"/>
+    <package name="tomcat-servlet-3_0-api"/>
+    <package name="tunctl"/>
+    <package name="unzip"/>
+    <package name="utempter"/>
+    <package name="util-linux-lang"/>
+    <package name="vim"/>
+    <package name="vim-data"/>
+    <package name="vlan"/>
+    <package name="wicked"/>
+    <package name="w3m"/>
+    <package name="xrdp"/>
+    <package name="xz-lang"/>
+    <package name="yast2"/>
+    <package name="yast2-add-on"/>
+    <package name="yast2-bootloader"/>
+    <package name="yast2-branding-SLES"/>
+    <package name="yast2-core"/>
+    <package name="yast2-country"/>
+    <package name="yast2-country-data"/>
+    <package name="yast2-dbus-server"/>
+    <package name="yast2-firewall"/>
+    <package name="yast2-hardware-detection"/>
+    <package name="yast2-installation"/>
+    <package name="yast2-ldap"/>
+    <package name="yast2-network"/>
+    <package name="yast2-nis-client"/>
+    <package name="yast2-online-update"/>
+    <package name="yast2-packager"/>
+    <package name="yast2-pam"/>
+    <package name="yast2-perl-bindings"/>
+    <package name="yast2-pkg-bindings"/>
+    <package name="yast2-registration"/>
+    <package name="yast2-security"/>
+    <package name="yast2-storage"/>
+    <package name="yast2-theme-SLE"/>
+    <package name="yast2-trans-en_US"/>
+    <package name="yast2-trans-stats"/>
+    <package name="yast2-transfer"/>
+    <package name="yast2-update"/>
+    <package name="yast2-users"/>
+    <package name="yast2-xml"/>
+    <package name="yast2-ycp-ui-bindings"/>
+    <package name="zip"/>
+    <package name="zlib"/>
+    <package name="zypper"/>
+    <package name="zypper-log"/>
+  </packages>
+  <packages type="image" profiles="appliance">
+  </packages>
+  <packages type="bootstrap">
+    <package name="ca-certificates"/>
+    <package name="cracklib-dict-full"/>
+    <package name="filesystem"/>
+    <package name="udev"/>
+  </packages>
+</image>

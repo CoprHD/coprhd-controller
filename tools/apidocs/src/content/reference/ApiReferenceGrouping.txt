@@ -1,0 +1,110 @@
+=Block Services
+BlockService
+BlockConsistencyGroupService
+BlockSnapshotService
+ExportGroupService
+BlockFullCopyService
+
+=File Services
+FileService
+FileSnapshotService
+FileQuotaDirectoryService
+
+=Compute Services
+ClusterService
+HostService
+HostsService
+IpInterfaceService
+InitiatorService
+VcenterDataCenterService
+VcenterService
+VCentersService
+ComputeSystemService
+ComputeElementService
+ComputeVirtualPoolService
+ComputeImageService
+
+=Virtual Data Center Services
+AuthnConfigurationService
+AutoTieringService
+BlockVirtualPoolService
+FileVirtualPoolService
+MigrationService
+NetworkSystemService
+NetworkService
+ProtectionSystemService
+StorageProviderService
+SMISProviderService
+StorageTierService
+StorageSystemService
+StoragePortService
+StoragePoolService
+TrustStoreResource
+UnManagedVolumeService
+UnManagedFilesystemService
+UnManagedExportMaskService
+VirtualArrayService
+VirtualDataCenterCapacityService
+VirtualDataCenterService
+UserGroupService
+
+=Tenant Services
+ProjectService
+TenantsService
+TenantService
+
+=Config Services
+CustomConfigService
+
+=UI Services
+com.emc.sa.api.ApprovalService
+com.emc.sa.api.AssetOptionService
+com.emc.sa.api.CatalogCategoryService
+com.emc.sa.api.CatalogImageService
+com.emc.sa.api.CatalogPreferenceService
+com.emc.sa.api.CatalogServiceService
+com.emc.sa.api.ExecutionWindowService
+com.emc.sa.api.OrderService
+com.emc.sa.api.ServiceDescriptorService
+com.emc.sa.api.UserPreferenceService
+
+=UI Services (Deprecated)
+api.AssetOptionsApi.AssetOptionsService
+api.SchemaApi.SchemaService
+api.CatalogApi.CatalogService
+api.SetupApi.SetupService
+api.ExecutionWindowsApi.ExecutionWindowsService
+api.ApprovalsApi.ApprovalsService
+api.OrdersApi.OrdersService
+
+=System Management Services
+com.emc.storageos.systemservices.impl.resource.BackupService
+com.emc.storageos.systemservices.impl.resource.CallHomeService
+com.emc.storageos.systemservices.impl.resource.ConfigService
+com.emc.storageos.systemservices.impl.resource.ControlService
+com.emc.storageos.systemservices.impl.resource.HealthMonitorService
+com.emc.storageos.systemservices.impl.resource.LicensingService
+com.emc.storageos.systemservices.impl.resource.LogService
+com.emc.storageos.systemservices.impl.resource.PasswordService
+com.emc.storageos.systemservices.impl.resource.UpgradeService
+
+=Other Services
+com.emc.storageos.api.service.impl.resource.AuditService
+AuthnConfigurationService
+AuthenticationResource
+FIEnablerService
+UserInfoPage
+LoggingPage
+MonitoringService
+MeteringService
+WorkflowService
+TaskService
+
+=API Differences
+Block Services
+File Services
+Compute Services
+Tenant Services
+Virtual Data Center Services
+Object Data Control Services
+Other Services

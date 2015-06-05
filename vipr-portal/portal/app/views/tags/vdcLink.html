@@ -1,0 +1,7 @@
+%{
+    host = _host
+    path = _path
+    
+    service = java.net.URLEncoder.encode("https://" + host + path,"UTF-8");
+}%
+https://${host}:4443/formlogin?service=${service}&src=portal

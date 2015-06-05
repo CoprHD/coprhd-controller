@@ -1,0 +1,46 @@
+%{
+  protocols = attributes[util.VirtualArrayUtils.ATTRIBUTE_PROTOCOLS]
+  systemTypes = attributes[util.VirtualArrayUtils.ATTRIBUTE_SYSTEM_TYPES]
+  driveTypes = attributes[util.VirtualArrayUtils.ATTRIBUTE_DRIVE_TYPES]
+  raidLevels = attributes[util.VirtualArrayUtils.ATTRIBUTE_RAID_LEVELS]
+}%
+<dl class="dl-horizontal">
+#{license.ifController}
+  <dt>&{'virtualArray.dataProtectionConnectivity'}</dt>
+  <dd>
+    #{list connectivityMap.entrySet(), as:'conn'}
+      &{'ConnectivityTypes.' + conn.key} (
+        #{list conn.value, as:'target'}
+          <a href="@{VirtualArrays.edit(target.id)}">${target.name}</a>#{if !target_isLast},#{/if}
+        #{/list}
+      )
+    #{/list}
+    #{else}<i>&{'connectivity.none'}</i>#{/else}
+  </dd>
+#{/license.ifController}
+
+  <dt>&{'virtualArray.protocols'}</dt>
+  <dd>
+    #{if protocols}${protocols?.join(", ")}#{/if}
+    #{else}<i>&{'common.none'}</i>#{/else}
+  </dd>
+  
+  <dt>&{'virtualArray.systemTypes'}</dt>
+  <dd>
+    #{if systemTypes}${systemTypes?.collect { util.MessagesUtils.get('StorageSystemType.'+it) }.join(", ") }#{/if}
+    #{else}<i>&{'common.none'}</i>#{/else}
+  </dd>
+
+  <dt>&{'virtualArray.raidLevels'}</dt>
+  <dd>
+    #{if raidLevels}${raidLevels?.join(", ")}#{/if}
+    #{else}<i>&{'common.none'}</i>#{/else}
+  </dd>
+
+  <dt>&{'virtualArray.driveTypes'}</dt>
+  <dd>
+    #{if driveTypes}${driveTypes?.collect { util.MessagesUtils.get('DriveType.'+it) }.join(", ") }#{/if}
+    #{else}<i>&{'common.none'}</i>#{/else}
+  </dd>
+
+</dl>

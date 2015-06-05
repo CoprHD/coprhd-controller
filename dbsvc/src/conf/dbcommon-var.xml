@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+
+    <bean id="dbcommoninfo" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="properties">
+            <props>
+                <prop key="DB_STAT_OPTIMIZE_DISK_SPACE">true</prop>
+                <!--   Minimal ttl is 7 days or 7 * 24 * 60 * 60 sec = 604800 sec -->
+                <prop key="DB_LOG_MINIMAL_TTL">604800</prop>
+                <prop key="DB_CASSANDRA_OPTIMIZED_COMPACTION_STRATEGY">LeveledCompactionStrategy</prop>
+                <!--   alternative minimal GC_GRACE period for Stat CF is 1 hour or 60 * 60 sec = 3600 sec -->
+                <prop key="DB_CASSANDRA_GC_GRACE_PERIOD">3600</prop>
+                <!-- Set default gc_grace_period for index CF to 5 days -->
+                <prop key="DB_CASSANDRA_INDEX_GC_GRACE_PERIOD">432000</prop>
+                <!-- Per CF GC grace period settings -->
+                <prop key="DB_CASSANDRA_GC_GRACE_PERIOD_Volume">432000</prop>
+            </props>
+        </property>
+    </bean>
+</beans>

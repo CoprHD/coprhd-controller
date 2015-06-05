@@ -1,0 +1,329 @@
+POST https://192.168.0.0:4443/block/exports/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+      <id>urn:storageos:ExportGroup:2a9d93c4-b541-4877-ba37-3340b46dc47c:</id>
+      <id>urn:storageos:ExportGroup:a2bf1be8-7b50-4d03-bfce-a6ee28245e2c:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_exportgroups>
+    <exportgroup>
+        <creation_time>1380218850511</creation_time>
+        <id>urn:storageos:ExportGroup:2a9d93c4-b541-4877-ba37-3340b46dc47c:</id>
+        <inactive>false</inactive>
+        <link href="/block/exports/urn:storageos:ExportGroup:2a9d93c4-b541-4877-ba37-3340b46dc47c:" rel="self"/>
+        <name>ViPR-lglw1142-S836-T1070-Vol1</name>
+        <tags/>
+        <clusters/>
+        <generated_name>RP+b9da7b6b7fee419560dc383fb844cd4b1eaccf8a_lglw6185</generated_name>
+        <hosts/>
+        <initiators>
+            <initiator>
+                <creation_time>1380033827823</creation_time>
+                <id>urn:storageos:Initiator:4ccae999-d8d3-40cc-97fa-1c4743a96fa4:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:4ccae999-d8d3-40cc-97fa-1c4743a96fa4:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F6:14</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F6:14</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1380033827805</creation_time>
+                <id>urn:storageos:Initiator:0378b3a3-bdd8-48da-9267-15609b43c5c1:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:0378b3a3-bdd8-48da-9267-15609b43c5c1:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F6:17</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F6:17</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1380033827814</creation_time>
+                <id>urn:storageos:Initiator:105840b3-eebd-4338-958b-182b479a4716:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:105840b3-eebd-4338-958b-182b479a4716:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F6:15</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F6:15</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1380033827810</creation_time>
+                <id>urn:storageos:Initiator:4dc0a5f8-5b5c-41a1-bcb1-9b755779acc8:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:4dc0a5f8-5b5c-41a1-bcb1-9b755779acc8:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F6:16</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F6:16</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1380033827794</creation_time>
+                <id>urn:storageos:Initiator:5ac6902f-81ad-4e8f-ba77-136baca89e3a:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:5ac6902f-81ad-4e8f-ba77-136baca89e3a:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F7:74</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F7:74</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1380033827819</creation_time>
+                <id>urn:storageos:Initiator:88fcd070-1e94-4e93-ab18-f7ffbb7a102c:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:88fcd070-1e94-4e93-ab18-f7ffbb7a102c:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F7:76</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F7:76</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1380033827801</creation_time>
+                <id>urn:storageos:Initiator:16d592b7-701d-459d-a364-5817bd9b7b35:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:16d592b7-701d-459d-a364-5817bd9b7b35:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F7:75</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F7:75</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1380033827829</creation_time>
+                <id>urn:storageos:Initiator:b51a4046-4521-41da-a6cf-7fbc5c39d2a3:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:b51a4046-4521-41da-a6cf-7fbc5c39d2a3:" rel="self"/>
+                <tags/>
+                <protocol>FC</protocol>
+                <hostname>lglw6185</hostname>
+                <initiator_node>50:01:24:80:00:69:F7:77</initiator_node>
+                <initiator_port>50:01:24:81:00:69:F7:77</initiator_port>
+            </initiator>
+        </initiators>
+        <project>
+            <id>urn:storageos:Project:0cd99f8c-2466-4bd7-aeac-a76048e85460:</id>
+            <link href="/projects/urn:storageos:Project:0cd99f8c-2466-4bd7-aeac-a76048e85460:" rel="self"/>
+        </project>
+        <tenant>
+            <id>urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:" rel="self"/>
+        </tenant>
+        <varray>
+            <id>urn:storageos:VirtualArray:56b0c0cc-7d54-4676-9cae-aac152665687:</id>
+            <link href="/vdc/varrays/urn:storageos:VirtualArray:56b0c0cc-7d54-4676-9cae-aac152665687:" rel="self"/>
+        </varray>
+        <volumes>
+            <volume>
+                <id>urn:storageos:Volume:4af338da-2910-4bd1-a6b3-b90afb5195cf:</id>
+                <lun>103</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:885cc367-681b-453a-a056-0f1e3d61f46c:</id>
+                <lun>106</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:6a3d5dbf-cbd9-426f-b8d1-3608db6f5b1f:</id>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:e6f0fc85-9938-4528-b217-cb40fef6f1f0:</id>
+                <lun>105</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:82505653-170d-4d0a-afff-89ef28f08541:</id>
+                <lun>37</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:58ee2c29-9c29-4af6-99b2-1383745e6061:</id>
+                <lun>104</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:1c8c0566-33b0-440b-a595-ddf0bc07f3b8:</id>
+                <lun>102</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:296347bd-5cd6-413b-8b12-9464925ffa74:</id>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:6abd2697-b4d8-48f9-8163-21200c368b36:</id>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:b0c67508-fa47-44b4-98d5-f6e7ea2e285c:</id>
+                <lun>34</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:fa0a6f1e-f421-4219-9518-7e5f835b8e61:</id>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:0d530068-d167-4bd2-8b8a-0d9875b66638:</id>
+                <lun>35</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:781f432a-5806-41d3-9585-071b33dce02f:</id>
+                <lun>36</lun>
+            </volume>
+            <volume>
+                <id>urn:storageos:Volume:8518aad7-3644-4b8c-be3e-901cb1e99292:</id>
+                <lun>101</lun>
+            </volume>
+        </volumes>
+    </exportgroup>
+    <exportgroup>
+        <creation_time>1380215022981</creation_time>
+        <id>urn:storageos:ExportGroup:a2bf1be8-7b50-4d03-bfce-a6ee28245e2c:</id>
+        <inactive>false</inactive>
+        <link href="/block/exports/urn:storageos:ExportGroup:a2bf1be8-7b50-4d03-bfce-a6ee28245e2c:" rel="self"/>
+        <name>lglw7145.com-1380214489885</name>
+        <tags/>
+        <clusters>
+            <cluster>
+                <creation_time>1379960474162</creation_time>
+                <id>urn:storageos:Cluster:66a980ef-d23b-432e-8c3b-a82953f97d6f:</id>
+                <inactive>false</inactive>
+                <link href="/compute/clusters/urn:storageos:Cluster:66a980ef-d23b-432e-8c3b-a82953f97d6f:" rel="self"/>
+                <name>Prov_QE_Cluster</name>
+                <tags/>
+                <tenant>
+                    <id>urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:</id>
+                    <link href="/tenants/urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:" rel="self"/>
+                </tenant>
+                <vcenter_data_center>
+                    <id>urn:storageos:VcenterDataCenter:a652b97f-7aeb-4e05-9546-976bf914522c:</id>
+                    <link href="/compute/vcenter-data-centers/urn:storageos:VcenterDataCenter:a652b97f-7aeb-4e05-9546-976bf914522c:" rel="self"/>
+                </vcenter_data_center>
+            </cluster>
+        </clusters>
+        <generated_name>lglw7145com1380214489885</generated_name>
+        <hosts>
+            <host>
+                <creation_time>1379960474226</creation_time>
+                <id>urn:storageos:Host:bd9ce48d-1627-4b7e-b07e-206e4292c96a:</id>
+                <inactive>false</inactive>
+                <link href="/compute/hosts/urn:storageos:Host:bd9ce48d-1627-4b7e-b07e-206e4292c96a:" rel="self"/>
+                <name>lglw7145.com</name>
+                <tags/>
+                <native_guid/>
+                <compatibility_status>COMPATIBLE</compatibility_status>
+                <job_discovery_status>CREATED</job_discovery_status>
+                <last_discovery_run_time>0</last_discovery_run_time>
+                <last_metering_run_time>0</last_metering_run_time>
+                <job_metering_status>CREATED</job_metering_status>
+                <next_discovery_run_time>0</next_discovery_run_time>
+                <next_metering_run_time>0</next_metering_run_time>
+                <registration_status>REGISTERED</registration_status>
+                <tenant>
+                    <id>urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:</id>
+                    <link href="/tenants/urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:" rel="self"/>
+                </tenant>
+                <cluster>
+                    <id>urn:storageos:Cluster:66a980ef-d23b-432e-8c3b-a82953f97d6f:</id>
+                    <link href="/compute/clusters/urn:storageos:Cluster:66a980ef-d23b-432e-8c3b-a82953f97d6f:" rel="self"/>
+                </cluster>
+                <host_name>lglw7145.com</host_name>
+                <type>Esx</type>
+                <use_ssl>false</use_ssl>
+                <vcenter_data_center>
+                    <id>urn:storageos:VcenterDataCenter:a652b97f-7aeb-4e05-9546-976bf914522c:</id>
+                    <link href="/compute/vcenter-data-centers/urn:storageos:VcenterDataCenter:a652b97f-7aeb-4e05-9546-976bf914522c:" rel="self"/>
+                </vcenter_data_center>
+            </host>
+            <host>
+                <creation_time>1379960474565</creation_time>
+                <id>urn:storageos:Host:0c61dd22-0b42-42d0-ad14-6367a8ddd66c:</id>
+                <inactive>false</inactive>
+                <link href="/compute/hosts/urn:storageos:Host:0c61dd22-0b42-42d0-ad14-6367a8ddd66c:" rel="self"/>
+                <name>lglw7146.com</name>
+                <tags/>
+                <native_guid/>
+                <compatibility_status>COMPATIBLE</compatibility_status>
+                <job_discovery_status>CREATED</job_discovery_status>
+                <last_discovery_run_time>0</last_discovery_run_time>
+                <last_metering_run_time>0</last_metering_run_time>
+                <job_metering_status>CREATED</job_metering_status>
+                <next_discovery_run_time>0</next_discovery_run_time>
+                <next_metering_run_time>0</next_metering_run_time>
+                <registration_status>REGISTERED</registration_status>
+                <tenant>
+                    <id>urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:</id>
+                    <link href="/tenants/urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:" rel="self"/>
+                </tenant>
+                <cluster>
+                    <id>urn:storageos:Cluster:66a980ef-d23b-432e-8c3b-a82953f97d6f:</id>
+                    <link href="/compute/clusters/urn:storageos:Cluster:66a980ef-d23b-432e-8c3b-a82953f97d6f:" rel="self"/>
+                </cluster>
+                <host_name>lglw7146.com</host_name>
+                <type>Esx</type>
+                <use_ssl>false</use_ssl>
+                <vcenter_data_center>
+                    <id>urn:storageos:VcenterDataCenter:a652b97f-7aeb-4e05-9546-976bf914522c:</id>
+                    <link href="/compute/vcenter-data-centers/urn:storageos:VcenterDataCenter:a652b97f-7aeb-4e05-9546-976bf914522c:" rel="self"/>
+                </vcenter_data_center>
+            </host>
+        </hosts>
+        <initiators>
+            <initiator>
+                <creation_time>1379960474532</creation_time>
+                <id>urn:storageos:Initiator:71a56820-7268-4d11-b4fc-603f628570a7:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:71a56820-7268-4d11-b4fc-603f628570a7:" rel="self"/>
+                <name>vmhba32</name>
+                <tags/>
+                <host>
+                    <id>urn:storageos:Host:bd9ce48d-1627-4b7e-b07e-206e4292c96a:</id>
+                    <link href="/compute/hosts/urn:storageos:Host:bd9ce48d-1627-4b7e-b07e-206e4292c96a:" rel="self"/>
+                </host>
+                <protocol>iSCSI</protocol>
+                <hostname>lglw7145.com</hostname>
+                <initiator_node/>
+                <initiator_port>iqn.1998-01.com.vmware:lglw7145-779b8ee4</initiator_port>
+            </initiator>
+            <initiator>
+                <creation_time>1379960474836</creation_time>
+                <id>urn:storageos:Initiator:928f03af-b39e-42a3-9fda-9f48aa1a6b58:</id>
+                <inactive>false</inactive>
+                <link href="/compute/initiators/urn:storageos:Initiator:928f03af-b39e-42a3-9fda-9f48aa1a6b58:" rel="self"/>
+                <name>vmhba32</name>
+                <tags/>
+                <host>
+                    <id>urn:storageos:Host:0c61dd22-0b42-42d0-ad14-6367a8ddd66c:</id>
+                    <link href="/compute/hosts/urn:storageos:Host:0c61dd22-0b42-42d0-ad14-6367a8ddd66c:" rel="self"/>
+                </host>
+                <protocol>iSCSI</protocol>
+                <hostname>lglw7146.com</hostname>
+                <initiator_node/>
+                <initiator_port>iqn.1998-01.com.vmware:lglw7146-40fec66c</initiator_port>
+            </initiator>
+        </initiators>
+        <project>
+            <id>urn:storageos:Project:fdbc92ff-6fe9-40db-b852-698f3fae6aa5:</id>
+            <link href="/projects/urn:storageos:Project:fdbc92ff-6fe9-40db-b852-698f3fae6aa5:" rel="self"/>
+        </project>
+        <tenant>
+            <id>urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:" rel="self"/>
+        </tenant>
+        <type>Cluster</type>
+        <varray>
+            <id>urn:storageos:VirtualArray:a8ca963e-aa85-457e-b69f-1a44079f5646:</id>
+            <link href="/vdc/varrays/urn:storageos:VirtualArray:a8ca963e-aa85-457e-b69f-1a44079f5646:" rel="self"/>
+        </varray>
+        <volumes>
+            <volume>
+                <id>urn:storageos:Volume:782180f0-83dd-438d-930e-f3202c01e07a:</id>
+                <lun>1</lun>
+            </volume>
+        </volumes>
+    </exportgroup>
+</bulk_exportgroups>

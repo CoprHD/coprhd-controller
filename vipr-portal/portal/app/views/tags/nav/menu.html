@@ -1,0 +1,25 @@
+%{
+    id = "root_${_arg}"
+    subnav = "menu_${_arg}"
+    title = "nav.${_arg}"
+    active = navSelected?.find { it == title }
+    pinned = request.current().cookies.get('isMenuPinned')?.value == 'true'
+    open = active && pinned
+    
+    navClass = "rootNav"
+    if (active) navClass += ' active'
+    if (!pinned) navClass += ' blueArrow'
+    if (open) navClass += ' selected'
+}%
+#{if open}#{set menuOpen:true/}#{/if}
+<a href="#" id="${id}" class="${navClass}" onclick="return false" data-toggle="tooltip" data-placement="right" title="&{title}" data-subnav="${subnav}"
+>#{icon _icon/}</a>
+#{set 'menu'}
+#{get 'menu'/}
+<div id="${subnav}" class="navMenu ${open ? 'menu-open' : ''}">
+  <div class="menuPin ${pinned ? 'menu-pinned' : ''}">
+    #{icon 'pushpin'/}
+  </div>        
+  #{doBody /}
+</div>
+#{/set}

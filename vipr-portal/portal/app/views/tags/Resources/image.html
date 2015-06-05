@@ -1,0 +1,48 @@
+%{
+  rt = com.emc.sa.util.ResourceType
+  resourceId = _resouceId ? _resourceId: _arg
+  type = rt.fromResourceId(resourceId)
+  resourceImage = null
+  if (rt.VOLUME.equals(type)) {
+    resourceImage = messages.get('affectedResources.volume.image')
+  }
+  else if (rt.EXPORT_GROUP.equals(type)) {
+    resourceImage = messages.get('affectedResources.exportGroup.image')
+  }
+  else if (rt.FILE_SHARE.equals(type)) {
+    resourceImage = messages.get('affectedResources.fileSystem.image');
+  }
+  else if (rt.FILE_SNAPSHOT.equals(type)) {
+    resourceImage = messages.get('affectedResources.fileSnapshot.image');
+  }
+  else if (rt.BLOCK_SNAPSHOT.equals(type)) {
+    resourceImage = messages.get('affectedResources.blockSnapshot.image');
+  }
+  else if (rt.BLOCK_CONTINUOUS_COPY.equals(type)) {
+    resourceImage = messages.get('affectedResources.blockContinuousCopy.image');
+  }
+  else if (rt.VPLEX_CONTINUOUS_COPY.equals(type)) {
+    resourceImage = messages.get('affectedResources.blockContinuousCopy.image');
+  }
+  else if (rt.HOST.equals(type)) {
+    resourceImage = messages.get('affectedResources.host.image');
+  }
+  else if (rt.CLUSTER.equals(type)) {
+    resourceImage = messages.get('affectedResources.cluster.image');
+  }
+  else if (rt.STORAGE_SYSTEM.equals(type)) {
+      resourceImage = messages.get('affectedResources.storageSystem.image');
+  }
+  else if (rt.NETWORK_SYSTEM.equals(type)) {
+      resourceImage = messages.get('affectedResources.networkSystem.image');
+  }
+  else if (rt.PROTECTION_SYSTEM.equals(type)) {
+    resourceImage = messages.get('affectedResources.protectionSystem.image');
+  }
+  else if (rt.STORAGE_PROVIDER.equals(type)) {
+    resourceImage = messages.get('affectedResources.storageSystem.image');
+  }
+}%
+#{if resourceImage}<img src="/public/img/${resourceImage}" width="25px" height="20px"/>#{/if}
+
+

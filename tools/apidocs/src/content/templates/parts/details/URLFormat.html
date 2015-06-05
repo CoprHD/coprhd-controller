@@ -1,0 +1,6 @@
+<% if (apiMethod.urlFormat != null) { %>
+<h4>URL Format</h4>
+<p>${apiMethod.urlFormat.replaceAll("\n","<br/>")
+                  .replaceAll("Host Style:","<b>Host Style:</b>")
+                  .replaceAll("Path Style:","<b>Path Style:</b>")}</p>
+<% } %>

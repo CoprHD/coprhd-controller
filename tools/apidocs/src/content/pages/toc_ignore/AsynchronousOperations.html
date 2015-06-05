@@ -1,0 +1,80 @@
+title:Asynchronous Operations
+<h2>
+    Tracking asynchronous operations
+</h2>
+<p>
+    There are a number of APIs that are operated asynchronously. Asynchronous APIs return a task (or list of tasks) with a self link to the created resource
+    and operation that uniquely identifies this request. This URI can be polled to check if the operation has succeeded, failed or is in progress.
+</p>
+<p>
+    If the request was successful and the asynchronous operation is being processed, the service returns status code 202 (Accepted). Note that this status code
+    does not indicate whether the operation itself has been processed successfully, but only that the request has been received by the service.
+</p>
+<p>
+Task response contains status information which is set to <code>pending</code> initially. Polling on task URI can be done until the returned state is <code>error</code> or <code>ready</code>. If the operation failed, response will include additional error information. If there are multiple tasks, each task URI can be polled to determine that particular operation status.
+</p>
+<p>
+<b>Note:</b> An asynchronous operation may take an unspecified amount of time to complete. You application should poll every 10 seconds to see when the operation is complete.
+</p>
+
+<h3>GET {resource_URL}/tasks</h3>
+
+Returns a list of tasks created by asynchronous operations. The <code>resource_URL</code> is the path to the resource. For example:
+
+<pre>
+GET /block/volume/tasks
+</pre>
+
+<h3>GET {resource_URL}/tasks/{op_id}</h3>
+
+<p>
+Returns detailed information about a task. The <code>resource_URL</code> is the path to the resource. The <code>op_id</code> is the operation ID returned from an asynchronous API. For example:
+
+<pre>
+GET /block/volume/tasks/{op_id}
+</pre>
+
+</p>
+
+<h3>Example Asynchronous API</h3>
+
+This section shows an example of how to track asynchronous operation status.
+
+<p><strong>Request</strong></p>
+
+<pre>POST /block/volumes</pre>
+
+<p><strong>Request body</strong></p>
+
+<pre>
+    &lt;volume_create&gt;
+	    &lt;name&gt;Sample_Volume&lt;/name&gt;
+	    &lt;size&gt;1073741824&lt;/size&gt;
+	    &lt;count&gt;1&lt;/count&gt;
+	    &lt;vpool&gt;{vpool_id}&lt;/vpool&gt;
+	    &lt;varray&gt;{varray_id}&lt;/varray&gt;
+	    &lt;project&gt;{project_id}&lt;/project&gt;
+    &lt;/volume_create&gt;
+</pre>
+
+<p><strong>Response</strong></p> 
+<pre>202</pre>
+
+<p><strong>Response body</strong></p>
+
+<pre>
+    &lt;tasks&gt;
+	&lt;task&gt;
+		&lt;resource&gt;
+		&lt;name&gt;Sample_Volume&lt;/name&gt;
+		&lt;id&gt;urn:storageos:Volume:5ba5b8d8-a0ca-4827-84f9-c1fef57733f5:&lt;/id&gt
+		&lt;link rel="self" href="/block/volumes/urn:storageos:Volume:5ba5b8d8-a0ca-4827-84f9-c1fef57733f5:" /&gt;
+		&lt;/resource&gt;
+		&lt;state&gt;pending&lt;/state&gt;
+		&lt;start_time&gt;1379398608574&lt;/start_time&gt;
+		&lt;op_id&gt;265cf333-76a1-4129-903e-fac63f9b4adc&lt;/op_id&gt;
+		&lt;link rel="self" href="/block/volumes/urn:storageos:Volume:5ba5b8d8-a0ca-4827-84f9-c1fef57733f5:/tasks/265cf333-76a1-4129-903e-fac63f9b4adc" /&gt;
+ 	&lt;/task&gt;
+    &lt;/tasks&gt;
+</pre>
+

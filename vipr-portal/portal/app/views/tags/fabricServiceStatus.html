@@ -1,0 +1,21 @@
+%{
+  installed = com.emc.storageos.fabric.models.utils.ServiceStatusEnum.INSTALLED.equals(_arg)
+  running = com.emc.storageos.fabric.models.utils.ServiceStatusEnum.RUNNING.equals(_arg)
+  stopped = com.emc.storageos.fabric.models.utils.ServiceStatusEnum.STOPPED.equals(_arg)
+  crashed = com.emc.storageos.fabric.models.utils.ServiceStatusEnum.CRASHED.equals(_arg)
+}%
+#{if installed}
+  <span class='text-info'>&{'fabric.service.status.INSTALLED'}</span>
+#{/if}
+#{elseif running}
+  <span class='text-success'>&{'fabric.service.status.RUNNING'}</span>
+#{/elseif}
+#{elseif stopped}
+  <span class='text-danger'>&{'fabric.service.status.STOPPED'}</span>
+#{/elseif}
+#{elseif crashed}
+  <span class='text-danger'>&{'fabric.service.status.CRASHED'}</span>
+#{/elseif}
+#{else}
+  <span class='text-muted'>&{'fabric.service.status.UNKNOWN'}</span>
+#{/else}

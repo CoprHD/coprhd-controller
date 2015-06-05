@@ -1,0 +1,21 @@
+Inquiry utility
+Copyright (C) by EMC Corporation, all rights reserved.
+For help type inq -h.
+
+----------------------------------------------------------------------------
+DEVICE           :VEND    :PROD            :WWN 
+----------------------------------------------------------------------------
+/dev/emcpowera   :EMC     :SYMMETRIX       :60000000000000000000000000000001
+/dev/emcpowerb   :DGC     :VRAID           :60000000000000000000000000000002
+/dev/emcpowerc   :DGC     :VRAID           :60000000000000000000000000000003
+/dev/emcpowerd   :DGC     :VRAID           :60000000000000000000000000000004
+/dev/emcpowere   :DGC     :VRAID           :60000000000000000000000000000005
+/dev/emcpowerf   :DGC     :VRAID           :60000000000000000000000000000006
+/dev/emcpowerg   :DGC     :VRAID           :60000000000000000000000000000007
+/dev/emcpowerh   :DGC     :VRAID           :60000000000000000000000000000008
+/dev/emcpoweri   :DGC     :VRAID           :60000000000000000000000000000009
+/dev/emcpowerj   :DGC     :VRAID           :60000000000000000000000000000010
+/dev/emcpowerl   :EMC     :SYMMETRIX       :60000000000000000000000000000011
+/dev/emcpowerm   :EMC     :SYMMETRIX       :60000000000000000000000000000012
+/dev/emcpowern   :EMC     :SYMMETRIX       :60000000000000000000000000000013
+/dev/emcpowero   :EMC     :SYMMETRIX       :60000000000000000000000000000014

@@ -1,0 +1,24 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"UnexportVolume.Block",
+  serviceId:"UnexportVolume",
+  fields:{
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volume:{
+      type:"assetType.vipr.exportedBlockVolume",
+      lockable:false
+     },
+     
+    export:{
+      type: "assetType.vipr.volumeExport", 
+      lockable: false
+    }
+  }
+  
+}

@@ -1,0 +1,280 @@
+<?xml version="1.0"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<smooks-resource-list xmlns="http://www.milyn.org/xsd/smooks-1.1.xsd" xmlns:jb="http://www.milyn.org/xsd/smooks/javabean-1.2.xsd">
+	<resource-config selector="global-parameters">
+		<param name="stream.filter.type">SAX</param>
+	</resource-config>
+	<jb:bean beanId="echoCommand" class="com.emc.storageos.hds.model.EchoCommand" createOnElement="EchoCommand">
+		<jb:value property="name" decoder="String" data="Response/EchoCommand/@name" />
+		<jb:value property="status" decoder="String" data="Response/EchoCommand/@status" />
+		<jb:value property="result" decoder="Integer" data="Response/EchoCommand/@result" />
+		<jb:value property="resultSource" decoder="String" data="Response/EchoCommand/@resultSource" />
+		<jb:value property="messageID" decoder="String" data="Response/EchoCommand/@messageID"/>
+	</jb:bean>
+	
+	<jb:bean beanId="error" class="com.emc.storageos.hds.model.Error" createOnElement="Error">
+		<jb:value property="source" decoder="String" data="Response/Error/@source" />
+		<jb:value property="code" decoder="Integer" data="Response/Error/@code" />
+		<jb:value property="description" decoder="String" data="Response/Error/@description" />
+	</jb:bean>
+	
+	<jb:bean beanId="objectLabel" class="com.emc.storageos.hds.model.ObjectLabel" createOnElement="ObjectLabel">
+		<jb:value property="targetID" decoder="String" data="Response/ResultList/ObjectLabel/@targetID" />
+		<jb:value property="label" decoder="String" data="Response/ResultList/ObjectLabel/@label" />
+	</jb:bean>
+	
+	<jb:bean beanId="systemList" class="java.util.ArrayList" createOnElement="ResultList"> 
+	  <jb:wiring beanIdRef="storageArray" />
+	</jb:bean>
+	
+	<jb:bean beanId="storageArray" class="com.emc.storageos.hds.model.StorageArray" createOnElement="StorageArray">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/@objectID" />
+		<jb:value property="name" decoder="String" data="Response/ResultList/StorageArray/@name" />
+		<jb:value property="serialNumber" decoder="String" data="Response/ResultList/StorageArray/@serialNumber" />
+		<jb:value property="arrayFamily" decoder="String" data="Response/ResultList/StorageArray/@arrayFamily" />
+		<jb:value property="arrayType" decoder="String" data="Response/ResultList/StorageArray/@arrayType" />
+		<jb:value property="displayArrayType" decoder="String" data="Response/ResultList/StorageArray/@displayArrayType" />
+		<jb:value property="description" decoder="String" data="Response/ResultList/StorageArray/@description" />
+		<jb:value property="controllerVersion" decoder="String" data="Response/ResultList/StorageArray/@controllerVersion" />
+		<jb:value property="productName" decoder="String" data="Response/ResultList/StorageArray/@productName" />
+		<jb:wiring property="thickPoolList" beanIdRef="thickPoolList" />
+		<jb:wiring property="thinPoolList" beanIdRef="thinPoolList" />
+		<jb:wiring property="portControllerList" beanIdRef="portControllerList" />
+		<jb:wiring property="portList" beanIdRef="portList" />
+		<jb:wiring property="luList" beanIdRef="luList" />
+		<jb:wiring property="hsdList" beanIdRef="hsdList" />
+		<jb:wiring property="tieringPolicyList" beanIdRef="tieringPolicyList" />
+	</jb:bean>
+	
+	<jb:bean beanId="thickPoolList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	  <jb:wiring beanIdRef="thickPool" />
+	</jb:bean>
+	
+	<jb:bean beanId="thickPool" class="com.emc.storageos.hds.model.Pool" createOnElement="ArrayGroup">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/@objectID" />
+		<jb:value property="displayName" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/@displayName" />
+		<jb:value property="poolID" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/@number" />
+		<jb:value property="type" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/@type" />
+		<jb:value property="raidType" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/@raidType" />
+		<jb:value property="diskType" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/@diskType" />
+		<jb:value property="usedCapacity" decoder="Long" data="Response/ResultList/StorageArray/ArrayGroup/@totalCapacity" />
+		<jb:value property="allocatedCapacity" decoder="Long" data="Response/ResultList/StorageArray/ArrayGroup/@allocatedCapacity" />
+		<jb:value property="freeCapacity" decoder="Long" data="Response/ResultList/StorageArray/ArrayGroup/@totalFreeSpace" />
+		<jb:value property="diskSizeInKB" decoder="Long" data="Response/ResultList/StorageArray/ArrayGroup/@diskSizeInKB" />
+		<jb:value property="largestFreeSpace" decoder="Long" data="Response/ResultList/StorageArray/ArrayGroup/@largestFreeSpace" />
+		<jb:value property="controllerID" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/@controllerID" />
+		<jb:wiring property="virtualLuList" beanIdRef="virtualLuList" />
+	</jb:bean>
+	
+	<jb:bean beanId="thinPoolList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	  <jb:wiring beanIdRef="thinPool" />
+	</jb:bean>
+	
+	<jb:bean beanId="thinPool" class="com.emc.storageos.hds.model.Pool" createOnElement="JournalPool">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/JournalPool/@objectID" />
+		<jb:value property="displayName" decoder="String" data="Response/ResultList/StorageArray/JournalPool/@poolID" />
+		<jb:value property="name" decoder="String" data="Response/ResultList/StorageArray/JournalPool/@name" />
+		<jb:value property="poolID" decoder="String" data="Response/ResultList/StorageArray/JournalPool/@poolID" />
+		<jb:value property="raidType" decoder="String" data="Response/ResultList/StorageArray/JournalPool/@raidLevel" />
+		<jb:value property="diskType" decoder="String" data="Response/ResultList/StorageArray/JournalPool/@diskType" />
+		<jb:value property="usedCapacity" decoder="Long" data="Response/ResultList/StorageArray/JournalPool/@capacityInKB" />
+		<jb:value property="freeCapacity" decoder="Long" data="Response/ResultList/StorageArray/JournalPool/@freeCapacityInKB" />
+		<jb:value property="tierControl" decoder="Integer" data="Response/ResultList/StorageArray/JournalPool/@tierControl" />
+		<jb:value property="controllerID" decoder="String" data="Response/ResultList/StorageArray/JournalPool/@controllerID" />
+		<jb:value property="poolFunction" decoder="Integer" data="Response/ResultList/StorageArray/JournalPool/@poolFunction" />
+		<jb:value property="subscribedCapacityInKB" decoder="Long" data="Response/ResultList/StorageArray/JournalPool/@capacityOfVVolsInKB" />
+		<jb:wiring property="tiers" beanIdRef="tiers" />
+	</jb:bean>
+	
+	<jb:bean beanId="tiers" class="java.util.ArrayList" createOnElement="JournalPool"> 
+	  <jb:wiring beanIdRef="poolTier" />
+	</jb:bean>
+	
+	<jb:bean beanId="poolTier" class="com.emc.storageos.hds.model.StoragePoolTier" createOnElement="JournalPoolTier">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/JournalPool/JournalPoolTier/@objectID" />
+		<jb:value property="tierID" decoder="String" data="Response/ResultList/StorageArray/JournalPool/JournalPoolTier/@tierID" />
+		<jb:value property="capacityInKB" decoder="String" data="Response/ResultList/StorageArray/JournalPool/JournalPoolTier/@capacityInKB" />
+		<jb:value property="freeCapacityInKB" decoder="String" data="Response/ResultList/StorageArray/JournalPool/JournalPoolTier/@freeCapacityInKB" />
+		<jb:value property="usageRate" decoder="String" data="Response/ResultList/StorageArray/JournalPool/JournalPoolTier/@usageRate" />
+		<jb:value property="diskType" decoder="String" data="Response/ResultList/StorageArray/JournalPool/JournalPoolTier/@diskType" />
+		<jb:value property="raidLevel" decoder="String" data="Response/ResultList/StorageArray/JournalPool/JournalPoolTier/@raidLevel" />
+	</jb:bean>
+	
+	<jb:bean beanId="portList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	  	<jb:wiring beanIdRef="port" />
+	</jb:bean>
+	
+	<jb:bean beanId="port" class="com.emc.storageos.hds.model.Port" createOnElement="Port">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/Port/@objectID" />
+		<jb:value property="displayName" decoder="String" data="Response/ResultList/StorageArray/Port/@displayName" />
+		<jb:value property="portID" decoder="String" data="Response/ResultList/StorageArray/Port/@portID" />
+		<jb:value property="portType" decoder="String" data="Response/ResultList/StorageArray/Port/@portType" />
+		<jb:value property="portRole" decoder="String" data="Response/ResultList/StorageArray/Port/@portRole" />
+		<jb:value property="portControllerID" decoder="String" data="Response/ResultList/StorageArray/Port/@controllerID" />
+		<jb:value property="wwpn" decoder="String" data="Response/ResultList/StorageArray/Port/@worldWidePortName" />
+		<jb:value property="channelSpeed" decoder="Long" data="Response/ResultList/StorageArray/Port/@channelSpeed" />
+		<jb:value property="topology" decoder="String" data="Response/ResultList/StorageArray/Port/@topology" />
+		<jb:value property="arrayType" decoder="String" data="Response/ResultList/StorageArray/Port/@arrayType" />
+		<jb:value property="serialNumber" decoder="String" data="Response/ResultList/StorageArray/Port/@serialNumber" />
+	</jb:bean>
+	
+	<jb:bean beanId="portControllerList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	  <jb:wiring beanIdRef="portController" />
+	</jb:bean>
+	
+	<jb:bean beanId="portController" class="com.emc.storageos.hds.model.PortController" createOnElement="PortController">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/PortController/@objectID" />
+		<jb:value property="displayName" decoder="String" data="Response/ResultList/StorageArray/PortController/@displayName" />
+		<jb:value property="controllerID" decoder="String" data="Response/ResultList/StorageArray/PortController/@controllerID" />
+		<jb:value property="cluster" decoder="String" data="Response/ResultList/StorageArray/PortController/@cluster" />
+	</jb:bean>
+	
+	<jb:bean beanId="luList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	  <jb:wiring beanIdRef="logicalunit" />
+	</jb:bean>
+	
+	<jb:bean beanId="virtualLuList" class="java.util.ArrayList" createOnElement="ArrayGroup"> 
+	  <jb:wiring beanIdRef="virtualVolume" />
+	</jb:bean>
+	
+	<jb:bean beanId="logicalunit" class="com.emc.storageos.hds.model.LogicalUnit" createOnElement="LogicalUnit">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@objectID" />
+		<jb:value property="capacityInKB" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@capacityInKB" />
+		<jb:value property="devCount" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@devCount" />
+		<jb:value property="devNum" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@devNum" />
+		<jb:value property="composite" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@isComposite" />
+		<jb:value property="chassis" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@chassis" />
+		<jb:value property="dpPoolID" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@dpPoolID" />
+		<jb:value property="dpType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@dpType" />
+		<jb:value property="consumedCapacityInKB" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@consumedCapacityInKB" />
+		<jb:value property="path" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@path" />
+		<jb:value property="arrayGroup" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@arrayGroup" />
+		<jb:value property="raidType" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@raidType" />
+		<jb:wiring property="ldevList" beanIdRef="ldevList" />
+	</jb:bean>
+	
+	<jb:bean beanId="virtualVolume" class="com.emc.storageos.hds.model.LogicalUnit" createOnElement="LogicalUnit">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@objectID" />
+		<jb:value property="capacityInKB" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@capacityInKB" />
+		<jb:value property="devCount" decoder="Integer" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@devCount" />
+		<jb:value property="devNum" decoder="Integer" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@devNum" />
+		<jb:value property="composite" decoder="Integer" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@isComposite" />
+		<jb:value property="chassis" decoder="Integer" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@chassis" />
+		<jb:value property="dpPoolID" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@dpPoolID" />
+		<jb:value property="dpType" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@dpType" />
+		<jb:value property="consumedCapacityInKB" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@consumedCapacityInKB" />
+		<jb:value property="path" decoder="Integer" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@path" />
+		<jb:value property="arrayGroup" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@arrayGroup" />
+		<jb:value property="raidType" decoder="String" data="Response/ResultList/StorageArray/ArrayGroup/LogicalUnit/@raidType" />
+		<jb:wiring property="ldevList" beanIdRef="ldevList" />
+	</jb:bean>
+	
+	<jb:bean beanId="hsdList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	  	<jb:wiring beanIdRef="hostStorageDomain" />
+	</jb:bean>
+	
+	<jb:bean beanId="ldevList" class="java.util.ArrayList" createOnElement="LogicalUnit"> 
+	  	<jb:wiring beanIdRef="ldev" />
+	</jb:bean>
+	
+	<jb:bean beanId="ldev" class="com.emc.storageos.hds.model.LDEV" createOnElement="LDEV">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/LDEV/@objectID"/>
+		<jb:value property="composite" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/LDEV/@isComposite"/>
+		<jb:value property="path" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/LDEV/@path"/>
+		<jb:value property="tierLevel" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/LDEV/@tierLevel"/>
+		<jb:wiring property="label" beanIdRef="ldevObjectLabel" />
+	</jb:bean>
+
+        <jb:bean beanId="ldevObjectLabel" class="com.emc.storageos.hds.model.ObjectLabel" createOnElement="ObjectLabel">
+                <jb:value property="targetID" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/LDEV/ObjectLabel/@targetID" />
+                <jb:value property="label" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/LDEV/ObjectLabel/@label" />
+        </jb:bean>
+
+	
+	<jb:bean beanId="hostStorageDomain" class="com.emc.storageos.hds.model.HostStorageDomain" createOnElement="HostStorageDomain">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@objectID" />
+		<jb:value property="portID" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@portID" />
+		<jb:value property="domainID" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@domainID" />
+		<jb:value property="hostMode" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@hostMode" />
+		<jb:value property="hostMode2" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@hostMode2" />
+		<jb:value property="displayName" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@displayName" />
+		<jb:value property="name" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@name" />
+		<jb:value property="domainType" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@domainType" />
+		<jb:value property="nickname" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/@nickname" />
+		<jb:wiring property="pathList" beanIdRef="hsdPathList" />
+		<jb:wiring property="wwnList" beanIdRef="wwnList" />
+		<jb:wiring property="iscsiList" beanIdRef="iscsiList" />
+		<jb:wiring property="freeLunList" beanIdRef="freeLunList" />
+	</jb:bean>
+	
+	<jb:bean beanId="hsdPathList" class="java.util.ArrayList" createOnElement="HostStorageDomain">
+        <jb:wiring beanIdRef="hsdPath" />
+    </jb:bean>
+	
+	<jb:bean beanId="pathList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	    <jb:wiring beanIdRef="path" />
+	</jb:bean>
+	
+	<jb:bean beanId="serverInfo" class="com.emc.storageos.hds.model.ServerInfo" createOnElement="ServerInfo"> 
+	  <jb:value property="apiVersion" decoder="String" data="Response/ResultList/ServerInfo/@currentApiVersion" />
+	</jb:bean>
+	
+	<jb:bean beanId="hsdPath" class="com.emc.storageos.hds.model.Path" createOnElement="Path">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/Path/@objectID" />
+		<jb:value property="portID" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/Path/@portID" />
+		<jb:value property="domainID" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/Path/@domainID" />
+		<jb:value property="scsiID" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/Path/@scsiID" />
+		<jb:value property="lun" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/Path/@lun" />
+		<jb:value property="devNum" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/Path/@devNum" />
+		<jb:value property="wwnSecurityValidity" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/Path/@wwnSecurityValidity" />
+	</jb:bean>
+	
+	<jb:bean beanId="path" class="com.emc.storageos.hds.model.Path" createOnElement="Path">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/Path/@objectID" />
+		<jb:value property="portID" decoder="String" data="Response/ResultList/StorageArray/Path/@portID" />
+		<jb:value property="domainID" decoder="String" data="Response/ResultList/StorageArray/Path/@domainID" />
+		<jb:value property="scsiID" decoder="String" data="Response/ResultList/StorageArray/Path/@scsiID" />
+		<jb:value property="lun" decoder="String" data="Response/ResultList/StorageArray/Path/@lun" />
+		<jb:value property="devNum" decoder="String" data="Response/ResultList/StorageArray/Path/@devNum" />
+		<jb:value property="wwnSecurityValidity" decoder="String" data="Response/ResultList/StorageArray/Path/@wwnSecurityValidity" />
+	</jb:bean>
+	
+	<jb:bean beanId="wwnList" class="java.util.ArrayList" createOnElement="HostStorageDomain"> 
+	  <jb:wiring beanIdRef="worldwidename" />
+	</jb:bean>
+	
+	<jb:bean beanId="worldwidename" class="com.emc.storageos.hds.model.WorldWideName" createOnElement="WorldWideName">
+		<jb:value property="wwn" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/WorldWideName/@wwn" />
+	</jb:bean>
+	
+	<jb:bean beanId="iscsiList" class="java.util.ArrayList" createOnElement="HostStorageDomain"> 
+	  <jb:wiring beanIdRef="iscsi" />
+	</jb:bean>
+	
+	<jb:bean beanId="iscsi" class="com.emc.storageos.hds.model.ISCSIName" createOnElement="ISCSIName">
+		<jb:value property="iSCSIName" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/ISCSIName/@iSCSIName" />
+		<jb:value property="nickName" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/ISCSIName/@nickName" />
+	</jb:bean>
+	
+	<jb:bean beanId="freeLunList" class="java.util.ArrayList" createOnElement="HostStorageDomain"> 
+	  <jb:wiring beanIdRef="freelun" />
+	</jb:bean>
+	
+	<jb:bean beanId="freelun" class="com.emc.storageos.hds.model.FreeLun" createOnElement="FreeLUN">
+		<jb:value property="lun" decoder="String" data="Response/ResultList/StorageArray/HostStorageDomain/FreeLUN/@lun" />
+	</jb:bean>
+	
+	<jb:bean beanId="tieringPolicyList" class="java.util.ArrayList" createOnElement="StorageArray"> 
+	  <jb:wiring beanIdRef="tieringPolicy" />
+	</jb:bean>
+	
+	<jb:bean beanId="tieringPolicy" class="com.emc.storageos.hds.model.TieringPolicy" createOnElement="TieringPolicy">
+	  <jb:value property="policyID" decoder="String" data="Response/ResultList/StorageArray/TieringPolicy/@policyID" />
+	  <jb:value property="allocationThresholdT1Max" decoder="Integer" data="Response/ResultList/StorageArray/TieringPolicy/@allocationThresholdT1Max" />
+	  <jb:value property="allocationThresholdT1Min" decoder="Integer" data="Response/ResultList/StorageArray/TieringPolicy/@allocationThresholdT1Min" />
+	  <jb:value property="allocationThresholdT3Max" decoder="Integer" data="Response/ResultList/StorageArray/TieringPolicy/@allocationThresholdT3Max" />
+	  <jb:value property="allocationThresholdT3Min" decoder="Integer" data="Response/ResultList/StorageArray/TieringPolicy/@allocationThresholdT3Min" />
+	</jb:bean>
+	
+</smooks-resource-list>

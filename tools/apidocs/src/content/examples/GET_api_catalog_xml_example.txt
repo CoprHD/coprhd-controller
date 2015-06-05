@@ -1,0 +1,60 @@
+GET https://192.168.0.0:443/api/catalog HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<categoryInfo>
+    <id>urn:storageos:CatalogCategory:4c5674ea-191e-48bf-9c92-6976d60a5782:</id>
+    <inactive>false</inactive>
+    <link href="/api/categories/urn:storageos:CatalogCategory:4c5674ea-191e-48bf-9c92-6976d60a5782:" rel="self"/>
+    <description>Home</description>
+    <name>Home</name>
+    <services/>
+    <sub_categories>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:eaffebc9-1c5d-4f48-9391-3fed1910a3e2:</href>
+            <id>urn:storageos:CatalogCategory:eaffebc9-1c5d-4f48-9391-3fed1910a3e2:</id>
+            <name>BlockStorageServices</name>
+        </category>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:8d87ac69-cd25-47ad-afb1-05d597e1ca5d:</href>
+            <id>urn:storageos:CatalogCategory:8d87ac69-cd25-47ad-afb1-05d597e1ca5d:</id>
+            <name>BlockProtectionServices</name>
+        </category>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:e4887f2e-f9b0-4ad7-ba52-550eadce0a4e:</href>
+            <id>urn:storageos:CatalogCategory:e4887f2e-f9b0-4ad7-ba52-550eadce0a4e:</id>
+            <name>FileStorageServices</name>
+        </category>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:e965d275-3050-4a64-8bd4-16367feb50cc:</href>
+            <id>urn:storageos:CatalogCategory:e965d275-3050-4a64-8bd4-16367feb50cc:</id>
+            <name>FileProtectionServices</name>
+        </category>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:b32f3019-2109-4387-9efb-16447323eebb:</href>
+            <id>urn:storageos:CatalogCategory:b32f3019-2109-4387-9efb-16447323eebb:</id>
+            <name>BlockServicesforLinux</name>
+        </category>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:9a68dddd-e2a9-42e8-beb2-47be1a04e6a2:</href>
+            <id>urn:storageos:CatalogCategory:9a68dddd-e2a9-42e8-beb2-47be1a04e6a2:</id>
+            <name>BlockServiceforWindows</name>
+        </category>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:cbf9adf1-3a8f-4e5b-bbaf-735b328f28a2:</href>
+            <id>urn:storageos:CatalogCategory:cbf9adf1-3a8f-4e5b-bbaf-735b328f28a2:</id>
+            <name>BlockServicesforVMware</name>
+        </category>
+        <category>
+            <href>/api/categories/urn:storageos:CatalogCategory:2b42d905-12a5-4f69-8594-805aacb52376:</href>
+            <id>urn:storageos:CatalogCategory:2b42d905-12a5-4f69-8594-805aacb52376:</id>
+            <name>FileServicesforVMware</name>
+        </category>
+    </sub_categories>
+    <title>Home</title>
+</categoryInfo>

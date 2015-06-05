@@ -1,0 +1,38 @@
+POST https://192.168.0.0:4443/vdc/data-stores/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+   <id>urn:storageos:HostingDeviceInfo:7da9b904-ffcb-42f3-b00c-a5fddb93bbfc:vdc1</id>
+   <id>urn:storageos:HostingDeviceInfo:e85ec76b-3ab4-4dcc-b2f6-b7ac0ab24536:vdc1</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_data_stores>
+    <data_store>
+        <id>urn:storageos:HostingDeviceInfo:7da9b904-ffcb-42f3-b00c-a5fddb93bbfc:vdc1</id>
+        <name>Data Store</name>
+        <tags/>
+        <free_gb>0</free_gb>
+        <data_services_varray>urn:storageos:VirtualArray:22b0d65d-a682-4f70-b70c-8a1ac5f45401:vdc1</data_services_varray>
+        <description></description>
+        <device_state>initialized</device_state>
+        <usable_gb>0</usable_gb>
+        <used_gb>0</used_gb>
+    </data_store>
+    <data_store>
+        <id>urn:storageos:HostingDeviceInfo:e85ec76b-3ab4-4dcc-b2f6-b7ac0ab24536:vdc1</id>
+        <name>Data Store 2</name>
+        <tags/>
+        <free_gb>0</free_gb>
+        <data_services_varray>urn:storageos:VirtualArray:22b0d65d-a682-4f70-b70c-8a1ac5f45401:vdc1</data_services_varray>
+        <description></description>
+        <device_state>initialized</device_state>
+        <usable_gb>0</usable_gb>
+        <used_gb>0</used_gb>
+    </data_store>
+</bulk_data_stores>

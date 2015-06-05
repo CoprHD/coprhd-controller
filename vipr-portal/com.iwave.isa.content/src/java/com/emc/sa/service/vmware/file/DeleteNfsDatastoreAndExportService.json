@@ -1,0 +1,27 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"DeleteNfsDatastoreAndExport.File.VMware",
+  serviceId:"VMware-DeleteNfsDatastoreAndExport",
+  destructive: true,
+  fields:{
+  
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    
+    project:{
+      type:"assetType.vipr.project"
+    },
+    
+    datastoreName:{
+      type:"assetType.vipr.datastore"
+    }
+    
+  }
+  
+}

@@ -1,0 +1,10 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# Pseudo sample vp storage fault messages for German localization
+#
+
+Fault.UnknownEntityType = "An unknown storage entity type storage fault with type {unknownTypeValue} - to be updated in German"
+Fault.InvalidHostInitiatorIndex = "An invalid host initiator index storage fault with index {unknownIndexValue} - to be updated in German"
+Fault.NotFound = "Array {arrayId} is not found - to be updated in German"

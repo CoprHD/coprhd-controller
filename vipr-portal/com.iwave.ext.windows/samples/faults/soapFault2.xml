@@ -1,0 +1,59 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xml:lang="en-US"
+	xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:e="http://schemas.xmlsoap.org/ws/2004/08/eventing"
+	xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"
+	xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd">
+	<s:Header>
+		<a:Action>http://schemas.dmtf.org/wbem/wsman/1/wsman/fault</a:Action>
+		<a:MessageID>uuid:4E58E9F2-51E3-4E17-AFF0-D637AEA0A8F4</a:MessageID>
+		<a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+		<a:RelatesTo>uuid:53d4cf03-31e3-4d15-ac0d-e0bf1a5b01ba</a:RelatesTo>
+	</s:Header>
+	<s:Body>
+		<s:Fault>
+			<s:Code>
+				<s:Value>s:Receiver</s:Value>
+				<s:Subcode>
+					<s:Value>w:InternalError</s:Value>
+				</s:Subcode>
+			</s:Code>
+			<s:Reason>
+				<s:Text xml:lang="en-US">The WS-Management service cannot process the
+					request. The WMI provider returned an 'invalid parameter' error. </s:Text>
+			</s:Reason>
+			<s:Detail>
+				<f:WSManFault xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
+					Code="2150859038" Machine="iw-win2008-01p.iwave.local">
+					<f:Message>
+						<f:ProviderFault provider="WMI Provider"
+							path="%systemroot%\system32\WsmWmiPl.dll">
+							<f:WSManFault
+								xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
+								Code="2150859038" Machine="iw-win2008-01p.iwave.local">
+								<f:Message>The WS-Management service cannot process the request.
+									The WMI provider returned an &apos;invalid parameter&apos;
+									error. </f:Message>
+							</f:WSManFault>
+							<f:ExtendedError>
+								<p:__ExtendedStatus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+									xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/__ExtendedStatus"
+									xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common"
+									xsi:type="p:__ExtendedStatus_Type">
+									<p:Description>WDM specific return code: 0
+									</p:Description>
+									<p:Operation>ExecMethod</p:Operation>
+									<p:ParameterInfo>MSFC_HBAFCPInfo.InstanceName="PCI\\VEN_1077&amp;DEV_2432&amp;SUBSYS_01381077&amp;REV_03\\4&amp;1e4a912c&amp;0&amp;0120_0"</p:ParameterInfo>
+									<p:ProviderName>WinMgmt</p:ProviderName>
+									<p:StatusCode xsi:nil="true" />
+								</p:__ExtendedStatus>
+							</f:ExtendedError>
+						</f:ProviderFault>
+					</f:Message>
+				</f:WSManFault>
+			</s:Detail>
+		</s:Fault>
+	</s:Body>
+</s:Envelope>

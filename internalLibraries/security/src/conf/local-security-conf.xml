@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!-- uncomment the below for disabling security checks- everyone gets a pass as sysadmin -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-3.1.xsd
+	http://www.springframework.org/schema/util 
+       http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<bean id="localSysmonitor" class="com.emc.storageos.security.authentication.StorageOSUser">
+		<constructor-arg index="0" value="sysmonitor"/>	
+		<constructor-arg index="1" value=""/>	
+		<property name="roles">
+			<util:set set-class="java.util.HashSet">
+	        	<value>SYSTEM_MONITOR</value>
+    		</util:set>
+    	</property>	
+	</bean>
+        <bean id="localSvcUser" class="com.emc.storageos.security.authentication.StorageOSUser">
+                <constructor-arg index="0" value="svcuser"/>
+                <constructor-arg index="1" value=""/>
+                <property name="roles">
+                        <util:set set-class="java.util.HashSet">
+                        <value>SYSTEM_MONITOR</value>
+                </util:set>
+        </property>
+        </bean>
+	<bean id="localProxyUser" class="com.emc.storageos.security.authentication.StorageOSUser">
+		<constructor-arg index="0" value="proxyuser"/>	
+		<constructor-arg index="1" value=""/>	
+		<property name="roles">
+			<util:set set-class="java.util.HashSet">
+	        	<value>PROXY_USER</value>
+    		</util:set>
+    	</property>	
+	</bean>
+
+	<bean id="localAdministrator" class="com.emc.storageos.security.authentication.StorageOSUser">
+        <constructor-arg index="0" value="root"/>	
+        <constructor-arg index="1" value=""/>	
+        <property name="roles">
+          <util:set set-class="java.util.HashSet">
+              <value>SYSTEM_ADMIN</value>
+              <value>SYSTEM_MONITOR</value>
+              <value>SYSTEM_AUDITOR</value>
+              <value>SECURITY_ADMIN</value>
+          </util:set>
+        </property>
+     </bean>
+
+	<util:map id="localUserMap" map-class="java.util.HashMap">
+	    <entry key="sysmonitor"><ref bean="localSysmonitor"/></entry>
+	    <entry key="root"><ref bean="localAdministrator"/></entry>
+            <entry key="proxyuser"><ref bean="localProxyUser"/></entry>
+            <entry key="svcuser"><ref bean="localSvcUser"/></entry>
+	</util:map>
+
+</beans>

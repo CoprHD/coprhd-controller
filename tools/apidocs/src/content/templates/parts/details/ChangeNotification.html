@@ -1,0 +1,8 @@
+<% if (change == com.emc.apidocs.model.ApiDifferences.Change.NEW) { %>
+<span style="float:right" class="label label-info">New in this release</span>
+<% }
+   else if (change == com.emc.apidocs.model.ApiDifferences.Change.MODIFIED) { %>
+<span style="float:right" class="label label-info">Modified since last release</span>
+<%
+    }
+%>

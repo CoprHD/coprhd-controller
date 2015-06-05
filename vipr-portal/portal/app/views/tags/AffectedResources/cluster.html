@@ -1,0 +1,65 @@
+%{
+  resourceId = _resource.resourceId;
+  cluster = _resource.cluster;
+  hosts = _resource.hosts;
+  def hostNames = []
+  for (host in hosts) {
+    hostNames.add(host?.name)
+  }
+}%
+#{AffectedResources.resource img: 'Cluster.png', classes: 'cluster', typeKey: 'affectedResources.cluster'}
+  #{AffectedResources.singleColumn }
+	  #{if cluster}
+	      <dt>&{'affectedResources.cluster'}:</dt>
+	      <dd>#{spaceForNull resourceId ?: cluster?.id /}</dd>
+	      <dt>&{'affectedResources.cluster.name'}:</dt>
+	      #{if controllers.security.Security.isTenantAdmin()}
+		      <dd>
+		        <a href="@{compute.HostClusters.edit(cluster?.id)}"
+		        >#{spaceForNull cluster?.name/}#{if cluster.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+		      </dd>
+		  #{/if}
+	      #{else}
+	      	  <dd>#{spaceForNull cluster?.name/}#{if cluster.inactive} (&{'affectedResources.inactive'})#{/if}</dd>
+		  #{/else}
+		  <dt>&{'affectedResources.cluster.hosts'}:</dt>
+		  <dd>#{spaceForNull hostNames/}#{if cluster.inactive} (&{'affectedResources.inactive'})#{/if}</dd>
+	   #{/if}
+	   #{else}
+	    <dt></dt>
+	    <dd>&{'affectedResources.notFound', messages.get('affectedResources.cluster')}</dd>
+	   #{/else}
+   #{/AffectedResources.singleColumn}
+#{/AffectedResources.resource}
+#{if hosts}
+  		#{list hosts, as:'host'}
+  			#{AffectedResources.resource img: 'Host.png', classes: 'host', typeKey: 'affectedResources.host'}
+			  #{AffectedResources.singleColumn }
+				  #{if host}
+				      <dt>&{'affectedResources.host'}:</dt>
+				      <dd>#{spaceForNull host?.id/}</dd>
+				      <dt>&{'affectedResources.host.name'}:</dt>
+				      #{if controllers.security.Security.isTenantAdmin()}
+					      <dd>
+					        <a href="@{compute.Hosts.edit(host?.id)}"
+					        >#{spaceForNull host?.name/}#{if host.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+					      </dd>
+				      #{/if}
+				      #{else}
+				      	  <dd>#{spaceForNull host?.name/}#{if host.inactive} (&{'affectedResources.inactive'})#{/if}</dd>
+				      #{/else}
+				      <dt>&{'affectedResources.host.hostName'}:</dt>
+				      <dd>#{spaceForNull host?.hostName/}#{if host.inactive} (&{'affectedResources.inactive'})#{/if}</dd>
+				      <dt>&{'affectedResources.host.type'}:</dt>
+				      #{if host}
+				         <dd>${models.HostTypes.getDisplayValue(host.type)}</dd>
+				      #{/if}
+				   #{/if}
+				   #{else}
+				    <dt></dt>
+				    <dd>&{'affectedResources.notFound', messages.get('affectedResources.host')}</dd>
+				   #{/else}
+			   #{/AffectedResources.singleColumn}
+			#{/AffectedResources.resource}
+   #{/list}
+  #{/if}

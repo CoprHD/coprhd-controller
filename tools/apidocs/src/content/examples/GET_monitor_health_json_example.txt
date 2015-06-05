@@ -1,0 +1,58 @@
+GET https://192.168.0.0:4443/monitor/health.json HTTP/1.1  
+
+Content-Type: application/json 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/json 
+
+{
+   "node_health_list" : {
+      "node_health" : {
+         "node_id" : "standalone",
+         "status" : "Good",
+         "ip" : "localhost",
+         "service_health_list" : {
+            "service_health" : [
+               {
+                  "status" : "Good",
+                  "name" : "apisvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "authsvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "controllersvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "coordinatorsvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "dbsvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "portalsvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "sasvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "syssvc"
+               },
+               {
+                  "status" : "Good",
+                  "name" : "vasasvc"
+               }
+            ]
+         }
+      }
+   }
+}

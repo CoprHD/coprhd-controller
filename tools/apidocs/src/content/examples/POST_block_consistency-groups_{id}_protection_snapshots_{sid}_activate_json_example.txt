@@ -1,0 +1,25 @@
+POST https://192.168.0.0:4443/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:/protection/snapshots/urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:/activate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+  "resource": {
+    "name": "blockcgsnap1",
+    "id": "urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:",
+    "link": {
+      "rel": "self",
+      "href": "/block/snapshots/urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:"
+    }
+  },
+  "state": "pending",
+  "start_time": 1380598853439,
+  "op_id": "bfb9b6e2-87dc-4e34-a464-6ffc35372db5",
+  "link": {
+    "rel": "self",
+    "href": "/block/snapshots/urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:/tasks/bfb9b6e2-87dc-4e34-a464-6ffc35372db5"
+  }
+}

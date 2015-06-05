@@ -1,0 +1,11 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}#{Branding.applicationName/}#{/set}
+<div class="well">
+  <h1>#{Branding.applicationName/}</h1>
+  <p>&{'logout.message'}</p>
+  #{alerts/}
+  <p><a class="btn btn-primary" role="button" href="@{Dashboard.index()}">&{'button.login'}</a></p>
+</div>

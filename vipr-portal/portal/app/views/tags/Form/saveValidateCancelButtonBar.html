@@ -1,0 +1,12 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{Form.saveCancelButtonBar size:_size, save:_save, cancelHref:_cancelHref, disabled:_disabled}
+  #{doBody/}
+  #{ifnot _disabled}
+  <label id="validateConnectionLabel" class="checkbox inline" style="margin-left: 10px;">
+    <input name="validateConnection" type="checkbox" value="true" checked="checked" />
+    &{'connection.validate'}
+  </label>
+  #{/ifnot}
+#{/Form.saveCancelButtonBar}

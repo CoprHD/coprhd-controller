@@ -1,0 +1,9 @@
+*{
+  image: the image path from the catalog service.
+  class: the css class for the image.
+}*
+%{
+  image = _image;
+  cssClass = _class;
+}%
+<img class="${cssClass}" src="#{ServiceCatalog.serviceImageURL image:image/}"/>

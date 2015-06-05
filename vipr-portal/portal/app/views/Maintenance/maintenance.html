@@ -1,0 +1,108 @@
+%{
+  titleKey = 'maintenance.title';
+}%
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style>
+.no-nav .wide-box {
+    width: 600px;
+}
+</style>
+#{/set}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function waitForStableCluster() {
+    window.setTimeout(checkClusterState, 10000);
+}
+
+function checkClusterState() {
+    var url = "@{Maintenance.clusterState()}";
+    $.get(url, handleClusterState).fail(handleError);
+}
+
+var errorCount = 0;
+
+function handleClusterState(data) {
+    errorCount = 0;
+    if (data && data.currentState) {
+        render.clusterStatus('#clusterState', data.currentState);
+        if (isPoweringOffInitiated(data.currentState)) {
+        	// Increasing delay since shutdown task takes a while to get executed on each node.
+        	window.setTimeout(checkClusterState, 45000);
+        }
+        else if (isMaintenanceComplete(data.currentState)) {
+            window.location.href = "${targetUrl}";
+        }
+        else {
+            waitForStableCluster();
+        }
+    }
+    else {
+        waitForStableCluster();
+    }
+}
+
+function isMaintenanceComplete(state) {
+    var stateUpper = state.toUpperCase();
+    return stateUpper == 'STABLE' || stateUpper == 'SYNCING';
+}
+
+function isPoweringOffInitiated(state) {
+	var stateUpper = state.toUpperCase();
+	return stateUpper == 'POWERINGOFF';
+}
+
+function handleError(xhr, statusText, error) {
+    render.clusterStatus('#clusterState', "UNKNOWN");
+    if (statusText == "error") {
+        // Unknown error, sometimes caused by a certificate change
+        if (xhr.status == 0) {
+            errorCount++;
+        }
+    }
+    
+    if (errorCount >= 60) { // if 10 minutes without network connnection, try reload 
+        window.location.reload(true);
+    }
+    else {
+        waitForStableCluster();
+    }
+}
+
+$(document).ready(function() {
+  // Render the cluster state at time of the page load
+  render.clusterStatus('#clusterState', "${clusterInfo?.currentState}");
+  $.ajaxSetup({timeout:10000}); // ensures checkClusterState keeps looping if ajax call doesn't return
+  // Use a shorter delay when checking initial cluster state
+  window.setTimeout(checkClusterState, 6000);
+});
+
+</script>
+#{/set}
+
+#{Form.header titleKey:titleKey/}
+
+<p>&{'maintenance.description'}</p>
+
+#{alerts/}
+
+<dl>
+  <dt>&{'maintenance.status'}</dt>
+  <dd><span id="clusterState"></span></dd>
+</dl>
+<dl>
+  <dt>&{'maintenance.label'}</dt>
+  <dd>&{'maintenance.inprogress'} #{loading/}</dd>
+</dl>
+
+#{if flash.contains("isShuttingDown") && flash.get("isShuttingDown") }
+<p>&{'maintenance.manualStart'}</p>
+#{/if}
+#{else}
+<p>&{'maintenance.longTime'}</p>
+#{/else}

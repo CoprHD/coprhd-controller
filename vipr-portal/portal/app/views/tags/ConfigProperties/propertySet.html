@@ -1,0 +1,7 @@
+%{
+    title = _titleKey ? messages.get(_titleKey) : _title;
+}%
+<fieldset>
+    <legend>${title}</legend>
+    #{doBody/}
+</fieldset>

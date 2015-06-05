@@ -1,0 +1,64 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xml:lang="en-US"
+	xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd">
+	<s:Header>
+		<a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse</a:Action>
+		<a:MessageID>uuid:4B8F426B-3DE1-4378-965D-A9821ACB580E</a:MessageID>
+		<a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+		<a:RelatesTo>uuid:5105f716-9845-4c19-8f71-5cb8db334192</a:RelatesTo>
+	</s:Header>
+	<s:Body>
+		<n:EnumerateResponse>
+			<n:EnumerationContext></n:EnumerationContext>
+			<w:Items>
+				<p:MSiSCSI_HBAInformation
+					xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+					xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSI_HBAInformation"
+					xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xsi:type="p:MSiSCSI_HBAInformation_Type">
+					<p:Active>true</p:Active>
+					<p:AsicVersion>1.5</p:AsicVersion>
+					<p:BiDiScsiCommands>false</p:BiDiScsiCommands>
+					<p:CacheValid>false</p:CacheValid>
+					<p:DriverName>msiscsi.sys</p:DriverName>
+					<p:FirmwareVersion>1.5</p:FirmwareVersion>
+					<p:FunctionalitySupported>0</p:FunctionalitySupported>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:GenerationalGuid>0</p:GenerationalGuid>
+					<p:InstanceName>Root\ISCSIPRT\0000_0</p:InstanceName>
+					<p:IntegratedTCPIP>true</p:IntegratedTCPIP>
+					<p:MaxCDBLength>16</p:MaxCDBLength>
+					<p:MultifunctionDevice>false</p:MultifunctionDevice>
+					<p:NumberOfPorts>1</p:NumberOfPorts>
+					<p:OptionRomVersion></p:OptionRomVersion>
+					<p:RequiresBinaryIpAddresses>true</p:RequiresBinaryIpAddresses>
+					<p:SerialNumber>MSFT-05-1991</p:SerialNumber>
+					<p:Status>0</p:Status>
+					<p:UniqueAdapterId>18446738026459254808</p:UniqueAdapterId>
+					<p:VendorID>Microsoft Corporation</p:VendorID>
+					<p:VendorModel>iSCSI Initiator</p:VendorModel>
+					<p:VendorVersion>1.5</p:VendorVersion>
+					<p:VersionMax>0</p:VersionMax>
+					<p:VersionMin>0</p:VersionMin>
+				</p:MSiSCSI_HBAInformation>
+			</w:Items>
+			<w:EndOfSequence />
+		</n:EnumerateResponse>
+	</s:Body>
+</s:Envelope>

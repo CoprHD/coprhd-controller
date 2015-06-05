@@ -1,0 +1,25 @@
+%{
+  state = _state ? _state : _arg
+  taskState = null
+  if ("READY".equalsIgnoreCase(state)) {
+    taskState = "READY"
+  }
+  else if ("ERROR".equalsIgnoreCase(state)) {
+    taskState = "ERROR"
+  }
+  else if ("PENDING".equalsIgnoreCase(state)) {
+    taskState = "PENDING"
+  }
+}%
+#{if taskState == "PENDING"}
+  <span class="glyphicon glyphicon-refresh rotate"></span> &{'resources.tasks.pending'}
+#{/if}
+#{elseif taskState == "READY"}
+  <span class="glyphicon glyphicon-ok"></span> &{'resources.tasks.ready'}
+#{/elseif}
+#{elseif taskState == "ERROR"}
+  <span class="glyphicon glyphicon-remove"></span> &{'resources.tasks.error'}
+#{/elseif}
+#{else}
+  <span class="glyphicon glyphicon-question-sign"></span> &{'resources.tasks.unknown'}
+#{/else}

@@ -1,0 +1,22 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction (_edit ?: @edit(':id')) /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>
+#{/set}
+#{DataTable.table dataTable:_dataTable, id:_id, prefix:_prefix, cssClass:_cssClass, expandable:_expandable, actions:_actions, options:_options,
+                  source:(_list ?: @listJson()) }
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.add', class:'success', icon:'plus', href:(_create ?: @create())/}
+    #{doBody/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}

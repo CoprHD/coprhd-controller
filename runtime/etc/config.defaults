@@ -1,0 +1,8 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Add any necessary config defaults for runtime
+network_standalone_ipaddr=127.0.0.1
+network_vip=127.0.0.1
+network_vip6=::1
+certificate_version=1

@@ -1,0 +1,23 @@
+GET https://192.168.0.0:443/api/catalog/BlockStorageServices/RemoveBlockStorageForHost HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "name": "RemoveBlockStorageForHost",
+  "title": "Remove Volume by Host",
+  "description": "Removes an unmounted block volume assigned to a host and all of its exports. The volume will no longer be available from any host.",
+  "image": "icon_array_host_remove.png",
+  "approvalRequired": false,
+  "executionWindowRequired": false,
+  "baseService": "RemoveBlockStorageForHost",
+  "id": "urn:storageos:CatalogService:c0a6c67f-defb-417f-a341-984f9feebb6e:",
+  "inactive": false,
+  "link": {
+    "rel": "self",
+    "href": "/api/services/urn:storageos:CatalogService:c0a6c67f-defb-417f-a341-984f9feebb6e:"
+  }
+}

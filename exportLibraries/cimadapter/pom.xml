@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!--
+ * Copyright 2010, EMC Corporation ("EMC").
+ * All Rights Reserved
+ *
+ * UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY PROPERTY  OF EMC. The copyright
+ * notice above does  not  evidence any actual or intended publication of this
+ * software. Disclosure and dissemination are pursuant to separate agreements.
+ * Unauthorized use, distribution or dissemination are strictly prohibited.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.emc.cmp.poms</groupId>
+        <artifactId>base-java</artifactId>
+        <version>3.1.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.emc.storageos</groupId>
+    <artifactId>cimadapter</artifactId>
+    <packaging>jar</packaging>
+    <name>Pom for the StorageOS cim adapter</name>
+    <dependencies>
+        <dependency>
+            <groupId>net.sourceforge</groupId>
+            <artifactId>sblim-cim-client2</artifactId>
+            <version>2.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.6.4</version>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.16</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>3.0.5.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.3</version>
+        </dependency>        
+    </dependencies>
+</project>

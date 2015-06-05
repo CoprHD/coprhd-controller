@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<project name="ICCSP3" default="main" basedir=".">
+
+  <!-- Import all external xml files. -->
+  <import file="LOCK_ICC.xml" optional="true"/>
+  <import file="ADG_ICC.xml"/>
+  <import file="ADG_ICC_SLES11SP3.xml"/>
+
+  <target name="main">
+    <echo message="When using this file as your Ant xml interface, use the ICC variable in your conf file for ICC packages."/>
+  </target>
+
+  <target name="clean">
+    <delete dir="LISTS"/>
+  </target>
+
+  <target name="prep">
+    <mkdir dir="LISTS"/>
+  </target>
+
+  <target name="sort_icc_list">
+    <exec executable="/bin/sh">
+      <arg line='-c "sort -u ${ICC_LIST} &gt; ${ICC_LIST_FILE}"'/>
+    </exec>
+  </target>
+
+</project>

@@ -1,0 +1,89 @@
+<hr/>
+<div class="toc">
+    <a href="Search.html" class="toc-search">Search</a> (SHIFT+S)
+</div>
+<hr/>
+<div class="toc">
+    <a href="#" class="toc-main-title">API Reference</a>
+    <ul class="toc-closed">
+<%
+  serviceGrouping.entrySet().each { entry ->
+%>
+        <li class="option">
+            <a href="#" class="toc-title">${entry.key}</a>
+            <ul class="toc-closed">
+                <% entry.value.each { service ->
+                %>
+                <li class="toc-page"><a href="${service.overviewFileName}">${service.title}</a></li>
+                <%
+                } %>
+            </ul>
+        </li>
+        <%
+  }
+%>
+        <li class="toc-page"><a href="ErrorCodes.html" >API Error Codes</a></li>
+    </ul>
+</div>
+<hr/>
+<div class="toc">
+    <a href="#" class="toc-main-title">API Changes</a>
+    <ul class="toc-closed">
+        <li class="option">
+            <a href="#" class="toc-title">All Changes</a>
+            <ul class="toc-closed">
+                <li class="toc-page"><a href="AllNewServicesOverview.html">New Services</a></li>
+                <li class="toc-page"><a href="AllRemovedServicesOverview.html">Removed Services</a></li>
+                <li class="toc-page"><a href="AllAddedMethodsOverview.html">Added Methods</a></li>
+                <li class="toc-page"><a href="AllRemovedMethodsOverview.html">Removed Methods</a></li>
+                <li class="toc-page"><a href="AllModifiedMethodsOverview.html">Modified Methods</a></li>
+                <li class="toc-page"><a href="AllDeprecatedMethodsOverview.html">Deprecated Methods</a></li>
+            </ul>
+        </li>
+        <li class="option">
+            <a href="#" class="toc-title">Modified Services</a>
+            <ul class="toc-closed">
+                <% apiDifferences.modifiedServices.each{modifiedService -> %>
+                <li class="option">
+                    <a href="#" class="toc-title">${modifiedService.service.title}</a>
+                    <ul class="toc-closed">
+                        <% if (!modifiedService.newMethods.isEmpty()) { %>
+                        <li class="toc-page"><a href="${modifiedService.service.newMethodsFileName}">New Methods</a></li>
+                        <% } %>
+                        <% if (!modifiedService.removedMethods.isEmpty()) { %>
+                        <li class="toc-page"><a href="${modifiedService.service.removedMethodsFileName}">Removed Methods</a></li>
+                        <% } %>
+                        <% if (!modifiedService.modifiedMethods.isEmpty()) { %>
+                        <li class="toc-page"><a href="${modifiedService.service.modifiedMethodsFileName}">Modified Methods</a></li>
+                        <% } %>
+                    </ul>
+                </li>
+                <% } %>
+            </ul>
+        </li>
+    </ul>
+</div>
+<hr/>
+<%
+def generateToc(pageFolder) {
+
+    pageFolder.files.each { page ->
+%>
+    <li class="toc-page"><a href="${page.generatedFileName}">${page.title}</a></li>
+<%
+    }
+
+    pageFolder.children.each { child ->
+        if (child.includeInTOC()) {
+%>
+    <li class="option">
+        <a href="#" class="toc-title">${child.title}</a>
+        <ul class="toc-closed">
+            <% generateToc(child)%>
+        </ul>
+    </li>
+<%
+        }
+    }
+}
+%>

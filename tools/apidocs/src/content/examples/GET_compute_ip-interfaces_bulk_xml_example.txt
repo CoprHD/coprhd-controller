@@ -1,0 +1,17 @@
+GET https://192.168.0.0:4443/compute/ip-interfaces/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+	<id>urn:storageos:IpInterface:065c6b9e-f490-4cc4-b40a-b89911265a9a:</id>
+	<id>urn:storageos:IpInterface:06665585-a900-45cd-9758-99e6e64d5dee:</id>
+	<id>urn:storageos:IpInterface:0a6d5389-58b1-4411-8e74-c86177078481:</id>
+	<id>urn:storageos:IpInterface:0b135a10-86ca-4d99-8e8d-cfef72cef338:</id>
+	<id>urn:storageos:IpInterface:0c57591a-5c6e-469e-b540-8af85134eb49:</id>
+	<id>urn:storageos:IpInterface:12c1a7c9-85e0-4008-9833-46ea199fe514:</id>
+</ids>

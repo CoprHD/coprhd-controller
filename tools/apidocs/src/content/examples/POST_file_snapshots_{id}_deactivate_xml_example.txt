@@ -1,0 +1,24 @@
+POST https://192.168.0.0:4443/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:/deactivate HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+   <link
+      href="/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:/tasks/116cccf9-3cd1-4f77-bb44-08d09ea7e772"
+      rel="self">
+   <op_id>116cccf9-3cd1-4f77-bb44-08d09ea7e772</op_id>
+   <resource>
+      <id>urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:</id>
+      <link href="/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:"
+         rel="self">
+      <name>fs-cosnetappf-00:50:56:91:58:91-092313174649-2</name>
+   </resource>
+   <start_time>1379958455395</start_time>
+   <state>pending</state>
+</task>
+

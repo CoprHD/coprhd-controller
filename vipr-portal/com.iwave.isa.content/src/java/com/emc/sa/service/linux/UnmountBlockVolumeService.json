@@ -1,0 +1,16 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"UnmountBlockVolume.Block.Linux",
+  serviceId:"Linux-UnmountBlockVolume",
+  fields: {
+    host:{
+      type:"assetType.vipr.linuxHost"
+    },
+
+    volumes: {
+      type:"assetType.vipr.mountedBlockResource",   
+      select:"many" 
+    }            
+  }
+}

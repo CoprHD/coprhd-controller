@@ -1,0 +1,16 @@
+%{
+  fieldName = _fieldName ?: 'project'
+  projects = _projects ?: _caller.projects
+  selectedProject = _selectedProject ?: _caller.selectedProject
+}%    
+<span class="project-select">
+  #{field fieldName}
+    %{
+      field.options = projects
+      field.value = selectedProject
+      field.cssClass = 'input-sm'
+    }%
+    <label for="${field.id}">&{'project'}:</label>
+    #{Form.selectOne field:field /}
+  #{/field}
+</span>

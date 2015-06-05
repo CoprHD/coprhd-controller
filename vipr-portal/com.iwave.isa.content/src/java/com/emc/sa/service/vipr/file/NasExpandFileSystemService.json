@@ -1,0 +1,23 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"NasExpandFileSystem.File",
+  serviceId:"NasExpandFileSystem",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileFilesystem"
+    },
+
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+<table class="viprTasks table table-hover table-condensed table-striped editableRows">
+  <thead>
+    <tr>
+      <th>&{'tasks.name'}</th>
+      <th>&{'tasks.resource'}</th>
+      <th>&{'tasks.progress'}</th>
+      <th>&{'tasks.state'}</th>
+      <th>&{'tasks.start'}</th>
+      <th>&{'tasks.elapsed'}</th>
+    </tr>
+  </thead>
+  <tbody>
+  #{list _viprTasks, as:'task'}
+    <tr class="urlLink" data-url="@{Tasks.details(task.id)}">
+      <td>${task.name}</td>
+      <td>#{Resources.link task?.resource?.id}#{Resources.image task.resource.id /} ${task?.resource?.name}#{/Resources.link}</a></td>
+      <td>#{Tasks.progress task.progress, state:task.state/}</td>
+      <td>#{Tasks.state task.state/}</td>
+      <td><span data-relative-time="${task?.startTime?.timeInMillis}"></span></td>
+      <td><span data-elapsed-time="${task?.startTime?.timeInMillis}#{if task.endTime}:${task.endTime.timeInMillis}#{/if}"></span></td>
+    </tr>
+  #{/list}
+  </tbody>
+</table>
+<script>
+    jQuery(document).ready(function($) {
+        $(".viprTasks").on('click', '.urlLink', function() {
+            window.document.location = $(this).data("url");
+        });
+    });
+</script>

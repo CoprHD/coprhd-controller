@@ -1,0 +1,53 @@
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-3.1.xsd
+           http://www.springframework.org/schema/util
+           http://www.springframework.org/schema/util/spring-util-3.1.xsd">
+    <context:annotation-config/>
+
+    <import resource="classpath:jmx-conf.xml"/>
+
+    <!-- Bypass DB Migration lock. This way the portal can come up while DB is migrating -->
+    <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
+      <constructor-arg type="java.lang.String" value="true" />
+    </bean>
+
+    <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="portalsvc"/>
+        <property name="id" value="portal-standalone"/>
+        <property name="endpoint" value="http://127.0.0.1:6443/"/>
+        <property name="version" value="1"/>
+    </bean>
+
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="start" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+    
+    <bean id ="processMonitor" class="com.emc.storageos.processmonitor.ScheduledProcessMonitor" init-method="schedule">
+        <property name="interval" value="300"/>
+        <property name="serviceName" value="PortalService"/>
+    </bean>
+
+    <bean id="authSvcEndpointLocator" class="com.emc.storageos.security.authentication.AuthSvcEndPointLocator"/>
+
+    <bean id="encryptionProvider" class="com.emc.storageos.db.client.impl.EncryptionProviderImpl">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>    
+
+	<bean id="keystoreExporter" class="com.emc.storageos.security.keystore.impl.KeyStoreExporterImpl">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="keystorePath" value="${product.home:/opt/storageos}/conf/keystore" />
+        <property name="keystorePassword" value="changeit"/>
+        <property name="owner" value="storageos"/>
+        <property name="ownerGroup" value="storageos"/>
+    </bean>
+</beans>

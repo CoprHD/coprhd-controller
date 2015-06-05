@@ -1,0 +1,21 @@
+<% if (methodChanges.requestHeadersChanged) { %>
+<h4>Request Header Changes</h4>
+<table class="payload table">
+    <% apiMethod.headerParameters.each { parameter ->
+    cssClass=""
+
+    switch(parameter.changeState) {
+    case com.emc.apidocs.model.ChangeState.ADDED:
+        cssClass="added";
+        break;
+    case com.emc.apidocs.model.ChangeState.REMOVED:
+        cssClass="removed";
+        break;
+    }
+    %>
+    <tr class="${cssClass}">
+        <td width="30%">${parameter.name}</td><td>${parameter.isOptional()?"optional":"required"}</td><td>${parameter.description}</td>
+    </tr>
+    <% } %>
+</table>
+<% } %>

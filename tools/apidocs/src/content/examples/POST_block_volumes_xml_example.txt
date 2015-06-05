@@ -1,0 +1,61 @@
+POST https://192.168.0.0:4443/block/volumes HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<volume_create>
+     <name>volume1234</name>
+     <size>1GB</size>
+     <count>1</count>
+     <project>urn:storageos:Project:7a6b150e-d224-492a-939b-57ca4d91d15a:</project>
+     <varray>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</varray>
+     <vpool>urn:storageos:VirtualPool:9cdc6936-4636-4909-a85f-3fd4c2e87e41:</vpool>
+</volume_create>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <tasks>
+       <task>
+            <op_id>52c81901-3cc0-4428-a3ec-2e69dbdbf36f</op_id>
+            <resource>
+                 <id>urn:storageos:Volume:50c25b8b-589f-4896-ad14-b27b4de9b0e5:</id>
+                 <link href="/block/volumes/urn:storageos:Volume:50c25b8b-589f-4896-ad14-b27b4de9b0e5:" rel="self"/>
+                 <name>volume1234</name>
+            </resource>
+            <link href="/block/volumes/urn:storageos:Volume:50c25b8b-589f-4896-ad14-b27b4de9b0e5:/tasks/52c81901-3cc0-4428-a3ec-2e69dbdbf36f" rel="self"/>
+            <start_time>1380041965765</start_time>
+            <state>pending</state>
+       </task>
+  </tasks>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?><error><code>1021</code><description>Unable to find a suitable placement to handle the request</description><details>No matching storage pool found using virtual pool urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea: and virtual array urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917: as virtual pool contains 1) Pools are over subscribed. 2) Pools are over utilized. 3) No free space. 4) Reached Pool/System maximum resources limit.</details><retryable>false</retryable></error>

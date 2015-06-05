@@ -1,0 +1,39 @@
+%{
+  titleKey = 'setup.license';
+  descriptionKey = 'setup.license.description';
+}%
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style>
+.form-actions {
+    border-top: 0;
+    background: #fff;
+}
+.no-nav .wide-box {
+    width: 600px;
+}
+</style>
+#{/set}
+
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey/}
+
+#{alerts/}
+
+#{form @upload(), class:'form form-horizontal', enctype:'multipart/form-data', autocomplete:"off"}
+
+#{field 'licenseFile'}
+  %{
+    field.cssClass = 'span5'
+    field.labelKey = 'setup.licenseFile'
+  }%
+  #{Form.fileUploadControlGroup field:field/}
+#{/field}
+
+#{Form.buttonBar}
+  #{Form.button 'setup.uploadLicense', type:'submit', class:'primary', icon:'upload'/}
+#{/Form.buttonBar}  
+
+#{/form}

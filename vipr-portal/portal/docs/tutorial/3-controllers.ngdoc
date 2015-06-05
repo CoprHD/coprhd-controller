@@ -1,0 +1,60 @@
+@ngdoc overview
+@name Controllers
+@description
+
+# Controllers
+### Moving data between the model and the view
+
+## A Simple Controller
+
+<pre>
+angular.module("vipr").controller("ExampleCtrl", function($scope) {
+  var claire = {pet: "Dog", name: "Claire"};
+  var callum = {pet: "Fish", name: "Callum"};
+  $scope.kid = claire;
+
+  $scope.swapKids = function() {
+    if (angular.equals($scope.kid, claire)) {
+      $scope.kid = callum;
+    } else {
+      $scope.kid = claire;
+    }
+  }
+});
+</pre>
+
+## Key Concents
+
+* Controllers are concerned with the flow of data from the view to the backend.
+* Contains initialization, complex logic, and calls to external services.
+
+@example
+<example module="vipr">
+<file name="index.html">
+  <div ng-controller="ExampleCtrl">
+    <kid></kid> <button ng-click="swapKids()">Swap!</button>
+  </div>
+
+</file>
+<file name="script.js">
+  angular.module("vipr").directive("kid", function() {
+    return {
+      restrict: "E",
+      template: "<label>Name:</label><b>{{kid.name}}</b><br>" +
+                "<label>Pet:</label><b>{{kid.pet}}</b>"
+    };
+  }).controller("ExampleCtrl", function($scope) {
+    var claire = {pet: "Dog", name: "Claire"};
+    var callum = {pet: "Fish", name: "Callum"};
+    $scope.kid = claire;
+
+    $scope.swapKids = function() {
+      if (angular.equals($scope.kid, claire)) {
+        $scope.kid = callum;
+      } else {
+        $scope.kid = claire;
+      }
+    }
+  });
+</file>
+</example>

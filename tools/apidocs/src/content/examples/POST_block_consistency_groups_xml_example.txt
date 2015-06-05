@@ -1,0 +1,25 @@
+POST https://192.168.0.0:4443/block/consistency-groups HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<consistency_group_create>
+     <name>group_west</name>
+     <project>urn:storageos:Project:62f648fb-9388-4bf6-a45b-f9fae8a6ae7c:</project>
+ </consistency_group_create>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml
+
+ <consistency_group>
+    <creation_time>1379542805489</creation_time>
+    <id>urn:storageos:BlockConsistencyGroup:d81ccb53-cb38-444d-ba34-22b882f8b33a:</id>
+    <inactive>false</inactive>
+    <link href="/block/consistency-groups/urn:storageos:BlockConsistencyGroup:d81ccb53-cb38-444d-ba34-22b882f8b33a:" rel="self"/>
+    <name>group_west</name>
+    <tags/>
+    <project>
+      <id>urn:storageos:Project:62f648fb-9388-4bf6-a45b-f9fae8a6ae7c:</id>
+      <link href="/projects/urn:storageos:Project:62f648fb-9388-4bf6-a45b-f9fae8a6ae7c:" rel="self"/>
+    </project>
+ </consistency_group>

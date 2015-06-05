@@ -1,0 +1,28 @@
+GET https://192.168.0.0:4443/vdc/network-systems HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+ 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+     <network_systems>
+          <network_system>
+               <id>urn:storageos:NetworkSystem:56eb4b2f-3957-4271-9b89-abac1868336e:</id>
+               <link href="/vdc/network-systems/urn:storageos:NetworkSystem:56eb4b2f-3957-4271-9b89-abac1868336e:" rel="self"/>
+               <name>lglw9250</name>
+          </network_system>
+          <network_system>
+               <id>urn:storageos:NetworkSystem:f8cb0945-ca59-4ad2-b7b7-772587da0d6e:</id>
+               <link href="/vdc/network-systems/urn:storageos:NetworkSystem:f8cb0945-ca59-4ad2-b7b7-772587da0d6e:" rel="self"/>
+               <name>lglan027</name>
+          </network_system>
+          <network_system>
+               <id>urn:storageos:NetworkSystem:e5ab70ee-91b3-43ce-a6ba-48bd15ffb7f2:</id>
+               <link href="/vdc/network-systems/urn:storageos:NetworkSystem:e5ab70ee-91b3-43ce-a6ba-48bd15ffb7f2:" rel="self"/>
+               <name>lglan060</name>
+          </network_system>
+     </network_systems>

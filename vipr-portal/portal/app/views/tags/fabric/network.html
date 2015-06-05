@@ -1,0 +1,25 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if _network != null}
+%{
+  typeKey = "fabric.network."+_type
+  fqdn = _network.fqdn
+  ip4Address = _network.IPV4Address
+  ip6Address = _network.IPV6Address
+%}
+
+<ul style="float:left; padding-left:15px">
+    <li class="list-group-item list-group-item-success">
+        <b>&{typeKey} Network Interface</b>
+    </li>
+    <li class="list-group-item">
+        <table>
+            <tr><td class="definitionLabel">&{'fabric.network.fqdn'}:</td><td>${fqdn}</td></tr>
+            <tr><td class="definitionLabel">&{'fabric.network.ipv4Address'}:</td><td>${ip4Address}</td></tr>
+            <tr><td class="definitionLabel">&{'fabric.network.ipv6Address'}:</td><td>${ip6Address}</td></tr>
+        </table>
+    </li>
+</ul>
+
+#{/if}

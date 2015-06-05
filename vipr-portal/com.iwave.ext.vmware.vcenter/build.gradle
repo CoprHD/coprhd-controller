@@ -1,0 +1,10 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+dependencies{
+    compile \
+        library(apache_cassandra), // Required for commons-lang
+        library(log4j),
+        library(commons_io),
+        library(guava),
+        "com.vmware:vijava:5.1"
+}

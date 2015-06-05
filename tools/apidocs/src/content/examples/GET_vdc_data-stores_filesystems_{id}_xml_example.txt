@@ -1,0 +1,25 @@
+GET https://192.168.0.0:4443/vdc/data-stores/filesystems/urn:storageos:HostingDeviceInfo:c850824c-955a-4f17-b49a-2d706076b3bf: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<file_systems_data_store>
+    <creation_time>1380161085478</creation_time>
+    <id>urn:storageos:HostingDeviceInfo:c850824c-955a-4f17-b49a-2d706076b3bf:</id>
+    <inactive>false</inactive>
+    <link href="/vdc/data-stores/filesystems/urn:storageos:HostingDeviceInfo:c850824c-955a-4f17-b49a-2d706076b3bf:" rel="self"/>
+    <name>store1</name>
+    <tags/>
+    <free_gb>0</free_gb>
+    <data_services_vpool>urn:storageos:ObjectStore:06d1a052-b2e5-45e8-9a52-2d08506a819b:</data_services_vpool>
+    <description/>
+    <device_info>&lt;?xml version="1.0" encoding="UTF-8" standalone="yes"?&gt;&lt;additionalInfoForFile&gt;&lt;exportUserMapping&gt;0&lt;/exportUserMapping&gt;&lt;hostName&gt;10.247.160.63&lt;/hostName&gt;&lt;mountPoint&gt;10.247.160.63:/ProviderTenant_store1_2e340de0-b530-4748-b3d0-d0feb4e11215&lt;/mountPoint&gt;&lt;storageDeviceId&gt;urn:storageos:FileShare:2e340de0-b530-4748-b3d0-d0feb4e11215:&lt;/storageDeviceId&gt;&lt;storageDeviceType&gt;vnxfile&lt;/storageDeviceType&gt;&lt;/additionalInfoForFile&gt;</device_info>
+    <device_state>readytouse</device_state>
+    <usable_gb>0</usable_gb>
+    <used_gb>0</used_gb>
+    <file_system>urn:storageos:FileShare:2e340de0-b530-4748-b3d0-d0feb4e11215:</file_system>
+</file_systems_data_store>

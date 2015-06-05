@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2014
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/init.d/after.local
+#
+# Native ViPR Installation
+#
+# Source /etc/sysconfig/storageos
+#
+STORAGEOS_SYSCONFIG=${STORAGEOS_SYSCONFIG:-'/etc/sysconfig/storageos'}
+test -r "${STORAGEOS_SYSCONFIG}"       || exit 6
+. ${STORAGEOS_SYSCONFIG}
+
+NIC_NAME="$(/etc/getnic)"
+
+if [ "${STORAGEOS_BOOT_MODE}" != "normal" ] ; then
+    # Open mdns and installer port in firewall for installer
+    # TODO: support all nics later
+    ip6tables -i "${NIC_NAME}" -I input_ext -p udp --dport 5353 -j ACCEPT
+    ip6tables -i "${NIC_NAME}" -I input_ext -p tcp --dport 9999 -j ACCEPT
+
+    vipr_version=$(/etc/systool --get-default)
+    echo "Launching ViPR(${vipr_version}) Installer ..."
+    ln -s /opt/storageos/lib/libTerminal-1.1.4.so /opt/storageos/lib/libTerminal.so
+    /opt/storageos/bin/installer ${vipr_version} ${STORAGEOS_BOOT_MODE} ${STORAGEOS_DEV_MODE}
+    if [ $? -eq 0 ]; then
+        echo "Succeed to install ViPR.  Rebooting..."
+        reboot
+    else
+        echo "Failed to install ViPR.  Please collect /opt/storageos/logs/installer.log for diagnose before reboot."
+    fi
+fi

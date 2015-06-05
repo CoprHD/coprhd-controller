@@ -1,0 +1,27 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"DeleteNfsDatastore.File.VMware",
+  serviceId:"VMware-DeleteNfsDatastore",
+  fields:{
+    
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    datastoreName:{
+      type:"assetType.vipr.datastore"
+    }
+    
+  }
+  
+}

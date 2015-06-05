@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<smooks-resource-list xmlns="http://www.milyn.org/xsd/smooks-1.1.xsd" xmlns:jb="http://www.milyn.org/xsd/smooks/javabean-1.2.xsd">
+	<resource-config selector="global-parameters">
+		<param name="stream.filter.type">SAX</param>
+	</resource-config>
+	<jb:bean beanId="echoCommand" class="com.emc.storageos.hds.model.EchoCommand" createOnElement="EchoCommand">
+		<jb:value property="name" decoder="String" data="Response/EchoCommand/@name" />
+		<jb:value property="status" decoder="String" data="Response/EchoCommand/@status" />
+		<jb:value property="result" decoder="Integer" data="Response/EchoCommand/@result" />
+		<jb:value property="resultSource" decoder="String" data="Response/EchoCommand/@resultSource" />
+		<jb:value property="messageID" decoder="String" data="Response/EchoCommand/@messageID"/>
+	</jb:bean>
+	
+	<jb:bean beanId="error" class="com.emc.storageos.hds.model.Error" createOnElement="Error">
+		<jb:value property="source" decoder="String" data="Response/Error/@source" />
+		<jb:value property="code" decoder="Integer" data="Response/Error/@code" />
+		<jb:value property="description" decoder="String" data="Response/Error/@description" />
+	</jb:bean>
+	
+	<jb:bean beanId="hostList" class="java.util.ArrayList" createOnElement="ResultList"> 
+	  <jb:wiring beanIdRef="host" />
+	</jb:bean>
+	
+	<jb:bean beanId="host" class="com.emc.storageos.hds.model.HDSHost" createOnElement="Host">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/Host/@objectID" />
+		<jb:value property="name" decoder="String" data="Response/ResultList/Host/@name" />
+		<jb:value property="hostID" decoder="String" data="Response/ResultList/Host/@hostID" />
+		<jb:value property="ipAddress" decoder="String" data="Response/ResultList/Host/@ipAddress" />
+		<jb:value property="hostType" decoder="String" data="Response/ResultList/Host/@hostType" />
+		<jb:value property="capacityInKB" decoder="String" data="Response/ResultList/Host/@capacityInKB" />
+		<jb:value property="statusOfDBUpdating" decoder="String" data="Response/ResultList/Host/@statusOfDBUpdating" />
+		<jb:value property="numOfLus" decoder="Integer" data="Response/ResultList/Host/@numOfLus" />
+		<jb:wiring property="wwnList" beanIdRef="wwnList" />
+		<jb:wiring property="iscsiList" beanIdRef="iscsiList" />
+		<jb:wiring property="luList" beanIdRef="luList" />
+		<jb:wiring property="configFileList" beanIdRef="configFileList" />
+	</jb:bean>
+	
+	<jb:bean beanId="wwnList" class="java.util.ArrayList" createOnElement="Host"> 
+	  <jb:wiring beanIdRef="worldwidename" />
+	</jb:bean>
+	
+	<jb:bean beanId="configFileList" class="java.util.ArrayList" createOnElement="Host"> 
+	  <jb:wiring beanIdRef="configFile" />
+	</jb:bean>
+	
+	<jb:bean beanId="configFile" class="com.emc.storageos.hds.model.ConfigFile" createOnElement="ConfigFile">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/Host/ConfigFile/@objectID" />
+		<jb:value property="instanceNumber" decoder="String" data="Response/ResultList/Host/ConfigFile/@instanceNumber" />
+		<jb:value property="portNumber" decoder="String" data="Response/ResultList/Host/ConfigFile/@portNumber" />
+		<jb:value property="controlledBy" decoder="String" data="Response/ResultList/Host/ConfigFile/@controlledBy" />
+		<jb:value property="valid" decoder="String" data="Response/ResultList/Host/ConfigFile/@valid" />
+		<jb:wiring property="replicationGroup" beanIdRef="replicationGroup" />
+	</jb:bean>
+	
+	<jb:bean beanId="replicationGroupList" class="java.util.ArrayList" createOnElement="ResultList"> 
+	  <jb:wiring beanIdRef="host" />
+	</jb:bean>
+	
+	<jb:bean beanId="replicationGroup" class="com.emc.storageos.hds.model.ReplicationGroup" createOnElement="ReplicationGroup">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/@objectID" />
+		<jb:value property="replicationGroupID" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/@replicationGroupID" />
+		<jb:value property="groupName" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/@groupName" />
+		<jb:wiring property="replicationInfoList" beanIdRef="replicationInfoList" />
+	</jb:bean>
+	
+	<jb:bean beanId="replicationInfoList" class="java.util.ArrayList" createOnElement="ReplicationGroup"> 
+	  <jb:wiring beanIdRef="replicationInfo" />
+	</jb:bean>
+	
+	<jb:bean beanId="replicationInfo" class="com.emc.storageos.hds.model.ReplicationInfo" createOnElement="ReplicationInfo">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@objectID" />
+		<jb:value property="pvolSerialNumber" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@pvolSerialNumber" />
+		<jb:value property="pvolArrayType" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@pvolArrayType" />
+		<jb:value property="pvolDevNum" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@pvolDevNum" />
+		<jb:value property="svolSerialNumber" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@svolSerialNumber" />
+		<jb:value property="svolArrayType" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@svolArrayType" />
+		<jb:value property="svolDevNum" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@svolDevNum" />
+		<jb:value property="replicationFunction" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@replicationFunction" />
+		<jb:value property="status" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@status" />
+		<jb:value property="pairName" decoder="String" data="Response/ResultList/Host/ConfigFile/ReplicationGroup/ReplicationInfo/@pairName" />
+	</jb:bean>
+	
+	<jb:bean beanId="worldwidename" class="com.emc.storageos.hds.model.WorldWideName" createOnElement="WorldWideName">
+		<jb:value property="wwn" decoder="String" data="Response/ResultList/Host/WorldWideName/@wwn" />
+	</jb:bean>
+	
+	<jb:bean beanId="iscsiList" class="java.util.ArrayList" createOnElement="Host"> 
+	  <jb:wiring beanIdRef="iscsiName" />
+	</jb:bean>
+	
+	<jb:bean beanId="iscsiName" class="com.emc.storageos.hds.model.ISCSIName" createOnElement="ISCSIName">
+		<jb:value property="iSCSIName" decoder="String" data="Response/ResultList/Host/ISCSIName/@iSCSIName" />
+	</jb:bean>
+	
+	
+	<jb:bean beanId="luList" class="java.util.ArrayList" createOnElement="Host"> 
+	  <jb:wiring beanIdRef="logicalUnit" />
+	</jb:bean>
+	
+	<jb:bean beanId="logicalunit" class="com.emc.storageos.hds.model.LogicalUnit" createOnElement="LogicalUnit">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@objectID" />
+		<jb:value property="capacityInKB" decoder="String" data="Response/ResultList/StorageArray/LogicalUnit/@capacityInKB" />
+		<jb:value property="devCount" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@devCount" />
+		<jb:value property="devNum" decoder="Integer" data="Response/ResultList/StorageArray/LogicalUnit/@devNum" />
+	</jb:bean>
+	
+</smooks-resource-list>

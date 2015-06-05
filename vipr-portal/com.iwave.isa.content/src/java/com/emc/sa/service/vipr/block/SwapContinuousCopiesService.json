@@ -1,0 +1,21 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+    baseKey:"SwapContinuousCopies.Block",
+    serviceId:"SwapContinuousCopies",
+    destructive: false,
+    fields: {
+        project:{
+            type:"assetType.vipr.project",
+            lockable: true
+        },
+
+        volumes:{
+            type:"assetType.vipr.protectedBlockVolume"
+        },
+
+        failoverTarget:{
+            type: "assetType.vipr.failoverTarget"
+        }
+    }
+}

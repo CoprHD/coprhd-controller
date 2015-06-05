@@ -1,0 +1,43 @@
+%{
+  rt = com.emc.sa.util.ResourceType
+  router = play.mvc.Router
+  
+  resourceId = _resouceId ? _resourceId: _arg
+  type = rt.fromResourceId(resourceId)
+  
+  resourceLink = null  
+  if (rt.VOLUME.equals(type)) {
+    resourceLink = router.reverse("resources.BlockVolumes.volume", ['volumeId':resourceId])
+  }
+  else if (rt.EXPORT_GROUP.equals(type)) {
+    resourceLink = router.reverse("resources.BlockExportGroups.exportGroup", ['exportGroupId':resourceId])
+  }
+  else if (rt.FILE_SHARE.equals(type)) {
+    resourceLink = router.reverse("resources.FileSystems.fileSystem", ['fileSystemId':resourceId])
+  }         
+  else if (rt.FILE_SNAPSHOT.equals(type)) {
+    resourceLink = router.reverse("resources.FileSnapshots.snapshot", ['snapshotId':resourceId])
+  }         
+  else if (rt.BLOCK_SNAPSHOT.equals(type)) {
+    resourceLink = router.reverse("resources.BlockSnapshots.snapshotDetails", ['snapshotId':resourceId])
+  }         
+  else if (rt.HOST.equals(type)) {
+    resourceLink = router.reverse("compute.Hosts.edit", ['id':resourceId])
+  }         
+  else if (rt.CLUSTER.equals(type)) {
+    resourceLink = router.reverse("compute.HostClusters.edit", ['id':resourceId])
+  }   
+  else if (rt.STORAGE_SYSTEM.equals(type)) {
+      resourceLink = router.reverse("arrays.StorageSystems.edit", ['id':resourceId])
+  }
+  else if (rt.NETWORK_SYSTEM.equals(type)) {
+      resourceLink = router.reverse("arrays.SanSwitches.edit", ['id':resourceId])
+  }
+  else if (rt.PROTECTION_SYSTEM.equals(type)) {
+    resourceLink = router.reverse("arrays.DataProtectionSystems.edit", ['id':resourceId])
+  }
+  else if (rt.STORAGE_PROVIDER.equals(type)) {
+    resourceLink = router.reverse("arrays.StorageProviders.edit", ['id':resourceId])
+  }        
+}%
+#{if resourceLink}<a href="${resourceLink}">#{doBody/}</a>#{/if}#{else}#{doBody/}#{/else}

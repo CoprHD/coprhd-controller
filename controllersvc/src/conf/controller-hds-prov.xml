@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	 <bean id="hdsApiFactory" class="com.emc.storageos.hds.api.HDSApiFactory"
+          init-method="init"/>
+          
+    <bean id="hdsStorageDevice" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSStorageDevice">
+		<property name="dbClient" ref="dbclient"/>
+		<property name="nameGenerator" ref="defaultNameGenerator"/>
+		<property name="hdsApiFactory" ref="hdsApiFactory" />
+		<property name="exportMaskOperationsHelper" ref="hdsExportMaskOperationsHelper"/>
+        <property name="metaVolumeOperations" ref="hdsMetaVolumeOperations"/>
+        <property name="snapshotOperations" ref="hdsSnapshotOperations"/>
+        <property name="cloneOperations" ref="hdsCloneOperations"/>
+        <property name="mirrorOperations" ref="hdsMirrorOperations"/>
+	</bean>
+	
+	<bean id="hdsMonitoringImpl"
+		class="com.emc.storageos.volumecontroller.impl.monitoring.HdsMonitoringImpl">
+		<property name="dbClient" ref="dbclient" />
+	</bean>
+    
+    <bean id="hdsExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="hdsApiFactory" ref="hdsApiFactory" />
+    </bean>
+    
+    <bean id="vplexHDSMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="blockDeviceController" ref="blockDeviceController" />
+        <property name="workflowService" ref="workflowService" />
+    </bean>
+    
+    <bean id="hdsMetaVolumeOperations" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSMetaVolumeOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="hdsApiFactory" ref="hdsApiFactory" />
+    </bean>
+          
+    <bean id="hdsMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.HDSMaskingOrchestrator">
+		<property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+	</bean>
+          
+	<bean  id="hdsCloneOperations" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSCloneOperations">
+    	<property name="dbClient" ref="dbclient"/>
+    	<property name="hdsApiFactory" ref="hdsApiFactory"/>
+    	<property name="hdsProtectionOperations" ref="hdsProtectionOperations"/>
+    </bean>
+    
+    <bean  id="hdsMirrorOperations" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSMirrorOperations">
+    	<property name="dbClient" ref="dbclient"/>
+    	<property name="hdsApiFactory" ref="hdsApiFactory"/>
+    	<property name="hdsProtectionOperations" ref="hdsProtectionOperations"/>
+    	<property name="hdsCommandHelper" ref="hdsCommandHelper"/>
+    </bean>
+    
+    <bean  id="hdsSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSSnapshotOperations">
+    	<property name="dbClient" ref="dbclient"/>
+    	<property name="hdsApiFactory" ref="hdsApiFactory"/>
+    	<property name="hdsProtectionOperations" ref="hdsProtectionOperations"/>
+    </bean>
+    
+    <bean id="hdsProtectionOperations" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSProtectionOperations">
+    	<property name="dbClient" ref="dbclient"/>
+    	<property name="hdsApiFactory" ref="hdsApiFactory"/>
+    	<property name="hdsCommandHelper" ref="hdsCommandHelper"/>
+    	<property name="nameGenerator" ref="defaultNameGenerator"/>
+    	<property name="locker" ref="locker" />
+    </bean>
+    
+    <bean id="hdsCommandHelper" class="com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSCommandHelper">
+    	<property name="dbClient" ref="dbclient"/>
+    	<property name="hdsApiFactory" ref="hdsApiFactory"/>
+    	<property name="trackingPeriodInMillis" value="15000"/>
+    </bean>
+
+</beans>

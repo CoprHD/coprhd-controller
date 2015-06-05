@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="classpath:security-ciphers.xml" />
+    <import resource="classpath:geoclient-conf.xml"/>
+       
+    <bean name="requestAuditFilter" class="com.emc.storageos.security.audit.RequestAuditFilter"/>
+    <bean name="requestStatTracker" class="com.emc.storageos.security.audit.RequestStatTracker" init-method="init" destroy-method="destroy">
+        <property name="displayRateInMins" value="15" />
+    </bean>
+    <bean name="logoutFilter" class="com.emc.storageos.security.authentication.LogoutHandlingFilter"/>
+    <bean id="tokenBasedAuthFilter" class="com.emc.storageos.security.authentication.TokenBasedAuthenticationFilter">
+        <property name="usingFormLogin" value="false"/>
+    </bean>
+    <bean id="interVDCTokenCacheHelper" class="com.emc.storageos.security.geo.InterVDCTokenCacheHelper"/>
+    <bean id="tokenValidator" class="com.emc.storageos.security.authentication.CassandraTokenValidator"/>
+    <bean id="tokenEncoder" class="com.emc.storageos.security.authentication.Base64TokenEncoder" init-method="validatorInit"/>
+    <bean id="tokenKeyGenerator" class="com.emc.storageos.security.authentication.TokenKeyGenerator" destroy-method="destroy" />
+    <bean id="tokenMaxLifeValuesHolder" class="com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder">
+        <!-- Uncomment this to set the maxTokenLifeTimeInMins for testing proxy token expiration
+        <property name="maxTokenLifeTimeInMins" value="1"/>
+        -->
+    </bean>
+    <bean id="authSvcEndpointLocator" class="com.emc.storageos.security.authentication.AuthSvcEndPointLocator"/>
+        
+    <bean id="sysSvcEndpointLocator" class="com.emc.storageos.security.authentication.SysSvcEndPointLocator"/>
+    
+    <bean id="certificateVersionHelper" class="com.emc.storageos.security.keystore.impl.CertificateVersionHelper">
+        <property name="sysSvcEndPointLocator" ref="sysSvcEndpointLocator"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="zooKeeperHelper" class="com.emc.storageos.security.keystore.impl.CoordinatorConfigStoringHelper">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="trustStoreLoader" class="com.emc.storageos.security.keystore.impl.TrustStoreLoader">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="coordHelper" ref="zooKeeperHelper"/>
+        <property name="tsVersionFilePath" value="${product.home:/opt/storageos}/conf/cacerts_version"/>
+        <property name="caCertFile" value="${product.home:/opt/storageos}/conf/cacerts"/>
+    </bean>
+
+    <!-- Uncomment this to disable token encoding/decoding, signing
+    <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>
+    -->
+
+</beans>

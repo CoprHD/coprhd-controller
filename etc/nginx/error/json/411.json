@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 6411,
+  "description": "Length Required",
+  "details": "The request did not specify the length of its content, which is required by the requested resource.",
+  "retryable": false
+}

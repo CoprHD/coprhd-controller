@@ -1,0 +1,24 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-2.5.xsd
+           http://www.springframework.org/schema/util
+           http://www.springframework.org/schema/util/spring-util-2.5.xsd">
+  <context:annotation-config/>
+
+  <context:property-placeholder location="file://${config.dir}/sasvc.properties" />
+  
+  <bean id="ExecutionEngine" class="com.emc.sa.engine.ExecutionEngineImpl">
+    <property name="modelClient" ref="ModelClient"/>
+    <property name="serviceFactory">
+      <bean class="com.emc.sa.engine.service.DefaultExecutionServiceFactory">
+        <property name="configLocation" value="file://${config.dir}/services.xml" />
+        <property name="parentContextKey" value="platform"/>
+      </bean>
+    </property>
+  </bean>
+</beans>

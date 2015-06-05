@@ -1,0 +1,68 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin:'java'
+
+ext {
+    internalLibrary = true
+}
+
+dependencies {
+    compile localGroovy(),
+            library(commons_io),
+            library(guava),
+            library(google_gson),
+            library(jdom2),
+            rootProject.toolsJar,
+
+            project(":apisvc"),
+            project(":syssvc"),
+            project(":StorageAPI")
+
+    testCompile library(junit)
+}
+
+task generateDynamicFiles(type: Javadoc, dependsOn: [jar]) {
+    title = 'ViPR'
+    source = [
+        project(":apisvc").sourceSets.main.java.srcDirs,
+        project(":syssvc").sourceSets.main.java.srcDirs,
+        project(":dbclient").sourceSets.main.java.srcDirs,
+        project(":dbsvc").sourceSets.main.java.srcDirs,
+        project(":dbclient").sourceSets.main.java.srcDirs,
+        project(":models").sourceSets.main.java.srcDirs,
+        project(":errorhandling").sourceSets.main.java.srcDirs,
+        project(":security").sourceSets.main.java.srcDirs,
+        project(":serviceutils").sourceSets.main.java.srcDirs,
+        project(":coordinatorsvc").sourceSets.main.java.srcDirs,
+        project(":StorageAPI").sourceSets.main.java.srcDirs
+    ]
+    classpath = sourceSets.main.compileClasspath
+
+    // Exclude impl directory that only contains internal tools
+    include '**/*.java'
+
+    options.doclet "com.emc.apidocs.ApiDoclet"
+    options.docletpath sourceSets.main.runtimeClasspath as File[]
+    options.addStringOption("subpackages", "com.emc.storageos")
+    options.addStringOption("d", "${project.buildDir}")
+    options.addStringOption("c", "${project.projectDir}/src/content")
+    options.addStringOption("portalsrc", "${rootProject.projectDir}/vipr-portal/portal")
+    options.addStringOption("build", "${rootProject.version}")
+    options.quiet()
+}
+
+generateDynamicFiles.doFirst{
+    file("${project.buildDir}/apidocs").mkdirs()
+}
+
+task copyStaticFiles(type:Copy) {
+    from "${project.projectDir}/src/content/static"
+    into  "${project.buildDir}/apidocs/static"
+}
+
+task restDocs(dependsOn:[generateDynamicFiles, copyStaticFiles], type: Zip) {
+    from "${project.buildDir}/apidocs"
+    destinationDir project.buildDir
+    baseName = "vipr-rest-api";
+    version = "${rootProject.version}"
+}

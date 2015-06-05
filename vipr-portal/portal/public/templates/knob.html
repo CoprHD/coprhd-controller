@@ -1,0 +1,10 @@
+<div class="knobContainer">
+  <span class="knobTitle">{{title}}</span>
+  <span ng-show='capacity' class="knobValue">{{value/max | percentage}}</span>
+  <span ng-hide='capacity' class="knobValue">{{value}}</span>
+  <input value="0">
+  <div class="knobSubtext">
+    <span ng-show='capacity'>{{ 'templates.knob.label' | t:(value ? value : 0 | parseBytes:2):(max ? max : 0 | parseBytes:2) }}</span>
+    <span ng-hide='capacity'>{{ 'templates.knob.label' | t:(value ? value : 0):(max ? max : 0)}}</span>
+  </div>
+</div>

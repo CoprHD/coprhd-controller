@@ -1,0 +1,40 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @arrays.StorageSystems.list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.ports(storageSystem.id)}&{'StorageSystems.ports.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}&{'StorageSystems.ports.create.title'}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{Form.header titleKey:'StorageSystems.ports.create.title', descriptionKey:'StorageSystems.ports.create.description', image:'/public/img/assets/StorageArray.png'/}
+#{alerts/}
+#{form @arrays.StorageSystems.savePort(), id:'createForm', class:'form form-horizontal', autocomplete:"off"}
+  <fieldset>
+    #{field 'storageSystem.id'}
+      <input type="hidden" name="storageArrayPort.storageArrayId" value="${field.value}">
+    #{/field}
+
+    #{field 'storageArrayPort.name'}
+      %{field.required = true}%
+      #{Form.inputTextControlGroup field:field/}
+    #{/field}
+
+    #{field 'storageArrayPort.portType'}
+      %{
+        field.options = portTypeOptions
+        field.required = true
+      }%
+      #{Form.selectOneControlGroup field:field/}
+    #{/field}
+
+    #{field 'storageArrayPort.port'}
+      %{field.required = true}%
+      #{Form.inputTextControlGroup field:field/}
+    #{/field}
+  </fieldset>
+  #{Form.saveCancelButtonBar cancelHref:@ports(storageSystem.id)/}
+#{/form}

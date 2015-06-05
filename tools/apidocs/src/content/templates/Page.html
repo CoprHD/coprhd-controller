@@ -1,0 +1,11 @@
+<@include "StartHead.html">
+<script>
+    \$(document).ready(function() {
+        addSearchKeyBinding();
+        setupTOC("${pageFile}");
+    });
+</script>
+<@include "EndHead.html">
+<@include "StartBody.html">
+${content}
+<@include "EndBody.html">

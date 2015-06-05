@@ -1,0 +1,149 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+import com.emc.gradle.GradleUtils
+
+apply plugin: 'scripts'
+
+scripts {
+    vasasvc {
+        mainClass = "com.emc.storageos.vasa.service.impl.Main"
+        maxMemory = "86.2m"
+        maxMemoryFactor = "0.0106"
+        extraDefines = """
+KEYTOOL=\${JAVA_HOME}/bin/keytool
+JETTY_HOME=\${PRODUCT_HOME:-${project.installDir}}/bin/jetty-server
+echo Jetty home is: \${JETTY_HOME}
+
+VASA_CONFDIR=${project.installDir}/conf/vasa
+VASA_SERVICE_KEYSTORE_FILENAME="vasa_truststore"
+VASA_SERVICE_KEYSTORE_PATH="${project.installDir}/conf/\${VASA_SERVICE_KEYSTORE_FILENAME}"
+
+if [ ! -f  \${VASA_SERVICE_KEYSTORE_PATH} ]; then
+    HOST_IPADDR=\$(/sbin/ifconfig | grep 'inet addr:'| grep -v '127.0.0.1' | cut -d: -f2 | awk '{ print \$1 }')
+    if [ -z "\${HOST_IPADDR}" ]; then #IPv6
+        HOST_IPADDR=\$(/sbin/ifconfig | grep "inet6 addr:" | grep "Global" | awk '{ print \$3 }')
+    fi
+
+    if [ ! "\${HOST_IPADDR}" ==  "" ]; then
+            \${KEYTOOL} -genkey -alias server -dname "CN=\${HOST_IPADDR}, OU=ASD, O=EMC, L=IN, S=KA, C=Bangalore" \\
+                         -keyalg RSA -keypass changeit -storepass changeit -keystore \${VASA_SERVICE_KEYSTORE_PATH} \\
+                         -validity 365
+        keytool_get_exit_code=\$?
+        if [ \$keytool_get_exit_code -ne 0 ]; then
+            echo "Failed to create server keystore"
+            exit \$keytool_get_exit_code
+        fi
+    
+    else
+        echo "Cannot determine IP address of this host"
+        exit 1
+    fi
+fi
+
+VASA_LOG4J_CONFIGFILE="${project.installDir}/conf/vasasvc-log4j.properties"
+VASA_CONFIGFILE="${project.installDir}/conf/vasasvc-config.xml"
+"""
+        jvmArgs = " -Dlog4j.configuration=file://\${VASA_LOG4J_CONFIGFILE}"+
+                  " -Dserver.home=\${JETTY_HOME}"+
+                  " -Dvasa.config=\${VASA_CONFIGFILE} -Dvasa.keystore=\${VASA_SERVICE_KEYSTORE_PATH}"
+        jvmArgs += " -DbuildType=" + buildType
+        startupTimeoutSec = "180"
+    }
+}
+
+def axisWarDir = "${project.buildDir}/axiswar"
+def thirdParty = "${rootProject.projectDir}/thirdparty"
+
+configurations {
+    // Extra wars that need to be added to the WAR before compile
+    warextras
+    axis.transitive = false
+    jettyDistribution.transitive = false
+}
+
+dependencies {
+    axis "org.apache.axis2:axis2-webapp:1.5.2@war"
+    jettyDistribution "org.eclipse.jetty:jetty-distribution:7.6.4.v20120524@zip"
+    
+    provided library(axis2)
+    warextras "com.sun.jersey:jersey-core:1.12",
+              "com.sun.jersey:jersey-client:1.12"
+    // Add JMX project only, no dependencies
+    warextras (project(":jmx")) {
+        transitive = false
+    }
+
+    compile   library(jetty),
+              library(vasa_api),
+              library(spring),
+			  library(axis2),
+			  library(jetty_jsp),
+              "com.sun.jersey:jersey-core:1.12",
+              "com.sun.jersey:jersey-client:1.12",
+              project(":security")
+}
+
+test {
+    // Exclude integration tests
+    exclude "com/emc/storageos/vasa/VasaServiceTest.class"
+}
+
+task unpackAxisWar (type:Copy) {
+    from project.zipTree(project.configurations.axis.singleFile)
+    exclude "*/lib/*"
+    into axisWarDir
+    into("WEB-INF") {
+        from "${project.projectDir}/src/conf/web.xml"
+    }
+    into("WEB-INF/services/vasaService/META-INF") {
+        from "${project.projectDir}/src/conf/services.xml"
+    }
+    into("catalog") {
+        from "${project.projectDir}/src/catalog"
+    }
+}
+// Ensure dependent project artifacts are built
+GradleUtils.getProjectDependencies(project, 'warextras').each { childProject->
+    def assembleTask = childProject.tasks.findByName('assemble')
+    if (assembleTask) {
+        unpackAxisWar.dependsOn assembleTask
+    }
+}
+compileJava.dependsOn(unpackAxisWar)
+
+// ASSEMBLY
+task copyClassesToWar(dependsOn: [compileJava], type: Copy) {
+}
+
+task buildWar(dependsOn: [copyClassesToWar], type: Zip) {
+    from files("${axisWarDir}")
+    archiveName = "${PRODUCT_NAME}-vasasvc.war"
+    destinationDir = file("${project.buildDir}/libs")
+}
+
+artifacts {
+    archives buildWar
+}
+
+// JETTY
+task unpackJetty(type: Copy) {
+    def outputDir = "${buildDir}/bin"
+    
+    includeEmptyDirs = false
+    // Put each file into the jetty-server directory
+    eachFile { details->
+        def segments = details.relativePath.segments
+        segments[0] = 'jetty-server'
+        details.relativePath = new RelativePath(details.relativePath.isFile(), segments)
+    }
+    
+    from zipTree(configurations.jettyDistribution.singleFile)
+    exclude "*/contexts/",
+            "*/etc/",
+            "*/javadoc/",
+            "*/lib/",
+            "*/webapps/",
+            "*/start.ini"
+    into outputDir
+}
+assemble.dependsOn unpackJetty

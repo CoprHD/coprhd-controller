@@ -1,0 +1,92 @@
+#!/etc/genconfig
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+# Set up node type specific firewall configuration files
+_gen_firewall_conf() {
+    # Add invocation of FWiptables to the fw_custom_after_antispoofing() in
+    # /etc/sysconfig/scripts/SuSEfirewall2-custom
+    local cmdPattern="fw_custom_iptables"
+    local fwConfigCustomFileName=${1}/scripts/SuSEfirewall2-custom
+    POS1=$(/usr/bin/sed -n -e "/${cmdPattern}/=" ${fwConfigCustomFileName})
+    if [ -z "${POS1}" ]; then
+        local linesToEnter="\n    . ${1}/scripts/FWiptables\n    ${cmdPattern}\n    true\n"
+        /usr/bin/sed -i "/fw_custom_after_antispoofing/,/}/ s?true?${linesToEnter}?" ${fwConfigCustomFileName}
+    fi
+    _genconfig_done
+}
+
+_get_firewall_props() {
+    # List of IPv4 address of all nodes in all vDCs
+    #'vdc_nodes_ipaddr')
+    local list=''
+    local OLD_IFS="${IFS}"; IFS="${IFS},"
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
+        local var="_GENCONFIG_vdc_${vdc}_node_count"
+        local vdc_node_count=${!var}
+        for index in $(seq ${vdc_node_count}); do
+            var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
+            local ipaddr="${!var}"
+            if [ "${ipaddr}" == "0.0.0.0" ]; then
+                ipaddr=''
+            fi
+            list+=" ${ipaddr}"
+        done
+    done
+    echo "vdc_nodes_ipaddr=$(echo ${list})"
+
+    # List of IPv6 address of all nodes in all vDCs
+    #'vdc_nodes_ipaddr6')
+    list=''
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
+        local var="_GENCONFIG_vdc_${vdc}_node_count"
+        local vdc_node_count=${!var}
+        for index in $(seq ${vdc_node_count}); do
+            var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr6"
+            ipaddr6="${!var}"
+            if [ "${ipaddr6}" == "::0" ]; then
+                ipaddr6=""
+            fi
+            list+=" ${ipaddr6}"
+        done
+    done
+    IFS="${OLD_IFS}"
+    echo "vdc_nodes_ipaddr6=$(echo ${list})"
+    echo "network_nic_name=${_GENCONFIG_network_nic_name}"
+    _get_props network_vip network_vip6 network_nodes_ipv4 network_nodes_ipv6
+}
+
+# Modify firewall custom rules if the OVF property for firewall is set to yes
+_gen_template_fw_cr() {
+    local enable_fw=${_GENCONFIG_system_enable_firewall:-no}
+    if [ "${enable_fw}" == "yes" ] ; then
+        IFS="${nl}"; /etc/gentmpl $(_get_firewall_props) <"${1}-template"
+    fi
+}
+
+# Modify firewall configuration file if the OVF property for firewall is set to no
+# This will prevent the firewall to start
+_gen_template_firewall() {
+    local enable_fw=${_GENCONFIG_system_enable_firewall:-no}
+    if [ "${enable_fw}" == "no" ] ; then
+        echo "exit 0"
+    else
+        _gen_template "${@}"
+    fi
+}
+
+_genconfig_exec _gen_template_firewall   /etc/sysconfig/SuSEfirewall2
+_genconfig_exec _gen_firewall_conf       /etc/sysconfig
+_genconfig_exec _gen_template_fw_cr      /etc/sysconfig/scripts/FWiptables

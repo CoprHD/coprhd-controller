@@ -1,0 +1,15 @@
+GET https://192.168.0.0:4443/block/snapshots/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+	<id>urn:storageos:BlockSnapshot:7fccb187-aa7e-48be-bd12-8341336c4adb:</id>
+	<id>urn:storageos:BlockSnapshot:8257fc5f-9021-4cd9-b2f3-f9066f134d1a:</id>
+	<id>urn:storageos:BlockSnapshot:d984e8fc-20db-4ca8-8adb-a9cea032c2ec:</id>
+	<id>urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:</id>
+</ids>

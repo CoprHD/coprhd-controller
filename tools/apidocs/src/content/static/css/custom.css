@@ -1,0 +1,350 @@
+/**
+* Copyright 2015 EMC Corporation
+* All Rights Reserved
+ */
+
+@font-face {
+    font-family: 'architects_daughterregular';
+    src: url('/fonts/architects-daughter/architectsdaughter-webfont.eot');
+    src: url('/fonts/architects-daughter/architectsdaughter-webfont.eot?#iefix') format('embedded-opentype'),
+         url('/fonts/architects-daughter/architectsdaughter-webfont.woff') format('woff'),
+         url('/fonts/architects-daughter/architectsdaughter-webfont.ttf') format('truetype'),
+         url('/fonts/architects-daughter/architectsdaughter-webfont.svg#architects_daughterregular') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+.resourceTable {
+    font-size: 10pt;
+    width:100%;
+}
+
+.resourceTable td {
+    padding-top:10px;
+    padding-bottom:10px;
+    padding-left:5px;
+    padding-right:5px;
+    border-bottom-width: 1px;
+    border-bottom-color: #dddddd;
+    border-collapse: collapse;
+    border-bottom-style: solid;
+    vertical-align: top;
+
+}
+
+.resourceTable thead td {
+    border-top-width: 1px;
+    border-top-color: #000000;
+    border-collapse: collapse;
+    border-top-style: solid;
+    border-bottom-color: #000000;
+    font-weight: bold;
+}
+
+.resourceSection {
+    margin:10px;
+}
+
+.resourceSection h3 {
+    margin-top:0px;
+    margin-bottom: 0px;
+}
+
+.resourceSection .description {
+    color:#555555;
+    margin-top: 0px;
+}
+
+.mainTitle {
+    font-size: 20pt;
+    color: white;
+    padding-top: 20px;
+    padding-left: 10px;
+    float: left;
+}
+
+#mainbar {
+    height: 60px;
+    background-color: transparent;
+    margin-bottom: 10px;
+}
+
+.logo {
+    margin: 5px;
+    margin-top: 10px;
+    float: left;
+}
+
+.vipr_logo {
+    float:right;
+    margin-right:10px;
+}
+
+.payload {
+    width:100%;
+    margin-bottom:0px;
+}
+
+.subelement {
+    margin-left:30px;
+    margin-right:10px;
+}
+
+.optional {
+    font-style: italic;
+    color:#888888;
+}
+
+.doc-content TD {
+    font-size:11pt
+}
+
+.payload THEAD TR {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-top-width: 1px;
+    border-top-style: solid;
+
+}
+
+.payload THEAD TR TD {
+    font-weight:bold;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.payload  TD {
+    font-size:10pt;
+    text-align: left;
+    vertical-align: top;
+}
+
+.doc-content {
+    padding-bottom: 50px;
+    border-left:1px dashed #dddddd;
+    padding-left:25px;
+}
+
+.doc-content h2 {
+    margin-top:0px;
+    padding-top:0px;
+}
+
+.doc-content h3 {
+    margin-top:0px;
+    padding-top:0px;
+}
+
+.doc-content h4 {
+    margin-bottom:5px;
+    margin-top:5px;
+}
+
+.doc-content hr {
+    margin-top:20px;
+    color: rgba(186, 186, 186, 0.98);
+    margin-bottom:0px;
+    padding-bottom:0px;
+}
+
+
+.resource {
+    font-size:14pt;
+    margin-bottom: 10px;
+}
+
+.level1 {
+    margin-left:10px;
+}
+
+.level2 {
+    margin-left:20px;
+}
+
+.level3 {
+    margin-left:40px;
+}
+.level4 {
+    margin-left:60px;
+}
+
+.level5 {
+    margin-left:80px;
+}
+
+.level6 {
+    margin-left:100px;
+}
+
+.level7 {
+    margin-left:120px;
+}
+
+.btn-showHide {
+    position:relative;
+    float:left;
+    display:block;
+    margin-left:-45px
+}
+
+.container-fluid {
+    padding-left:0px;
+    margin-right:20px;
+}
+
+.breadcrumb {
+    margin-bottom:0px;
+}
+
+.searchBox {
+    height:50px;
+    width:90%
+}
+
+.footer {
+    width:100%;
+    text-align: center;
+    font-size: 8pt;
+    padding:0;
+}
+
+.footer hr {
+    margin-bottom:4px;
+}
+
+h1 {
+    line-height: 27px;
+    font-size: 18px;
+}
+h2 {
+    line-height: 27px;
+    font-size: 18px;
+}
+h3 {
+    line-height: 27px;
+    font-size: 18px;
+}
+h3 small {
+    font-size: 14px;
+}
+
+.subfolder {
+    display:none;
+}
+
+.active {
+    color:red;
+}
+
+.toc A:hover, .toc A:visited {
+    text-decoration:none;
+
+}
+
+
+.toc A:hover {
+    color:#999999
+}
+
+.toc-page {
+    margin-top:2px;
+    margin-left:10px;
+
+}
+
+.toc .option {
+    margin-top:5px;
+    margin-left:0px;
+}
+
+.toc ul {
+    text-indent:5px;
+    list-style:none;
+}
+
+.toc-closed {
+    color:red;
+    display:none;
+}
+
+.toc-title {
+    margin-left:0px;
+    padding-left:0px;
+}
+
+top-option {
+    margin-left: 0px;
+    color:#333333
+}
+
+.toc .option > a {
+    color:#333333;
+}
+
+.toc-main-title {
+    font-size:14pt;
+    /*position:relative;*/
+    /*left:-10    ;*/
+}
+
+.toc-search {
+    font-size:14pt
+}
+
+.toc .option {
+    list-style: none;
+}
+
+.toc {
+    margin-left:15px;
+    background-color: white;
+}
+
+#toc-holder hr {
+    margin-top:15px;
+    margin-bottom:15px;
+}
+
+.added {
+    background-color: #c3ffb6;
+}
+
+.removed {
+    background-color: #ff9aa3;
+}
+
+
+.toc > ul {
+	padding-top: 10px;
+}
+
+.container-fluid {
+	font-family: Verdana, Helvetica, sans-serif;
+}
+
+.container-fluid p {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+.toc > a {
+	font-family: 'ff-meta-web-pro';
+}
+
+.doc-content  > h3 {
+	font-family: 'ff-meta-web-pro';
+	font-size: 20px;
+	line-height: 23px;
+}
+
+.mainTitle {
+	font-family: 'architects_daughterregular';
+	color: #2c95dd;
+	font-size: 30px;
+	line-height: 40px;
+	padding-top: 20px;
+}
+
+#header #globalSearchForm input#searchString  {
+	border: 0px !important;
+	background-color: transparent !important;
+}

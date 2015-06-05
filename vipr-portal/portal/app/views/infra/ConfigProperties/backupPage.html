@@ -1,0 +1,49 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+  $(document).ready(function() {
+     $selector = $("#backup_scheduler_time");
+     for (var i = 0; i <24; i++) {
+         var hour = moment({hour:i});
+         var utcTime = parseInt(moment.utc(hour.toDate()).format("HHmm"));
+         var localTime = hour.format("HH:mm");
+         var $option = $("<option value="+utcTime+">"+localTime+"</option>");
+         var time = ${flash[page.schedulerTime.name] ?: page.schedulerTime.value};
+         if (time === utcTime) {
+             $option.prop("selected", "selected");
+         }
+         $option.appendTo($selector);
+     }
+  });
+</script>
+#{/set}
+#{ConfigProperties.property property:page.schedulerEnabled, disabled:unstable/}
+%{
+  property = page.schedulerTime
+  id = property.name 
+  name = property.name
+  label = property.label
+  originalValue = property.value
+  value = flash[name] ?: originalValue
+  rebootRequired = property.rebootRequired
+  description = property.description
+  disabled:unstable;
+}%
+#{set 'error'}#{error name /}#{/set}
+<div id="${id}ControlGroup" class="form-group">
+  <label class="control-label col-sm-3" for="${id}">${label}:</label>
+  <div class="col-sm-6">
+     <select id="${id}" name="${name}" class="form-control" #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}" data-reboot="${rebootRequired ? 'true' : 'false'}">
+     </select>
+     #{if description}<p class="help-block clear">${description}#{if rebootRequired} <span class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
+  </div>
+  <div class="col-sm-3">
+    <span class="help-inline clearfix">${error}</span>
+  </div>
+</div>
+#{ConfigProperties.property property:page.externalLocationUrl, disabled:unstable/}
+#{ConfigProperties.property property:page.externalLocationUsername, disabled:unstable/}
+#{ConfigProperties.property property:page.externalLocationPassword, disabled:unstable/}

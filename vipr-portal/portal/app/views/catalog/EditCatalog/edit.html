@@ -1,0 +1,94 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.editCatalog'] /}
+#{set 'moreScripts'}
+#{script 'catalog.js'/}
+<script type="text/javascript">
+var catalog = Catalog('${session.authenticityToken}');
+#{if flash['categoryPath']}
+    window.location.hash = "${flash['categoryPath']}";
+#{/if}
+$(document).ready(function() {
+    var deleteServiceConfirm = "&{'catalog.deleteService.confirm'}";
+    var deleteCategoryConfirm = "&{'catalog.deleteCategory.confirm'}";
+    var restoreCatalogConfirm = "&{'catalog.restore.confirm'}";
+    var updateCatalogConfirm = "&{'catalog.update.confirm'}";
+    catalog.initEditMode('#catalog', deleteServiceConfirm, deleteCategoryConfirm);
+    $('#viewCatalog').on('click', function() {
+        var url = routes.ServiceCatalog_view();
+        if (window.location.hash) {
+            url += window.location.hash;
+        }
+        window.location.href = url;
+    });
+    $('#createService').on('click', function(event) {
+        var id = catalog.getCurrentCategoryId();
+        catalog.createService(id);
+    });
+    $('#createCategory').on('click', function(event) {
+        var id = catalog.getCurrentCategoryId();
+        catalog.createCategory(id);
+    });
+    $('#editCurrentCategory').on('click', function(event) {
+        var id = catalog.getCurrentCategoryId();
+        catalog.editCategory(id);
+    });
+    $('#restoreCatalog').on('click', function(event) {
+        if (confirm(restoreCatalogConfirm)) {
+            catalog.restoreCatalog();
+        }
+    });
+    $('#updateCatalog').on('click', function(event) {
+        if (confirm(updateCatalogConfirm)) {
+            catalog.updateCatalog();
+        }
+    });
+});
+</script>
+#{/set}
+
+
+<div id="breadcrumbs">
+  #{list breadcrumbs.values(), as:'items'}
+    #{ServiceCatalog.breadcrumb items:items/}
+  #{/list}
+</div>
+
+#{tenantSelector /}
+
+#{alerts disappear:true /}
+
+#{if catalogUpdateAvailable }
+<p id="alerts_info" class="alert alert-info">
+    <span class="message">&{'ServiceCatalog.editCatalog.alert'}</span>
+</p>
+#{/if}
+
+<div id="buttonbar">
+  <button type="button" class="btn btn-sm btn-success" value="&{'ServiceCatalog.createService'}" id="createService">
+    #{icon 'plus'/} &{'ServiceCatalog.createService'}
+  </button>
+  <button type="button" class="btn btn-sm btn-success" value="&{'ServiceCatalog.createCategory'}" id="createCategory">
+    #{icon 'folder-open'/} &{'ServiceCatalog.createCategory'}
+  </button>
+  <button type="button" class="btn btn-sm btn-default" value="&{'ServiceCatalog.editCurrentCategory'}" id="editCurrentCategory">
+    #{icon 'folder-open'/} &{'ServiceCatalog.editCurrentCategory'}
+  </button>
+  <button type="button" class="btn btn-sm btn-danger" value="&{'ServiceCatalog.restoreCatalog'}" id="restoreCatalog">
+    #{icon 'trash'/} &{'ServiceCatalog.restoreCatalog'}
+  </button>
+
+  #{if catalogUpdateAvailable}
+    <button type="button" class="btn btn-sm btn-info" value="&{'ServiceCatalog.updateCatalog'}" id="updateCatalog">
+      #{icon 'repeat'/} &{'ServiceCatalog.updateCatalog'}
+    </button>
+  #{/if}
+</div>
+
+<div id="catalog" class="catalog">
+  #{list items:catalog.values(), as:'category'}
+    #{ServiceCatalog.category category:category, editable:true /}
+  #{/list}
+</div>

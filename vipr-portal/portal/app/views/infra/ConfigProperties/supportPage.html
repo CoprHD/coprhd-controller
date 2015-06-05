@@ -1,0 +1,17 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{ConfigProperties.property property:page.encrypt, disabled:unstable/}
+#{ConfigProperties.property property:page.transport, disabled:unstable/}
+
+#{ConfigProperties.propertySet titleKey:'configProperties.ftps'}
+  #{ConfigProperties.property property:page.ftpsHostname, disabled:unstable/}
+  #{ConfigProperties.property property:page.ftpsPort, disabled:unstable/}
+#{/ConfigProperties.propertySet}
+
+#{ConfigProperties.propertySet titleKey:'configProperties.smtp'}
+  #{ConfigProperties.property property:page.smtpEmcTo, disabled:unstable/}
+  #{ConfigProperties.property property:page.smtpTo, disabled:unstable/}
+#{/ConfigProperties.propertySet}
+
+#{ConfigProperties.propertyList properties:page.properties, disabled:unstable/}

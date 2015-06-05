@@ -1,0 +1,152 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.settings', 'nav.upgrade'] /}
+#{set 'title'}&{'upgrade.title'}#{/set}
+
+
+#{script "systemhealth.js" /}
+
+<div class="container">
+
+    #{Form.header titleKey:'upgrade.title' /}
+
+    #{alerts/}
+
+    <div><b>&{'upgrade.targetVersion'}:</b> <span id="bourne-version"></span><br/></div>
+
+    <div id="message"></div>
+    <div id="clusterStatus">
+        <div class="loading-box">
+            &{'upgrade.fetchingClusterStatus'}&nbsp;&nbsp;#{loading /}
+        </div>
+    </div>
+</div>
+
+#{set 'moreScripts'}
+<script>
+    function loadVersion() {
+        var uri = SystemHealth.PROXY_URI + encodeURIComponent("upgrade/target-version.json");
+        window.console && console.log("Requesting version: " + uri);
+
+        $.ajax({ // Define AJAX call properties
+            method: "get",
+            url: uri,
+            dataType: "json",
+            timeout: (30 * 1000), // 30 sec timeout
+
+            success: function(ret) {
+                if(!ret["target_version"]) {
+                    // display error message if what we get back is not an object
+                    // that contains the expected field
+                    SystemHealth.handleErrorMessage(ret.description, Messages.get("upgrade.error.retrieving.version"));
+                    return;
+                }
+                window.console && console.log("Success retrieving version: " + ret["target_version"]);
+                $("#bourne-version").html(ret["target_version"]);
+            },
+            error: function(jqXHR, exception) {
+                SystemHealth.handleAjaxError(jqXHR, exception, Messages.get("upgrade.error.retrieving.version"));
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        loadVersion();
+        loadClusterStatus();
+    });
+
+    function loadClusterStatus(tries) {
+        tries = tries || 0;
+        var uri = "@{clusterStatus}"
+        window.console && console.log("Requesting Cluster Status: " + uri);
+
+        $.ajax({ // Define AJAX call properties
+            method: "get",
+            url: uri,
+            dataType: "html",
+
+            success: function(ret) {
+                $("#clusterStatus").html(ret);
+                render.clusterStatus('#clusterState', $('#clusterState').data('state'));
+            },
+            error: function(jqXHR, exception) {
+                console.log("error", exception)
+                // Only allow a finite number of retries
+                if (tries > 3) {
+                    render.clusterStatus('#clusterStatus', Messages.get("upgrade.cluster.unknown"));
+                }
+                else {
+                    // Sometimes if fails to get the Cluster Status, so retry
+                	window.setTimeout(loadClusterStatus(tries + 1), 50);
+                }
+            }
+        });
+    }
+
+    function startStatusChecks(currentStatus) {
+        var checkInterval = 30000; // Check status every 30 seconds
+
+        if (currentStatus == "SYNCING") {
+            checkInterval = 2000;
+        }
+
+        window.setInterval(function() {
+            checkForStatusChange(currentStatus)
+        }, checkInterval);
+    }
+
+    var statusBeingChecked = false;
+    var statusChanged = #{jsAction @statusChanged(":currentStatus") /}
+    function checkForStatusChange(currentStatus) {
+        if (statusBeingChecked) { // Sometimes the check can take a while
+            return;
+        }
+
+        statusBeingChecked = true;
+        $.ajax({
+            method: "get",
+            url: statusChanged({"currentStatus":currentStatus}),
+            dataType: "json",
+            timeout: (30 * 1000), // 30 sec timeout
+
+            success: function(statusChanged) {
+                if (statusChanged) {
+                    window.location.href ="@{index()}"
+                } else {
+                    statusBeingChecked = false;
+                }
+            },
+            error: function() {
+                console.log("Error checking status - Expected if upgrading")
+                statusBeingChecked = false;
+            }
+        });
+    }
+
+    var removeViprImage = #{jsAction @removeImage(":version") /}
+    function removeImage(version) {
+        if (confirm("&{'upgrade.sureYouWantToRemove'} "+version+"?")) {
+            $("#clusterStatus").html("<div class='alert alert-info' style='margin-top:10px'>&{'upgrade.removingImage'} "+version+"...</div>");
+            window.location.href = removeViprImage({"version":version});
+        }
+    }
+
+    var changeTargetVersion = #{jsAction @installVersion(":version") /}
+    function installImage(version) {
+        if (confirm("&{'upgrade.sureYouWantToInstall'} "+version+"?")) {
+            $("#clusterStatus").html("<div class='alert alert-info' style='margin-top:10px'>&{'upgrade.installingImage'} "+version+"...</div>");
+            window.location.href = changeTargetVersion({"version":version});
+        }
+    }
+
+    function downloadImage() {
+        var version = $("#downloadImageVersion").val();
+        $("#clusterStatus").hide();
+
+        $("#message").html("<div class='alert alert-info' style='margin-top:10px'>&{'upgrade.downloadingImage'} "+version+"... </div>");
+    }
+</script>
+#{/set}
+

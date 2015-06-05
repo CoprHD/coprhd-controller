@@ -1,0 +1,15 @@
+/dev/disk0
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:      GUID_partition_scheme                        *251.0 GB   disk0
+   1:                        EFI                         209.7 MB   disk0s1
+   2:                  Apple_HFS Macintosh HD            250.1 GB   disk0s2
+   3:                 Apple_Boot Recovery HD             650.0 MB   disk0s3
+/dev/disk2
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:     FDisk_partition_scheme                        *1.0 TB     disk2
+   1:               Windows_NTFS exFAT                   925.3 GB   disk2s1
+   2:                  Apple_HFS HFS+                    50.1 GB    disk2s2
+   3:                 DOS_FAT_32 FAT32                   24.7 GB    disk2s3
+/dev/disk4
+   #:                       TYPE NAME                    SIZE       IDENTIFIER
+   0:                            Ubuntu 10.04.4 L       *728.2 MB   disk4

@@ -1,0 +1,36 @@
+POST: https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:039e117c-0247-40bf-8ebf-7a64fa8f9a76:/hosts.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "host_name": "host.y3BBF.com",
+    "name": "host.y3BBF.com",
+    "os_version": "1.0",
+    "password": "password",
+    "port_number": "8111",
+    "type": "Windows",
+    "use_ssl": null,
+    "user_name": "user"
+}
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+{
+    "link": {
+        "href": "/compute/hosts/urn:storageos:Host:01687615-26b1-48ab-8545-92b0791bb9ff:/tasks/31c616ad-0d3c-405d-be78-31311dd3caf1",
+        "rel": "self"
+    },
+    "message": "Operation completed successfully",
+    "op_id": "31c616ad-0d3c-405d-be78-31311dd3caf1",
+    "resource": {
+        "id": "urn:storageos:Host:01687615-26b1-48ab-8545-92b0791bb9ff:",
+        "link": {
+            "href": "/compute/hosts/urn:storageos:Host:01687615-26b1-48ab-8545-92b0791bb9ff:",
+            "rel": "self"
+        },
+        "name": "host.y3BBF.com"
+    },
+    "start_time": 1380722363908,
+    "state": "ready"
+}

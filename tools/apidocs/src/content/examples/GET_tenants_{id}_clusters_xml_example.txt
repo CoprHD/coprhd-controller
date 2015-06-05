@@ -1,0 +1,22 @@
+GET https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:4e39adf3-4b93-4c64-bfe8-b3e5f7ea4f74:/clusters HTTP/1.1 
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<clusters>
+  <cluster>
+    <id>urn:storageos:Cluster:2003d2c7-7b40-41e0-9bce-a3e7d00086dc:</id>
+    <link href="/compute/clusters/urn:storageos:Cluster:2003d2c7-7b40-41e0-9bce-a3e7d00086dc:" rel="self"/>
+    <name>sanityCluster2</name>
+  </cluster>
+  <cluster>
+    <id>urn:storageos:Cluster:f5935293-7909-407a-9584-04d725f6ba8f:</id>
+    <link href="/compute/clusters/urn:storageos:Cluster:f5935293-7909-407a-9584-04d725f6ba8f:" rel="self"/>
+    <name>sanityCluster1</name>
+  </cluster>
+</clusters>

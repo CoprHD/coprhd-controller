@@ -1,0 +1,21 @@
+<div class="panel panel-default panel-collapse">
+  <div class="panel-heading #{if _expanded}in#{/if}" data-toggle="collapse" data-target="#${_arg.htmlId()}">
+    <h4 class="panel-title">
+      <span class="glyphicon glyphicon-chevron-right indicator indicator-collapsed"></span>
+      <span class="glyphicon glyphicon-chevron-down indicator indicator-expanded"></span>
+      
+      #{icon _icon/}
+      &{_arg}
+      #{if _heading}${_heading.raw()}#{/if}
+      #{if _badge}<span id="${_badge}" class="badge"></span>#{/if}
+    </h4>
+  </div>
+  <div id="${_arg.htmlId()}" class="panel-collapse collapse #{if _expanded}in#{/if}">
+    #{if _noPanelBody}
+      #{doBody/}
+    #{/if}
+    #{else}
+      <div class="panel-body">#{doBody/}</div>
+    #{/else}
+  </div>
+</div>

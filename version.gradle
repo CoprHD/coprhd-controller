@@ -1,0 +1,16 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'git'
+
+allprojects {
+    version = baseVersion
+    // Retrieved from the git plugin
+    if (gitCommits && gitShortHash) {
+        version += ".${gitCommits}.${gitShortHash}"
+    }
+}
+
+logger.quiet("Building Version: ${version}\n\
+  Git Version: ${gitVersion}\n\
+  Git Branch:  ${gitBranch}\n\
+  Git Hash:    ${gitHash}")

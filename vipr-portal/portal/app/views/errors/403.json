@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 403,
+  "description": "&{'errors.403.title'}",
+  "details": "${result?.message ?: messages.get("errors.403.title")}",
+  "retryable": false
+}

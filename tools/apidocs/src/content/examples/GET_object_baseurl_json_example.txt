@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/object/baseurl.json HTTP/1.1 
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK 
+Content-Type: application/json 
+{
+   "base_url" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/object/baseurl/urn:storageos:ObjectBaseUrl:705a7ed6-cfc4-488c-9a22-e1f3b08b7cbf:"
+         },
+         "name" : "DefaultBasUrl",
+         "id" : "urn:storageos:ObjectBaseUrl:705a7ed6-cfc4-488c-9a22-e1f3b08b7cbf:"
+      }
+   ]
+}

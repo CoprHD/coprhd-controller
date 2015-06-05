@@ -1,0 +1,29 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if catalogCategories}
+  <table class="table" style="width: 400px; margin: 0;">
+  <thead>
+      <th>&{'category.title'}</th>
+      <th></th>
+      <th></th>
+  </thead>
+  <tbody>
+  #{list items:catalogCategories, as:'catalogCategory'}
+      <tr>
+          <td>${catalogCategory.title}</td>
+          <td style="text-align:center;">
+            #{if catalogCategory_isFirst == false}
+                <a href='#' onclick='moveUpCategory("${catalogCategory.id}");return false;'>#{icon 'chevron-up'/}</a>
+            #{/if}
+          </td>
+          <td>
+            #{if catalogCategory_isLast == false}
+              <a href='#' onclick='moveDownCategory("${catalogCategory.id}");return false;'>#{icon 'chevron-down'/}</a>
+            #{/if}
+          </td>
+      </tr>
+  #{/list}
+  </tbody>
+  </table>
+#{/if}

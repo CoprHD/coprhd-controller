@@ -1,0 +1,16 @@
+GET https://192.168.0.0:4443/tenant.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+  "name": "Provider Tenant",
+  "id": "urn:storageos:TenantOrg:c3f022ff-5e3a-49ca-a5ef-b0aaa74cebb3:",
+  "link": {
+    "rel": "self",
+    "href": "/tenants/urn:storageos:TenantOrg:c3f022ff-5e3a-49ca-a5ef-b0aaa74cebb3:"
+  }
+}

@@ -1,0 +1,32 @@
+#!/etc/genconfig
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_get_backup_props() {
+    _get_props node_name node_count network_ipaddr network_ipaddr6
+}
+
+_get_sys_props() {
+    _get_props node_suffix node_name network_ipaddr_effective
+}
+
+_get_metadata_props() {
+    _get_props node_count
+}
+
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/backup-var.xml          $(_get_backup_props)
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/sys-var.xml             $(_get_sys_props)
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/sys-metadata-var.xml    $(_get_metadata_props)

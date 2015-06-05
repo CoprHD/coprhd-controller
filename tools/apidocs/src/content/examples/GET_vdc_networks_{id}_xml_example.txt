@@ -1,0 +1,50 @@
+GET https://192.168.0.0:4443/vdc/networks/urn:storageos:Network:a913d1e1-27d2-42b8-9375-5531f0101e39: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<network>
+    <creation_time>1379169017234</creation_time>
+    <id>urn:storageos:Network:a913d1e1-27d2-42b8-9375-5531f0101e39:</id>
+    <inactive>false</inactive>
+    <link href="/vdc/networks/urn:storageos:Network:a913d1e1-27d2-42b8-9375-5531f0101e39:" rel="self"/>
+    <name>FABRIC_losam059-fid3</name>
+    <tags/>
+    <native_guid>FC+BROCADE+10:00:00:05:1E:56:78:42</native_guid>
+    <discovered>true</discovered>
+    <endpoints>
+        <endpoint>10:00:00:00:C9:51:C1:2F</endpoint>
+        <endpoint>10:00:00:00:C9:4E:C0:39</endpoint>
+        <endpoint>50:06:01:6C:3E:A0:59:B0</endpoint>
+    </endpoints>
+    <endpoints_discovered>
+        <endpoint_discovered>
+            <name>10:00:00:00:C9:51:C1:2F</name>
+            <value>true</value>
+        </endpoint_discovered>
+        <endpoint_discovered>
+            <name>10:00:00:00:C9:4E:C0:39</name>
+            <value>true</value>
+        </endpoint_discovered>
+        <endpoint_discovered>
+            <name>50:06:01:6C:3E:A0:59:B0</name>
+            <value>true</value>
+        </endpoint_discovered>
+    </endpoints_discovered>
+    <fabric_id>losam059-fid3</fabric_id>
+    <network_systems>
+        <network_system>urn:storageos:NetworkSystem:f8cb0945-ca59-4ad2-b7b7-772587da0d6e:</network_system>
+        <network_system>urn:storageos:NetworkSystem:e5ab70ee-91b3-43ce-a6ba-48bd15ffb7f2:</network_system>
+    </network_systems>
+    <registration_status>REGISTERED</registration_status>
+    <transport_type>FC</transport_type>
+    <varray>
+        <id>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</id>
+        <link href="/vdc/varrays/urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:" rel="self"/>
+    </varray>
+</network>

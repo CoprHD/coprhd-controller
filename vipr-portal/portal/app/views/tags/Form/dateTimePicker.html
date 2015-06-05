@@ -1,0 +1,107 @@
+%{
+  field = _field;
+  enableCurrentTime = _enableCurrentTime ?: false
+  enableCurrentTimeControl = _enableCurrentTimeControl ?: false
+  value = flash[field.name] ?: field.value
+
+  hideTime = _hideTime ?:false
+}%
+
+<script type="text/javascript">
+ 
+ var ${field.id} = new DateTimePicker('#${field.id}'); 
+ 
+ $(document).ready(function() {
+     $('#${field.id}Date').on('change', function(e) {
+         var container = $(${field.id}.dateContainer);
+         if (container.hasClass('open')) {
+             // Close the container and give focus back to the input
+             container.removeClass('open');
+             $(this).focus();
+         }
+     });
+	 $('#${field.id}UseCurrentTime').click(function() {
+	   ${field.id}.useCurrentTime(true);
+	 });
+	
+	 $('#${field.id}SpecifyTime').click(function() {
+	   ${field.id}.useCurrentTime(false);
+	 });	
+	
+ }); 
+ 
+ </script>
+<div id="${field.id}Container" #{if enableCurrentTimeControl && enableCurrentTime}style="display: none;"#{/if}>
+  <div class="bfh-datepicker pull-left control-group" id="${field.id}DateContainer" data-format="y-m-d" data-date="${value?.format('yyyy-MM-dd')}" style="margin-bottom: 0px;">
+    <div class="input-group input-group-sm bfh-datepicker-toggle" data-toggle="bfh-datepicker" style="margin-bottom: 0px;width: 125px;">
+      <span class="input-group-addon">#{icon 'calendar'/}</span>
+      <input type="text" class="form-control input-sm" id="${field.id}Date" name="${field.name}Date" onkeyup="if (${field.id}) ${field.id}.onKeyUp(event)" onchange="if (${field.id}) ${field.id}.onKeyUp(event)">
+    </div>
+    <div class="bfh-datepicker-calendar">
+      <table class="calendar table table-bordered">
+        <thead>
+          <tr class="months-header">
+            <th class="month" colspan="4">
+              <a class="previous" href="#">#{icon 'chevron-left'/}</a>
+              <span></span>
+              <a class="next" href="#">#{icon 'chevron-right'/}</a>
+            </th>
+            <th class="year" colspan="3">
+              <a class="previous" href="#">#{icon 'chevron-left'/}</a>
+              <span></span>
+              <a class="next" href="#">#{icon 'chevron-right'/}</a>
+            </th>
+          </tr>
+          <tr class="days-header">
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+ 
+  </div>
+
+#{if !hideTime}
+  <div class="bfh-timepicker pull-left control-group" style="margin-left:5px;margin-bottom: 0px;" id="${field.id}TimeContainer" #{if value}data-time="${value?.format('hh:mm')}"#{/if}>
+    <div class="input-group input-group-sm bfh-timepicker-toggle" data-toggle="bfh-timepicker" style="width:100px;">
+      <span class="input-group-addon">#{icon 'time'/}</span>
+      <input type="text" class="form-control input-sm" style="width: 75px;" id="${field.id}Time" name="${field.name}Time" onkeyup="if (${field.id}) ${field.id}.onKeyUp(event)" onchange="if (${field.id}) ${field.id}.onKeyUp(event)">
+    </div>
+    <div class="bfh-timepicker-popover">
+      <table class="table">
+        <tbody>
+          <tr>
+            <td class="hour">
+              <a class="next" href="#">#{icon 'chevron-up'/}</a><br>
+              <input type="text" class="form-control" readonly><br>
+              <a class="previous" href="#">#{icon 'chevron-down'/}</a>
+            </td>
+            <td class="separator">:</td>
+            <td class="minute">
+              <a class="next" href="#">#{icon 'chevron-up'/}</a><br>
+              <input type="text" class="form-control" readonly><br>
+              <a class="previous" href="#">#{icon 'chevron-down'/}</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>  
+
+  #{if enableCurrentTimeControl}
+    <div style="line-height: 30px;margin-left:5px;" class="pull-left">  
+      <small><a id="${field.id}UseCurrentTime" style="cursor: pointer;">&{'dateTimePicker.useCurrentTime'}</a></small>
+    </div>
+  #{/if}
+#{/if}
+</div>
+
+#{if !hideTime}
+<div id="${field.id}CurrentTime" #{if enableCurrentTime == false}style="display: none;"#{/if}>
+  <div style="line-height: 30px" class="pull-left">
+    <span class="label label-info">&{'dateTimePicker.currentTime'}</span>
+    <small><a id="${field.id}SpecifyTime" style="cursor: pointer;">&{'dateTimePicker.useSpecificTime'}</a></small>
+  </div>
+</div>
+#{/if}

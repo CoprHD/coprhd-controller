@@ -1,0 +1,82 @@
+GET https://192.168.0.0:4443/file/snapshots HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<fileSnapshotRestReps>
+    <file_snapshot>
+        <creation_time>1379840058500</creation_time>
+        <id>urn:storageos:Snapshot:bcc5a260-0c4a-41c2-a04e-dfbcd00e6bc6:</id>
+        <inactive>false</inactive>
+        <link href="/file/snapshots/urn:storageos:Snapshot:bcc5a260-0c4a-41c2-a04e-dfbcd00e6bc6:" rel="self"/>
+        <name>F_9038174395956089</name>
+        <tags/>
+        <mount_path>/ProviderTenant_F90381743959_bcc5a260-0c4a-41c2-a04e-dfbcd00e6bc6</mount_path>
+        <native_id>7239</native_id>
+        <parent>
+            <id>urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:</id>
+            <link href="/file/filesystems/urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:" rel="self"/>
+        </parent>
+    </file_snapshot>
+    <file_snapshot>
+        <creation_time>1379839257762</creation_time>
+        <id>urn:storageos:Snapshot:222d6387-4590-4a7e-9d30-f8d10b808bc4:</id>
+        <inactive>false</inactive>
+        <link href="/file/snapshots/urn:storageos:Snapshot:222d6387-4590-4a7e-9d30-f8d10b808bc4:" rel="self"/>
+        <name>F_9037376331792016</name>
+        <tags/>
+        <mount_path>/ProviderTenant_F90373763317_222d6387-4590-4a7e-9d30-f8d10b808bc4</mount_path>
+        <native_id>7224</native_id>
+        <parent>
+            <id>urn:storageos:FileShare:df1d41b9-9b1d-4419-bb8c-5586cddb30b1:</id>
+            <link href="/file/filesystems/urn:storageos:FileShare:df1d41b9-9b1d-4419-bb8c-5586cddb30b1:" rel="self"/>
+        </parent>
+    </file_snapshot>
+    <file_snapshot>
+        <creation_time>1379903187723</creation_time>
+        <id>urn:storageos:Snapshot:b68cae67-81de-4ed6-aab5-d76499b3e4cd:</id>
+        <inactive>false</inactive>
+        <link href="/file/snapshots/urn:storageos:Snapshot:b68cae67-81de-4ed6-aab5-d76499b3e4cd:" rel="self"/>
+        <name>F_9101308627521439</name>
+        <tags/>
+        <mount_path>/ProviderTenant_F91013086275_b68cae67-81de-4ed6-aab5-d76499b3e4cd</mount_path>
+        <native_id>8049</native_id>
+        <parent>
+            <id>urn:storageos:FileShare:706fed18-6188-4d8b-b38a-5e0ced45d1d0:</id>
+            <link href="/file/filesystems/urn:storageos:FileShare:706fed18-6188-4d8b-b38a-5e0ced45d1d0:" rel="self"/>
+        </parent>
+    </file_snapshot>
+    <file_snapshot>
+        <creation_time>1379839344149</creation_time>
+        <id>urn:storageos:Snapshot:7a44f46e-8cf7-4475-91d3-a69f3e8c4d62:</id>
+        <inactive>false</inactive>
+        <link href="/file/snapshots/urn:storageos:Snapshot:7a44f46e-8cf7-4475-91d3-a69f3e8c4d62:" rel="self"/>
+        <name>F_9037495356928882</name>
+        <tags/>
+        <mount_path>/ProviderTenant_F90374953569_7a44f46e-8cf7-4475-91d3-a69f3e8c4d62</mount_path>
+        <native_id>7226</native_id>
+        <parent>
+            <id>urn:storageos:FileShare:c4108884-6898-441d-b799-85560282f792:</id>
+            <link href="/file/filesystems/urn:storageos:FileShare:c4108884-6898-441d-b799-85560282f792:" rel="self"/>
+        </parent>
+    </file_snapshot>
+    
+    <file_snapshot>
+        <creation_time>1379839439450</creation_time>
+        <id>urn:storageos:Snapshot:6cd40bed-649b-4786-b478-46dbeccd8fea:</id>
+        <inactive>false</inactive>
+        <link href="/file/snapshots/urn:storageos:Snapshot:6cd40bed-649b-4786-b478-46dbeccd8fea:" rel="self"/>
+        <name>F_9037555048028974</name>
+        <tags/>
+        <mount_path>/ProviderTenant_F90375550480_6cd40bed-649b-4786-b478-46dbeccd8fea</mount_path>
+        <native_id>7228</native_id>
+        <parent>
+            <id>urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:</id>
+            <link href="/file/filesystems/urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:" rel="self"/>
+        </parent>
+    </file_snapshot>
+</fileSnapshotRestReps>

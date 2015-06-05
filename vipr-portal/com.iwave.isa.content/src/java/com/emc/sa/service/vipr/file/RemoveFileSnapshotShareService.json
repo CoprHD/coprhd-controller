@@ -1,0 +1,25 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"RemoveFileSnapshotShare.File",
+  serviceId:"RemoveFileSnapshotShare",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileCIFSFilesystem"
+    },
+    
+    snapshot:{
+      type:"assetType.vipr.fileSnapshot"
+    },
+    
+    shareName: {
+      type:"assetType.vipr.fileSnapshotShares",
+      select:"many"
+    }
+  }
+}

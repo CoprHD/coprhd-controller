@@ -1,0 +1,220 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+    http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+	<context:annotation-config />
+	<context:component-scan base-package="com.emc.sa.discovery" />
+	<context:component-scan base-package="com.emc.sa.engine" />
+	<context:component-scan base-package="com.emc.sa.service" />
+	<context:component-scan base-package="com.emc.sa.zookeeper" />	
+	<context:component-scan base-package="com.emc.sa.asset" />
+	<context:component-scan base-package="com.emc.sa.catalog" />
+	
+	<import resource="classpath:dbclient-conf.xml" />
+	<import resource="classpath:sa-var.xml" />
+    <import resource="classpath:local-security-conf.xml" />
+    <import resource="classpath:security-common.xml" />
+    <import resource="classpath:attr-matcher.xml"/>
+    <import resource="classpath:jmx-conf.xml"/>
+    <import resource="classpath:geoclient-conf.xml"/>
+
+    <bean class="org.springframework.context.annotation.CommonAnnotationBeanPostProcessor" />
+
+	<bean id="beacon"
+		class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+		<property name="zkConnection" ref="zkconn" />
+		<property name="service" ref="serviceinfo" />
+	</bean>
+
+	<bean id="bourneDbClient" class="com.emc.sa.model.dao.BourneDbClient"
+		init-method="init">
+		<property name="dbClient" ref="dbclient" />
+	</bean>
+
+	<bean id="modelClient" class="com.emc.sa.model.dao.ModelClient">
+		<constructor-arg ref="bourneDbClient" />
+	</bean>
+	
+    <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
+        <property name="packages">
+            <array>
+                <value>com.emc.sa.model</value>
+            </array>
+        </property>
+    </bean>	
+	
+    <bean id="dependencyChecker" class="com.emc.storageos.db.common.DependencyChecker">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+        <constructor-arg name="dataObjectScanner" ref="dbModelObjectScanner"/>
+    </bean>	
+	
+    <bean id="geoDependencyChecker" class="com.emc.storageos.security.geo.GeoDependencyChecker">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+        <constructor-arg name="coordinator" ref="coordinator"/>
+        <constructor-arg name="localDependencyChecker" ref="dependencyChecker"/>
+    </bean>	
+    
+    <bean id="dbDependencyPurger" class="com.emc.storageos.db.common.DbDependencyPurger">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+        <constructor-arg name="dataObjectScanner" ref="dbModelObjectScanner"/>
+    </bean>    
+
+	<bean id="approvalService" class="com.emc.sa.api.ApprovalService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+	</bean>
+	<bean id="assetOptionsService" class="com.emc.sa.api.AssetOptionService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+	</bean>
+	<bean id="catalogCategoryService" class="com.emc.sa.api.CatalogCategoryService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+        <property name="catalogConfigUtils" ref="catalogConfigUtils"/>
+	</bean>
+	<bean id="catalogImageService" class="com.emc.sa.api.CatalogImageService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+	</bean>	
+	<bean id="catalogServiceService" class="com.emc.sa.api.CatalogServiceService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="catalogConfigUtils" ref="catalogConfigUtils"/>
+	</bean>	
+	<bean id="executionWindowService" class="com.emc.sa.api.ExecutionWindowService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+	</bean>	
+	<bean id="orderService" class="com.emc.sa.api.OrderService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+	</bean>
+	<bean id="serviceDescriptorService" class="com.emc.sa.api.ServiceDescriptorService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+	</bean>	
+	<bean id="userPreferenceService" class="com.emc.sa.api.UserPreferenceService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+	</bean>	
+	<bean id="catalogPreferenceService" class="com.emc.sa.api.CatalogPreferenceService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>	
+	</bean>
+	
+	<bean id="application"
+		class="com.emc.storageos.api.service.impl.resource.StorageApplication">
+		<property name="resource">
+			<set>
+				<ref bean="approvalService" />
+				<ref bean="assetOptionsService" />
+				<ref bean="catalogCategoryService" />
+				<ref bean="catalogImageService" />
+				<ref bean="catalogServiceService" />
+				<ref bean="executionWindowService" />
+				<ref bean="orderService" />
+				<ref bean="serviceDescriptorService" />
+				<ref bean="userPreferenceService" />
+				<ref bean="catalogPreferenceService" />
+				<bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
+				<bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
+				<bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+				<bean class="com.emc.storageos.api.service.impl.resource.ValidatingJacksonJsonProvider"/>
+			</set>
+		</property>
+	</bean>
+	
+    <bean id="keyGenerator" class="com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>	
+	
+    <bean id="permissionsHelper" class="com.emc.storageos.api.service.authorization.PermissionsHelper">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+    </bean>	
+    
+    <bean id="userRepository" class="com.emc.storageos.security.authentication.StorageOSUserRepository">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="localUsers" ref="localUserMap"/>
+    </bean>
+
+    <bean id="userFromRequestHelper" class="com.emc.storageos.security.authentication.UserFromRequestHelper" >
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+    </bean>
+    
+    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+    </bean>
+
+    <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>    
+
+    <!-- HTTP Filter Configuration -->
+    <bean id="disablingFilters" class="com.emc.storageos.security.authentication.SecurityDisablerFilter"/>
+    <bean name="bypassHttpFilter" class="com.emc.storageos.security.authentication.NoAuthHeaderUserFilter"/>
+    
+	<bean id="internalAccessFilter" class="com.emc.storageos.api.service.authentication.ObjInternalHMACAuthFilter">
+        <property name="keyGenerator">
+            <ref bean="keyGenerator" />
+        </property>
+    </bean>
+    
+    <bean id="secFilters" class="org.springframework.web.filter.CompositeFilter">
+        <property name="filters">
+            <list>
+                <ref bean="requestAuditFilter" />
+                <ref bean="logoutFilter"/>
+                <ref bean="bypassHttpFilter" />
+                <ref bean="internalAccessFilter" />
+                <ref bean="tokenBasedAuthFilter" />
+            </list>
+        </property>
+    </bean>    
+
+	<bean id="saservice" class="com.iwave.platform.StorageAutomatorServiceImpl">
+		<property name="application" ref="application" />
+		<property name="disableSSL" value="false" />
+		<property name="dbClient" ref="dbclient" />
+		<property name="securePort" value="9553" />
+		<property name="resourceFilterFactory" ref="permissionsFilterFactory" />
+		<property name="secFilters" ref="secFilters" />
+		<property name="securityDisablingFilter" ref="disablingFilters" />
+		<property name="containerResponseFilter" ref="responseFilter" />
+		<property name="serviceInfo" ref="serviceinfo" />
+		<property name="ciphersToInclude" ref="strongCiphers" />
+		<property name="coordinator" ref="coordinator" />
+	</bean>
+
+    <bean id="asynchExecutor" class="com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorService" init-method="start" destroy-method="stop">
+        <property name="asynchJobThreads" value="5"/>
+    </bean>
+
+    <bean id="orderExecutionQueue" class="com.emc.sa.zookeeper.OrderExecutionQueue"/>
+
+    <bean id="orderNumberSequence" class="com.emc.sa.zookeeper.OrderNumberSequenceImpl"/>
+    
+    <bean id="auditLogManager"
+        class="com.emc.storageos.security.audit.AuditLogManager">
+      <property name="dbClient" ref="dbclient"/>
+    </bean>    
+
+    <bean id="recordableEventManager"
+        class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
+      <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id ="processMonitor" class="com.emc.storageos.processmonitor.ScheduledProcessMonitor" init-method="schedule">
+        <property name="interval" value="300"/>
+        <property name="serviceName" value="SAService"/>
+    </bean>
+
+    <bean id="tokenManager" class="com.emc.storageos.auth.impl.CassandraTokenManager" autowire-candidate="false"/>
+    <bean id="requestedTokenMapHelper" class="com.emc.storageos.security.geo.RequestedTokenHelper" />
+
+    <bean id="catalogConfigUtils" class="com.emc.sa.api.utils.CatalogConfigUtils">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+</beans>

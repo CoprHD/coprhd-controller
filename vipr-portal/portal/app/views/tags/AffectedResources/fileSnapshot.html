@@ -1,0 +1,39 @@
+%{
+  resourceId = _resource.resourceId;
+  fileSnapshot = _resource.fileSnapshot;
+  varray = _resource.neighborhood;
+  fileShare = _resource.fileShare;
+}%
+#{AffectedResources.resource img: 'fileSnapshot.png', classes: 'fileSnapshot', typeKey: 'affectedResources.fileSnapshot'}
+#{AffectedResources.singleColumn}
+  <dt>&{'affectedResources.fileSnapshot'}:</dt>
+  <dd>#{spaceForNull resourceId ?: fileSnapshot?.id/}</dd>
+  #{if fileSnapshot}
+    <dt>&{'affectedResources.fileSnapshot.name'}:</dt>
+    <dd>
+      <a href="@{resources.FileSnapshots.snapshot(fileSnapshot?.id)}"
+      >#{spaceForNull fileSnapshot?.name/}#{if fileSnapshot.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+    </dd>
+
+    <dt>&{'affectedResources.fileSnapshot.creationTime'}:</dt>
+    <dd>#{localDateTime fileSnapshot?.creationTime/}</dd>
+
+    <dt>&{'affectedResources.fileSnapshot.mountPath'}:</dt>
+    <dd>#{spaceForNull fileSnapshot?.mountPath/}</dd>
+
+    #{if varray}
+      <dt>&{'affectedResources.varray'}:</dt>
+      <dd>#{spaceForNull varray?.name/}</dd>
+    #{/if}
+
+    #{if fileShare}
+      <dt>&{'affectedResources.fileSystem'}:</dt>
+      <dd>#{spaceForNull fileShare?.name/}</dd>
+    #{/if}
+  #{/if}
+  #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.fileSnapshot')}</dd>
+  #{/else}
+#{/AffectedResources.singleColumn}
+#{/AffectedResources.resource}

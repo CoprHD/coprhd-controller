@@ -1,0 +1,38 @@
+PUT: https://192.168.0.0:4443/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "cluster_changes": {},
+    "host_changes": {},
+    "initiator_changes": {},
+    "volume_changes": {
+        "remove": [
+            "urn:storageos:BlockSnapshot:4fedc0c0-2ad3-4aec-a8b1-dc41227390e9:"
+        ]
+    }
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "description": "update export",
+    "link": {
+        "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:/tasks/a2d4e295-aa8c-4125-9fd8-9df947c96e92",
+        "rel": "self"
+    },
+    "message": "update export",
+    "op_id": "a2d4e295-aa8c-4125-9fd8-9df947c96e92",
+    "resource": {
+        "id": "urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+        "link": {
+            "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+            "rel": "self"
+        },
+        "name": "rpSanity-example.com-13564"
+    },
+    "start_time": 1380722446251,
+    "state": "pending"
+}

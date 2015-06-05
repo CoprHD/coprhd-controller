@@ -1,0 +1,18 @@
+GET https://192.168.0.0:4443/compute/initiators/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:Initiator:005508ec-3f81-4a37-9ed5-d05566fed30c:',
+            'urn:storageos:Initiator:00baf36d-150a-4d43-b417-8eb1666e6990:',
+            'urn:storageos:Initiator:0184b1ec-3ba4-4000-a82d-3034f18b60d3:',
+            'urn:storageos:Initiator:03063015-055b-425c-99c8-540c3dacc1c7:'
+        ]
+    }
+}

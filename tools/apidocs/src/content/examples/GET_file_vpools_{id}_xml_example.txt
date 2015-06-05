@@ -1,0 +1,52 @@
+GET https://192.168.0.0:4443/file/vpools/urn:storageos:VirtualPool:0a846371-d0f8-4e1a-9fc4-7035b8ee58f0: HTTP/1.1  
+
+Content-Type: application/xml 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<file_vpool>
+    <creation_time>1379828525989</creation_time>
+    <id>urn:storageos:VirtualPool:0a846371-d0f8-4e1a-9fc4-7035b8ee58f0:</id>
+    <inactive>false</inactive>
+    <link href="/file/vpools/urn:storageos:VirtualPool:0a846371-d0f8-4e1a-9fc4-7035b8ee58f0:" rel="self"/>
+    <name>Medium_Performance_File_Real</name>
+    <tags/>
+    <assigned_storage_pools>
+        <storage_pool>
+            <id>urn:storageos:StoragePool:97cb123e-125d-4e58-b86f-0072337a1e5d:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c4362098-8928-4464-812e-41e22797457a:/storage-pools/urn:storageos:StoragePool:97cb123e-125d-4e58-b86f-0072337a1e5d:" rel="self"/>
+        </storage_pool>
+    </assigned_storage_pools>
+    <description>Medium_Performance_File_Real</description>
+    <invalid_matched_pools/>
+    <matched_storage_pools>
+        <storage_pool>
+            <id>urn:storageos:StoragePool:97cb123e-125d-4e58-b86f-0072337a1e5d:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c4362098-8928-4464-812e-41e22797457a:/storage-pools/urn:storageos:StoragePool:97cb123e-125d-4e58-b86f-0072337a1e5d:" rel="self"/>
+        </storage_pool>
+    </matched_storage_pools>
+    <num_resources>160</num_resources>
+    <protocols>
+        <protocol>NFS</protocol>
+    </protocols>
+    <provisioning_type>Thin</provisioning_type>
+    <system_type>NONE</system_type>
+    <type>file</type>
+    <use_matched_pools>false</use_matched_pools>
+    <varrays>
+        <varray>
+            <id>urn:storageos:VirtualArray:ff4c01e2-6288-4a8c-8ccb-b856b0cca6b4:</id>
+            <link href="/vdc/varrays/urn:storageos:VirtualArray:ff4c01e2-6288-4a8c-8ccb-b856b0cca6b4:" rel="self"/>
+        </varray>
+    </varrays>
+    <protection>
+        <snapshots>
+            <max_native_snapshots>1234567</max_native_snapshots>
+        </snapshots>
+    </protection>
+</file_vpool>
+

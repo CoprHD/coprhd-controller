@@ -1,0 +1,6 @@
+%{
+  pinned = request.current().cookies.get('isMenuPinned')?.value == 'true'
+}%
+<div id="mainMenu">
+  #{doBody/}
+</div>

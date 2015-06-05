@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!-- On deployed system, content of this file is generated from controller-var-template.xml -->
+    <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="controllersvc"/>
+        <property name="id" value="controller-standalone"/>
+        <property name="endpointMap">
+            <map>
+                <entry key="FileController" value="rmi://localhost:10099/FileController"/>
+                <entry key="BlockController" value="rmi://localhost:10099/BlockController"/>
+                <entry key="NetworkController" value="rmi://localhost:10099/NetworkController"/>
+                <entry key="ComputeController" value="rmi://localhost:10099/ComputeController"/>
+                <entry key="VcenterController" value="rmi://localhost:10099/VcenterController"/>
+                <entry key="ImageServerController" value="rmi://localhost:10099/ImageServerController"/>
+                <entry key="RPController"  value="rmi://localhost:10099/RPController"/>
+                <entry key="VPlexController"  value="rmi://localhost:10099/VPlexController"/>
+                <entry key="BlockExportController"
+                       value="rmi://localhost:10099/BlockExportController"/>
+                <entry key="BlockOrchestrationController" value="rmi://localhost:10099/BlockOrchestrationController"/>
+                <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
+                <entry key="SRDFController" value="rmi://localhost:10099/SRDFController" />
+            </map>
+        </property>
+        <property name="version" value="1"/>
+        <property name="tags">
+            <set>
+                <value>isilon</value>
+                <value>datadomain</value>
+                <value>ddmc</value>
+                <value>vplex</value>
+                <value>vnxfile</value>
+                <value>vnxe</value>
+                <value>vmax</value>
+                <value>vnxblock</value>
+                <value>mds</value>
+                <value>brocade</value>
+                <value>netapp</value>
+                <value>netappc</value>
+                <value>rp</value>
+                <value>export</value>
+                <value>block-orchestration</value>
+                <value>host</value>
+                <value>vcenter</value>
+                <value>ucs</value>
+                <value>hicommand</value>
+                <value>hds</value>
+                <value>smis</value>
+                <value>ibmxiv</value>
+                <value>cinder</value>
+                <value>openstack</value>
+                <value>scaleio</value>
+                <value>xtremio</value>
+            </set>
+        </property>
+    </bean>
+</beans>

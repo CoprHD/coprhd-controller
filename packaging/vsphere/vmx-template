@@ -1,0 +1,9 @@
+.encoding = UTF-8
+config.version = 8
+virtualHW.version = 7
+virtualHW.productCompatibility = hosted
+scsi0.virtualDev = pvscsi
+scsi0.present = TRUE
+scsi0:2.deviceType = scsi-hardDisk
+scsi0:2.fileName = "${1}"
+scsi0:2.present = TRUE

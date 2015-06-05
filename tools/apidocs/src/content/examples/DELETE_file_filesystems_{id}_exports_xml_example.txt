@@ -1,0 +1,23 @@
+DELETE https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:/exports/NFS,sys,rw,nobody HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+   <link href="/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:/tasks/008f5d02-689d-4953-8b3e-0bd009b0616e"
+      rel="self">
+   <op_id>008f5d02-689d-4953-8b3e-0bd009b0616e</op_id>
+   <resource>
+      <id>urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:</id>
+      <link href="/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:"
+			rel="self">
+      <name>fs-cosnetappf-00:50:56:91:58:91</name>
+   </resource>
+   <start_time>1379958434711</start_time>
+   <state>pending</state>
+</task>

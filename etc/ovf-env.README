@@ -1,0 +1,5 @@
+ovf-env.README
+--------------
+
+In ViPR 2.0 Configuration, the properties will no longer be stored in ovf-env.properties. 
+To get the properties, either use /config/properties REST API or use systool utility: /etc/systool --getprops

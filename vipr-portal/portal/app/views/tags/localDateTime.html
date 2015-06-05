@@ -1,0 +1,12 @@
+%{
+  if (_arg instanceof Date) {
+    timestamp = _arg.time
+  }
+  else if (_arg instanceof Calendar) {
+    timestamp = _arg.timeInMillis
+  }
+  else {
+    timestamp = _arg
+  }
+}%
+<span class="localDateTime" #{if _format}data-format="${_format}" #{/if}style="display:none">${timestamp}</span>

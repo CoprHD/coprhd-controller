@@ -1,0 +1,24 @@
+PUT https://192.168.0.0:4443/block/vpools/urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:/quota HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN=BAAcakl1NzRJT0FuSHE3VWl5Y2psVldab29tbWlrPQMAUAQADTEzNzk2MjQ3OTEyOTcCAAEABQA5dXJuOnN0b3JhZ2VvczpUb2tlbjpkZDdmNDdhZi02ZjdkLTQ5YzUtYWM2ZC03MTI5MTU5MDRmNDI6AgAC0A8=
+
+<quota_update>
+     <quota_enabled>true</quota_enabled>
+     <quota_gb>2</quota_gb>
+</quota_update>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <quota_info>
+       <current_capacity>0</current_capacity>
+       <enabled>true</enabled>
+       <quota_gb>2</quota_gb>
+       <limited_resource>
+       <id>urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:</id>
+       <link href="//urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:" rel="self"/>
+       <name>Protected Base Virtual Pool</name>
+       </limited_resource>
+</quota_info>

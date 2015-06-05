@@ -1,0 +1,12 @@
+GET https://192.168.0.0:4443/logout.json HTTP/1.1  
+
+Content-Type: application/json 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/json 
+
+{
+   "user" : "root"
+}

@@ -1,0 +1,14 @@
+%{
+  classes = _classes ?: ""
+  imgKey = _typeKey != null ? "${_typeKey}.image" : "affectedResources.unknown.image"
+  typeKey = _typeKey ?: "affectedResources.unknown"
+}%
+<div class="resource ${classes}">
+
+    <div class="resourceIcon">
+        <div><img src="/public/img/&{imgKey}"/></div>
+        <div class="label label-info">&{typeKey}</div>
+    </div>
+
+    #{doBody /}
+</div>

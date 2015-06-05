@@ -1,0 +1,13 @@
+GET https://192.168.0.0:4443/file/filesystems/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<ids>
+   <id>urn:storageos:FileShare:840d01a9-7836-3c53-b95a-c6efedc81fc2:</id>
+   <id>urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:</id>
+</ids>

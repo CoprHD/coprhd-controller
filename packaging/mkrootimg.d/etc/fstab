@@ -1,0 +1,14 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# /etc/fstab
+#
+/dev/mapper/root     /                    ext3       acl,user_xattr        0 0
+UUID=3c426f75-726e-6520-2f64-6174613e0000	/data	ext3       defaults              1 0
+/data/logs           /var/log             bind       defaults,bind         0 0
+/data/logs           /opt/storageos/logs  bind       defaults,bind         0 0
+proc                 /proc                proc       defaults              0 0
+sysfs                /sys                 sysfs      noauto                0 0
+debugfs              /sys/kernel/debug    debugfs    noauto                0 0
+devpts               /dev/pts             devpts     mode=0620,gid=5       0 0

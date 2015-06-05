@@ -1,0 +1,17 @@
+GET https://192.168.0.0:4443/vdc/smis-providers/deactivated-systems.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json  
+
+{
+  "decommissioned_resource": [
+    {
+      "user": "root",
+      "type": "StorageSystem",
+      "native_guid": "CLARIION+APM00114403103",
+      "decommissioned_id": "urn:storageos:StorageSystem:3e08c3c2-e477-41d0-8d7b-47b1a10becb2:"
+    }
+  ]

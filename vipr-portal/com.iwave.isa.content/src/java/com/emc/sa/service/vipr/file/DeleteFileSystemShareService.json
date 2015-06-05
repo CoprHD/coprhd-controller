@@ -1,0 +1,21 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"DeleteFileSystemShare.File",
+  serviceId:"DeleteFileSystemShare",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileCIFSFilesystem"
+    },
+    
+    shareName: {
+      type:"assetType.vipr.fileShares",
+      select:"many"
+    }
+  }
+}

@@ -1,0 +1,209 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function validateMailSettings() {
+    var server = $("#${util.ConfigProperty.SMTP_SERVER}").val();
+    var port = $("#${util.ConfigProperty.SMTP_PORT}").val();
+    var username = $("#${util.ConfigProperty.SMTP_USERNAME}").val();
+    var password = $("#${util.ConfigProperty.SMTP_PASSWORD}").val();
+    var enableTls = $("#${util.ConfigProperty.SMTP_ENABLE_TLS}").val();
+    var authType = $("#${util.ConfigProperty.SMTP_AUTH_TYPE}").val();
+    var fromAddress = $("#${util.ConfigProperty.SMTP_FROM_ADDRESS}").val();
+    var toAddress = $("#configProperties_smtp_toAddress").val();
+    
+    var data = {
+            authenticityToken: '${session.authenticityToken}',
+            server: server,
+            port: port,
+            username: username,
+            password: password,
+            enableTls: enableTls,
+            authType: authType,
+            fromAddress: fromAddress,
+            toAddress: toAddress
+    }
+    var url = #{jsAction @infra.ConfigProperties.validateMailSettings()/}();
+    startValidation();
+    hideValidationDialog();
+    
+    $.post(url, data, function(result) {
+        showValidationResult(result);
+        endValidation();
+    });
+}
+function showValidationDialog() {
+    $('#testEmailForm').modal();
+    $('#toAddress').val("");
+} 
+function hideValidationDialog() {
+    $('#testEmailForm').modal('hide');
+    $('#toAddress').val("");
+}
+function startValidation() {
+    $('#validateButton i').removeClass('glyphicon-envelope');
+    $('#validateButton img').show();
+    $('#alerts_success').hide();
+    $('#alerts_error').hide();
+    $('#validateButton').addClass('disabled');
+    $('#validateButton').prop('disabled', true);
+}
+function endValidation() {
+    $('#validateButton').removeClass('disabled');
+    $('#validateButton').prop('disabled', false);
+    $('#validateButton img').hide();
+    $('#validateButton i').addClass('glyphicon-envelope');
+}
+function showValidationResult(result) {
+    var success = false;
+    var message = "";
+    if ($.isArray(result)) {
+        for (var i = 0; i < result.length; i++) {
+            if (i > 0) {
+                message += "<br>";
+            }
+            message += result[i].message;
+            success = success || result[i].success;
+        }
+    }
+    else {
+        message = result.message;
+        success = result.success;
+    }
+    
+    if (success) {
+        $('#alerts_success .message').html(message);
+        $('#alerts_success').slideDown('fast');
+    }
+    else {
+        $('#alerts_error .message').html(message);
+        $('#alerts_error').slideDown('fast');
+    }
+}
+$(document).ready(function() {
+    $('#testMailCancel').bind('click', function (e) {
+        e.preventDefault();
+        hideValidationDialog();
+    });  
+    $("#testEmailForm").on('hidden', function() {
+        $("#configProperties_smtp_toAddress").val('');
+        $("#configProperties_smtp_toAddress").trigger('change');
+    });
+    $("#testEmailForm").on('shown', function() {
+        $('#configProperties_smtp_toAddress').focus();
+    });      
+    $('#testMail').bind('click', function (e) {
+        e.preventDefault();
+        validateMailSettings();
+    });
+    $('#validateButton').on('click', function(e) {
+        e.preventDefault();
+        showValidationDialog();
+    });
+    
+    // Initialize controls
+    var server = $("#${util.ConfigProperty.SMTP_SERVER}");
+    var port = $("#${util.ConfigProperty.SMTP_PORT}");
+    var username = $("#${util.ConfigProperty.SMTP_USERNAME}");
+    var password = $("#${util.ConfigProperty.SMTP_PASSWORD}");
+    var enableTls = $("#${util.ConfigProperty.SMTP_ENABLE_TLS}");
+    var authType = $("#${util.ConfigProperty.SMTP_AUTH_TYPE}");
+    var fromAddress = $("#${util.ConfigProperty.SMTP_FROM_ADDRESS}");
+    var toAddress = $("#configProperties_smtp_toAddress");
+    var validateButton = $('#validateButton');
+    var testButton = $('#testMail');
+    
+    var changeHandler = function() {
+        var enableValidate = isNotBlank(server.val()) && isNotBlank(fromAddress.val());
+        
+        if (enableValidate) {
+            var requireAuth = authType.val() != 'None';
+            if (requireAuth) {
+                enableValidate = isNotBlank(username.val()) && isNotBlank(password.val());
+            }
+        }
+        
+        if (enableValidate) {
+            validateButton.prop('disabled', false);
+            validateButton.removeClass('disabled');
+        }
+        else {
+            validateButton.prop('disabled', true);
+            validateButton.addClass('disabled');
+        }
+        
+        var enableTest = enableValidate && isNotBlank(toAddress.val());
+        if (enableTest) {
+            testButton.prop('disabled', false);
+            testButton.removeClass('disabled');
+        }
+        else {
+            testButton.prop('disabled', true);
+            testButton.addClass('disabled');
+        }
+    };
+    
+    changeHandler();
+    server.on('change keyup', changeHandler);
+    port.on('change keyup', changeHandler);
+    username.on('change keyup', changeHandler);
+    password.on('change keyup', changeHandler);
+    enableTls.on('change keyup', changeHandler);
+    authType.on('change keyup', changeHandler);
+    fromAddress.on('change keyup', changeHandler);
+    toAddress.on('change keyup', changeHandler);
+    
+    // Handle enter key press
+    toAddress.on('keydown', function(e) {
+        if (e.keyCode == 13) {
+            e.preventDefault();
+            if (!testButton.hasClass('disabled')) {
+                testButton.click();
+            }
+        }
+    });
+});
+
+</script>
+#{/set}
+
+#{ConfigProperties.property property:page.server, disabled:unstable/}
+#{ConfigProperties.property property:page.port, disabled:unstable/}
+#{ConfigProperties.property property:page.enableTls, disabled:unstable/}
+#{ConfigProperties.property property:page.authType, disabled:unstable/}
+#{ConfigProperties.property property:page.username, disabled:unstable/}
+#{ConfigProperties.property property:page.password, disabled:unstable/}
+#{ConfigProperties.property property:page.fromAddress, disabled:unstable/}
+
+#{if page.properties}
+  #{ConfigProperties.propertySet}
+    #{ConfigProperties.propertyList properties:page.properties, disabled:unstable/}
+  #{/ConfigProperties.propertySet}
+#{/if}
+
+<div id="ValidationControlGroup" class="form-group">
+  <div class="col-sm-3">
+    &nbsp;
+  </div>
+  <div class="col-sm-6">
+    <button id="validateButton" type="button" class="btn btn-info">
+      #{icon 'envelope'/} &{'configProperties.smtp.validate'}
+    </button>
+  </div>
+</div>
+
+*{ Modal Dialog for sending a test email }*
+#{Modal.dialog id:'testEmailForm', titleKey: 'configProperties.smtp.validate'}
+  #{Modal.body}
+    #{field 'configProperties.smtp.toAddress'} 
+        %{ field.cssClass = 'span4' }%
+        #{Form.inputTextControlGroup field:field/}
+      #{/field}            
+  #{/Modal.body}
+  #{Modal.footer}
+    <a href="#" class="btn btn-primary" id="testMail">#{icon 'check'/} &{'configProperties.smtp.sendEmail'}</a>
+    <a href="#" class="btn btn-default" id="testMailCancel">#{icon 'remove'/} &{'button.cancel'}</a>
+  #{/Modal.footer}
+#{/Modal.dialog}

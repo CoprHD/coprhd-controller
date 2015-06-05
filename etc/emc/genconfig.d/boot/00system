@@ -1,0 +1,70 @@
+#!/etc/genconfig
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_gen_hypervisor() {
+    /etc/getplatform
+}
+
+_gen_kernel_version() {
+    uname -r
+}
+
+_gen_motd() {
+     for arg in $(</proc/cmdline) ; do case ${arg} in product=*)
+         echo "${nl}Welcome to ${arg#*=}${nl} "
+     esac ; done
+}
+
+# This method can be dropped once we have an image
+# with fix.sh changes
+_passwd() {
+    while read line ; do case ${line} in
+        svcuser:*)   echo "svcuser:x:1001:100:Appliance Maintenance:/home/svcuser:/bin/bash" ;;
+        *)           echo "${line}"                        ;;
+    esac ; done
+}
+
+_gen_passwd() {
+    passwd=$(_passwd <"${1}")
+    _genconfig_write 644 root:root "${1}" "${passwd}"
+    _genconfig_done
+}
+
+_gen_login_banner() {
+    echo "${_GENCONFIG_system_login_banner}"
+}
+
+_gen_set_login_banner() {
+    _genconfig_symlink "/etc/issue" "${1}"
+    sed -i "/^#Banner/ c\Banner /etc/issue" /etc/ssh/sshd_config
+    _genconfig_done
+}
+
+_gen_rem_dir() {
+    if [ -d "${1}" ]; then
+        rm -rf "${1}"
+    fi
+    _genconfig_done
+}
+
+_genconfig_exec _gen_hypervisor          /opt/storageos/etc/platform
+_genconfig_exec _gen_kernel_version      /opt/storageos/etc/kernel
+_genconfig_exec _gen_motd                /etc/motd
+_genconfig_exec _gen_passwd              /etc/passwd
+_genconfig_exec _gen_login_banner        /etc/issue
+_genconfig_exec _gen_set_login_banner    /etc/issue.net
+_genconfig_exec _gen_rem_dir             /data/logs/news

@@ -1,0 +1,29 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if snapshots}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.snapshot.name'}</th>
+      <th>&{'resources.filesnapshot.mountpath'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:snapshots, as:'snapshot'}
+      <tr>
+        <td>
+          <a href="@{resources.FileSnapshots.snapshot(snapshot.id)}"
+          ><img src="/public/img/assets/Snapshot.png" style="width: 32px;"/> ${snapshot.name}</a>
+        </td>
+        <td>
+          ${snapshot.mountPath}
+        </td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.snapshots.none'}
+#{/else}

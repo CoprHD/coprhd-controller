@@ -1,0 +1,23 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+[Unit]
+Description=Duplicate IP Checker
+Wants=network.service SuSEfirewall2.service
+After=network.service SuSEfirewall2.service storageos-installer.service
+Before=getty@tty1.service user.slice
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=oneshot
+ExecStart=/etc/storageos/ipchecktool --panic
+RemainAfterExit=yes
+Restart=no
+TimeoutSec=0
+StandardOutput=tty
+StandardInput=tty-force
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=multi-user.target

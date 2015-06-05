@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 6503,
+  "description": "Unable to connect to the service. The service is unavailable, try again later.",
+  "details": "The service is currently unavailable because a connection failed to a core component. Please contact an administrator or try again later.",
+  "retryable": true
+}

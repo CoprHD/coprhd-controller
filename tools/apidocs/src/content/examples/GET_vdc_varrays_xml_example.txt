@@ -1,0 +1,26 @@
+GET https://192.168.0.0:4443/vdc/varrays HTTP/1.1  
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+     <varrays>
+          <varray>
+               <id>urn:storageos:VirtualArray:88543171-9a1b-4133-ac71-d93990d3bebd:</id>
+               <link href="/vdc/varrays/urn:storageos:VirtualArray:88543171-9a1b-4133-ac71-d93990d3bebd:" rel="self"/>
+               <name>Phoenix</name>
+          </varray>
+          <varray>
+               <id>urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:</id>
+               <link href="/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:" rel="self"/>
+               <name>Freemont</name>
+          </varray>
+          <varray>
+               <id>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</id>
+               <link href="/vdc/varrays/urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:" rel="self"/>
+               <name>Sacramento</name>
+          </varray>
+     </varrays>

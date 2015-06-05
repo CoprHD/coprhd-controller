@@ -1,0 +1,19 @@
+GET https://192.168.0.0:4443/vdc/storage-tiers/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:StorageTier:13596608-c0a0-4e87-b65e-f09d5022e11a:',
+            'urn:storageos:StorageTier:19b3cea3-4814-407f-a565-a41fe745351c:',
+            'urn:storageos:StorageTier:1c47b776-4478-40d3-ba82-6d30d6e4f962:',
+            'urn:storageos:StorageTier:1c815df4-8a71-40cc-895d-91cd5f04130c:',
+            'urn:storageos:StorageTier:1cc9255b-fd0c-4c5d-ad3b-873574a7433e:'
+        ]
+    }
+}

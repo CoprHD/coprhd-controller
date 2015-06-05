@@ -1,0 +1,5 @@
+<li ng-class="{active: active}">
+    <a ng-href="{{url}}" ng-if="url">{{title}}</a>
+    <span ng-if="!url">{{title}}</span>
+    <span ng-if="!active" class="divider"></span>
+</li>

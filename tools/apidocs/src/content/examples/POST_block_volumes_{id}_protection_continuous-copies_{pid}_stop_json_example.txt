@@ -1,0 +1,65 @@
+POST https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:b9331197-ffb1-4c93-a474-16e9f552d3be:/stop.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+ 
+{
+    "task":[
+    {
+        "resource":{
+            "id":"urn:storageos:Volume:26181b83-1b71-4fbe-ab0c-d2d1bf47c8bd:",
+                "link":{
+                    "rel":"self",
+                    "href":"/block/volumes/urn:storageos:Volume:26181b83-1b71-4fbe-ab0c-d2d1bf47c8bd:"
+                }
+        },
+            "state":"pending",
+            "start_time":1380817411850,
+            "op_id":"c7b7a35b-8ac5-4209-b561-1143ee97fa61",
+            "link":{
+                "rel":"self",
+                "href":"/block/volumes/urn:storageos:Volume:26181b83-1b71-4fbe-ab0c-d2d1bf47c8bd:/tasks/c7b7a35b-8ac5-4209-b561-1143ee97fa61"
+            },
+            "associated_resources":[
+            {
+                "name":"mirror",
+                "id":"urn:storageos:BlockMirror:b9331197-ffb1-4c93-a474-16e9f552d3be:",
+                "link":{
+                    "rel":"self",
+                    "href":"/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:b9331197-ffb1-4c93-a474-16e9f552d3be:"
+                }
+            }
+        ]
+    },
+    {
+        "resource":{
+            "name":"volume",
+            "id":"urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:",
+            "link":{
+                "rel":"self",
+                "href":"/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:"
+            }
+        },
+        "state":"pending",
+        "start_time":1380817411845,
+        "op_id":"c7b7a35b-8ac5-4209-b561-1143ee97fa61",
+        "link":{
+            "rel":"self",
+            "href":"/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/tasks/c7b7a35b-8ac5-4209-b561-1143ee97fa61"
+        },
+        "associated_resources":[
+        {
+            "name":"mirror",
+            "id":"urn:storageos:BlockMirror:b9331197-ffb1-4c93-a474-16e9f552d3be:",
+            "link":{
+                "rel":"self",
+                "href":"/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:b9331197-ffb1-4c93-a474-16e9f552d3be:"
+            }
+        }
+        ]
+    }
+    ]
+}

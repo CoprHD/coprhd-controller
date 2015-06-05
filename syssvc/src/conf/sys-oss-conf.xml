@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans profile="oss" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans  http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+    <import resource="classpath:security-oss-conf.xml"/>
+
+    <bean id="callHomeService" class="com.emc.storageos.systemservices.impl.resource.OpenSourceCallHomeServiceImpl" />
+
+    <bean id="licenseManager" class="com.emc.storageos.systemservices.impl.licensing.OpenSourceLicenseManagerImpl">
+        <property name="coordinatorClientExt" ref="coordinatorclientext"/>
+    </bean>
+
+    <bean id="licensingService" class="com.emc.storageos.systemservices.impl.resource.OpenSourceLicensingServiceImpl" />
+
+    <bean id="servicesMetadata" class="com.emc.storageos.services.ServicesMetadata">
+        <property name="roleMetadataMap">
+            <map>
+                <entry key="#{controlRoleInfo.name}" value-ref="controlRoleInfo"/>
+                <entry key="#{sysRoleInfo.name}" value-ref="sysRoleInfo"/>
+            </map>
+        </property>
+        <property name="serviceMetadataMap">
+            <!--remove vasasvc from the map-->
+            <map>
+                <entry key="#{apiSvcInfo.name}" value-ref="apiSvcInfo"/>
+                <entry key="#{authSvcInfo.name}" value-ref="authSvcInfo"/>
+                <entry key="#{controllerSvcInfo.name}" value-ref="controllerSvcInfo"/>
+                <entry key="#{coordinatorSvcInfo.name}" value-ref="coordinatorSvcInfo"/>
+                <entry key="#{dbSvcInfo.name}" value-ref="dbSvcInfo"/>
+                <entry key="#{portalSvcInfo.name}" value-ref="portalSvcInfo"/>
+                <entry key="#{saSvcInfo.name}" value-ref="saSvcInfo"/>
+                <entry key="#{sysSvcInfo.name}" value-ref="sysSvcInfo"/>
+                <entry key="#{geoSvcInfo.name}" value-ref="geoSvcInfo"/>
+                <entry key="#{geodbSvcInfo.name}" value-ref="geodbSvcInfo"/>
+            </map>
+        </property>
+    </bean>
+</beans>

@@ -1,0 +1,22 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"DetachFullCopy.Block",
+  serviceId:"DetachFullCopy",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volume:{
+      type:"assetType.vipr.volumeWithFullCopies",
+      select: "one"
+    },
+
+    copies:{
+      type:"assetType.vipr.fullCopyAvailableForDetach",
+      select: "many"
+    }
+  }
+}

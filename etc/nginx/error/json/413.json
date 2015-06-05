@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 6413,
+  "description": "Request Entity Too Large",
+  "details": "The request is larger than the erver is willing to process.  Please reduce the size of the request and try again.",
+  "retryable": false
+}

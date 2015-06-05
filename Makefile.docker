@@ -1,0 +1,20 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+DEVKIT_BUILD=20
+DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.3.0.0.$(DEVKIT_BUILD)
+DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" $(DEVKIT_IMAGE)
+ 
+%::
+	$(DOCKER_RUN) make -f Makefile $@ $(MAKEFLAGS)
+

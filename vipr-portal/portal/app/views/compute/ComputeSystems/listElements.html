@@ -1,0 +1,41 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.computeSystems'] /}
+#{set 'title'}&{'ComputeSystems.listElements.title'}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @compute.ComputeSystems.list()}&{'ComputeSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @compute.ComputeSystems.edit(computeSystem.id)}${computeSystem.name}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey:'ComputeSystems.listElements.title'/}
+
+#{DataTable.table id:'computeSystemElements', 
+                  dataTable:dataTable,
+                  expandable: true,
+                  source:@computeElementsJson(computeSystem.id),
+                  selectable:true}
+  #{Form.button name:'button.register', icon:'plus', submit:'registerForm', 
+                data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
+  #{Form.button name:'button.deregister', icon:'plus', submit:'deregisterForm', 
+                data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/}
+
+
+  #{/DataTable.table}
+#{DataTable.expandHtml @elementDetails(':id'), table:'computeSystemElements' /}
+
+%{ formFields = ['computeSystemId': computeSystem.id] }%
+#{DataTable.formAction @registerElements(), id:'registerForm', table:'computeSystemElements', fields:formFields/}
+#{DataTable.formAction @deregisterElements(), id:'deregisterForm', table:'computeSystemElements', fields:formFields/}
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var dataTable = table.computeSystemElements.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDiscoveryStatus(dataTable, itemsJson, ['version', 'registrationStatus']);
+});
+</script>

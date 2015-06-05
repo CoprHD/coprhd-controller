@@ -1,0 +1,201 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_error() {
+    local keystroke
+    echo -e "\n\e[1;31mError: ${1} \e[0m"
+    echo -e "\n\e[1;31mPress 'c' to continue or any other key to power off this VM\n***\e[0m"
+    read -n 1 keystroke </dev/tty
+    if [[ $keystroke != [cC] ]]; then
+        /etc/systool --poweroff
+        exit 1
+    fi
+}
+
+_panic() {
+    echo -e "\n\e[1;31mError:${*}\e[0m"
+    echo -e "\n\e[1;31mPress any key to power off this VM\n***\e[0m"
+    read -n 1 </dev/tty
+    /etc/systool --poweroff
+    exit 1
+}
+
+_remind() {
+    local keystroke
+    echo -e "\n\e[1;31mError:${*}\e[0m"
+    echo -e "\n\e[1;31mPress any key to continue boot up\n***\e[0m"
+    read -n 1 keystroke </dev/tty
+}
+
+#returns array with unique elements
+_auniq(){
+    a=("${!1}")
+    echo $(tr ' ' '\n' <<< "${a[@]}" | sort -u | tr '\n' ' ')
+}
+
+#returns diff of two arrays
+_adiff(){
+  awk 'BEGIN{RS=ORS=" "}
+       {NR==FNR?a[$0]++:a[$0]--}
+       END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
+}
+
+_get_subnet_ipvx(){
+    local -a outArray
+    local -a inArray=("$@")
+    local prefixlength=${_GENCONFIG_network_prefix_length}
+    local networkmask=${_GENCONFIG_network_netmask}
+
+    for i in "${inArray[@]}" ; do
+       if grep -q ":" <<< ${i} ; then
+           outArray+=($(sipcalc "${i}/${prefixlength}" | egrep '^Subnet prefix \(masked\)' | awk '{print $5}'))
+       else
+           outArray+=($(sipcalc ${i} ${networkmask} | egrep '^Network address' | awk '{print $4}'))
+       fi
+    done
+    echo ${outArray[@]}
+}
+
+_test_multivdc_ipchange() {
+    case ${_GENCONFIG_node_id} in 'standalone') return 0 ; esac
+    local vdc=${_GENCONFIG_vdc_myid}
+    # If the local VDC is the only VDC just retrun 0 no need to check
+    [ "${vdc}" == "${_GENCONFIG_vdc_ids}" ] && return 0
+    local changed_ips=""
+    local index
+    for index in ${_GENCONFIG_node_indexes} ; do
+        local var="_GENCONFIG_network_${index}_ipaddr"
+        local new_ipaddr=${!var}
+        var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
+        local old_ipaddr=${!var}
+        var="_GENCONFIG_network_${index}_ipaddr6"
+        local new_ipaddr6=${!var}
+        var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr6"
+        local old_ipaddr6=${!var}
+        [ "${new_ipaddr}" != "${old_ipaddr}" ] && changed_ips="${changed_ips}Server ${index} IPv4 address changed from ${old_ipaddr:-"0.0.0.0"} to ${new_ipaddr:-"0.0.0.0"}\n"
+        [ "${new_ipaddr6}" != "${old_ipaddr6}" ] && changed_ips="${changed_ips}Server ${index} IPv6 address changed from ${old_ipaddr6:-"::0"} to ${new_ipaddr6:-"::0"}\n"
+    done
+
+    local new_vip=${_GENCONFIG_network_vip}
+    var="_GENCONFIG_vdc_${vdc}_network_vip"
+    local old_vip=${!var}
+    local new_vip6=${_GENCONFIG_network_vip6}
+    var="_GENCONFIG_vdc_${vdc}_network_vip6"
+    local old_vip6=${!var}
+    [ "${old_vip}" != "" ] && [ "${new_vip}" != "${old_vip}" ] && changed_ips="${changed_ips}Virtual IPv4 address changed from ${old_vip:-"0.0.0.0"} to ${new_vip:-"0.0.0.0"}\n"
+    [ "${old_vip6}" != "" ] && [ "${new_vip6}" != "${old_vip6}" ] && changed_ips="${changed_ips}Virtual IPv6 address changed from ${old_vip6:-"::0"} to ${new_vip6:-"::0"}\n"
+
+    [ -n "${changed_ips}" ] && _panic " IP address changes are not permitted in a multi VDC configuration.\nThe following changes were detected:\n${changed_ips}Please power down ViPR set the IP addresses to their previous values before powering ViPR on again." || return 0
+
+}
+
+_test_valid_ipv6_addr() {
+
+    if [[ ${_GENCONFIG_NETWORK_STACK} == "IPv4" ]]; then
+        return 0
+    fi
+
+    local ipv6List=${_GENCONFIG_network_complete_ipv6_list}
+    for i in ${ipv6List} ; do
+        if ! _is_ipv6_addr ${i} ; then
+            _panic "Invalid IPv6 address : ${i}  Please power down ViPR and specify valid IPv6 addresses."
+        fi
+    done
+
+    for i in ${_GENCONFIG_node_indexes} ; do
+        local var="_GENCONFIG_network_${i}_ipaddr6"
+        [ ! -z "${!var}" ] || _panic "The IPv6 address for server ${i} is empty, please power down ViPR and specify a valid IPv6 address for each server."
+    done
+
+}
+
+_test_vip() {
+    case ${_GENCONFIG_node_id} in 'standalone') return 0 ; esac
+    local vip=${_GENCONFIG_network_vip}
+    local vip6=${_GENCONFIG_network_vip6}
+    if [[ ${_GENCONFIG_NETWORK_STACK} == IPv4 && -z ${vip} ]]; then
+        _panic "For IPv4 deployment IPv4 public virtual address is required. Please power down ViPR and specify a valid IPv4 virtual address (network_vip ovf property)."
+    fi
+    if [[ ${_GENCONFIG_NETWORK_STACK} == IPv6 && -z ${vip6} ]]; then
+        _panic "For IPv6 deployment IPv6 public virtual address is required. Please power down ViPR and specify a valid IPv6 virtual address (network_vip6 ovf property)."
+    fi
+    if [[ ${_GENCONFIG_NETWORK_STACK} == DUAL_STACK ]] && [[ -z ${vip6} || -z ${vip} ]]; then
+        _panic "For DUAL_STACK deployment both IPv6 and IPv4 public virtual addresses are required. Please power down ViPR and specify a valid IPv6 virtual address (network_vip6 ovf property) and valid IPv4 virtual address (network_vip ovf property)."
+    fi
+
+}
+
+# Tests if there are any identical IPs in the IP list
+_test_ip_uniqueness() {
+    local ipv4List=${_GENCONFIG_network_complete_ipv4_list}
+
+    local ipv6List=${_GENCONFIG_network_complete_ipv6_list}
+
+    local ipv4ListUniq=($(_auniq ipv4List[@]))
+    local ipv6ListUniq=($(_auniq ipv6List[@]))
+    local ipv4Diff=($(_adiff ipv4List[@] ipv4ListUniq[@]))
+    local ipv6Diff=($(_adiff ipv6List[@] ipv6ListUniq[@]))
+
+#    if [[ ${#ipv4Diff[@]} -ne 0 ]]; then
+#        _panic "The IPv4 addresses: ${ipv4Diff[*]} is/are duplicated in the configuration. Please power down ViPR and specify unique IP addresses."
+#    fi
+    if [[ ${#ipv6Diff[@]} -ne 0 ]]; then
+        _panic "The IPv6 addresses: ${ipv6Diff[*]} is/are duplicated in the configuration. Please power down ViPR and specify unique IP addresses."
+    fi
+}
+
+# Tests if all node ips and vip are in same subnet
+_test_subnet(){
+    local ipList_v4
+    local ipList_v6
+    local ipList_v4=${_GENCONFIG_network_complete_ipv4_list}
+    local ipList_v6=${_GENCONFIG_network_complete_ipv6_list}
+    local prefix_length=${_GENCONFIG_network_prefix_length}
+    [ -n "${ipList_v6#"${ipList_v6%%[![:space:]]*}"}" ] && [ ${prefix_length} -gt 128 ] &&  _error "The IPv6 network prefix length ${prefix_length} exceeds the maximum length of 128.  Please power down ViPR and correct the value of the IPv6 network prefix length."
+
+    local ipv4_subnets=$(_get_subnet_ipvx ${ipList_v4[@]})
+    local ipv6_subnets=$(_get_subnet_ipvx ${ipList_v6[@]})
+
+    local ipv4_uniq_subnets=($(_auniq ipv4_subnets[@]))
+    local ipv6_uniq_subnets=($(_auniq ipv6_subnets[@]))
+    if [[ ${#ipv4_uniq_subnets[@]} > 1 ]]; then
+        _error "The addresses: ${ipList_v4[*]} belong to different subnets: ${ipv4_uniq_subnets[*]} .  If the IPv4 addresses are correct this can also be caused by an incorrect netmask or gateway.  Please power down ViPR and correct the IPv4 network properties."
+    fi
+    if [[ ${#ipv6_uniq_subnets[@]} > 1 ]]; then
+        _error "The addresses: ${ipList_v6[*]} belong to different subnets: ${ipv6_uniq_subnets[*]} .  If the IPv6 addresses are correct this can also be caused by an incorrect network prefix length or gateway.  Please power down ViPR and correct the IPv6 network properties."
+    fi
+}
+
+_test_network_stack() {
+    [[ $_GENCONFIG_NETWORK_STACK != "DUAL_STACK" ]] && return 0
+
+    local number_of_ipv4_entries=${#ipv4list[@]}
+    local number_of_ipv6_entries=${#ipv6list[@]}
+    if [[ ${number_of_ipv4_entries} -ne ${number_of_ipv6_entries} ]] ; then
+        _error "All nodes should be either IPv4, IPv6 or Dual Stack. In dual stack setting every ipv4 entry should have a corresponding ipv6 entry. IPv4 entries: ${ipv4list[*]} IPv6 entries: ${ipv6list[*]}. Please power down ViPR and correct the IP address settings."
+    fi
+}
+
+_test_ntp_servers() {
+    if [[ ${_GENCONFIG_vdc_ids} == *,* ]]; then
+        if [[ -z ${_GENCONFIG_network_ntpservers} ]]; then
+            _remind "In multiple VDC setting, every VDC should have external ntp servers configured. Please configure ntp server after boot up."
+        fi
+    fi
+}
+
+_test_multivdc_ipchange
+_test_valid_ipv6_addr
+_test_vip
+_test_ip_uniqueness
+_test_subnet
+_test_network_stack
+_test_ntp_servers

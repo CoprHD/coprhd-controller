@@ -1,0 +1,427 @@
+GET https://192.168.0.0:4443/block/exports/urn:storageos:ExportGroup:491fc994-36ec-4d47-a0c7-2dd84b9df8dc: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<block_export>
+    <creation_time>1379682641887</creation_time>
+    <id>urn:storageos:ExportGroup:491fc994-36ec-4d47-a0c7-2dd84b9df8dc:</id>
+    <inactive>false</inactive>
+    <link href="/block/exports/urn:storageos:ExportGroup:491fc994-36ec-4d47-a0c7-2dd84b9df8dc:" rel="self"/>
+    <name>billhost1-1379682635864</name>
+    <tags/>
+    <clusters>
+        <cluster>
+            <creation_time>1379169055067</creation_time>
+            <id>urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:</id>
+            <inactive>false</inactive>
+            <link href="/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:" rel="self"/>
+            <name>cluster</name>
+            <tags/>
+            <tenant>
+                <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+                <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+            </tenant>
+        </cluster>
+    </clusters>
+    <generated_name>billhost11379682635864</generated_name>
+    <hosts>
+        <host>
+            <creation_time>1379169055934</creation_time>
+            <id>urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:</id>
+            <inactive>false</inactive>
+            <link href="/compute/hosts/urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:" rel="self"/>
+            <name>billhost1</name>
+            <tags/>
+            <native_guid/>
+            <compatibility_status>UNKNOWN</compatibility_status>
+            <job_discovery_status>ERROR</job_discovery_status>
+            <last_discovery_run_time>1379686619032</last_discovery_run_time>
+            <last_discovery_status_message>Unknown host: billhost1</last_discovery_status_message>
+            <last_metering_run_time>0</last_metering_run_time>
+            <job_metering_status>CREATED</job_metering_status>
+            <next_discovery_run_time>0</next_discovery_run_time>
+            <next_metering_run_time>0</next_metering_run_time>
+            <registration_status>REGISTERED</registration_status>
+            <tenant>
+                <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+                <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+            </tenant>
+            <cluster>
+                <id>urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:</id>
+                <link href="/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:" rel="self"/>
+            </cluster>
+            <host_name>billhost1</host_name>
+            <os_version>1.0</os_version>
+            <port_number>8111</port_number>
+            <type>Windows</type>
+            <use_ssl>false</use_ssl>
+            <user_name>user</user_name>
+        </host>
+        <host>
+            <creation_time>1379169056272</creation_time>
+            <id>urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:</id>
+            <inactive>false</inactive>
+            <link href="/compute/hosts/urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:" rel="self"/>
+            <name>billhost2</name>
+            <tags/>
+            <native_guid/>
+            <compatibility_status>UNKNOWN</compatibility_status>
+            <job_discovery_status>ERROR</job_discovery_status>
+            <last_discovery_run_time>1379686619047</last_discovery_run_time>
+            <last_discovery_status_message>Unknown host: billhost2</last_discovery_status_message>
+            <last_metering_run_time>0</last_metering_run_time>
+            <job_metering_status>CREATED</job_metering_status>
+            <next_discovery_run_time>0</next_discovery_run_time>
+            <next_metering_run_time>0</next_metering_run_time>
+            <registration_status>REGISTERED</registration_status>
+            <tenant>
+                <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+                <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+            </tenant>
+            <cluster>
+                <id>urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:</id>
+                <link href="/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:" rel="self"/>
+            </cluster>
+            <host_name>billhost2</host_name>
+            <os_version>1.0</os_version>
+            <port_number>8111</port_number>
+            <type>Windows</type>
+            <use_ssl>false</use_ssl>
+            <user_name>user</user_name>
+        </host>
+        <host>
+            <creation_time>1379169836224</creation_time>
+            <id>urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:</id>
+            <inactive>false</inactive>
+            <link href="/compute/hosts/urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:" rel="self"/>
+            <name>wjehost2</name>
+            <tags/>
+            <native_guid/>
+            <compatibility_status>UNKNOWN</compatibility_status>
+            <job_discovery_status>ERROR</job_discovery_status>
+            <last_discovery_run_time>1379686619059</last_discovery_run_time>
+            <last_discovery_status_message>Unknown host: wjehost2</last_discovery_status_message>
+            <last_metering_run_time>0</last_metering_run_time>
+            <job_metering_status>CREATED</job_metering_status>
+            <next_discovery_run_time>0</next_discovery_run_time>
+            <next_metering_run_time>0</next_metering_run_time>
+            <registration_status>REGISTERED</registration_status>
+            <tenant>
+                <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+                <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+            </tenant>
+            <cluster>
+                <id>urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:</id>
+                <link href="/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:" rel="self"/>
+            </cluster>
+            <host_name>wjehost2</host_name>
+            <os_version>1.0</os_version>
+            <port_number>8111</port_number>
+            <type>Windows</type>
+            <use_ssl>false</use_ssl>
+            <user_name>user</user_name>
+        </host>
+        <host>
+            <creation_time>1379169836685</creation_time>
+            <id>urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:</id>
+            <inactive>false</inactive>
+            <link href="/compute/hosts/urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:" rel="self"/>
+            <name>wjehost3</name>
+            <tags/>
+            <native_guid/>
+            <compatibility_status>UNKNOWN</compatibility_status>
+            <job_discovery_status>ERROR</job_discovery_status>
+            <last_discovery_run_time>1379686619019</last_discovery_run_time>
+            <last_discovery_status_message>Unknown host: wjehost3</last_discovery_status_message>
+            <last_metering_run_time>0</last_metering_run_time>
+            <job_metering_status>CREATED</job_metering_status>
+            <next_discovery_run_time>0</next_discovery_run_time>
+            <next_metering_run_time>0</next_metering_run_time>
+            <registration_status>REGISTERED</registration_status>
+            <tenant>
+                <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+                <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+            </tenant>
+            <cluster>
+                <id>urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:</id>
+                <link href="/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:" rel="self"/>
+            </cluster>
+            <host_name>wjehost3</host_name>
+            <os_version>1.0</os_version>
+            <port_number>8111</port_number>
+            <type>Windows</type>
+            <use_ssl>false</use_ssl>
+            <user_name>user</user_name>
+        </host>
+        <host>
+            <creation_time>1379169056771</creation_time>
+            <id>urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:</id>
+            <inactive>false</inactive>
+            <link href="/compute/hosts/urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:" rel="self"/>
+            <name>billhost3</name>
+            <tags/>
+            <native_guid/>
+            <compatibility_status>UNKNOWN</compatibility_status>
+            <job_discovery_status>ERROR</job_discovery_status>
+            <last_discovery_run_time>1379686619064</last_discovery_run_time>
+            <last_discovery_status_message>Unknown host: billhost3</last_discovery_status_message>
+            <last_metering_run_time>0</last_metering_run_time>
+            <job_metering_status>CREATED</job_metering_status>
+            <next_discovery_run_time>0</next_discovery_run_time>
+            <next_metering_run_time>0</next_metering_run_time>
+            <registration_status>REGISTERED</registration_status>
+            <tenant>
+                <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+                <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+            </tenant>
+            <cluster>
+                <id>urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:</id>
+                <link href="/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:" rel="self"/>
+            </cluster>
+            <host_name>billhost3</host_name>
+            <os_version>1.0</os_version>
+            <port_number>8111</port_number>
+            <type>Windows</type>
+            <use_ssl>false</use_ssl>
+            <user_name>user</user_name>
+        </host>
+        <host>
+            <creation_time>1379169835921</creation_time>
+            <id>urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:</id>
+            <inactive>false</inactive>
+            <link href="/compute/hosts/urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:" rel="self"/>
+            <name>wjehost1</name>
+            <tags/>
+            <native_guid/>
+            <compatibility_status>UNKNOWN</compatibility_status>
+            <job_discovery_status>ERROR</job_discovery_status>
+            <last_discovery_run_time>1379686619000</last_discovery_run_time>
+            <last_discovery_status_message>Unknown host: wjehost1</last_discovery_status_message>
+            <last_metering_run_time>0</last_metering_run_time>
+            <job_metering_status>CREATED</job_metering_status>
+            <next_discovery_run_time>0</next_discovery_run_time>
+            <next_metering_run_time>0</next_metering_run_time>
+            <registration_status>REGISTERED</registration_status>
+            <tenant>
+                <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+                <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+            </tenant>
+            <cluster>
+                <id>urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:</id>
+                <link href="/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:" rel="self"/>
+            </cluster>
+            <host_name>wjehost1</host_name>
+            <os_version>1.0</os_version>
+            <port_number>8111</port_number>
+            <type>Windows</type>
+            <use_ssl>false</use_ssl>
+            <user_name>user</user_name>
+        </host>
+    </hosts>
+    <initiators>
+        <initiator>
+            <creation_time>1379169059555</creation_time>
+            <id>urn:storageos:Initiator:e59b739a-a796-4541-8a25-aa57fe2319bb:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:e59b739a-a796-4541-8a25-aa57fe2319bb:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:</id>
+                <link href="/compute/hosts/urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>billhost2</hostname>
+            <initiator_node>20:00:00:00:99:67:BB:B1</initiator_node>
+            <initiator_port>10:00:00:00:99:67:BB:B1</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169060321</creation_time>
+            <id>urn:storageos:Initiator:d862ace5-edd9-455f-af04-e4fd99f3c553:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:d862ace5-edd9-455f-af04-e4fd99f3c553:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:</id>
+                <link href="/compute/hosts/urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>billhost3</hostname>
+            <initiator_node>20:00:00:00:99:67:CC:C1</initiator_node>
+            <initiator_port>10:00:00:00:99:67:CC:C1</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169059261</creation_time>
+            <id>urn:storageos:Initiator:8d08b370-b4e0-4d15-9c7e-6c536164c25e:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:8d08b370-b4e0-4d15-9c7e-6c536164c25e:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:</id>
+                <link href="/compute/hosts/urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>billhost1</hostname>
+            <initiator_node>20:00:00:00:99:66:AA:A2</initiator_node>
+            <initiator_port>10:00:00:00:99:66:AA:A2</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169841467</creation_time>
+            <id>urn:storageos:Initiator:dea5c57e-338f-4662-bae1-dc838698fc40:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:dea5c57e-338f-4662-bae1-dc838698fc40:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:</id>
+                <link href="/compute/hosts/urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>wjehost3</hostname>
+            <initiator_node>20:00:00:00:47:68:CC:C2</initiator_node>
+            <initiator_port>10:00:00:00:47:68:CC:C2</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169839656</creation_time>
+            <id>urn:storageos:Initiator:515a3741-e25a-4673-8365-4997a93fe147:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:515a3741-e25a-4673-8365-4997a93fe147:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:</id>
+                <link href="/compute/hosts/urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>wjehost1</hostname>
+            <initiator_node>20:00:00:00:47:65:AA:A1</initiator_node>
+            <initiator_port>10:00:00:00:47:65:AA:A1</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169058947</creation_time>
+            <id>urn:storageos:Initiator:0b70ddac-0b0f-4af4-8c6d-83b16eda0d5f:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:0b70ddac-0b0f-4af4-8c6d-83b16eda0d5f:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:</id>
+                <link href="/compute/hosts/urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>billhost1</hostname>
+            <initiator_node>20:00:00:00:99:65:AA:A1</initiator_node>
+            <initiator_port>10:00:00:00:99:65:AA:A1</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169060614</creation_time>
+            <id>urn:storageos:Initiator:cc256e91-cc58-4500-999b-4ea00f46eed1:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:cc256e91-cc58-4500-999b-4ea00f46eed1:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:</id>
+                <link href="/compute/hosts/urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>billhost3</hostname>
+            <initiator_node>20:00:00:00:99:68:CC:C2</initiator_node>
+            <initiator_port>10:00:00:00:99:68:CC:C2</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169841139</creation_time>
+            <id>urn:storageos:Initiator:de86f1b0-3f6b-473a-9d7d-6405b32bc7b7:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:de86f1b0-3f6b-473a-9d7d-6405b32bc7b7:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:</id>
+                <link href="/compute/hosts/urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>wjehost3</hostname>
+            <initiator_node>20:00:00:00:47:67:CC:C1</initiator_node>
+            <initiator_port>10:00:00:00:47:67:CC:C1</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169060018</creation_time>
+            <id>urn:storageos:Initiator:579c7bf5-83d6-459a-844e-0b21d29d9a22:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:579c7bf5-83d6-459a-844e-0b21d29d9a22:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:</id>
+                <link href="/compute/hosts/urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>billhost2</hostname>
+            <initiator_node>20:00:00:00:99:68:BB:B2</initiator_node>
+            <initiator_port>10:00:00:00:99:68:BB:B2</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169839976</creation_time>
+            <id>urn:storageos:Initiator:813c99d0-233b-4348-bae1-9d6f1a8df4c3:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:813c99d0-233b-4348-bae1-9d6f1a8df4c3:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:</id>
+                <link href="/compute/hosts/urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>wjehost1</hostname>
+            <initiator_node>20:00:00:00:47:66:AA:A2</initiator_node>
+            <initiator_port>10:00:00:00:47:66:AA:A2</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169840814</creation_time>
+            <id>urn:storageos:Initiator:9a5a2540-5678-447e-8fda-7e89edd6b9d1:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:9a5a2540-5678-447e-8fda-7e89edd6b9d1:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:</id>
+                <link href="/compute/hosts/urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>wjehost2</hostname>
+            <initiator_node>20:00:00:00:47:68:BB:B2</initiator_node>
+            <initiator_port>10:00:00:00:47:68:BB:B2</initiator_port>
+        </initiator>
+        <initiator>
+            <creation_time>1379169840312</creation_time>
+            <id>urn:storageos:Initiator:11bb0a5e-9502-4c1e-a772-cee848b1b8ac:</id>
+            <inactive>false</inactive>
+            <link href="/compute/initiators/urn:storageos:Initiator:11bb0a5e-9502-4c1e-a772-cee848b1b8ac:" rel="self"/>
+            <tags/>
+            <host>
+                <id>urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:</id>
+                <link href="/compute/hosts/urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:" rel="self"/>
+            </host>
+            <protocol>FC</protocol>
+            <hostname>wjehost2</hostname>
+            <initiator_node>20:00:00:00:47:67:BB:B1</initiator_node>
+            <initiator_port>10:00:00:00:47:67:BB:B1</initiator_port>
+        </initiator>
+    </initiators>
+    <project>
+        <id>urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:</id>
+        <link href="/projects/urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:" rel="self"/>
+    </project>
+    <tenant>
+        <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+        <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+    </tenant>
+    <type>Cluster</type>
+    <varray>
+        <id>urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:</id>
+        <link href="/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:" rel="self"/>
+    </varray>
+    <volumes>
+        <volume>
+            <id>urn:storageos:Volume:02ed86cd-d894-4ae5-b9b1-2d491d1b2f65:</id>
+            <lun>0</lun>
+        </volume>
+    </volumes>
+</block_export>

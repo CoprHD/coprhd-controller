@@ -1,0 +1,55 @@
+<@include "StartHead.html">
+<script>
+    \$(document).ready(function() {
+        addSearchKeyBinding();
+        setupTOC("ErrorCodes.html");
+    });
+</script>
+<@include "EndHead.html">
+<@include "StartBody.html">
+<h3>API Error Codes</h3>
+
+<table class="table">
+<%
+    boolean hasDeprecated = false;
+    for (com.emc.apidocs.model.ApiErrorCode errorCode : errorCodes) {
+        if (errorCode.isDeprecated()) {
+            hasDeprecated = true;
+        }
+        else {
+
+%>
+    <tr>
+        <td>${errorCode.code}</td>
+        <td>${errorCode.message}</td>
+    </tr>
+<%
+        }
+    }
+%>
+  </table>
+<%
+if (hasDeprecated) {
+%>
+     <h3>Deprecated Error Codes</h3>
+    <table class="table">
+<%
+    for (com.emc.apidocs.model.ApiErrorCode errorCode : errorCodes) {
+        if (errorCode.isDeprecated()) {
+%>
+    <tr>
+        <td>${errorCode.code}</td>
+        <td>${errorCode.message}</td>
+    </tr>
+<%
+        }
+    }
+%>
+    </table>
+<%
+}
+%>
+
+
+</table>
+<@include "EndBody.html">

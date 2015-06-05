@@ -1,0 +1,28 @@
+GET https://192.168.0.0:4443/vdc/networks/urn:storageos:Network:ca06b503-4ba6-4f36-9ce7-7d67d8d04941:/storage-ports.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "storage_port": [
+    {
+      "name": "SYMMETRIX+000198700420+PORT+50:00:09:73:F0:06:91:44",
+      "id": "urn:storageos:StoragePort:1593ad14-32db-4a85-ad9e-81da59af75d4:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:c532fa10-1ff4-4527-b628-50372cf609af:/storage-ports/urn:storageos:StoragePort:1593ad14-32db-4a85-ad9e-81da59af75d4:"
+      }
+    },
+    {
+      "name": "SYMMETRIX+000198700420+PORT+50:00:09:73:F0:06:91:40",
+      "id": "urn:storageos:StoragePort:58bc0c28-5e25-414d-9fe5-14143fb4b981:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:c532fa10-1ff4-4527-b628-50372cf609af:/storage-ports/urn:storageos:StoragePort:58bc0c28-5e25-414d-9fe5-14143fb4b981:"
+      }
+    }
+  ]
+}

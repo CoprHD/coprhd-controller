@@ -1,0 +1,49 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xml:lang="en-US"
+	xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:e="http://schemas.xmlsoap.org/ws/2004/08/eventing"
+	xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"
+	xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd">
+	<s:Header>
+		<a:Action>http://schemas.xmlsoap.org/ws/2004/09/transfer/fault</a:Action>
+		<a:MessageID>uuid:C7740E25-37C9-480A-B0B3-80E34D550E5C</a:MessageID>
+		<a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+		<a:RelatesTo>uuid:09ce8810-9eb0-47d1-9940-3e35470a8c0e</a:RelatesTo>
+	</s:Header>
+	<s:Body>
+		<s:Fault>
+			<s:Code>
+				<s:Value>s:Sender</s:Value>
+				<s:Subcode>
+					<s:Value>x:InvalidRepresentation</s:Value>
+				</s:Subcode>
+			</s:Code>
+			<s:Reason>
+				<s:Text xml:lang="en-US">The WS-Management service cannot identify
+					the format of the object passed to a Put or Create method. The XML
+					namespace for the input XML is invalid. Change the XML namespace
+					for the input XML in the request. </s:Text>
+			</s:Reason>
+			<s:Detail>
+				<w:FaultDetail>http://schemas.dmtf.org/wbem/wsman/1/wsman/faultDetail/InvalidNamespace</w:FaultDetail>
+				<f:WSManFault xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
+					Code="2150858840" Machine="iw-win2008-01p.iwave.local">
+					<f:Message>
+						<f:ProviderFault provider="WMI Provider"
+							path="%systemroot%\system32\WsmWmiPl.dll">
+							<f:WSManFault
+								xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
+								Code="2150858840" Machine="iw-win2008-01p.iwave.local">
+								<f:Message>The XML namespace URI () is invalid. Check the
+									documentation for constructing the namespace URI for a CIM
+									class. </f:Message>
+							</f:WSManFault>
+						</f:ProviderFault>
+					</f:Message>
+				</f:WSManFault>
+			</s:Detail>
+		</s:Fault>
+	</s:Body>
+</s:Envelope>

@@ -1,0 +1,33 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateContinuousCopy.Block",
+  serviceId:"CreateContinuousCopy",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.localMirrorBlockVolume"
+    },
+    
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    },
+    
+    count: {
+      type:"number",
+      initialValue:1,
+      validation:{
+        min:1,
+        max:100
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+<dl class="dl-horizontal">
+
+<dt>&{'computeSystemElements.uuid'}</dt>
+<dd>${computeElement.uuid ?: '-'}</dd>
+
+  <dt>&{'discoveryDetails.discoveryDate'}</dt>
+  <dd>
+    #{if computeElement.discoveryDate != null && computeElement.discoveryDate > 0}#{relativeDate computeElement.discoveryDate/}#{/if}
+    #{else}-#{/else}
+  </dd>
+
+  <dt>&{'discoveryDetails.lastSuccessfulDiscovery'}</dt>
+  <dd>
+    #{if computeElement.lastSuccessfulDiscovery != null && computeElement.lastSuccessfulDiscovery > 0}#{relativeDate computeElement.lastSuccessfulDiscovery/}#{/if}
+    #{else}-#{/else}
+  </dd>
+
+  <dt>&{'discoveryDetails.discoveryStatus'}</dt>
+  <dd>${computeElement.discoveryStatus}</dd>
+
+</dl>

@@ -1,0 +1,15 @@
+%{
+  label = _label ?: "";
+  field = _field;
+  value = _value ?: true;
+  fieldValue = flash[field.name] ?: String.valueOf(field.value);
+  cssClass = field.cssClass ?: "span6";
+  cssClassLabel = field.cssClassLabel ?:"";
+  selected = fieldValue == value;
+}%
+<div class="radio">
+  <label class="${cssClassLabel}">
+    <input type="radio" class="${cssClass}" id="${field.id}" name="${field.name}" value="${value}" #{if field.disabled}disabled="disabled"#{/if} #{if selected}checked="checked"#{/}#{Form.extraAtts atts:field.atts/}/>
+    ${label}
+  </label>
+</div>

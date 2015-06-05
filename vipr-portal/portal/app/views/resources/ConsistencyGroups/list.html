@@ -1,0 +1,65 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.consistencygroups'] /}
+
+<script type="text/javascript">
+    var listJson = #{jsAction @listJson(':id')/};
+    function reloadConsistencyGroups() {
+        var projectId = $('#project option:selected').val();
+        $('#consistencyGroups table').dataTable().fnReloadAjax(listJson({id: projectId}));
+    }
+
+    $(document).ready(function() {
+        $('#project').on('change', reloadConsistencyGroups).trigger('change');
+    });
+
+    var createUrl = #{jsAction @create(':projectId') /};
+
+    function create(button) {
+        var projectId = $('#project option:selected').val();
+        var url = createUrl({projectId:projectId});
+        window.location.href = url;
+        util.onButtonSubmitted(button);
+    }
+
+</script>
+
+#{set 'projectsDropDownHTML'}
+  #{if !projects.isEmpty()}
+    #{Form.selectProject projects:projects, selectedProject:activeProjectId/}
+  #{/if}  
+#{/set}
+
+#{if tenants?.size() > 1}
+  #{tenantSelector}
+    ${projectsDropDownHTML.raw()}
+  #{/tenantSelector}
+#{/if}
+#{elseif !projects.isEmpty()}
+  <div class="well well-sm form-inline">
+    ${projectsDropDownHTML.raw()}
+  </div>
+#{/elseif}
+
+#{DataTable.header titleKey:'consistencyGroups.list.title' /}
+#{if projects.isEmpty()}
+<div class="clear"></div>
+<div class="alert alert-danger" style="margin-top: 10px">
+&{'consistencyGroups.noProjects'}
+</div>
+#{/if}
+#{else}
+#{DataTable.table id:'consistencyGroups',
+                  dataTable:dataTable,
+                  source:@listJson(activeProjectId),
+                  selectable: true,
+                  actions: ['consistencyGroups.viewResource': @resources.BlockConsistencyGroups.consistencyGroupDetails(':id')]}
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.add', class:'success', icon:'plus', action:'create(this)'/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', data:['enabled':'selected']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+#{DataTable.formAction @delete(), id:'deleteForm', table:'consistencyGroups', confirm:messages.get('consistencyGroups.deleteConfirm')/}
+#{/else}

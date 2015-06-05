@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!--
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="backup-var.xml"/>
+
+    <bean id="restoreManager" class="com.emc.storageos.management.backup.RestoreManager">
+        <property name="dbRestoreHandler" ref="dbRestoreHandler"/>
+        <property name="zkRestoreHandler" ref="zkRestoreHandler"/>
+        <property name="geoDbRestoreHandler" ref="geoDbRestoreHandler"/>
+        <property name="nodeName" ref="nodeName"/>
+        <property name="nodeCount" ref="nodeCount"/>
+        <property name="ipAddress4" ref="networkIpAddress4"/>
+        <property name="ipAddress6" ref="networkIpAddress6"/>
+        <property name="enableChangeVersion" value="false"/>
+    </bean>
+
+    <bean id="dbRestoreHandler" class="com.emc.storageos.management.backup.RestoreHandler" >
+        <constructor-arg value="/data/db"/>
+        <constructor-arg value="/data/db/1/data/StorageOS"/>
+        <property name="extraCleanDirs">
+            <list value-type="java.lang.String">
+                <value>/data/db/1/commitlog</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="zkRestoreHandler" class="com.emc.storageos.management.backup.RestoreHandler" >
+        <constructor-arg value="/data/zk"/>
+        <constructor-arg value="/data/zk/version-2"/>
+    </bean>
+
+    <bean id="geoDbRestoreHandler" class="com.emc.storageos.management.backup.RestoreHandler" >
+        <constructor-arg value="/data/geodb"/>
+        <constructor-arg value="/data/geodb/1/data/GeoStorageOS"/>
+        <property name="extraCleanDirs">
+            <list value-type="java.lang.String">
+                <value>/data/geodb/1/commitlog</value>
+            </list>
+        </property>
+    </bean>
+
+</beans>
+

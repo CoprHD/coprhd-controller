@@ -1,0 +1,441 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "label": "ServiceCatalog",
+  "title": "root.title",
+  "description": "root.description",
+  "categories": [
+    {
+      "title": "block.title",
+      "image": "icon_host.png",
+      "description": "block.description",
+      "services": [
+        {
+          "image": "icon_array_host_add.png",
+          "baseService": "CreateBlockStorageForHost"
+        },
+        {
+          "image": "icon_array_host_remove.png",
+          "baseService": "RemoveBlockStorageForHost"
+        },
+        {
+          "image": "icon_db_create.png",
+          "baseService": "CreateVolume"
+        },
+        {
+          "image": "icon_db_remove.png",
+          "baseService": "RemoveBlockStorage"
+        },
+        {
+          "image": "icon_db_expand.png",
+          "baseService": "ExpandBlockStorage"
+        },
+        {
+          "image": "icon_host_add.png",
+          "baseService": "ExportVolume"
+        },
+        {
+          "image": "icon_host_add.png",
+          "baseService": "ExportVplexVolume"
+        },
+        {
+          "image": "icon_host_remove.png",
+          "baseService": "UnexportVolume"
+        },
+        {
+          "image": "Service_Discover_Unmanaged_Volumes.png",
+          "baseService": "DiscoverUnmanagedVolumes"
+        },
+        {
+          "image": "Service_Ingest_Unmanaged_Volumes.png",
+          "baseService": "IngestUnexportedUnmanagedVolumes"
+        },
+        {
+          "image": "Service_Ingest_Unmanaged_Volumes.png",
+          "baseService": "IngestExportedUnmanagedVolumes"
+        },
+        {
+          "image": "icon_host_add.png",
+          "baseService": "ChangeVolumeVirtualPool"
+        },
+        {
+          "image": "icon_host_add.png",
+          "baseService": "ChangeVirtualPool"
+        },
+        {
+          "image": "Service_Change_Virtual_Array.png",
+          "baseService": "ChangeVolumeVirtualArray"
+        }
+      ]
+    },
+    {
+      "title": "block.protection.title",
+      "image": "Category_Block_Protection_Services.png",
+      "description": "block.protection.description",
+      "services": [
+        {
+          "image": "Service_Failover_Block_Volume.png",
+          "baseService": "FailoverBlockVolume"
+        },
+        {
+          "image": "Remove_Continuous_copy.png",
+          "baseService": "SwapContinuousCopies"
+        },
+        {
+          "image": "Service_Create_Block_Snapshot.png",
+          "baseService": "CreateBlockSnapshot"
+        },
+        {
+          "image": "Service_Restore_Block_Snapshot.png",
+          "baseService": "RestoreBlockSnapshot"
+        },
+        {
+          "image": "Service_Remove_Block_Snapshot.png",
+          "baseService": "RemoveBlockSnapshot"
+        },
+        {
+          "image": "Service_Create_Full_Copy.png",
+          "baseService": "CreateFullCopy"
+        },
+        {
+          "image": "Service_Remove_Full_Copy.png",
+          "baseService": "RemoveFullCopy"
+        },
+        {
+          "image": "Service_Restore_Full_Copy.png",
+          "baseService": "RestoreFromFullCopy"
+        },
+        {
+          "image": "Service_Resynchronize_Full_Copy.png",
+          "baseService": "ResynchronizeFullCopy"
+        },
+        {
+          "image": "Service_Detach_Full_Copy.png",
+          "baseService": "DetachFullCopy"
+        },
+        {
+          "image": "Service_Create_Snapshot_Full_Copy.png",
+          "baseService": "CreateSnapshotFullCopy"
+        },
+        {
+          "image": "Service_Create_Continuous_Copy.png",
+          "baseService": "CreateContinuousCopy"
+        },
+        {
+          "image": "Remove_Continuous_copy.png",
+          "baseService": "RemoveContinuousCopy"
+        },
+        {
+          "image": "icon_host_add_snapshot.png",
+          "baseService": "ExportSnapshot"
+        },
+        {
+          "image": "icon_host_remove_snapshot.png",
+          "baseService": "UnexportSnapshot"
+        }
+      ]
+    },
+    {
+      "title": "file.title",
+      "image": "icon_folder.png",
+      "description": "file.description",
+      "services": [
+        {
+          "image": "icon_folder.png",
+          "baseService": "CreateFileSystem"
+        },
+        {
+          "image": "icon_folder_CIFS_add.png",
+          "baseService": "CreateFileSystemShare"
+        },
+        {
+          "image": "icon_folder_CIFS_remove.png",
+          "baseService": "DeleteFileSystemShare"
+        },
+        {
+          "image": "icon_folder_NFS_add.png",
+          "baseService": "ExportFileSystem"
+        },
+        {
+          "image": "icon_folder_NFS_remove.png",
+          "baseService": "DeleteFileSystemExport"
+        },
+        {
+          "image": "icon_folder_CIFS_add.png",
+          "baseService": "NasCifsCreateStorage"
+        },
+        {
+          "image": "icon_folder_NFS_add.png",
+          "baseService": "NasNfsCreateStorage"
+        },
+        {
+          "image": "icon_NASstorage_expand.png",
+          "baseService": "NasExpandFileSystem"
+        },
+        {
+          "image": "icon_NASstorage_remove.png",
+          "baseService": "NasRemoveFileSystem"
+        },
+        {
+          "image": "Service_Discover_Unmanaged_Filesystems.png",
+          "baseService": "DiscoverUnmanagedFilesystems"
+        },
+        {
+          "image": "Service_Ingest_Unmanaged_Filesystems.png",
+          "baseService": "IngestUnmanagedFilesystems"
+        },
+        {
+          "image": "Service_Create_File_Quota_Dir.png",
+          "baseService": "CreateFileSystemQuotaDirectory"
+        },
+        {
+          "image": "Service_Remove_File_Quota_Dir.png",
+          "baseService": "RemoveFileSystemQuotaDirectory"
+        }        
+      ]
+    },
+    {
+      "title": "file.protection.title",
+      "image": "Category_File_Protection_Services.png",
+      "description": "file.protection.description",
+      "services": [
+        {
+          "image": "Service_Create_File_Snapshot.png",
+          "baseService": "CreateFileSnapshot"
+        },
+        {
+          "image": "Service_Restore_File_Snapshot.png",
+          "baseService": "RestoreFileSnapshot"
+        },
+        {
+          "image": "Service_Remove_File_Snapshot.png",
+          "baseService": "RemoveFileSnapshot"
+        },
+        {
+          "image": "icon_folder_CIFS_add.png",
+          "baseService": "ShareFileSnapshot"
+        },
+        {
+          "image": "icon_folder_CIFS_remove.png",
+          "baseService": "RemoveFileSnapshotShare"
+        },
+        {
+          "image": "icon_folder_NFS_add.png",
+          "baseService": "ExportFileSnapshot"
+        },
+        {
+          "image": "icon_folder_NFS_remove.png",
+          "baseService": "DeleteFileSnapshotExport"
+        }
+      ]
+    },
+    {
+      "title": "block.linux.title",
+      "image": "icon_linux.png",
+      "description": "block.linux.description",
+      "services": [
+        {
+          "image": "icon_provision_linux_add.png",
+          "baseService": "Linux-CreateAndMountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_provision_linux_remove.png",
+          "baseService": "Linux-UnmountAndDeleteBlockVolume"
+        },
+        {
+          "image": "icon_storage_linux_add.png",
+          "baseService": "Linux-MountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_linux_remove.png",
+          "baseService": "Linux-UnmountBlockVolume"
+        },
+        {
+          "image": "icon_storage_linux_expand.png",
+          "baseService": "Linux-ExpandBlockVolume"
+        }
+      ]
+    },
+    {
+      "title": "block.windows.title",
+      "image": "icon_windowsServer.png",
+      "description": "block.windows.description",
+      "services": [
+        {
+          "image": "icon_provision_windows_add.png",
+          "baseService": "Windows-CreateAndMountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_provision_windows_remove.png",
+          "baseService": "Windows-UnmountAndDeleteBlockVolume"
+        },
+        {
+          "image": "icon_provision_windows_expand.png",
+          "baseService": "Windows-ExtendBlockVolume"
+        },
+        {
+          "image": "icon_storage_windows_add.png",
+          "baseService": "Windows-MountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_windows_remove.png",
+          "baseService": "Windows-UnmountBlockVolume"
+        }
+      ]
+    },
+    {
+      "title": "block.aix.title",
+      "image": "icon_aix.png",
+      "description": "block.aix.description",
+      "services": [
+        {
+          "image": "icon_provision_aix_add.png",
+          "baseService": "Aix-CreateAndMountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_aix_add.png",
+          "baseService": "Aix-MountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_aix_remove.png",
+          "baseService": "Aix-UnmountBlockVolume"
+        },
+        {
+          "image": "icon_provision_aix_remove.png",
+          "baseService": "Aix-UnmountAndDeleteBlockVolume"
+        }
+      ]
+    }, 
+    {
+      "title": "block.vcenter.title",
+      "image": "icon_VMware.png",
+      "description": "block.vcenter.description",
+      "services": [
+        {
+          "image": "icon_provision_VMware_add.png",
+          "baseService": "VMware-CreateVolumeAndVmfsDatastore",
+          "lockFields": {
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_provision_VMware_remove.png",
+          "baseService": "VMware-DeleteVmfsDatastoreAndVolume"
+        },
+        {
+          "image": "icon_provision_VMware_expand.png",
+          "baseService": "VMware-CreateVolumeAndExtendVmfsDatastore",
+          "lockFields": {
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_array_VMware_add.png",
+          "baseService": "VMware-CreateBlockVolume"
+        },
+        {
+          "image": "icon_array_VMware_remove.png",
+          "baseService": "VMware-RemoveBlockVolume"
+        },
+        {
+          "image": "icon_storage_VMware_add.png",
+          "baseService": "VMware-CreateVmfsDatastore"
+        },
+        {
+          "image": "icon_storage_VMware_remove.png",
+          "baseService": "VMware-DeleteVmfsDatastore"
+        },
+        {
+          "image": "icon_storage_VMware_extend.png",
+          "baseService": "VMware-ExtendVmfsDatastore"
+        },
+        {
+          "image": "icon_storage_VMware_expand.png",
+          "baseService": "VMware-ExpandVmfsDatastore"
+        }
+      ]
+    },
+    {
+      "title": "file.vcenter.title",
+      "image": "icon_storage_vmware_nfs.png",
+      "description": "file.vcenter.description",
+      "services": [
+        {
+          "image": "icon_provision_vmware_nfs_add.png",
+          "baseService": "VMware-CreateNfsExportAndDatastore"
+        },
+        {
+          "image": "icon_storage_VMware_add.png",
+          "baseService": "VMware-CreateNfsDatastore"
+        },
+        {
+          "image": "icon_provision_vmware_nfs_remove.png",
+          "baseService": "VMware-DeleteNfsDatastoreAndExport"
+        },
+        {
+          "image": "icon_storage_VMware_remove.png",
+          "baseService": "VMware-DeleteNfsDatastore"
+        }
+      ]
+    },
+    {
+	  "title": "clusterservices.title",
+	  "image": "icon_compute_cluster.png",
+	  "description": "clusterservices.description",
+	  "services": [
+	    {
+	      "image": "icon_compute_cluster_add.png",
+	      "baseService": "CreateComputeCluster"
+	    },
+	    {
+	      "image": "icon_compute_cluster_host_add.png",
+	      "baseService": "AddHostToCluster"	      	    	    
+	    },
+	    {
+	      "image": "icon_compute_cluster_remove.png",
+	      "baseService": "RemoveHostFromCluster"
+	    },
+	    {
+	      "image": "icon_compute_cluster_remove.png",
+	      "baseService": "RemoveComputeCluster"	      	    	    
+	    },
+	    {
+	      "image": "icon_compute_cluster_add.png",
+	      "baseService": "CreateBareMetalCluster"
+	    },	        
+	    {
+	      "image": "icon_compute_cluster_host_add.png",
+	      "baseService": "AddBareMetalHostToCluster"	      	    	    
+	    },    
+	    {	      
+	      "image": "icon_compute_cluster_vcenter_update.png",
+	      "baseService": "UpdateVcenterCluster"	      	      	    	    
+	    }
+	  ]
+	}
+  ]
+}

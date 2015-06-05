@@ -1,0 +1,33 @@
+POST https://192.168.0.0:4443/block/consistency-groups.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+     "name": "group_west", 
+     "project": "urn:storageos:Project:62f648fb-9388-4bf6-a45b-f9fae8a6ae7c:"
+}	
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+	
+{
+  "name": "group_west",
+  "id": "urn:storageos:BlockConsistencyGroup:fcd8d785-7c47-49d0-a20d-61c417e9f7dc:",
+  "link": {
+    "rel": "self",
+    "href": "/block/consistency-groups/urn:storageos:BlockConsistencyGroup:fcd8d785-7c47-49d0-a20d-61c417e9f7dc:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "project": {
+    "id": "urn:storageos:Project:62f648fb-9388-4bf6-a45b-f9fae8a6ae7c:",
+    "link": {
+      "rel": "self",
+      "href": "/projects/urn:storageos:Project:62f648fb-9388-4bf6-a45b-f9fae8a6ae7c:"
+    }
+  },
+  "creation_time": 1379543268979
+}

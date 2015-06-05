@@ -1,0 +1,25 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# A script which replaces the OVF systool command so that the syssvc UpgradeManager works correctly
+#
+if [ -f ~/.storageos ] ; then
+	. ~/.storageos
+else
+	echo "~/.storageos configuration file not found"
+fi
+
+case $1 in
+
+--get-default)
+	cat $INSTALL_HOME/storageos/version.txt
+	;;
+--getprops) 
+    cat $INSTALL_HOME/storageos/ovf-env.properties
+	;;
+--list)
+	echo `cat $INSTALL_HOME/storageos/version.txt`
+	echo vipr-1.0.0.7.283
+	;;
+esac

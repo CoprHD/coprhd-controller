@@ -1,0 +1,12 @@
+%{
+  if (_arg?.startsWith('glyphicon-')) {
+    icon = "glyphicon ${_arg}"
+  }
+  else if (_arg?.startsWith('vipricon-')) {
+    icon = "vipricon ${_arg}"
+  }
+  // Default to glyphicon
+  else if (_arg) {
+    icon = "glyphicon glyphicon-${_arg}"
+  }
+}% #{if icon}<span class="${icon} ${_class}">#{doBody/}</span>#{/if}

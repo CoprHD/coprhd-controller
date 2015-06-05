@@ -1,0 +1,494 @@
+%{
+  titleKey = 'ComputeVirtualPools.' + (computeVirtualPool?.id ? 'edit' : 'create') + '.title';  
+  descriptionKey = 'ComputeVirtualPools.' + (computeVirtualPool?.id ? 'edit' : 'create') + '.description';
+  image = '/public/img/assets/VirtualPool.png';
+  
+  NONE = messages.get('common.none')
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.computeVirtualPools'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:computeVirtualPool?.id ? true : false/}
+#{set inUse:computeVirtualPool?.inUse ? true : false/}
+
+#{breadcrumb.container}
+#{breadcrumb.item @list()}&{'ComputeVirtualPools.list.title'}#{/breadcrumb.item}
+#{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+
+#{script 'virtualPools.js'/}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+ 
+  var editMode = #{get 'editMode'/};
+  var errors = #{get 'errors'/};
+  var inUse = #{get 'inUse'/};
+  var refresh = false;
+  var arrayChange = false;
+  var qualifierChange = false;
+  var sptSelected = false;
+
+  function confirmFormSubmit() {
+      var manual = $('#computeVirtualPool_elementSelection').val() == '${models.PoolAssignmentTypes.MANUAL}';
+      if (editMode && ((sptSelected  && qualifierChange) || (manual && qualifierChange) || (manual && arrayChange))) {
+        $('#confirmDialog').modal();
+      }
+      else {
+        submitForm();
+      }
+    }
+    
+    function submitForm() {
+      $('#objectVirtualPool').submit();
+    }  
+
+  var setSelectedTemplates = function(selected) {
+      var $container = $('#templateControlGroups');
+      var selectedIds = [];
+      var index = 0;
+      $container.find('input').each(function() {
+          selectedIds[index] = this.value;
+          index = index+1;
+      });
+      var index2 = 0;
+      $container.find('.form-group').each(function() {
+          var $innercont = $(this);
+          var key = selectedIds[index2];
+          index2 = index2 +1;
+          var selectedTemplate = selected[key];
+          if (selectedTemplate) {
+              $innercont.find('.form-control').each(function() {
+                  var $template = this;
+                  $template.value = selectedTemplate;
+                  sptSelected = true;
+              });
+          }
+      });
+  }
+  
+  var loadTemplates = function(data, textStatus, jqXHR) {
+      console.log("Updating computevirtualpool templates");
+
+      $('#serviceProfileTemplatesSection').replaceWith(data);
+      var templist = "{}";
+      $('#selectedTemplates').find('input').each(function() {
+          if (this.value.indexOf("urn") > -1) {
+              templist = this.value;
+          }
+      });
+      if (templist == "{}") {
+          $tempContainer = $('#serviceProfileTemplatesSection');
+          var first = true;
+          $tempContainer.find('input').each(function() {
+              if (first) {  
+                  templist = this.value;
+                  first = false;
+              }
+          });
+      }
+
+      if (data.indexOf("computeVirtualPool.serviceTemplates") > -1) {
+          if (templist.indexOf("urn")>-1) {
+              var currentlySelectedValues = JSON.parse(templist);
+              setSelectedTemplates(currentlySelectedValues);
+          }
+          $('#showTemplateSection').show();
+          $('#noTemplateMessage').hide();
+          $('#serviceProfileTemplatesSection').show();
+          $('#templateControlGroups').on('change', getSelectedTemplates);
+      } else {
+          $('#serviceProfileTemplatesSection').hide();
+          $('#noTemplateMessage').show();
+          $('#showTemplateSection').hide();
+      }
+  }
+
+  var updateServiceProfileTemplates = function(url, form) {
+      var computeVirtualPool = $(form ? form : 'form').serialize();      
+      $.post(url, computeVirtualPool, loadTemplates, 'html');
+  }
+  
+  function getSelectedTemplates() {
+      var $container = $('#templateControlGroups');
+      var selectedIds = [];
+      var selected = {};
+      var index = 0;
+      $container.find('input').each(function() {
+          selectedIds[index] = this.value;
+          index = index+1;
+      });
+
+      var index2 = 0;
+      var selectedval = "";
+      $container.find('.form-group').each(function() {
+          var $innercont = $(this);
+          $innercont.find('.form-control').each(function() {
+              selectedval = this.value;
+          });
+          var testid = this.id;
+          var computeID = selectedIds[index2]
+          selected[computeID] = selectedval;
+          index2 = index2 + 1;
+      });
+
+      $('#selectedTemplates').find('input').each(function() {
+          $(this).attr("value",JSON.stringify(selected));
+      });
+  }
+  
+
+
+    $(document).ready(function() {
+   
+        virtualPools.init('#virtualPool');
+        
+        var refreshElementsQualifiers = function() {
+          qualifierChange = true;
+          refreshElements();            
+        }
+
+        var virtualArrayChanged = util.delayedHandler(function() {
+            var url = "@{listVirtualArrayAttributesJson()}";
+            virtualPools.updateVirtualArrayAttributes(url, "#virtualPool form");
+            if (refresh) {
+                refreshElements();
+                arrayChange = true;
+            } else {
+                refresh = true;
+            }
+            var url2 = "@{getServiceProfileTemplates()}";
+            updateServiceProfileTemplates(url2, "#virtualPool form");
+        }, 50);
+        
+        $('#computeVirtualPool_virtualArrays').on('change', virtualArrayChanged);
+        virtualArrayChanged();
+        
+        if (editMode) {
+            $('#computeVirtualPool_systemType').prop('disabled', true);
+        }
+        if (inUse) {
+            $('#bannerInUse').show();
+        }
+        else {
+            $('#bannerInUse').hide();
+        }
+
+        var refreshElements = util.throttledHandler(computeElements.reload, 500);
+        $('#computeVirtualPool_qualifiers input').on('change', refreshElementsQualifiers);
+
+        $('#computeVirtualPool_systemType').on('change', function() {
+            var selection = $("#computeVirtualPool_systemType :selected").text();
+            if (selection == 'Cisco UCSM') {
+                $('#templates').show();
+            } else {
+                $('#templates').hide();
+            }
+        }).trigger('change');
+
+        $('#templateControlGroups').on('change', getSelectedTemplates);
+        
+        
+    });
+
+
+
+</script>
+#{/set}
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+  .panel-group + .button-bar {
+    margin-top: 10px;
+  }
+  .panel {
+    margin-top: 5px
+  }
+  .panel-group .panel {
+    overflow: visible;
+  }
+</style>
+#{/set}
+
+
+<div id="virtualPool" class="container">
+  #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    
+  #{alerts/}
+
+  <div id="bannerInUse" class="alert alert-info">{{'ComputeVirtualPools.inUse' | t}}</div>
+    
+  #{form @save(), id:'objectVirtualPool',  class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+    #{field 'computeVirtualPool.name'}
+      #{Form.inputTextControlGroup field:field, required:true, cssClass:'initialFocus' /}
+    #{/field} 
+   
+   
+    #{field 'computeVirtualPool.description'}
+      #{Form.inputTextControlGroup field:field, required:false /}
+    #{/field}
+
+    #{if computeVirtualPool?.id}
+        #{field 'computeVirtualPool.id'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+    </fieldset>
+
+
+
+    
+     #{field 'computeVirtualPool.systemType'}
+        #{Form.selectOneControlGroup field:field, options:computeSystemTypeList, required:!editMode /}
+    #{/field} 
+
+    <div class="panel-group">
+      <div class="storagePoolCriteria">
+        #{field 'computeVirtualPool.virtualArrays'}
+          #{Form.selectManyControlGroup field:field, options:virtualArrayOptions, required:false /}
+        #{/field}
+
+        *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
+        #{if tenantOptions}
+          #{collapse 'computeVirtualPool.group.accessControl', icon:'user'}
+              #{field 'computeVirtualPool.enableTenants'}
+                #{Form.booleanCheckBoxControlGroup field:field /}
+              #{/field}
+            <div data-source="computeVirtualPool_enableTenants" data-show="true">
+              #{field 'computeVirtualPool.tenants'}
+                #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+              #{/field}
+            </div>
+          #{/collapse}
+        #{/if}
+
+    #{collapse 'computeVirtualPool.qualifiers', icon:'align-justify'}
+    <legend><small>&{'computeVirtualPool.qualifiers.description'}</small></legend>
+ 
+      #{field 'computeVirtualPool.group.processors'}
+        #{Form.controlGroup field:field}
+          <div class="row">
+            #{field 'computeVirtualPool.minProcessors'}
+              <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                <div class="input-group">
+                  #{Form.inputText field:field/}
+                  <span class="input-group-addon">&{'min'}</span>
+                </div>
+              </div>
+            #{/field}
+            #{field 'computeVirtualPool.maxProcessors'}
+              <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                <div class="input-group">
+                  #{Form.inputText field:field/}
+                  <span class="input-group-addon">&{'max'}</span>
+                </div>
+              </div>
+            #{/field}
+          </div>
+        #{/Form.controlGroup}
+      #{/field}
+
+      #{field 'computeVirtualPool.group.cores'}
+        #{Form.controlGroup field:field}
+          <div class="row">
+            #{field 'computeVirtualPool.minTotalCores'}
+              <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                <div class="input-group">
+                  #{Form.inputText field:field/}
+                  <span class="input-group-addon">&{'min'}</span>
+                </div>
+              </div>
+            #{/field}
+            #{field 'computeVirtualPool.maxTotalCores'}
+              <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                <div class="input-group">
+                  #{Form.inputText field:field/}
+                  <span class="input-group-addon">&{'max'}</span>
+                </div>
+              </div>
+            #{/field}
+          </div>
+        #{/Form.controlGroup}
+      #{/field}
+ 
+      #{field 'computeVirtualPool.group.threads'}
+        #{Form.controlGroup field:field}
+          <div class="row">
+            #{field 'computeVirtualPool.minTotalThreads'}
+              <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                <div class="input-group">
+                  #{Form.inputText field:field/}
+                  <span class="input-group-addon">&{'min'}</span>
+                </div>
+              </div>
+            #{/field}
+            #{field 'computeVirtualPool.maxTotalThreads'}
+              <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                <div class="input-group">
+                  #{Form.inputText field:field/}
+                  <span class="input-group-addon">&{'max'}</span>
+                </div>
+              </div>
+            #{/field}
+          </div>
+        #{/Form.controlGroup}
+        #{/field}
+ 
+        #{field 'computeVirtualPool.group.speed'}
+          #{Form.controlGroup field:field}
+            <div class="row">
+              #{field 'computeVirtualPool.minCpuSpeed'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'min'}</span>
+                  </div>
+                </div>
+              #{/field}
+              #{field 'computeVirtualPool.maxCpuSpeed'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'max'}</span>
+                  </div>
+                </div>
+              #{/field}
+            </div>
+          #{/Form.controlGroup}
+        #{/field}
+ 
+        #{field 'computeVirtualPool.group.memory'}
+          #{Form.controlGroup field:field}
+            <div class="row">
+              #{field 'computeVirtualPool.minMemory'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'min'}</span>
+                  </div>
+                </div>
+              #{/field}
+              #{field 'computeVirtualPool.maxMemory'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'max'}</span>
+                  </div>
+                </div>
+              #{/field}
+            </div>
+          #{/Form.controlGroup}
+        #{/field}
+ 
+        #{field 'computeVirtualPool.group.nics'}
+          #{Form.controlGroup field:field}
+            <div class="row">
+              #{field 'computeVirtualPool.minNics'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'min'}</span>
+                  </div>
+                </div>
+              #{/field}
+              #{field 'computeVirtualPool.maxNics'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'max'}</span>
+                  </div>
+                </div>
+              #{/field}
+            </div>
+          #{/Form.controlGroup}
+        #{/field}
+ 
+        #{field 'computeVirtualPool.group.hbas'}
+          #{Form.controlGroup field:field}
+            <div class="row">
+              #{field 'computeVirtualPool.minHbas'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'min'}</span>
+                  </div>
+                </div>
+              #{/field}
+              #{field 'computeVirtualPool.maxHbas'}
+                <div class="col-xs-6 ${field.error ? 'has-error' : ''}">
+                  <div class="input-group">
+                    #{Form.inputText field:field/}
+                    <span class="input-group-addon">&{'max'}</span>
+                  </div>
+                </div>
+              #{/field}
+            </div>
+          #{/Form.controlGroup}
+        #{/field}
+    #{/collapse}
+
+    #{include 'compute/ComputeVirtualPools/computeElements.html'/}    
+   </div>
+      
+    <div data-source="computeVirtualPool_systemType" data-hide="${models.ComputeSystemTypes.CSERIES}">
+      #{collapse 'computeVirtualPool.serviceProfileTemplates', icon:'align-justify'}
+
+      <div id="showTemplateSection">
+          <legend>&{'computeVirtualPool.serviceProfileTemplateSelection'}
+              <small>&{'computeVirtualPool.serviceProfileTemplateSelection.description'}</small>
+           </legend>
+      %{systems = computeVirtualPool.systems }% 
+      </div>
+      <div id="noTemplateMessage">
+          <legend>&{'computeVirtualPool.noVblockSystems'}
+             <h4>&{'computeVirtualPool.noVblockSystems.description'}</h4>
+          </legend>
+      </div>
+      <div id="selectedTemplates">
+        #{field 'computeVirtualPool.selectedTemplates'}
+          <input type="hidden" id="templateSelections" name="${field.name}" value="${field.value}">
+        #{/field}  
+      </div>
+
+      #{include 'compute/ComputeVirtualPools/templates.html'/}  
+
+     #{/collapse} 
+    </div>
+
+    #{Form.buttonBar}
+    #{Form.button name:'button.save', class:'primary', icon:'ok-sign', size:'large', action:'confirmFormSubmit();'/}
+    #{Form.button name:'button.cancel', icon:'trash', size:'large', href:@list()/}
+    
+  #{/Form.buttonBar}  
+
+  #{/form}
+  #{get 'forms'/}
+  
+  #{Modal.dialog id:'confirmDialog'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'computeVirtualPool.confirmSave.title'}</h4>
+  #{/Modal.header}
+  #{Modal.body}
+    <div class="alert alert-warning" style="margin-bottom: 0px;">
+      #{icon 'warning-sign'/} &{'computeVirtualPool.confirmSave.messageOne'}<br/><br/>
+      &{'computeVirtualPool.confirmSave.messageTwo'}
+    </div>
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button 'computeVirtualPool.confirmSave.confirmButton', class:'success', icon:'ok-sign', action:'submitForm();'/}
+    #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}  
+ </div>

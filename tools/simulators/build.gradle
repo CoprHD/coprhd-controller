@@ -1,0 +1,22 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    simulators {
+        mainClass = "com.emc.storageos.simulators.impl.Main"
+        debugPort = "8010"
+        maxMemory = "2048m"
+    }
+}
+
+dependencies {
+    compile library(jetty),
+            project(":isilon"),
+            project(":dbsvc")
+}
+
+test {
+    exclude "com/emc/storageos/simulators/SimulatorTest.class"
+    exclude "com/emc/storageos/simulators/db/DbClientTest.class"
+}

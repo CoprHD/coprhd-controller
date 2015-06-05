@@ -1,0 +1,56 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.vcenters'] /}
+
+#{tenantSelector /}
+#{DataTable.formAction @introspect(), id:'rediscoverForm', table:'vCenter'/}
+#{DataTable.header titleKey:'VCenters.list.title'/}
+#{DataTable.baseCrudTable id:'vCenter',
+                      dataTable:dataTable,
+                      expandable:true,
+                      deleteConfirm:messages.get('VCenters.deleteConfirm')}
+  #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}                    
+    #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm', 
+                data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
+  	#{Form.button name:'button.detachStorage', class:'default', icon:'hdd', submit:'detachStorageForm',
+                data:['enabled':'selected']/}  
+  #{/DataTable.baseCrudButtonBar}
+#{/DataTable.baseCrudTable}
+#{DataTable.expandHtml @itemDetails(':id'), table:'vCenter'/}
+#{DataTable.formAction @detachStorage(), id:'detachStorageForm', table:'vCenter', confirm:messages.get('VCenters.detachStorageConfirm')/}
+
+#{DataTable.formAction @delete(), id:'deleteModalForm', class:'show form form-horizontal', table:'vCenter'}
+  #{Modal.dialog id:'deleteVcenterDialog'}
+    #{Modal.body}
+      #{Form.header titleKey:'VCenters.deleteVcenters.title'/}
+        &{'VCenters.deleteConfirm'}
+        #{field 'detachStorage'}
+          %{
+            field.value = 'true'
+            field.cssClass = 'checkbox'
+            field.label = messages.get('VCenters.detachStorageModal')
+            field.helpText = messages.get('VCenters.detachStorageModal.help')
+          }%
+          #{Form.booleanCheckBoxControlGroup field:field/}
+        #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button 'button.delete', class:'danger', icon:'trash', submit:'deleteModalForm'/}
+      #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/Modal.dialog}
+#{/DataTable.formAction}
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var oTable = $('#vCenter table').dataTable();
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDiscoveryStatus(oTable, itemsJson, ['version']);
+});
+
+function showModalDialog() {
+    $('.modal').modal();
+}
+</script>

@@ -1,0 +1,24 @@
+POST https://192.168.0.0:4443/block/volumes/urn:storageos:Volume:20da03df-beac-4ab6-bd19-42c416f4a4d9:/protection/continuous/stop.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+{
+    "link": {
+        "href": "/block/volumes/urn:storageos:Volume:20da03df-beac-4ab6-bd19-42c416f4a4d9:/tasks/570b7a9a-0724-4935-8e29-7e471bfbe8b8",
+        "rel": "self"
+    },
+    "op_id": "570b7a9a-0724-4935-8e29-7e471bfbe8b8",
+    "resource": {
+        "id": "urn:storageos:Volume:20da03df-beac-4ab6-bd19-42c416f4a4d9:",
+        "link": {
+            "href": "/block/volumes/urn:storageos:Volume:20da03df-beac-4ab6-bd19-42c416f4a4d9:",
+            "rel": "self"
+        },
+        "name": "rpSanity-example.com-5561"
+    },
+    "start_time": 1380722142169,
+    "state": "pending"
+}

@@ -1,0 +1,28 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xml:lang="en-US"
+	xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.xmlsoap.org/ws/2005/06/management">
+	<s:Header>
+		<a:Action s:mustUnderstand="true">
+			http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse
+		</a:Action>
+		<a:MessageID s:mustUnderstand="true">
+			uuid:95783CED-6AC4-471B-B773-1CC892FC674B
+		</a:MessageID>
+		<a:To>
+			http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous
+		</a:To>
+		<a:RelatesTo s:mustUnderstand="true">
+			uuid:C61CA1DC-51C0-4353-AE46-3E42ED0DA794
+		</a:RelatesTo>
+	</s:Header>
+	<s:Body>
+		<n:EnumerateResponse>
+			<n:EnumerationContext>
+				uuid:22EB9809-5543-4020-A75C-FD95FF06217B
+			</n:EnumerationContext>
+		</n:EnumerateResponse>
+	</s:Body>
+</s:Envelope>

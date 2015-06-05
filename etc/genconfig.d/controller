@@ -1,0 +1,61 @@
+#!/etc/genconfig
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_get_controller_props() {
+    _get_props controller_brocade_firmware_version \
+            controller_compute_discovery_interval \
+            controller_compute_discovery_refresh_interval \
+            controller_cs_discovery_interval \
+            controller_cs_discovery_refresh_interval \
+            controller_datadomain_firmware_version \
+            controller_ddmc_firmware_version \
+            controller_discovery_core_pool_size \
+            controller_discovery_interval \
+            controller_discovery_refresh_interval \
+            controller_enable_autodiscovery \
+            controller_enable_autoscan \
+            controller_enable_metering \
+            controller_enable_monitoring \
+            controller_hicommand_provider_version \
+            controller_ibmxiv_firmware_version \
+            controller_ibmxiv_provider_version \
+            controller_isilon_firmware_version \
+            controller_max_pool_utilization_percentage \
+            controller_max_thin_pool_subscription_percentage \
+            controller_mds_communication_timeout \
+            controller_mds_firmware_version \
+            controller_metering_interval \
+            controller_metering_refresh_interval \
+            controller_netapp_firmware_version \
+            controller_ns_discovery_interval \
+            controller_ns_discovery_refresh_interval \
+            controller_rp_firmware_version \
+            controller_scaleio_firmware_version \
+            controller_scan_interval \
+            controller_scan_refresh_interval \
+            controller_smis_provider_version \
+            controller_ucs_firmware_version \
+            controller_vmax_firmware_version \
+            controller_vnxblock_firmware_version \
+            controller_vnxfile_firmware_version \
+            controller_vplex_firmware_version \
+            controller_xtremio_firmware_version
+}
+
+_controller_var_props() {
+    _get_props node_index node_name network_ipaddr_service
+}
+
+_genconfig_exec _gen_template           /opt/storageos/conf/controller-configinfo.xml   $(_get_controller_props)
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/controller-var.xml          $(_controller_var_props)

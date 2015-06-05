@@ -1,0 +1,17 @@
+GET  https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:ebb67b64-5f98-4f4f-97a9-555427310386:/subtenants HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+     <subtenants>
+          <subtenant>
+               <id>urn:storageos:TenantOrg:23243fa7-afda-4aec-8391-da69a79650ad:</id>
+               <link href="/tenants/urn:storageos:TenantOrg:23243fa7-afda-4aec-8391-da69a79650ad:" rel="self"/>
+               <name>lglap135</name>
+          </subtenant>
+     </subtenants>

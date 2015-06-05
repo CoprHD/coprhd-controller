@@ -1,0 +1,34 @@
+POST https://192.168.0.0:4443/compute/hosts/urn:storageos:Host:0ad4cab1-77b6-4919-bfb5-07e1fc3f3ac5:/ip-interfaces.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+{
+   "protocol": "IPV4",
+   "ip_address": "1.1.1.1",
+   "netmask": "24"
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+   "creation_time": "1380655859544",
+   "id": "urn:storageos:IpInterface:1e77789f-5ce0-4de0-87df-cc9599c491e8:",
+   "inactive": "false",
+   "link": {
+      "href": "/compute/ip-interfaces/urn:storageos:IpInterface:1e77789f-5ce0-4de0-87df-cc9599c491e8:",
+      "rel": "self"
+   },
+   "tags": [],
+   "host": {
+      "id": "urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:",
+      "link": {
+         "href": "/compute/hosts/urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:",
+         "rel": "self"
+      }
+   },
+   "protocol": "IPV4",
+   "ip_address": "1.1.1.1",
+   "netmask": "24"
+}
+ 

@@ -1,0 +1,56 @@
+GET https://192.168.0.0:4443/vdc/networks/urn:storageos:Network:a913d1e1-27d2-42b8-9375-5531f0101e39:.json HTTP/1.1  
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+ {
+  "name": "FABRIC_losam059-fid3",
+  "id": "urn:storageos:Network:a913d1e1-27d2-42b8-9375-5531f0101e39:",
+  "link": {
+    "rel": "self",
+    "href": "/vdc/networks/urn:storageos:Network:a913d1e1-27d2-42b8-9375-5531f0101e39:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "endpoints": [
+    "10:00:00:00:C9:51:C1:2F",
+    "10:00:00:00:C9:4E:C0:39",
+    "50:06:01:6C:3E:A0:59:B0"
+  ],
+  "discovered": true,
+  "creation_time": 1379169017234,
+  "native_guid": "FC+BROCADE+10:00:00:05:1E:56:78:42",
+  "transport_type": "FC",
+  "endpoints_discovered": [
+    {
+      "name": "10:00:00:00:C9:51:C1:2F",
+      "value": "true"
+    },
+    {
+      "name": "10:00:00:00:C9:4E:C0:39",
+      "value": "true"
+    },
+    {
+      "name": "50:06:01:6C:3E:A0:59:B0",
+      "value": "true"
+    }
+  ],
+  "fabric_id": "losam059-fid3",
+  "network_systems": [
+    "urn:storageos:NetworkSystem:f8cb0945-ca59-4ad2-b7b7-772587da0d6e:",
+    "urn:storageos:NetworkSystem:e5ab70ee-91b3-43ce-a6ba-48bd15ffb7f2:"
+  ],
+  "registration_status": "REGISTERED",
+  "varray": {
+    "id": "urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/varrays/urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:"
+    }
+  }
+}

@@ -1,0 +1,42 @@
+%{
+  titleKey = 'StorageSystems.ports.edit.title'
+  descriptionKey = 'StorageSystems.ports.edit.description'
+  image = '/public/img/assets/StorageArray.png'
+}%
+#{extends 'main.html'/}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays']/}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @arrays.StorageSystems.list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.ports(storageSystem.id)}&{'StorageSystems.ports.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${storagePort.portName}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+  #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image/}
+  #{alerts/}
+  #{form @savePort(), id:'storageArrayPortForm', class:'form form-horizontal', autocomplete:"off"}
+    <fieldset>
+      #{field 'storageArrayPort.id'}
+        <input type="hidden" name="${field.name}" value="${field.value}">
+      #{/field}
+
+      #{field 'storageArrayPort.portType'}
+        <input type="hidden" name="${field.name}" value="${field.value}">
+      #{/field}
+
+      #{field 'storageArrayPort.name'}
+        %{field.atts = ['readonly':'readonly']}%
+        #{Form.inputTextControlGroup field:field/}
+      #{/field}
+
+      #{field 'storageArrayPort.port'}
+        #{Form.inputTextControlGroup field:field/}
+      #{/field}
+    </fieldset>
+    #{Form.saveCancel cancelHref:@ports(storageSystem.id)/}
+  #{/form}
+</div>

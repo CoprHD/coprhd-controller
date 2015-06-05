@@ -1,0 +1,12 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# /etc/init.d/connectemc
+#
+CONNECTEMC_USER=storageos
+CONNECTEMC_GROUP=storageos
+
+# For backward compatibility
+# 
+EMCUSER=root

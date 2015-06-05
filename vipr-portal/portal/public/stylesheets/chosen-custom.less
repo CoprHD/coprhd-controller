@@ -1,0 +1,112 @@
+.chosen-container-single .chosen-single,
+.chosen-container-active .chosen-single,
+.chosen-container-active.chosen-with-drop .chosen-single {
+  background: @input-bg;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  .box-shadow(none);
+}
+
+.chosen-container-active.chosen-with-drop {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.chosen-container-single .chosen-drop {
+  margin-left: -1px;
+  border-color: @input-border;
+  -webkit-box-sizing: content-box;
+     -moz-box-sizing: content-box;
+          box-sizing: content-box;
+  -webkit-box-shadow: none;
+     -moz-box-shadow: none;
+          box-shadow: none;
+  -webkit-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+          transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+
+.chosen-container-single .chosen-single,
+.chosen-container-single .chosen-drop {
+  line-height: inherit;
+  font-size: 14px;
+  color: @input-color;
+  background-color: @input-bg;
+}
+
+.chosen-disabled .chosen-single {
+  outline: 0 !important;
+}
+
+@chosen-disabled-color: #ccc;
+.chosen-container .chosen-results li.disabled-result {
+  color: @chosen-disabled-color;
+}
+
+.chosen-container-single.input-sm .chosen-single,
+.chosen-container-single.input-sm .chosen-drop {
+  font-size: 12px;
+}
+
+.chosen-container-single .chosen-single span {
+  margin-right: 18px;
+}
+
+.chosen-container-single .chosen-single div {
+  margin-right: -8px;
+}
+
+.chosen-container .chosen-results li {
+  padding-left: 8px;
+}
+
+.chosen-container.input-sm .chosen-results li {
+  padding-left: 6px;
+}
+
+.chosen-container-active .chosen-single {
+  z-index: 1012;
+}
+.chosen-container-active .chosen-drop {
+  z-index: 1010;
+  padding-top: 2px;
+}
+.chosen-container-active.chosen-with-drop:before {
+  content: ' ';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  top: 4px;
+  z-index: 1011;
+  background-color: @input-bg;
+}
+
+.chosen-container-active.form-control,
+.chosen-container-active.form-control .chosen-drop {
+  @color-rgba: rgba(red(@input-border-focus), green(@input-border-focus), blue(@input-border-focus), .6);
+  border-color: @input-border-focus;
+  .box-shadow(~"inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px @{color-rgba}");
+}
+.form-group.has-success {
+  .chosen-validation(@state-success-text; @state-success-text; @state-success-bg);
+}
+.form-group.has-warning {
+  .chosen-validation(@state-warning-text; @state-warning-text; @state-warning-bg);
+}
+.form-group.has-error {
+  .chosen-validation(@state-danger-text; @state-danger-text; @state-danger-bg);
+}
+
+// Mixin copied and modified from bootstrap mixins to work for chosen
+.chosen-validation(@text-color: #555; @border-color: #ccc; @background-color: #f5f5f5) {
+  & .chosen-container-single {
+    border-color: @border-color;
+  }
+  & .chosen-container-active,
+  & .chosen-container-active .chosen-drop {
+    border-color: darken(@border-color, 10%);
+    @shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 6px lighten(@border-color, 20%);
+    .box-shadow(@shadow);
+  }
+}

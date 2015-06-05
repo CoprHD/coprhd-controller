@@ -1,0 +1,26 @@
+POST: https://192.168.0.0:4443/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:/deactivate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+{
+    "description": "delete export",
+    "link": {
+        "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:/tasks/2f9cb916-2acc-4c0b-b151-e46f28216e45",
+        "rel": "self"
+    },
+    "message": "delete export",
+    "op_id": "2f9cb916-2acc-4c0b-b151-e46f28216e45",
+    "resource": {
+        "id": "urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+        "link": {
+            "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+            "rel": "self"
+        },
+        "name": "rpSanity-example.com-13564"
+    },
+    "start_time": 1380722786483,
+    "state": "pending"
+}

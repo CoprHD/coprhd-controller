@@ -1,0 +1,37 @@
+*{
+  Base tag for a crud button bar allowing more customization.
+  
+  Create Options
+  createHref: provide a direct URL to a create page.
+  createAction: provide a javascript action for create.
+  createName: customize the create button label key, defaults to 'button.add'
+  createClass: customize the create button class, defaults to 'success'
+  createIcon: customize the create button icon, defaults to 'plus'
+  
+  Delete Options
+  deleteHref: provide a link to a delete URL that a form will be submitted to containing selected items
+  deleteAction: provide a javascript action to take for deletion.
+  deleteName: customize the delete button label key, defaults to 'button.delete'
+  deleteClass: customize the delete button class, defaults to 'danger'
+  deleteIcon: customize the delete button icon, defaults to 'trash'
+}*
+%{
+    // Allow some extra customization of the delete button data attributes
+    deleteData = ['enabled':'selected']
+    if (_deleteData) {
+        deleteData.putAll(_deleteData)
+    }
+    
+    // Use a form to submit when deleteHref is provided
+    deleteSubmit = _deleteHref ? 'deleteForm' : null
+}%
+#{DataTable.buttonBar}
+  #{Form.button name:(_createName ?: 'button.add'), class:(_createClass ?: 'success'), icon:(_createIcon ?: 'plus'),
+                href:_createHref, action:_createAction/}
+  #{Form.button name:(_deleteName ?: 'button.delete'), class:(_deleteClass ?: 'danger'), icon:(_deleteIcon ?: 'trash'), 
+                submit:deleteSubmit, action:_deleteAction, data:deleteData/}
+  #{doBody/}
+#{/DataTable.buttonBar}
+#{if deleteSubmit}
+  #{DataTable.formAction _deleteHref, id:deleteSubmit, table:_table, confirm:_deleteConfirm/}
+#{/if}

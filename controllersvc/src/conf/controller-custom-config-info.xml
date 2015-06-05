@@ -1,0 +1,1276 @@
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util" 
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    					http://www.springframework.org/schema/util  http://www.springframework.org/schema/util/spring-util-3.1.xsd">
+    
+    
+    <bean id="dbModelClient" class="com.emc.storageos.db.client.impl.DbModelClientImpl">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    <bean id="customConfigHandler" class="com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="configTypeProvider" ref="configTypeProvider"/>
+        <property name="datasourceFactory" ref="dataSourceFactory"/>
+        <property name="configResolvers">
+            <map>
+                <entry key="CustomName" value-ref="nameResolver"/>
+                <entry key="SimpleValue" value-ref="valueResolver"/>
+            </map>
+        </property>
+    </bean>    
+    <bean id="configTypeProvider" class="com.emc.storageos.customconfigcontroller.CustomConfigTypeProvider">
+    	<property name="customConfigTypes">
+            <list>
+                <ref bean="sanZoneName"/>
+                <ref bean="vnxHostStorageGroupName"/>
+                <ref bean="vmaxHostMaskingViewName"/>
+                <ref bean="vmaxClusterMaskingViewName"/>
+                <ref bean="vmaxHostStorageGroupName"/>
+                <ref bean="vmaxClusterStorageGroupName"/>
+                <ref bean="vmaxHostCascadedIGName"/>
+                <ref bean="vmaxClusterCascadedIGName"/>
+                <ref bean="vmaxHostCascadedSGName"/>
+                <ref bean="vmaxClusterCascadedSGName"/>
+                <ref bean="vmaxHostInitiatorGroupName"/>
+                <ref bean="vmaxClusterInitiatorGroupName"/>
+                <ref bean="vmaxHostPortGroupName"/>
+                <ref bean="vmaxClusterPortGroupName"/>
+                <ref bean="portAllocationInitiatorCeiling"/>
+                <ref bean="portAllocationVolumeCeiling"/>
+                <ref bean="portAllocationPortUtilizationCeiling"/>
+                <ref bean="portAllocationCpuUtilizationCeiling"/>
+                <ref bean="portAllocationDaysToAverageUtilization"/>
+                <ref bean="portAllocationEmaFactor"/>
+                <ref bean="portAllocationMetricsEnabled"/>
+                <ref bean="xtremIOVolumeFolderName"/>
+                <ref bean="xtremIOInitiatorGroupName"/>
+                <ref bean="xtremIOHostInitiatorGroupFolderName"/>
+                <ref bean="xtremIOClusterInitiatorGroupFolderName"/>
+                <ref bean="hdsHostStorageDomainName"/>
+                <ref bean="hdsHostStorageDomainNickName"/>
+                <ref bean="hdsHostModeOption" />
+                <ref bean="vplexStorageViewName"/>
+            </list>
+        </property>
+    </bean>
+    <bean id="dataSourceFactory" class="com.emc.storageos.customconfigcontroller.DataSourceFactory">
+        <property name="configTypeProvider" ref="configTypeProvider"/>
+        <property name="dbModelClient" ref="dbModelClient"/>
+    </bean>
+    <bean id="sanZoneName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="SanZoneName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="initiatorPortWWn" value="true"/>
+                <entry key-ref="initiatorLabel" value="false"/>
+                <entry key-ref="storagePortWwn" value="true"/>
+                <entry key-ref="storagePortName" value="false"/>
+                <entry key-ref="hostName" value="false"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="vsanOrFabricNumber" value="false"/> <!-- TODO Need to decide how to solve vsan id vs. fabric id  -->
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="mds,brocade"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="SDS_{host_name.FIRST(32)}_{hba_port_wwn.REPLACE(&quot;:&quot;, &quot;&quot;).LAST(12)}_{array_serial_number.LAST(4)}_{array_port_name.REPLACE(&quot;_|-&quot;, &quot;&quot;).LAST(9)}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="nsIllegalCharsConstraint"/>
+                <ref bean="nsMaxLengthConstraint"/>
+                <ref bean="illegalFirstCharConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxHostStorageGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VNXHostStorageGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vnxblock"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vnxblock" value="({cluster_name.FIRST(19)}_{host_name.FIRST(40)}_{array_serial_number.LAST(3)}).TRIM(&quot;_&quot;)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxHostMaskingViewName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXHostMaskingViewName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{host_name.FIRST(60)}_{array_serial_number.LAST(3)}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxClusterMaskingViewName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXClusterMaskingViewName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="false"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{cluster_name.FIRST(60)}_{array_serial_number.LAST(3)}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxHostStorageGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXHostStorageGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="autoTieringPolicy" value="false"/>
+                <entry key-ref="hostIOLimitBandwidth" value="false"/>
+                <entry key-ref="hostIOLimitIOPs" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="({host_name.FIRST(20)}_{array_serial_number.LAST(3)}_SG_{auto_tiering_policy_name.LAST(16)}_{host_IO_limit_bandwidth.FIRST(8)}_{host_IO_limit_iops.FIRST(10)}).REPLACE(&quot;__&quot;, &quot;_&quot;).TRIM(&quot;_&quot;)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxClusterStorageGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXClusterStorageGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="false"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="autoTieringPolicy" value="false"/>
+                <entry key-ref="hostIOLimitBandwidth" value="false"/>
+                <entry key-ref="hostIOLimitIOPs" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="({cluster_name.FIRST(20)}_{array_serial_number.LAST(3)}_SG_{auto_tiering_policy_name.LAST(16)}_{host_IO_limit_bandwidth.FIRST(8)}_{host_IO_limit_iops.FIRST(10)}).REPLACE(&quot;__&quot;, &quot;_&quot;).TRIM(&quot;_&quot;)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxHostCascadedIGName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXHostCascadedIGName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{host_name.FIRST(56)}_{array_serial_number.LAST(3)}_CIG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxClusterCascadedIGName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXClusterCascadedIGName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="false"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{cluster_name.FIRST(56)}_{array_serial_number.LAST(3)}_CIG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxHostCascadedSGName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXHostCascadedSGName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{host_name.FIRST(56)}_{array_serial_number.LAST(3)}_CSG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxClusterCascadedSGName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXClusterCascadedSGName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="false"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{cluster_name.FIRST(56)}_{array_serial_number.LAST(3)}_CSG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxHostInitiatorGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXHostInitiatorGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{host_name.FIRST(57)}_{array_serial_number.LAST(3)}_IG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxClusterInitiatorGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXClusterInitiatorGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="false"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{host_name.FIRST(57)}_{array_serial_number.LAST(3)}_IG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxHostPortGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXHostPortGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{host_name.FIRST(57)}_{array_serial_number.LAST(3)}_PG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vmaxClusterPortGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VMAXClusterPortGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="false"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vmax" value="{cluster_name.FIRST(57)}_{array_serial_number.LAST(3)}_PG"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="hdsHostStorageDomainName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="HDSHostStorageDomainName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="clusterName" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="true"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="hds" value="({cluster_name.FIRST(19)}_{host_name.FIRST(40)}_{array_serial_number.LAST(3)}).TRIM(&quot;_&quot;)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="hdsHostStorageDomainNickName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="HDSHostStorageDomainNickName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+                <entry key-ref="hdsStoragePortNumber" value="true"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="hds" value="{host_name.FIRST(27)}_{hds_storage_port_number.FIRST(4)}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+            	<ref bean="illegalCharsConstraint"/>
+                <ref bean="hdsNickNameMaxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="hdsHostModeOption" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="HDSHostModeOption"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+        <property name="scope">
+            <map>
+                <!-- The hostType scope is used only for HDS Host Mode Option  -->
+                <!-- Workaround to show Host Type in UI instead of System Type for Hosts -->
+                <entry key="hostType" value="Windows,Linux,AIX,Esx,HPUX"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="Windows" value="2;22"/>
+                <entry key="Linux" value="2;22"/>
+                <entry key="AIX" value="2;22"/>
+                <entry key="Esx" value="54;63"/>
+                <entry key="HPUX" value="12"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+            	<ref bean="hdsHostModeOptionillegalCharsConstraint"/>
+            </list>
+        </property>
+    </bean>
+        
+    <bean id="vplexStorageViewName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexStorageViewName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+        <property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="hostType" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemType" value="false"/>
+                <entry key-ref="vplexClusterNumber" value="true"/>
+                <entry key-ref="vplexClusterSerialNumber" value="true"/>
+            </map>
+        </property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="vplex" value="(V{vplex_cluster_number}_{cluster_name}_{host_name.FIRST(57)}_{vplex_cluster_serial_number.LAST(3)}).REPLACE(&quot;__&quot;, &quot;_&quot;)"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="illegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="portAllocationInitiatorCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationInitiatorCeiling"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="2147483647"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="minConstraintOne"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="portAllocationVolumeCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationVolumeCeiling"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="2147483647"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="minConstraintOne"/>
+            </list>
+        </property>
+    </bean>
+               
+    
+    <bean id="portAllocationPortUtilizationCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationPortUtilizationCeiling"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="100"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraint"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="portAllocationCpuUtilizationCeiling" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationCpuUtilizationCeiling"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="100"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraint"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="portAllocationDaysToAverageUtilization" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationDaysToAverageUtilization"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="1"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraintForAverageDays"/>
+                <ref bean="minConstraintOne"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="portAllocationEmaFactor" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationEmaFactor"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Float"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+                <entry key="systemType" value="vnxblock,vmax,hds"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="0.6"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="maxConstraintForEmaFactor"/>
+                <ref bean="minConstraintZero"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="portAllocationMetricsEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="PortAllocationMetricsEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="true"/>
+            </map>
+        </property>
+    </bean>
+    
+    
+    <bean id="xtremIOVolumeFolderName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="XtremIOVolumeFolderName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="projectName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="xtremio"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="xtremio" value="{project_name}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="xtremIOInitiatorGroupName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="XtremIOInitiatorGroupName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="xtremio"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="xtremio" value="{host_name}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="xtremIOHostInitiatorGroupFolderName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="XtremIOHostInitiatorGroupFolderName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="hostName" value="true"/>
+                <entry key-ref="hostLabel" value="false"/>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="xtremio"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="xtremio" value="{host_name}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="xtremIOClusterInitiatorGroupFolderName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="XtremIOClusterInitiatorGroupFolderName"/>
+        <property name="configType" value="CustomName"/>
+        <property name="type" value="String"/>
+    	<property name="dataSourceVariables">
+            <map>
+                <entry key-ref="clusterName" value="true"/>
+                <entry key-ref="storageSystemSerialNumber" value="false"/>
+            </map>
+    	</property>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="xtremio"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="xtremio" value="{cluster_name}"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="maxLengthConstraint"/>
+            </list>
+        </property>
+    </bean>
+    
+    <!-- We can optionally have a similar property for initiatorPortIqn which would be the same -->
+    <!-- except that for the "sample" and the display name -->
+    <bean id="initiatorPortWWn" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Initiator"/>
+        <property name="displayName" value="hba_port_wwn"/>
+        <property name="propertyName" value="iniport"/>
+        <property name="sample" value="10:00:00:90:FA:34:4C:EE"/>
+    </bean>
+
+    <bean id="initiatorNodeWWn" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Initiator"/>
+        <property name="displayName" value="hba_node_wwn"/>
+        <property name="propertyName" value="ininode"/>
+        <property name="sample" value="10:00:00:90:FA:34:4C:FF"/>
+    </bean>
+    
+    <bean id="initiatorLabel" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Initiator"/>
+        <property name="displayName" value="hba_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="hba01"/>
+    </bean>
+
+    <bean id="storagePortWwn" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StoragePort"/>
+        <property name="displayName" value="array_port_wwn"/>
+        <property name="propertyName" value="portNetworkId"/>
+        <property name="sample" value="50:00:09:73:00:18:95:24"/>
+    </bean>
+
+    <bean id="storagePortName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StoragePort"/>
+        <property name="displayName" value="array_port_name"/>
+        <property name="propertyName" value="portName"/>
+        <property name="sample" value="FA-10E:0"/>
+    </bean>
+
+    <bean id="storageSystemSerialNumber" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StorageSystem"/>
+        <property name="displayName" value="array_serial_number"/>
+        <property name="propertyName" value="serialNumber"/>
+        <property name="sample" value="000123456789"/>
+    </bean>
+    
+    <bean id="storageSystemType" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StorageSystem"/>
+        <property name="displayName" value="array_type"/>
+        <property name="propertyName" value="systemType"/>
+        <property name="sample" value="vmax"/>
+    </bean>
+
+    <bean id="vplexClusterNumber" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="vplex_cluster_number"/> <!-- Should we rename cluster to host_cluster ?? -->
+        <property name="sample" value="1"/>
+    </bean>
+
+    <bean id="vplexClusterSerialNumber" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="displayName" value="vplex_cluster_serial_number"/>
+        <property name="sample" value="FNM00114300288"/>
+    </bean>
+
+    <bean id="hostType" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Host"/>
+        <property name="displayName" value="host_type"/>
+        <property name="propertyName" value="type"/>
+        <property name="sample" value="Windows"/>
+    </bean>
+
+    <bean id="hostName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Host"/>
+        <property name="displayName" value="host_name"/>
+        <property name="propertyName" value="hostName"/>
+        <property name="sample" value="xyz015.company.com"/>
+    </bean>
+
+    <bean id="hostLabel" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Host"/>
+        <property name="displayName" value="host_assigned_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="xyz015"/>
+    </bean>
+    
+    <bean id="clusterName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Cluster"/>
+        <property name="displayName" value="cluster_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="clusterABC"/>
+    </bean>  
+    
+     <bean id="autoTieringPolicy" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.AutoTieringPolicy"/>
+        <property name="displayName" value="auto_tiering_policy_name"/>
+        <property name="propertyName" value="policyName"/>
+        <property name="sample" value="FAST"/>
+    </bean>
+    
+    <bean id="hdsStoragePortNumber" class="com.emc.storageos.customconfigcontroller.ComputedDataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.StoragePort"/>
+        <property name="displayName" value="hds_storage_port_number"/>
+        <property name="computedPropertyName" value="hdsPortNumber"/>
+        <property name="sample" value="12"/>
+    </bean>  
+
+    <bean id="vsanOrFabricNumber" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Network"/>
+        <property name="displayName" value="vsan/fabric"/>
+        <property name="propertyName" value="nativeId"/>
+        <property name="sample" value="fid3100"/>
+    </bean>
+
+	<bean id="projectName" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.Project"/>
+        <property name="displayName" value="project_name"/>
+        <property name="propertyName" value="label"/>
+        <property name="sample" value="AbcApp"/>
+    </bean>
+    
+    <bean id="hostIOLimitBandwidth" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
+        <property name="displayName" value="host_IO_limit_bandwidth"/>
+        <property name="propertyName" value="hostIOLimitBandwidth"/>
+        <property name="sample" value="bw100"/>
+    </bean>
+    
+    <bean id="hostIOLimitIOPs" class="com.emc.storageos.customconfigcontroller.DataSourceVariable">
+        <property name="sourceClass" value="com.emc.storageos.db.client.model.VirtualPool"/>
+        <property name="displayName" value="host_IO_limit_iops"/>
+        <property name="propertyName" value="hostIOLimitIOPs"/>
+        <property name="sample" value="iops2000"/>
+    </bean>
+    
+    <bean id="illegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="\\s+|[^a-zA-Z0-9_#@+-]"/>
+                <entry key="hds" value="[^]a-zA-Z0-9_#@!$='`~&#37;&amp;+\[^.-]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, numbers and _ # @ + -"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
+    <bean id="hdsHostModeOptionillegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^0-9;]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are numbers and ;"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
+    <bean id="xtremioIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9]"/>
+                <entry key="xtremio" value="[^A-Za-z0-9]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, and numbers"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+
+    <bean id="nsIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="default" value="[^A-Za-z0-9_]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid characters are letters, numbers and _"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalCharsConstraint"/> 
+    </bean>
+    
+    <bean id="illegalFirstCharConstraint" class="com.emc.storageos.customconfigcontroller.IllegalFirstCharConstraint">
+        <property name="illegalCharsRegexMap">
+            <map>
+                <entry key="mds" value=" "/>
+                <entry key="default" value="[^A-Za-z]"/>
+            </map>
+        </property>
+        <property name="description" value="Valid first characters are letters for Brocade"/>
+        <property name="replacementMap">
+            <map>
+                <entry key="mds" value=""/>
+                <entry key="default" value=""/>
+            </map>
+        </property>   
+        <property name="name" value="IllegalFirstCharConstraint"/> 
+    </bean>
+    
+    <bean id="maxLengthConstraint" class="com.emc.storageos.customconfigcontroller.MaxLengthConstraint">
+        <property name="maxLengthMap">
+            <map>
+                <entry key="default" value="64"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum length is 64 characters."/>
+    	<property name="name" value="MaxLengthConstraint"/>
+    </bean>
+    
+    <bean id="nsMaxLengthConstraint" class="com.emc.storageos.customconfigcontroller.MaxLengthConstraint">
+        <property name="maxLengthMap">
+            <map>
+                <entry key="default" value="59"/>
+                <entry key="mds" value="64"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum length is 59 characters for brocade, 64 characters for mds."/>
+        <property name="name" value="MaxLengthConstraint"/>
+    </bean>
+    
+    <bean id="hdsNickNameMaxLengthConstraint" class="com.emc.storageos.customconfigcontroller.MaxLengthConstraint">
+        <property name="maxLengthMap">
+            <map>
+                <entry key="default" value="32"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum length is 59 characters for brocade, 64 characters for others."/>
+    	<property name="name" value="MaxLengthConstraint"/>
+    </bean>
+    
+    <bean id="maxConstraint" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="100"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum value is 100"/>
+        <property name="name" value="MaxConstraint"/>
+    </bean>
+    
+    <bean id="maxConstraintForAverageDays" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="20000"/> <!-- Undocumented: if gt 10000, overage interpreted as minutes-->
+            </map>
+        </property>
+        <property name="description" value="The maximum value is 30"/>
+        <property name="name" value="MaxConstraintForAverageDays"/>
+    </bean>
+    
+    <bean id="maxConstraintForEmaFactor" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="1.0"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum value is 1.0"/>
+        <property name="name" value="MaxConstraintForEmaFactor"/>
+    </bean>
+    
+    <bean id="minConstraintOne" class="com.emc.storageos.customconfigcontroller.MinConstraint">
+        <property name="minVals">
+            <map>
+                <entry key="default" value="1"/>
+            </map>
+        </property>
+        <property name="description" value="The minimum value is 1"/>
+        <property name="name" value="MinConstraintOne"/>
+    </bean>
+    
+    <bean id="minConstraintZero" class="com.emc.storageos.customconfigcontroller.MinConstraint">
+        <property name="minVals">
+            <map>
+                <entry key="default" value="0"/>
+            </map>
+        </property>
+        <property name="description" value="The minimum value is 0"/>
+    </bean>
+    
+    <bean id="nameResolver" class="com.emc.storageos.customconfigcontroller.CustomNameResolver">
+    	<property name="stringManipulationMethods">
+            <list>
+                <ref bean="last"/>
+                <ref bean="first"/>
+                <ref bean="toUpper"/>
+                <ref bean="toLower"/>
+                <ref bean="replace"/>
+                <ref bean="substring"/>
+                <ref bean="trim"/>
+            </list>        
+        </property>
+    </bean>
+    
+    <bean id="valueResolver" class="com.emc.storageos.customconfigcontroller.SimpleValueResolver"/>
+    
+    <bean id="last" class="com.emc.storageos.customconfigcontroller.LastCustomConfigMethod">
+    	<property name="name" value="LAST"/>
+    	<property name="description" value="Get the last n characters of a string"/>
+    	<property name="parameterTypes">
+    		<list>
+    			<value>int</value>
+    		</list>
+    	</property>
+    </bean>
+    <bean id="first" class="com.emc.storageos.customconfigcontroller.FirstCustomConfigMethod">
+    	<property name="name" value="FIRST"/>
+    	<property name="description" value="Get the first n characters of a string"/>
+    	<property name="parameterTypes">
+    		<list>
+    			<value>int</value>
+    		</list>
+    	</property>
+    </bean>
+    <bean id="substring" class="com.emc.storageos.customconfigcontroller.SubstringCustomConfigMethod">
+        <property name="name" value="SUBSTRING"/>
+        <property name="description" value="Gets the characters of a string between indexes n and m"/>
+        <property name="parameterTypes">
+            <list>
+                <value>int</value>
+                <value>int</value>
+            </list>
+        </property>
+    </bean>
+    <bean id="trim" class="com.emc.storageos.customconfigcontroller.TrimCustomConfigMethod">
+        <property name="name" value="TRIM"/>
+        <property name="description" value="Trims dangling separators at the end of a string"/>
+        <property name="parameterTypes">
+            <list>
+                <value>java.lang.String</value>
+            </list>
+        </property>
+    </bean>
+    <bean id="toUpper" class="com.emc.storageos.customconfigcontroller.CustomConfigMethod">
+    	<property name="name" value="TOUPPER"/>
+    	<property name="description" value="Converts all of the characters to upper case "/>
+    	<property name="methodName" value="toUpperCase"/>
+    </bean>
+    <bean id="toLower" class="com.emc.storageos.customconfigcontroller.CustomConfigMethod">
+    	<property name="name" value="TOLOWER"/>
+    	<property name="description" value="Converts all of the characters to lower case "/>
+    	<property name="methodName" value="toLowerCase"/>
+    </bean>
+    <bean id="replace" class="com.emc.storageos.customconfigcontroller.CustomConfigMethod">
+    	<property name="name" value="REPLACE"/>
+    	<property name="description" value="Replaces each substring that matches the given regular expression with the given replacement"/>
+    	<property name="methodName" value="replaceAll"/>
+    	<property name="parameterTypes">
+    		<list>
+    			<value>java.lang.String</value>
+    			<value>java.lang.String</value>
+    		</list>
+    	</property>
+    </bean>
+</beans>

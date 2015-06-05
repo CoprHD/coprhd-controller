@@ -1,0 +1,173 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.adminDashboard', 'nav.systemNodeRecovery'] /}
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+
+
+<div class="container">
+
+    #{Form.header titleKey:'system.noderecovery.title' /}
+    #{alerts/}
+    
+    <div id="clusterHealthPanel">
+        #{include 'SystemHealth/clusterHealth.html'/}
+    </div>
+
+    <div id="message"></div>
+    <div id="nodeRecoveryReady">
+        <div class="loading-box">
+            &{'systemHealth.fetchingRecoveryStatus'}&nbsp;&nbsp;#{loading /}
+        </div>
+    </div>
+</div>
+
+<script>
+
+    $(document).ready(function() {
+    	
+    	loadRecoveryStatus();
+    });
+    
+    function renderRecoveryStatus(status, startime, endtime, errorcode){
+    	
+        var clusterState = $('#clusterState').data('state');
+        
+    	if (!status && !endtime) {
+    		// Node Recovery has never run.
+    		$('#recoveryResults').css('display','none');
+            $('#errorHistory').css('display','none');
+    		
+    		if(clusterState && clusterState != 'STABLE' && clusterState != 'UPDATING'){
+                $('#startNodeRecoveryBtn').prop("disabled", false);
+            } 
+    		
+    	} 
+    	else if (endtime && (!status || status == 'DONE' || status == 'FAILED')) {
+    		// Node recovery is not running now but it has in the past.
+    		$('#recoveryResults').css('display','none');
+            $('#errorHistory').css('display','block');
+
+    		if (status == 'DONE') {
+    			var doneMsg = Messages.get("renderFunctions.recovery.result.done");
+    			$('#errorMsg').html("<span>" + doneMsg + endtime + ".</span>");
+    		}
+    		else if (status == 'FAILED') {
+    			var failedMsg = Messages.get("renderFunctions.recovery.result.failed");
+    			$('#errorMsg').html("<span>" + failedMsg + endtime + ".</span>");
+    			
+                var reasonMsg = Messages.get("renderFunctions.recovery.result.reason");
+    			$('#errorResult').html("<span>" + reasonMsg + errorcode + "</span>");
+    		}
+    		
+            if(clusterState && clusterState != 'STABLE' && clusterState != 'UPDATING'){
+                $('#startNodeRecoveryBtn').prop("disabled", false);
+            }
+            
+    	}
+    	else {
+            $('#recoveryResults').css('display','block');
+            $('#errorHistory').css('display','none');
+
+	        render.recoveryStatus('#recoveryStatus', status);
+	        render.recoveryStatus('#recoveryStatusAnim', status);
+	   	 
+	        startime = (startime) ? startime : "NA";
+	        $('#startTime').append(startime);
+	   	 
+	        endtime = (endtime) ? endtime : "NA";
+	        $('#endTime').append(endtime);
+	        render.recoveryErrorStatus("#errorCode", errorcode)
+	   	
+	        if (status == 'INIT' || status == 'PREPARING' || status == 'SYNCING' || status == 'REPAIRING') {
+	            // If recovery is running, the Start Node Recovery should be disabled (always).
+	            $('#startNodeRecoveryBtn').prop("disabled", true);
+	            
+	            $('#recStatus').css('display','none');
+	            $('#recStatusAnim').css('display','block');
+	    	 } else {
+	           // Recovery is not running, enable Start Node Recovery if cluster is not stable.
+	           if(clusterState != 'STABLE' && clusterState != 'UPDATING'){
+	               $('#startNodeRecoveryBtn').prop("disabled", false);
+	           }        
+	
+	           $('#recStatus').css('display','block');
+	           $('#recStatusAnim').css('display','none');
+	    	 }
+    	}
+    }
+        
+    function startUpdating(url, contentId, delayInSeconds) {
+        var content = DynamicContent();
+        content.watchValue(contentId);
+        
+        var delay = delayInSeconds * 1000;
+        var update = function() {
+            $.get(url, function(data) {
+            	console.log("Updating: " + url);
+                $('#'+contentId).empty();
+                $('#'+contentId).append(data);
+                disableBtnWhenStable();
+                window.setTimeout(update, delay);
+            });
+        };
+        update();
+    }
+
+
+    function disableBtnWhenStable(){
+   	 var clusterState = $('#clusterState').data('state');
+   	 
+   	 // When the cluster is stable or still updating, Start Node Recovery button should be disabled.
+   	 if(clusterState == 'STABLE' || clusterState == 'UPDATING'){
+   		 $('#startNodeRecoveryBtn').prop("disabled", true);
+   	 }
+    }
+    
+    function getRecoveryStatus(){
+		 $.post("@{SystemHealth.getRecoveryStatus}")
+	        .done(function(result) {
+	        	clearStatusTable();
+	            renderRecoveryStatus(result.status,result.startTime,result.endTime,result.errorCode);
+	        });   
+    }
+
+    function clearStatusTable(){
+        $('#recoveryStatus').empty();
+        $('#startTime').empty();
+        $('#endTime').empty();
+        $('#errorCode').empty();
+	 
+        $('#errCode').css('display','none');
+    }
+
+    function loadRecoveryStatus() {
+    	var uri = "@{nodeRecoveryReady}"
+    	$.ajax({
+    		method: "get",
+    		url: uri,
+    		dataType: "html",
+    		
+    		success: function(ret) {
+                $("#nodeRecoveryReady").html(ret);
+    			startUpdating('@{SystemHealth.clusterHealth}', 'clusterHealthPanel', 5);
+                disableBtnWhenStable();
+    			setInterval(getRecoveryStatus, 5000);
+    			renderRecoveryStatus("${recoveryStatus?.status}",
+    					             "${recoveryStatus?.startTime}",
+    					             "${recoveryStatus?.endTime}",
+    					             "${recoveryStatus?.errorCode}");    			
+    		},
+    		error: function(jqXHR, exception) {
+    			console.log("error in loadRecoveryStatus.");
+    			window.setTimeout(loadRecoveryStatus(), 50);
+    		}
+    	});
+    }
+    
+    
+</script>
+#{/set}
+

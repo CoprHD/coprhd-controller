@@ -1,0 +1,70 @@
+GET https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:091ca39e-2622-476a-98c4-bcfab86f18b8:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "name": "MST_Vol_coke_acea8acf-3b3b-4c7c-aabf-bdcb2e3fe4ff",
+  "id": "urn:storageos:FileShare:091ca39e-2622-476a-98c4-bcfab86f18b8:",
+  "link": {
+    "rel": "self",
+    "href": "/file/filesystems/urn:storageos:FileShare:091ca39e-2622-476a-98c4-bcfab86f18b8:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "project": {
+    "id": "urn:storageos:Project:403946c1-029f-4f40-8159-87be97dbe2d0:",
+    "link": {
+      "rel": "self",
+      "href": "/projects/urn:storageos:Project:403946c1-029f-4f40-8159-87be97dbe2d0:"
+    }
+  },
+  "tenant": {
+    "id": "urn:storageos:TenantOrg:c3f022ff-5e3a-49ca-a5ef-b0aaa74cebb3:",
+    "link": {
+      "rel": "self",
+      "href": "/tenants/urn:storageos:TenantOrg:c3f022ff-5e3a-49ca-a5ef-b0aaa74cebb3:"
+    }
+  },
+  "protocols": [
+    "CIFS"
+  ],
+  "creation_time": 1379401519922,
+  "mount_path": "/ifs/sos/ProviderTenan_MSTVolcokeace_091ca39e-2622-476a-98c4-bcfab86f18b8",
+  "capacity_gb": "1.00",
+  "storage_system": {
+    "id": "urn:storageos:StorageSystem:b8017683-e5b7-492b-92ce-063d3acc1eb4:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/storage-systems/urn:storageos:StorageSystem:b8017683-e5b7-492b-92ce-063d3acc1eb4:"
+    }
+  },
+  "storage_pool": {
+    "id": "urn:storageos:StoragePool:e6692a4d-8ce3-4b83-881a-0da8163804aa:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/storage-systems/urn:storageos:StorageSystem:b8017683-e5b7-492b-92ce-063d3acc1eb4:/storage-pools/urn:storageos:StoragePool:e6692a4d-8ce3-4b83-881a-0da8163804aa:"
+    }
+  },
+  "thinly_provisioned": true,
+  "native_id": "/ifs/sos/ProviderTenan_MSTVolcokeace_091ca39e-2622-476a-98c4-bcfab86f18b8",
+  "varray": {
+    "id": "urn:storageos:VirtualArray:b8f947af-a149-4192-846d-cbbaca4968cb:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/varrays/urn:storageos:VirtualArray:b8f947af-a149-4192-846d-cbbaca4968cb:"
+    }
+  },
+  "vpool": {
+    "id": "urn:storageos:VirtualPool:51575f8d-e51d-4c77-a741-a66534cb62ed:",
+    "link": {
+      "rel": "self",
+      "href": "/file/vpools/urn:storageos:VirtualPool:51575f8d-e51d-4c77-a741-a66534cb62ed:"
+    }
+  }
+}

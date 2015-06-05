@@ -1,0 +1,14 @@
+out/
+bin/
+build/
+.tmp/
+classes/
+.DS_Store
+*/src/generated/*
+.gradle/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/

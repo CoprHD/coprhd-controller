@@ -1,0 +1,22 @@
+GET https://192.168.0.0:4443/projects/urn:storageos:Project:7a6b150e-d224-492a-939b-57ca4d91d15a:/resources HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <project_resources>
+     <project_resource>
+          <id>urn:storageos:BlockConsistencyGroup:beecb228-5560-412d-8716-ad871b8a174a:</id>
+          <name>group_east</name>
+          <resource_type>block_consistency_group</resource_type>
+          </project_resource>
+     <project_resource>
+          <id>urn:storageos:BlockConsistencyGroup:bd022276-00c9-4bc2-8e14-1b42df815dd2:</id>
+          <name>group_south</name>
+          <resource_type>block_consistency_group</resource_type>
+     </project_resource>
+  </project_resources>

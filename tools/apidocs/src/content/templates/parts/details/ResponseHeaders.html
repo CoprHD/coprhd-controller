@@ -1,0 +1,13 @@
+<% if (!apiMethod.responseHeaders.isEmpty()) { %>
+<hr/>
+<h4>Response Headers</h4>
+<table class="payload table table-striped">
+    <% apiMethod.responseHeaders.each { header -> %>
+    <tr>
+        <td width="30%">${header.name}</td><td>${header.isOptional()?"optional":"always"}</td><td>${header.description}</td>
+    </tr>
+    <% } %>
+</table>
+<ul>
+</ul>
+<% } %>

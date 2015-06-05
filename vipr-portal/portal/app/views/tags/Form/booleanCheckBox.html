@@ -1,0 +1,25 @@
+%{
+  field = _field;
+  value = flash[field.name] ? "true": true;
+}%
+#{Form.checkBox field:field, value:value, wrapper:_wrapper}#{doBody/}#{/Form.checkBox}
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('#${field.id}').on('change', function () {
+      updateBooleanCheckboxHidden${field.id}();
+    });
+    updateBooleanCheckboxHidden${field.id}();
+  });
+  function updateBooleanCheckboxHidden${field.id}() {
+    if ($('#${field.id}').is(":checked") == false || $('#${field.id}').is(":disabled") == true) {
+      var value = false;
+      if ($('#${field.id}').is(":disabled") && $('#${field.id}').is(":checked")) {
+        value = true;
+      }
+      $('#${field.id}').after('<input type="hidden" id="${field.id}False" name="${field.name}" value="' + value + '"/>');    
+    }
+    else {
+      $('#${field.id}False').remove();
+    }      
+  }  
+</script>

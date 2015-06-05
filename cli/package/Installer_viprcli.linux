@@ -1,0 +1,323 @@
+#!/bin/sh
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+UNAME=/bin/uname
+PRINTF=/usr/bin/printf
+MKDIR=/bin/mkdir
+PYTHON=/usr/bin/python
+RM=/bin/rm
+CP=/bin/cp
+LS=/bin/ls
+SED=/bin/sed
+TAR=/bin/tar
+IFCONFIG=/sbin/ifconfig
+GREP=/bin/grep
+CUT=/usr/bin/cut
+AWK=/bin/awk
+HOST=/usr/bin/host
+
+CLI_INSTALL_DIR=/opt/vipr/cli
+CLI_PACKAGE_CONTENTS="bin config docs"
+CLI_PROFILE="viprcli.profile"
+
+SUSE_SUPPORTED_OS="SUSE Linux Enterprise Server 11 SP2"
+REDHAT_6_SUPPORTED_OS="Red Hat Enterprise Linux Server release 6"
+REDHAT_5_SUPPORTED_OS="Red Hat Enterprise Linux Server release 5"
+
+echo -e "\n-----------------------------------------------------"
+echo "Welcome to the ViPR Command Line Interface Setup Wizard."
+echo -e "-------------------------------------------------------\n"
+
+ask_continue()
+{
+	echo -n "Do you want to continue with the installation (y/n) ? "
+	while read response;
+	do
+     if [[ $response == "y" ]]; then
+          do_install
+     elif [[ $response == "n" ]]; then
+          $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Terminated]"
+          exit 0
+     fi
+     echo -n "Do you want to continue with the installation (y/n) ? "
+	done
+}
+
+check_supported_os()
+{
+
+  OS=`$UNAME -s`
+  if [[ $OS != "Linux" ]]; then
+     echo -e "Installation of ViPR Commands on " \
+	     "$OS OS is not yet supported\n"
+     ask_continue
+  fi
+ 
+  if [ -f /etc/issue ] ; then
+   osvalue=$(cat /etc/issue)
+   echo "$osvalue" | egrep -q "${SUSE_SUPPORTED_OS}"
+   IS_SUSE=$(echo $?)
+   echo "$osvalue" | egrep -q "${REDHAT_6_SUPPORTED_OS}"
+   IS_REDHAT_6=$(echo $?)
+   echo "$osvalue" | egrep -q "${REDHAT_5_SUPPORTED_OS}"
+   IS_REDHAT_5=$(echo $?)
+   if [ "${IS_SUSE}" == 1 -a "${IS_REDHAT_6}" == 1 -a "${IS_REDHAT_5}" == 1 ] ; then
+	echo "Following OS configuration is not supported. It is recommended to check the support matrix before you continue."
+	if [ -f /etc/redhat-release ] ; then
+	   cat /etc/redhat-release
+	elif [ -f /etc/*-release ] ; then
+	   cat /etc/*-release
+	else
+	   echo $(uname -a)
+	fi
+	ask_continue
+   fi
+  else
+   echo "/etc/issue file is not found or not accessible to verify if this OS is supported. It is recommended to check the support matrix before you continue."
+   ask_continue
+  fi
+}
+
+do_install()
+{
+mkdirOut=`$MKDIR -p /tmp/viprcli$$ 2>&1`
+if [[ $? -ne 0 ]]; then
+     $PRINTF "%-40s : %s\n" "$MKDIR -p /tmp/viprcli$$" "[Failed]"
+     $PRINTF "    Temporary directory creation failed: $mkdirOut\n"
+     $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+     exit 1
+fi
+tmp_extractdir=/tmp/viprcli$$
+curdir=$PWD
+retval=0
+echo -e "\nChecking dependencies ..."
+# Verify python
+pythonVersion=`$PYTHON --version 2>&1`
+if [[ $? -eq 0 ]]; then
+     $PRINTF "%-40s : %s\n" "python" "[Already Installed]"
+else
+     $PRINTF "%-40s : %s\n" $PYTHON "Not installed/Inaccessbile"
+     retval=1
+fi
+
+# Verify thirdparty dependent softwares
+packages=( "argparse" "argparse-1.2.1-linux.tar.gz" "argparse-1.2.1" \
+	   "requests" "requests-0.13.5-linux.tar.gz" "requests-0.13.5" )
+num_packages=${#packages[@]}
+i=0
+while (($i < $num_packages))
+do
+     packagename=${packages[i]}
+     packagebundlename=${packages[i+1]}
+     packagebundledir=${packages[i+2]}
+     i=$((i+3))
+     Result=`$PYTHON -c "import $packagename; print $packagename" 2>&1`
+     if [[ $? -eq 0 ]]; then
+          $PRINTF "%-40s : %s\n" "$packagename" "[Already installed]"
+          continue
+     fi
+     $PRINTF "%-40s : %s\n" "$packagename" "[Not installed/accessible]"
+     $PRINTF "%s\n" "$packagename Installation is in progress ..."
+     untarOut=`$TAR -C $tmp_extractdir -xvzf ./$OS/$packagebundlename 2>&1`
+     if [[ $? -ne 0 ]]; then
+          echo -e "Untar of ./$OS/$packagebundlename Failed : $untarOut"
+	  retval=1
+          break
+     fi
+     cd $tmp_extractdir/$packagebundledir
+     if [[ $? -ne 0 ]]; then
+          echo -e "cd $tmp_extractdir/$packagebundledir :Failed"
+	  retval=1
+	  break
+     fi
+     installOut=`$PYTHON setup.py install 2>&1`
+     if [[ $? -ne 0 ]]; then
+	  echo -e "Installation of $packagename Failed : $installOut"
+          retval=1
+	  break
+     fi
+     Result=`$PYTHON -c "import $packagename; print $packagename" 2>&1`
+     if [[ $? -eq 0 ]]; then
+          $PRINTF "%-40s : %s\n" "$packagename" "[Installed Successfully]"
+     fi
+     cd $curdir
+done
+cd $curdir
+if [[ $retval -eq 1 ]]; then
+     $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "Failed"
+     $RM -rf $tmp_extractdir >/dev/null 2>&1
+     exit 1
+fi 
+$RM -rf $tmp_extractdir > /dev/null 2>&1
+
+# Default Installation directory is set to "/opt/vipr/cli"
+echo -e "\nPlease specify the directory where ViPR Commands will be installed.\n"
+echo -n  "Installation Directory [$CLI_INSTALL_DIR] : "
+while read installDir dir2;
+do
+     if [[ -n $dir2 ]]; then
+          echo -e "Invalid directory name\n"
+     elif [[ -z $installDir ]]; then
+          break 
+     elif [[ ${installDir:0:1} == "/" ]]; then
+          break
+     else
+          echo -e "Invalid directory name : does not start with \"/\"\n"
+     fi
+     echo -n  "Installation Directory [$CLI_INSTALL_DIR] : "
+done
+if [[ -z $installDir ]]; then
+     installDir=$CLI_INSTALL_DIR
+fi
+
+# find the local host fully qualified domain name
+sosipaddress=`$IFCONFIG | $GREP "inet addr" | $GREP -v "127.0.0.1" | \
+                $CUT -d: -f2 | $AWK '{print $1}'`
+if [[ -n $sosipaddress ]]; then
+     localhostname=`$HOST $sosipaddress | $AWK '{print $NF}' | \
+                        sed 's/\(.*\)./\1/'`
+else
+     localhostname="localhost"
+fi
+
+echo -e "\nPlease specify the ViPR HOSTNAME (Fully Qualified Domain name).\n"
+echo -n "VIPR_HOSTNAME [$localhostname] : "
+while read soshostname host2;
+do
+     if [[ -n $host2 ]]; then
+          echo -e "Invalid hostname\n"
+     else
+          break
+     fi
+     echo -n  "VIPR_HOSTNAME [$localhostname] : "
+done
+if [[ -z $soshostname ]]; then
+     soshostname=$localhostname
+fi
+
+echo -e "\nPlease specify the ViPR PORT.\n"
+echo -n "VIPR_PORT [4443] : "
+while read sosport port2;
+do
+     if [[ -n $port2 ]]; then
+          echo -e "Invalid portname\n"
+     else
+          break
+     fi
+     echo -n  "VIPR_PORT [4443] : "
+done
+if [[ -z $sosport ]]; then
+     sosport="4443"
+fi
+
+$PRINTF "\n%-40s : %s\n" "Installation of ViPR Commands..." "[In Progress]"
+if [[ ! -f $curdir/$OS/viprcli.tar.gz ]]; then
+     echo "ViPR Commands package file $curdir/$OS/viprcli.tar.gz : Not found"
+     $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+     exit 1
+fi
+
+# Create the installation directory if does not exist already
+if [[ ! -d $installDir ]]; then
+     mkdirOutput=`$MKDIR -p $installDir 2>&1`
+     if [[ $? -ne 0 ]]; then
+          echo "Installation directory creation failed : $mkdirOutput"
+          $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+          exit 1
+     else
+          $PRINTF "%-40s : %s\n" "$installDir" "[Created successfully]"
+     fi
+else
+     $PRINTF "%-40s : %s\n" "$installDir" "[Already Exists]"
+fi
+
+# Copy the contents to viprcli installation directory
+retval=0
+curdir=$PWD
+untarOutput=`$TAR -C $installDir -xvzf $curdir/$OS/viprcli.tar.gz \
+		$CLI_PACKAGE_CONTENTS $CLI_PROFILE 2>&1`
+if [[ $? -ne 0 ]]; then
+     $PRINTF "%-40s : %s\n" "Untar of $OS/viprcli.tar.gz" "[Failed]"
+     $PRINTF "    $untarOutput\n"
+     $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+     exit 1
+fi
+
+# Print the installed files and directories
+install_files=`$LS $installDir`
+for i in $CLI_PACKAGE_CONTENTS
+do
+     if [[ -d $installDir/$i ]]; then
+     	$PRINTF "%-40s : %s\n" "$installDir/$i " "[Installed]"
+     else
+	$PRINTF "%-40s : %s\n" "$installDir/$i " "[Not a directory]"
+        $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+	exit 1
+     fi
+done
+bourne_module=$installDir/bin/viprcli.py
+if [[ ! -f $bourne_module || ! -x $bourne_module ]]; then
+     $PRINTF "%-40s : %s\n" "$installDir/bin/viprcli.py" \
+		"[Not Found or Execute Permision Denied]"
+     $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+     exit 1
+fi
+if [[ ! -h $installDir/bin/viprcli ]]; then
+     $PRINTF "%-40s : %s\n" "$installDir/bin/viprcli" \
+		"[Not Found or Execute Permision Denied]"
+     $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+     exit 1
+else
+     $PRINTF "%-40s : %s\n" "$installDir/bin/viprcli" "[Installed]"
+fi
+viprcli_profile=$installDir/$CLI_PROFILE
+if [[ ! -f $viprcli_profile || ! -x $viprcli_profile ]]; then
+     $PRINTF "%-40s : %s\n" "$viprcli_profile" \
+		"[Not Found or Execute/Write Permission Denied]"
+     $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+     exit 1
+fi
+# Set the Installtion directory value in CLI PROFILE file
+
+sosenv=( VIPR_CLI_INSTALL_DIR $installDir VIPR_HOSTNAME $soshostname 
+	 VIPR_PORT $sosport )
+i=0;
+while [[ $i -lt 6 ]];
+do
+     sosvar=${sosenv[i]}
+     sosvarvalue=${sosenv[i+1]}
+     i=$((i+2))
+
+     sedOutput=`$SED -i 's@^'$sosvar'=.*@'$sosvar'='$sosvarvalue'@g' \
+			$installDir/$CLI_PROFILE 2>&1`
+     returnval1=$?
+     sedOutput=`$SED -i 's@^export.*'$sosvar'=.*@export '$sosvar'='$sosvarvalue'@g' \
+			$installDir/$CLI_PROFILE 2>&1`
+     returnval2=$?
+     if [[ $returnval1 -ne 0 ]] || [[ $returnval2 -ne 0 ]]; then
+          $PRINTF "%-40s : %s\n" "$installDir/$CLI_PROFILE" "[Failed to update]"
+          $PRINTF "    $sedOutput\n"
+          $PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Failed]"
+          exit 1
+     fi
+done
+
+$PRINTF "%-40s : %s\n" "$installDir/$CLI_PROFILE" "[Installed]"
+$PRINTF "%-40s : %s\n" "Installation of ViPR Commands" "[Completed Successfully]"
+
+echo -e "\nSetup Instruction for using ViPR Command ($installDir/bin/viprcli):"
+echo -e "     1. One can set the VIPR_HOSTNAME and VIPR_PORT in $installDir/viprcli.profile"
+echo -e "     2. Run the $installDir/viprcli.profile using source command"
+echo -e "        prompt>source $installDir/viprcli.profile"
+echo -e "\n\n"
+exit 0
+	
+}
+
+check_supported_os
+ask_continue
+do_install
+
+

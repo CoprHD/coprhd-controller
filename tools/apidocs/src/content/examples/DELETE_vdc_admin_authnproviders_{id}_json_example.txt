@@ -1,0 +1,6 @@
+DELETE https://192.168.0.0:4443/vdc/admin/authnproviders/urn:storageos:AuthnProvider:9088146a-fa8a-4e45-9834-89bb62cd505b:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK

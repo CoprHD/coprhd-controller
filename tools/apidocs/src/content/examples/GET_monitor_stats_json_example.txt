@@ -1,0 +1,197 @@
+GET https://192.168.0.0:4443/monitor/stats.json HTTP/1.1  
+
+Content-Type: application/json 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/json 
+
+{
+   "node_stats_list" : {
+      "node_stats" : {
+         "service_stats_list" : {
+            "service_stats" : [
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "51972",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "352084",
+                     "virtual_mem_size_in_bytes" : "1442136064",
+                     "virtual_mem_size_in_pages" : "51972",
+                     "active_threads_ctr" : "55"
+                  },
+                  "name" : "apisvc",
+                  "file_descriptors_ctr" : "177",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "33350",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "216130",
+                     "virtual_mem_size_in_bytes" : "885268480",
+                     "virtual_mem_size_in_pages" : "33350",
+                     "active_threads_ctr" : "45"
+                  },
+                  "name" : "authsvc",
+                  "file_descriptors_ctr" : "156",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "57432",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "392784",
+                     "virtual_mem_size_in_bytes" : "1608843264",
+                     "virtual_mem_size_in_pages" : "57432",
+                     "active_threads_ctr" : "152"
+                  },
+                  "name" : "controllersvc",
+                  "file_descriptors_ctr" : "160",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "57381",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "337710",
+                     "virtual_mem_size_in_bytes" : "1383260160",
+                     "virtual_mem_size_in_pages" : "57381",
+                     "active_threads_ctr" : "33"
+                  },
+                  "name" : "coordinatorsvc",
+                  "file_descriptors_ctr" : "92",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "221750",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "1217337",
+                     "virtual_mem_size_in_bytes" : "4986212352",
+                     "virtual_mem_size_in_pages" : "221750",
+                     "active_threads_ctr" : "156"
+                  },
+                  "name" : "dbsvc",
+                  "file_descriptors_ctr" : "367",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "131808",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "339202",
+                     "virtual_mem_size_in_bytes" : "1389371392",
+                     "virtual_mem_size_in_pages" : "131808",
+                     "active_threads_ctr" : "81"
+                  },
+                  "name" : "portalsvc",
+                  "file_descriptors_ctr" : "199",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "55300",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "423214",
+                     "virtual_mem_size_in_bytes" : "1733484544",
+                     "virtual_mem_size_in_pages" : "55300",
+                     "active_threads_ctr" : "82"
+                  },
+                  "name" : "sasvc",
+                  "file_descriptors_ctr" : "171",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "158623",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "642406",
+                     "virtual_mem_size_in_bytes" : "2631294976",
+                     "virtual_mem_size_in_pages" : "158623",
+                     "active_threads_ctr" : "115"
+                  },
+                  "name" : "syssvc",
+                  "file_descriptors_ctr" : "177",
+                  "command" : "java"
+               },
+               {
+                  "status" : {
+                     "total_uptime_seconds" : "18662",
+                     "resident_mem_in_pages" : "20871",
+                     "start_time_seconds" : "14",
+                     "total_program_size_in_pages" : "336263",
+                     "virtual_mem_size_in_bytes" : "1377333248",
+                     "virtual_mem_size_in_pages" : "20871",
+                     "active_threads_ctr" : "26"
+                  },
+                  "name" : "vasasvc",
+                  "file_descriptors_ctr" : "110",
+                  "command" : "java"
+               }
+            ]
+         },
+         "memory" : {
+            "memory_buffers_in_kb" : "48580",
+            "total_memory_in_kb" : "4057568",
+            "free_memory_in_kb" : "326944"
+         },
+         "node_id" : "standalone",
+         "ip" : "localhost",
+         "disk_io_stats_list" : {
+            "disk_io_stats" : [
+               {
+                  "sectors_read_per_second" : "0.63",
+                  "writes_per_second" : "0.84",
+                  "reads_per_second" : "0.07",
+                  "avg_svctime" : "0.21",
+                  "avg_wait" : "0.43",
+                  "sectors_write_per_second" : "23.41",
+                  "disk_id" : "sdb",
+                  "util_perc" : "0.02"
+               },
+               {
+                  "sectors_read_per_second" : "30.01",
+                  "writes_per_second" : "0.0",
+                  "reads_per_second" : "0.2",
+                  "avg_svctime" : "2.28",
+                  "avg_wait" : "3.14",
+                  "sectors_write_per_second" : "0.0",
+                  "disk_id" : "sda",
+                  "util_perc" : "0.05"
+               },
+               {
+                  "sectors_read_per_second" : "42.94",
+                  "writes_per_second" : "1.29",
+                  "reads_per_second" : "0.16",
+                  "avg_svctime" : "0.68",
+                  "avg_wait" : "0.91",
+                  "sectors_write_per_second" : "23.26",
+                  "disk_id" : "sdc",
+                  "util_perc" : "0.1"
+               }
+            ]
+         },
+         "data_disk_stats" : {
+            "root_used_kb" : "1427100",
+            "root_available_kb" : "8358148",
+            "data_available_kb" : "489241272",
+            "data_used_kb" : "604008"
+         },
+         "load_avg" : {
+            "load_avg_last_one_minute" : "0.45",
+            "load_avg_last_five_minutes" : "0.63",
+            "load_avg_last_fifteen_minutes" : "0.57"
+         }
+      }
+   }
+}

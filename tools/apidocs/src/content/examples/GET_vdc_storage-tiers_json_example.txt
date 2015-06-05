@@ -1,0 +1,508 @@
+GET https://192.168.0.0:4443/vdc/storage-tiers.json HTTP/1.1  
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json  
+
+{
+   "storage_tier" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:8296bb0d-4fdc-4c6c-ada1-f9197ecf730d:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:8296bb0d-4fdc-4c6c-ada1-f9197ecf730d:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:5e238366-f2d6-4361-8acf-19b10cd370f2:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:5e238366-f2d6-4361-8acf-19b10cd370f2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:64a04d6a-b814-4767-85fa-6493bf6ed033:"
+         },
+         "name" : "StorageTier1",
+         "id" : "urn:storageos:StorageTier:64a04d6a-b814-4767-85fa-6493bf6ed033:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:b46f35b1-f2c3-44eb-bbf4-e2716edf50d1:"
+         },
+         "name" : "FC_Thin_Raid5",
+         "id" : "urn:storageos:StorageTier:b46f35b1-f2c3-44eb-bbf4-e2716edf50d1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:4d69c86b-86ff-47db-aad0-28e0b78c327d:"
+         },
+         "name" : "StorageTier1",
+         "id" : "urn:storageos:StorageTier:4d69c86b-86ff-47db-aad0-28e0b78c327d:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:195c5970-1c32-44f6-8970-3f4cd6d21a52:"
+         },
+         "name" : "StorageTier3",
+         "id" : "urn:storageos:StorageTier:195c5970-1c32-44f6-8970-3f4cd6d21a52:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:f66879de-adcc-4e92-9675-520565458d46:"
+         },
+         "name" : "SilverTier",
+         "id" : "urn:storageos:StorageTier:f66879de-adcc-4e92-9675-520565458d46:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:d5982990-6c56-4c21-b88d-a1ce1aefbbac:"
+         },
+         "name" : "BronzeTier",
+         "id" : "urn:storageos:StorageTier:d5982990-6c56-4c21-b88d-a1ce1aefbbac:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:f2da7303-0a6c-4e3d-9690-7df569e12ad7:"
+         },
+         "name" : "Prov_Thick_SATA",
+         "id" : "urn:storageos:StorageTier:f2da7303-0a6c-4e3d-9690-7df569e12ad7:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:9649853a-5dcc-48f7-9d42-cdec0576efee:"
+         },
+         "name" : "StorageTier3",
+         "id" : "urn:storageos:StorageTier:9649853a-5dcc-48f7-9d42-cdec0576efee:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:353af1be-8745-4730-8f85-d49154f70756:"
+         },
+         "name" : "StorageTier3",
+         "id" : "urn:storageos:StorageTier:353af1be-8745-4730-8f85-d49154f70756:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:2aa772e3-d1ea-4aac-b118-6485efa2fb2e:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:2aa772e3-d1ea-4aac-b118-6485efa2fb2e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:3bda717c-c428-4e0e-9ca0-7945c557255f:"
+         },
+         "name" : "StorageTier3",
+         "id" : "urn:storageos:StorageTier:3bda717c-c428-4e0e-9ca0-7945c557255f:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:5250fa3f-db61-472c-bc6b-ce7158e6b254:"
+         },
+         "name" : "Capacity",
+         "id" : "urn:storageos:StorageTier:5250fa3f-db61-472c-bc6b-ce7158e6b254:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:0283f3b6-49a6-46c4-bb09-2a5b904c79ec:"
+         },
+         "name" : "Capacity",
+         "id" : "urn:storageos:StorageTier:0283f3b6-49a6-46c4-bb09-2a5b904c79ec:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:967ea8b5-22c7-48fa-a939-6d7d88e1e32b:"
+         },
+         "name" : "StorageTier2",
+         "id" : "urn:storageos:StorageTier:967ea8b5-22c7-48fa-a939-6d7d88e1e32b:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:8a8af9ed-53c0-4363-abea-834c87722bb6:"
+         },
+         "name" : "SATA_Thin_Raid1",
+         "id" : "urn:storageos:StorageTier:8a8af9ed-53c0-4363-abea-834c87722bb6:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:c1f38590-bb05-40be-b259-d29b6162238d:"
+         },
+         "name" : "Prov_FC_T1",
+         "id" : "urn:storageos:StorageTier:c1f38590-bb05-40be-b259-d29b6162238d:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:d02f5d69-3a3a-4fd9-97b9-58cd981913ba:"
+         },
+         "name" : "SilverTier",
+         "id" : "urn:storageos:StorageTier:d02f5d69-3a3a-4fd9-97b9-58cd981913ba:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:93878ad9-ad8a-43b2-96c6-bb0c4e2a7040:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:93878ad9-ad8a-43b2-96c6-bb0c4e2a7040:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:18386d22-aaa2-4710-a519-c77fbd0c66a3:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:18386d22-aaa2-4710-a519-c77fbd0c66a3:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:3f26bb46-6b72-412c-8680-49147fc182d7:"
+         },
+         "name" : "Extreme Performance",
+         "id" : "urn:storageos:StorageTier:3f26bb46-6b72-412c-8680-49147fc182d7:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:d8d70f6b-83aa-40e5-8d17-80abb3855d28:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:d8d70f6b-83aa-40e5-8d17-80abb3855d28:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:12d2b69c-3249-49b6-bf67-80927c7093c1:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:12d2b69c-3249-49b6-bf67-80927c7093c1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:ff0a26ae-0307-462a-9fc9-58b4c749b99e:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:ff0a26ae-0307-462a-9fc9-58b4c749b99e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:6528340c-4d0e-47a0-987b-0edcd69d1208:"
+         },
+         "name" : "Prov_SATA",
+         "id" : "urn:storageos:StorageTier:6528340c-4d0e-47a0-987b-0edcd69d1208:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:575312d1-2966-4f39-8fe9-cc8e017a6aad:"
+         },
+         "name" : "StorageTier3",
+         "id" : "urn:storageos:StorageTier:575312d1-2966-4f39-8fe9-cc8e017a6aad:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:f04c535d-ac84-409a-ab22-69aa84a978d4:"
+         },
+         "name" : "Capacity",
+         "id" : "urn:storageos:StorageTier:f04c535d-ac84-409a-ab22-69aa84a978d4:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:e4e66f7e-f084-4c21-9930-7dc90f408ea9:"
+         },
+         "name" : "Capacity",
+         "id" : "urn:storageos:StorageTier:e4e66f7e-f084-4c21-9930-7dc90f408ea9:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:bab4262d-12d1-4f19-8ae8-4473eb19187c:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:bab4262d-12d1-4f19-8ae8-4473eb19187c:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:9619fc55-67c6-495e-8b1c-e737d4fb173f:"
+         },
+         "name" : "StorageTier1",
+         "id" : "urn:storageos:StorageTier:9619fc55-67c6-495e-8b1c-e737d4fb173f:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:d531c7da-5cfc-4708-9c51-c41bc24fc3b1:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:d531c7da-5cfc-4708-9c51-c41bc24fc3b1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:2fac319c-de69-41d1-969d-f5263b308152:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:2fac319c-de69-41d1-969d-f5263b308152:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:d6825241-6cbd-4b55-a3ea-7e2e861a267e:"
+         },
+         "name" : "Capacity",
+         "id" : "urn:storageos:StorageTier:d6825241-6cbd-4b55-a3ea-7e2e861a267e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:ec3e1b68-a460-47e4-9e80-c6d91a23cd9b:"
+         },
+         "name" : "StorageTier2",
+         "id" : "urn:storageos:StorageTier:ec3e1b68-a460-47e4-9e80-c6d91a23cd9b:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:10678352-fed3-409d-bdeb-53a25cd3a892:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:10678352-fed3-409d-bdeb-53a25cd3a892:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:e5722c55-7b4b-4d6d-8ebd-add677ccd437:"
+         },
+         "name" : "StorageTier2",
+         "id" : "urn:storageos:StorageTier:e5722c55-7b4b-4d6d-8ebd-add677ccd437:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:a0e849dd-6776-4157-9928-13e16ca01b9d:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:a0e849dd-6776-4157-9928-13e16ca01b9d:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:fb41d5dd-fbda-48e0-857b-c5d9616bf0d7:"
+         },
+         "name" : "BronzeTier",
+         "id" : "urn:storageos:StorageTier:fb41d5dd-fbda-48e0-857b-c5d9616bf0d7:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:d048c81b-f772-44cc-9982-0d33b7df1fd2:"
+         },
+         "name" : "StorageTier1",
+         "id" : "urn:storageos:StorageTier:d048c81b-f772-44cc-9982-0d33b7df1fd2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:7fa5a12a-ac8a-473f-9877-342a4a4c0c0e:"
+         },
+         "name" : "StorageTier1",
+         "id" : "urn:storageos:StorageTier:7fa5a12a-ac8a-473f-9877-342a4a4c0c0e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:016b7d5f-9b5b-4be7-b64f-c87cfce2dc28:"
+         },
+         "name" : "BronzeTier",
+         "id" : "urn:storageos:StorageTier:016b7d5f-9b5b-4be7-b64f-c87cfce2dc28:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:43694d5d-7852-4b91-972c-871712b5b05c:"
+         },
+         "name" : "BronzeTier",
+         "id" : "urn:storageos:StorageTier:43694d5d-7852-4b91-972c-871712b5b05c:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:67fb7e17-26cd-477e-b041-c7505f544ac0:"
+         },
+         "name" : "Capacity",
+         "id" : "urn:storageos:StorageTier:67fb7e17-26cd-477e-b041-c7505f544ac0:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:09228ec3-9f89-46ed-bb28-1564cbae412f:"
+         },
+         "name" : "Extreme Performance",
+         "id" : "urn:storageos:StorageTier:09228ec3-9f89-46ed-bb28-1564cbae412f:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:9e2b1855-a0d4-4b37-bb99-921abc4e40a4:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:9e2b1855-a0d4-4b37-bb99-921abc4e40a4:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:0b96ee0d-f6a1-4117-b779-551cbcd45acc:"
+         },
+         "name" : "SilverTier",
+         "id" : "urn:storageos:StorageTier:0b96ee0d-f6a1-4117-b779-551cbcd45acc:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:8f46f37e-ecd4-4c2b-aaaa-23b15641802c:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:8f46f37e-ecd4-4c2b-aaaa-23b15641802c:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:477afe65-ae78-4a77-9915-5e06fa0cede6:"
+         },
+         "name" : "Prov_FC_Tier",
+         "id" : "urn:storageos:StorageTier:477afe65-ae78-4a77-9915-5e06fa0cede6:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:f639e4a0-a774-4e76-b65f-f0b5d4fa6035:"
+         },
+         "name" : "Prov_FC_Tier2",
+         "id" : "urn:storageos:StorageTier:f639e4a0-a774-4e76-b65f-f0b5d4fa6035:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:e47002f8-37b5-417e-a864-dfc3692f0665:"
+         },
+         "name" : "Prov_Thick_FC",
+         "id" : "urn:storageos:StorageTier:e47002f8-37b5-417e-a864-dfc3692f0665:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:10a86b66-1284-4577-888f-e5e74b8687f0:"
+         },
+         "name" : "StorageTier2",
+         "id" : "urn:storageos:StorageTier:10a86b66-1284-4577-888f-e5e74b8687f0:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:b654e7e3-47e6-4394-b620-5bf67c75e72a:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:b654e7e3-47e6-4394-b620-5bf67c75e72a:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:faab1e59-43b2-4968-8679-c7e01db72c24:"
+         },
+         "name" : "GoldTier",
+         "id" : "urn:storageos:StorageTier:faab1e59-43b2-4968-8679-c7e01db72c24:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:da369ddc-3fab-4971-ae27-2d52151e3251:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:da369ddc-3fab-4971-ae27-2d52151e3251:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:2e353591-813f-4af1-9b41-89659418fb33:"
+         },
+         "name" : "StorageTier2",
+         "id" : "urn:storageos:StorageTier:2e353591-813f-4af1-9b41-89659418fb33:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:1b2a2a67-8495-4dd4-b1a9-291aa599e1e2:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:1b2a2a67-8495-4dd4-b1a9-291aa599e1e2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:7355a57b-c750-4550-ba20-4882bb31b62a:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:7355a57b-c750-4550-ba20-4882bb31b62a:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:15c7b6ec-f643-48e9-957f-b9e0fd853c35:"
+         },
+         "name" : "BronzeTier",
+         "id" : "urn:storageos:StorageTier:15c7b6ec-f643-48e9-957f-b9e0fd853c35:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:0dc1cec5-ce5f-436d-b19f-c624246db090:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:0dc1cec5-ce5f-436d-b19f-c624246db090:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:29105193-c758-44c0-909f-1d52bb0be867:"
+         },
+         "name" : "Performance",
+         "id" : "urn:storageos:StorageTier:29105193-c758-44c0-909f-1d52bb0be867:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-tiers/urn:storageos:StorageTier:1907277f-5d11-438d-8ff9-de2710d58fa9:"
+         },
+         "name" : "Prov_FC",
+         "id" : "urn:storageos:StorageTier:1907277f-5d11-438d-8ff9-de2710d58fa9:"
+      }
+   ]
+}

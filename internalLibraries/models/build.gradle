@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(guava),
+            "org.slf4j:slf4j-api:1.6.4",
+            "org.codehaus.jackson:jackson-core-asl:1.9.2",
+            "org.codehaus.jackson:jackson-mapper-asl:1.9.2"
+}

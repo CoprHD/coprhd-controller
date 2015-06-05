@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2014 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/diskresizetool
+#
+# A script to automatically adjust the size of the data partition, if the size of data disk was increased.
+# The size increase is detected by comparing the last sector number of the disk and last sector number of the data partition.
+# After resizing the partition we need to resize the file system on that partition as well.
+# Only do partition resize on data partition that has a designated uuid 
+# 3c426f75-726e-6520-2f64-6174613e0000 and is the first and only partition on the hosting disk
+
+DATA_UUID='3c426f75-726e-6520-2f64-6174613e0000'
+
+_get_last_sector_numbers() {
+    # Get the sector number of the disk and its first partition
+    local diskname=$1
+    parted -s $diskname unit s print | awk '
+    /Disk \/dev/ {
+        device_last_sector_num = $3
+        sub(/s/,"",device_last_sector_num)
+    }
+    / 1      2048s/ {
+        partition_last_sector_num = $3
+        sub(/s/,"", partition_last_sector_num)
+    }
+    END {
+        printf("%s %s",device_last_sector_num,partition_last_sector_num)
+    }'
+}
+
+_resize_data_partition_if_needed() {
+    local devname=$1
+    local diskname=${devname%?}
+    # Only do partition resize on data partition that has a designated uuid 
+    # 3c426f75-726e-6520-2f64-6174613e0000 and is the first and only partition on the hosting disk
+    [[ $devname == *1 ]] && [[ $(blkid | grep $diskname | wc -l) -eq 1 ]] || return  
+    
+    # If the data disk has an unused slack beyond data partion, we need to resize
+    # the data partition and its file system accordingly to utilize the unused space
+    read device_last_sector_num partition_last_sector_num <<<$(_get_last_sector_numbers $diskname)
+
+    # The last 2048 sectors of the disk are used as partition table backup
+    [[ $((device_last_sector_num-2049)) -gt $partition_last_sector_num ]] && {
+        local new_partition_last_sector_num=$(($device_last_sector_num-2049))
+        echo "w" | fdisk $diskname #fixes GUID partition table at end of disk
+        debugfs -w -R "feature -ext_attr -resize_inode -dir_index" $devname # These file system features will prevent we resize partition, we have to disable them temporarily
+        umount /opt/storageos/logs
+        umount /var/log
+        umount $devname
+        e2fsck -y $devname # Checking file system is needed before and after resizing
+        parted -s $diskname unit s resize 1 $new_partition_last_sector_num #This is the actual disk resize
+        udevadm settle # This line will wait until the resize operation finish completely 
+        debugfs -w -R "feature ext_attr resize_inode dir_index" $devname # Added the features back to the file system
+        umount $devname #second unmount is needed because parted will remount disk automatically
+        e2fsck -y $devname        
+        mount $devname /data -t ext3
+        mount --bind /data/logs /opt/storageos/logs
+        mount --bind /data/logs /var/log
+        return 
+    }
+    echo Data disk was not resized, nothing needs to be done
+
+}
+
+dataPartitionName=$(blkid -U ${DATA_UUID})
+echo "Resize data partition if needed"
+_resize_data_partition_if_needed "${dataPartitionName}"
+echo "Resize file system on data partition if needed"
+# If it's running on a devkit, there will be no data partition of that uuid, thus the returned partition name will be null, we don't need to resize that
+[ -n "${dataPartitionName}" ] && resize2fs $dataPartitionName || exit 0 # If the file system occupy the whole partition already, this line won't have any effect. If we didn't find the data partition, we still make the script exit with status 0

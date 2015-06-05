@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<error>
+  <code>6413</code>
+  <description>Request Entity Too Large</description>
+  <details>The request is larger than the erver is willing to process.  Please reduce the size of the request and try again.</details>
+  <retryable>false</retryable>
+</error>

@@ -1,0 +1,270 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+# Copyright (c) 2014 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+
+#This script is used to help user to restore a backupset simply
+usage() {
+    echo "Usage:"
+    echo "       $0 <Backup Zip File>"
+    echo "For example:"
+    echo "       $0 /tmp/test.zip"
+}
+
+validate_parameters() {
+    if [ ! -f $BACKUP_ZIP ]; then
+        echo "$BACKUP_ZIP not exist"
+        exit 2
+    fi
+    echo "This operation will erase existing db and zk data from the cluster."
+    user_confirm "Are you sure you want to continue?"
+}
+
+init_variables() {
+    RESTORE_DIR="/data/restore-`date +%s`"
+    NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
+    LOCAL_NODE=`hostname`
+}
+
+upload_backup() {
+    input_password
+    echo -n "Uploading backup files to all nodes.."
+    create_restore_folder
+    extract_backup_files
+    copy_to_other_nodes
+    echo "done"
+}
+
+input_password() {
+    while true; do
+        read -p "Please input cluster password for root user: " -s ROOT_PASSWORD; echo ""
+        ssh_execute "$LOCAL_NODE" "mkdir -p $RESTORE_DIR"
+        if [ -d $RESTORE_DIR ]; then
+            break
+        else
+            echo "Password is incorrect."
+        fi
+    done
+}
+
+create_restore_folder() {
+    local command="mkdir -p $RESTORE_DIR"
+    loop_execute "${command}" "false"
+}
+
+extract_backup_files() {
+    cd $RESTORE_DIR
+    unzip $BACKUP_ZIP >/dev/null
+
+    BACKUP_NODE_COUNT=$((`grep -o "," *_info.properties | wc -l` + 1))
+    local fileArray=($(ls -f *geodb*.zip))
+    if [ ${#fileArray[@]} -eq 0 ]; then
+        echo -e "\nCan't find valid backup files under $RESTORE_DIR, exiting.."
+        exit 2
+    elif [ ${#fileArray[@]} -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
+        if [ ${#fileArray[@]} -eq $NODE_COUNT ]; then
+            echo -n "WARNING: Cluster node count changed which maybe lead to data loss.."
+        else
+            echo -e "\nThis backupset is invalid, exiting.."
+            exit 2
+        fi
+    elif [ ${#fileArray[@]} -lt $BACKUP_NODE_COUNT ]; then
+        if [ ${#fileArray[@]} -eq $NODE_COUNT ]; then
+            echo -n "WARNING: Cluster node count changed.."
+        else
+            echo -n "WARNING: This is an incomplete backupset.."
+        fi
+    elif [ ${#fileArray[@]} -eq $BACKUP_NODE_COUNT ]; then
+        if [ ${#fileArray[@]} -lt $NODE_COUNT ]; then
+            echo -n "WARNING: Cluster node count changed.."
+        fi
+    fi
+
+    local fileArray=($(ls -f *geodb*.zip))
+    local geodbType=`ls ${fileArray[0]} | awk '{split($0,a,"_"); print a[2]}'`
+    if [ -z "$geodbType" ]; then
+        echo -e "\nCan't identify the type of geodb from backup file name, exiting.."
+        exit 2
+    elif [ "$geodbType" == "geodb" ]; then
+        IS_CONNECTED_VDC="false"
+    elif [ "$geodbType" == "geodbmultivdc" ]; then
+        IS_CONNECTED_VDC="true"
+    else
+        echo -e "\nInvalid geodb type: $geodbType, exiting.."
+        exit 2
+    fi
+}
+
+copy_to_other_nodes() {
+    local command="scp svcuser@$LOCAL_NODE:$RESTORE_DIR/* $RESTORE_DIR"
+    loop_execute "${command}" "false"
+}
+
+confirm_vdc_status() {
+    if [ "$IS_CONNECTED_VDC" == "true" ]; then
+        local message="This vdc is in geo federation, does the federation still have alive vdcs?"
+        while true; do
+            read -p "$message(yes/no)" yn
+            case $yn in
+                [Yy]es ) GEO_RESTORE_FROM_SCRATCH="false"; disconnect_vdc; break;;
+                [Nn]o )  GEO_RESTORE_FROM_SCRATCH="true"; break;;
+                * ) echo "Invalid input.";;
+            esac
+        done
+    fi
+}
+
+disconnect_vdc() {
+    echo "To avoid affecting other vdcs, please disconnect it from other vdcs."
+    user_confirm "Are you sure it has been disconnected from others?"
+}
+
+stop_service() {
+    echo -n "Stopping storageos services on all nodes.."
+    local command="/etc/storageos/storageos stop"
+    loop_execute "${command}" "true"
+    echo "done"
+}
+
+restore_data() {
+    echo -n "Restoring data on all nodes.."
+    set +e
+    RESTORE_RESULT="successful"
+    for i in $(seq 1 $NODE_COUNT)
+    do
+        local viprNode="vipr$i"
+        if [ "$LOCAL_NODE" == "standalone" ]; then
+            viprNode="$LOCAL_NODE"
+        fi
+        ls $RESTORE_DIR/*_$viprNode.* &>/dev/null
+        if [ $? == 0 ]; then
+            restore_node "$viprNode"
+        else
+            purge_node "$viprNode"
+        fi
+        if [ $? != 0 ]; then
+            echo -n "failed on $viprNode.."
+            RESTORE_RESULT="failed"
+        fi
+    done
+    set -e
+    echo "done"
+}
+
+purge_node() {
+    local viprNode=${1}
+    if [ "$IS_CONNECTED_VDC" == "true" ]; then
+        initdb="yes"
+    else
+        initdb="no"
+    fi
+    local command="/opt/storageos/bin/bkutils -p $initdb"
+    ssh_execute "$viprNode" "$command"
+}
+
+restore_node() {
+    cd $RESTORE_DIR
+    local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
+    local command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag"
+    if [ "$GEO_RESTORE_FROM_SCRATCH" == "true" ]; then
+        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag -f"
+    fi
+    ssh_execute "$viprNode" "$command"
+}
+
+clean_up() {
+    local command="rm -rf $RESTORE_DIR"
+    loop_execute "${command}" "true"
+}
+
+start_service() {
+    echo -n "Starting storageos services on all nodes.."
+    local command="/etc/storageos/storageos start"
+    loop_execute "${command}" "true"
+    echo "done"
+    finish_message
+}
+
+finish_message() {
+    echo "Restore $RESTORE_RESULT!"
+    if [ "$RESTORE_RESULT" == "failed" ]; then
+        echo "Please check bkutils.log for the details."
+        exit 1
+    fi
+    echo "Note: nodes will reboot if there is any change of property in this cluster."
+    if [ "$IS_CONNECTED_VDC" == "true" ]; then
+        echo "Please reconnect this vdc after the status of cluster is stable."
+        echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually)"
+    fi    
+}
+
+user_confirm() {
+    local message=${1}
+    while true; do
+        read -p "$message(yes/no)" yn
+        case $yn in
+            [Yy]es ) break;;
+            [Nn]o )  echo "Exiting.."; exit;;
+            * ) echo "Invalid input.";;
+        esac
+    done
+}
+
+loop_execute() {
+    set +e
+    local command=${1}
+    local includeLocal=${2}
+
+    for i in $(seq 1 $NODE_COUNT)
+    do
+        if [ "$LOCAL_NODE" == "standalone" ]; then
+            if [ "$includeLocal" == "true" ]; then
+                ssh_execute "$LOCAL_NODE" "$command" &
+            fi
+            break
+        fi
+        local viprNode="vipr$i"
+        if [ "$viprNode" != "$LOCAL_NODE" -o "$includeLocal" == "true" ]; then
+            ssh_execute "$viprNode" "$command" &
+        fi
+    done
+    wait
+    set -e
+}
+
+ssh_execute() {
+    local viprNode=${1}
+    local command=${2}
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '$ROOT_PASSWORD' | sudo -S $command" &>/dev/null
+}
+
+if [ $# -eq 1 ]; then
+    if [ $1 == "--help" -o $1 == "-h" -o $1 == "-help" ]; then
+        usage
+        exit 0
+    fi
+    BACKUP_ZIP=$(readlink -f $1)
+    validate_parameters
+    init_variables
+else
+    usage
+    exit 2
+fi
+
+trap clean_up EXIT
+
+comands=(upload_backup confirm_vdc_status stop_service restore_data start_service)
+for cmd in ${comands[@]}
+do
+    $cmd
+done

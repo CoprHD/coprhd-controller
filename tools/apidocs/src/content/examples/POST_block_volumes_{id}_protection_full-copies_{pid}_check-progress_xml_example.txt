@@ -1,0 +1,74 @@
+POST https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/full-copies/urn:storageos:Volume:c6324360-637e-4e28-94db-b268b6cdd4f2:/check-progress HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<volume>
+   <allocated_capacity_gb>0.00</allocated_capacity_gb>
+   <creation_time>1380815614151</creation_time>
+   <device_label>fullcopyinactive</device_label>
+   <id>urn:storageos:Volume:c6324360-637e-4e28-94db-b268b6cdd4f2:</id>
+   <inactive>false</inactive>
+   <is_composite>false</is_composite>
+   <link>
+      <href>/block/volumes/urn:storageos:Volume:c6324360-637e-4e28-94db-b268b6cdd4f2:</href>
+      <rel>self</rel>
+   </link>
+   <name>full_copy_inactive</name>
+   <native_id>010E2</native_id>
+   <pre_allocation_size_gb>0.00</pre_allocation_size_gb>
+   <project>
+      <id>urn:storageos:Project:803835c6-27cd-417b-b888-64cd85e2f2a8:</id>
+      <link>
+         <href>/projects/urn:storageos:Project:803835c6-27cd-417b-b888-64cd85e2f2a8:</href>
+         <rel>self</rel>
+      </link>
+   </project>
+   <protection>
+      <full_copies>
+         <associated_source_volume>
+            <id>urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</id>
+            <link>
+               <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</href>
+               <rel>self</rel>
+            </link>
+         </associated_source_volume>
+         <is_sync_active>true</is_sync_active>
+         <percent_synced>100</percent_synced>
+      </full_copies>
+   </protection>
+   <protocols>
+      <element>FC</element>
+   </protocols>
+   <provisioned_capacity_gb>1.00</provisioned_capacity_gb>
+   <requested_capacity_gb>1.00</requested_capacity_gb>
+   <storage_controller>urn:storageos:StorageSystem:81426202-3380-4dd0-8517-b71d335d3768:</storage_controller>
+   <tags />
+   <tenant>
+      <id>urn:storageos:TenantOrg:e2567a6d-e307-4acd-84ae-2e413fdec9a4:</id>
+      <link>
+         <href>/tenants/urn:storageos:TenantOrg:e2567a6d-e307-4acd-84ae-2e413fdec9a4:</href>
+         <rel>self</rel>
+      </link>
+   </tenant>
+   <thinly_provisioned>true</thinly_provisioned>
+   <varray>
+      <id>urn:storageos:VirtualArray:e428d5d6-bab0-4708-a63b-bbf79d45c86b:</id>
+      <link>
+         <href>/vdc/varrays/urn:storageos:VirtualArray:e428d5d6-bab0-4708-a63b-bbf79d45c86b:</href>
+         <rel>self</rel>
+      </link>
+   </varray>
+   <vpool>
+      <id>urn:storageos:VirtualPool:b28bc64e-969a-43fe-8cd2-37b8ce49cb9f:</id>
+      <link>
+         <href>/block/vpools/urn:storageos:VirtualPool:b28bc64e-969a-43fe-8cd2-37b8ce49cb9f:</href>
+         <rel>self</rel>
+      </link>
+   </vpool>
+   <wwn>60000970000198700406533031304532</wwn>
+</volume>

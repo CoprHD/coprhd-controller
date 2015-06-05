@@ -1,0 +1,31 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.consistencygroups'] /}
+
+  <script type="text/javascript">
+    var route = #{jsAction @consistencyGroupsJson(':id')/};
+   
+    function reloadConsistencyGroups() {
+      var table = $('#consistencyGroups table'); 
+      var xhr = table.data('previousXHR');
+      if (xhr) {
+          xhr.abort();
+      }
+      var projectId = $('#project option:selected').val();
+      table.dataTable().fnReloadAjax(route({id: projectId}));
+    }
+  
+    $(document).ready(function() {
+      $('#project').on('change', reloadConsistencyGroups);
+    });
+  </script>
+  
+#{Resources.projectsControl projects:projects /}
+
+#{DataTable.header titleKey:'nav.block.consistencygroups' /}  
+#{DataTable.table id:'consistencyGroups',
+                  dataTable:dataTable,
+                  source:@consistencyGroupsJson(session.activeProjectId)}
+#{/DataTable.table}

@@ -1,0 +1,17 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Remote Server to clone
+OVF_SERVER=lglw2092.lss.emc.com
+
+# Home where downloaded StorageOS files are kept
+INSTALL_HOME=/Users/maddisondavid/SourceCode/bourne/ovf
+
+# If false, GC Logging is turned off when service scripts are converted  (this is experimental!)
+GC_LOGGING=true
+
+# Classpath to the SA Models (can be directory or Jar)
+SA_MODEL_CLASSPATH=/Users/maddisondavid/SourceCode/core/out/production/com.emc.sa.model
+
+# Location where VIPR SVN is checked out
+VIPR_SRC=/Users/maddisondavid/SourceCode/bourne/integration

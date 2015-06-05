@@ -1,0 +1,65 @@
+%{
+  notifications = _notifications;
+  count = notifications?.size() ?: 0;
+  newestNotification = notifications?.max{ it.lastUpdated.time };
+  lastUpdated = newestNotification?.lastUpdated?.time ?: 0;
+}%
+<script>
+var Notifications = DynamicContent();
+
+function notificationsClicked() {
+    /*
+    if ($('#notifications .dropdown-menu').css('display') == 'none') {
+        var url = routes.Notifications_markAsRead();
+        var data = {ids: $('#notifications .unreadIds').html()};
+        $.post(url, data);
+    }
+    */
+}
+
+$(document).ready(function() {
+    Notifications.watchValue('#notifications .lastUpdated');
+    Notifications.watchValue('#notifications .count');
+    Notifications.watchChildren('#notifications .dropdown-menu');
+    
+    var update = function() {
+        var lastUpdated = $('#notifications .lastUpdated').html();
+        var count = $('#notifications .count').html();
+        var url = routes.Notifications_notifications({lastUpdated: lastUpdated, count: count});
+        $.get(url, function(data) {
+            Notifications.update(data);
+            update();
+        });
+    };
+    update();
+});
+</script>
+<li id="notifications" class="dropdown" onclick="notificationsClicked();">
+  <span class="lastUpdated" style="display:none">${lastUpdated}</span>
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+    #{icon 'flag'/}
+    <span class="count badge ${count > 0 ? 'unread' : 'read'}">${count}</span>
+  </a>
+  <ul class="dropdown-menu">
+    <li class="header">&{'notifications.title'}</li>
+    <li class="divider"></li>
+    #{if notifications}
+      #{list items:notifications, as:'notification'}
+        <li class="notification">
+          <a href="@{Notifications.showTarget(notification.id)}">#{ServiceCatalog.serviceImage image:notification.image/} ${notification.message}</a>
+        </li>
+      #{/list}
+      #{if showAll}
+        <li class="divider"></li>
+        *{
+        <li class="footer">
+          <a href="@{Notifications.list()}">&{'notifications.showAll'}</a>                 
+        </li>
+        }*
+      #{/if}
+    #{/if}
+    #{else}
+      <li class="message">&{'notifications.none'}</li>
+    #{/else}
+  </ul>
+</li>

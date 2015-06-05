@@ -1,0 +1,69 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"NasNfsCreateStorage.File",
+  serviceId:"NasNfsCreateStorage",
+  fields:{
+    virtualArray:{
+      type:"assetType.vipr.fileVirtualArray",
+      lockable: true
+    },
+    
+    virtualPool:{
+      type:"assetType.vipr.fileNfsVirtualPool",
+      lockable: true
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    volumeName:{
+      type:"text",
+      validation:{
+        regEx:"^[^\"\\\\/\\[\\]:|+;,?*=<>]+$",
+        min:2,
+        max:128
+      }
+    },
+    
+    comment:{
+      type:"text",
+      required: false,
+      validation:{
+        regEx:"[^\-\u0080-\u009f]*",
+        max:255
+      },
+      lockable: true
+    },
+
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    },
+    
+    exportRule:{
+      type:"table",
+      items:{
+        exportHosts:{
+          type:"text"
+        },
+        
+        security:{
+          type:"assetType.vipr.fileNFSSecurity",
+          initialValue:"sys",
+          lockable: true
+        },
+        
+        permission:{
+          type:"assetType.vipr.fileNFSPermission",
+          initialValue:"rw",
+          lockable: true
+        }
+      }
+    }
+  }
+}

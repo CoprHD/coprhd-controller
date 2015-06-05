@@ -1,0 +1,159 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Mapping file linking Controllers/actions names to documentation topics
+# The left side may contain either 'controller' alone or 'controller.method'.
+# The link to the right is the documentation link topic
+
+# Global
+AdminDashboard = vipr_c_dashboard
+Dashboard = vipr_c_user_home
+Maintenance = SystemMaintenance
+Preferences = vipr_user_preferences
+Setup = InitSetup
+SystemHealth = vipr_c_system_health
+SystemHealth.logs = vipr_c_logs
+VirtualArrays = VirtualArrays
+VirtualArrays.create = CreateVirtualArray
+VirtualArrays.edit = EditVirtualArray
+VirtualArrays.networks = vArrayNetworks
+VirtualArrays.storagePorts = vArrayStoragePorts
+VirtualArrays.storagePools = vArrayStoragePools
+Tasks = TasksPage
+
+# Arrays
+arrays.BlockVirtualPools = BlockVirtualPool
+arrays.BlockVirtualPools.edit = EditBlockVirtualPool
+arrays.BlockVirtualPools.create = CreateBlockVirtualPool
+arrays.DataProtectionSystems = vipr_c_admin_data_protection_systems
+arrays.DataProtectionSystems.create = CreateDataProtectionSystem
+arrays.DataProtectionSystems.edit = EditDataProtectionSystem
+arrays.FileVirtualPools = FileVirtualPool
+arrays.FileVirtualPools.edit = EditFileVirtualPool
+arrays.FileVirtualPools.create = CreateFileVirtualPool
+arrays.Networks = Networks
+arrays.Networks.create = CreateNetworks
+arrays.Networks.edit = EditNetworks
+arrays.SanSwitches = vipr_c_admin_fabric_managers
+arrays.SanSwitches.create = CreateFabricManager
+arrays.SanSwitches.edit = EditFabricManager
+arrays.StorageProviders = StorageProvider
+arrays.StorageProviders.create = AddStorageProvider
+arrays.StorageProviders.edit = EditStorageProvider
+arrays.StorageSystems = StorageSystems
+arrays.StorageSystems.create = AddStorageSystem
+arrays.StorageSystems.edit = EditStorageSystem
+arrays.StorageSystems.pools = StoragePools
+arrays.StorageSystems.editPool = EditStoragePool
+arrays.StorageSystems.ports = StoragePorts
+arrays.CustomConfigs.list = ControllerConfigurationsPage
+
+# Auth
+auth.Certificates = TrustedCerts
+auth.Keystores = UpdateKeystore
+auth.LDAPsources = vipr_c_authentication_providers
+auth.VDCRoleAssignments = vipr_c_roles_and_access
+auth.VDCRoleAssignments.edit = vipr_c_assign_role
+auth.VDCRoleAssignments.create = vipr_c_assign_role
+
+# Catalog
+catalog.ApprovalConfiguration = vipr_c_approval_settings
+catalog.Approvals = vipr_c_user_approvals
+catalog.Approvals.edit = vipr_t_approving_an_order
+catalog.EditCatalog = AdminServiceCatalog
+catalog.EditCatalog.createService = vipr_t_add_service
+catalog.EditCatalog.editService = vipr_t_edit_service
+catalog.EditCatalog.createCategory = vipr_t_add_category
+catalog.EditCatalog.editCategory = vipr_t_edit_category
+catalog.ExecutionWindows = ExecutionWindowCalendar
+catalog.Orders = vipr_c_orders_user_history
+catalog.Orders.receipt = OrderDetails
+catalog.Orders.allOrders = vipr_c_recent_orders
+catalog.ScheduledOrders = vipr_c_scheduled_orders
+catalog.ServiceCatalog = UserServiceCatalog
+catalog.Services = vipr_user_service_execute_generic
+
+# Compute
+compute.ComputeSystems = ComputeSystemPage
+compute.ComputeSystems.create = AddComputeSystemPage
+compute.ComputeSystems.edit = EditComputeSystemPage
+compute.ComputeSystems.elements = ComputeBladesPage
+compute.ComputeImages = ComputeImagePage
+compute.ComputeImages.create = AddComputeImagePage
+compute.ComputeImages.edit = EditComputeImagePage
+compute.ComputeVirtualPools = ComputeVirtualPoolsPage
+compute.ComputeVirtualPools.create = AddComputeVirtualPoolsPage
+compute.ComputeVirtualPools.edit = EditComputeVirtualPoolsPage
+compute.Hosts = vipr_c_admin_hosts
+compute.Hosts.create = CreateHost
+compute.Hosts.edit = EditHost
+compute.HostInitiators = HostInitiators
+compute.HostClusters = Clusters
+compute.HostClusters.create = CreateCluster
+compute.HostClusters.edit = EditCluster
+compute.HostClusters.editHosts = EditHostsinCluster
+compute.VCenters = vipr_c_admin_vcenters
+compute.VCenters.create = CreatevCenter
+compute.VCenters.edit = EditvCenter
+
+# Fabric
+fabric.FabricNodes.list = CommodityNodesList
+fabric.FabricNodes.node = CommodityNodeDetails
+
+# Infrastructure
+infra.AuditLog = vipr_c_admin_audit_log
+infra.ConfigProperties.passwords = vipr_c_local_passwords
+infra.ConfigProperties = vipr_c_configuration
+infra.Licensing = vipr_c_license
+infra.SupportRequest = vipr_c_support_request
+infra.Upgrade = vipr_c_upgrade
+infra.VirtualDataCenters = VirtualDataCenters
+infra.VirtualDataCenters.create = CreateVirtualDataCenter
+infra.VirtualDataCenters.edit = EditVirtualDataCenter
+infra.VirtualDataCenters.endpoints = InterVDCCommunicationEndpoints
+
+# Resources
+resources.BlockConsistencyGroups = ResourcesConsistencyGroups
+resources.BlockExportGroups = ResourcesExportGroups
+resources.BlockSnapshots = ResourcesBlockSnapshots
+resources.BlockVolumes = ResourcesVolumes
+resources.ConsistencyGroups = vipr_c_consistency_groups
+resources.FileSnapshots = ResourcesFileSnapshots
+resources.FileSystems = ResourcesFileSystems
+resources.ResourceController = vipr_c_user_resources
+
+# Security
+security.Security.logout = vipr_not_logged_in
+
+# Tenant
+tenant.Projects = vipr_c_projects
+tenant.Projects.create = vipr_c_add_project
+tenant.Projects.edit = vipr_c_add_project
+tenant.Tenants = admin_tenants
+tenant.Tenants.create = admin_tenants_add
+tenant.Tenants.edit = admin_tenants_add
+tenant.Tenants.listRoles = roles_assignments_tenant
+tenant.Tenants.editRole = roles_create_assignment_tenant
+tenant.Tenants.createRole = roles_create_assignment_tenant
+
+# USE
+use.CasClusters = CASCluster
+use.CasClusters.create = CreateCASCluster
+use.CasClusters.edit = EditCASCluster
+use.CasPools = CASPool
+use.CasPools.create = CreateCASPool
+use.CasPools.edit = EditCASPool
+use.CasProfiles = CASProfile
+use.CasProfiles.create = CreateCASProfile
+use.CasProfiles.edit = EditCASProfile
+use.ObjectBaseUrls = vipr_c_admin_object_base_url
+use.ObjectBaseUrls.create = object_add_base_url
+use.ObjectSetup = vipr_c_admin_object_data_services
+use.ObjectStores = vipr_c_admin_object_store
+use.ObjectStores.create = object_add_data_store
+use.ObjectStores.edit = object_edit_data_store
+use.ObjectTenantConfig = vipr_c_admin_object_tenant_config
+use.ObjectVirtualPools = vipr_c_admin_object_pool
+use.ObjectVirtualPools.create = object_add_virtual_pool
+use.ObjectVirtualPools.edit = object_edit_virtual_pool
+use.SecretKeys = vipr_manage_data_store_keys

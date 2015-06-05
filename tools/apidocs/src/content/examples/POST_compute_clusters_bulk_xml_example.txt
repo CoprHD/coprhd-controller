@@ -1,0 +1,40 @@
+POST https://192.168.0.0:4443/compute/clusters/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+  <id>urn:storageos:Cluster:042d89e7-fd81-4296-ad05-33b9e5d7f1dc:</id>
+ <id>urn:storageos:Cluster:54e2375b-c171-4562-88b8-b4128d31fc98:</id>
+</ids>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_clusters>
+    <cluster>
+        <creation_time>1380132947183</creation_time>
+        <id>urn:storageos:Cluster:042d89e7-fd81-4296-ad05-33b9e5d7f1dc:</id>
+        <inactive>false</inactive>
+        <link href="/compute/clusters/urn:storageos:Cluster:042d89e7-fd81-4296-ad05-33b9e5d7f1dc:" rel="self"/>
+        <name>sanityCluster2</name>
+        <tags/>
+        <tenant>
+            <id>urn:storageos:TenantOrg:c6925c07-307d-401f-8415-ce76796d25b2:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:c6925c07-307d-401f-8415-ce76796d25b2:" rel="self"/>
+        </tenant>
+    </cluster>
+    <cluster>
+        <creation_time>1380132941038</creation_time>
+        <id>urn:storageos:Cluster:54e2375b-c171-4562-88b8-b4128d31fc98:</id>
+        <inactive>false</inactive>
+        <link href="/compute/clusters/urn:storageos:Cluster:54e2375b-c171-4562-88b8-b4128d31fc98:" rel="self"/>
+        <name>sanityCluster1</name>
+        <tags/>
+        <tenant>
+            <id>urn:storageos:TenantOrg:c6925c07-307d-401f-8415-ce76796d25b2:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:c6925c07-307d-401f-8415-ce76796d25b2:" rel="self"/>
+        </tenant>
+    </cluster>
+</bulk_clusters>

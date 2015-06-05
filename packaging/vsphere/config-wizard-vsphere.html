@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Settings</title>
+  <meta charset="utf-8">
+  <meta content="text/html;charset=UTF-8" http-equiv="content-type">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta http-equiv="X-UA-Compatible" content="IE=EDGE; IE=9; IE=8" />
+  <style>
+   ${include="common.css"}
+  </style>
+  
+  <script>
+	function generateSettingsFile()
+	{
+	
+		var inputElementsHidden = document.getElementsByTagName('input');
+		for(var i = 0;i < inputElementsHidden.length; i++) {
+			if(inputElementsHidden[i].parentNode.parentNode.style.display == 'none' || 
+				inputElementsHidden[i].parentNode.parentNode.parentNode.style.display  == 'none') {
+						inputElementsHidden[i].value = "";
+			}
+		}
+		var selectElementsHidden = document.getElementsByTagName('select');
+		for(var i = 0;i < selectElementsHidden.length; i++) {
+			if(selectElementsHidden[i].parentNode.parentNode.parentNode.style.display == 'none') {
+						selectElementsHidden[i][selectElementsHidden[i].selectedIndex].value = "";
+			}
+		}
+		// deployment settings
+		var eleNode = document.getElementById("nodeCount");
+		var nodeCount = "-nodecount="+ eleNode[eleNode.selectedIndex].value+"\r\n";
+		
+		// deployment settings for IPV4
+		var virtualIPv4val = document.getElementById("virtualIPv4").value ;
+		var virtualIPv4 = ( virtualIPv4val != "")?"-vip="+virtualIPv4val+"\r\n" : "";
+		var server1IPv4Val = document.getElementById("server1IPv4").value;
+		var server1IPv4 = (server1IPv4Val != "")?"-ipaddr_1="+server1IPv4Val+"\r\n":"";
+		var server2IPv4Val = document.getElementById("server2IPv4").value;
+		var server2IPv4 = (server2IPv4Val !="")?"-ipaddr_2="+server2IPv4Val+"\r\n":"";
+		var server3IPv4Val = document.getElementById("server3IPv4").value;
+		var server3IPv4 = (server3IPv4Val != "")?"-ipaddr_3="+server3IPv4Val+"\r\n":"";
+		var server4IPv4Val = document.getElementById("server4IPv4").value;
+		var server4IPv4 = (server4IPv4Val != "")?"-ipaddr_4="+server4IPv4Val+"\r\n":"";
+		var server5IPv4Val = document.getElementById("server5IPv4").value;
+		var server5IPv4 = (server5IPv4Val != "")?"-ipaddr_5="+server5IPv4Val+"\r\n" : "";
+		var defaultGatewayIPv4val = document.getElementById("defaultGatewayIPv4").value;
+		var defaultGatewayIPv4 = (defaultGatewayIPv4val != "")?"-gateway="+defaultGatewayIPv4val+"\r\n":"";
+		var networkNetmaskVal = document.getElementById("networkNetmask").value;
+		var networkNetmask = (networkNetmaskVal != "")?"-netmask="+networkNetmaskVal+"\r\n":"";
+		
+		// Deployment settings for IPV6
+		var virtualIPv6Val = document.getElementById("virtualIPv6").value;
+		var virtualIPv6 = (virtualIPv6Val != "")?"-vip6="+virtualIPv6Val+"\r\n":"";
+		var server1IPv6Val = document.getElementById("server1IPv6").value;
+		var server1IPv6 = (server1IPv6Val != "")?"-ipaddr6_1="+server1IPv6Val+"\r\n":"";
+		var server2IPv6Val = document.getElementById("server2IPv6").value;
+		var server2IPv6 = (server2IPv6Val != "")?"-ipaddr6_2="+server2IPv6Val+"\r\n":"";
+		var server3IPv6Val = document.getElementById("server3IPv6").value;
+		var server3IPv6 = (server3IPv6Val != "")?"-ipaddr6_3="+server3IPv6Val+"\r\n":"";
+		var server4IPv6Val = document.getElementById("server4IPv6").value;
+		var server4IPv6 = (server4IPv6Val != "")?"-ipaddr6_4="+server4IPv6Val+"\r\n":"";
+		var server5IPv6Val = document.getElementById("server5IPv6").value;
+		var server5IPv6 = (server5IPv6Val != "")?"-ipaddr6_5="+server5IPv6Val+"\r\n":"";
+		var defaultGatewayIPv6Val = document.getElementById("defaultGatewayIPv6").value;
+		var defaultGatewayIPv6 = (defaultGatewayIPv6Val != "")?"-gateway6="+defaultGatewayIPv6Val+"\r\n":"";
+		var ipv6prefixlengthVal = document.getElementById("ipv6PrefixLength").value;
+		var ipv6prefixlength = (ipv6prefixlengthVal != "")?"-ipv6prefixlength="+ipv6prefixlengthVal+"\r\n":"";
+		
+		// VM Settings
+		var netNameVal = document.getElementById("networkName").value;
+		var netName = (netNameVal != "")?"-net="+netNameVal+"\r\n":"";
+		var vmprefixVal = document.getElementById("namePrefix").value;
+		var vmprefix = (vmprefixVal != "")?"-vmprefix="+vmprefixVal+"\r\n":"";
+		var cpuCountVal = document.getElementById("cpuCount").value;
+		var cpucount = "-cpucount="+cpuCountVal+"\r\n";
+		var memoryVal = document.getElementById("memory").value;
+		var memory = (memoryVal != "")?"-memory="+memoryVal+"\r\n":"";
+		
+		var dsVal = document.getElementById("dataStore").value;
+		var ds = (dsVal != "")?"-ds="+dsVal+"\r\n":"";
+		var vmfolderVal = document.getElementById("folder").value;
+		var vmfolder = (vmfolderVal != "")?"-vmfolder="+vmfolderVal+"\r\n":"";
+		
+		var eledm = document.getElementById("diskProvision");
+		var dmVal = eledm[eledm.selectedIndex].value ;
+		var dm  = (dmVal != "")?"-dm="+dmVal+"\r\n":"";
+		var targeturiVal = document.getElementById("targetUri").value;
+		var targeturi = (targeturiVal != "")?"-targeturi="+targeturiVal+"\r\n":"";
+		var powerStatusVal = document.getElementById("powerStatus").checked;
+		var poweron = 'no';
+		if(powerStatusVal == true){
+			poweron = 'yes';
+		}else{
+			poweron = 'no';
+		}
+		var powerStatus = "-poweron="+poweron+"\r\n";
+		
+		var textFileAsBlob = new Blob([nodeCount,virtualIPv4,server1IPv4,server2IPv4,server3IPv4,server4IPv4,server5IPv4,defaultGatewayIPv4,networkNetmask,virtualIPv6,server1IPv6,server2IPv6,server3IPv6,server4IPv6,server5IPv6,defaultGatewayIPv6,ipv6prefixlength,netName,vmprefix,cpucount,memory,ds,vmfolder,dm,targeturi,powerStatus],{type: "octet/stream"});
+		
+		if(window.navigator.msSaveOrOpenBlob) { 
+				window.navigator.msSaveOrOpenBlob(textFileAsBlob, 'deployment.settings'); 
+				alert('File save request made. Note the "Save" button below.');
+		}else{
+			var downloadLink = document.createElement("a");
+			downloadLink.download = "deployment.settings";
+			downloadLink.innerHTML = "Download File";
+			if (window.webkitURL != null)
+			{
+		
+				downloadLink.href = window.webkitURL.createObjectURL(textFileAsBlob);
+			}
+			else
+			{
+				downloadLink.href = window.URL.createObjectURL(textFileAsBlob);
+				downloadLink.onclick = destroyClickedElement;
+				downloadLink.style.display = "none";
+				document.body.appendChild(downloadLink);
+			}
+
+			downloadLink.click();
+		}
+	}
+	
+
+		${include="common-top.js"}
+		
+	</script>
+</head>
+
+<body>
+<header>
+  <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="/">EMC ViPR</a>
+    </div>
+  </nav>
+</header>
+
+<div class="container">
+<div class="clear"></div>
+<form  id="generateFileForm" style="padding-top:30px" class="form-horizontal" autocomplete="off" >
+
+	${include="config-wizard.html"}
+	
+	<div id="vm_ds" class="form-group required">
+        <label class="control-label col-sm-3" for="dataStore"> Datastore:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="dataStore" value="" autocomplete="off" onkeyup="validateForRequired(this);" onfocus="validateForRequired(this);"> 
+			<span class="help-block">Datastore for the VM</span>	
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div> 
+	<div id="vm_folder" class="form-group">
+        <label class="control-label col-sm-3" for="folder"> VM Folder:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="folder" value="" autocomplete="off" > 
+			<span class="help-block">VM Folder</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div> 
+	 <div id="disk_provisioning" class="form-group ">
+        <label class="control-label col-sm-3" for="diskProvision">Disk provisioning:</label>
+		<div class="col-sm-6 controls">
+			<select id="diskProvision" class="form-control">
+				<option value="thick">Thick Provision Lazy Zeroed</option>
+				<option value="eagerzeroedthick" selected>Thick Provision Eager Zeroed</option>
+				<option value="thin">Thin Provision </option>
+			</select>
+			<span class="help-block">Format to store the virtual disks.</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div> 
+	<div id="target_uri" class="form-group required">
+        <label class="control-label col-sm-3" for="targetUri"> Target URI:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="targetUri" value="" autocomplete="off" onkeyup="validateForRequired(this);" onfocus="validateForRequired(this);"> 
+			<span class="help-block">Target URI</span>
+		</div>
+		<div class="col-sm-3">
+			<span class="help-inline"></span>
+		</div>
+	</div> 
+	<div id="power_status" class="form-group ">
+        <label class="control-label col-sm-3" for="powerStatus"> Power on:</label>
+		<div class="col-sm-6 controls">
+			<input type="checkbox"  id="powerStatus" checked="true"> 
+			<span class="help-block">Uncheck if you do not want to power on the VM automatically after deployment.</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	
+  <div class="form-group button-bar">
+  <div class="col-sm-offset-3 col-sm-9">
+      <button id="generateBtn" class="btn btn-primary btn-large " onclick="showConfirm()">
+      Generate Settings  </button>  
+  </div>
+</div>
+  
+  
+</form>
+</div>
+
+
+
+
+<script type="text/javascript">
+  
+	${include="common-bottom.js"}
+	
+</script>
+</body>
+</html>

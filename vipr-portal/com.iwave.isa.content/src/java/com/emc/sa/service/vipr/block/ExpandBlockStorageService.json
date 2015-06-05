@@ -1,0 +1,23 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ExpandBlockStorage.Block",
+  serviceId:"ExpandBlockStorage",
+  fields: {
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.sourceBlockVolume"
+    },
+
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+GET https://192.168.0.0:443/api/options/bourne.hosts HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[
+    {
+        "key": "urn:storageos:Host:4c4b7da7-61ee-4384-afb9-87e1fa3d045b:",
+        "value": "linux2"
+    },
+    {
+        "key": "urn:storageos:Host:4c4b7da7-61ee-9783-afb9-87e1fa3d045b:",
+        "value": "linux1"
+    }
+]

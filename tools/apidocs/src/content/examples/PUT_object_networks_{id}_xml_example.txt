@@ -1,0 +1,13 @@
+PUT https://192.168.0.0:4443/object/networks/urn:storageos:ObjectTransportZone:a4922af9-df7a-3457-b3f0-428e2d6b3efb: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<object_network_update>
+   <network>urn:storageos:Network:aa2390d4-c14d-44d0-9d52-d8b385211b39:</network>
+</object_network_update>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+

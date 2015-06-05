@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<error>
+  <code>6497</code>
+  <description>HTTP To HTTPS</description>
+  <details>Plain HTTP sent to HTTPS port.</details>
+  <retryable>false</retryable>
+</error>

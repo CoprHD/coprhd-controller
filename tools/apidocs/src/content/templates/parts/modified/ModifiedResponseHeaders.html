@@ -1,0 +1,25 @@
+<% if (methodChanges.responseHeadersChanged) { %>
+<hr/>
+<h4>Response Header Changes</h4>
+<table class="payload table">
+    <% methodChanges.responseHeaders.each { header ->
+    cssClass=""
+
+    switch(parameter.changeState) {
+    case com.emc.apidocs.model.ChangeState.ADDED:
+        cssClass="added";
+        break;
+    case com.emc.apidocs.model.ChangeState.REMOVED:
+        cssClass="removed";
+        break;
+    }
+
+    %>
+    <tr class="${cssClass}">
+        <td width="30%">${header.name}</td><td>${header.isOptional()?"optional":"always"}</td><td>${header.description}</td>
+    </tr>
+    <% } %>
+</table>
+<ul>
+</ul>
+<% } %>

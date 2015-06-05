@@ -1,0 +1,58 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.hosts'] /}
+
+#{tenantSelector/}
+#{DataTable.header titleKey:'Hosts.list.title'/}
+#{DataTable.baseCrudTable id:'host',
+                      dataTable:dataTable,
+                      expandable:true,
+                      actions:['initiators.label': @compute.HostInitiators.list(':id')]}
+  #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}
+    #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm', 
+                data:['enabled':'selected', 'property':'discoverable', 'value':'true']/}
+    #{Form.button name:'button.detachStorage', class:'default', icon:'hdd', submit:'detachStorageForm',
+                data:['enabled':'selected']/}
+  #{/DataTable.baseCrudButtonBar}
+#{/DataTable.baseCrudTable}
+#{DataTable.formAction @introspect(), id:'rediscoverForm', table:'host'/}
+#{DataTable.expandHtml @itemDetails(':id'), table:'host'/}
+#{DataTable.formAction @detachStorage(), id:'detachStorageForm', table:'host', confirm:messages.get('Hosts.detachStorageConfirm')/}
+
+#{DataTable.formAction @delete(), id:'deleteModalForm', class:'show form form-horizontal', table:'host'}
+  #{Modal.dialog id:'deleteHostDialog'}
+    #{Modal.body}
+      #{Form.header titleKey:'Hosts.deleteHosts.title'/}
+        &{'Hosts.deleteConfirm'}
+        #{field 'detachStorage'}
+          %{
+            field.value = 'true'
+            field.cssClass = 'checkbox'
+            field.label = messages.get('Hosts.detachStorageModal')
+            field.helpText = messages.get('Hosts.detachStorageModal.help')
+          }%
+          #{Form.booleanCheckBoxControlGroup field:field/}
+        #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button 'button.delete', class:'danger', icon:'trash', submit:'deleteModalForm'/}
+      #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/Modal.dialog}
+#{/DataTable.formAction}
+
+<script>
+function showModalDialog() {
+    $('.modal').modal();
+}
+</script>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    var oTable = $('#host table').dataTable();
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDiscoveryStatus(oTable, itemsJson, ['version', 'cluster']);
+  });
+</script>

@@ -1,0 +1,3 @@
+<div #{if _field?.id}id="${_field.id}ControlGroup"#{/if} class="form-group ${_field?.error ? 'has-error' : ''} ${_field?.required ? 'required' : ''}">
+  #{doBody/}
+</div>

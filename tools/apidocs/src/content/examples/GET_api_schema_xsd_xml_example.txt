@@ -1,0 +1,258 @@
+GET https://192.168.0.0:443/api/schema.xsd HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" standalone="yes"?>
+<xs:schema version="1.0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:element name="approvalInfo" type="approvalInfo"/>
+
+  <xs:element name="categoryInfo" type="categoryInfo"/>
+
+  <xs:element name="compositeValidationError" type="compositeValidationError"/>
+
+  <xs:element name="executionInfo" type="executionInfo"/>
+
+  <xs:element name="executionWindowInfo" type="executionWindowInfo"/>
+
+  <xs:element name="list" type="apiList"/>
+
+  <xs:element name="namedReference" type="namedReference"/>
+
+  <xs:element name="option" type="option"/>
+
+  <xs:element name="orderInfo" type="orderInfo"/>
+
+  <xs:element name="reference" type="reference"/>
+
+  <xs:element name="serviceInfo" type="serviceInfo"/>
+
+  <xs:element name="validationError" type="validationError"/>
+
+  <xs:complexType name="reference">
+    <xs:sequence>
+      <xs:element name="href" type="xs:string" minOccurs="0"/>
+      <xs:element name="id" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="link">
+    <xs:sequence/>
+    <xs:attribute name="rel" type="xs:string"/>
+    <xs:attribute name="href" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="apiList">
+    <xs:sequence>
+      <xs:any processContents="lax" namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="approvalInfo">
+    <xs:complexContent>
+      <xs:extension base="modelInfo">
+        <xs:sequence>
+          <xs:element name="approvedBy" type="xs:string" minOccurs="0"/>
+          <xs:element name="dateActioned" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="message" type="xs:string" minOccurs="0"/>
+          <xs:element name="order" type="reference" minOccurs="0"/>
+          <xs:element name="status" type="xs:string" minOccurs="0"/>
+          <xs:element name="tenant" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="modelInfo" abstract="true">
+    <xs:sequence>
+      <xs:element name="id" type="xs:string" minOccurs="0"/>
+      <xs:element name="inactive" type="xs:boolean" minOccurs="0"/>
+      <xs:element name="link" type="link" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="categoryInfo">
+    <xs:complexContent>
+      <xs:extension base="modelInfo">
+        <xs:sequence>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="image" type="xs:string" minOccurs="0"/>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+          <xs:element name="services" minOccurs="0">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="service" type="serviceInfo" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="sub_categories" minOccurs="0">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="category" type="namedReference" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+          <xs:element name="title" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="serviceInfo">
+    <xs:complexContent>
+      <xs:extension base="modelInfo">
+        <xs:sequence>
+          <xs:element name="approvalRequired" type="xs:boolean"/>
+          <xs:element name="baseService" type="xs:string" minOccurs="0"/>
+          <xs:element name="defaultExecutionWindowId" type="xs:string" minOccurs="0"/>
+          <xs:element name="description" type="xs:string" minOccurs="0"/>
+          <xs:element name="executionWindowRequired" type="xs:boolean"/>
+          <xs:element name="image" type="xs:string" minOccurs="0"/>
+          <xs:element name="maxSize" type="xs:int" minOccurs="0"/>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+          <xs:element name="title" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="namedReference">
+    <xs:complexContent>
+      <xs:extension base="reference">
+        <xs:sequence>
+          <xs:element name="name" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="executionInfo">
+    <xs:sequence>
+      <xs:element name="affectedResources" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="resource" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="currentTask" type="xs:string" minOccurs="0"/>
+      <xs:element name="endDate" type="xs:dateTime" minOccurs="0"/>
+      <xs:element name="executionLogs" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="log" type="executionLogInfo" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="executionStatus" type="xs:string" minOccurs="0"/>
+      <xs:element name="executionTasks" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="task" type="executionTaskInfo" minOccurs="0" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="startDate" type="xs:dateTime" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="executionLogInfo">
+    <xs:sequence>
+      <xs:element name="date" type="xs:dateTime" minOccurs="0"/>
+      <xs:element name="level" type="xs:string" minOccurs="0"/>
+      <xs:element name="message" type="xs:string" minOccurs="0"/>
+      <xs:element name="phase" type="xs:string" minOccurs="0"/>
+      <xs:element name="stackTrace" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="executionTaskInfo">
+    <xs:complexContent>
+      <xs:extension base="executionLogInfo">
+        <xs:sequence>
+          <xs:element name="detail" type="xs:string" minOccurs="0"/>
+          <xs:element name="elapsed" type="xs:long" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="option">
+    <xs:sequence>
+      <xs:element name="key" type="xs:string" minOccurs="0"/>
+      <xs:element name="value" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="orderInfo">
+    <xs:complexContent>
+      <xs:extension base="modelInfo">
+        <xs:sequence>
+          <xs:element name="createdDate" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="dateCompleted" type="xs:dateTime" minOccurs="0"/>
+          <xs:element name="execution" type="reference" minOccurs="0"/>
+          <xs:element name="executionWindow" type="xs:string" minOccurs="0"/>
+          <xs:element name="message" type="xs:string" minOccurs="0"/>
+          <xs:element name="orderNumber" type="xs:string" minOccurs="0"/>
+          <xs:element name="service" type="reference" minOccurs="0"/>
+          <xs:element name="status" type="xs:string" minOccurs="0"/>
+          <xs:element name="submittedBy" type="xs:string" minOccurs="0"/>
+          <xs:element name="summary" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="validationError">
+    <xs:sequence>
+      <xs:element name="error" type="xs:string" minOccurs="0"/>
+      <xs:element name="field" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="executionWindowInfo">
+    <xs:complexContent>
+      <xs:extension base="modelInfo">
+        <xs:sequence>
+          <xs:element name="dayOfMonth" type="xs:int" minOccurs="0"/>
+          <xs:element name="dayOfWeek" type="xs:int" minOccurs="0"/>
+          <xs:element name="executionWindowLength" type="xs:int" minOccurs="0"/>
+          <xs:element name="executionWindowLengthType" type="xs:string" minOccurs="0"/>
+          <xs:element name="executionWindowType" type="xs:string" minOccurs="0"/>
+          <xs:element name="hourOfDayInUTC" type="xs:int" minOccurs="0"/>
+          <xs:element name="label" type="xs:string" minOccurs="0"/>
+          <xs:element name="lastDayOfMonth" type="xs:boolean" minOccurs="0"/>
+          <xs:element name="minuteOfHourInUTC" type="xs:int" minOccurs="0"/>
+          <xs:element name="tenant" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:complexType name="compositeValidationError">
+    <xs:complexContent>
+      <xs:extension base="validationError">
+        <xs:sequence>
+          <xs:element name="errors" minOccurs="0">
+            <xs:complexType>
+              <xs:sequence>
+                <xs:element name="error" type="validationError" minOccurs="0" maxOccurs="unbounded"/>
+              </xs:sequence>
+            </xs:complexType>
+          </xs:element>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+</xs:schema>
+
+
+
+
+
+
+

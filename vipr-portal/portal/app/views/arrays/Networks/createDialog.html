@@ -1,0 +1,41 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{Modal.dialog id:'createDialog'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'Networks.createIpNetwork'}</h4> 
+    &{'Networks.createIpNetwork.description'}
+  #{/Modal.header}
+  #{form @arrays.Networks.createIpNetwork(), id:'createForm', class:'form form-horizontal'}
+    #{Modal.body}
+      <input type="hidden" name="virtualArrayId" value="${virtualArray?.id}">
+      #{field 'name'}
+        %{ field.label = messages.get('network.name') }%
+        #{Form.inputTextControlGroup field:field/}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Modal.buttonBar}
+        #{Form.button 'button.done', class:'primary', icon:'ok-sign', type:'submit'/}
+      #{/Modal.buttonBar}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+$(document).ready(function() {
+    $('#createDialog').on('shown.bs.modal', function(e) {
+        $('#name').focus();
+    });
+    $('#createDialog').on('show.bs.modal', function(e) {
+        $('#name').val('').trigger('change');
+    });
+    $('#name').on('change keydown keyup', function(e) {
+        if (e.which != 10 && e.which != 13) {
+          var value = $(this).val();
+          $('#createDialog button.btn-primary').prop('disabled', 
+                (value == null) || (value == '') || (value.trim() == ''));
+        }
+    });
+});
+</script>

@@ -1,0 +1,21 @@
+Active code page: 437
+
+Microsoft DiskPart version 6.2.9200
+
+Copyright (C) 1999-2012 Microsoft Corporation.
+On computer: ABC123
+
+DISKPART> 
+  Disk ###  Status         Size     Free     Dyn  Gpt
+  --------  -------------  -------  -------  ---  ---
+  Disk 0    Online          135 GB      0 B   *     
+  Disk 5    Online         6145 MB      0 B        *
+  Disk 9    Offline        3072 MB  3072 MB   *    *
+  Disk 10   Offline        1024 MB  1024 MB         
+  Disk 11   Offline        4096 MB  4096 MB         
+  Disk 12   Offline        2048 MB  2048 MB         
+  Disk 38   Reserved       1024 MB      0 B         
+  Disk 39   Reserved       4096 MB      0 B         
+
+DISKPART> 
+Leaving DiskPart...

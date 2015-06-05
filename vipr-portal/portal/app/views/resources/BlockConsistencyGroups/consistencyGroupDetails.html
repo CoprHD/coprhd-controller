@@ -1,0 +1,109 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.consistencygroups'] /}
+
+<div class="clear"></div>
+
+<div id="consistencyGroupDetails" class="container" style="margin-bottom: 2em;">
+
+#{alerts/}
+
+#{if blockConsistencyGroup}
+
+#{Resources.header resource:blockConsistencyGroup.blockConsistencyGroup, typeKey: 'affectedResources.blockConsistencyGroup', image: none/}
+
+  <dl class="dl-horizontal pull-left">
+    #{Resources.commonAttributes resource:blockConsistencyGroup.blockConsistencyGroup /}
+  </dl>
+
+  <div class="clearfix"></div>
+
+	<div id="volumes">
+		    <div class="section-header"><h1>&{'resources.consistencygroup.volume.label'}</h1></div>
+		    <div class="content">
+				#{if volumeDetails}
+			    	<table class='table table-condensed table-striped'>
+			    	<thead>
+			    		<tr>
+			    			<th>&{'resources.consistencygroup.volume.name'}</th>
+			    			<th>&{'resources.consistencygroup.volume.size'}</th>
+			    			<th>&{'resources.consistencygroup.volume.varray'}</th>
+			    			<th>&{'resources.consistencygroup.volume.vpool'}</th>
+			    			<th>&{'resources.consistencygroup.volume.protocol'}</th>
+                            <th>&{'resources.actions'}</th>
+			    		</tr>
+			    	</thead>
+			    	<tbody>
+					#{list items:volumeDetails, as:'volume'}
+						<tr>
+							<td>
+							<a href="@{resources.BlockVolumes.volume(volume.id)}"
+							><img src="/public/img/assets/Volume.png" style="width: 32px;"/> ${volume.name}</a>
+						</td>
+							<td>${volume.capacity}</td>
+							<td>${volume.varray}</td>
+							<td>${volume.vpool}</td>
+							<td>${volume.protocols}</td>
+                            <td>
+	                           <a href="@{removeVolume(blockConsistencyGroup.blockConsistencyGroup.id, volume.id)}" 
+				                  class='btn-xs btn-danger'
+				                  onclick="return confirm('&{'resources.consistencygroup.volume.remove.confirm'}')"
+				                >&{'button.remove'}</a>
+	                         </td>
+						</tr>
+					#{/list}
+					</tbody>
+					</table>
+				#{/if}
+				#{else}
+					&{'resources.consistencygroup.volume.empty'}
+				#{/else}
+		    </div>
+		  </div>
+	  <div id="snapshots">
+	    <div class="section-header"><h1>&{'resources.consistencygroup.snapshot.label'}</h1></div>
+	    <div class="content">
+			#{if blockConsistencyGroup.snapshots}
+		    	<table class='table table-condensed table-striped'>
+		    	<thead>
+		    		<tr>
+		    			<th>&{'resources.consistencygroup.snapshot.name'}</th>
+		    			<th>&{'resources.consistencygroup.snapshot.volume'}</th>
+		    			<th>&{'resources.consistencygroup.snapshot.createdDate'}</th>
+		    			<th>&{'resources.actions'}</th>
+		    		</tr>
+		    	</thead>
+		    	<tbody>
+				#{list items:blockConsistencyGroup.snapshots, as:'snapshot'}
+					<tr>
+						<td>
+							<a href="@{resources.BlockSnapshots.snapshotDetails(snapshot.blockSnapshot.id)}"
+							><img src="/public/img/assets/Snapshot.png" style="width: 32px;"/>${snapshot.blockSnapshot.name}</a>
+						</td>
+						<td>
+							${snapshot.volume.name}
+						</td>
+						<td>
+						#{localDateTime snapshot.blockSnapshot.creationTime.time/}&nbsp;
+						</td>
+						<td>&nbsp;</td>
+					</tr>
+				#{/list}
+				</tbody>
+				</table>
+			#{/if}
+			#{else}
+				&{'resources.consistencygroup.snapshot.empty'}
+			#{/else}
+	    </div>
+	  </div>
+	  #{Resources.tasks resourceId:blockConsistencyGroup.blockConsistencyGroup.id /}
+#{/if}
+#{else}
+<span class="errorMessage">&{'resources.consistencygroup.error'}</span>
+#{/else}
+
+</div>
+

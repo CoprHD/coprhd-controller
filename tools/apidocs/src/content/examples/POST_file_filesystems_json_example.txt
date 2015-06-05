@@ -1,0 +1,36 @@
+POST https://192.168.0.0:4443/file/filesystems?project=urn:storageos:Project:5e93a1ec-6a2c-457f-9ef6-16487265dc98:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "name": "fs-sarav-test-json-1", 
+    "size": "20MB", 
+    "varray": "urn:storageos:VirtualArray:8192a5e7-bb39-4f75-bdad-10f8fa1d105e:", 
+    "vpool": "urn:storageos:VirtualPool:74cd5776-62fc-4972-ad10-da882db659b3:"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+  "task": [
+    {
+      "resource": {
+        "name": "volume5678",
+        "id": "urn:storageos:Volume:08a68c03-ec03-4c43-be6b-d69d8d10f3cb:",
+        "link": {
+          "rel": "self",
+          "href": "/file/filesystems/urn:storageos:FileShare:b33b93d7-f767-4699-ba18-b83bc1faf94a:"
+        }
+      },
+      "state": "pending",
+      "start_time": 1380045981676
+      "op_id": "98411011-1c5c-40d0-bc5a-2380d36bb97e",
+      "link": {
+        "rel": "self",
+        "href": "/file/filesystems/urn:storageos:FileShare:b33b93d7-f767-4699-ba18-b83bc1faf94a:/tasks/98411011-1c5c-40d0-bc5a-2380d36bb97e"
+      }
+    }
+  ]
+}

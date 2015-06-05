@@ -1,0 +1,21 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.tenants'] /}
+
+#{DataTable.header titleKey:'tenants.list.title' /}
+
+#{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+  #{DataTable.crudTable id:'tenants', 
+                        dataTable:dataTable, 
+                        actions: ['Tenants.roleAssignments': @listRoles(':id')],
+                        deleteConfirm:messages.get('tenants.deleteConfirm')/}
+#{/deadbolt.restrict}
+
+#{deadbolt.restrict roles:[['!SECURITY_ADMIN']]}
+    #{DataTable.baseCrudTable id:'tenants',
+    dataTable:dataTable,
+    actions: ['Tenants.roleAssignments': @listRoles(':id')],
+    disableSelectable:true/}
+#{/deadbolt.restrict}

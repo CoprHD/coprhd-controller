@@ -1,0 +1,44 @@
+POST https://192.168.0.0:4443/compute/ip-interfaces/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+      <id>urn:storageos:IpInterface:06cab38a-b56a-4325-8209-1a5a3edc1d2b:</id>
+      <id>urn:storageos:IpInterface:1bd3f5df-bc0d-463e-b106-dbdd63f49d2a:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_ip_interfaces>
+    <ip_interface>
+        <creation_time>1379960615967</creation_time>
+        <id>urn:storageos:IpInterface:06cab38a-b56a-4325-8209-1a5a3edc1d2b:</id>
+        <inactive>false</inactive>
+        <link href="/compute/ip-interfaces/urn:storageos:IpInterface:06cab38a-b56a-4325-8209-1a5a3edc1d2b:" rel="self"/>
+        <name>13/ipv6</name>
+        <tags/>
+        <host>
+            <id>urn:storageos:Host:e06276d5-3e10-4156-8b27-cfd69a239811:</id>
+            <link href="/compute/hosts/urn:storageos:Host:e06276d5-3e10-4156-8b27-cfd69a239811:" rel="self"/>
+        </host>
+        <protocol>IPV6</protocol>
+        <ip_address>fe80::682f:73a7:321a:6de6</ip_address>
+    </ip_interface>
+    <ip_interface>
+        <creation_time>1379960473939</creation_time>
+        <id>urn:storageos:IpInterface:1bd3f5df-bc0d-463e-b106-dbdd63f49d2a:</id>
+        <inactive>false</inactive>
+        <link href="/compute/ip-interfaces/urn:storageos:IpInterface:1bd3f5df-bc0d-463e-b106-dbdd63f49d2a:" rel="self"/>
+        <name>vmk0/ipv6</name>
+        <tags/>
+        <host>
+            <id>urn:storageos:Host:dd173594-68ce-4d0d-85ff-df1361da0c4a:</id>
+            <link href="/compute/hosts/urn:storageos:Host:dd173594-68ce-4d0d-85ff-df1361da0c4a:" rel="self"/>
+        </host>
+        <protocol>IPV6</protocol>
+        <ip_address>fe80::b2fa:ebff:fe97:c8c8</ip_address>
+        <prefix_length>64</prefix_length>
+    </ip_interface>
+</bulk_ip_interfaces>

@@ -1,0 +1,38 @@
+POST https://192.168.0.0:4443/vdc/network-systems/urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:/add-san-zones/VPlex_LGL6221_FID_40.json HTTP/1.1
+ 
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    san_zones:{
+        san_zone:{
+            name:'z_zone',
+            members:{
+                member:[
+                    '50:00:09:73:00:16:59:5D',
+                    '50:00:14:42:80:71:23:5D'
+                ]
+            }
+        }
+    }
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+   "op_id": "01e5f8c3-0bd0-4e20-9147-09fe26929c8c",
+   "resource": {
+      "id": "urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:",
+      "link": {
+         "href": "/vdc/network-systems/urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:",
+         "rel": "self"
+      },
+      "name": "lglw9250"
+   },
+   "link": {
+      "href": "/vdc/network-systems/urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:/tasks/01e5f8c3-0bd0-4e20-9147-09fe26929c8c",
+      "rel": "self"
+   },
+   "start_time": "1380750349451",
+   "state": "pending"
+}

@@ -1,0 +1,186 @@
+%{
+  titleKey = 'ComputeSystems.' + (computeSystems?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'ComputeSystems.description';
+  image = '/public/img/assets/Host.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.computeSystems'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:computeSystems?.id ? true : false/}
+
+#{breadcrumb.container}
+#{breadcrumb.item @list()}&{'ComputeSystems.list.title'}#{/breadcrumb.item}
+#{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  var editMode = #{get 'editMode'/};
+  var errors = #{get 'errors'/};
+
+  // Port Map of all default ports for various storage array types
+  var portMap = new Object();
+  #{list items:defaultComputeSystemPortMap, as:'defaultPort'}
+    portMap['${defaultPort.id}'] = '${defaultPort.name}';
+  #{/list}
+  
+    $(document).ready(function() {
+
+        var editMode = #{get 'editMode'/};
+        if (!editMode && !errors) {
+            setDefaults();
+        }
+        var isUnregistered = editMode && ${computeSystems.unregistered};
+        // when in edit mode disable the system type input
+        if (editMode) {
+            $('#computeSystems_systemType').prop('disabled', true);
+            $('#computeSystems_ipAddress').prop('disabled', true);
+            var selectedVlan = $("#computeSystems_vlanList :selected").text();
+            if (selectedVlan == "") {
+                $('#computeSystems_vlanListControlGroup').hide();
+            }
+            else {
+                $('#computeSystems_osInstallNetworkControlGroup').hide();
+            }
+        }
+        else {
+            $('#computeSystems_vlanListControlGroup').hide();
+        }
+        //
+        // Hack - ensure these 2 field are blank, because for some weird reasons
+        // and userPassword is set to some garbage when using "inputPasswordControlGroup" for
+        // userPassword field
+        //
+        $('#computeSystems_password').val('');        
+        $('#computeSystems_confirmPassword').val('');  
+                  
+        $('#compute_mode').on('change', setFormByType);
+        $('#compute_mode').on('change', setDefaults);
+        //
+        // register handler to change port number when useSSL is
+        // selection is changed
+        //
+        $('#computeSystems_systemType').on('change', updateInterfaceSettings);
+
+        $('#computeSystems_useSSL').on('change', updateInterfaceSettings); 
+        
+        if ( isUnregistered ) {
+            var saveTxt = '${messages.get("button.save")}';
+            $('div.form-actions button:contains("'+saveTxt+'")').hide();
+            
+            $('input:text').attr('readonly', 'readonly');
+            $('input:checkbox').prop('disabled', true);
+            $('input:password').prop('disabled', true);
+            $('select').prop('disabled', true);                        
+        }        
+        
+        
+        setFormByType();       
+    });
+
+    /** set port number depending on useSSL selection **/
+    function updateInterfaceSettings(eventObject) {
+        var target = $(eventObject.target);
+
+        var isSslCheckboxTarget = target.get(0) === $('#computeSystems_useSSL').get(0);
+        
+        var useSSL = target.is(":checked");
+        var usePortNumber = "port80";
+        if (useSSL) {
+            usePortNumber = "port443";
+        }
+
+        $('#computeSystems_portNumber').val(portMap[usePortNumber]);
+    }
+    
+    
+    function setFormByType() {
+  
+        var $ctrlElements = $("fieldset");
+
+
+            $('#compute_groupAttribute').closest($ctrlElements).show();
+            $('#compute_groupWhiteListValues').closest($ctrlElements).show();
+
+    }    
+    
+    function setDefaults() {
+
+    }
+
+  
+    
+  </script>
+#{/set}
+
+
+<div class="container">
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    
+    #{alerts/}
+    
+#{form @save(), id:'computeSystemForm', class:'form form-horizontal', autocomplete:"off"}
+#{field 'referrer'}
+<input type="hidden" name="${field.name}" value="${referrer}">
+#{/field}
+   
+
+  <fieldset>
+    #{field 'computeSystems.name'}
+      #{Form.inputTextControlGroup field:field, required:true, cssClass:'initialFocus' /}
+    #{/field} 
+
+    #{field 'computeSystems.systemType'}
+      #{Form.selectOneControlGroup field:field, options:computeSystemTypeList, required:!editMode /}
+    #{/field}
+   
+    #{field 'computeSystems.ipAddress'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeSystems.useSSL'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+
+    #{field 'computeSystems.portNumber'}
+      #{Form.inputTextControlGroup field:field, required:true /}
+    #{/field}
+
+    #{field 'computeSystems.osInstallNetwork'}
+        #{Form.inputTextControlGroup field:field, required:false /}
+    #{/field}
+    #{field 'computeSystems.vlanList'}
+        #{Form.selectOneControlGroup field:field, options:computeSystemVlanList, required:false /}
+    #{/field}
+    #{field 'computeSystems.userName'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeSystems.password'}
+      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
+    #{/field}
+
+    #{field 'computeSystems.confirmPassword'}
+      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
+    #{/field}    
+
+    #{if computeSystems?.id}
+        #{field 'computeSystems.id'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    
+      #{/if} 
+    </fieldset>
+
+    #{Form.saveCancel cancelHref:referrer/}
+#{/form}
+</div>

@@ -1,0 +1,29 @@
+POST https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:3f8891a8-9d99-45fb-9c5d-0b0f57da6bb9:/protection/snapshots.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "name": "forceDeleteTestNETAPP-092313174649"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+    "description": "Filesystem snapshot create", 
+    "link": {
+        "href": "/file/snapshots/urn:storageos:Snapshot:44e0a6e0-1b06-4265-8876-fa4d4a612d18:/tasks/60f2a6a5-8bd2-4123-8650-d1e732e1da67", 
+        "rel": "self"
+    }, 
+    "op_id": "60f2a6a5-8bd2-4123-8650-d1e732e1da67", 
+    "resource": {
+        "id": "urn:storageos:Snapshot:44e0a6e0-1b06-4265-8876-fa4d4a612d18:", 
+        "link": {
+            "href": "/file/snapshots/urn:storageos:Snapshot:44e0a6e0-1b06-4265-8876-fa4d4a612d18:", 
+            "rel": "self"
+        }, 
+        "name": "forceDeleteTestNETAPP-092313174649"
+    }, 
+    "start_time": 1379958498780, 
+    "state": "pending"
+}

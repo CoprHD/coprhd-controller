@@ -1,0 +1,362 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2012-2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC. 
+#   
+# /etc/genconfig 
+#
+# This script that generates system and network configuration files
+# and expands storageos configuration templates using a set of
+# normalized key=value properties.
+#
+# Usage: /etc/genconfig properties_file [-test]
+# The call_indicator will make the script know who is calling it. 
+# genconfig could be called at bootup from boot.ovfenv or at reconfiguration from systool.
+# The caller_indicator can differentiate them.
+#
+
+_fatal() {
+    echo "$0: Error: $*" >&2
+    exit 252
+}
+
+[ -f /etc/genconfig.d/genconfig-core ] || _fatal "/etc/genconfig.d/genconfig-core not found"
+. /etc/genconfig.d/genconfig-core
+    
+_genconfig_read_stdin() {
+    if [ ! -t 0 ]; then
+        while read line ; do
+            [[ ${line} =~ .+?=.* ]] && echo "${line}" 
+        done
+    fi
+    return 0
+}
+
+_genconfig_init() {
+    trap '_fatal Line ${LINENO}: ${BASH_COMMAND}' ERR
+
+    _GENCONFIG_PROPS="$(_genconfig_read_stdin)"
+    [ -n "${_GENCONFIG_PROPS}" ] || _fatal "Failed to read configuration properties from stdin"
+    _gen_prop
+    _gen_prop2
+    export _GENCONFIG_FOREACH=$(_gen_foreach)
+}
+
+_gen_prop() {
+    OLDIFS="${IFS}" ; IFS="${nl}" ; for arg in ${_GENCONFIG_PROPS} ; do
+          local key="${arg%%=*}"
+          local val="${arg#*=}" && val="${val//\\n/${nl}}" && val="${val//\$/\\$}";
+          eval "export _GENCONFIG_${key}=\"${val}\""
+    done ; IFS="${OLDIFS}"
+}
+
+# Public property lookup
+_gen_prop2() {
+    #'node_id
+    [ -z ${_GENCONFIG_node_id} ] && export _GENCONFIG_node_id='standalone'
+
+    #'node_name')
+    export _GENCONFIG_node_name=${_GENCONFIG_node_id}
+
+    #'node_index')
+    export _GENCONFIG_node_index=$(_genconfig_node_index ${_GENCONFIG_node_id})
+
+    #'node_suffix')
+    export _GENCONFIG_node_suffix=$(_genconfig_node_suffix ${_GENCONFIG_node_name})
+
+    #'node_indexes')
+    if [ -n "${_GENCONFIG_network_1_ipaddr}" ] ; then
+        export _GENCONFIG_node_indexes=$(seq --separator=' ' ${_GENCONFIG_node_count})
+    else
+        export _GENCONFIG_node_indexes='standalone'
+    fi
+
+    #'node_names')
+    export _GENCONFIG_node_names=$(echo $(for i in ${_GENCONFIG_node_indexes}; do _genconfig_node_name ${i} ; done))
+
+    #'network_ipaddr')
+    local var="_GENCONFIG_network_${_GENCONFIG_node_index}_ipaddr"
+    local ipaddr="${!var}"
+    if [ "${ipaddr}" != "0.0.0.0" ]; then
+        export _GENCONFIG_network_ipaddr="${ipaddr}"
+    else
+        export _GENCONFIG_network_ipaddr=''
+    fi
+
+    #'network_ipaddr6')
+    local var="_GENCONFIG_network_${_GENCONFIG_node_index}_ipaddr6"
+    export _GENCONFIG_network_ipaddr6=$(_get_ipv6_uncompressed ${!var})
+
+    # This property will be the IPv4 address of the node unless the
+    # node is configured for IPv6 only then it will be the IPv6 address
+    #'network_ipaddr_effective')
+    local ipaddr="${_GENCONFIG_network_ipaddr}"
+    [ -z "${ipaddr}" ] && ipaddr="${_GENCONFIG_network_ipaddr6}"
+    export _GENCONFIG_network_ipaddr_effective="${ipaddr}"
+ 
+    # this property is the effective address above.  If it is the
+    # IPv6 address then it will be enclosed in [] so that the nodes
+    # effective address can be used in URLs for example.
+    #'network_ipaddr_service')
+    local ipaddr="${_GENCONFIG_network_ipaddr}"
+    [ -z "${ipaddr}" ] && ipaddr="[${_GENCONFIG_network_ipaddr6}]"
+    export _GENCONFIG_network_ipaddr_service="${ipaddr}"
+
+    #'network_'*'_ipaddr')
+    for node_index in ${_GENCONFIG_node_indexes}; do
+        local var="_GENCONFIG_network_${node_index}_ipaddr"
+        if [ "${!var}" = "0.0.0.0" ]; then
+            eval export ${var}=''
+        fi
+    done
+
+    #'network_'*'_ipaddr6')
+    for node_index in ${_GENCONFIG_node_indexes}; do
+        local var="_GENCONFIG_network_${node_index}_ipaddr6"
+        eval export ${var}=$(_get_ipv6_uncompressed ${!var})
+    done
+
+    #'network_'*'_ipaddr_service')
+    #'network_'*'_ipaddr_effective')
+    for node_index in ${_GENCONFIG_node_indexes}; do
+        local var="_GENCONFIG_network_${node_index}_ipaddr"
+        if [ -z "${!var}" ]; then
+            local var2="_GENCONFIG_network_${node_index}_ipaddr6"
+            eval export ${var}_service="[${!var2}]"
+            eval export ${var}_effective="${!var2}"
+        else
+            eval export ${var}_service="${!var}"
+            eval export ${var}_effective="${!var}"
+        fi
+    done
+
+    #'network_netmask')
+    local var="_GENCONFIG_network_${_GENCONFIG_node_index}_network"
+    if [ -z ${!var} ]; then
+        eval export $var="${_GENCONFIG_network_netmask}"
+    fi
+
+    #'network_gateway')
+    local var="_GENCONFIG_network_${_GENCONFIG_node_index}_gateway"
+    local gateway="${!var}"
+    [ -z "${gateway}" ] && gateway=${_GENCONFIG_network_gateway}
+    [ "${gateway}" = "0.0.0.0" ] && export _GENCONFIG_network_gateway="" || \
+            export _GENCONFIG_network_gateway="${gateway}"
+
+    #'network_gateway6')
+    local var="_GENCONFIG_network_${_GENCONFIG_node_index}_gateway6"
+    local gateway="${!var}"
+    [ -z "${gateway}" ] && gateway=${_GENCONFIG_network_gateway6}
+    [ -n "${gateway}" ] && export _GENCONFIG_network_gateway6="$(_get_ipv6_uncompressed ${gateway})" || \
+            export _GENCONFIG_network_gateway6=""
+
+    #'network_prefix_length')
+    local var="_GENCONFIG_network_${_GENCONFIG_node_index}_prefix_length"
+    [ -z "${!var}" ] && eval export $var="${_GENCONFIG_network_prefix_length}"
+
+    #'network_nodes_ipv4')
+    export _GENCONFIG_network_nodes_ipv4=$(echo $(for i in ${_GENCONFIG_node_indexes}; do \
+        local var="_GENCONFIG_network_${i}_ipaddr"; echo "${!var}"; done))
+
+    #'network_nodes_ipv6')
+    export _GENCONFIG_network_nodes_ipv6=$(echo $(for i in ${_GENCONFIG_node_indexes}; do \
+        local var="_GENCONFIG_network_${i}_ipaddr6"; echo "${!var}"; done))
+
+    #'network_vip')
+    if [ "${_GENCONFIG_network_vip}" = "0.0.0.0" ]; then export _GENCONFIG_network_vip=''; fi
+
+    #'network_vip6')
+    export _GENCONFIG_network_vip6=$(_get_ipv6_uncompressed ${_GENCONFIG_network_vip6})
+
+    # A list of all configured IPv4 addresses
+    #'network_complete_ipv4_list')
+    export _GENCONFIG_network_complete_ipv4_list="${_GENCONFIG_network_vip} ${_GENCONFIG_network_nodes_ipv4} ${_GENCONFIG_network_gateway}"
+
+    # A list of all configured IPv6 addresses
+    #'network_complete_ipv6_list'
+    export _GENCONFIG_network_complete_ipv6_list="${_GENCONFIG_network_vip6} ${_GENCONFIG_network_nodes_ipv6} ${_GENCONFIG_network_gateway6}"
+
+    # Return either the IPv4 or IPv6 vip depending on if
+    # IPv4 is configured
+    #'network_vip_effective')
+    export _GENCONFIG_network_vip_effective="${_GENCONFIG_network_vip}"
+    [ -z "${_GENCONFIG_network_vip}" ] && export _GENCONFIG_network_vip_effective="${_GENCONFIG_network_vip6}"
+
+    # return service endpoint for the IPv4 vip if configured
+    # if ipv4 is not configured return the IPv6 vip in brackets
+    #'network_vip_service')
+    export _GENCONFIG_network_vip_service="${_GENCONFIG_network_vip}"
+    [ -z "${_GENCONFIG_network_vip}" ] && export _GENCONFIG_network_vip_service="[${_GENCONFIG_network_vip6}]"
+
+    # Return default NIC name
+    export _GENCONFIG_network_nic_name="$(/etc/getnic)"
+
+    #'vdc_ids')
+    [ -z "${_GENCONFIG_vdc_ids}" ] && export _GENCONFIG_vdc_ids='vdc1'
+
+    #'vdc_myid')
+    [ -z "${_GENCONFIG_vdc_myid}" ] && export _GENCONFIG_vdc_myid='vdc1'
+
+    #'vdc_vdc1_node_count')
+    [ -z "${_GENCONFIG_vdc_vdc1_node_count}" ] && export _GENCONFIG_vdc_vdc1_node_count=${_GENCONFIG_node_count}
+
+    #'vdc_vdc1_network_'*'_ipaddr')
+    for node_index in ${_GENCONFIG_node_indexes}; do
+        local var="_GENCONFIG_vdc_vdc1_network_${node_index}_ipaddr"
+        if [ -z "${!var}" ]; then
+            local var2="_GENCONFIG_network_${node_index}_ipaddr"
+            eval export ${var}=${!var2}
+        fi
+    done
+
+    local OLD_IFS="${IFS}"; IFS="${IFS},"
+
+    #'vdc_'*'_network_'*'_ipaddr6')
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        local var="_GENCONFIG_vdc_${vdc}_node_count"
+        for node_index in $(seq -s ' ' ${!var}); do
+            local var2="_GENCONFIG_vdc_${vdc}_network_${node_index}_ipaddr6"
+            eval export ${var2}=$(_get_ipv6_uncompressed ${!var2})
+        done
+    done
+
+    #'vdc_'*'_network_vip6')
+    for vdc in ${_GENCONFIG_vdc_ids}; do
+        local var="_GENCONFIG_vdc_${vdc}_network_vip6"
+        eval export ${var}=$(_get_ipv6_uncompressed ${!var})
+    done
+    IFS="${OLD_IFS}"
+
+    #_GENCONFIG_NETWORK_STACK
+    ipv4list=(${_GENCONFIG_network_complete_ipv4_list})
+    ipv6list=(${_GENCONFIG_network_complete_ipv6_list})
+
+    local number_of_ipv4_entries=${#ipv4list[@]}
+    local number_of_ipv6_entries=${#ipv6list[@]}
+    if [[ ${number_of_ipv4_entries} -ne 0 && ${number_of_ipv6_entries} -ne 0 ]]; then
+        export _GENCONFIG_NETWORK_STACK="DUAL_STACK"
+    elif [[ ${number_of_ipv6_entries} -ne 0 ]]; then
+        export _GENCONFIG_NETWORK_STACK="IPv6"
+    else
+        # IPv4 as default stack. On kiwi build machine, there is no ipv4 and ipv6
+        # addresses. Simply let it go with ipv4
+        export _GENCONFIG_NETWORK_STACK="IPv4"
+    fi
+
+}
+
+_gen_foreach() {
+    local iters=${_GENCONFIG_node_indexes}
+    echo "--foreach:iter:${iters}"
+
+    local vdcs=${_GENCONFIG_vdc_ids}
+    echo "--foreach:iter_vdcs:${vdcs}"
+}
+
+_gen_config_version() {
+    config_version=${_GENCONFIG_config_version:-0}
+    _genconfig_write 644 root:root "${1}" "${config_version}"
+    _genconfig_done
+}
+
+_genconfig_system_init() {
+    # add these back to unblock upgrade from 1.1 to 2.0
+    # tmp fix for geodb dir setup
+    if [ ! -d "/data/geodb" ]; then
+       _genconfig_mkdir 755 storageos:storageos /data/geodb
+    fi
+
+    # tmp fix for backup dir setup
+    if [ ! -d "/data/backup" ]; then
+       _genconfig_mkdir 755 storageos:storageos /data/backup
+    fi
+
+    # create audit dir so auditd can run
+    if [ ! -d "/var/log/audit" ]; then
+       _genconfig_mkdir 700 root:root /var/log/audit
+    fi
+    
+    # create pid directory
+    if [ ! -d "/var/run/storageos" ]; then
+        _genconfig_mkdir 755 storageos:storageos '/var/run/storageos'
+    fi
+    #GEN000440
+    _genconfig_create 640 root:root '/var/log/btmp'
+    _genconfig_create 640 root:root '/var/log/wtmp'
+    _genconfig_create 640 root:root '/var/log/lastlog'  
+}
+
+_genconfig_exec_scripts() {
+    if [[ ${1} == /* ]]; then
+        script=${1}
+    else
+        script="/etc/genconfig.d/${1}"
+    fi
+
+    if [ -d "${script}" ]; then
+        for sub_script in $(ls ${script}); do
+            . "${script}/${sub_script}"
+        done
+    elif [ -f "${script}" ]; then
+        . "${script}"
+    else
+        _fatal "there's no such notifier as ${1}"
+    fi
+}
+
+_genconfig_init
+
+# Parse flags and hacks
+while [ $# -gt 0 ] ; do
+    case ${1} in
+        --test)
+            . /etc/genconfig.d/test ; shift ; continue ;;
+        --config)
+            # to unblock security config file generation in reconfig mode.
+            export _GENCONFIG_node_id='' ; shift ; continue ;;
+        *)
+            break ;;
+    esac
+done
+
+if [ -n "${_GENCONFIG_TEST}" ] ; then
+    echo "node_count=${_GENCONFIG_node_count}"
+    echo "node_id=${_GENCONFIG_node_id}"
+    echo "node_name=${_GENCONFIG_node_name}"
+    echo "node_index=${_GENCONFIG_node_index}"
+    echo "node_suffix=${_GENCONFIG_node_suffix}"
+    echo "node_indexes=${_GENCONFIG_node_indexes}"
+    echo "node_names=${_GENCONFIG_node_names}"
+    echo "network_ipaddr=${_GENCONFIG_network_ipaddr}"
+    echo "network_1_ipaddr=${_GENCONFIG_network_1_ipaddr}"
+    echo "network_ipaddr6=${_GENCONFIG_network_ipaddr6}"
+
+    exit 0
+fi
+
+if [ $# -ge 1 ]; then
+    for arg in "${@}"; do
+        _genconfig_exec_scripts ${arg}
+    done
+
+    _genconfig_exec _gen_config_version      /etc/config_version
+    _genconfig_exit
+fi
+
+_genconfig_exec_scripts boot
+_genconfig_exec _gen_config_version      /etc/config_version
+
+# adding compliance requirements
+_genconfig_system_init
+
+_genconfig_exit
+

@@ -1,0 +1,245 @@
+PUT: https://192.168.0.0:4443/vdc/networks/urn:storageos:Network:0e116bce-f137-4b89-a5d5-c171c6c67b4f:/endpoints.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "endpoints": [
+        "50:6F:00:50:56:91:3B:BF"
+    ],
+    "op": "add"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+    "creation_time": 1380721826906,
+    "discovered": false,
+    "endpoints": [
+        "50:06:01:61:3E:A0:59:B0",
+        "50:06:01:66:3E:A0:59:B0",
+        "50:01:24:82:01:B1:B5:B6",
+        "50:06:01:63:3E:A0:59:B0",
+        "50:01:24:82:03:F1:B5:B7",
+        "50:01:24:82:01:B1:B5:B7",
+        "50:06:01:62:3E:A0:59:B0",
+        "50:01:24:82:03:F1:B5:B6",
+        "50:06:01:6D:3E:A0:59:B0",
+        "50:01:24:82:01:B1:D5:B5",
+        "50:01:24:82:01:BC:4A:AD",
+        "50:01:24:82:01:BC:4A:AC",
+        "50:06:01:6A:3E:A0:59:B0",
+        "50:01:24:82:02:D1:B5:B7",
+        "50:01:24:82:00:91:D5:B4",
+        "50:01:24:82:02:D1:B5:B6",
+        "50:01:24:82:00:91:D5:B5",
+        "50:01:24:82:02:DC:4A:AD",
+        "50:01:24:82:02:DC:4A:AC",
+        "50:01:24:82:01:B1:D5:B4",
+        "50:06:01:6C:3E:A0:59:B0",
+        "50:06:01:6E:3E:A0:59:B0",
+        "50:01:24:82:03:FC:4A:AD",
+        "50:06:01:68:3E:A0:59:B0",
+        "50:6F:00:50:56:91:3B:BF",
+        "50:06:01:65:3E:A0:59:B0",
+        "50:06:01:60:3E:A0:59:B0",
+        "50:06:01:6F:3E:A0:59:B0",
+        "50:06:01:64:3E:A0:59:B0",
+        "50:01:24:82:03:FC:4A:AC",
+        "50:06:01:69:3E:A0:59:B0",
+        "50:01:24:82:02:D1:D5:B5",
+        "50:01:24:82:02:D1:D5:B4",
+        "50:01:24:82:00:91:B5:B7",
+        "50:06:01:6B:3E:A0:59:B0",
+        "50:01:24:82:00:9C:4A:AC",
+        "50:01:24:82:00:91:B5:B6",
+        "50:01:24:82:03:F1:D5:B5",
+        "50:01:24:82:03:F1:D5:B4",
+        "50:06:01:67:3E:A0:59:B0",
+        "50:01:24:82:00:9C:4A:AD"
+    ],
+    "endpoints_discovered": [
+        {
+            "name": "50:06:01:61:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:66:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:63:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:01:B1:B5:B6",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:03:F1:B5:B7",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:62:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:01:B1:B5:B7",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:03:F1:B5:B6",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:6D:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:01:B1:D5:B5",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:01:BC:4A:AD",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:6A:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:01:BC:4A:AC",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:00:91:D5:B4",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:02:D1:B5:B7",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:02:D1:B5:B6",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:00:91:D5:B5",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:02:DC:4A:AD",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:02:DC:4A:AC",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:6C:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:01:B1:D5:B4",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:6E:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:68:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:03:FC:4A:AD",
+            "value": "false"
+        },
+        {
+            "name": "50:6F:00:50:56:91:3B:BF",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:65:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:60:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:6F:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:64:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:03:FC:4A:AC",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:69:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:02:D1:D5:B5",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:02:D1:D5:B4",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:6B:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:00:91:B5:B7",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:00:9C:4A:AC",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:00:91:B5:B6",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:03:F1:D5:B5",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:03:F1:D5:B4",
+            "value": "false"
+        },
+        {
+            "name": "50:06:01:67:3E:A0:59:B0",
+            "value": "false"
+        },
+        {
+            "name": "50:01:24:82:00:9C:4A:AD",
+            "value": "false"
+        }
+    ],
+    "id": "urn:storageos:Network:0e116bce-f137-4b89-a5d5-c171c6c67b4f:",
+    "inactive": false,
+    "link": {
+        "href": "/vdc/networks/urn:storageos:Network:0e116bce-f137-4b89-a5d5-c171c6c67b4f:",
+        "rel": "self"
+    },
+    "name": "fctz_a",
+    "native_guid": "",
+    "registration_status": "REGISTERED",
+    "tags": [],
+    "transport_type": "FC",
+    "varray": {
+        "id": "urn:storageos:VirtualArray:3746b1cc-1980-4fe0-b897-a018ac08f224:",
+        "link": {
+            "href": "/vdc/varrays/urn:storageos:VirtualArray:3746b1cc-1980-4fe0-b897-a018ac08f224:",
+            "rel": "self"
+        }
+    }
+}

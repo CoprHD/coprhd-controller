@@ -1,0 +1,13 @@
+%{
+  show = _arg == null ? true : _arg
+}%
+#{if util.BrowserUtil.supportsCSSRotate()}
+  <span class="loading#{if !show} hide#{/if}">
+   #{icon 'refresh rotate'/}
+  </span>
+#{/if}
+#{else}
+  <span class="loading#{if !show} hide#{/if}">
+   <img src="@{'/public/img/loading.gif'}">
+  </span>
+#{/else}

@@ -1,0 +1,69 @@
+%{ baseFieldName = _field.name }%
+#{Form.controlGroup field:_field}
+  %{
+    currentCount = _field.value?.size() ?: 0
+    flashCount = flash["${baseFieldName}Count"]?.toInteger() ?: currentCount
+  }%
+  <input type="hidden" name="${baseFieldName}Count" value="${flashCount}">
+  #{list items:_field.value, as:'item'}
+    #{if (item_index-1) < flashCount}
+      #{Cas.retentionClassEntry fieldName:baseFieldName, index:item_index-1, options:_options, retentionClass:item, readOnly:true /}
+    #{/if}
+  #{/list}
+  #{if flashCount > currentCount}
+    #{list items:currentCount..flashCount-1, as:'index'}
+      #{Cas.retentionClassEntry fieldName:baseFieldName, index:index, options:_options /}
+    #{/list}
+  #{/if}
+  
+  <div class="footer">
+    <div class="form-control-static">
+      #{Form.button 'button.add', id:'addEntry', size:'sm', class:'success', icon:'plus'/}
+    </div>
+  </div>
+#{/Form.controlGroup}
+#{jsTemplate 'row'}
+  #{Cas.retentionClassEntry fieldName:baseFieldName, index:'{index}', options:_options /}
+#{/jsTemplate}
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+#{script 'editable.js'/}
+<script type="text/javascript">
+$(document).ready(function() {
+    var updateName = function(node, index) {
+        var name = $(node).attr('name');
+        name = name.replace(/\[.*\]/, "["+index+"]");
+        $(node).attr('name', name);
+    }
+    
+    var updateRowCount = function(formGroup) {
+        var rowCount = $('.controls .row', formGroup).length;
+        $('input[name="${baseFieldName}Count"]').val(rowCount);
+    }
+    
+    var updateRowIndices = function(formGroup) {
+        $('.controls .row', formGroup).each(function(index, data) {
+            $('[name^="${baseFieldName}"]', data).each(function() {
+                updateName(this, index);
+            });
+        });
+        updateRowCount(formGroup);
+    }
+    
+    $('#addEntry').on('click', function() {
+        var formGroup = $(this).parents('.form-group');
+        var rowCount = $('.controls .row', formGroup).length;
+        var row = $(templates.row.apply({'index': new String(rowCount)}));
+        $(this).parents('.footer').before(row);
+        row.find('input').first().focus();
+        updateRowCount(formGroup);
+    });
+    
+    $(document).on('click', 'button[data-remove="entry"]', function() {
+        var formGroup = $(this).parents('.form-group');
+        $(this).parents('.row').remove();
+        updateRowIndices(formGroup);
+    });
+});
+</script>
+#{/set}

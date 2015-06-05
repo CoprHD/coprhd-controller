@@ -1,0 +1,49 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(apache_cassandra),
+            library(commons_io),
+            library(jna),
+            library(javassist),
+            project(":jmx"),
+            project(":models"),
+            project(":serviceutils"),
+            project(":coordinatorsvc")
+    testCompile project(":errorhandling")
+    testCompile project(":com.emc.sa.model")
+}
+
+test {
+    maxHeapSize = '512m'
+    exclude "com/emc/storageos/db/client/model/TimeConstraintTest.class"
+}
+
+// To change the type of schema lock, run with ./gradlew <project>:<task> -PschemaLock=VALUE
+// VALUE must be NONE, GEO or ALL, default is NONE.
+ext {
+    schemaLock = "ALL"
+}
+def schemaLockOption = project.ext.has('schemaLock')? project.ext.get('schemaLock') : "NONE"
+
+task checkSchema(type: JavaExec, dependsOn: compileTestJava) {
+    main = 'com.emc.storageos.db.common.DbSchemaChecker'
+    args = [
+        "-i",
+        "com.emc.sa.model",
+        "-l",
+        "${schemaLockOption}",
+        "-v",
+        "2.2",
+        "-b",
+        "file:${projectDir}/src/conf/db-custom-migration-callbacks-baseline.xml",
+		"-c",
+		"file:../dbsvc/src/conf/db-custom-migration-callbacks.xml",
+        "${projectDir}/src/conf/db-schemas-baseline.xml",
+        "com.emc.storageos.db.client.model"
+    ]
+    jvmArgs '-Dlog4j.configuration=dbchecker-log4j.properties'
+    maxHeapSize "512m"
+    classpath = sourceSets.test.runtimeClasspath
+}
+
+assemble.dependsOn checkSchema

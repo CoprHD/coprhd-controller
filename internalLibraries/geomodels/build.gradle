@@ -1,0 +1,10 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(commons_logging),
+            library(slf4j),
+            library(jersey),
+            library(joda_time),
+            library(google_gson),
+            project(":models")
+}

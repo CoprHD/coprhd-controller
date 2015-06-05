@@ -1,0 +1,42 @@
+Commands required to setup the VNXFILE storage system as an ViPR Managed system
+===============================================================================
+viprcli vpool create  -n FILE_VPOOL -pl NFS -t file -mp 2 -pt thin -maxsnapshots 2
+
+viprcli varray create -n HOPKINTON
+
+viprcli network create -n IPZONE -va HOPKINTON -t IP
+
+viprcli network endpoint add -n IPZONE -e 10.247.66.68 -va HOPKINTON
+
+viprcli storagesystem create -n VNX_file_storage -t vnxfile -u nasadmin -dip 10.247.66.249 -dp 443 -sn APM00120400480 -smisuser admin -smisport 5988 -smisip 10.247.99.25
+
+viprcli storagesystem list -l
+
+viprcli storagepool list -t vnxfile -sn 480
+
+viprcli storageport list -t vnxfile -sn 480
+
+viprcli storageport update -type vnxfile -sn 480 -network IPZONE -va HOPKINTON -tt IP
+
+
+Commands required to setup the VNXBLOCK (FC) storage system as an ViPR Managed system
+=====================================================================================
+viprcli vpool create -n BLOCK_VPOOL -t block -pl FC -pt Thin -mp 2 -maxsnapshots 2
+
+viprcli varray create -n BANGALORE
+
+viprcli network create -n FCZONE -t FC -va BANGALORE
+
+viprcli network endpoint add -n FCZONE -e 20:00:00:E0:8B:80:48:49 -va BANGALORE
+
+viprcli network endpoint add -n FCZONE -e 21:00:00:E0:8B:80:48:49  -va BANGALORE
+
+viprcli storagesystem create -n vnx-block-dev -t vnxblock -smisip 10.247.99.24 -sp 5988 -su admin
+
+viprcli storagesystem list -l
+
+viprcli storagepool list  -t vnxblock -sn 922 -l
+
+viprcli storageport list  -t vnxblock -sn 922 -l
+
+viprcli storageport update  -t vnxblock -sn 922 -nw FCZONE -va BANGALORE -tt FC

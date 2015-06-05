@@ -1,0 +1,21 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    ipreconfig {
+        mainClass = 'com.emc.storageos.ipreconfig.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+    }
+}
+
+dependencies {
+    compile library(commons_io),
+            library(commons_codec),
+            project(":models"),
+            project(":serviceutils"),
+            project(":syssvc")
+
+}

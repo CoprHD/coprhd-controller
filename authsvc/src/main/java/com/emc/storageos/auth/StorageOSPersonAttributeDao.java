@@ -1,0 +1,63 @@
+/**
+* Copyright 2015 EMC Corporation
+* All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
+package com.emc.storageos.auth;
+
+import java.net.URI;
+import java.util.Map;
+
+import org.apache.commons.httpclient.Credentials;
+
+import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
+
+/**
+ *  Base class for user attribute repositories
+ */
+public interface StorageOSPersonAttributeDao {
+
+    /**
+     * Check if a group is valid in the current configuration
+     * @param groupId - group ID to check
+     * @return true if the group is valid in this authentication config
+     */
+    public boolean isGroupValid(final String groupId,
+            ValidationFailureReason[] failureReason);
+
+    /**
+     * Check if a user is valid within the specified tenant
+     * @param userId ID of the user to check
+     * @param tenantId ID of the user's tenant
+     * @return true if the user ID is valid within the specified tenant
+     */
+    public boolean isUserValid(final String userId, final String tenantId,
+            final String altTenantId, ValidationFailureReason[] failureReason);
+
+    /**
+     * Retrieve the person's attributes from the attribute repository
+     * @param credentials to lookup in the attribute repository
+     * @param failureReason reason why the retrieval failed
+     * @return The person's attributes
+     */
+    public abstract StorageOSUserDAO getStorageOSUser(final Credentials credentials,
+            ValidationFailureReason[] failureReason);
+
+    /**
+     * Get a map of tenancies a user maps to and the applied user mapping
+     * @param username name of the user
+     * @return A map with tenant ID as the key and the applied mapping as the value
+     */
+    public Map<URI, UserMapping> getUserTenants(String username);
+}

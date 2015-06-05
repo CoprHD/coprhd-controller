@@ -1,0 +1,529 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+###########################################################
+# Assets
+###########################################################
+
+GET     /assets/dynamic/{version}/{<.*>template}    Assets.dynamicAsset(format:'js')
+GET     /assets/static/{version}/{<.*>file}         Assets.staticAsset(path:'/public')
+
+###########################################################
+# Admin Module Routes
+###########################################################
+
+GET     /dashboard                                      AdminDashboard.dashboard
+
+GET     /scheduledorders/edit/{id}              catalog.ScheduledOrders.edit
+
+GET     /hosts/edit/{id}       					compute.Hosts.edit
+*       /hosts/{action}        					compute.Hosts.{action}
+
+GET     /vdcs/edit/{id}       					infra.VirtualDataCenters.edit
+*       /vdcs/{action}        					infra.VirtualDataCenters.{action}
+
+GET     /keystore/updateCertificate       			auth.Keystores.updateCertificate
+*       /keystore/{action}        					auth.Keystores.{action}
+
+GET     /hosts/initiators/edit/{hostId}             compute.HostInitiators.list
+*       /hosts/initiators/edit/{hostId}/{action}    compute.HostInitiators.{action}
+
+GET     /hostClusters/edit/{id}       			compute.HostClusters.edit
+GET     /hostClusters/editHosts/{id}   			compute.HostClusters.editHosts
+*       /hostClusters/{action}        			compute.HostClusters.{action}
+
+GET      /vCenters/edit/{id}     				compute.VCenters.edit
+*        /vCenters/{action}      				compute.VCenters.{action}
+
+GET     /customConfigs/{action}                 arrays.CustomConfigs.{action}
+POST    /customConfigs/{action}                 arrays.CustomConfigs.{action}
+
+GET     /tenants/edit/{id}                      tenant.Tenants.edit
+*       /tenants/roleAssignments/{id}           tenant.Tenants.roleAssignments
+*       /tenants/roles/edit/{id}                tenant.Tenants.editRole
+*       /tenants/roles/{id}                     tenant.Tenants.listRoles
+*       /tenants/{action}                       tenant.Tenants.{action}
+
+
+GET     /vdcroleassignments/edit/{id}           auth.VDCRoleAssignments.edit
+*       /vdcroleassignments/{action}            auth.VDCRoleAssignments.{action}
+
+GET     /auditLog                          infra.AuditLog.list
+GET     /auditLog/logsJson                 infra.AuditLog.logsJson
+*       /auditLog/{action}                 infra.AuditLog.{action}
+
+GET   /system/licensing                          infra.Licensing.index
+GET   /system/download                           SystemHealth.download
+GET   /system/health                             SystemHealth.systemHealth
+GET   /system/nodeRecovery                       SystemHealth.nodeRecovery
+GET   /system/logs                               SystemHealth.logs
+GET   /system/logsJson                           SystemHealth.logsJson
+GET   /system/proxy/{uri}                        SystemHealth.proxyJson
+GET   /system/serviceRestart                     SystemHealth.serviceRestart
+GET   /system/health/{nodeId}/services           SystemHealth.services
+GET   /system/health/{nodeId}                    SystemHealth.details
+
+GET   /config                                    infra.ConfigProperties.properties
+POST  /config                                    infra.ConfigProperties.saveProperties
+POST  /config/validateMail                       infra.ConfigProperties.validateMailSettings
+GET   /config/passwords                          infra.ConfigProperties.passwords
+POST  /config/passwords                          infra.ConfigProperties.changePassword
+
+GET   /cluster/ipInfo                            infra.ClusterInfo.clusterIpInfo
+POST  /cluster/ipReconfig                        infra.ClusterInfo.ipReconfig
+GET   /cluster/ipReconfigStatus                  infra.ClusterInfo.ipReconfigStatusJson
+
+GET   /tasks/all								 Tasks.listAll
+GET   /tasks/activeCount                         Tasks.getActiveCount
+GET   /tasks/recentTasks                         Tasks.getRecentTasks
+GET   /tasks/updatedTasks                        Tasks.getUpdatedTasks
+GET   /tasks/detailsJson                         Tasks.detailsJson
+GET   /tasks/countSummary                        Tasks.getCountSummary
+
+## Infrastructure UI
+
+GET     /storagesystems/edit/{id}                arrays.StorageSystems.edit
+*       /storagesystems/pools/{id}/edit/{poolId} arrays.StorageSystems.editPool
+*       /storagesystems/pools/{id}               arrays.StorageSystems.pools
+*       /storagesystems/ports/{id}               arrays.StorageSystems.ports
+*       /storagesystems/ports/{id}/edit/{portId} arrays.StorageSystems.editPort
+*       /storagesystems/{action}                 arrays.StorageSystems.{action}
+
+GET     /storagearrays/edit/{id}                arrays.StorageSystems.edit
+*       /storagearrays/pools/{id}/edit/{poolId} arrays.StorageSystems.editPool
+*       /storagearrays/pools/{id}               arrays.StorageSystems.pools
+*       /storagearrays/ports/{id}               arrays.StorageSystems.ports
+*       /storagearrays/{action}                 arrays.StorageSystems.{action}
+
+GET     /dataprotectionsystems/edit/{id}        arrays.DataProtectionSystems.edit
+*       /dataprotectionsystems/{action}         arrays.DataProtectionSystems.{action}
+
+GET     /ldap/edit/{id}                         auth.LDAPsources.edit
+*       /ldap/{action}                          auth.LDAPsources.{action}
+
+GET     /usergroup/edit/{id}                    auth.UserGroup.edit
+*       /usergroup/{action}                     auth.UserGroup.{action}
+
+GET     /sanswitches/edit/{id}                  arrays.SanSwitches.edit
+*       /sanswitches/{action}      				arrays.SanSwitches.{action}
+
+GET     /storageproviders/edit/{id}             arrays.StorageProviders.edit
+*       /storageproviders/{action}      		arrays.StorageProviders.{action}
+
+GET     /networks/edit/{id}                     arrays.Networks.edit
+*     	/networks/create                        arrays.Networks.create
+*       /networks/{action}                      arrays.Networks.{action}
+
+GET     /blockvirtualpools/edit/{id}            arrays.BlockVirtualPools.edit
+*       /blockvirtualpools/{action}             arrays.BlockVirtualPools.{action}
+
+GET     /filevirtualpools/edit/{id}             arrays.FileVirtualPools.edit
+*       /filevirtualpools/{action}              arrays.FileVirtualPools.{action}
+
+GET     /virtualarrays/edit/{id}                VirtualArrays.edit
+*       /virtualarrays/networks/{id}            VirtualArrays.networks
+*       /virtualarrays/networksJson/{id}        VirtualArrays.networksJson
+*       /virtualarrays/storagePorts/{id}        VirtualArrays.storagePorts
+*       /virtualarrays/storagePortsJson/{id}    VirtualArrays.storagePortsJson
+*       /virtualarrays/storagePools/{id}        VirtualArrays.storagePools
+*       /virtualarrays/storagePoolsJson/{id}    VirtualArrays.storagePoolsJson
+*       /virtualarrays/{action}                 VirtualArrays.{action}
+
+GET     /upgrade                                infra.Upgrade.index
+GET     /upgrade/downloadImage                  infra.Upgrade.downloadImage
+GET     /upgrade/removeImage                    infra.Upgrade.removeImage
+GET     /upgrade/installVersion                 infra.Upgrade.installVersion
+GET     /upgrade/statusChanged                  infra.Upgrade.statusChanged
+GET     /upgrade/cancelDownload                 infra.Upgrade.cancelDownload
+GET     /upgrade/downloadProgress               infra.Upgrade.downloadProgress
+
+POST    /selectTenant       				    tenant.TenantSelector.selectTenant
+GET     /selectTenant       				    tenant.TenantSelector.selectTenant
+
+*       /Catalog/edit                           catalog.EditCatalog.edit
+GET     /Catalog/category/create                catalog.EditCatalog.createCategory
+GET     /Catalog/category/edit                  catalog.EditCatalog.editCategory
+POST    /Catalog/category/save                  catalog.EditCatalog.saveCategory
+POST    /Catalog/category/delete                catalog.EditCatalog.deleteCategory
+
+GET     /Catalog/service/create                 catalog.EditCatalog.createService
+GET     /Catalog/service/edit                   catalog.EditCatalog.editService
+POST    /Catalog/service/save                   catalog.EditCatalog.saveService
+POST    /Catalog/service/delete                 catalog.EditCatalog.deleteService
+
+
+*       /certificates/{action}        	        auth.Certificates.{action}
+
+## Execution Windows API
+##begin
+## List all execution windows. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief List Execution Windows
+## @prereq none
+##end
+GET 	/admin/api/executionwindows.{<json|xml>format}						api.ExecutionWindowsApi.executionwindows
+
+## Execution Windows API
+##begin
+## List all execution windows. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief List Execution Windows
+## @prereq none
+##end
+GET		/admin/api/executionwindows											api.ExecutionWindowsApi.executionwindows
+
+## Execution Windows API
+##begin
+## Creates an Exection Window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Create an Exection Window
+## @prereq none
+##end
+POST	/admin/api/executionwindows.{<json|xml>format}						api.ExecutionWindowsApi.create
+
+## Execution Windows API
+##begin
+## Creates an Exection Window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Create an Exection Window
+## @prereq none
+##end
+POST	/admin/api/executionwindows											api.ExecutionWindowsApi.create
+
+## Execution Windows API
+##begin
+## Retrieves a specific execution window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Retrieve an execution window
+## @prereq none
+##end
+GET 	/admin/api/executionwindows/{executionWindowId}.{<json|xml>format}	api.ExecutionWindowsApi.executionwindow
+
+## Execution Windows API
+##begin
+## Retrieves a specific execution window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Retrieve an execution window
+## @prereq none
+##end
+GET 	/admin/api/executionwindows/{executionWindowId}						api.ExecutionWindowsApi.executionwindow
+
+## Execution Windows API
+##begin
+## Updates a specific execution window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Update an execution window
+## @prereq none
+##end
+PUT		/admin/api/executionwindows/{executionWindowId}.{<json|xml>format}	api.ExecutionWindowsApi.update
+
+## Execution Windows API
+##begin
+## Updates a specific execution window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Update an execution window
+## @prereq none
+##end
+PUT		/admin/api/executionwindows/{executionWindowId}						api.ExecutionWindowsApi.update
+
+## Execution Windows API
+##begin
+## Deletes a specific execution window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Delete an execution window
+## @prereq none
+##end
+DELETE	/admin/api/executionwindows/{executionWindowId}.{<json|xml>format}	api.ExecutionWindowsApi.delete
+
+## Execution Windows API
+##begin
+## Deletes a specific execution window. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Delete an execution window
+## @prereq none
+##end
+DELETE	/admin/api/executionwindows/{executionWindowId}						api.ExecutionWindowsApi.delete
+
+## Setup API
+##begin
+## Skips the initial setup process. This requires that all of the properties for this page are already set through
+## the system APIs. You must have the TENANT_ADMIN or SYSTEM_ADMIN role.
+## @brief Skips the initial setup process
+## @prereq none
+##end
+PUT     /api/setup/skip                                     api.SetupApi.skip
+
+## Support Request
+GET     /supportRequest                          infra.SupportRequest.createSupportRequest
+POST    /supportRequest                          infra.SupportRequest.submitSupportRequest
+
+# Scale IO
+GET     /scaleio/dashboard                       arrays.ScaleIO.dashboard
+
+
+###########################################################
+# User Module Routes
+###########################################################
+
+*     /                                               Dashboard.index
+*     /Catalog                                        catalog.ServiceCatalog.view
+
+GET   /services/forms/{serviceId}                     catalog.Services.showForm
+
+POST  /orders/submitOrder                             catalog.Orders.submitOrder
+POST  /orders/{orderId}/resubmit                      catalog.Orders.resubmitOrder
+GET   /orders/{orderId}/receipt                       catalog.Orders.receipt
+GET   /orders/{orderId}/receiptContent                catalog.Orders.receiptContent
+
+*       /scheduledorders/{action}               catalog.ScheduledOrders.{action}
+
+GET     /projects/edit/{id}                 tenant.Projects.edit
+*       /projects/{action}                  tenant.Projects.{action}
+
+GET     /consistencygroups/edit/{id}       resources.ConsistencyGroups.edit
+*       /consistencygroups/{action}        resources.ConsistencyGroups.{action}
+
+GET     /executionwindows/edit/{id}                 catalog.ExecutionWindows.edit
+*       /executionwindows/{action}                  catalog.ExecutionWindows.{action}
+
+
+# Orders API
+
+##begin
+## Returns a list of IDs for orders which you own
+## @brief List orders
+## @prereq none
+##end
+GET   /api/orders                                            api.OrdersApi.orders
+
+##begin
+## Returns a list of IDs for all orders in the current tenant. You must have the TENANT_ADMIN role.
+## @param startTime Optional param to indicate the time orders must be after. Time format can be yyyy-MM-dd_HH:mm:ss or in Milliseconds.
+## @param endTime Optional param to indicate the time orders must be before. Time format can be yyyy-MM-dd_HH:mm:ss or in Milliseconds.
+## @brief List orders
+## @prereq none
+##end
+GET   /api/orders/all                                        api.OrdersApi.allOrders
+
+##begin
+## Retrieves a bulk list of order details. You must be the owner of the order or have the TENANT_ADMIN or TENANT_APPROVAL role.
+## @param Bulk ids of orders to query
+## @brief List orders
+## @prereq none
+##end
+POST   /api/orders/bulk                                        api.OrdersApi.bulkOrders
+
+##begin
+## Returns a list of IDs for all orders in the current tenant. You must have the TENANT_ADMIN role.
+## @param startTime Optional param to indicate the time orders must be after. Time format can be yyyy-MM-dd_HH:mm:ss or in Milliseconds.
+## @param endTime Optional param to indicate the time orders must be before. Time format can be yyyy-MM-dd_HH:mm:ss or in Milliseconds.
+## @brief BulkIdParam with order IDs suitable for passing to the POST /api/orders/bulk call
+## @prereq none
+##end
+GET    /api/orders/bulk                                        api.OrdersApi.bulkGetOrders
+
+##begin
+## Shows the details of a specific order. You must be the owner of the order or have the TENANT_ADMIN or TENANT_APPROVAL role.
+## @brief Show order
+## @prereq none
+##end
+GET   /api/orders/{orderId}                                  api.OrdersApi.order
+
+##begin
+## Update tags on a specific order. You must be the owner of the order or have the TENNANT_ADMIN or TENNANT_APPROVAL role.
+## @brief Update Order Tags
+## @prereq none
+##end
+PUT   /api/orders/{orderId}/tags                            api.OrdersApi.updateTags
+
+##begin
+## Shows tags on a specific order. You must be the owner of the order or have the TENNANT_ADMIN or TENNANT_APPROVAL role.
+## @brief Shows Order Tags
+## @prereq none
+##end
+GET   /api/orders/{orderId}/tags                            api.OrdersApi.retrieveTags
+
+##begin
+## Shows execution information for an order, including all log information.
+## @brief Show execution information for an order
+## @prereq none
+##end
+GET   /api/orders/{orderId}/execution                        api.OrdersApi.orderExecution
+
+# Catalog API
+
+##begin
+## Shows the contents of a single catalog service.
+## @brief Show service contents
+## @prereq none
+##end
+GET   /api/services/{serviceId}                              api.CatalogApi.service
+
+##begin
+## Retrieves the service descriptor for the catalog service. A JSON file is returned that contains the information required to create a form for the service.
+## @brief Retrieve service descriptor
+## @param response The service descriptor as a JSON file
+## @prereq none
+##end
+GET   /api/services/{serviceId}/descriptor                   api.CatalogApi.serviceDescriptor
+
+##begin
+## Executes the service with the given service ID. The service parameters in the payload must be form encoded using the content type: 'application/x-www-form-urlencoded'.
+## <p><a href= "Retrieve_service_descriptor_api_services_{serviceId}.html">Retrieve service descriptor</a> provides information on retrieving the parameters of the service required for the payload.</p>
+## @brief Execute service
+## @prereq none
+##end
+POST  /api/services/{serviceId}                              api.CatalogApi.invoke
+
+##begin
+## Shows the contents of a single catalog category. A category may contain other categories or services, such as a directory.
+## @brief Show category contents
+## @prereq none
+##end
+GET   /api/categories/{categoryId}                           api.CatalogApi.category
+
+##begin
+## Shows the details of the service that matches the specified path. Each path parameter, for example {sp1}, contains the name of a catalog or service.
+## The response depends on whether the path specifies a catalog or a service.
+## @brief Show service
+## @param sp1 Name of a catalog or service
+## @param sp2 Name of a catalog or service
+## @param sp3 Name of a catalog or service
+## @param sp4 Name of a catalog or service
+## @param sp5 Name of a catalog or service
+## @prereq none
+##end
+GET   /api/catalog/{sp1}/{sp2}/{sp3}/{sp4}/{sp5}             api.CatalogApi.browseCatalog
+GET   /api/catalog/{sp1}/{sp2}/{sp3}/{sp4}                   api.CatalogApi.browseCatalog
+GET   /api/catalog/{sp1}/{sp2}/{sp3}                         api.CatalogApi.browseCatalog
+GET   /api/catalog/{sp1}/{sp2}                               api.CatalogApi.browseCatalog
+GET   /api/catalog/{sp1}                                     api.CatalogApi.browseCatalog
+GET   /api/catalog                                           api.CatalogApi.browseCatalog
+
+##begin
+## Executes the service that matches the specified path. Each path parameter, for example {sp1}, contains the name of a catalog or service.
+## There must be at least one path parameter, for example {sp1}. But the specified path can use up to five path parameters, for example {sp1} through {sp5}.
+## <p>The service parameters in the payload must be form encoded using the content type: 'application/x-www-form-urlencoded'.</p> 
+## <p><a href= "Retrieve_service_descriptor_api_services_{serviceId}.html">Retrieve service descriptor</a> provides information on retrieving the parameters of the service required for the payload.</p>
+## @brief Execute the service matching the specified path
+## @param sp1 required Name of a catalog or service
+## @param sp2 Name of a catalog or service
+## @param sp3 Name of a catalog or service
+## @param sp4 Name of a catalog or service
+## @param sp5 Name of a catalog or service
+## @prereq none
+##end
+POST  /api/catalog/{sp1}/{sp2}/{sp3}/{sp4}/{sp5}             api.CatalogApi.invokeByPath
+POST  /api/catalog/{sp1}/{sp2}/{sp3}/{sp4}                   api.CatalogApi.invokeByPath
+POST  /api/catalog/{sp1}/{sp2}/{sp3}                         api.CatalogApi.invokeByPath
+POST  /api/catalog/{sp1}/{sp2}                               api.CatalogApi.invokeByPath
+POST  /api/catalog/{sp1}                                     api.CatalogApi.invokeByPath
+
+# Approvals API
+
+##begin
+## Gets the list of approvals for the tenant of which the user is a member.
+## @brief List tenant approvals
+## @prereq none
+##end
+GET   /api/approvals                                         api.ApprovalsApi.approvals
+
+##begin
+## Gets approvals that are in the pending state.
+## @brief List approvals in the pending state
+## @prereq none
+##end
+GET   /api/approvals/pending                                 api.ApprovalsApi.pending
+
+##begin
+## Gets the information for the specified approval request
+## @brief Show approval request
+## @prereq none
+##end
+GET   /api/approvals/{approvalId}                            api.ApprovalsApi.approval
+
+##begin
+## Approves a pending approval request.
+## A custom message can be specified which will be shown to the user who placed the order.
+## @brief Approve pending approval request
+## @param message Custom message that can be shown to the user who placed the order.
+## @prereq none
+##end
+POST  /api/approvals/{approvalId}/approve                    api.ApprovalsApi.approve
+
+##begin
+## Rejects a pending approval request.
+## A custom message can be specified which will be shown to the user who placed the order.
+## @param message Custom message that can be shown to the user who placed the order.
+## @brief Reject pending approval request
+## @prereq none
+##end
+POST  /api/approvals/{approvalId}/reject                     api.ApprovalsApi.reject
+
+
+###########################################################
+# Common Module Routes
+###########################################################
+
+*      /preferences/{action}                   Preferences.{action}
+
+*      /security/cookies                       security.Security.noCookies
+*      /security/logout                        security.Security.logout
+*      /security/authenticated                 security.Security.authenticated
+
+GET    /approvals/edit/{id}                    catalog.Approvals.edit
+*      /approvals/{action}                     catalog.Approvals.{action}
+
+GET    /catalog/images                         catalog.CatalogImages.list
+GET    /catalog/images/view/{id}               catalog.CatalogImages.view
+GET    /catalog/images/edit/{id}               catalog.CatalogImages.edit
+GET    /catalog/images/create                  catalog.CatalogImages.create
+POST   /catalog/images/save                    catalog.CatalogImages.save
+POST   /catalog/images/saveJson                catalog.CatalogImages.saveJson
+
+GET    /maintenance                            Maintenance.maintenance
+GET    /maintenance/clusterState               Maintenance.clusterState
+
+GET    /secure/nocookies                       security.Security.noCookies
+
+## Asset Option API
+##begin
+## Retrieves options for AssetType form types.
+## @brief Retrieve Asset Options
+## @param asset The asset type to retrieve options for
+## @prereq none
+##end
+GET    /api/options/{asset}                    api.AssetOptionsApi.options
+
+##begin
+## Retrieves dependent assets required to get the options for the desired asset type.
+## @brief Retrieve Asset Dependencies
+## @param asset The asset type to retrieve dependencies for
+## @param service The serviceId of the service descriptor or ID of the catalog service. The service is used to compute dependencies for a particular service form.
+## @prereq none
+##end
+GET    /api/options/{asset}/dependencies       api.AssetOptionsApi.dependencies
+
+## Schema API
+##begin
+## Retrieves the XML Schema for all Objects in the Portal API
+## @brief Retrieve XML Schema
+## @prereq none
+##end
+GET    /api/schema.xsd                         api.SchemaApi.schema
+
+GET     /secretkeys/edit/{id}       			use.SecretKeys.edit
+*       /secretkeys/{action}        			use.SecretKeys.{action}
+
+
+###########################################################
+# Application Routes
+###########################################################
+
+# Ignore favicon orders
+GET     /favicon.ico                            404
+
+# Map static resources from the /app/public folder to the /public path
+GET     /public/                                staticDir:public
+
+GET     /admin/upgrade                          Common.redirectTo(action:'infra.Upgrade.index')
+# Backwards compatibility after upgrade
+GET     /admin/system/proxy/{uri}               SystemHealth.proxyJson
+*       /admin/{<.*>url}                        Common.redirectTo(action:'Dashboard.index')
+
+# Catch all
+*       /{controller}/{action}                  {controller}.{action}

@@ -1,0 +1,41 @@
+POST https://192.168.0.0:4443/vdc/smis-providers/storage-systems HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+ 
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<storage_smisprovider_create>
+   <ip_address>192.168.0.0</ip_address>
+   <password>#1Password</password>
+   <port_number>5988</port_number>
+   <providers>
+      <element>urn:storageos:SMISProvider:ccd84f56-9dc2-4db8-9145-71bd1a4ae744:</element>
+   </providers>
+   <secondary_ips>
+      <element>192.168.0.1</element>
+      <element>192.168.0.2</element>
+   </secondary_ips>
+   <serial_number>APM0123456789</serial_number>
+   <system_type>vnxblock</system_type>
+   <user_name>admin</user_name>
+</storage_smisprovider_create>
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+   <link href="/vdc/storage-systems/urn:storageos:StorageSystem:7bade78c-bcfb-4f75-bcca-397a589657e6:/tasks/436cc6fa-688d-42c2-b230-22b4e8915a9f"
+      rel="self"
+   </link>
+   <op_id>436cc6fa-688d-42c2-b230-22b4e8915a9f</op_id>
+   <resource>
+      <id>urn:storageos:StorageSystem:7bade78c-bcfb-4f75-bcca-397a589657e6:</id>
+      <link href="/vdc/storage-systems/urn:storageos:StorageSystem:7bade78c-bcfb-4f75-bcca-397a589657e6:"
+         rel="self"
+      </link>
+   </resource>
+   <start_time>1380199087999</start_time>
+   <state>pending</state>
+</task>
+

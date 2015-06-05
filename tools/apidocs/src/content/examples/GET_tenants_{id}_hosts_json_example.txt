@@ -1,0 +1,45 @@
+GET https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:4e39adf3-4b93-4c64-bfe8-b3e5f7ea4f74:/hosts.json HTTP/1.1 
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+   "host" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/compute/hosts/urn:storageos:Host:6edcc2c7-ef44-40bd-939d-64a83b0665b0:"
+         },
+         "name" : "host61C8lglap13512",
+         "id" : "urn:storageos:Host:6edcc2c7-ef44-40bd-939d-64a83b0665b0:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/compute/hosts/urn:storageos:Host:0ad4cab1-77b6-4919-bfb5-07e1fc3f3ac5:"
+         },
+         "name" : "host61C8lglap13522",
+         "id" : "urn:storageos:Host:0ad4cab1-77b6-4919-bfb5-07e1fc3f3ac5:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/compute/hosts/urn:storageos:Host:faee8ecb-1ce5-4006-a51e-43c84b7e4fa1:"
+         },
+         "name" : "host61C8lglap13521",
+         "id" : "urn:storageos:Host:faee8ecb-1ce5-4006-a51e-43c84b7e4fa1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/compute/hosts/urn:storageos:Host:ea470e56-f7d8-49dc-8164-720e2b28df0c:"
+         },
+         "name" : "host61C8lglap13511",
+         "id" : "urn:storageos:Host:ea470e56-f7d8-49dc-8164-720e2b28df0c:"
+      }
+   ]
+}

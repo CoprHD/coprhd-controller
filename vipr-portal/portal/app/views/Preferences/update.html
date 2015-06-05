@@ -1,0 +1,50 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set 'title'}&{'Preferences.title'}#{/set}
+#{set 'moreScripts'}
+  #{get 'moreScripts'/}
+  
+  <script type="text/javascript">
+  $(document).ready(function() {
+    var notifyByEmail = $('#user_notifyByEmail');
+    var email = $('#user_email');
+    var emailControlGroup = $('#user_emailControlGroup');
+    
+    var updateState = function() {
+      if (this.checked) {
+        email.prop('disabled', false);
+        email.removeClass('disabled');
+        emailControlGroup.addClass('required');
+      }
+      else {
+        email.prop('disabled', true);
+        email.addClass('disabled');
+        emailControlGroup.removeClass('required');
+      }
+    };
+    notifyByEmail.on('change', updateState);
+    notifyByEmail.each(updateState);
+  });
+  </script>
+#{/set}
+
+<div class="container">
+#{Form.header titleKey:'Preferences.title' /}
+
+#{alerts/}
+
+#{form @save(), class:'form form-horizontal', autocomplete:"off"}
+  #{field 'user.id'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/}
+  #{field 'user.notifyByEmail'}
+    #{Form.booleanCheckBoxControlGroup field:field /}
+  #{/field}
+  #{field 'user.email'}
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+  #{Form.saveCancel cancelHref: user.referer /}
+#{/form}
+</div>

@@ -1,0 +1,22 @@
+GET https://192.168.0.0:4443/vdc/storage-tiers/urn:storageos:StorageTier:646f5cb4-4f88-44f9-af0c-d0ffc5f0a8b0: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <storage_tier>
+       <creation_time>1379168983827</creation_time>
+       <id>urn:storageos:StorageTier:646f5cb4-4f88-44f9-af0c-d0ffc5f0a8b0:</id>
+       <inactive>false</inactive>
+       <link href="/vdc/storage-tiers/urn:storageos:StorageTier:646f5cb4-4f88-44f9-af0c-d0ffc5f0a8b0:" rel="self"/>
+       <name>DPSATAR5Tier</name>
+       <tags/>
+       <native_guid>SYMMETRIX+000195700363+TIER+DPSATAR5Tier</native_guid>
+       <auto_tier_policy>urn:storageos:AutoTieringPolicy:43566560-2bb5-400d-baff-dfac323eaebd:</auto_tier_policy>
+       <disk_drive_technology>SATA</disk_drive_technology>
+       <percentage>100</percentage>
+       <total_capacity>10160168352</total_capacity>
+  </storage_tier>

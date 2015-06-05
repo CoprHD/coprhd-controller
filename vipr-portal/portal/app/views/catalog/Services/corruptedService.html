@@ -1,0 +1,44 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.viewCatalog'] /}
+
+#{if service}
+  #{set 'title'}${service.title}#{/set}
+  
+  #{set 'subnav'}
+    #{ServiceCatalog.breadcrumb items:breadcrumbs, baseUrl:@catalog.ServiceCatalog.view(), visible:true /}
+  #{/set}
+  
+  <div class="container">
+    <div class="form-header">
+      <div class="image">
+        #{ServiceCatalog.serviceImage image:service?.image/}
+      </div>
+      <div class="description">
+        <h2>#{get 'title' /}</h2>
+        <p>${service.description}</p>
+      </div>
+      <div style="clear:both"></div>
+    </div>
+    
+    <div class="clear"></div>
+    
+    #{alerts/}
+    
+    <div class="alert alert-warning">
+      <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+      ${serviceWarning.raw()}
+    </div>
+    
+    <div class="form-actions">
+      <button type="submit" class="btn btn-large btn-primary" name="order" id="order" value="order" disabled>
+          #{icon 'shopping-cart'}<img class="glyphicon loading hide" src="@{'/public/img/btn-info-loading.gif'}">#{/icon} &{'service.order'}
+      </button>
+      <a href="${backUrl}" class="btn btn-default btn-large">#{icon 'trash'/} &{'button.cancel'}</a>
+    </div>
+      
+  </div>
+
+#{/if}

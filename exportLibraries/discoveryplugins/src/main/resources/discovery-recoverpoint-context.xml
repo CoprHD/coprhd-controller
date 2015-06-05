@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="rpStatsHelper"
+		class="com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper">
+	</bean>
+
+	<bean id="rp"
+		class="com.emc.storageos.volumecontroller.impl.plugins.RPCommunicationInterface">
+		<property name="executor" ref="rpexecutor" />
+		<property name="partitionManager" ref="partitionManager" />
+		<property name="xmlDumpGenerator" ref="rpXMLDumpgenerator" />
+		<property name="rpStatsHelper" ref="rpStatsHelper" />
+	</bean>
+
+	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+
+	<bean id="rpXMLDumpgenerator"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.recoverpoint.RPXMLStatsDumpGenerator" />
+
+	<bean id="rpexecutor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.recoverpoint.RPExecutor">
+	</bean>
+</beans>

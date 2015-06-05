@@ -1,0 +1,28 @@
+POST https://192.168.0.0:4443/object/networks HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<object_network_create>
+   <name>webstorage</name>
+   <network>urn:storageos:Network:a6980931-7e8f-40f4-bb20-defa715d3438:</network>
+</object_network_create>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<object_network>
+   <id>urn:storageos:ObjectTransportZone:a4922af9-df7a-3457-b3f0-428e2d6b3efb:</id>
+   <inactive>false</inactive>
+   <link href="/object/networks/urn:storageos:ObjectTransportZone:a4922af9-df7a-3457-b3f0-428e2d6b3efb:"
+      rel="self">
+   <name>webstorage</name>
+   <network>
+      <id>urn:storageos:Network:a6980931-7e8f-40f4-bb20-defa715d3438:</id>
+      <link href="/vdc/networks/urn:storageos:Network:a6980931-7e8f-40f4-bb20-defa715d3438:"
+         rel="self"/>
+   </network>
+   <tags/>
+</object_network>

@@ -1,0 +1,27 @@
+%{
+  id = play.libs.Codec.UUID()
+  titleKey = _titleKey
+  url = _url
+}%  
+  
+<div id="${id}" class='expand-panel'>
+  <div class="master-detail">
+    <div class="header">
+      <span class="collapsed">#{icon 'chevron-right'/}</span>
+      <span class="expanded">#{icon 'chevron-down'/}</span>
+      <span class="loading">#{loadingImage /}</span>      
+      &{titleKey}
+    </div>
+    <div class="content" style="display:none"></div>
+  </div>
+</div>
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+	$(document).ready(function(){
+		new ExpandPanel('#${id} .master-detail', '${url}').init();
+	});
+</script>
+#{/set}
+

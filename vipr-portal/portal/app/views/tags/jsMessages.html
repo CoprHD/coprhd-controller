@@ -1,0 +1,13 @@
+%{
+    keys = [] as Set
+    if (_arg instanceof java.util.Collection) {
+        keys.addAll(_arg)
+    }
+    else {
+        keys.add(_arg)
+    }
+    props = messages.find("", keys)
+}%
+#{list items:props?.entrySet(), as:'entry'}
+  #{jsMessage entry.key}${entry.value}#{/jsMessage}
+#{/list}

@@ -1,0 +1,61 @@
+%{
+  titleKey = 'certificateChanges.add';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.security', 'nav.certificates'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+#{form @addCertificates(), enctype:'multipart/form-data', method:'POST',  class:'form form-horizontal', autocomplete:"off"}
+    #{field 'certificateChanges.files'}
+      #{Form.multiFileUpload field:field, validator:@validCertificate()/}
+    #{/field}
+
+    #{Form.saveCancel}
+    #{/Form.saveCancel}
+#{/form}
+</div>
+
+#{set 'moreScripts'}
+    #{get 'moreScripts'/}
+  <script type="text/javascript">
+    $(function() {
+      var toggleSave = function(enabled) {
+        if (enabled && $(".container").find(".has-error :file").length) {
+          //don't enable if there are validation errors
+          toggleSave(false);
+        } else {
+          $(".container").find(":submit").attr("disabled", !enabled).end()
+                         .find(".rebootRequiredMessage").toggle(enabled);
+        }
+      };
+
+      $("form").trackChanges(":file", function(e) {
+        toggleSave(e.changes.length != 0);
+      });
+
+      $(".multi-file-upload-container").on("validationBegin validationComplete", function(e) {
+        toggleSave(e.type == "validationComplete");
+      });
+    });
+
+    $(document).on('fileselect', '.multi-file-upload', function(e) {
+      if (e.target.value) {
+        var group = $(e.target).closest(".form-group");
+        group.removeClass("has-error");
+        group.find('.help-inline').text('')
+      }
+    });
+  </script>
+#{/set}
+#{set 'moreStyles'}
+  #{get 'moreStyles' /}
+  <style type="text/css">
+    .button-bar .extraButtons {
+      margin-left: 5px;
+    }
+  </style>
+#{/set}

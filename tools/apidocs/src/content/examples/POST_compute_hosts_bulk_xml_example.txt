@@ -1,0 +1,70 @@
+POST https://192.168.0.0:4443/compute/hosts/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+      <id>urn:storageos:Host:10547585-d718-4b8a-9aba-d0c6d45480b9:</id>
+      <id>urn:storageos:Host:394d8f37-1490-44ea-963c-942ba4bc1196:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_hosts>
+    <host>
+        <creation_time>1379960562607</creation_time>
+        <id>urn:storageos:Host:394d8f37-1490-44ea-963c-942ba4bc1196:</id>
+        <inactive>false</inactive>
+        <link href="/compute/hosts/urn:storageos:Host:394d8f37-1490-44ea-963c-942ba4bc1196:" rel="self"/>
+        <name>Lglw7121</name>
+        <tags/>
+        <native_guid/>
+        <compatibility_status>COMPATIBLE</compatibility_status>
+        <job_discovery_status>COMPLETE</job_discovery_status>
+        <last_discovery_run_time>1380731095674</last_discovery_run_time>
+        <last_discovery_status_message/>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>0</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <tenant>
+            <id>urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:" rel="self"/>
+        </tenant>
+        <host_name>lglw7121.example.com</host_name>
+        <os_version>RHEL 5.9.0.2</os_version>
+        <port_number>22</port_number>
+        <type>Linux</type>
+        <use_ssl>true</use_ssl>
+        <user_name>root</user_name>
+    </host>
+    <host>
+        <creation_time>1380332407467</creation_time>
+        <id>urn:storageos:Host:10547585-d718-4b8a-9aba-d0c6d45480b9:</id>
+        <inactive>false</inactive>
+        <link href="/compute/hosts/urn:storageos:Host:10547585-d718-4b8a-9aba-d0c6d45480b9:" rel="self"/>
+        <name>zz-host-4-jon</name>
+        <tags/>
+        <native_guid/>
+        <compatibility_status>UNKNOWN</compatibility_status>
+        <job_discovery_status>COMPLETE</job_discovery_status>
+        <last_discovery_run_time>1380731093841</last_discovery_run_time>
+        <last_discovery_status_message/>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>0</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <tenant>
+            <id>urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:cac2f5b9-a45d-42e8-a961-370fe6ec2fb0:" rel="self"/>
+        </tenant>
+        <host_name>zz-host-4-jon</host_name>
+        <type>Other</type>
+        <use_ssl>false</use_ssl>
+        <user_name>none</user_name>
+    </host>
+</bulk_hosts>

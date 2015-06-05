@@ -1,0 +1,36 @@
+POST https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/full-copies HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<volume_full_copy_create>
+   <count>1</count>
+   <create_inactive>false</create_inactive>
+   <name>full_copy</name>
+</volume_full_copy_create>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8"?>
+<tasks>
+   <task>
+      <element>
+         <link>
+            <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/tasks/912cbd70-cba2-480e-999f-c87cd8bdc4c7</href>
+            <rel>self</rel>
+         </link>
+         <op_id>912cbd70-cba2-480e-999f-c87cd8bdc4c7</op_id>
+         <resource>
+            <id>urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</id>
+            <link>
+               <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</href>
+               <rel>self</rel>
+            </link>
+            <name>volume</name>
+         </resource>
+         <start_time>1380814660367</start_time>
+         <state>pending</state>
+      </element>
+   </task>
+</tasks>

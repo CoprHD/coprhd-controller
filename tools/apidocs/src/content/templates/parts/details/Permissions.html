@@ -1,0 +1,21 @@
+<%
+    // Holds the Permission Section of a Details Page
+    if (!apiMethod.isDataService) { %>
+    <hr/>
+    <h4>Required Roles</h4>
+    <% if (apiMethod.roles.isEmpty() && apiMethod.acls.isEmpty()) { %>
+        <p>This call has no restrictions.</p>
+    <% } else {
+        if (!apiMethod.roles.isEmpty()) { %>
+            <% if (apiMethod.roles.size() > 1) { %>
+            <p>Requires one of the following roles:</p>
+            <% } %>
+            <ul>
+                <% apiMethod.roles.each { role -> %>
+                <li>${role}</li>
+                <% } // End Each %>
+            </ul>
+<%      } // End Roles
+     } // End Else
+       %>
+<% } %>

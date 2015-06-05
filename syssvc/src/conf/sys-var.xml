@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                      http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+    <import resource="classpath:dbclient-conf.xml"/>
+
+    <context:property-placeholder location="classpath:syssvc-info.properties" />
+
+    <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+		<property name="name" value="${syssvc.name}" />
+		<property name="id" value="syssvc-standalone" />
+        <property name="nodeName" value="standalone" />
+		<property name="endpoint" value="http://localhost:9998/" />
+		<property name="version" value="${syssvc.version}" />
+	</bean>
+
+    <bean id="beacon" class="com.emc.storageos.systemservices.impl.SysSvcBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn" />
+        <property name="service" ref="serviceinfo" />
+    </bean>
+
+    <bean id="statusChecker" class="com.emc.storageos.db.common.DbServiceStatusChecker">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="clusterNodeCount" ref="nodeCount"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+    </bean>
+
+    <bean id="coordinatorclientext"
+          class="com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt">
+        <property name="coordinator" ref="coordinator" />
+        <property name="serviceBeacon" ref="beacon" />
+        <property name="service" ref="serviceinfo" />
+        <property name="nodeCount" value="1" />
+        <property name="statusChecker" ref="statusChecker"/>
+    </bean>
+ 
+    <bean id="networkIpAddress" class="java.lang.String">
+        <constructor-arg type="java.lang.String" value="localhost" />
+    </bean>
+</beans>

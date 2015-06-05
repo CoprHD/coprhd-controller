@@ -1,0 +1,35 @@
+GET https://192.168.0.0:4443/block/vpools/urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:/storage-pools HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <storage_pools>
+       <storage_pool>
+            <id>urn:storageos:StoragePool:6d6956c6-8bd8-4507-adc5-62c4d2ec8ce7:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:033e2902-7fa6-4a89-b38e-1825bd801434:/storage-pools/urn:storageos:StoragePool:6d6956c6-8bd8-4507-adc5-62c4d2ec8ce7:" rel="self"/>
+            <name>SYMMETRIX+000195600235+POOL+TP+6R6-A</name>
+       </storage_pool>
+       <storage_pool>
+            <id>urn:storageos:StoragePool:049c6907-ed6c-4d79-816b-bb5b7324a659:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c532fa10-1ff4-4527-b628-50372cf609af:/storage-pools/urn:storageos:StoragePool:049c6907-ed6c-4d79-816b-bb5b7324a659:" rel="self"/>
+            <name>SYMMETRIX+000198700420+POOL+TP+M3</name>
+       </storage_pool>
+       <storage_pool>
+            <id>urn:storageos:StoragePool:88442061-23be-409c-bb99-8f011c5fa30a:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:3d7afbb5-1c41-4cd4-a571-f61ba34f39e4:/storage-pools/urn:storageos:StoragePool:88442061-23be-409c-bb99-8f011c5fa30a:" rel="self"/>
+            <name>SYMMETRIX+000198700406+POOL+TP+ganga_test_2</name>
+       </storage_pool>
+       <storage_pool>
+            <id>urn:storageos:StoragePool:f2580b44-6727-438e-baaf-f5b45b70d7d4:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:3d7afbb5-1c41-4cd4-a571-f61ba34f39e4:/storage-pools/urn:storageos:StoragePool:f2580b44-6727-438e-baaf-f5b45b70d7d4:" rel="self"/>
+            <name>SYMMETRIX+000198700406+POOL+TP+selva-test2</name>
+       </storage_pool><storage_pool>
+            <id>urn:storageos:StoragePool:d372fc40-edae-45af-b832-8d966e16de19:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:ed5035a8-5f72-43e8-b970-847b4d76e17c:/storage-pools/urn:storageos:StoragePool:d372fc40-edae-45af-b832-8d966e16de19:" rel="self"/>
+            <name>CLARIION+APM00120400480+POOL+U+Pool 0</name>
+       </storage_pool>
+  </storage_pools>

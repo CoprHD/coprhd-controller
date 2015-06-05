@@ -1,0 +1,23 @@
+GET https://192.168.0.0:4443/projects/urn:storageos:Project:e85daa85-5c04-4dfd-ad70-7509b2e8a183: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<project>
+  <creation_time>1379625008582</creation_time>
+  <id>urn:storageos:Project:e85daa85-5c04-4dfd-ad70-7509b2e8a183:</id>
+  <inactive>false</inactive>
+  <link href="/projects/urn:storageos:Project:e85daa85-5c04-4dfd-ad70-7509b2e8a183:" rel="self"/>
+  <name>sanity</name>
+  <tags/>
+  <owner>super_sanity@sanity.local</owner>
+  <tenant>
+    <id>urn:storageos:TenantOrg:4e39adf3-4b93-4c64-bfe8-b3e5f7ea4f74:</id>
+    <link href="/tenants/urn:storageos:TenantOrg:4e39adf3-4b93-4c64-bfe8-b3e5f7ea4f74:" rel="self"/>
+  </tenant>
+</project>

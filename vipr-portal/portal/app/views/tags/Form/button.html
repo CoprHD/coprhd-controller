@@ -1,0 +1,33 @@
+%{
+    buttonClass = 'btn btn-' + (_class ?: 'default')
+    if (_size) {
+        buttonClass += ' btn-' + _size
+    }
+    if (_dropdown) {
+        buttonClass += ' dropdown-toggle'
+    }
+    
+    if (_type == 'submit') {
+        action = "util.submitForm(this, \$(this).closest('form'))"
+    }
+    else if (_submit) {
+        action = "\$('#${_submit}').submit()"
+        if (!_data) {
+            _data = [:]
+        }
+        _data['form'] = _submit
+    }
+    else if (_href) {
+        action = "window.location = \"${_href}\"; util.onButtonSubmitted(this)";
+    }
+    else {
+        action = _action
+    }
+}%
+<button type="${_type ?: 'button'}" class="${buttonClass} ${_cssClass}"#{if _name} name="${_name}"#{/if}
+#{if _disabled} disabled="disabled"#{/if}#{if _id} id="${_id}"#{/if}
+ onclick="${action}; return false"#{if _dropdown} data-toggle="dropdown"#{/if}#{list items:_data, as:'data'} data-${data.key}="${data.value}"#{/list}>
+  #{icon _icon/}
+  #{if (_arg || _name)}&{_arg ?: _name}#{/if}
+  #{if _dropdown}<span class="caret"></span>#{/if}
+</button>

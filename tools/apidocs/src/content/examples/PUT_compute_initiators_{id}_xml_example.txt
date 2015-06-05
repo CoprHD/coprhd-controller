@@ -1,0 +1,31 @@
+PUT https://192.168.0.0:4443/compute/initiators/urn:storageos:Initiator:6f67a31e-db04-4cd1-bd06-15a2f0acebb9: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<initiator_update>
+     <protocol>iSCSI</protocol>
+     <initiator_port>iqn.2002-20.com.emc.lss.host3</initiator_port>
+</initiator_update>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<initiator>
+       <creation_time>1380656352646</creation_time>
+       <id>urn:storageos:Initiator:6f67a31e-db04-4cd1-bd06-15a2f0acebb9:</id>
+       <inactive>false</inactive>
+       <link
+              href="/compute/initiators/urn:storageos:Initiator:6f67a31e-db04-4cd1-bd06-15a2f0acebb9:"
+              rel="self" />
+       <tags />
+       <host>
+              <id>urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:</id>
+              <link
+                     href="/compute/hosts/urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:"
+                     rel="self" />
+       </host>
+       <protocol>iSCSI</protocol>
+       <hostname>halahost1.lss.emc.com</hostname>
+       <initiator_port>iqn.2002-20.com.emc.lss.host3</initiator_port>
+</initiator>

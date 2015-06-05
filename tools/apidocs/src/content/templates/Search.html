@@ -1,0 +1,86 @@
+<@include "StartHead.html">
+
+    <script>
+        var methodIndex = {
+<%
+        apiMethods.each { method ->
+%>"${method.indexText}": "${method.indexKey}",<%
+        }
+%>}
+        var resources = {
+<%
+        apiMethods.each { method ->
+           // Note : yes this is nasty, but removing the line feeds keeps the size of the index down quite a bit.
+           // (and be careful, there is a script start marker at the end of this line In order to remove the linefeed!
+           // THe Object actually looks like
+/*
+        "${method.apiService.javaClassName}${method.javaMethodName}": {
+            "r":"${method.httpMethod} ${method.path}",
+                    "t":"${method.brief.replaceAll("\"","").replaceAll("\r","").replaceAll("\n","").replaceAll("<","")}",
+                    "p":"${method.detailFileName}",
+                    "s":"${method.apiService.title}",
+                    "sp":"${method.apiService.overviewFileName}"
+                },
+*/
+%>"${method.indexKey}": {"r":"${method.httpMethod} ${method.path}","t":"${method.brief.replaceAll("\"","").replaceAll("\r","").replaceAll("\n","").replaceAll("<","")}","p":"${method.detailFileName}","s":"${method.apiService.title}","sp":"${method.apiService.overviewFileName}"},<%
+        }
+%>
+        }
+
+        \$(document).ready(function() {
+            \$("#searchBox").focus();
+            doSearch();
+        });
+
+        function doSearch() {
+            var searchText =   \$("#searchBox").val().toLowerCase();
+
+            if (searchText == "" || searchText=="/") {
+            \$("#resultTable tbody tr").remove();
+            } else {
+
+                var words = searchText.split(" ");
+                var matchingKeys = [];
+
+                    \$.each(methodIndex, function(text, key) {
+                    var matchCount = 0;
+                    for (word in words) {
+                        if (text.indexOf(words[word]) > -1) {
+                            matchCount++;
+                        }
+                    }
+
+                    if (matchCount == words.length) {
+                        matchingKeys.push(key);
+                    }
+                });
+
+                    \$("#resultTable tbody tr").remove();
+
+                for (key in matchingKeys) {
+                    var match = resources[matchingKeys[key]];
+                        \$("#resultTable").append("<tr><td><a href='"+match.p+"'>"+match.r+"</a></td><td>"+match.t+"</td><td><a href='"+match.sp+"'>"+match.s+"</a></td></tr>");
+                }
+            }
+        }
+    </script>
+<@include "EndHead.html">
+<@include "StartBody.html">
+
+<h3>API Reference Search</h3>
+<input id="searchBox" type="text"  class="searchBox" onkeyup="doSearch()"/>
+
+<table id="resultTable" class="table payload">
+    <thead>
+    <tr>
+        <td width="50%">Resource</td>
+        <td>Description</td>
+        <td>Service</td>
+    </tr>
+    </thead>
+    <tbody>
+
+    </tbody>
+</table>
+
+<@include "EndBody.html">

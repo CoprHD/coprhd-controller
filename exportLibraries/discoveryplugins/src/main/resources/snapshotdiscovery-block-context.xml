@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- List of supported Namespaces -->
+	<bean id="namespaces"
+		class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
+		<property name="nsList">
+			<map>
+				<entry key="discover" value-ref="snapshotDiscoverer" />
+			</map>
+		</property>
+	</bean>
+
+	<!-- List of operations for this discover namespace -->
+	<bean id="snapshotDiscoverer" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="_operations">
+			<list>
+				<ref bean="getComputerSystem" />
+				<ref bean="getReplicationService" />
+				<ref bean="getSynchronizationAspects" />
+				<ref bean="getSnapshotReplicationRelationshipInstances" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- SMI Call to get CIMObject Path for the System -->
+	<bean id="getComputerSystem" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_arguments">
+			<list>
+				<ref bean="reference-comp" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="_result" value="ComputerSystem" />
+		<property name="_method" value="enumerateInstanceNames" />
+		<property name="_processor" ref="cimpathprocessor" />
+		<property name="message"
+			value="Invoking EnumerateInstances of EMC_StorageSystem to find the right Array" />
+	</bean>
+
+	<!-- Processors -->
+	<bean id="cimpathprocessor"
+		class="com.emc.storageos.plugins.common.processor.CIMPathProcessor" />
+
+	<!-- SMI Call to get ReplicationService from Array -->
+	<bean id="getReplicationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_arguments">
+			<list>
+				<ref bean="reference-comp" />
+				<ref bean="null" />
+				<ref bean="resultClass-replicationService" />
+				<ref bean="null" />
+				<ref bean="null" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="_result" value="replicationService" />
+		<property name="_method" value="associatorNames" />
+		<property name="_processor" ref="cimpathprocessor" />
+		<property name="message"
+			value="Invoking associatorNames to get Array's Replication Service" />
+	</bean>
+
+	<bean id="reference-comp" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="ComputerSystem" />
+	</bean>
+
+	<bean id="resultClass-replicationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getStringValue" />
+		<property name="_value" value="CIM_ReplicationService" />
+	</bean>
+
+	<!-- SMI Call to get synchronization aspects -->
+	<bean id="getSynchronizationAspects" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_arguments">
+			<list>
+				<ref bean="reference-synchronizationAspect" />
+				<ref bean="bool-true" />
+				<ref bean="bool" />
+				<ref bean="synchronizationaspect-propList" />
+				<ref bean="null" />
+				<ref bean="null" />
+				<ref bean="timeout" />
+				<ref bean="bool" />
+				<ref bean="maxReplicaObjects" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="_result" value="" />
+		<property name="_method" value="enumerateInstances" />
+		<property name="_processor" ref="synchronizationAspectProcessor" />
+		<property name="message"
+			value="Call enumerateInstances to get Synchronization aspects" />
+	</bean>
+
+	<bean id="reference-synchronizationAspect" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="createCIMPath" />
+		<property name="_value" value="root/emc:EMC_SynchronizationAspectForSource" />
+	</bean>
+
+	<bean id="synchronizationaspect-propList" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getStringArrayValue" />
+		<property name="_value" value="ElementName,SourceElement,SyncType" />
+		<property name="_name" value="prvcList" />
+	</bean>
+
+	<bean id="maxReplicaObjects" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getIntValue32" />
+		<property name="_value" value="100" />
+		<property name="_name" value="maxObjects" />
+	</bean>
+
+	<bean id="synchronizationAspectProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.SynchronizationAspectProcessor" />
+
+	<!-- SMI call to get StorageSynchronized instances -->
+	<bean id="getSnapshotReplicationRelationshipInstances" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_arguments">
+			<list>
+				<ref bean="reference-replicationService" />
+				<ref bean="extrinsicMethodName-GetReplicationRelationshipInstances" />
+				<ref bean="cimArgArray-GetReplicationRelationshipInstances" />
+				<ref bean="cimoutputArray" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="_result" value="" />
+		<property name="_method" value="invokeMethod" />
+		<property name="_processor" ref="replicationRelationshipProcessor" />
+		<property name="message" value="Invoking GetReplicationRelationshipInstances" />
+	</bean>
+
+	<bean id="reference-replicationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="replicationService" />
+	</bean>
+
+	<bean id="extrinsicMethodName-GetReplicationRelationshipInstances"
+		class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getStringValue" />
+		<property name="_value" value="GetReplicationRelationshipInstances" />
+	</bean>
+
+	<bean id="cimArgArray-GetReplicationRelationshipInstances" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_value">
+			<list>
+				<ref bean="locality" />
+				<ref bean="syncType" />
+				<ref bean="type" />
+			</list>
+		</property>
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getCIMArgArray" />
+	</bean>
+
+	<bean id="locality" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getIntValue16_CIMWrapper" />
+		<property name="_value" value="2" /> <!-- Local only -->
+		<property name="_name" value="Locality" />
+	</bean>
+
+	<bean id="syncType" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getIntValue16_CIMWrapper" />
+		<property name="_value" value="7" /> <!-- Snapshot -->
+		<property name="_name" value="SyncType" />
+	</bean>
+
+	<bean id="type" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getIntValue16_CIMWrapper" />
+		<property name="_value" value="2" /> <!-- StorageSynchronized -->
+		<property name="_name" value="Type" />
+	</bean>
+
+	<bean id="cimoutputArray" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getCIMArrayValue" />
+		<property name="_value" value="" />
+	</bean>
+
+	<bean id="replicationRelationshipProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.SnapshotReplicationRelationshipProcessor">
+		<property name="partitionManager" ref="partitionManager" />
+	</bean>
+
+	<bean id="null" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getStringValue" />
+		<property name="_value">
+			<null />
+		</property>
+	</bean>
+
+	<bean id="bool" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getBoolValue" />
+		<property name="_value" value="false" />
+		<property name="_name" value="qualifiers" />
+	</bean>
+
+	<bean id="bool-true" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getBoolValue" />
+		<property name="_value" value="true" />
+		<property name="_name" value="qualifiers" />
+	</bean>
+
+	<bean id="timeout" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getIntValue32" />
+		<property name="_value" value="1200" />
+		<property name="_name" value="timeoutinSeconds" />
+	</bean>
+
+	<!-- ArgsCreator Instance -->
+	<bean id="argscreator"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.SmisDiscoveryArgsCreator">
+		<constructor-arg ref="smiutility" />
+	</bean>
+
+	<!-- SMIUtility -->
+	<bean id="smiutility" class="com.emc.storageos.plugins.common.Util" />
+
+	<!-- cimClient -->
+	<bean id="cimClient" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="cimClient" />
+	</bean>
+
+	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+
+	<!-- Common for VNXBlock & VMAX -->
+	<bean id="block"
+		class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
+		<property name="_executor" ref="executor" />
+		<property name="_namespaces" ref="namespaces" />
+	</bean>
+
+	<bean id="commandgenerator"
+		class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">
+		<property name="util" ref="smiutility" />
+	</bean>
+
+	<bean id="executor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor">
+		<property name="_util" ref="smiutility" />
+		<property name="_generator" ref="commandgenerator" />
+	</bean>
+</beans>

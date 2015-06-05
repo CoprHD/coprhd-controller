@@ -1,0 +1,12 @@
+%{
+  export = _resource
+}%
+#{AffectedResources.resource img: 'fileShare.png', classes: 'nfsExport', typeKey: 'resources.nfsExport'}
+#{AffectedResources.singleColumn}
+  <dt>&{'resources.nfsExport.type.label'}</dt><dd>&{'resources.nfsExport.type'}</dd>
+  <dt>&{'resources.nfsExport.mountPoint'}</dt><dd>${export.mountPoint}</dd>
+  <dt>&{'resources.nfsExport.rootUser'}</dt><dd>${export.rootUserMapping}</dd>
+  <dt>&{'resources.nfsExport.permissions'}</dt><dd>${export.permissions}</dd>
+  #{displayList label:'Hosts:', list:export.endpoints /}
+#{/AffectedResources.singleColumn}
+#{/AffectedResources.resource}

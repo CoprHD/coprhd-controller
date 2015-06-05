@@ -1,0 +1,199 @@
+%{
+  titleKey = 'vdcRoleAssignments.' + (roleAssignment?.id ? 'edit' : 'create') + '.title';
+  image = '/public/img/icon_roles.png';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.security', 'nav.vdcRoles'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<style type="text/css">
+.table tbody tr {
+    cursor: pointer;
+}
+.table .checkbox .roleCheckbox {
+  float:none;
+}
+</style>
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'vdcRoleAssignments.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey, image: image/}
+
+#{alerts/}
+
+#{form @save(), id:'roleAssignmentForm', class:'form form-horizontal', autocomplete:"off"}
+    #{field 'roleAssignment.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}"/>
+    #{/field}
+    #{if roleAssignment?.id}
+        #{field 'roleAssignment.name'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+        #{field 'roleAssignment.type'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}          
+    #{/if}
+
+    #{field 'roleAssignment.type'}
+      %{
+        field.cssClass = "bla";
+        field.cssClassLabel = 'inline'
+      }%
+      #{Form.controlGroup field:field, noLabel:noLabel}
+        %{
+          field.disabled = roleAssignment?.id != null
+        }%
+        <div class="span6" style="margin-left:0px;">
+          #{Form.radio field:field, value: "GROUP", label: "Group"/}
+          #{Form.radio field:field, value: "USER", label: "User"/}
+        </div>
+      #{/Form.controlGroup}      
+    #{/field}
+
+    #{field 'roleAssignment.name'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.required = true
+        field.fieldKey = 'roleAssignment.name'
+        field.disabled = roleAssignment?.id != null
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+  #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+      <fieldset>
+        <legend>&{'roleAssignments.vdcRoles'}<small>&{'roleAssignments.vdcRoles.description'}</small></legend>
+    
+        <div class="row">
+          <div class="col-md-8 col-md-offset-2">  
+            <table id="systemRolesTable" class="table">
+              <thead>
+                <tr>
+                  <th style="text-align: center; width: 10%;">&{'roleAssignments.grant'}</th>
+                  <th style="width: 20%;">&{'roleAssignments.role'}</th>
+                  <th style="width: 70%;">&{'roleAssignments.description'}</th>
+                </tr>
+              </thead>
+              <tbody>
+              <tr>
+                <td style="text-align: center;">
+                  #{field 'roleAssignment.systemAdmin'}
+                    %{
+                      field.cssClass = "roleCheckbox"
+                      field.disabled = isRootUser
+                    }%
+                    #{Form.booleanCheckBox field:field /}
+                  #{/field}        
+                </td>
+                <td>&{'Role.SYSTEM_ADMIN'}</td>
+                <td>&{'Role.SYSTEM_ADMIN.description'}</td>
+              </tr>
+              <tr>
+                <td style="text-align: center;">
+                  #{field 'roleAssignment.securityAdmin'}
+                    %{
+                      field.cssClass = "roleCheckbox"
+                      field.disabled = isRootUser
+                    }%
+                    #{Form.booleanCheckBox field:field /}
+                  #{/field}        
+                </td>
+                <td>&{'Role.SECURITY_ADMIN'}</td>
+                <td>&{'Role.SECURITY_ADMIN.description'}</td>
+              </tr>
+              
+              <tr>
+                <td style="text-align: center;">
+                  #{field 'roleAssignment.systemMonitor'}
+                    %{
+                      field.cssClass = "roleCheckbox"
+                      field.disabled = isRootUser
+                    }%
+                    #{Form.booleanCheckBox field:field /}
+                  #{/field}        
+                </td>
+                <td>&{'Role.SYSTEM_MONITOR'}</td>
+                <td>&{'Role.SYSTEM_MONITOR.description'}</td>
+              </tr>
+              <tr>
+                <td style="text-align: center;">
+                  #{field 'roleAssignment.systemAuditor'}
+                    %{
+                      field.cssClass = "roleCheckbox"
+                      field.disabled = isRootUser
+                    }%
+                    #{Form.booleanCheckBox field:field /}
+                  #{/field}        
+                </td>
+                <td>&{'Role.SYSTEM_AUDITOR'}</td>
+                <td>&{'Role.SYSTEM_AUDITOR.description'}</td>
+              </tr>      
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </fieldset>
+  #{/deadbolt.restrict}
+  
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@list() /}
+#{/form}
+</div>
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+
+      $("#roleAssignmentForm").submit(function(){
+        
+        if ($('#roleAssignment_type').val() == "USER" && $('#roleAssignment_name').val() == "${currentUser?.identifier}" && $('#roleAssignment_securityAdmin').is(':checked') == false) {
+          return confirm(Messages.get("vdc.redirected"));
+        }
+        
+        return true;
+      });      
+      
+      $('input[name="roleAssignment.type"]').on('change', function() {
+        updateNameLabel();
+      });
+      updateNameLabel();
+      
+      
+      $(".table input[type=checkbox]:checked").each(function() {
+          $(this).closest("tr").addClass("success");
+      });         
+
+      $(".table input[type=checkbox]:disabled").each(function() {
+        $(this).closest("tr").css('cursor', 'not-allowed');
+      });               
+      
+      $(".table tbody tr").on("click", function() {
+        if ($(':checkbox', this).is(':disabled') == false) {
+          $(this).toggleClass('success');
+          if (event.target.type !== 'checkbox') {
+            $(':checkbox', this).prop('checked', function() {
+              return !this.checked;
+            });
+            $(':checkbox', this).trigger("change");
+          }        
+        }
+      });      
+      
+    });
+
+    function updateNameLabel() {
+      if ($('input[name="roleAssignment.type"]:checked').val() == "USER") {
+        $('label[for="roleAssignment_name"]').html("&{'RoleAssignmentType.USER'}:");
+        $('.help-block', '#roleAssignment_nameControlGroup').html("&{'RoleAssignmentType.USER.help'}");
+      }
+      else {
+        $('label[for="roleAssignment_name"]').html("&{'RoleAssignmentType.GROUP'}:");
+        $('.help-block', '#roleAssignment_nameControlGroup').html("&{'RoleAssignmentType.GROUP.help'}");
+      }      
+    }
+
+   </script>
+#{/set}

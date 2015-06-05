@@ -1,0 +1,15 @@
+GET https://192.168.0.10:4443/user/tenant.json?username=root
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "tenant": [
+    {
+      "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+    }
+  ]
+}

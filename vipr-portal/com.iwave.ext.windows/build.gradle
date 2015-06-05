@@ -1,0 +1,21 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+dependencies {
+    // We REQUIRE 4.2.2 and thus can't use the 4.1 already in ViPR platform
+    compile("org.apache.httpcomponents:httpclient:4.3.3") {
+                transitive = false
+            }
+    compile("org.apache.httpcomponents:httpcore:4.3.2") {
+        transitive = false
+    }
+
+    compile \
+        library(apache_cassandra), // Required for commons_lang
+        library(log4j), 
+        library(commons_io),
+        library(guava),
+        library(commons_codec),
+        library(commons_logging)
+    
+    compile project(":com.iwave.ext.command")
+}

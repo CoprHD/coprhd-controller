@@ -1,0 +1,37 @@
+<div id="virtualAssetsPanel">
+  <div class="panel panel-default">
+    <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.virtualAssets'}</h3></div>
+    #{if virtualStorageArrayCount != null}
+      <ul class="list-group">
+        #{if controllers.security.Security.isSystemAdminOrRestrictedSystemAdmin()}
+          <a class="list-group-item" href="@{VirtualArrays.list()}">&{'adminDashboard.virtualStorageArrays'} #{badgeNumber virtualStorageArrayCount/}</a>
+          #{license.ifController}
+            <a class="list-group-item" href="@{arrays.BlockVirtualPools.list()}">&{'adminDashboard.blockVirtualPools'} #{badgeNumber blockVirtualPoolCount/}</a>
+            <a class="list-group-item" href="@{arrays.FileVirtualPools.list()}">&{'adminDashboard.fileVirtualPools'} #{badgeNumber fileVirtualPoolCount/}</a>
+            <a class="list-group-item" href="@{compute.ComputeVirtualPools.list()}">&{'adminDashboard.computeVirtualPools'} #{badgeNumber computeVirtualPoolCount/}</a>
+           #{/license.ifController}
+        #{/if}
+        #{else}
+          <li class="list-group-item">&{'adminDashboard.virtualStorageArrays'} #{badgeNumber virtualStorageArrayCount/}</li>
+          #{license.ifController}
+            <li class="list-group-item">&{'adminDashboard.blockVirtualPools'} #{badgeNumber blockVirtualPoolCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.fileVirtualPools'} #{badgeNumber fileVirtualPoolCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.computeVirtualPools'} #{badgeNumber computeVirtualPoolCount/}</li>
+           #{/license.ifController}
+        #{/else}
+      </ul>
+    #{/if}
+    #{else}
+      <div class="panel-body">
+        <div class="loadingBox">
+           <img src="/public/img/loading-huge.gif" height="64" width="64">
+        </div>
+    </div>
+    #{/else}
+    #{if virtualStorageArrayCountLastUpdated}
+      <div class="panel-footer">
+        <small>&{'adminDashboard.lastUpdated'} <span data-format-relative-time="${virtualStorageArrayCountLastUpdated.getTime()}"></span></small>
+      </div>
+    #{/if}
+  </div>
+</div>

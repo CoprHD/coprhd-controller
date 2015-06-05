@@ -1,0 +1,41 @@
+GET https://192.168.0.0:4443/vdc/storage-ports/urn:storageos:StoragePort:06897e96-10ef-4aa3-a207-769ad63ffa2b:.json HTTP/1.1 
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "name": "CLARIION+APM00112900836+PORT+iqn.1992-04.com.emc:cx.apm00112900836.a5",
+  "id": "urn:storageos:StoragePort:06897e96-10ef-4aa3-a207-769ad63ffa2b:",
+  "link": {
+    "rel": "self",
+    "href": "/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:/storage-ports/urn:storageos:StoragePort:06897e96-10ef-4aa3-a207-769ad63ffa2b:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "creation_time": 1379168886761,
+  "native_guid": "CLARIION+APM00112900836+PORT+iqn.1992-04.com.emc:cx.apm00112900836.a5",
+  "port_name": "SP_A:5",
+  "ip_address": "192.168.0.0",
+  "tcp_port_number": 3260,
+  "port_network_id": "iqn.1992-04.com.emc:cx.apm00112900836.a5",
+  "port_endpoint_id": "iqn.1992-04.com.emc:cx.apm00112900836.a5,t,0x0001",
+  "transport_type": "IP",
+  "storage_system": {
+    "id": "urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:"
+    }
+  },
+  "port_speed_gbps": 1,
+  "port_type": "frontend",
+  "port_group": "SP_A",
+  "registration_status": "REGISTERED",
+  "operational_status": "OK"
+}

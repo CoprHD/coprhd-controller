@@ -1,0 +1,31 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile "commons-beanutils:commons-beanutils:1.8.3",
+            "commons-collections:commons-collections:3.2.1",
+            library(commons_io),
+            project(":dbclient"),
+            project(":coordinatorsvc"),
+            project(":syssvc"),
+            project(":apisvc"),
+            project(":models"),
+            project(":errorhandling"),
+            project(":security"),
+            project(":jmx"),
+            project(":serviceutils")
+    testCompile project(path:":dbsvc", configuration:'testRuntime')
+}
+
+task MigrationTests(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/sa/model/migration/InitialSetupMigrationTest.class"
+    testLogging {
+        lifecycle {
+            showStandardStreams = true
+        }
+    }
+} 
+
+test {
+    exclude "com/emc/sa/model/suite/**"
+    exclude "com/emc/sa/model/migration/**"
+}

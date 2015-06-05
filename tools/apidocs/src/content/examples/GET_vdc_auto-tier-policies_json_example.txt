@@ -1,0 +1,548 @@
+GET https://192.168.0.0:4443/vdc/auto-tier-policies.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+   "auto_tier_policy" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:13198271-38a7-4aa1-a65a-a0b16d3deab4:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 2",
+         "id" : "urn:storageos:AutoTieringPolicy:13198271-38a7-4aa1-a65a-a0b16d3deab4:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:874fd631-77a7-4931-bfd7-7335dd47b3a5:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 10",
+         "id" : "urn:storageos:AutoTieringPolicy:874fd631-77a7-4931-bfd7-7335dd47b3a5:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:24c9a084-93e8-4850-98fb-849138009e90:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 7",
+         "id" : "urn:storageos:AutoTieringPolicy:24c9a084-93e8-4850-98fb-849138009e90:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:b1e454c0-b7d8-4773-b4ec-728dd60fd82a:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 9",
+         "id" : "urn:storageos:AutoTieringPolicy:b1e454c0-b7d8-4773-b4ec-728dd60fd82a:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:589bf492-be2e-4c2c-a6e9-6940a0623528:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 0",
+         "id" : "urn:storageos:AutoTieringPolicy:589bf492-be2e-4c2c-a6e9-6940a0623528:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:ea043a89-4dbd-4ed5-85b5-a08c95bac194:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 13",
+         "id" : "urn:storageos:AutoTieringPolicy:ea043a89-4dbd-4ed5-85b5-a08c95bac194:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:7f2e2bc5-0f26-4e22-8121-ef2490611d23:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 1",
+         "id" : "urn:storageos:AutoTieringPolicy:7f2e2bc5-0f26-4e22-8121-ef2490611d23:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:2d3749d7-354b-44be-b465-bfa8765bcf14:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 5",
+         "id" : "urn:storageos:AutoTieringPolicy:2d3749d7-354b-44be-b465-bfa8765bcf14:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:6f828730-08b9-495a-a3a4-bc260bc4fee9:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 2",
+         "id" : "urn:storageos:AutoTieringPolicy:6f828730-08b9-495a-a3a4-bc260bc4fee9:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:9dfcc487-be81-4999-9fb2-ebd45b173a61:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 9",
+         "id" : "urn:storageos:AutoTieringPolicy:9dfcc487-be81-4999-9fb2-ebd45b173a61:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:76c7cd1f-4868-48dc-9e6b-ba441edf365a:"
+         },
+         "name" : "SYMMETRIX+000195600235+FASTPOLICY+Prov_FASTThick_SATA_FC",
+         "id" : "urn:storageos:AutoTieringPolicy:76c7cd1f-4868-48dc-9e6b-ba441edf365a:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:8b5449c4-db4e-4925-b2ff-00625261bd8e:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 8",
+         "id" : "urn:storageos:AutoTieringPolicy:8b5449c4-db4e-4925-b2ff-00625261bd8e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:40d1291d-67f3-42a8-af30-0ad1b2e071f2:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 6",
+         "id" : "urn:storageos:AutoTieringPolicy:40d1291d-67f3-42a8-af30-0ad1b2e071f2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:f7447732-eb34-43a4-abf5-788941c45923:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 1",
+         "id" : "urn:storageos:AutoTieringPolicy:f7447732-eb34-43a4-abf5-788941c45923:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:ab0199c7-bbf4-4903-8411-8b3a68193902:"
+         },
+         "name" : "DEFAULT_AUTOTIER",
+         "id" : "urn:storageos:AutoTieringPolicy:ab0199c7-bbf4-4903-8411-8b3a68193902:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:80864c2f-3f83-43aa-8cd6-3b8a13e03b01:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 8",
+         "id" : "urn:storageos:AutoTieringPolicy:80864c2f-3f83-43aa-8cd6-3b8a13e03b01:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:96a82861-337e-4f05-b7db-4e30448067f1:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 2",
+         "id" : "urn:storageos:AutoTieringPolicy:96a82861-337e-4f05-b7db-4e30448067f1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:be2c0d32-995d-427f-91ed-214993b05325:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 6",
+         "id" : "urn:storageos:AutoTieringPolicy:be2c0d32-995d-427f-91ed-214993b05325:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:c7703be1-da06-4314-ac52-a0a568b41166:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 0",
+         "id" : "urn:storageos:AutoTieringPolicy:c7703be1-da06-4314-ac52-a0a568b41166:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:03d4b93b-7584-425f-9f5a-224d0b00ebf3:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 2",
+         "id" : "urn:storageos:AutoTieringPolicy:03d4b93b-7584-425f-9f5a-224d0b00ebf3:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:2cc7cd71-662f-4657-becc-074d0e479612:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 9",
+         "id" : "urn:storageos:AutoTieringPolicy:2cc7cd71-662f-4657-becc-074d0e479612:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:ff14d3d1-c6ef-417c-b8ac-d412db0dfe72:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 8",
+         "id" : "urn:storageos:AutoTieringPolicy:ff14d3d1-c6ef-417c-b8ac-d412db0dfe72:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:d984d216-1ec1-4f60-b937-e4901998fc8f:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 7",
+         "id" : "urn:storageos:AutoTieringPolicy:d984d216-1ec1-4f60-b937-e4901998fc8f:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:9d4f547e-ab92-4512-88ff-50be21e26177:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 4",
+         "id" : "urn:storageos:AutoTieringPolicy:9d4f547e-ab92-4512-88ff-50be21e26177:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:aa807a3f-7caf-49c1-abd5-ba229fc5eebe:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 0",
+         "id" : "urn:storageos:AutoTieringPolicy:aa807a3f-7caf-49c1-abd5-ba229fc5eebe:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:6e4cad02-638d-435d-b253-d037d11bd747:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 1",
+         "id" : "urn:storageos:AutoTieringPolicy:6e4cad02-638d-435d-b253-d037d11bd747:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:3d610ae9-7fd5-49b9-b1e8-dc653163e910:"
+         },
+         "name" : "SYMMETRIX+000198700412+FASTPOLICY+Prov_FAST_Policy",
+         "id" : "urn:storageos:AutoTieringPolicy:3d610ae9-7fd5-49b9-b1e8-dc653163e910:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:0402af5d-a3e5-4b20-b7a4-133b9fa25386:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 4",
+         "id" : "urn:storageos:AutoTieringPolicy:0402af5d-a3e5-4b20-b7a4-133b9fa25386:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:deabd431-8888-44ab-bd53-0a2fdc787be3:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 9",
+         "id" : "urn:storageos:AutoTieringPolicy:deabd431-8888-44ab-bd53-0a2fdc787be3:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:2ab50ef9-12ba-4535-a1a7-477f7b0faccc:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 0",
+         "id" : "urn:storageos:AutoTieringPolicy:2ab50ef9-12ba-4535-a1a7-477f7b0faccc:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:8d028a92-87ee-4410-b654-c55019cbd99f:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 10",
+         "id" : "urn:storageos:AutoTieringPolicy:8d028a92-87ee-4410-b654-c55019cbd99f:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:91a14cc4-c78d-4489-80cc-8c2bf5cc8db1:"
+         },
+         "name" : "DEFAULT_HIGHEST_AVAILABLE",
+         "id" : "urn:storageos:AutoTieringPolicy:91a14cc4-c78d-4489-80cc-8c2bf5cc8db1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:d70e7af5-470e-4369-8bc6-be4320e6ef00:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 7",
+         "id" : "urn:storageos:AutoTieringPolicy:d70e7af5-470e-4369-8bc6-be4320e6ef00:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:a68a3fb9-8fa6-49ad-9e74-5690e4aeddce:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 7",
+         "id" : "urn:storageos:AutoTieringPolicy:a68a3fb9-8fa6-49ad-9e74-5690e4aeddce:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:9f2269d6-767d-422c-b730-5982802ba885:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 1",
+         "id" : "urn:storageos:AutoTieringPolicy:9f2269d6-767d-422c-b730-5982802ba885:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:42d574d8-f0ad-419d-a552-b95f69d21209:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 5",
+         "id" : "urn:storageos:AutoTieringPolicy:42d574d8-f0ad-419d-a552-b95f69d21209:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:441e4c53-2609-413d-8eb1-18b7b6751f67:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 5",
+         "id" : "urn:storageos:AutoTieringPolicy:441e4c53-2609-413d-8eb1-18b7b6751f67:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:b4a5c148-6b64-4353-b4ec-1a3ae06e883a:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 12",
+         "id" : "urn:storageos:AutoTieringPolicy:b4a5c148-6b64-4353-b4ec-1a3ae06e883a:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:26c21888-2cb2-4f66-9f7d-4be9c227adeb:"
+         },
+         "name" : "DEFAULT_LOWEST_AVAILABLE",
+         "id" : "urn:storageos:AutoTieringPolicy:26c21888-2cb2-4f66-9f7d-4be9c227adeb:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:6ac5cb25-ac9a-44de-9b3d-030c87b28b9c:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 4",
+         "id" : "urn:storageos:AutoTieringPolicy:6ac5cb25-ac9a-44de-9b3d-030c87b28b9c:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:79db9bde-6952-4ed8-92be-e201d69f95a5:"
+         },
+         "name" : "DEFAULT_NO_MOVEMENT",
+         "id" : "urn:storageos:AutoTieringPolicy:79db9bde-6952-4ed8-92be-e201d69f95a5:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:aef8c758-43c7-4949-908f-0cc1fee3e6c2:"
+         },
+         "name" : "SYMMETRIX+000195701351+FASTPOLICY+Thin_FC_SATA",
+         "id" : "urn:storageos:AutoTieringPolicy:aef8c758-43c7-4949-908f-0cc1fee3e6c2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:db670d86-90ea-48be-9f23-e14fcf624163:"
+         },
+         "name" : "SYMMETRIX+000195600235+FASTPOLICY+Prov_Policy_SATA_FC",
+         "id" : "urn:storageos:AutoTieringPolicy:db670d86-90ea-48be-9f23-e14fcf624163:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:77bad77c-ca50-4206-bbe7-eb7f5f723495:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 11",
+         "id" : "urn:storageos:AutoTieringPolicy:77bad77c-ca50-4206-bbe7-eb7f5f723495:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:3d47ac9b-a825-4f9f-8bdd-a2f15cd92d4e:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 4",
+         "id" : "urn:storageos:AutoTieringPolicy:3d47ac9b-a825-4f9f-8bdd-a2f15cd92d4e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:625af3d3-e7e7-4519-90cb-f9e36abd8005:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 2",
+         "id" : "urn:storageos:AutoTieringPolicy:625af3d3-e7e7-4519-90cb-f9e36abd8005:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:cbc94533-1197-49b4-ac8d-c2ec2c6d4dc5:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 8",
+         "id" : "urn:storageos:AutoTieringPolicy:cbc94533-1197-49b4-ac8d-c2ec2c6d4dc5:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:336e02e8-5a1e-481f-ace7-fb61b8f4b282:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 8",
+         "id" : "urn:storageos:AutoTieringPolicy:336e02e8-5a1e-481f-ace7-fb61b8f4b282:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:80b5614a-8852-44c5-83e5-15e7520a1bf7:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 3",
+         "id" : "urn:storageos:AutoTieringPolicy:80b5614a-8852-44c5-83e5-15e7520a1bf7:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:b3f67746-8fca-403c-a8c8-96ab85847cf6:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 12",
+         "id" : "urn:storageos:AutoTieringPolicy:b3f67746-8fca-403c-a8c8-96ab85847cf6:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:5054c77c-0dcf-4f11-b3f0-d982587521c7:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 6",
+         "id" : "urn:storageos:AutoTieringPolicy:5054c77c-0dcf-4f11-b3f0-d982587521c7:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:80849d2d-ce2c-4c12-8f7b-5f86720d139a:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 11",
+         "id" : "urn:storageos:AutoTieringPolicy:80849d2d-ce2c-4c12-8f7b-5f86720d139a:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:1e696193-a7e7-41b5-8c7d-177d3b799499:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 3",
+         "id" : "urn:storageos:AutoTieringPolicy:1e696193-a7e7-41b5-8c7d-177d3b799499:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:894ccabe-d154-48f1-a301-36ed250ba8e7:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 5",
+         "id" : "urn:storageos:AutoTieringPolicy:894ccabe-d154-48f1-a301-36ed250ba8e7:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:f3c7e545-c4be-49b3-a76a-f8becbc534dd:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 9",
+         "id" : "urn:storageos:AutoTieringPolicy:f3c7e545-c4be-49b3-a76a-f8becbc534dd:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:e4c9f65e-25c6-41b0-97e0-fa31f6eab0af:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 3",
+         "id" : "urn:storageos:AutoTieringPolicy:e4c9f65e-25c6-41b0-97e0-fa31f6eab0af:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:e6662fcb-2219-4bf1-b8c1-53b6b932b45a:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 7",
+         "id" : "urn:storageos:AutoTieringPolicy:e6662fcb-2219-4bf1-b8c1-53b6b932b45a:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:09ad4ac4-00ed-43ed-b08e-0e694c757f67:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 6",
+         "id" : "urn:storageos:AutoTieringPolicy:09ad4ac4-00ed-43ed-b08e-0e694c757f67:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:5d8d937d-eefb-4225-8b33-79f3a5b446ea:"
+         },
+         "name" : "SYMMETRIX+999334388821+FASTPOLICY+PolicyRule 6",
+         "id" : "urn:storageos:AutoTieringPolicy:5d8d937d-eefb-4225-8b33-79f3a5b446ea:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:961b00ab-bdee-4e4c-a48f-8612b5ddba9e:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 4",
+         "id" : "urn:storageos:AutoTieringPolicy:961b00ab-bdee-4e4c-a48f-8612b5ddba9e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:e67802b2-bb25-4fe2-b749-ce9048de0773:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 10",
+         "id" : "urn:storageos:AutoTieringPolicy:e67802b2-bb25-4fe2-b749-ce9048de0773:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:34c61a8f-fbc1-4864-930d-96a87aa81650:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 5",
+         "id" : "urn:storageos:AutoTieringPolicy:34c61a8f-fbc1-4864-930d-96a87aa81650:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:4c1513f4-c118-4103-ba33-8bf89d92ca6d:"
+         },
+         "name" : "SYMMETRIX+999024668923+FASTPOLICY+PolicyRule 3",
+         "id" : "urn:storageos:AutoTieringPolicy:4c1513f4-c118-4103-ba33-8bf89d92ca6d:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:021d792e-a4d4-4d09-b5a2-e7be908f98f2:"
+         },
+         "name" : "SYMMETRIX+999316031302+FASTPOLICY+PolicyRule 3",
+         "id" : "urn:storageos:AutoTieringPolicy:021d792e-a4d4-4d09-b5a2-e7be908f98f2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:e068907f-f550-42ea-b331-ad0a2b7def22:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 10",
+         "id" : "urn:storageos:AutoTieringPolicy:e068907f-f550-42ea-b331-ad0a2b7def22:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:2b7a7851-a092-40be-8b18-1b88a7a38e32:"
+         },
+         "name" : "SYMMETRIX+999000414197+FASTPOLICY+PolicyRule 0",
+         "id" : "urn:storageos:AutoTieringPolicy:2b7a7851-a092-40be-8b18-1b88a7a38e32:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:5e35ba29-66db-4afe-887d-71b94664e110:"
+         },
+         "name" : "SYMMETRIX+999595867618+FASTPOLICY+PolicyRule 1",
+         "id" : "urn:storageos:AutoTieringPolicy:5e35ba29-66db-4afe-887d-71b94664e110:"
+      }
+   ]
+}

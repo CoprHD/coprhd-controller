@@ -1,0 +1,29 @@
+GET https://192.168.0.0:443/api/orders/urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11: HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "orderNumber": "12",
+  "service": {
+    "id": "urn:storageos:CatalogService:d6e6cb4b-d3b5-48fa-9ecf-8b60b0eb9fc8:",
+    "href": "/api/services/urn:storageos:CatalogService:d6e6cb4b-d3b5-48fa-9ecf-8b60b0eb9fc8:"
+  },
+  "summary": "Create new file system and NFS export",
+  "message": "An error occurred while finding a suitable placement to handle the request (code: 1034). No IP networks found to satisfy the request. Check to ensure the virtual array has at least one IP network and all hosts and storage ports to be used are added to the network.",
+  "createdDate": "Sep 26, 2013 3:13:16 PM",
+  "status": "ERROR",
+  "execution": {
+    "id": "urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11:",
+    "href": "/api/orders/urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11:/execution"
+  },
+  "id": "urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11:",
+  "inactive": false,
+  "link": {
+    "rel": "self",
+    "href": "/api/orders/urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11:"
+  }
+}

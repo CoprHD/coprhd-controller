@@ -1,0 +1,48 @@
+GET https://192.168.0.0:4443/block/vpools.json HTTP/1.1
+ 
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+ 
+{
+  "virtualpool": [
+    {
+      "name": "Basic RP Protection",
+      "id": "urn:storageos:VirtualPool:18af14df-1f7e-4883-a0bd-44aee9372407:",
+      "link": {
+        "rel": "self",
+        "href": "/block/vpools/urn:storageos:VirtualPool:18af14df-1f7e-4883-a0bd-44aee9372407:"
+      },
+      "vpool_type": "block"
+    },
+    {
+      "name": "Basic Block Storage",
+      "id": "urn:storageos:VirtualPool:2567045e-e16f-4aa1-930a-dfbc09917c97:",
+      "link": {
+        "rel": "self",
+        "href": "/block/vpools/urn:storageos:VirtualPool:2567045e-e16f-4aa1-930a-dfbc09917c97:"
+      },
+      "vpool_type": "block"
+    },
+    {
+      "name": "Protected Base Virtual Pool",
+      "id": "urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:",
+      "link": {
+        "rel": "self",
+        "href": "/block/vpools/urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:"
+      },
+      "vpool_type": "block"
+    },
+    {
+      "name": "Basic VPool with Consistency Group",
+      "id": "urn:storageos:VirtualPool:48a74fce-c654-4272-b407-2aa14c2b1095:",
+      "link": {
+        "rel": "self",
+        "href": "/block/vpools/urn:storageos:VirtualPool:48a74fce-c654-4272-b407-2aa14c2b1095:"
+      },
+      "vpool_type": "block"
+    }
+  ]
+}

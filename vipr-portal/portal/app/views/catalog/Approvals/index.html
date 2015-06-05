@@ -1,0 +1,24 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.catalog', 'nav.approvals'] /}
+#{set 'moreScripts'}
+<script type="text/javascript">
+  function renderRow(nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+    if (aData.status.indexOf("Pending") != -1) {
+      $('td', nRow).addClass("important");
+    }
+  }
+  function renderLink(o, val) {
+    var id = o.aData.id;
+    var url = #{jsAction @edit() /};
+    var href = url() + "/" + id;
+
+    return "<a href='"+href+"'>" + val + "</a>";
+  }
+</script>
+#{/set}
+
+#{DataTable.header titleKey:'approvals.title'/}
+#{DataTable.table id:'approvalsTable', dataTable:dataTable, source: @approvalsJson() /}

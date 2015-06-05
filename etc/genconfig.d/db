@@ -1,0 +1,63 @@
+#!/etc/genconfig
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+_get_dbvar_props() {
+    for i in ${_GENCONFIG_node_indexes} ; do
+        local var="_GENCONFIG_network_${i}_ipaddr_service"
+        echo "network_${i}_ipaddr_service=${!var}"
+    done
+
+    _get_props vdc_myid node_name node_index network_vip_service
+}
+
+_get_db_jmx_props() {
+    echo "network_ipaddr_service=${_GENCONFIG_network_ipaddr_service}"
+}
+
+_get_dbconf_props() {
+    if [ -e "/data/db/no_db_encryption" ]; then
+        echo "db_encryption=none"
+    else
+        echo "db_encryption=all"
+    fi
+    echo "dbclient_encrypt=false"
+
+    for i in ${_GENCONFIG_node_indexes} ; do
+        local var="_GENCONFIG_network_${i}_ipaddr_service"
+        echo "network_${i}_ipaddr_service=${!var}"
+    done
+
+    _get_props network_ipaddr_effective node_index
+}
+
+_is_empty_dir() {
+    directory=$1
+    find ${directory} -mindepth 1 -print -quit | grep -q . >/dev/null
+    echo $?
+}
+
+_gen_startup_mode() {
+   is_db_empty=$(_is_empty_dir "/data/db")
+   is_geodb_empty=$(_is_empty_dir "/data/geodb")
+ 
+   if [ "${_GENCONFIG_mode}" == "redeploy" -a ${is_db_empty} -eq 1 -a  ${is_geodb_empty} -eq 1 ]; then
+    echo "startupmode=hibernate" > /data/db/startupmode
+    echo "startupmode=hibernate" > /data/geodb/startupmode
+  fi 
+}
+
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-var.xml      $(_get_dbvar_props)
+_genconfig_exec _gen_template           /opt/storageos/conf/db-jmx-var.xml  $(_get_db_jmx_props)
+_genconfig_exec _gen_template_cluster   /opt/storageos/conf/db-conf.yaml    $(_get_dbconf_props)
+_gen_startup_mode

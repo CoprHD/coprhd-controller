@@ -1,0 +1,7 @@
+POST https://192.168.0.0:4443/object/data-services-vpools/urn:storageos:ObjectStore:4bd8ff7e-31dd-428d-850b-8bc4256b008d:/deactivate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json

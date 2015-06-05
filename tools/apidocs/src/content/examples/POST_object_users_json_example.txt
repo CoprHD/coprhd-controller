@@ -1,0 +1,20 @@
+POST https://192.168.0.0:4443/object/users.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+	"namespace": "s3",
+	"user": "wuser1@SANITY.LOCAL"
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+	"link":
+	{
+		"rel":"self",
+		"href":"/object/user-secret-keys/wuser1@sanity.local"
+	}
+}

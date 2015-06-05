@@ -1,0 +1,7 @@
+POST https://192.168.0.0:4443/vdc/networks/urn:storageos:Network:14d241e0-4cf1-4837-bb2d-6b94efa8928e:/deactivate HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml

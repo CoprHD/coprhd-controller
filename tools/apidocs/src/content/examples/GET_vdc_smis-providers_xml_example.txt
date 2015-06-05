@@ -1,0 +1,62 @@
+GET https://192.168.0.0:4443/vdc/smis-providers HTTP/1.1 
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml  
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<smis_providers>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:9e6a2aac-05e8-47e2-a6de-f8a9e2f3c376:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:9e6a2aac-05e8-47e2-a6de-f8a9e2f3c376:" rel="self"/>
+    <name>lglw0121 Array SMI-S SIM</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:9491eba7-ebb6-41a6-9f4e-64ad6017a896:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:9491eba7-ebb6-41a6-9f4e-64ad6017a896:" rel="self"/>
+    <name>lglw9026 (vnx lglad035, 070)</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:e415efcd-582c-40b8-8615-38b96d4f3cbe:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:e415efcd-582c-40b8-8615-38b96d4f3cbe:" rel="self"/>
+    <name>lglw9024 VNX 922 lglad094</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:948c68bd-56b9-4058-a044-9b01e046557f:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:948c68bd-56b9-4058-a044-9b01e046557f:" rel="self"/>
+    <name>lglw9075 sym235</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:c78ade5a-332b-45b1-91b9-6d4dca9bbdec:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:c78ade5a-332b-45b1-91b9-6d4dca9bbdec:" rel="self"/>
+    <name>lglw9061 sym424</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:d65b5e1b-39f7-4ee2-b5c3-41907cd69a6d:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:d65b5e1b-39f7-4ee2-b5c3-41907cd69a6d:" rel="self"/>
+    <name>lglw9071</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:a9553f34-45c3-4bda-b4d1-5769f12ea70e:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:a9553f34-45c3-4bda-b4d1-5769f12ea70e:" rel="self"/>
+    <name>lglw9072</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:f797af7a-0336-4f42-935c-e4b033465de7:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:f797af7a-0336-4f42-935c-e4b033465de7:" rel="self"/>
+    <name>lglw9025 (vnx lglap249, 480)</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:875531ea-36c9-47f4-8cf5-397c0b4ff7b2:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:875531ea-36c9-47f4-8cf5-397c0b4ff7b2:" rel="self"/>
+    <name>lglw9070 symc351</name>
+  </smis_provider>
+  <smis_provider>
+    <id>urn:storageos:SMISProvider:fe7c183b-7955-4563-ac49-7b1dc44e37bb:</id>
+    <link href="/vdc/smis-providers/urn:storageos:SMISProvider:fe7c183b-7955-4563-ac49-7b1dc44e37bb:" rel="self"/>
+    <name>lglw9066 (vnx lglw6155, 836)</name>
+  </smis_provider>
+</smis_providers>

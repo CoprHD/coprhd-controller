@@ -1,0 +1,30 @@
+** ISO - branding-SLES -
+** ISO - cryptsetup -
+** ISO - dmraid -
+** ISO - kpartx -
+** ISO - libblocxx6 -
+** ISO - libcryptsetup0 -
+** ISO - libpcap0 -
+** ISO - limal -
+** ISO - limal-ca-mgm -
+** ISO - limal-ca-mgm-perl -
+** ISO - limal-perl -
+** ISO - lsscsi -
+** ISO - lvm2 -
+** ISO - master-boot-code -
+** ISO - mdadm -
+** ISO - multipath-tools -
+** ISO - perl-Config-Crontab -
+** ISO - perl-Config-IniFiles -
+** ISO - perl-TimeDate -
+** ISO - perl-XML-XPath -
+** ISO - perl-gettext -
+** ISO - subscription-tools -
+** ISO - syslinux -
+** ISO - sysstat -
+** ISO - tar -
+** ISO - tcpdump -
+** ISO - python-gobject2 -
+** ISO - dbus-1-python -
+http://10.6.154.11/install/suse/sle/cloud/11sp3/repo/suse/x86_64/python-PyYAML-3.10-0.7.25.x86_64.rpm
+http://10.6.154.11/install/suse/sle/cloud/11sp3/repo/suse/x86_64/libyaml-0-2-0.1.3-0.6.16.x86_64.rpm

@@ -1,0 +1,32 @@
+PUT /compute/ip-interfaces/urn:storageos:IpInterface:1e77789f-5ce0-4de0-87df-cc9599c491e8: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ip_interface_update>
+<protocol>IPV4</protocol>
+<ip_address>2.2.2.2</ip_address>
+<netmask>16</netmask>
+</ip_interface_update>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<ip_interface>
+       <creation_time>1380655859544</creation_time>
+       <id>urn:storageos:IpInterface:1e77789f-5ce0-4de0-87df-cc9599c491e8:</id>
+       <inactive>false</inactive>
+       <link
+              href="/compute/ip-interfaces/urn:storageos:IpInterface:1e77789f-5ce0-4de0-87df-cc9599c491e8:"
+              rel="self" />
+       <tags />
+       <host>
+              <id>urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:</id>
+              <link
+                     href="/compute/hosts/urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:"
+                     rel="self" />
+       </host>
+       <protocol>IPV4</protocol>
+       <ip_address>192.168.0.0</ip_address>
+       <netmask>16</netmask>
+</ip_interface>

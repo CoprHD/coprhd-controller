@@ -1,0 +1,19 @@
+GET https://192.168.0.0:4443/object/baseurl/urn:storageos:ObjectBaseUrl:89116eb1-bc3d-4b35-96b0-5929edd3b194:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+	"name":"TestBaseURL",
+	"id":"urn:storageos:ObjectBaseUrl:89116eb1-bc3d-4b35-96b0-5929edd3b194:",
+	"link":{
+			"rel":"self",
+			"href":"/object/baseurl/urn:storageos:ObjectBaseUrl:89116eb1-bc3d-4b35-96b0-5929edd3b194:"},
+	"inactive":false,
+	"tags":[],
+	"baseurl":"emc.com",
+	"namespace_in_host":true
+}

@@ -1,0 +1,93 @@
+%{
+  titleKey = 'CatalogImage.' + (id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'CatalogImage.' + (id ? 'edit' : 'create') + '.description';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.catalog', 'nav.editCatalog'] /}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+$(document).ready(function() {
+    var fileInput = $('input[name="file"]');
+    var nameInput = $('input[name="name"]');
+    var nameValue = nameInput.val();
+
+    // Update the name field with the filename when the file changes
+    fileInput.on('change', function() {
+        var currentName = nameInput.val();
+        if (currentName == "" || currentName == nameValue) {
+            var name = fileInput.val().split(/\\|\//g).pop();
+            var index = name.lastIndexOf(".");
+            if (index > -1) {
+                name = name.substring(0, index);
+            }
+            nameInput.val(name);
+            nameValue = name;
+        }
+    });
+    
+    // know where it came from so can navigate back;
+    // only set the referrerUrl if it has not been set at some earlier point 
+    // i.e. in multi-step flows take into account error-handling
+    var referrerUrl = $('input[name="referrerUrl"]').val();
+    if(!referrerUrl) {
+      referrerUrl = window.document.referrer;
+    }
+        
+    // navigate back only if referral URL is different than this one
+    if(referrerUrl && referrerUrl != document.URL) {
+        $('input[name="referrerUrl"]').val(referrerUrl);
+    	// navigate cancel button to referrer url
+    	$('div.form-actions a.btn').attr('href', referrerUrl);
+    }    
+});
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style>
+.imagePreview {
+    display: block;
+    max-height: 100px;
+    max-width: 275px;
+}
+</style>
+#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+#{form @save(), method:'POST', enctype: 'multipart/form-data', class:'form form-horizontal', autocomplete:"off"}
+  #{field 'id'}
+    #{if id}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/if}
+  #{/field}
+  #{field 'referrerUrl'}
+     %{
+      value = flash[field.name] != null ? flash[field.name] : field.value
+     }%
+     <input type="hidden" name="${field.name}" value="${value}">
+  #{/field}  
+  #{field 'file'}
+    %{
+      field.required = id == null
+      field.label = messages.get('catalogImage.file')
+      field.helpTextKey = 'catalogImage.file.help'
+    }%
+    #{Form.controlGroup field:field}
+      #{if id}#{ServiceCatalog.serviceImage image:id, class:'imagePreview'/}#{/if}
+      <input type="file" name="${field.name}" value="${field.value}">
+    #{/Form.controlGroup}
+  #{/field}
+  #{field 'name'}
+    %{
+      field.label = messages.get('catalogImage.name')
+      field.helpTextKey = 'catalogImage.name.help'
+    }%
+    #{Form.inputTextControlGroup field:field/}
+  #{/field}
+  #{Form.saveCancel /}  
+#{/form}
+</div>

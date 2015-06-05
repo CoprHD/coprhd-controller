@@ -1,0 +1,312 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+import org.apache.tools.ant.taskdefs.condition.Os
+// Trace the buildType in which currently building.
+if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+    println "********** Building Open Source 'CoprHD' **********."
+} else {
+    println "********** Building EMC Enterprise 'ViPR' **********."
+}
+// Temporary solution while anyone switches back and forth between old/new branches
+def buildSrcExisted = file("buildSrc").isDirectory()
+delete "buildSrc"
+if (buildSrcExisted) {
+    throw new GradleException(
+        "NOTICE: ViPR 2.1 build plugins detected (buildSrc directory).\n"+
+        "        This is caused by switching from an older branch, the directory has been removed.\n"+
+        "------  Please rerun the build to continue. ------")
+}
+
+buildscript {
+    repositories {
+        if (project.hasProperty("withMavenLocal")) {
+            mavenLocal()
+        }
+
+        if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+            mavenCentral()
+
+            // need a few artifacts not available from Maven Central
+
+            maven {
+                url coprHD_aux_repo
+            }
+
+            maven {
+                url "http://sourceforge.net/projects/"
+            }
+
+            ivy {
+                //ivyPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision]-ivy.xml"
+                artifactPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision](-[classifier]).[ext]"
+            }
+ 
+        } else {
+            maven {
+                name "artifactory"
+                url artifactoryUrl
+            }
+        }
+    }
+
+    dependencies {
+        classpath "com.emc.vipr.platform:gradle-plugins:${gradlePluginsVersion}",
+                  'de.undercouch:gradle-download-task:1.2'
+    }
+}
+
+subprojects {
+    def relativePath = rootProject.relativePath(project.projectDir)
+    buildDir = file("${rootProject.buildDir}/gradle/${relativePath}")
+}
+
+apply plugin: 'idea'
+apply plugin: 'devkit'
+devkitStartServices.command = "/etc/storageos/storageos start"
+devkitStopServices.command = "/etc/storageos/storageos stop"
+apply plugin: 'datanode'
+
+// Repository configuration
+apply from: 'repositories.gradle'
+
+// Library definitions
+apply from: 'libraries.gradle'
+
+// See if OSS mode build requested otherwise assume EMC mode
+if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+    apply from: 'libraries-oss.gradle'
+} else {
+    apply from: 'libraries-emc.gradle'
+}
+
+// Code coverage configuration
+apply from: 'coverage.gradle'
+// Build environment/runtime configuration
+apply from: 'environment.gradle'
+// Build version configuration
+apply from: 'version.gradle'
+// Distribution assembly configuration
+apply from: 'assembly.gradle'
+
+if (project.hasProperty("log4jConf")) {
+    def log4jFile = file(project.getProperty("log4jConf"))
+    if (log4jFile.isFile()) {
+        project.ext.log4jUrl = log4jFile.toURI().toString()
+    }
+}
+
+// need to make some dependent files ready before subprojects are evaluated.
+if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+    project.rootProject.afterEvaluate {
+        println "GET - ${project.rootDir}/repo/net.sourceforge.org/sblim-cim-client-2.2.3.jar"
+        
+	def executableName = "${project.rootDir}/gradlew-oss"
+	if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        	executableName = executableName + ".bat"
+    	}
+
+	exec {
+            workingDir "${project.rootDir}/repo"
+            executable "${executableName}"
+            args       "-g.gradle", "assembleSBLIM"
+        }
+    }
+}
+
+allprojects {
+    group = "com.emc.vipr"
+    configurations {
+        runtime
+        runtimeOnly
+        
+        // Configuration for extra libraries to be copied into the lib directory
+        packagingLib
+    }
+    
+    tasks.withType(Test) {
+        // Prevent from popping up in the dock on macos
+        jvmArgs "-Dapple.awt.UIElement=true"
+        if (project.rootProject.hasProperty('log4jUrl')) {
+            jvmArgs "-Dlog4j.configuration=${project.rootProject.log4jUrl}"
+        }
+        // Forces tests to be rerun
+        outputs.upToDateWhen { false }
+    }
+    tasks.withType(JavaExec) {
+        // Prevent from popping up in the dock on macos
+        jvmArgs "-Dapple.awt.UIElement=true"
+        if (project.rootProject.hasProperty('log4jUrl')) {
+            jvmArgs "-Dlog4j.configuration=${project.rootProject.log4jUrl}"
+        }
+    }
+    
+    plugins.withType(com.emc.gradle.protobuf.ProtobufPlugin) {
+        protobuf {
+            src = 'src/main/java'
+            javaDir = 'src/main/generated'
+            cppDir = 'src/main/generated'
+            disablePython()
+        }
+    }
+}
+
+// Specify the 'eclipseVariables' property to force project generation to use path variables for gradle/jdk home
+if (project.hasProperty('eclipseVariables')) {
+    subprojects {
+        apply plugin: 'eclipse'
+        eclipse {
+            pathVariables 'GRADLE_USER_HOME': gradle.gradleUserHomeDir, 'JDK_HOME': file(jdkHome)
+        }
+    }
+    task eclipse << {
+        project.gradle.buildFinished {
+            println 'Eclipse project files were generated.   To use:'
+            println '   1. In Eclipse, open: Window|Preferences|Java|Build Path|Classpath Variables'
+            println '   2. Add the following classpath variables to the Eclipse workspace.'
+            println '      JDK_HOME - referring to your JDK directory'
+            println '      GRADLE_USER_HOME - referring to your Gradle cache directory, usually %USERPROFILE%\\.gradle'
+            println '   3. Import the project files into Eclipse, using: File|Import...|Existing Projects into Workspace'
+            println ''
+        }
+    }
+}
+
+def javaProjects = subprojects.findAll { project ->
+    project.name != "portal" && project.name != "vipr-portal"
+}
+def viprJavaProjects = javaProjects.findAll { project->
+    !project.projectDir.path.contains("vipr-portal")
+}
+def portalJavaProjects = javaProjects.findAll { project ->
+    project.projectDir.path.contains("vipr-portal")
+}
+
+configure(javaProjects) {
+    apply plugin: 'vipr'
+    apply plugin: 'findbugs'
+
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+		sourceSets {
+			main {
+				java {
+					exclude '**/proprietary/**'
+				}
+			}
+		}
+	}
+
+    // Drop the version number on the filename
+    jar {
+        version = null
+    }
+    // Enable HTML only reports for source code
+    findbugsMain.reports {
+        xml.enabled = false
+        html.enabled = true
+    }
+    // Disable findbugs on test source
+    findbugsTest.enabled = false
+    findbugs {
+        // Allows build to proceed with findbugs violations instead of failing
+        ignoreFailures = true
+        // Use an exclude filter if one exists
+        if (file("excludeFilter.xml").isFile()) {
+            excludeFilter = file("excludeFilter.xml")
+        }
+    }
+    
+    dependencies {
+        testCompile library(junit)
+    }
+    test {
+        // Allow dynamic test exclusion from project properties
+        if (project.hasProperty('testExcludes')) {
+            project.testExcludes?.split(',')?.each {
+                exclude it
+            }
+        }
+        testLogging {
+            // When running gradle normally
+            lifecycle {
+                events "started", "failed"
+                showStackTraces true
+                exceptionFormat "short"
+            }
+            // When running gradle with --info
+            info {
+                events "started", "passed", "failed", "skipped", "standard_out", "standard_error"
+                showStackTraces true
+                exceptionFormat "full"
+            }
+            // When running gradle with --debug
+            debug {
+                events "started", "passed", "failed", "skipped", "standard_out", "standard_error"
+                showStackTraces true
+                exceptionFormat "full"
+            }
+        }
+    }
+}
+
+configure(viprJavaProjects) {
+    archivesBaseName = "storageos-${name}"
+}
+
+def dependsOnSubprojectTasks(task, name) {
+    subprojects.each { project->
+        project.afterEvaluate {
+            def skipForOss = buildType == "oss" && ( project.name == "vasa" || project.name == "installer" )
+            def projectTask = project.tasks.findByName(name)
+            if (projectTask && !skipForOss) {
+                task.dependsOn projectTask
+            }
+        }
+    }
+}
+
+task all(dependsOn: assembly) {
+    dependsOnSubprojectTasks(delegate, 'compileTestJava')
+}
+
+// Creates an overall test report after any set of tests is run
+task testReport(type:TestReport) {
+    outputs.upToDateWhen { false }
+    destinationDir = file("${buildDir}/reports/testReport")
+}
+allprojects {
+    tasks.withType(Test) { task->
+        task.finalizedBy rootProject.testReport
+    }
+}
+gradle.taskGraph.whenReady { taskGraph ->
+    taskGraph.allTasks.each { task->
+        if (task instanceof Test) {
+            rootProject.testReport.reportOn(task)
+        }
+    }
+}
+
+idea {
+    println "run idea"
+    project {
+        languageLevel = '1.7'
+        ipr {
+            withXml { provider ->
+                // Add GIT as a VCS
+                def vcs = provider.node.component.find { it.@name == 'VcsDirectoryMappings' }
+                def git = vcs.find { it.@vcs == 'Git' && it.@directory == '$PROJECT_DIR$' }
+                if (!git) {
+                    vcs.appendNode('mapping', [directory: '$PROJECT_DIR$', vcs: 'Git'])
+                }
+
+                if (ideaGroovySupport != "true") {
+                    // don't try to compile groovy files
+                    def patterns = provider.node.component.find {
+                        it.@name == 'CompilerConfiguration'
+                    }.wildcardResourcePatterns
+                    patterns.each { it.remove(it.children().find { it.@name =~ /groovy/ }) }
+                }
+            }
+        }
+    }
+}

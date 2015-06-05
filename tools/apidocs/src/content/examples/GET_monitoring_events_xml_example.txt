@@ -1,0 +1,70 @@
+GET https://192.168.0.0:4443/monitoring/events?time_bucket=time_bucket=2013-09-17T02 HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+ <?xml version="1.0" encoding="UTF-8"?>
+     <events>
+          <event>
+		       <description>Tenant roles updated</description>
+               <event_id>urn:storageos:Event:53e1a748-da44-4459-8ce4-b00e7b51dcbd</event_id>
+               <event_source>TenantManager</event_source>
+               <event_type>TenantUpdated</event_type>
+               <extensions></extensions>
+               <operational_status_codes></operational_status_codes>
+               <operational_status_descriptions></operational_status_descriptions>
+               <record_type>Event</record_type>
+               <resource_id>urn:storageos:TenantOrg:aca524d3-0310-41b8-99bb-685bf82bc09b:</resource_id>
+               <service_type>tenant</service_type>
+               <tenant_id>urn:storageos:TenantOrg:aca524d3-0310-41b8-99bb-685bf82bc09b:</tenant_id>
+               <time_occurred>1379385174955</time_occurred>
+               <user_id>ViPR-USER-TODO</user_id>
+          </event>
+          <event>
+               <description>create project.</description>
+               <event_id>urn:storageos:Event:e1a84c2c-a6b6-4079-92a5-76f8b9d5c52f</event_id>
+               <event_source>TenantManager</event_source>
+               <event_type>ProjectCreated</event_type>
+               <extensions></extensions>
+               <operational_status_codes></operational_status_codes>
+               <operational_status_descriptions></operational_status_descriptions>
+               <record_type>Event</record_type>
+               <resource_id>urn:storageos:Project:e73306e6-6e74-4c79-b7f9-b7b351b0b2ba:</resource_id>
+               <service_type>tenant</service_type>
+               <tenant_id>urn:storageos:TenantOrg:aca524d3-0310-41b8-99bb-685bf82bc09b:</tenant_id>
+               <time_occurred>1379385179530</time_occurred>
+               <user_id>ViPR-USER-TODO</user_id>
+          </event>
+          <event>
+               <description>network created</description>
+               <event_id>urn:storageos:Event:acc65ab6-3804-4d01-837b-fcf86ed81194</event_id>
+               <event_source>NetworkDiscoveryWorker</event_source>
+               <event_type>NetworkCreated</event_type>
+               <native_guid>FC+BROCADE+10:00:00:27:F8:58:F6:C0</native_guid>
+               <operational_status_codes></operational_status_codes>
+               <operational_status_descriptions></operational_status_descriptions>
+               <record_type>Event</record_type>
+               <resource_id>urn:storageos:Network:c836ac56-c2cb-4692-b89c-00ca7257d0ee:</resource_id>
+               <service_type>Network Discovery</service_type>
+               <time_occurred>1379385184028</time_occurred>
+               <user_id>ViPR-USER-TODO</user_id>
+          </event>
+          <event>
+               <description>network created</description>
+               <event_id>urn:storageos:Event:be813084-1d69-4f12-991c-d2054d4ff3d8</event_id>
+               <event_source>NetworkDiscoveryWorker</event_source>
+               <event_type>NetworkCreated</event_type>
+               <native_guid>FC+MDS+20:05:54:7F:EE:11:81:99</native_guid>
+               <operational_status_codes></operational_status_codes>
+               <operational_status_descriptions></operational_status_descriptions>
+               <record_type>Event</record_type>
+               <resource_id>urn:storageos:Network:9244fec3-9767-4c44-809a-d8613b07af8a:</resource_id>
+               <service_type>Network Discovery</service_type>
+               <time_occurred>1379385187591</time_occurred>
+               <user_id>ViPR-USER-TODO</user_id>
+          </event>
+     </events>

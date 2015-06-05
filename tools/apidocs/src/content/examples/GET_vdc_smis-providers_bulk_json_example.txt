@@ -1,0 +1,17 @@
+GET https://192.168.0.0:4443/vdc/smis-providers/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:SMISProvider:152eb71d-8892-492d-84be-473604fb2c64:',
+            'urn:storageos:SMISProvider:3eaf1de4-36b4-472f-b796-c8f69dcad0f4:',
+            'urn:storageos:SMISProvider:5481c1c3-1e42-4c3b-891c-f1b4280d7c14:'
+        ]
+    }
+}

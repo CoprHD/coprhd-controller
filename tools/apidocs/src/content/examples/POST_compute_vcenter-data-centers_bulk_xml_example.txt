@@ -1,0 +1,48 @@
+POST https://192.168.0.0:4443/compute/vcenter-data-centers/bulk
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:VcenterDataCenter:0b463155-9a9c-4b38-84f2-c72b591d473c:</id><id>urn:storageos:V</id>
+    <id>urn:storageos:VcenterDataCenter:71988a61-9b55-47a0-9eaa-10bca59aec82:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_vcenter_data_centers>
+    <vcenter_data_center>
+        <creation_time>1379175886368</creation_time>
+        <id>urn:storageos:VcenterDataCenter:71988a61-9b55-47a0-9eaa-10bca59aec82:</id>
+        <inactive>false</inactive>
+        <link href="/compute/vcenter-data-centers/urn:storageos:VcenterDataCenter:71988a61-9b55-47a0-9eaa-10bca59aec82:" rel="self"/>
+        <name>Amy</name>
+        <tags/>
+        <tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        </tenant>
+        <vcenter>
+            <id>urn:storageos:Vcenter:fc18d68e-dc2e-4325-8d0d-3db1bce12680:</id>
+            <link href="/compute/vcenters/urn:storageos:Vcenter:fc18d68e-dc2e-4325-8d0d-3db1bce12680:" rel="self"/>
+        </vcenter>
+    </vcenter_data_center>
+    <vcenter_data_center>
+        <creation_time>1379549055834</creation_time>
+        <id>urn:storageos:VcenterDataCenter:0b463155-9a9c-4b38-84f2-c72b591d473c:</id>
+        <inactive>false</inactive>
+        <link href="/compute/vcenter-data-centers/urn:storageos:VcenterDataCenter:0b463155-9a9c-4b38-84f2-c72b591d473c:" rel="self"/>
+        <name>ViPR-Prov-QE</name>
+        <tags/>
+        <tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        </tenant>
+        <vcenter>
+            <id>urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:</id>
+            <link href="/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:" rel="self"/>
+        </vcenter>
+    </vcenter_data_center>
+</bulk_vcenter_data_centers>

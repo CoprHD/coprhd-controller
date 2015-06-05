@@ -1,0 +1,30 @@
+PUT https://192.168.0.0:4443/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN=BAAcRGtUUmNOZHNpbitMaEVhZUhhdWtad1J3WDRRPQMAUAQADTEzNzk1NDIwMjQ4MzACAAEABQA5dXJuOnN0b3JhZ2VvczpUb2tlbjoxYmVhNGJiMy04M2MwLTRlOGItODc4Ni1iYWYxYmM4NTZkNTY6AgAC0A8=
+
+{
+  "name": "lglw8063"
+}
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+  "resource": {
+    "name": "lglw8063",
+    "id": "urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:",
+    "link": {
+      "rel": "self",
+      "href": "/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:"
+    }
+  },
+  "message": "Operation completed successfully",
+  "state": "ready",
+  "start_time": 1379648879552,
+  "op_id": "2763442a-f399-4fc9-bee3-a06e1bc9bd13",
+  "link": {
+    "rel": "self",
+    "href": "/compute/vcenters/urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:/tasks/2763442a-f399-4fc9-bee3-a06e1bc9bd13"
+  }
+}

@@ -1,0 +1,21 @@
+GET https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:08c12093-ab21-4a50-b2c3-f039948ff0aa:/exports HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response:
+HTTP/1.1 200 ok
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <filesystem_exports>
+       <filesystem_export>
+            <type>sys</type>
+            <permissions>rw</permissions>
+            <root_user>nobody</root_user>
+            <protocol>NFS</protocol>
+            <mount_point>192.168.0.10:/ProviderTenan_MSTVolFinance_08c12093-ab21-4a50-b2c3-f039948ff0aa</mount_point>
+            <endpoints>
+                 <endpoint>lglw9045.lss.emc.com</endpoint>
+            </endpoints>
+       </filesystem_export>
+</filesystem_exports>

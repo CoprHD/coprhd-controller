@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="networkInterface"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Network interface" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('NETWORK ERROR,UNCONFIGURED')}" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="networkRouting"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Network routing" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('UNCONFIGURED')}" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="dns"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="DNS" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('UNCONFIGURED,INVALID,DEGRADED,UNREACHABLE,UNUSABLE')}" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK,CONFIGURED,REACHABLE')}" />
+    </bean>
+    <bean id="ntp"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="NTP" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('UNCONFIGURED,INVALID,DEGRADED,UNREACHABLE,UNUSABLE')}" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('CONFIGURED,REACHABLE')}" />
+    </bean>
+    <bean id="EMCupgradeRepository"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="EMC upgrade repository" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('UNCONFIGURED,UNREACHABLE')}"/>
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK,CONFIGURED,REACHABLE')}" />
+    </bean>
+    <bean id="diskUsage"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Disk space" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('ROOT_LOW,DATA_LOW,LOGS_LOW,DB_LOW,ZK_LOW')}" />
+        <property name="error" value="#{T(java.util.Arrays).asList('ROOT_FULL,DATA_FULL,LOGS_FULL,DB_FULL,ZK_FULL,GEODB_FULL,BACKUP_FULL')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="memoryUsage"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Memory usage" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('LOW')}" />
+        <property name="error" value="#{T(java.util.Arrays).asList('FULL')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="cpuUsage"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="CPU usage" />
+        <property name="warn" value="" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK,BUSY,FULL')}" />
+    </bean>
+    <bean id="connectivity"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Nodes connectivity" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('UNREACHABLE,DEGRADED')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="REACHABLE" />
+    </bean>
+    <bean id="networkVip"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Network VIP" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('UNCONFIGURED,UNREACHABLE')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('CONFIGURED,REACHABLE')}" />
+    </bean>
+    <bean id="IpUniqueness"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="IP uniqueness" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('FAIL')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="PeerSynchronization"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Peer synchronization" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('NOT_IN_SYNC')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('IN_SYNC')}" />
+    </bean>
+    <bean id="VDCSynchronization"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="VDC synchronization" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('NOT_IN_SYNC')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('IN_SYNC')}" />
+    </bean>
+    <bean id="firewall"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Firewall" />
+        <property name="warn" value="" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('CONFIGURED,UNCONFIGURED,RUNNING,UNUSED,OFF')}" />
+    </bean>
+    <bean id="ipSubnet"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="IP subnets" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('DIFFERENT')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('SAME')}" />
+    </bean>
+    <bean id="connectEMC"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="connectEMC" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('UNCONFIGURED,UNREACHABLE')}" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="VDCStatus"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="VDC Status" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('DEGRADED,UNREACHABLE')}" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('REACHABLE')}" />
+    </bean>
+    <bean id="ResourceAllocation"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Resource allocation" />
+        <property name="warn" value="#{T(java.util.Arrays).asList('IMBALANCE')}" />
+        <property name="error" value="" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="dbConnection"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="Db connection" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('UNREACHABLE')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="zkConnection"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestMetadata">
+        <property name="name" value="ZK connection" />
+        <property name="warn" value="" />
+        <property name="error" value="#{T(java.util.Arrays).asList('UNREACHABLE')}" />
+        <property name="crit" value="" />
+        <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
+    </bean>
+    <bean id="diagTestsMetadata"
+          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestsMetadata">
+        <property name="metadata">
+            <map>
+                <entry key="#{networkInterface.name}" value-ref="networkInterface" />
+                <entry key="#{networkRouting.name}" value-ref="networkRouting" />
+                <entry key="#{dns.name}" value-ref="dns" />
+                <entry key="#{ntp.name}" value-ref="ntp" />
+                <entry key="#{EMCupgradeRepository.name}" value-ref="EMCupgradeRepository" />
+                <entry key="#{diskUsage.name}" value-ref="diskUsage" />
+                <entry key="#{memoryUsage.name}" value-ref="memoryUsage" />
+                <entry key="#{cpuUsage.name}" value-ref="cpuUsage" />
+                <entry key="#{connectivity.name}" value-ref="connectivity" />
+                <entry key="#{networkVip.name}" value-ref="networkVip" />
+                <entry key="#{firewall.name}" value-ref="firewall" />
+                <entry key="#{ipSubnet.name}" value-ref="ipSubnet" />
+                <entry key="#{PeerSynchronization.name}" value-ref="PeerSynchronization" />
+                <entry key="#{IpUniqueness.name}" value-ref="IpUniqueness" />
+                <entry key="#{VDCSynchronization.name}" value-ref="VDCSynchronization" />
+                <entry key="#{connectEMC.name}" value-ref="connectEMC" />
+                <entry key="#{VDCStatus.name}" value-ref="VDCStatus" />
+                <entry key="#{dbConnection.name}" value-ref="dbConnection" />
+                <entry key="#{zkConnection.name}" value-ref="zkConnection" />
+            </map>
+        </property>
+    </bean>
+</beans>

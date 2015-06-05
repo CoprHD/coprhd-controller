@@ -1,0 +1,65 @@
+GET https://192.168.0.0:4443/monitor/diagnostics HTTP/1.1  
+
+Content-Type: application/xml 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<diagnostics>
+  <node_diagnostics_list>
+    <node_diagnostics>
+      <tests>
+        <test>
+          <name>Network interface</name>
+          <status>CONFIGURED, NETWORK ERROR</status>
+        </test>
+        <test>
+          <name>Network routing</name>
+          <status>OK</status>
+        </test>
+        <test>
+          <name>DNS</name>
+          <status>OK</status>
+        </test>
+        <test>
+          <name>NTP</name>
+          <status>OK</status>
+        </test>
+        <test>
+          <name>Remote repository</name>
+          <status>CONFIGURED, ERROR</status>
+        </test>
+        <test>
+          <name>Disk space</name>
+          <status>OK</status>
+        </test>
+        <test>
+          <name>Memory usage</name>
+          <status>OK</status>
+        </test>
+        <test>
+          <name>Cpu usage</name>
+          <status>OK</status>
+        </test>
+        <test>
+          <name>Network vip</name>
+          <status>CONFIGURED, REACHABLE</status>
+        </test>
+        <test>
+          <name>IP uniqueness</name>
+          <status>OK</status>
+        </test>
+        <test>
+          <name>Firewall</name>
+          <status>CONFIGURED, RUNNING</status>
+        </test>
+      </tests>
+      <ip>localhost</ip>
+      <node_id>standalone</node_id>
+    </node_diagnostics>
+  </node_diagnostics_list>
+</diagnostics>

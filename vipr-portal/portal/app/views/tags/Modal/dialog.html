@@ -1,0 +1,17 @@
+*{
+  id: the ID of the element
+  cssClass: any additional CSS classes for the element
+  title: the title of the dialog (optional)
+  titleKey: the title key of the dialog (optional)
+}*
+<div #{if _id}id="${_id}" #{/if}class="modal fade">
+  <div class="modal-dialog ${_cssClass}">
+    <div class="modal-content">
+      #{if _title || _titleKey}
+        %{ title = _title ?: messages.get(_titleKey) }%
+        #{Modal.header}<h4 class="modal-title">${title}</h4>#{/Modal.header}
+      #{/if}
+      #{doBody/}
+    </div>
+  </div>
+</div>

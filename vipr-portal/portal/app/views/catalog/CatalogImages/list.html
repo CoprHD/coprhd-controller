@@ -1,0 +1,53 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.catalog', 'nav.editCatalog'] /}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function renderPreview(o, val) {
+    return "<img src=\""+catalogImageURL(o.aData.id)+"\">";
+}
+
+function renderSize(o, val) {
+    var size = o.aData.size;
+    if (size > 1024 * 1024) {
+        size = Math.round(size / (1024 * 1024));
+        return Message.get("catalogImage.MB", size);
+    }
+    if (size > 1024) {
+        size = Math.round(size / 1024);
+        return Message.get("catalogImage.KB", size)
+    }
+
+    return Messages.get("catalogImage.bytes", size);
+}
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style>
+  #catalogImage td.preview {
+    padding-top:0;
+    padding-bottom:0;
+    width: 200px;
+  }
+  #catalogImage td.preview img {
+    max-height: 50px;
+  }
+  td.name {
+  }
+  td.contentType {
+    width: 150px;
+  }
+  td.size {
+    width: 150px;
+  }
+</style>
+#{/set}
+
+#{DataTable.header titleKey:'CatalogImage.list.title'/}
+#{DataTable.crudTable id:'catalogImage', dataTable:dataTable, deleteConfirm:messages.get('CatalogImage.deleteConfirm')/}

@@ -1,0 +1,74 @@
+#!/bin/sh
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+#Short-Description: syncntp
+#Description: Synchorizes time at start up
+
+NTP_CONF="/etc/ntp.conf"
+OVF_CONF="/etc/ovfenv.properties"
+NIC_NAME="$(/etc/getnic)"
+
+_put() {
+	echo -n " [${1}]"
+}
+
+_sntp() {
+	echo -n "."
+	sntp -s "${@}" 1>&2 && _put "${@}"
+}
+
+_try_external_timesync() {
+	local servers=$(gawk '/^server/ { if( $2 != "127.127.1.0" ) print $2 }' ${NTP_CONF})
+
+	local s ; for s in ${servers} ; do
+		_sntp "${s}" && return 0
+	done
+	return 1
+}
+
+_try_internal_timesync() {
+	# Initialize ${my_ip4} and ${my_ip6}
+	local output=$(ip addr show dev "${NIC_NAME}")
+	local my_ip4=${output} && my_ip4="${my_ip4#*inet }" && my_ip4="${my_ip4%%/*}"
+	local my_ip6=${output} && my_ip6="${my_ip6#*inet6 }" && my_ip6="${my_ip6%%/*}"
+
+	local servers=$(gawk -F "=" '/^network_[0-9]_ipaddr=/ { print $2 }' ${OVF_CONF})
+
+	# Try to synchronize with one of the nodes with a lower index
+	local s ; for s in ${servers} ; do
+		# If this is the node we are running on, then stop
+		[ "${s}" = "${my_ip4}" -o "${s}" = "${my_ip6}" ] && _put "${s}" && return 0
+		# Otherwise, try to synchronize. Stop on success.
+		_sntp "${s}" && return 0
+	done
+	return 1
+}
+
+# Actions
+#
+case ${1} in
+	start|restart)
+		echo -n "Synchronizing time"
+		_try_external_timesync || _try_internal_timesync
+		exit 0	
+		;;
+	stop|status)
+		echo "Not applicable"
+		exit 0
+		;;
+	*)
+		echo $"Usage: $0 {start|stop|restart|status}"
+		exit 1
+esac

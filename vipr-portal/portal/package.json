@@ -1,0 +1,11 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "devDependencies": {
+    "grunt-concurrent": "^0.5.0",
+    "grunt-contrib-clean": "^0.5.0",
+    "grunt-contrib-connect": "git+http://github.com/gruntjs/grunt-contrib-connect.git#834e93f2",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-ngdocs": "git+http://github.com/dsrw/grunt-ngdocs.git#master"
+  }
+}

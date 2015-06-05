@@ -1,0 +1,37 @@
+POST https://192.168.0.0:4443/vdc/network-systems HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<network_system_create>
+   <ip_address>192.168.0.0</ip_address>
+   <name>lglw9250</name>
+   <password>password</password>
+   <port_number>5988</port_number>
+   <smis_password>password</smis_password>
+   <smis_port_number>5988</smis_port_number>
+   <smis_provider_ip>192.168.0.0</smis_provider_ip>
+   <smis_use_ssl>false</smis_use_ssl>
+   <smis_user_name>administrator</smis_user_name>
+   <system_type>brocade</system_type>
+   <user_name>administrator</user_name>
+</network_system_create>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<task>
+   <link href="/vdc/network-systems/urn:storageos:NetworkSystem:e470d0b0-ab8f-4ea0-87c9-de6b0ad270bd:/tasks/2dbbd472-7e2e-4af5-a570-a6e595eb2f88"
+      rel="self"/>
+   <op_id>2dbbd472-7e2e-4af5-a570-a6e595eb2f88</op_id>
+   <resource>
+      <id>urn:storageos:NetworkSystem:e470d0b0-ab8f-4ea0-87c9-de6b0ad270bd:</id>
+      <link href="/vdc/network-systems/urn:storageos:NetworkSystem:e470d0b0-ab8f-4ea0-87c9-de6b0ad270bd:"
+         rel="self"/>
+      <name>lglw9250</name>
+   </resource>
+   <start_time>1380164164281</start_time>
+   <state>pending</state>
+</task>

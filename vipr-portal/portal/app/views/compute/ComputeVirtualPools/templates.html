@@ -1,0 +1,15 @@
+<div id="serviceProfileTemplatesSection">
+#{field 'computeVirtualPool.selectedTemplates'}
+<input type="hidden" id="initialTemplateSelections" name="${field.name}" value="${field.value}">
+#{/field} 
+<div id="templateControlGroups">
+  #{list items:computeVirtualPool.systems, as : 'system'}
+    %{templateOptions = computeVirtualPool.systemOptions[system.id] }%
+    #{field "computeVirtualPool.serviceTemplates[${system_index-1}].id"}
+       %{field.label = system.name}%
+       <input type="hidden" name="${system.name}" value="${system.id}">
+       #{Form.selectOneControlGroup field:field, options:templateOptions/}
+    #{/field}
+  #{/list}
+ </div>
+ </div>

@@ -1,0 +1,26 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<import resource="classpath:security-ciphers.xml" />
+
+	<bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+		<property name="name" value="sasvc" />
+		<property name="id" value="sa-standalone" />
+		<property name="endpoint" value="http://localhost:9550/" />
+		<property name="version" value="1" />
+	</bean>
+
+	<bean id="clientConfig" class="com.emc.vipr.client.ClientConfig">
+		<property name="host" value="localhost" />
+		<property name="ignoreCertificates" value="true"/>
+	</bean>
+
+	<bean id="proxyUserInitializer" class="com.emc.sa.ProxyUserInitializer">
+		<property name="password" value="ChangeMe" />
+	</bean>
+</beans>

@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 6404,
+  "description": "Not Found",
+  "details": "The resource you requested was not found.",
+  "retryable": false
+}

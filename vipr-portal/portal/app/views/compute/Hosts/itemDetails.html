@@ -1,0 +1,21 @@
+<dl class="dl-horizontal">
+  <dt>&{'host.version'}</dt>
+  <dd>${host.osVersion ?: '-'}</dd>
+  
+#{if vcenter}
+  <dt>&{'vCenter'}</dt>
+  <dd><a href="@{compute.VCenters.edit(vcenter.id)}">${vcenter.name}</a></dd>
+  
+  #{if dataCenter}
+  <dt>&{'vCenter.datacenter'}</dt>
+  <dd>${dataCenter.name}</dd>
+  #{/if}
+#{/if}
+
+#{if cluster}
+  <dt>&{'host.cluster'}</dt>
+  <dd><a href="@{compute.HostClusters.edit(cluster.id)}">${cluster.name}</a></dd>
+#{/if}
+
+  #{discoveryDetails host/}
+</dl>

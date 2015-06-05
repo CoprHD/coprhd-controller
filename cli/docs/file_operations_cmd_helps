@@ -1,0 +1,23 @@
+VNXFILE, ISILON, NETAPP file operations commands:
+=================================
+viprcli project create -n FILE_PROJECT
+
+viprcli filesystem create -n Test_FileSystem -s 20mb -pr FILE_PROJECT -vp FILE_COS -va HOPKINTON
+
+viprcli filesystem list -pr FILE_PROJECT
+
+viprcli snapshot create -n Test_Snapshot -pr FILE_PROJECT -fs Test_FileSystem
+
+viprcli snapshot list -pr FILE_PROJECT -fs Test_FileSystem
+
+viprcli filesystem export -n Test_FileSystem -pr FILE_PROJECT -pl NFS -e 10.247.66.68 -pe rw -sec sys -ru root
+
+viprcli filesystem unexport -n Test_FileSystem -project FILE_PROJECT -pl NFS -sec sys -pe rw -ru root
+
+viprcli snapshot export-file -n Test_Snapshot -pr FILE_PROJECT -fs Test_FileSystem -pl NFS -sec sys -pe ro -ru root -ep 10.247.66.68
+
+viprcli snapshot unexport-file -n Test_Snapshot -pr FILE_PROJECT -fs Test_FileSystem -pl NFS -sec sys -pe ro -ru root
+
+viprcli snapshot delete -n Test_Snapshot -pr FILE_PROJECT -fs Test_FileSystem
+
+viprcli filesystem delete -n Test_FileSystem -pr FILE_PROJECT

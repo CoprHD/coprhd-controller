@@ -1,0 +1,7 @@
+POST https://192.168.0.0:4443/compute/vcenters/urn:storageos:Vcenter:842bdaaf-3c07-40a9-84e8-c0c8f92b09d7:/deactivate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json

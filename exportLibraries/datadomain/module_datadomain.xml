@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!--                                                                             -->
+<!-- Copyright (c) 2012 EMC Corporation                                          -->
+<!-- All Rights Reserved                                                         -->
+<!--                                                                             -->
+<!-- This software contains the intellectual property of EMC Corporation         -->
+<!-- or is licensed to EMC Corporation from third parties.  Use of this          -->
+<!-- software and the intellectual property contained therein is expressly       -->
+<!-- # limited to the terms and conditions of the License Agreement under which  -->
+<!-- it is provided by or on behalf of EMC.                                      -->
+<!--                                                                             -->
+
+<project name="datadomain" default="compile.datadomain">
+
+  <module_defaults module="datadomain"/>
+
+  <path id="datadomain.library.classpath">
+    <path refid="library.commons-logging-1.1.1.classpath"/>
+    <path refid="library.slf4j-1.6.4.classpath"/>
+    <!-- apache-cassandra is needed for log4j-apache -->
+    <path refid="library.apache-cassandra-1.1.classpath"/>
+    <path refid="library.commons-logging-1.1.1.classpath"/>
+    <path refid="library.slf4j-1.6.4.classpath"/>
+    <path refid="library.google-gson-2.1.classpath"/>
+    <path refid="library.jersey-1.12.classpath"/>
+    <path refid="library.commons.httpclient-3.1"/>
+    <path refid="library.junit-4.10.classpath"/>
+    <path refid="serviceutils.module.classpath"/>
+  </path>
+
+  <flatpath id="datadomain.library.flat.classpath" refid="datadomain.library.classpath"/>
+
+  <path id="datadomain.module.classpath">
+    <pathelement location="${datadomain.jar}"/>
+  </path>
+
+  <path id="datadomain.instrumented.classpath">
+    <pathelement location="${datadomain.coveragejar}"/>
+  </path>
+
+  <path id="datadomain.classpath">
+    <path refid="datadomain.module.classpath"/>
+    <path refid="${project.jdk.classpath}"/>
+    <path refid="datadomain.library.flat.classpath"/>
+  	<path refid="errorhandling.module.classpath"/>
+  </path>
+
+  <path id="datadomain.coverage.classpath">
+    <path refid="datadomain.instrumented.classpath"/>
+    <path refid="${project.jdk.classpath}"/>
+    <path refid="datadomain.library.flat.classpath"/>
+  </path>
+
+  <path id="datadomain.test.classpath">
+    <pathelement location="${datadomain.testoutput.dir}"/>
+    <path refid="datadomain.coverage.classpath"/>
+  </path>
+
+  <target name="init.datadomain">
+    <module_init module="datadomain" libraryref="datadomain.library.classpath"/>
+  </target>
+
+  <target name="compile.datadomain"
+          depends="compile.datadomain.main,compile.datadomain.test"/>
+
+  <target name="compile.datadomain.main"
+          depends="init.datadomain,compile.errorhandling">
+    <module_compile_main module="datadomain" classpathref="datadomain.classpath"/>
+  </target>
+
+  <target name="compile.datadomain.test"
+          depends="compile.datadomain.main">
+    <module_compile_test module="datadomain" classpathref="datadomain.classpath"/>
+  </target>
+
+  <target name="clean.datadomain">
+    <module_clean module="datadomain"/>
+  </target>
+
+  <target name="test.datadomain" depends="compile.datadomain">
+    <module_test test="com.emc.storageos.datadomain.restapi.DataDomainApiTest" classpathref="datadomain.test.classpath" />
+  </target>
+
+</project>
+

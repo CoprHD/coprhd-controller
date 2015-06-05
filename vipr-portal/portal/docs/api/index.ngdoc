@@ -1,0 +1,30 @@
+@ngdoc overview
+@name about
+@description
+
+# Angular.js
+Experimental Angular.js support in the portal. This is a work in progress.
+
+## Conventions
+
+* directives that work on an attribute should be prefixed with `v`, to avoid collisions with attributes that
+  function as arguments. Element directives shouldn't have a prefix.
+* Templates beyond a single line should be placed in an external file. Although potentially slower, this
+  is much easier during development, and performance issues can be addressed in the future by implementing
+  an asset pipeline.
+
+## Notes
+
+* Our use of angular is somewhat unusual, as we're still dealing with server generated pages (mostly) and
+  posting forms to submit data.
+* Example editing doesn't work properly for controls with a template file
+  (mostly true for {@link tags tags}). This will be fixed in the future.
+
+## Resources
+
+* Learn more at the {@link http://angularjs.org Angular.js homepage}.
+* {@link vipr vipr} - Our foundational services, filters and directives.
+* {@link fields fields} - Form fields. Select boxes, multi-selects, checkboxes, etc.
+* {@link tags tags} - Other tags. HTML templates with minimal extra logic.
+
+

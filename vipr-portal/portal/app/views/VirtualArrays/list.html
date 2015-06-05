@@ -1,0 +1,70 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.virtualArrays'] /}
+
+#{DataTable.header titleKey:'VirtualArrays.list.title'/}
+#{DataTable.table id: 'virtualArrays',
+                      dataTable: dataTable,
+                      expandable: true,
+                      selectable: true,
+                      source: @listJson()}
+  #{DataTable.buttonBar}
+    #{Form.button 'button.add', class:'success', icon:'plus', action:'showAddVarrayDialog()'/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', data: ['enabled':'selected']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+#{DataTable.formAction @delete(), id:'deleteForm', table: 'virtualArrays', confirm: messages.get('VirtualArrays.deleteConfirm')/}
+#{DataTable.expandHtml @itemDetails(':id'), table:'virtualArrays'/}
+
+#{Modal.dialog id:'addVarrayDialog'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'VirtualArray.create.title'}</h4>
+    <p>&{'VirtualArray.create.description'}</p>
+  #{/Modal.header}
+  #{form @createSimple(), class: 'form form-horizontal'}
+    #{Modal.body}
+      #{field 'name'}
+        %{
+          field.label = messages.get('virtualArray.name')
+        }%
+        #{Form.inputTextControlGroup field:field, required:true /}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Modal.buttonBar}
+        #{Form.saveButton /}
+      #{/Modal.buttonBar}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+$(document).ready(function() {
+  $('#addVarrayDialog').on('shown.bs.modal', function () {
+    $('#name').focus();
+  });
+  $('#addVarrayDialog').on('show.bs.modal', function(e) {
+    $('#name').val('').trigger('change');
+  });
+  $('#name').on('change keydown keyup', function(e) {
+	if (e.which != 10 && e.which != 13) {
+      var value = $(this).val();
+      $('#addVarrayDialog button.btn-primary').prop('disabled', 
+      		(value == null) || (value == '') || (value.trim() == ''));
+	}
+  });
+});
+
+function renderLink(o, val) {
+  var data = o.aData;
+  var url = #{jsAction (_edit ?: @edit(':id')) /};
+  var href = url(data);
+
+  return "<a href='"+href+"'>" + val + "</a>";
+}
+function showAddVarrayDialog() {
+  $('#addVarrayDialog').modal();
+}
+</script>

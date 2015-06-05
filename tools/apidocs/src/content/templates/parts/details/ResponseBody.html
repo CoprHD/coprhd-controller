@@ -1,0 +1,46 @@
+<hr/>
+<h4>Response Body</h4>
+<% if (apiMethod.responseDescription != null) { %>
+<p>${apiMethod.responseDescription}</p>
+<% } %>
+
+<% if (apiMethod.isTaskResponse) { %>
+<p>This is an asychronous operation that returns a task object. For information on working with tasks, see <a href="AsynchronousOperations.html">Asynchronous Operations</a>.</p>
+<%
+}
+
+if (apiMethod.hasResponsePayload()) { %>
+<div id="responseTable">
+
+    <table class="payload table table-striped">
+        <thead>
+        <tr>
+            <td width="300">Field</td>
+            <td width="40%">Description</td>
+            <td width="30">Type</td>
+            <td width="20%">Notes</td>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>&lt;${apiMethod.output.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <% apiMethod.output.fields.each { field ->
+        addPayloadLine(field, 1)
+        } %>
+        <tr>
+            <td>&lt;/${apiMethod.output.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<% } else if (apiMethod.responseDescription == null) { %>
+<p>No Response Body</p>
+<% } %>

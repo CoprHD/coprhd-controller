@@ -1,0 +1,8 @@
+<script type="text/javascript">
+  angular.module("portalApp").run(function($rootScope) {
+    var renderArgs = ${util.ViewHelpers.toJson(controllers.Common.angularRenderArgs()).raw()};
+    var errors = ${util.ViewHelpers.errorsToJson(errors).raw()};
+    var flash = ${util.ViewHelpers.toJson(flash.data).raw()};
+    angular.extend($rootScope, renderArgs, {errors: errors, flash: flash});
+  });
+</script>

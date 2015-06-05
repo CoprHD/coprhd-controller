@@ -1,0 +1,940 @@
+.form-signin {
+  max-width: 400px;
+  padding: 15px;
+  margin: 0 auto;
+
+  h2 {
+    margin-top: 0px;
+    margin-bottom: 10px;
+  }
+  .form-control {
+    height: auto;
+    padding: 10px;
+    font-size: 16px;
+  }
+  .stacked-input-group {
+    margin-bottom: 10px;
+  }
+  label {
+    font-weight: normal;
+  }
+  input[type="submit"] {
+    margin-top: 10px;
+  }
+}
+
+.dataTable .lastDiscoveredDate {
+  width: 125px;
+}
+.dataTable .discoveryStatus {
+    text-align: center;
+    width: 75px;
+}
+.dataTable .certificateValid {
+    text-align: center;
+    width: 75px;
+}
+.dataTable .assigned {
+  text-align: center;
+  width: 75px;
+}
+.dataTable .registrationStatus {
+  text-align: center;
+  width: 75px;
+}
+.dataTable .allocationDisqualified{
+	width: 75px;
+	text-align: center;
+}
+.metricDetails{
+  dt{
+ 	text-align: center;
+  }
+  dd{
+ 	text-align: center;
+  }
+}
+.dataTable .actions,
+table .actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+.dataTable .actions .btn-group {
+  display: inline-flex;
+}
+.dataTable .operationalStatus {
+  text-align: center;
+  width: 50px;
+}
+.dataTable .discovered {
+  text-align: center;
+  width: 80px;
+}
+.dataTable .discoverable {
+  text-align: center;
+  width: 90px;
+}
+
+.table.dataTable > tbody > tr.openedRow > td:hover {
+  background-color: @table-bg;
+}
+
+.dataTable .dropdown-menu {
+  text-align: left;
+}
+
+div.dataTables_footer > div.dataTables_selectedItems {
+  float: left;
+  padding-top: 8px;
+  padding-right: 100px;
+}
+
+/** Orders data table styling. */
+#orders .table .number {
+  width: 75px;
+  text-align: center;
+}
+#orders .table .status {
+  width: 60px;
+  text-align: center;
+  white-space: nowrap;
+}
+#orders .table .service {
+}
+#orders .table .summary {
+}
+#orders .table .submittedBy {
+  width: 150px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;  
+}
+#orders .table .createdDate {
+  width: 200px;
+  text-align: center;
+  white-space: nowrap;
+}
+#orders .table .createdRelativeDate {
+  width: 150px;
+  text-align: center;
+  white-space: nowrap;
+}
+.precheckTasks,
+.executionTasks {
+  margin-top: 1px;
+  margin-bottom: 1px;
+}
+
+
+/** Approvals Table Styling. */
+#approvalsTable .orderNumber {
+  width: 75px;
+  text-align: center;
+}
+#approvalsTable .serviceTitle {
+}
+#approvalsTable .orderUserName {
+  width: 200px;
+  white-space: nowrap;
+  overflow: hidden;  
+}
+#approvalsTable .status {
+  width: 75px;
+  text-align: center;
+  white-space: nowrap;
+}
+#approvalsTable .createdDate {
+  width: 200px;
+  text-align: center;
+  white-space: nowrap;
+}
+#approvalsTable .approvedBy {
+  width: 200px;
+  white-space: nowrap;
+  overflow: hidden;  
+}
+
+
+/** Notification Bar */
+#notifications .badge.unread {
+  background-color: @label-warning-bg;
+}
+#notifications .badge.read {
+  background-color: @label-info-bg; 
+}
+#notifications .header {
+  text-align: center;
+  font-weight: bold;
+}
+#notifications .footer {
+  font-size: 0.8em;
+  text-align: center;
+}
+#notifications .footer a {
+  font-weight: bold;
+}
+#notifications .message {
+  color: #bbb;
+  font-size: 0.8em;
+  text-align: center;
+}
+#notifications .notification {
+  font-size: 0.8em;
+}
+#notifications .notification.error a {
+  color: @state-danger-text !important;
+}
+#notifications .notification.unread a {
+  background-color: @hr-border;
+  font-weight: bold;
+}
+#notifications .notification a img {
+  max-width: 30px
+}
+
+
+
+/** Order page */
+#orderMessage .alert-danger,
+#orderMessage .alert-error {
+  white-space: pre-wrap;
+  overflow: auto;
+}
+#orderDetails .master-detail {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-top: 0.5em;
+}
+#orderDetails .master-detail .content {
+  margin-left: 2em;
+}
+#orderDetails .master-detail .table caption {
+  display:none;
+}
+
+#orderDetails .logs .dateColumn {
+  text-align: center;
+  white-space: nowrap;
+  width: 170px;
+}
+#orderDetails .logs .levelColumn {
+  width: 50px;
+  text-align: center;
+}
+#orderDetails .logs .messageColumn {}
+#orderDetails .logs .stackTraceColumn {
+  white-space: pre-wrap;
+  overflow: auto;
+  padding-left: 2em;
+  width: 900px;
+}
+#orderDetails .taskLogs .messageColumn {
+  width: 200px;
+}
+#orderDetails .taskLogs .detailColumn {
+}
+#orderDetails .taskLogs .elapsedColumn {
+  width: 80px;
+  text-align: center;
+}
+#orderDetails .taskLogs .stackTraceColumn {
+  white-space: pre-wrap;
+  overflow: auto;
+  padding-left: 2em;
+  width: 900px;
+}
+#orderDetails .logs .error,
+#orderDetails .taskLogs .error {
+  color: @state-danger-text;
+}
+
+#orderDetails .progressBar .label {
+  font-size: 75%;
+}
+
+
+/** Scheduled orders */
+#scheduledOrders .number {
+  width: 75px;
+  text-align: center;
+}
+#scheduledOrders .status {
+  width: 60px;
+  text-align: center;
+  white-space: nowrap;
+}
+#scheduledOrders .service {}
+#scheduledOrders .summary {}
+#scheduledOrders .submittedBy {
+  width: 150px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;  
+}
+#scheduledOrders .createdDate {
+  width: 200px;
+  text-align: center;
+  white-space: nowrap;
+}
+#scheduledOrders .executionWindow {}
+
+.dataTable .freeCapacity {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+.dataTable .subscribedCapacity {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+.dataTable .totalCapacity {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+#storagePools .volumeTypes, #availableStoragePools .volumeTypes {
+  width: 80px;
+}
+
+#smisProvider .dataTable .manageUrl {
+  width: 75px;
+}
+
+#virtualPool legend + .locked + .control-group {
+  padding-top: 20px;
+}
+
+#virtualPools table .name {
+}
+#virtualPools table .description {
+}
+#virtualPools table .provisionedAs {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+#virtualPools table .provisioningType {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+#virtualPools table .storagePoolAssignment {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+#virtualPools table .protocols {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+#virtualPools table .numPools {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+#virtualPools table .numResources {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+#tasks .table .state {
+  width: 60px;
+  text-align: center;
+  white-space: nowrap;
+}
+#taskLogs tbody td.message .log-message {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 600px;    
+}
+
+#volumes thead .actions {
+  text-align: left;
+}
+#volumes tbody .actions {
+  text-align: right;
+}
+
+/** Add some space after the execution window calendar. */
+#calendar {
+  margin-bottom: 4em;
+}
+#calendar td.fc-header-center {
+  vertical-align: middle;
+}
+#calendar .fc-header-title h2 {
+  font-size: 20px;
+  font-weight: normal;
+  line-height: 20px;
+}
+
+/** Colors past events differently */
+.fc-event.past {
+  background-color: @gray;
+  border-color: darken(@gray, 5%);
+}
+.fc-event.active {
+  background-color: @label-success-bg;
+  border-color: darken(@label-success-bg, 5%);
+}
+.fc-event.future {
+  background-color: @label-primary-bg;
+  border-color: darken(@label-primary-bg, 5%);
+}
+
+/** Affected resources */
+.resource {
+  margin: 0.5em;
+  padding: 0.5em;
+  border: 1px solid @panel-default-border;
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+.resource .resourceIcon {
+  text-align: center;
+
+  display:inline-block;
+  margin-top:0px;
+  vertical-align: top;
+}
+
+.resource .icon {
+  display: inline-block;
+  margin: 10px;
+}
+
+.resource dl {
+  display: inline-block;
+  width: 85%;
+  margin: 0;
+}
+
+.resource .dl-horizontal dt {
+  width: 150px;
+  margin-right: 10px;
+}
+
+.resource .dl-horizontal dd {
+  margin-left: 10px;
+}
+
+.resource table {
+  margin-left: 150px;
+}
+
+.resourceIcon .label {
+  text-align: center;
+}
+
+.resource .smallColumn, .resource .wideColumn {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.resource .smallColumn {
+  width: 400px;
+}
+.resource .wideColumn {
+  width: 600px;
+}
+
+.resource .column dl {
+  vertical-align: top;
+}
+
+.discovery .datacenter,
+.discovery .cluster,
+.discovery .host {
+  font-weight: bold;
+}
+.discovery SPAN.type {
+  font-style: italic;
+}
+.discovery SPAN.initiators {
+  display: block;
+  font-weight: bold;
+}
+.discovery SPAN.ipInterfaces {
+  display: block;
+  font-weight: bold;
+}
+
+.property-page fieldset {
+  margin-top: -10px;
+}
+.property-page fieldset legend {
+  font-size: 16px;
+  line-height: 22px;
+}
+.property-page fieldset legend + .control-group {
+  margin-top: 10px;
+}
+#propertiesModifiedMessage {
+  display: none;
+  padding-left: 10px;
+}
+
+
+.fabricStatusTable {
+  display:table; 
+  width: 100%; 
+  border-spacing: 5px;
+}
+.fabricStatusTable > div {
+  display: table-row;
+}
+.fabricStatusTableValue, 
+.fabricStatusTableLabel {
+  display: table-cell;
+  width: 50%;  
+}
+.fabricStatusTableValue {
+  padding-right: 5px; 
+  text-align: right;
+}
+
+.dashboard-fabric-node-status {
+  float: left;
+  margin-right: 10px;
+}
+.dashboard-fabric-node-status span {
+  vertical-align: middle;
+}
+.dashboard-fabric-node-status .fabric-node-count {
+  font-size: 2em;
+}
+
+.project-select .chosen-container {
+  min-width: 250px;
+}
+
+.tenant-select .chosen-container {
+  min-width: 250px;
+}
+
+.tenant-select + .project-select {
+  margin-left: 10px;
+}
+
+.loadAvg {
+  font-size: 2em;
+  padding-right: 8px;
+  text-align: right;
+  color: gray;
+}
+  
+.loadAvgTitle {
+  font-size: 15px;
+  color: gray;
+}
+
+.nodeDetailsTitle{
+    font-size: 15px;
+}
+
+.systemLogs {
+  word-break: normal;
+  word-wrap: normal;
+  white-space: pre-wrap;
+}
+
+.auditLogs {
+  word-break: normal;
+  word-wrap: normal;
+  white-space: pre-wrap;
+}
+
+.auditLogsDescription {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 600px;
+}
+
+.download-progress-table td {
+    padding:5px
+}
+
+#tags.tags {
+  line-height: 26px;
+}
+
+#tags.tags .title {
+  font-weight: bold;
+}
+
+.statusContainer{
+  display:inline-block;
+  line-height: 40px;
+  vertical-align: middle;
+}
+
+.statusContainer .statusCount{
+  font-size:2em;
+  vertical-align: middle;
+}
+.service-table-cell.required .controls:after {
+    position: absolute;
+    content: '*';
+    color: @state-danger-text;
+    font-size: 18px;
+    right: -8px;
+    top: 8px;
+}
+
+.service-table-cell {
+    position: relative
+}
+
+.service-table-cell .loading {
+    position:absolute;
+    right:-15px;
+    top:10px;
+}
+
+
+.task-progress {
+    display:table;
+    padding-top:8px;
+    padding-bottom:8px;
+}  
+.task-progress-row {
+    display:table-cell;
+    vertical-align:top;
+} 
+#tasks .progress {
+  margin-bottom: 0px;
+}   
+#tasks .progress-bar {
+  min-width: 20px;
+}
+
+#tasks .table .state {
+  width: 60px;
+  white-space: nowrap;
+}
+
+#taskLogs tbody td.message .log-message {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 600px;    
+}
+
+.task-count .badge {
+    margin-left:2px;
+    margin-top:-5px;
+    vertical-align: middle;
+    background-color: @navbar-inverse-color;
+    color: @navbar-inverse-bg;
+}
+
+.task-count .caret {
+    margin-top: -3px;
+    margin-left:-3px;
+}
+
+@task-dialog-bg: @body-bg;
+@task-dialog-border-color: rgba(0,0,0,0.175);
+@task-dialog-text: #808080;
+@task-dialog-header-text: #c4c4c4;
+@task-header-height: 60px;
+@task-dialog-menu-hover : #f5f5f5;
+
+.task-dialog {
+    position:absolute;
+    right:0px;
+    width:500px;
+    height:397px;
+    overflow-y: hidden;
+    overflow-x: hidden;
+    background-color: @task-dialog-bg;
+
+    border-radius: 5px;
+    box-shadow : 3px 10px 12px @task-dialog-border-color;
+    background-clip: padding-box;
+    border: 1px solid @task-dialog-border-color;
+}
+
+.task-dialog-content {
+    overflow-y: hidden;
+    overflow-x: hidden;
+    position:absolute;
+    left:0;
+    width:100%;
+    top:@task-header-height;
+    bottom:0px;
+}
+
+.task-dialog-header {
+    position:absolute;
+    top:0px;
+    height:@task-header-height;
+    width:100%;
+    text-align:center;
+    border-bottom:1px solid @task-dialog-border-color;
+    background-color:@task-dialog-bg;
+    color:@navbar-inverse-bg;
+}
+
+.task-dialog-header-left {
+    float:left;
+    padding:10px;
+}
+
+.task-dialog-header-right {
+    padding:11px;
+    float: right;
+    color:@task-dialog-header-text;
+    font-weight: bold;
+    padding-right:20px;
+    vertical-align: middle;
+    line-height: 35px;
+    font-size: 12pt;
+}
+
+.task-dialog-footer {
+    position:absolute;
+    bottom:0px;
+    width:100%;
+    line-height:25px;
+    font-size: 10pt;
+
+    text-align: center;
+    vertical-align: middle;
+    color:@navbar-inverse-color;
+    padding:5px;
+    background-color: @navbar-inverse-bg;
+}
+
+.task-dialog-footer a:link, .task-dialog-footer a:visited {
+    color:@navbar-inverse-color;
+    text-decoration: none;
+}
+
+.task-dialiog-progress-spinner {
+    margin-right:9px;
+    margin-top:-3px
+}
+
+.task-dialog-progress-bar > div {
+    background-color: @navbar-inverse-bg;
+}
+
+.task-dialog-card {
+    position:relative;
+    left:0px;
+    background-color: @task-dialog-bg;
+    height:60px;
+    border-bottom: 1px solid @hr-border;
+    padding-top:10px;
+    padding-bottom:10px;
+}
+
+.task-dialog-card:hover {
+  background-color:@task-dialog-menu-hover
+}
+
+.task-dialog-card-middle {
+    float:left;
+    padding-top:2px;
+    width:340px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.task-dialog-card-right {
+    margin-right: 10px;
+}
+
+.task-dialog-card-progress-label {
+    color:@task-dialog-text;
+    font-size:9pt;
+    max-width: 320px;
+    text-overflow: ellipsis;
+    overflow:hidden;
+    white-space: nowrap;
+}
+
+.task-dialog-card-progress-time {
+    color: @task-dialog-text;
+    font-size: 9pt;
+}
+.task-dialog-card-progress-percent {
+    font-size:16pt;
+    font-weight: bold;
+    color:@navbar-inverse-bg;
+    text-align:right;
+}
+
+.vdc-task-progress {
+    margin:4px;
+}
+
+.animate-show {
+    opacity: 1
+}
+
+.animate-show.ng-hide-add,
+.animate-show.ng-hide-remove {
+    -webkit-transition:all linear 0.5s;
+    transition:all linear 0.5s;
+}
+
+.animate-show.ng-hide {
+    opacity:0;
+}
+
+.task-dialog-header .nav-pills .active A   {
+     background-color:@navbar-inverse-bg;
+}
+
+.tasks-container  {
+  width:95%;
+  margin-left:20px;
+}
+
+#system-logs {
+  @logs-width: 800px;
+  @expandable-width: 24px;
+  @time-width: 175px;
+  @severity-width: 60px;
+  @service-width: 125px;
+  @message-max-width: @logs-width - (@expandable-width + @time-width + @severity-width + @service-width);
+  
+  .filter-text {
+    background-color: @well-bg;
+    border: 1px solid @well-border;
+    border-radius: @border-radius-base;
+    padding: 10px;
+    margin-bottom: 20px;
+    
+    .services {
+     font-weight: bold;
+    }
+    .severity {
+      font-weight: bold;
+    }
+    .date {
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    
+    & > .description {
+      margin-right: 100px;
+    }
+    & > .buttons {
+      text-align: right;
+      float: right;
+      width: 170px;
+    }
+  }
+  
+  table {
+    tr.log {
+      cursor: pointer;
+    }
+    .load-more {
+      text-align: center;
+      cursor: pointer;
+      &.loading {
+        cursor: default;
+      }
+    }
+    .expandable {
+      width: @expandable-width;
+    }
+    .time {
+      word-break: normal;
+      word-wrap: break-word;
+      width: @time-width;
+    }
+    .severity {
+      width: @severity-width;
+    }
+    .service {
+      width: @service-width;
+    }
+    .message {
+      max-width: @message-max-width;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .expandedRow {
+      max-width: @message-max-width;
+      & > pre {
+        margin: 15px;
+      }
+    }
+  }
+  
+  .button-bar {
+    background: @body-bg;
+    position: fixed;
+    bottom: 0;
+    left: 60px;
+    right: 0;
+    padding: 15px;
+    border-top: 1px solid @hr-border;
+  }
+  
+  #filter-dialog {
+    .col-sm-0 {
+      display:none;
+    }
+    .controls .bfh-datepicker {
+      float: left;
+      width: 150px;
+      input[readonly] {
+        background-color: @input-bg;
+      }
+    }
+    .controls .timepicker {
+      float: left;
+      width: 105px;
+      margin-left: 5px;
+      margin-right: 5px;
+      input[readonly] {
+        background-color: @input-bg;
+      }
+      .popup {
+        min-width: 150px;
+      }
+    }
+
+    .current-time-toggle {
+      float:left;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+  }
+}
+.menu-pinned #system-logs .button-bar {
+  left: 250px;
+}
+
+.max-days-selector {
+  float:right;
+  width: 300px;
+  margin-left: -150px;
+  margin-right: 150px;
+  
+  & > .description {
+    float:left;
+    padding: @padding-base-vertical @padding-base-horizontal;
+  }
+  & > .control {
+    float:left;
+    width: 100px;
+  }
+  & + .dataTableContainer .dataTables_filter {
+    margin-right: -300px;
+  }
+}

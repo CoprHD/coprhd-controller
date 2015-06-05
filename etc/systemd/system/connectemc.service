@@ -1,0 +1,17 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+[Unit]
+Description=ConnectEMC service
+Wants=network.service ipchecktool.service
+After=network.service ipchecktool.service
+ConditionPathExists=/var/run/storageos/bootmode_normal
+
+[Service]
+Type=simple
+ExecStart=/opt/connectemc/connectemc
+RestartSec=10
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

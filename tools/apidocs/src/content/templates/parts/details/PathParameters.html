@@ -1,0 +1,9 @@
+<% if (!apiMethod.pathParameters.isEmpty()) { %>
+<table class="payload table table-striped">
+    <% apiMethod.pathParameters.each { parameter -> %>
+    <tr>
+        <td width="10%">${parameter.name}</td><td>${parameter.description}</td>
+    </tr>
+    <% } %>
+</table>
+<% } %>

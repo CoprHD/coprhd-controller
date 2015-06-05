@@ -1,0 +1,12 @@
+PUT https://192.168.0.0:4443/object/data-services-vpools/urn:storageos:ObjectStore:5fe62ff8-bd9b-41cd-85fe-bf56e9f979c0:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+	"name": "test-data-service-varray-new", 
+	"description": "testing update"
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json

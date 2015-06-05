@@ -1,0 +1,54 @@
+GET https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<block_mirror>
+   <creation_time>1380817815585</creation_time>
+   <device_label>mirror</device_label>
+   <id>urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822:</id>
+   <inactive>false</inactive>
+   <is_composite>false</is_composite>
+   <link>
+      <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822:</href>
+      <rel>self</rel>
+   </link>
+   <name>mirror</name>
+   <native_id>010EC</native_id>
+   <protection null="true" />
+   <protocols>
+      <element>FC</element>
+   </protocols>
+   <source>
+      <id>urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</id>
+      <link>
+         <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</href>
+         <rel>self</rel>
+      </link>
+      <name>volume</name>
+   </source>
+   <storage_controller>urn:storageos:StorageSystem:81426202-3380-4dd0-8517-b71d335d3768:</storage_controller>
+   <syncState>6</syncState>
+   <syncType>6</syncType>
+   <tags />
+   <varray>
+      <id>urn:storageos:VirtualArray:e428d5d6-bab0-4708-a63b-bbf79d45c86b:</id>
+      <link>
+         <href>/vdc/varrays/urn:storageos:VirtualArray:e428d5d6-bab0-4708-a63b-bbf79d45c86b:</href>
+         <rel>self</rel>
+      </link>
+   </varray>
+   <vpool>
+      <id>urn:storageos:VirtualPool:b28bc64e-969a-43fe-8cd2-37b8ce49cb9f:</id>
+      <link>
+         <href>/block/vpools/urn:storageos:VirtualPool:b28bc64e-969a-43fe-8cd2-37b8ce49cb9f:</href>
+         <rel>self</rel>
+      </link>
+   </vpool>
+   <wwn>60000970000198700406533031304543</wwn>
+</block_mirror>
+

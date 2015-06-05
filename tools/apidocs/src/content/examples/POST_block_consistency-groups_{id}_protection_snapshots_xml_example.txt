@@ -1,0 +1,54 @@
+POST https://192.168.0.0:4443/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:/protection/snapshots HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<consistency_group_snapshot_create>
+     <name>block_snapshot_10</name>
+     <create_inactive>true</create_inactive>
+</consistency_group_snapshot_create>
+==Response
+HTTP/1.1 202 Accepted
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <tasks>
+       <task>
+            <description>Block snapshot create</description>
+            <message>Block snapshot create</message>
+            <op_id>3b114313-2037-4df1-8707-57ebcb14f388</op_id>
+            <resource>
+                 <id>urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:</id>
+                 <link href="/block/snapshots/urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:" rel="self"/>
+                 <name>block_snapshot_10</name>
+            </resource>
+            <link href="/block/snapshots/urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:/tasks/3b114313-2037-4df1-8707-57ebcb14f388" rel="self"/>
+            <start_time>1380600490559</start_time>
+            <state>pending</state>
+       </task>
+       <task>
+            <description>Block snapshot create</description>
+            <message>Block snapshot create</message>
+            <op_id>3b114313-2037-4df1-8707-57ebcb14f388</op_id>
+            <resource>
+                 <id>urn:storageos:BlockSnapshot:d984e8fc-20db-4ca8-8adb-a9cea032c2ec:</id>
+                 <link href="/block/snapshots/urn:storageos:BlockSnapshot:d984e8fc-20db-4ca8-8adb-a9cea032c2ec:" rel="self"/>
+                 <name>block_snapshot_10</name>
+            </resource>
+            <link href="/block/snapshots/urn:storageos:BlockSnapshot:d984e8fc-20db-4ca8-8adb-a9cea032c2ec:/tasks/3b114313-2037-4df1-8707-57ebcb14f388" rel="self"/>
+            <start_time>1380600490559</start_time>
+            <state>pending</state>
+      </task>
+      <task>
+            <description>Block snapshot create</description>
+            <message>Block snapshot create</message>
+            <op_id>3b114313-2037-4df1-8707-57ebcb14f388</op_id>
+            <resource>
+                 <id>urn:storageos:BlockSnapshot:7fccb187-aa7e-48be-bd12-8341336c4adb:</id>
+                 <link href="/block/snapshots/urn:storageos:BlockSnapshot:7fccb187-aa7e-48be-bd12-8341336c4adb:" rel="self"/>
+                 <name>block_snapshot_10</name>
+            </resource>
+            <link href="/block/snapshots/urn:storageos:BlockSnapshot:7fccb187-aa7e-48be-bd12-8341336c4adb:/tasks/3b114313-2037-4df1-8707-57ebcb14f388" rel="self"/>
+            <start_time>1380600490560</start_time>
+            <state>pending</state>
+      </task>
+  </tasks>

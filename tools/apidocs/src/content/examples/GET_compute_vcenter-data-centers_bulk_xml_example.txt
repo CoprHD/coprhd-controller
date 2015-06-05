@@ -1,0 +1,18 @@
+GET https://192.168.0.0:4443/compute/vcenter-data-centers/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+	<id>urn:storageos:VcenterDataCenter:0b463155-9a9c-4b38-84f2-c72b591d473c:</id>
+	<id>urn:storageos:VcenterDataCenter:14c582f6-d500-4a85-a9d1-70ec20f0b06a:</id>
+	<id>urn:storageos:VcenterDataCenter:1d14f30f-67ce-4b59-9bbd-acf5273a819f:</id>
+	<id>urn:storageos:VcenterDataCenter:360757d7-c7fd-4db8-92dd-ef4c950c795c:</id>
+	<id>urn:storageos:VcenterDataCenter:383b8fef-384b-460a-a001-ffc9091c4375:</id>
+	<id>urn:storageos:VcenterDataCenter:44f679a1-cef9-473b-b32c-58f9d9ce68b1:</id>
+	<id>urn:storageos:VcenterDataCenter:5e40223a-169f-4bda-bbd1-5d0af9c19e03:</id>
+</ids>

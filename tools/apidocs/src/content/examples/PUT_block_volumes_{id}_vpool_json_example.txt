@@ -1,0 +1,28 @@
+PUT: https://192.168.0.0:4443/block/volumes/urn:storageos:Volume:a952e8d9-bb32-4fba-825b-ce6f8a54dfb6:/vpool.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "vpool": "urn:storageos:VirtualPool:435a1c41-bb29-4c47-aacf-a2e40218647f:"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+    "link": {
+        "href": "/block/volumes/urn:storageos:Volume:a952e8d9-bb32-4fba-825b-ce6f8a54dfb6:/tasks/6ffa12c2-a0ba-4335-83d8-3cc2b9be6710",
+        "rel": "self"
+    },
+    "op_id": "6ffa12c2-a0ba-4335-83d8-3cc2b9be6710",
+    "resource": {
+        "id": "urn:storageos:Volume:a952e8d9-bb32-4fba-825b-ce6f8a54dfb6:",
+        "link": {
+            "href": "/block/volumes/urn:storageos:Volume:a952e8d9-bb32-4fba-825b-ce6f8a54dfb6:",
+            "rel": "self"
+        },
+        "name": "rpSanity-example.com-5561-coschange"
+    },
+    "start_time": 1380723298264,
+    "state": "pending"
+}

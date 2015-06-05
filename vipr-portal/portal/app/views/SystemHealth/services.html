@@ -1,0 +1,112 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.adminDashboard', 'nav.systemHealthDashboard'] /}
+
+<breadcrumb-container>
+  <breadcrumb url="@{systemHealth()}" title-key="system.healthdashboard.title" ></breadcrumb>
+  <breadcrumb url="@{details(nodeId)}" title-val="{{nodeId}}"></breadcrumb>
+  <breadcrumb title-key="system.stats.services"></breadcrumb>
+</breadcrumb-container>
+
+<div class="page-header">
+  <h3>{{'system.stats.services.title' | t:nodeId }}</h3>
+</div>
+
+#{alerts/}
+
+<div class="row">
+  <div class="col-sm-6" style="height:40px;">
+    <span class="statusContainer" ng-repeat="(status, count) in statusCount">
+      <span class="statusCount">{{count}}</span>
+      <status type="node" status="{{status}}"></status>
+    </span>
+  </div>
+  <div class="col-sm-6" style="height:40px;text-align: right;">
+    <span class="statusContainer">
+      <span class="text-muted statusTitle">{{'system.stats.services.total' | t}}</span> 
+      <span class="statusCount status">{{serviceCount}}</span>
+      <span class="text-muted statusTitle" >{{'system.stats.node.status' | t}}</span>
+      <status type="node" status="{{nodeStatus}}"></status>
+    </span>
+  </div>
+</div>
+<div class="row">
+  <div class="col-sm-12">
+    %{ 
+      options = [
+          'bFilter': false,
+          'iDisplayLength': -1
+          ]  
+    }%
+    #{DataTable.table id:'nodeServices',
+                      source: @listServicesJson(nodeId),
+                      dataTable:dataTable,
+                      options:options,
+                      expandable:false,
+                      selectable:false }
+    #{/DataTable.table}
+  </div>
+</div>
+
+<script id="inlineActions.html" type="text/ng-template">
+  <div class="btn-group">
+    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">{{'system.stats.actions' | t}}<span class='caret'></span></button>
+      <ul class="dropdown-menu dropdown-menu-right" role="menu">
+        <li><a href="@{logs()}?nodeId={{row.nodeId}}&serviceName={{row.name}}&startTime={{time}}">{{'system.stats.logs' | t}}</a></li>
+        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+          <li><a href="{{restartUrl}}" onclick="if (!confirm('&{'adminDashboard.confirm.restart'}'')){return false;}">{{'system.stats.restart' | t}}</a></li>
+        #{/deadbolt.restrict}
+      </ul>
+  </div>
+</script>
+
+
+<script type="text/javascript">
+  var serviceRestartUrl = #{jsAction @serviceRestart(nodeId,':serviceName') /}
+  angular.module('tags').directive({
+     actions : function() {
+         return {
+             restrict: "E",
+             templateUrl: "inlineActions.html",
+             link: function(scope, elem, attrs) {
+                 scope.restartUrl = serviceRestartUrl({'serviceName': scope.row.name });
+                 scope.time = new Date().getTime() - (3600000);
+             }
+         }
+     } 
+  });
+  
+  function renderServiceActions(o, val) {
+      return "<actions></actions>";
+  }
+  
+  function renderServiceUptime(o,val) {
+      if ((typeof(val) == 'undefined') || (val == null) || (val == "")) {
+          return "";
+      }
+      var uptime = val;
+      var minuteInSec = 60;
+      var hourInSec = 60*minuteInSec;
+      var dayInSec = 24*hourInSec;
+      
+      var days = Math.floor(uptime/dayInSec);
+      if (days > 0) {
+          return days + " &{'datetime.units.d'}";
+      }
+      var hours = Math.floor(uptime/hourInSec);
+      if (hours > 0) {
+          return hours + " &{'datetime.units.h'}";
+      }
+      var minutes = Math.floor(uptime/minuteInSec);
+      if (minutes > 0) {
+          return minutes + " &{'datetime.units.min'}";
+      }
+      return uptime + " &{'datetime.units.s'}";
+      
+  }
+</script>
+
+ 
+  

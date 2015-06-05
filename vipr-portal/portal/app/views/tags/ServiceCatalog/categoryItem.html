@@ -1,0 +1,31 @@
+%{
+  category = _category
+  editable = _editable == true
+}%
+<li class="catalog-item category-item" data-id="${category.id}" data-name="${category.name}" data-title="${category.title}">
+  <div class="panel panel-default">
+    <div class="panel-heading catalog-title">
+      <h3 class="panel-title">#{icon 'folder-open'/} ${category.title}</h3>
+    #{if editable}
+      <div class="editButtons">
+        <button type="button" class="btn btn-xs btn-primary edit" 
+                value="&{'ServiceCatalog.category.edit'}" title="&{'ServiceCatalog.category.edit'}">
+          #{icon 'pencil'/}
+        </button>
+        <button type="button" class="btn btn-xs btn-danger delete" 
+                value="&{'ServiceCatalog.category.delete'}" title="&{'ServiceCatalog.category.delete'}">
+          #{icon 'trash'/}
+        </button>
+      </div>
+    #{/if}
+    </div>
+    <div class="panel-body">
+      <div class="catalog-image">
+        <div class="catalog-image-inner">
+          #{ServiceCatalog.serviceImage image:category.image/}
+        </div>
+      </div>
+      <p class="catalog-description">${category.description}</p>
+    </div>
+  </div>
+</li>

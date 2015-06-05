@@ -1,0 +1,7 @@
+DEFAULT redhat
+
+LABEL redhat
+  SAY Booting ${os_full_name} kernel image
+  KERNEL ${os_path}/isolinux/vmlinuz
+  APPEND initrd=${os_path}/isolinux/initrd.img ks=http://${http.ip}:${http.port}/osagent/script/${session.id}/UNATTENDED ksdevice=bootif
+  IPAPPEND 2

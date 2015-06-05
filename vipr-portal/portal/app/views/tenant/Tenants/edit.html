@@ -1,0 +1,125 @@
+%{
+titleKey = 'tenants.' + (tenant?.id ? 'edit' : 'create') + '.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.tenants'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+%{
+    isSecurityAdmin = currentUser?.roles?.find{ "SECURITY_ADMIN".equals(it.roleName)} != null
+}%
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @save(), id:'tenantForm', class:'form form-horizontal', autocomplete:"off"}
+    #{if tenant?.id}
+        #{field 'tenant.id'}
+            <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+
+    #{field 'tenant.referrerUrl'}
+        <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+
+    #{field 'tenant.name'}
+    %{
+        field.cssClass = 'initialFocus';
+        field.required = true
+        field.fieldKey = 'tenants.name'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'tenant.description'}
+    %{
+        field.required = true
+        field.fieldKey = 'tenants.description'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+
+    <legend>&{'tenant.quota'}<small>&{'tenant.quota.description'}</small></legend>
+    #{field 'tenant.enableQuota'}
+    %{
+        if (!isSecurityAdmin)
+            field.disabled=true
+        }%
+        #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+
+    #{field 'tenant.quota'}
+    %{
+        if (!isSecurityAdmin)
+            field.disabled=true
+        }%
+        #{Form.controlGroup field:field, width:3}
+        <div class="input-group">
+            #{Form.inputText field:field/}
+            <span class="input-group-addon">&{'GB'}</span>
+        </div>
+        #{/Form.controlGroup}
+    #{/field}
+
+    #{field 'tenant.usermapping'}
+        %{
+            field.userMapping = tenant.usermapping;
+            field.domainsJson = domainsJson;
+            if (!isSecurityAdmin)
+                field.disabled=true
+        }%
+        #{userMapping field:field /}
+    #{/field}
+
+    #{if tenant?.id}
+        #{set 'moreButtons'}
+            <button class="btn btn-default btn-large" name="editRoles" onclick="handleListRoleAssignments(this);return false;" >#{icon 'edit'/} ${messages.get('Tenants.edit.roleAssignments')}</button>
+        #{/set}
+    #{/if}
+
+    #{Form.saveCancel /}
+
+#{/form}
+
+</div>
+
+#{set 'moreScripts'}
+<script type="text/javascript">
+    $(document).ready(function() {
+
+        // know where it came from so can navigate back;
+        // only set the referrerUrl if it has not been set at some earlier point 
+        // i.e. in multi-step flows take into account error-handling
+        var referrerUrl = $('input[name="project.referrerUrl"]').val();
+        if(!referrerUrl)
+            referrerUrl = document.referrer;
+
+        // navigate back only if referral URL is different than this one
+        if(referrerUrl && referrerUrl != document.URL) {
+            $('input[name="project.referrerUrl"]').val(referrerUrl);
+            // navigate cancel button to referrer url
+            $('div.form-actions a.btn').attr('href', referrerUrl);
+        }
+
+        $('#tenant_enableQuota').on('change', function() {
+            var enabled = $(this).prop('checked');
+            if (enabled) {
+                $('#tenant_quotaControlGroup').show();
+            }
+            else {
+                $('#tenant_quotaControlGroup').hide();
+            }
+        }).trigger('change');
+    });
+
+    function handleListRoleAssignments() {
+        var tenantId = "${tenant.id}";
+        var url = #{jsAction @listRoles() /};
+        window.location.href = url() + (tenantId ? "?id=" + tenantId : '');
+    }
+</script>
+#{/set}

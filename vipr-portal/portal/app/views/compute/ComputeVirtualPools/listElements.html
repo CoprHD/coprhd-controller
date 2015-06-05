@@ -1,0 +1,66 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.virtualStorage', 'nav.computeVirtualPools'] /}
+#{set 'title'}&{'ComputeVirtualPools.listElements'}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @ComputeVirtualPools.list()}&{'ComputeVirtualPools.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @ComputeVirtualPools.edit(computeVirtualPool.id)}${computeVirtualPool.name}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey:'ComputeVirtualPools.listElements.title'/}
+
+#{DataTable.table id:'computeVirtualPoolElements', 
+                  dataTable:dataTable,
+                  expandable: true,
+                  source:@listComputePoolElements(computeVirtualPool.id),
+                  selectable:true}
+  #{DataTable.buttonBar}
+	#{Form.button name:'button.add', class:'success', icon:'plus', action:'showAddElements()'/} 
+	#{Form.button name:'button.remove', class:'danger', icon:'minus', submit:'removeForm', data:['enabled': 'selected']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+#{DataTable.expandHtml @elementDetails(':id'), table:'computeVirtualPoolElements' /}
+
+#{Modal.dialog id:'addDialog', cssClass:'widest'}
+#{Modal.body}
+%{ 
+  dataTable.alterColumn("name").renderFunction = null
+  
+}%
+#{DataTable.header titleKey:'ComputeVirtualPool.addElements.title', hideAlerts:true/}
+#{DataTable.table id:'availableElements',
+                  prefix: 'computeVirtualPoolElements',
+                  dataTable: dataTable,
+                  source: @listComputePoolElements(computeVirtualPool?.id),
+                  selectable: true,
+                  delayCreate: true,
+                  options: ['iDisplayLength': '8'] /}
+#{/Modal.body}
+#{Modal.footer}
+#{Form.button 'button.add', class:'primary', icon:'plus', submit:'addForm', 
+               data:['enabled': 'selected', 'table':'availableElements']/}
+#{Form.button 'button.cancel', icon:'trash', data:['dismiss': 'modal']/}
+#{/Modal.footer}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+
+function showDialog() {
+    table.availableElements.dataTable.create();
+    table.availableElements.dataTable.updateSelectedFooter();
+    table.availableElements.dataTable.reset();
+    $('.modal').modal();
+}
+
+function hideDialog() {
+    $('.modal').modal('hide');
+}
+function showAddElements() {
+    showDialog();
+}
+</script>

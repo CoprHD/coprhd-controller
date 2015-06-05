@@ -1,0 +1,79 @@
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/util
+           http://www.springframework.org/schema/util/spring-util-3.0.xsd
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+    <context:annotation-config/>
+
+    <util:properties id="defaultProperties" location="file:../../runtime/working/etc/config.defaults" />
+    <util:properties id="ovfProperties" location="file:../../runtime/working/etc/ovfenv.properties" />
+    
+    <bean id="dbVersionInfo" class="com.emc.storageos.coordinator.client.model.DbVersionInfo">
+      <property name="schemaVersion" value="2.1"/>
+    </bean>
+
+    <bean id="zkconn" class="com.emc.storageos.coordinator.common.impl.ZkConnection" init-method="build">
+        <property name="server">
+            <list>
+                <value>coordinator://localhost:2181</value>
+            </list>
+        </property>
+        <!-- 10 seconds timeout -->
+        <property name="timeoutMs" value="10000"/>
+    </bean>
+
+	<bean id="inetAddessLookupMap"
+        class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap"
+        scope="singleton" >
+        <property name="nodeName" value="standalone" />
+                <property name="dualInetAddress" >
+                <bean class="com.emc.storageos.coordinator.client.service.impl.DualInetAddress" factory-method="fromAddresses">
+                    <constructor-arg index="0" value="127.0.0.1"/>
+                    <constructor-arg index="1" value="::1"/>
+                </bean>
+        </property>
+
+	<property name="controllerNodeIPLookupMap">
+        <map>
+            <entry key="localhost"> 
+                <bean  class="com.emc.storageos.coordinator.client.service.impl.DualInetAddress" factory-method="fromAddresses">
+                    <constructor-arg index="0" value="127.0.0.1" />
+                    <constructor-arg index="1" value="::1" />
+                </bean> 
+            </entry>            
+        </map>
+        </property>
+    </bean>
+
+    <bean id="coordinator" class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="nodeCount" value="1"/>
+        <property name="inetAddessLookupMap" ref="inetAddessLookupMap" />
+        <property name="defaultProperties" ref="defaultProperties"></property>
+        <property name="ovfProperties" ref="ovfProperties"></property>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+    </bean>
+
+    <bean id="encryptionProvider" class="com.emc.storageos.db.client.impl.EncryptionProviderImpl">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
+    <bean id="authSvcEndpointLocator" class="com.emc.storageos.security.authentication.AuthSvcEndPointLocator"/>
+ 
+    <bean id="keystoreExporter" class="com.emc.storageos.security.keystore.impl.KeyStoreExporterImpl">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="keystorePath" value="${product.home:/opt/storageos}/conf/keystore" />
+        <property name="keystorePassword" value="changeit"/>
+        <property name="owner" value="storageos"/>
+        <property name="ownerGroup" value="storageos"/>
+    </bean>   
+</beans>

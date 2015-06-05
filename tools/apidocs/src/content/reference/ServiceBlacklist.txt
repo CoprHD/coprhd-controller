@@ -1,0 +1,5 @@
+#Hold the classnames of Services that should NOT be included
+LoggingPage
+FIEnablerService
+com.emc.storageos.systemservices.impl.resource.CliService
+com.emc.storageos.data.api.service.impl.resource.debug.DebugService

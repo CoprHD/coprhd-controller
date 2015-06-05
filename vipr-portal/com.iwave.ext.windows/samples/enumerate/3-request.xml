@@ -1,0 +1,35 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"
+	xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration"
+	xmlns:w="http://schemas.xmlsoap.org/ws/2005/06/management">
+	<s:Header>
+		<a:To>http://server:80/wsman</a:To>
+		<w:ResourceURI s:mustUnderstand="true">
+			http://schemas.microsoft.com/wsman/2005/06/wmi/root/mynamespace/myclass
+		</w:ResourceURI>
+		<a:ReplyTo>
+			<a:Address s:mustUnderstand="true">
+				http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous
+			</a:Address>
+		</a:ReplyTo>
+		<a:Action s:mustUnderstand="true">
+			http://schemas.xmlsoap.org/ws/2004/09/enumeration/Pull
+		</a:Action>
+		<w:MaxEnvelopeSize s:mustUnderstand="true">
+			51200
+		</w:MaxEnvelopeSize>
+		<a:MessageID>uuid:2C2D261E-D2C3-4A5D-80DE-BB1A48E90BD2</a:MessageID>
+		<w:OperationTimeout>PT60.000S</w:OperationTimeout>
+	</s:Header>
+	<s:Body>
+		<n:Pull>
+			<n:EnumerationContext
+				xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration">
+				uuid:2504CA0D-94B9-4F91-B2F7-9F4CD9A2A96C
+			</n:EnumerationContext>
+			<n:MaxElements>1</n:MaxElements>
+		</n:Pull>
+	</s:Body>
+</s:Envelope>

@@ -1,0 +1,71 @@
+POST https://192.168.0.0:4443/vdc/network-systems/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+      <id>urn:storageos:NetworkSystem:2d0e2335-1c0a-4cfc-b931-c0d7648e2e00:</id><id>urn:storageos:N</id>
+      <id>urn:storageos:NetworkSystem:be9a6dbf-e82a-4bbd-9675-2c254c163941:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_network_systems>
+    <network_system>
+        <creation_time>1380210759407</creation_time>
+        <id>urn:storageos:NetworkSystem:2d0e2335-1c0a-4cfc-b931-c0d7648e2e00:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/network-systems/urn:storageos:NetworkSystem:2d0e2335-1c0a-4cfc-b931-c0d7648e2e00:" rel="self"/>
+        <name>MDS B</name>
+        <tags/>
+        <native_guid>MDS+10.247.84.31+22</native_guid>
+        <compatibility_status>COMPATIBLE</compatibility_status>
+        <job_discovery_status>COMPLETE</job_discovery_status>
+        <last_discovery_run_time>1380754229917</last_discovery_run_time>
+        <last_discovery_status_message>Discovery completed successfully for Network System : urn:storageos:NetworkSystem:2d0e2335-1c0a-4cfc-b931-c0d7648e2e00:</last_discovery_status_message>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>1380757786201</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <system_type>mds</system_type>
+        <ip_address>10.247.84.31</ip_address>
+        <port_number>22</port_number>
+        <smis_port_number>22</smis_port_number>
+        <smis_provider_ip>10.247.84.31</smis_provider_ip>
+        <smis_use_ssl>true</smis_use_ssl>
+        <smis_user_name>admin</smis_user_name>
+        <uptime>116 days, 4 hours, 43 minutes, 12 seconds</uptime>
+        <user_name>admin</user_name>
+        <version>5.0(4d)</version>
+    </network_system>
+    <network_system>
+        <creation_time>1379959140636</creation_time>
+        <id>urn:storageos:NetworkSystem:be9a6dbf-e82a-4bbd-9675-2c254c163941:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/network-systems/urn:storageos:NetworkSystem:be9a6dbf-e82a-4bbd-9675-2c254c163941:" rel="self"/>
+        <name>lglw9250-brocade</name>
+        <tags/>
+        <native_guid>BROCADE+10.247.99.250+5988</native_guid>
+        <compatibility_status>COMPATIBLE</compatibility_status>
+        <job_discovery_status>COMPLETE</job_discovery_status>
+        <last_discovery_run_time>1380754492047</last_discovery_run_time>
+        <last_discovery_status_message>Discovery completed successfully for Network System : urn:storageos:NetworkSystem:be9a6dbf-e82a-4bbd-9675-2c254c163941:</last_discovery_status_message>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>1380757786385</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <system_type>brocade</system_type>
+        <ip_address>10.247.99.250</ip_address>
+        <port_number>5988</port_number>
+        <smis_port_number>5988</smis_port_number>
+        <smis_provider_ip>10.247.99.250</smis_provider_ip>
+        <smis_use_ssl>false</smis_use_ssl>
+        <smis_user_name>administrator</smis_user_name>
+        <uptime>2 days, 13 hours, 15 minutes, 35 seconds</uptime>
+        <user_name>administrator</user_name>
+        <version>11.2.1 build 165</version>
+    </network_system>
+</bulk_network_systems>

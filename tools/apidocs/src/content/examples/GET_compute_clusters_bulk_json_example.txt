@@ -1,0 +1,18 @@
+GET https://192.168.0.0:4443/compute/clusters/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:Cluster:0703da7d-eeb9-4d69-aa05-d3bcbe2508c4:',
+            'urn:storageos:Cluster:454920ae-c9aa-4c44-baf8-9619808aa91c:',
+            'urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:',
+            'urn:storageos:Cluster:a176eb9c-0b64-4335-9955-89bf1f46f53f:'
+        ]
+    }
+}

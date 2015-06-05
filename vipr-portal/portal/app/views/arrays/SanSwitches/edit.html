@@ -1,0 +1,195 @@
+%{
+  titleKey = 'SanSwitches.' + (sanSwitch?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'SanSwitches.description';
+  image = '/public/img/assets/Switch.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.SANSwitches'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:sanSwitch?.id ? true : false/}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'SanSwitches.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  
+    $(document).ready(function() {
+    	var editMode = #{get 'editMode'/};
+        
+        //
+        // register handlers to change port number when useSSL and type
+        // selection is changed
+        //
+        $('#sanSwitch_useSSL').on('change', updatePortNumber);
+        $('#sanSwitch_deviceType').on('change', updatePortNumber);
+        
+        //change field text when type selection changed
+        $('#sanSwitch_deviceType').on('change', matchFieldsToType);
+        
+        //
+        // for edit mode, do not allow "type" change
+        //
+      	if ( editMode ) {
+      		$('#sanSwitch_deviceType').prop("disabled", true);
+      	} 
+        
+        //
+        // ensure these 2 field are blank, because for some weird reasons
+        // userName is initially set to "root"
+        // and userPassword is set to some garbage when using "inputPasswordControlGroup" for
+        // userPassword field
+        //
+        //$('#sanSwitch_userName').val('');
+        $('#sanSwitch_userPassword').val('');
+        $('#sanSwitch_confirmPassword').val('');
+        
+        //
+        // for create mode, set default ports on load, otherwise pass current value
+        //
+        if ( !editMode ) {
+        	updatePortNumber();
+        }
+        
+        matchFieldsToType();
+    });
+       
+    //
+    // set port number based on SSL useSSL selection and type dropdown
+    //   
+    function updatePortNumber() {
+        //
+        // build port map
+        //
+        var portMap = new Object();
+        #{list items:defaultSanSwitchPortMap, as:'defaultPort'}
+          portMap['${defaultPort.id}'] = '${defaultPort.name}';
+        #{/list}
+        
+        
+        var switchType = $('#sanSwitch_deviceType').val();        
+        
+    	if (switchType == '${brocadeType}'){
+    		$('#sanSwitch_useSSLControlGroup').show();
+    	}
+    	else {
+    		$('#sanSwitch_useSSLControlGroup').hide();
+    	}
+    	
+        //
+        // get useSSL port if apply
+        //
+        var portType = switchType + ($('#sanSwitch_useSSL').filter(':visible').is(':checked') ? "_useSSL" : "");
+        $('#sanSwitch_portNumber').val(portMap[portType]);               
+    }
+    
+    // set labels to indicate whether IP and Port are SMI-S or not
+    function matchFieldsToType(){
+    	if ($('#sanSwitch_deviceType').val() == '${brocadeType}'){
+            $("<span class='smis-prepend'>SMI-S </span>").prependTo("#sanSwitch_ipAddressControlGroup label");
+            $("<span class='smis-prepend'>SMI-S </span>").prependTo("#sanSwitch_portNumberControlGroup label");
+            $('#sanSwitch_useSSLControlGroup').show();
+    	}
+    	else {
+            $(".smis-prepend").remove();	
+            $('#sanSwitch_useSSLControlGroup').hide();
+    	}
+    	
+    }
+    
+    
+    
+  </script>
+#{/set}
+
+
+<div class="container">
+	#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+	
+	#{alerts/}
+	
+#{form @save(), id:'sanSwitchForm', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+
+	  
+
+    
+    #{field 'sanSwitch.deviceType'}
+	    %{
+	      field.options = sanSwitchTypeList
+	      field.required = true
+	      field.cssClass = 'span6 initialFocus'
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+	  
+  
+    
+    #{field 'sanSwitch.name'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'sanSwitch.ipAddress'}
+      %{
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'sanSwitch.useSSL'}
+          %{
+            field.cssClass = 'span0'
+          }%
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    
+    #{field 'sanSwitch.portNumber'}
+      %{
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'sanSwitch.userName'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'sanSwitch.userPassword'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+
+    #{field 'sanSwitch.confirmPassword'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+    
+    #{if sanSwitch?.id}
+	    #{field 'sanSwitch.id'}
+	      <input type="hidden" name="${field.name}" value="${field.value}">
+	    #{/field}
+	    #{field 'sanSwitch.deviceType'}
+	      <input type="hidden" name="${field.name}" value="${sanSwitch.deviceType}">
+	    #{/field}	    
+	  #{/if}    
+
+
+  </fieldset>
+  #{Form.saveCancel  /}
+#{/form}
+</div>

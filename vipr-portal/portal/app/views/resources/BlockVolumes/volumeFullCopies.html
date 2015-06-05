@@ -1,0 +1,36 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if fullCopies}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.fullcopy.name'}</th>
+      <th>&{'resources.fullcopy.size'}</th>
+      <th>&{'resources.fullcopy.status'}</th>
+      <th>&{'resources.fullcopy.protocol'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:fullCopies, as:'fullCopy'}
+      <tr>
+        <td>
+          <a href="@{volume(fullCopy.id)}"
+          ><img src="/public/img/assets/Full_Copy.png" style="width: 32px;"/> ${fullCopy.name}</a>
+        </td>
+        <td>${fullCopy.provisionedCapacity}</td>
+        <td>${fullCopy.protection.fullCopyRep.replicaState}</td>
+        <td>
+          #{list fullCopy.protocols, as:'protocol'}
+            #{if !protocol_isFirst},#{/if}
+            ${protocol}
+          #{/list}
+        </td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.fullcopies.none'}
+#{/else}

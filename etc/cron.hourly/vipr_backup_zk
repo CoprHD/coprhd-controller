@@ -1,0 +1,156 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+# Script to back up zookeeper snapshots and logs
+
+ZK_DATA_DIR=/data/zk/version-2
+BACKUP_DIR=/var/log/zookeeper_backup
+BWLIMIT=81920 #  bwlimit in Kbit/s
+RSYNC="rsync -av --bwlimit=$BWLIMIT --progress"
+SCP="scp -r -p -l $BWLIMIT"
+GZIP="gzip -f"
+VIPR_ROOT=/opt/storageos
+ZKCLI=$VIPR_ROOT/bin/zkCli.sh
+GREP="/usr/bin/egrep"
+# quit if previous cron is still running
+SELF=`basename $0`
+LOG_FILE=/var/log/"$SELF".log
+LOG_ERR_FILE=/var/log/"$SELF".log.err
+ZK_CLASSPATH=`ls $VIPR_ROOT/lib/{zookeeper-*,slf4j*,log4j*} | xargs | tr ' ' ':'`
+ZK_CLASSPATH="$VIPR_ROOT/conf:$ZK_CLASSPATH"
+mkdir -p $BACKUP_DIR
+
+getZkIP() {
+    ZK_CONF="$VIPR_ROOT/conf/coordinatorclient-var.xml"
+    $GREP 'coordinator://' $ZK_CONF | head -n 1 | $GREP -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
+}
+
+logMsg() {
+    ts=`date`
+    local msg=$1
+    echo "$ts $$ $msg" >> $LOG_FILE
+}
+
+getPublicIP() {
+    NIC_NAME=$(/etc/getnic)
+    ifconfig  ${NIC_NAME} | grep "inet addr" | cut -d : -f2 | cut -d ' ' -f1
+}
+
+
+ZK_IP=$(getZkIP)
+ZK_PORT=2181
+ZK_CMD="sh $ZKCLI -server $ZK_IP:$ZK_PORT"
+ZK_NODE=/config/zkBackupNode
+MY_IP=$(getPublicIP)
+TMP_OUTPUT=/tmp/zk_backup.out
+NODE_MTIME_TIMEOUT=7200 # in seconds.
+
+proc_count=$(ps -ef | grep $SELF | grep -v grep | wc -l)
+if [ "$proc_count" -gt 2 ] ; then
+  logMsg "Exiting. Another backup script is already running"
+  logMsg "Updating mtime of zknode before exiting"
+  $ZK_CMD set $ZK_NODE "BACKUP_NODE=$MY_IP" > $TMP_OUTPUT 2>&1
+  if ! $GREP "mtime" $TMP_OUTPUT
+  then
+      logMsg "$LINENO : Exiting. Error while touching zknode : $ZK_NODE"
+      exit 1
+  fi
+  exit 1
+fi 
+
+# fix java path for zkCli when running inside a container
+JAVA_BIN=/usr/java/latest/bin/java
+if [ ! -f $JAVA_BIN ] ; then
+    mkdir -p `dirname $JAVA_BIN`
+    ln -s `which java` $JAVA_BIN
+fi
+
+# The cron job will run on all data nodes. But only one node has to do the 
+# backup. Use ZK to choose which node will do the backup
+$ZK_CMD get $ZK_NODE > $TMP_OUTPUT 2>&1
+$GREP 'Node does not exist:' $TMP_OUTPUT
+if [ $? -eq 0 ] ; then
+    $ZK_CMD create $ZK_NODE "BACKUP_NODE=$MY_IP" > $TMP_OUTPUT 2>&1
+    if ! $GREP "Created $ZK_NODE" $TMP_OUTPUT
+    then
+        logMsg "Exiting. Error creating zknode : $ZK_NODE"
+        exit 1
+    fi
+else
+    IP=`$GREP 'BACKUP_NODE' $TMP_OUTPUT | cut -d '=' -f2`
+    mtime=`$GREP mtime $TMP_OUTPUT | cut -d '=' -f 2`
+    zknode_mtime=`date --date="$mtime" +%s`
+    currtime=`date +%s`
+    difftime=$((currtime-zknode_mtime))
+    if [ "$IP" != "$MY_IP" ];then
+        # if not MY_IP, check if the other node is up by looking at the mtime of
+        # the zknode. if the value is above the specified timeout, then start
+        # the backup on this node
+        if [ "$difftime" -lt $NODE_MTIME_TIMEOUT ];
+        then
+            logMsg "Exiting. ZK backup done by node $IP"
+            exit 0
+        else
+            logMsg "Node: $IP has not accessed ZK in the last $NODE_MTIME_TIMEOUT seconds. Assume it is down and start backing up here"
+        fi
+    fi
+fi
+
+$ZK_CMD set $ZK_NODE "BACKUP_NODE=$MY_IP" > $TMP_OUTPUT 2>&1
+if ! $GREP "mtime" $TMP_OUTPUT ; then
+    logMsg "Exiting. Error while touching zknode : $ZK_NODE"
+    exit 1
+fi
+
+# check if there is enough space to do the backup. 
+# if not enough space, delete old logs and snapshots
+SPACE_THRESHOLD=52428800 # unit in 1K blocks. disk space threshold above which the old snapshots are deleted
+SPACE_USED=$(du -skL $BACKUP_DIR | cut -f1)
+BACKUP_SNAPSHOT_DIR="$BACKUP_DIR/version-2"
+while [ "$SPACE_USED" -gt $SPACE_THRESHOLD ] ; do
+    logMsg "Space threshold exceeded. Threshold:$SPACE_THRESHOLD Used:$SPACE_USED"
+    # delete one snapshot at a time
+    snap_count=`ls $BACKUP_SNAPSHOT_DIR | grep snapshot | wc -l`
+    snap_retain_count=$((snap_count-1))
+    # find first snapshot file and uncompress all log files before that
+    java -cp $ZK_CLASSPATH org.apache.zookeeper.server.PurgeTxnLog  "$BACKUP_DIR" -n "$snap_retain_count" >> $LOG_FILE 2>>$LOG_ERR_FILE
+    SPACE_USED=$(du -skL $BACKUP_DIR | cut -f1)
+done
+
+logMsg "Successfully started the backup"
+# first copy the snapshots. then the logs
+#$RSYNC --exclude=log.* $ZK_IP:$ZK_DATA_DIR $BACKUP_DIR >> $LOG_FILE
+#$RSYNC $ZK_IP:$ZK_DATA_DIR/log.* $BACKUP_DIR >> $LOG_FILE
+$SCP $ZK_IP:$ZK_DATA_DIR/ $BACKUP_DIR/ >> $LOG_FILE 2>> $LOG_ERR_FILE
+
+logMsg "Compressing files"
+cd $BACKUP_SNAPSHOT_DIR
+# don't suffix the compressed files with .gz extension. This is because the ZK PurgeTxnLog utility relies on the 
+# txid in the file name to do the purge
+find $PWD -type f -printf "%T+\t%p\n" | sort | cut -f2 | xargs -i file {} | grep -v gzip | cut -d: -f1 | xargs -i sh -c "$GZIP {}; mv {}.gz {}"
+
+logMsg "Successfully finished ZK backup"
+
+# rotate old log file if it becomes too big
+du_limit=20480 # 20MB
+for logFile in $LOG_FILE $LOG_ERR_FILE ; do
+    if [[ $(du -skL $logFile | cut -f1) -gt ${du_limit} ]];
+    then
+        old_log=$logFile.$(date +%s)
+        mv $logFile $old_log
+        $GZIP $old_log
+    fi
+done
+

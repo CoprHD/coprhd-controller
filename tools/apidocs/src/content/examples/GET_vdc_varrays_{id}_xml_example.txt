@@ -1,0 +1,18 @@
+GET https://192.168.0.0:4443/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <varray>
+       <creation_time>1379169014280</creation_time>
+       <id>urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:</id>
+       <inactive>false</inactive>
+       <link href="/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:" rel="self"/>
+       <name>Freemont</name>
+       <tags/>
+       <auto_san_zoning>true</auto_san_zoning>
+  </varray>

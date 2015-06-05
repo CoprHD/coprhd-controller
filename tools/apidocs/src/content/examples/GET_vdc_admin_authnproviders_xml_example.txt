@@ -1,0 +1,22 @@
+GET https://192.168.0.0:4443/vdc/admin/authnproviders HTTP/1.1 
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml  
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<authnproviders>
+  <authnprovider>
+    <id>urn:storageos:AuthnProvider:222178f7-bffb-4bb7-80f5-d29f1585a6e3:</id>
+    <link href="/vdc/admin/authnproviders/urn:storageos:AuthnProvider:222178f7-bffb-4bb7-80f5-d29f1585a6e3:" rel="self"/>
+    <name>provisioning</name>
+  </authnprovider>
+  <authnprovider>
+    <id>urn:storageos:AuthnProvider:17252b44-1992-4d49-9241-8befab3979d4:</id>
+    <link href="/vdc/admin/authnproviders/urn:storageos:AuthnProvider:17252b44-1992-4d49-9241-8befab3979d4:" rel="self"/>
+    <name>multi-domain forest</name>
+  </authnprovider>
+</authnproviders>

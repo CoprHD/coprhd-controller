@@ -1,0 +1,30 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"IngestUnmanagedFilesystems.File",
+  serviceId:"IngestUnmanagedFilesystems",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+    storageSystems:{
+      type:"assetType.vipr.fileStorageSystem",
+      lockable: true
+    },
+
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+
+    virtualPool:{
+      type:"assetType.vipr.unmanagedFileVirtualPool",
+      lockable: true
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    }
+  }
+}

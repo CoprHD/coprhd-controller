@@ -1,0 +1,10 @@
+<dl class="dl-horizontal">
+
+    <dt>&{'computeImages.imageUrl'}</dt>
+    <dd>${computeImage.imageUrl ?: '-'}</dd>
+    #{if computeImage.lastImportStatusMessage}
+        <dt>&{'computeImages.lastImportStatusMessage'}</dt>
+        <dd>${computeImage.lastImportStatusMessage ?: '-'}</dd>
+    #{/if}
+
+</dl>

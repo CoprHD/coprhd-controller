@@ -1,0 +1,30 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+ext {
+    emclibrary = { deps ->
+        deps.collectNested { dep ->
+            dependencies.create(dep) {
+                transitive = false
+            }
+        }
+    }
+
+    zookeeper = [
+        slf4j,
+        log4j,
+        "jline:jline:0.9.94",
+        "org.jboss.netty:netty:3.2.8.Final",
+        "org.apache.zookeeper:zookeeper:3.4.6-11-vipr"
+    ]
+
+    rsa_bsafe = [
+        "com.rsa.cryptoj:cryptojce:6.1.1:FIPS-140",
+        "com.rsa.cryptoj:cryptojcommon:6.1.1:FIPS-140",
+        "com.rsa.cryptoj:jcmFIPS:6.1.1:FIPS-140",
+    ]
+    
+    netapp = [
+        "com.netapp:manageontap:4.1"
+    ]
+
+}

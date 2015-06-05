@@ -1,0 +1,22 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+[Unit]
+Description=StorageOS boot-ovfenv service
+
+Wants=localfs.service
+After=localfs.service
+Before=atop.service auditd.service rsyslog.service network.service SuSEfirewall2_init.service SuSEfirewall2.service
+
+[Service]
+Type=oneshot
+ExecStart=-/etc/storageos/boot-ovfenv start
+RemainAfterExit=yes
+Restart=no
+StandardOutput=tty
+StandardInput=tty-force
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=multi-user.target

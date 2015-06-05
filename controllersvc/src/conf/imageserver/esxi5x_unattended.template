@@ -1,0 +1,57 @@
+vmaccepteula
+clearpart ${clear.device} --overwritevmfs   
+install ${install.device} --overwritevmfs
+rootpw --iscrypted  ${root.password}
+network --addvmportgroup=0 --bootproto=dhcp  
+reboot
+
+%pre --interpreter=busybox
+
+%post --interpreter=busybox --ignorefailure=false 
+localcli network firewall set --enabled false
+# if boot uuid was used, this will create sym link
+${DATASTORE_SYM_LINK}
+cat /var/log/weasel.log  >> /vmfs/volumes/datastore1/osagent.log 2>&1
+echo $(date +"%Y-%m-%d %T") "INFO Executing %post section" >> /vmfs/volumes/datastore1/osagent.log
+# Downloading custom wget
+i=0
+file="/tmp/wget"
+while [ ! -s "$file" ] && [ $i -lt 5 ]
+do
+wget http://${http.ip}:${http.port}/wget -O /tmp/wget
+i=$((i+1))
+if [ ! -s "$file" ]
+then sleep 5
+fi
+done
+if [ ! -s "$file" ]
+then
+wget http://${http.ip}:${http.port}/failure/${session.id}
+exit 1
+fi
+chmod u+x /tmp/wget
+# Download first boot
+/tmp/wget http://${http.ip}:${http.port}/fb/${session.id} /vmfs/volumes/datastore1/esxi-firstboot.sh >> /vmfs/volumes/datastore1/osagent.log 2>&1
+# Check whether the attachment was succesfully downloaded: vmfs-volumes-datastore1-esxi-firstboot.sh
+file="/vmfs/volumes/datastore1/esxi-firstboot.sh"
+if [ -s "$file" ] 
+then echo $(date +"%Y-%m-%d %T") "INFO esxi-firstboot.sh was correctly downloaded" >> /vmfs/volumes/datastore1/osagent.log
+else
+echo $(date +"%Y-%m-%d %T") "ERROR An error has occurred while downloading esxi-firstboot.sh" >> /vmfs/volumes/datastore1/osagent.log
+echo $(date +"%Y-%m-%d %T") "INFO Setting the session status to FAILED" >> /vmfs/volumes/datastore1/osagent.log
+/tmp/wget http://${http.ip}:${http.port}/failure/${session.id} >> /vmfs/volumes/datastore1/osagent.log 2>&1
+exit 1
+fi
+# Change file permissions
+chmod 700 /vmfs/volumes/datastore1/esxi-firstboot.sh >> /vmfs/volumes/datastore1/osagent.log 2>&1
+# done
+echo $(date +"%Y-%m-%d %T") "INFO Setting the session status to DEPLOYED" >> /vmfs/volumes/datastore1/osagent.log
+/tmp/wget http://${http.ip}:${http.port}/success/${session.id} >> /vmfs/volumes/datastore1/osagent.log 2>&1
+echo $(date +"%Y-%m-%d %T") "INFO Rebooting target " >> /vmfs/volumes/datastore1/osagent.log
+
+%firstboot --interpreter=busybox
+echo $(date +"%Y-%m-%d %T") "INFO Executing %firstboot section" >> /vmfs/volumes/datastore1/osagent.log
+echo $(date +"%Y-%m-%d %T") "INFO Executing FIRST_BOOT script provided by the user" >> /vmfs/volumes/datastore1/osagent.log
+{ rm /vmfs/volumes/datastore1/esxi-firstboot.sh && awk -v RS="\r" -v ORS="" {print} > /vmfs/volumes/datastore1/esxi-firstboot.sh; } < /vmfs/volumes/datastore1/esxi-firstboot.sh
+chmod 700 /vmfs/volumes/datastore1/esxi-firstboot.sh  # restore the permissions the rm/awk pair just zapped
+/vmfs/volumes/datastore1/esxi-firstboot.sh >> /vmfs/volumes/datastore1/osagent.log 2>&1

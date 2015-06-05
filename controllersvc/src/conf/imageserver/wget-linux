@@ -1,0 +1,57 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Check params
+if [ $# -gt 2 -o $# -lt 1 ]
+then
+	echo "Usage: wget URL [output-file]"
+	exit 1
+fi
+
+# Loop index
+i=0
+
+# No attempts
+attempts=5
+
+# URL
+url=$1
+
+# Remove output? 0:false, 1:true
+remove=0
+
+# Check whether the user has specified an output file
+if [ $# -eq 2 ]
+then
+	output_file=$2
+else
+	output_file="/tmp/wget.out"
+	remove=1
+fi	
+
+while [ ! -f "$output_file" ] && [ $i -lt $attempts ]
+do
+	# Execute wget command
+	wget ${url} -O ${output_file}
+	
+	# Increment number of attempts
+	i=$((i+1))
+	
+	# If the file was not created or size is 0, then sleep 5 seconds
+	if [ ! -f "$output_file" ]
+	then
+		sleep 5
+	fi	
+done
+
+if [ -f "$output_file" ] 
+then 
+	# Remove the output file if required
+	if [ $remove -eq 1 ]
+	then
+			rm ${output_file}
+	fi
+					
+else
+	exit 1
+fi

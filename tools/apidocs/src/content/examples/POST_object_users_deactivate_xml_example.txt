@@ -1,0 +1,12 @@
+POST https://192.168.0.0:4443/object/users/deactivate HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<user_delete_param>
+   <user>wuser2@sanity.local</user>
+</user_delete_param>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml

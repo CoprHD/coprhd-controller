@@ -1,0 +1,30 @@
+POST https://192.168.0.0:4443/vdc/data-stores/filesystems HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<filesystems_data_store_create>
+   <data_services_vpool>urn:storageos:ObjectStore:e6c50225-8df5-4773-8aae-9a09b1625930:</data_services_vpool>
+   <file_data_services_vpool>urn:storageos:VirtualPool:2a3e6f87-d091-4174-8ad7-c359acca288a:</file_data_services_vpool>
+   <name>ws-isilonobject-00:50:56:91:3C:F8-1</name>
+   <size>104857600000</size>
+</filesystems_data_store_create>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+   <link href="/vdc/data-stores/filesystems/urn:storageos:HostingDeviceInfo:b1cc43e2-5cea-4a79-8690-5228208a0e70:/tasks/99667e9c-3b3a-46f9-8873-630b75d3f4ad"
+      rel="self">
+   <message>DataStoreCreation-Begin</message>
+   <op_id>99667e9c-3b3a-46f9-8873-630b75d3f4ad</op_id>
+   <resource>
+      <id>urn:storageos:HostingDeviceInfo:b1cc43e2-5cea-4a79-8690-5228208a0e70:</id>
+      <link href="/vdc/data-stores/filesystems/urn:storageos:HostingDeviceInfo:b1cc43e2-5cea-4a79-8690-5228208a0e70:"
+         rel="self">
+      <name>ws-isilonobject-00:50:56:91:3C:F8-1</name>
+   </resource>
+   <state>pending</state>
+</task>

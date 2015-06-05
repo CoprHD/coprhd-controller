@@ -1,0 +1,25 @@
+POST: https://192.168.0.0:4443/block/snapshots/urn:storageos:BlockSnapshot:bee03757-1a4c-495f-92e7-ee0128a1d280:/deactivate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+    "link": {
+        "href": "/block/snapshots/urn:storageos:BlockSnapshot:bee03757-1a4c-495f-92e7-ee0128a1d280:/tasks/8c43cebb-596d-400a-b500-5cc27364f856",
+        "rel": "self"
+    },
+    "op_id": "8c43cebb-596d-400a-b500-5cc27364f856",
+    "resource": {
+        "id": "urn:storageos:BlockSnapshot:bee03757-1a4c-495f-92e7-ee0128a1d280:",
+        "link": {
+            "href": "/block/snapshots/urn:storageos:BlockSnapshot:bee03757-1a4c-495f-92e7-ee0128a1d280:",
+            "rel": "self"
+        },
+        "name": "blocksnap-example.com-30498"
+    },
+    "start_time": 1380722323514,
+    "state": "pending"
+}

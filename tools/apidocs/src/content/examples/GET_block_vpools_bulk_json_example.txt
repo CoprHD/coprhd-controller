@@ -1,0 +1,19 @@
+GET https://192.168.0.0:4443/block/vpools/bulk.json  HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:VirtualPool:18af14df-1f7e-4883-a0bd-44aee9372407:',
+            'urn:storageos:VirtualPool:2567045e-e16f-4aa1-930a-dfbc09917c97:',
+            'urn:storageos:VirtualPool:48a74fce-c654-4272-b407-2aa14c2b1095:',
+            'urn:storageos:VirtualPool:9cdc6936-4636-4909-a85f-3fd4c2e87e41:',
+            'urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:'
+        ]
+    }
+}

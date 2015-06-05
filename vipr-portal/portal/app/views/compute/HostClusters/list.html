@@ -1,0 +1,49 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.hostClusters'] /}
+
+#{tenantSelector /}
+#{DataTable.header titleKey:'HostClusters.list.title'/}
+#{DataTable.baseCrudTable id:'cluster',
+                      dataTable:dataTable,
+                      expandable:true,
+                      actions:['HostClusters.hosts': @editHosts(':id')]}
+  #{DataTable.baseCrudButtonBar createHref:@create(), deleteAction:'showModalDialog()'}
+    #{Form.button name:'button.detachStorage', class:'default', icon:'hdd', submit:'detachStorageForm',
+                data:['enabled':'selected']/}
+  #{/DataTable.baseCrudButtonBar}
+#{/DataTable.baseCrudTable}
+#{DataTable.expandHtml @itemDetails(':id'), table:'cluster'/}
+#{DataTable.formAction @detachStorage(), id:'detachStorageForm', table:'cluster',
+            confirm:messages.get('HostClusters.detachStorageConfirm')/}
+
+
+#{DataTable.formAction @delete(), id:'deleteModalForm', class:'show form form-horizontal', table:'cluster'}
+  #{Modal.dialog id:'deleteHostDialog'}
+    #{Modal.body}
+      #{Form.header titleKey:'HostClusters.deleteClusters.title'/}
+        &{'HostClusters.deleteConfirm'}
+        #{field 'detachStorage'}
+          %{
+            field.value = 'true'
+            field.cssClass = 'checkbox'
+            field.label = messages.get('HostClusters.detachStorageModal')
+            field.helpText = messages.get('HostClusters.detachStorageModal.help')
+          }%
+          #{Form.booleanCheckBoxControlGroup field:field/}
+        #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button 'button.delete', class:'danger', icon:'trash', submit:'deleteModalForm'/}
+      #{Form.button 'button.cancel', icon:'primary', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/Modal.dialog}
+#{/DataTable.formAction}
+
+<script>
+function showModalDialog() {
+    $('.modal').modal();
+}
+</script>

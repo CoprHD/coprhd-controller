@@ -1,0 +1,35 @@
+POST https://192.168.0.0:4443/vdc/protection-systems.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "ip_address": "192.168.0.0",
+    "name": "rp_protection_system",
+    "password": "admin",
+    "port_number": "7225",
+    "registration_mode": "SYSTEM",
+    "system_type": "rp",
+    "user_name": "admin"
+}
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+    "link": {
+        "href": "/vdc/protection-systems/urn:storageos:ProtectionSystem:ed3c8075-9e0e-49f0-8d38-ffe338f973db:/tasks/c4e2297e-d08a-4e1f-bceb-0c7b755aeb57",
+        "rel": "self"
+    },
+    "op_id": "c4e2297e-d08a-4e1f-bceb-0c7b755aeb57",
+    "resource": {
+        "id": "urn:storageos:ProtectionSystem:ed3c8075-9e0e-49f0-8d38-ffe338f973db:",
+        "link": {
+            "href": "/vdc/protection-systems/urn:storageos:ProtectionSystem:ed3c8075-9e0e-49f0-8d38-ffe338f973db:",
+            "rel": "self"
+        },
+        "name": "rp_protection_system"
+    },
+    "start_time": 1380164202131,
+    "state": "pending"
+}

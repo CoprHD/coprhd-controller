@@ -1,0 +1,55 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if _property}
+%{
+    property = _property
+    id = property.name
+    name = property.name
+    originalValue = property.value
+    value = flash[name] ?: originalValue
+    label = property.label
+    description = property.description
+    disabled = _disabled
+    
+    inputType = property.passwordField ? 'password' : 'text'
+    booleanType = property.booleanField
+    textArea = property.largeField
+    allowedValues = property.allowedValues
+    rebootRequired = property.rebootRequired
+    maxLength = property.maxLength
+}%
+#{set 'error'}#{error name /}#{/set}
+<div id="${id}ControlGroup" class="form-group ${error ? "has-error" : ""}">
+  <label class="control-label col-sm-3" for="${id}">${label}:</label>
+  <div class="col-sm-6">
+      #{if allowedValues}
+        <select id="${id}" name="${name}" class="form-control" #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}" data-reboot="${rebootRequired ? 'true' : 'false'}">
+          #{list items: allowedValues, as:'option'}
+            <option value="${option}"
+              #{if option.equalsIgnoreCase(value)}selected="selected"#{/if}
+            >${option}</option>
+          #{/list}
+        </select>
+      #{/if}
+      #{elseif booleanType}
+        <select id="${id}" name="${name}" class="form-control" #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}" data-reboot="${rebootRequired ? 'true' : 'false'}">
+          <option value="true" #{if value.equalsIgnoreCase('true')}selected="selected"#{/if}>&{'boolean.true'}</option>
+          <option value="false" #{if value.equalsIgnoreCase('false')}selected="selected"#{/if}>&{'boolean.false'}</option>
+        </select>
+      #{/elseif}
+      #{else}
+        #{if textArea}
+          <textarea id="${id}" name="${name}" class="form-control" rows="5" #{if maxLength}maxlength="${maxLength}"#{/if} #{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}" data-reboot="${rebootRequired ? 'true' : 'false'}" autocomplete="off">${value}</textarea>
+        #{/if}
+        #{else}
+          <input type="${inputType}" class="form-control" id="${id}" name="${name}" value="${value}" #{if maxLength}maxlength="${maxLength}"#{/if}#{if disabled}disabled="disabled"#{/if} data-originalvalue="${originalValue}" data-reboot="${rebootRequired ? 'true' : 'false'}" autocomplete="off"/>
+        #{/else}
+      #{/else}
+      #{if description}<p class="help-block clear">${description}#{if rebootRequired} <span class="text-danger">&{'configProperties.rebootRequired'}</span>#{/if}</p>#{/if}
+  </div>
+  <div class="col-sm-3">
+    <span class="help-inline clearfix">${error}</span>
+  </div>
+</div>
+#{/if}

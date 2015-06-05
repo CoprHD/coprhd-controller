@@ -1,0 +1,23 @@
+/var/log/storageserver.log {
+  delaycompress
+  missingok
+  copytruncate
+  create 664 storageos storageos
+  sharedscripts
+  size=+100M
+  rotate 30
+  postrotate
+  endscript
+}
+
+/var/log/storageserver.out {
+  delaycompress
+  missingok
+  copytruncate
+  nocreate
+  sharedscripts
+  size=+100M
+  rotate 30
+  postrotate
+  endscript
+}

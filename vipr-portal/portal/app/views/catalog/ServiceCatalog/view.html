@@ -1,0 +1,57 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.viewCatalog'] /}
+#{set 'moreScripts'}
+#{set 'customDocLink'}
+  <a id="docLink" href="#">
+    #{icon 'question-sign'/} &{'nav.help'}
+  </a>
+#{/set}
+#{script 'catalog.js'/}
+<script type="text/javascript">
+var catalog = Catalog();
+#{if flash['categoryPath']}
+window.location.hash = "${flash['categoryPath']}";
+#{/if}
+
+$(document).ready(function() {
+    catalog.initViewMode('#catalog');
+    $('#editCatalog').on('click', function() {
+        var url = routes.ServiceCatalog_edit();
+        if (window.location.hash) {
+            url += window.location.hash;
+        }
+        window.location.href = url;
+    });
+    $('#docLink').on('click', function() {
+      var url = routes.ServiceCatalog_docCategory({categoryId: catalog.getCurrentCategoryId()});
+      window.open(url, '_blank');
+    });
+});
+</script>
+#{/set}
+
+#{set 'breadcrumbs'}
+<div id="breadcrumbs">
+  #{list breadcrumbs.values(), as:'items'}
+    #{ServiceCatalog.breadcrumb items:items/}
+  #{/list}
+</div>
+#{/set}
+
+#{tenantSelector /}
+
+#{alerts disappear:true /}
+#{if error}
+  <p id="alerts_error" class="alert alert-danger">
+    ${error}
+  </p>
+#{/if}
+
+<div id="catalog" class="catalog">
+  #{list items:catalog.values(), as:'category'}
+    #{ServiceCatalog.category category:category /}
+  #{/list}
+</div>

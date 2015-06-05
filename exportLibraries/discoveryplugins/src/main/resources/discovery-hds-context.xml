@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="hds"
+		class="com.emc.storageos.volumecontroller.impl.plugins.HDSCommunicationInterface">
+        <property name="hdsApiFactory" ref="hdsApiFactory" />
+        <property name="volumeDiscoverer" ref="volumeDiscoverer" />
+        <property name="partitionManager" ref="partitionManager"/>
+	</bean>
+    
+    <!-- Bean id for httpclient instance -->
+	<bean id="httpClient" class="org.apache.http.impl.client.DefaultHttpClient" />
+	
+	<bean id="volumeDiscoverer"
+		class="com.emc.storageos.volumecontroller.impl.hds.discovery.HDSVolumeDiscoverer">
+		<property name="hdsApiFactory" ref="hdsApiFactory" />
+	</bean>
+
+	 <bean id="hdsApiFactory" class="com.emc.storageos.hds.api.HDSApiFactory"
+          init-method="init"/>
+
+     <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+
+</beans>

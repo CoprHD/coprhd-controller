@@ -1,0 +1,172 @@
+GET https://192.168.0.0:4443/vdc/networks.json HTTP/1.1 
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json  
+
+{
+   "network" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:3ef835dc-e77f-47b5-8ac1-3b7529c61706:"
+         },
+         "name" : "VSAN_1337",
+         "id" : "urn:storageos:Network:3ef835dc-e77f-47b5-8ac1-3b7529c61706:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:aba2feda-8862-4974-b42a-606e3c973289:"
+         },
+         "name" : "VSAN_1",
+         "id" : "urn:storageos:Network:aba2feda-8862-4974-b42a-606e3c973289:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:353c1b0f-ec86-428e-9486-79e6762d98a8:"
+         },
+         "name" : "VSAN_5",
+         "id" : "urn:storageos:Network:353c1b0f-ec86-428e-9486-79e6762d98a8:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:f399220e-520f-4d6b-998f-c855acea8a15:"
+         },
+         "name" : "VSAN_6",
+         "id" : "urn:storageos:Network:f399220e-520f-4d6b-998f-c855acea8a15:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:6cd38fda-bf81-44fc-87da-15fc5e3ce5f1:"
+         },
+         "name" : "VSAN_2",
+         "id" : "urn:storageos:Network:6cd38fda-bf81-44fc-87da-15fc5e3ce5f1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:fd084eba-d7e5-4970-9fee-06d6af1aca8f:"
+         },
+         "name" : "default IP TZ-2",
+         "id" : "urn:storageos:Network:fd084eba-d7e5-4970-9fee-06d6af1aca8f:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:7636f3d4-367c-4fc5-9fe7-c30414b9445b:"
+         },
+         "name" : "FABRIC_VPlex_LGL6221_FID_40",
+         "id" : "urn:storageos:Network:7636f3d4-367c-4fc5-9fe7-c30414b9445b:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:aff32a48-1e33-4ca0-8537-232a44e7d260:"
+         },
+         "name" : "VSAN_3",
+         "id" : "urn:storageos:Network:aff32a48-1e33-4ca0-8537-232a44e7d260:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:4fa5dfe7-4183-4008-96c7-0c5498036512:"
+         },
+         "name" : "default IP TZ",
+         "id" : "urn:storageos:Network:4fa5dfe7-4183-4008-96c7-0c5498036512:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:3d0839df-6217-47b8-ad67-88ad03830663:"
+         },
+         "name" : "FABRIC_losam082-fabric",
+         "id" : "urn:storageos:Network:3d0839df-6217-47b8-ad67-88ad03830663:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:d516b80a-cec7-4978-82b4-32a1afa37db3:"
+         },
+         "name" : "default No SAN zoning",
+         "id" : "urn:storageos:Network:d516b80a-cec7-4978-82b4-32a1afa37db3:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:0685ef1a-5171-4fac-91a8-a5338576bba2:"
+         },
+         "name" : "VSAN_1(1)",
+         "id" : "urn:storageos:Network:0685ef1a-5171-4fac-91a8-a5338576bba2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:e984c3ed-a344-4b27-89c4-a899a2216d84:"
+         },
+         "name" : "FABRIC_VPlex_Meta_Fid_20",
+         "id" : "urn:storageos:Network:e984c3ed-a344-4b27-89c4-a899a2216d84:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:040a4c10-fdd2-476a-9ad5-1b58c14fea60:"
+         },
+         "name" : "FABRIC_fake array fabric",
+         "id" : "urn:storageos:Network:040a4c10-fdd2-476a-9ad5-1b58c14fea60:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:262a2701-582c-41ad-8f0a-542cc3963d47:"
+         },
+         "name" : "FABRIC_lglah043_11-10:00:00:05:1e:9b:49:9a",
+         "id" : "urn:storageos:Network:262a2701-582c-41ad-8f0a-542cc3963d47:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:1cd70833-efcd-4f43-9b52-f8ede97bf90b:"
+         },
+         "name" : "VSAN_4",
+         "id" : "urn:storageos:Network:1cd70833-efcd-4f43-9b52-f8ede97bf90b:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:b5c8a44e-9795-46d6-9569-d2a56ef590a0:"
+         },
+         "name" : "FABRIC_Vplex_WAN-10:00:00:27:f8:58:f6:bc",
+         "id" : "urn:storageos:Network:b5c8a44e-9795-46d6-9569-d2a56ef590a0:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:8d63efe2-382e-4993-bca8-f2e2a1430802:"
+         },
+         "name" : "FABRIC_VPLEX_WAN_lglw9208/lglw9209",
+         "id" : "urn:storageos:Network:8d63efe2-382e-4993-bca8-f2e2a1430802:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:801c0ca4-6ff8-416e-976b-5afcb6e15336:"
+         },
+         "name" : "FABRIC_vplex154nbr2",
+         "id" : "urn:storageos:Network:801c0ca4-6ff8-416e-976b-5afcb6e15336:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/networks/urn:storageos:Network:1f9aea24-f546-468b-b1cb-4e4154a36842:"
+         },
+         "name" : "FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1",
+         "id" : "urn:storageos:Network:1f9aea24-f546-468b-b1cb-4e4154a36842:"
+      }
+   ]
+}

@@ -1,0 +1,52 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ExportFileSystem.File",
+  serviceId:"ExportFileSystem",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileNFSFilesystem"
+    },
+    
+    comment:{
+      type:"text",
+      required: false,
+      validation:{
+        regEx:"[^\-\u0080-\u009f]*",
+        max:255
+      },
+      lockable: true
+    },
+    
+    subDirectory: {
+      type:"text",
+      required: false
+    },
+    
+    exportRule:{
+      type:"table",
+      items:{
+        exportHosts:{
+          type:"text"
+        },
+        
+        security:{
+          type:"assetType.vipr.fileNFSSecurity",
+          initialValue:"sys",
+          lockable: true
+        },
+        
+        permission:{
+          type:"assetType.vipr.fileNFSPermission",
+          initialValue:"rw",
+          lockable: true
+        }
+      }
+    }
+  }
+}

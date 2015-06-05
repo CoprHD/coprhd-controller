@@ -1,0 +1,21 @@
+GET https://192.168.0.0:4443/block/vpools/urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:/quota.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "enabled": false,
+  "limited_resource": {
+    "name": "Protected Base Virtual Pool",
+    "id": "urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:",
+    "link": {
+      "rel": "self",
+      "href": "//urn:storageos:VirtualPool:bf7104ec-3db2-4dcb-9e0d-7232a4460aea:"
+    }
+  },
+  "current_capacity": 0,
+  "quota_gb": 0
+}

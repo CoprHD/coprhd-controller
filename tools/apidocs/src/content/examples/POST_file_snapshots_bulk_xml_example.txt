@@ -1,0 +1,44 @@
+POST https://192.168.0.0:4443/file/snapshots/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+     <id>urn:storageos:Snapshot:99f4462d-88b2-4488-b522-ebb6bf3d7e72:</id>
+     <id>urn:storageos:Snapshot:9713c1e5-e483-4aa7-b645-b9c05ef97d63:</id>
+</ids>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_file_snapshots>
+    <file_snapshot>
+        <creation_time>1380133448384</creation_time>
+        <id>urn:storageos:Snapshot:99f4462d-88b2-4488-b522-ebb6bf3d7e72:</id>
+        <inactive>false</inactive>
+        <link href="/file/snapshots/urn:storageos:Snapshot:99f4462d-88b2-4488-b522-ebb6bf3d7e72:" rel="self"/>
+        <name>testSaravSnapSep25-1</name>
+        <tags/>
+        <mount_path>/ifs/.snapshot/ProviderTenant_testSaravSna_99f4462d-88b2-4488-b522-ebb6bf3d7e72/sos/ProviderTenant_testSaravSep_053f78bf-2a78-42a0-b6f7-993d53c31fcf</mount_path>
+        <native_id>6</native_id>
+        <parent>
+            <id>urn:storageos:FileShare:053f78bf-2a78-42a0-b6f7-993d53c31fcf:</id>
+            <link href="/file/filesystems/urn:storageos:FileShare:053f78bf-2a78-42a0-b6f7-993d53c31fcf:" rel="self"/>
+        </parent>
+    </file_snapshot>
+    <file_snapshot>
+        <creation_time>1380133549894</creation_time>
+        <id>urn:storageos:Snapshot:9713c1e5-e483-4aa7-b645-b9c05ef97d63:</id>
+        <inactive>false</inactive>
+        <link href="/file/snapshots/urn:storageos:Snapshot:9713c1e5-e483-4aa7-b645-b9c05ef97d63:" rel="self"/>
+        <name>testSaravSnapSep25-2</name>
+        <tags/>
+        <mount_path>/ifs/.snapshot/ProviderTenant_testSaravSna_9713c1e5-e483-4aa7-b645-b9c05ef97d63/sos/ProviderTenant_testSaravSep_c8f61950-3e28-4a8e-ad46-316b5e188422</mount_path>
+        <native_id>8</native_id>
+        <parent>
+            <id>urn:storageos:FileShare:c8f61950-3e28-4a8e-ad46-316b5e188422:</id>
+            <link href="/file/filesystems/urn:storageos:FileShare:c8f61950-3e28-4a8e-ad46-316b5e188422:" rel="self"/>
+        </parent>
+    </file_snapshot>
+</bulk_file_snapshots>

@@ -1,0 +1,6 @@
+dmroot is a dracut module to setup root filesystem ViPR Controller. We implement a premount hook to create cow volume on top of ViPR Controller image and a zero-filled logical volume. 
+
+Some common tips for dmroot debugging:
+1. Add "rd.shell" to kernel command line in grub (see mkrootimg.sh). It drops to dracut shell if root mounting fails
+2. Add "rd.break=pre-mount" to kernel command line if you want to break before running into dmroot
+3. Use "set -x" to dmroot.sh so that execution path is traced in dracut log file

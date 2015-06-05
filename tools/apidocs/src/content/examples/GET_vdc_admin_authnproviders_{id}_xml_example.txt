@@ -1,0 +1,35 @@
+GET https://192.168.0.0:4443/vdc/admin/authnproviders/urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <authnprovider>
+       <creation_time>1379170785677</creation_time>
+       <id>urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:</id>
+       <inactive>false</inactive>
+       <link href="/vdc/admin/authnproviders/urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:" rel="self"/>
+       <name>ldap-configuration</name>
+       <tags/>
+       <disable>false</disable>
+       <domains>
+            <domain>tenant.domain</domain>
+       </domains>
+       <group_attribute>CN</group_attribute>
+       <group_whitelist_values>
+            <group_whitelist_value>*Admins*</group_whitelist_value>
+            <group_whitelist_value>*Test*</group_whitelist_value>
+       </group_whitelist_values>
+       <manager_dn>CN=Manager,DC=root,DC=com</manager_dn>
+       <mode>ldap</mode>
+       <search_attribute_key>uid</search_attribute_key>
+       <search_base>ou=People,DC=root,DC=com</search_base>
+       <search_filter>uid=%U</search_filter>
+       <server_cert>test_cert</server_cert>
+       <server_urls>
+            <server_url>ldap://192.168.0.10</server_url>
+       </server_urls>
+  </authnprovider>

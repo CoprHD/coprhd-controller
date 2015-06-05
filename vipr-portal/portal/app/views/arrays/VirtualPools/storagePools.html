@@ -1,0 +1,237 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+var storagePools = function() {
+    
+    var queried = false;
+    
+    function isSelectedField(control) {
+        var type = $(control).attr('type');
+        if (type == 'radio' || type == 'checkbox') {
+            return $(control).is(':checked');
+        }
+        else {
+            return true;
+        }
+    }
+
+    function isArrayField(control) {
+        if ($(control).is('select[multiple]')) {
+            return true;
+        }
+        if ($(control).parents('.selectMany').size() > 0) {
+            return true;
+        }
+        return false;
+    }
+
+    function getDataTable() {
+        return $('#storagePools table').dataTable({ bRetrieve: true })
+    }
+    
+    function getRowCount() {
+        return getDataTable().fnGetData().length;
+    }
+    
+    function has($control, name) {
+        if ($control.data(name)) {
+            return true;
+        }
+        else if ($control.attr(name)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    function hasParent($control, name) {
+        var result = false;
+        $control.parents('[data-source]').each(function() {
+            var $parent = $(this);
+            if (has($parent, name)) {
+                result = true;
+                return false;
+            }
+        });
+        return result;
+    }
+    
+    function isDisabled($control) {
+        var disabledField = $control.prop('disabled');
+        var hiddenContainer = hasParent($control, 'hidden');
+        var disabledContainer = hasParent($control, 'disabled');
+        return disabledField || hiddenContainer || disabledContainer;
+    }
+    
+    var poolsLoadingFinished = false;
+    
+    var fadePoolsNotification;
+    
+    function showPoolsMatchingNotification(numMatchingPools) {
+        clearTimeout(fadePoolsNotification);
+        if (poolsLoadingFinished) {
+          var displayText = numMatchingPools === 0 ? "&{'storagePools.noResults'}" : numMatchingPools+" "+"&{"storagePools.matching-pools"}" ;
+          $('#matchingPoolsNotificationDisplay').text(displayText);
+          $('#matchingPoolsNotification').fadeTo(200, .92);
+          fadePoolsNotification = setTimeout(function(){$('#matchingPoolsNotification').fadeOut(200);}, 2000);
+        }
+    }
+    
+    var my = {};
+    
+    my.addParams = function(aoData) {
+        queried = true;
+        aoData.push({name:'authenticityToken', 'value': '${session.authenticityToken}'}); 
+        $('.storagePoolCriteria input[name]').each(function() {
+            var $control = $(this);
+            var name = $control.attr('name');
+            
+            // Ignore disabled fields
+            if (isDisabled($control)) {
+                return;
+            }
+            
+            if (isSelectedField(this)) {
+                aoData.push({'name': name, 'value': $control.val()});
+            }
+        });
+        $('.storagePoolCriteria select[name]').each(function() {
+            var $control = $(this);
+            var name = $(this).attr('name');
+            
+            // Ignore disabled fields
+            if (isDisabled($control)) {
+                return;
+            }
+            
+            $('option:selected', this).each(function() {
+                aoData.push({'name': name, 'value': $(this).val()});
+            });
+        });
+        console.log('Storage Pool criteria: '+JSON.stringify(aoData));
+    }
+    
+    my.updateMatches = function(oSettings) {
+        var numMatchingPools = getRowCount();
+        console.log("  - Found "+numMatchingPools+" matching pools");
+        $('#matchingPools').text(numMatchingPools);
+        $('#matchingPoolsRefresh').hide();
+        showPoolsMatchingNotification(numMatchingPools);
+    }
+    
+    my.render = function(o, val) {
+        if (o.aData.id) {
+            var id = o.aData.id;
+            var checkbox = "<input type='checkbox' name='vpool.storagePools' ";
+            var ids = $('.storagePools[data-ids]').data('ids');
+            if (ids && ids.indexOf(id) > -1) {
+                checkbox += "checked='checked' ";
+            }
+            checkbox += "value='"+id+"'>";
+            return checkbox;
+        }
+        else {
+            return val;
+        }
+    }
+    
+    my.reload = function() {
+        var $http = portalApp.$injector.get("$http");
+        //don't trigger if we have pending requests that could update the form
+        if ($http.pendingRequests.length === 0) {
+            console.log("Reloading storage pools");
+            getDataTable().fnReloadAjax();
+            $('#matchingPoolsRefresh').show();
+        }
+        else {
+            setTimeout(my.reload, 100);
+        }
+        
+    }
+    
+    my.poolAssignmentChanged = function() {
+        var manual = $('#vpool_poolAssignment').val() == '${models.PoolAssignmentTypes.MANUAL}';
+        getDataTable().fnSetColumnVis(0, manual);
+        if (manual) {
+            $('#storagePools .selected input').prop('disabled', false).removeClass('disabled');
+        }
+        else {
+            $('#storagePools .selected input').prop('disabled', true).addClass('disabled');
+        }
+        poolsLoadingFinished = true;
+    }
+    return my;
+    
+}();
+
+$(document).ready(function() {
+    var loadingImage = '<span id="matchingPoolsRefresh" style="display:none">'+#{loadingImageJs/}+'</span>';
+    $('#matchingPools').parent().append(loadingImage);
+	$('#vpool_poolAssignment').on('change', storagePools.poolAssignmentChanged);
+	window.setTimeout(storagePools.poolAssignmentChanged, 500);
+
+	var triggerReload = util.throttledHandler(storagePools.reload, 500);
+    $(document).on('change', '.storagePoolCriteria input', triggerReload);
+    $(document).on('change', '.storagePoolCriteria select', triggerReload);
+    $(document).on('click', '.storagePoolCriteria select-many button', triggerReload);
+    triggerReload();
+});
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+/* Negative margin allows the search box to be visible without leaving a huge gap between row above. */
+.dataTables_wrapper {
+    margin-top: -30px;
+}
+#matchingPoolsRefresh {
+  font-size: 14px;
+}
+
+#matchingPoolsNotification {
+    position: fixed; 
+    left: 50%; 
+    margin-left: -100px; 
+    top: 100px;
+    width: 400px; 
+    height: 90px;
+    text-align: left;
+    font-weight: bold;
+}
+</style>
+#{/set}
+
+#{collapse 'vpool.group.storagePools', icon:'tasks', badge: 'matchingPools'}
+  #{field 'vpool.poolAssignment'}
+    #{Form.selectOneControlGroup field:field, options:poolAssignmentOptions, cssClass:'span3' /}
+  #{/field}
+  
+  #{field 'vpool.storagePools'}
+    <div class="storagePools" data-ids="${flash[field.name] ?: field.value?.join(',')}">
+    %{
+      options = [
+        'bPaginate': 'false',
+        'fnServerParams': 'storagePools.addParams',
+        'fnInitComplete': 'storagePools.poolAssignmentChanged',
+        'fnDrawCallback': 'storagePools.updateMatches',
+        'sServerMethod':  '"POST"'
+      ]
+      storagePoolsDataTable.columns.add(0, new util.datatable.RenderedColumn("selected", "storagePools.render"))
+    }%
+    #{DataTable.table id:'storagePools', 
+                      dataTable:storagePoolsDataTable,
+                      source:@listStoragePoolsJson(),
+                      options:options /}
+    </div>
+  #{/field}
+#{/collapse}
+
+<div id="matchingPoolsNotification" class="alert alert-success" style="display:none;">
+  <span id="matchingPoolsNotificationDisplay"></span> 
+</div>

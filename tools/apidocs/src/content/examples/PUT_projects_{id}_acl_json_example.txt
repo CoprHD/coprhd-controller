@@ -1,0 +1,29 @@
+PUT: https://192.168.0.0:4443/projects/urn:storageos:Project:3b279e34-2585-4332-ac1f-c5170a761737:/acl.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "add": [
+        {
+            "privilege": [
+                "USE"
+            ],
+            "tenant": "urn:storageos:TenantOrg:75b2b17f-7560-4759-9d46-4081907a27a3:"
+        }
+    ]
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "acl": [
+        {
+            "privilege": [
+                "USE"
+            ],
+            "tenant": "urn:storageos:TenantOrg:75b2b17f-7560-4759-9d46-4081907a27a3:"
+        }
+    ]
+}

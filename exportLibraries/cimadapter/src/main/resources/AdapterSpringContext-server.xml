@@ -1,0 +1,118 @@
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<!--
+RCS $Id$
+$URL$
+   
+Copyright 2012 by EMC Corporation ("EMC").
+   
+UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
+notice above does not evidence any actual  or  intended publication of this
+software. Disclosure and dissemination are pursuant to separate agreements.
+Unauthorized use, distribution or dissemination are strictly prohibited.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+<import resource="celerra-message-specs.xml"/>
+
+<bean
+    id="ConnectionManager"
+    class="com.emc.storageos.cimadapter.connections.ConnectionManager">
+    <constructor-arg>
+        <ref bean="ConnectionManagerConfiguration"/>
+    </constructor-arg>
+</bean>
+
+<bean
+    id="ConnectionManagerConfiguration"
+    class="com.emc.storageos.cimadapter.connections.ConnectionManagerConfiguration">
+    <property name="listenerInfo" ref="CimListenerInfo"/>
+    <property name="indicationFilterMap" ref="CimFilterMap"/>
+    <property name="indicationConsumers" ref="CimIndicationConsumerList"/>
+    <property name="celerraMessageSpecs" ref="CelerraMessageSpecList"/>
+    <property name="enableIndications" value="false"/>
+    <property name="subscriptionsIdentifier" value="CimAdapterSubscriptionId"/>
+    <property name="deleteStaleSubscriptionsOnConnect" value="true"/>
+</bean>
+
+<bean
+	id="CimListenerInfo"
+	class="com.emc.storageos.cimadapter.connections.cim.CimListenerInfo">
+	<property name="protocol" value="http"/>
+	<property name="port" value="7012"/>
+	<property name="queueSize" value="1000"/>
+</bean>
+
+<bean
+	id="CimFilterInfo"
+	class="com.emc.storageos.cimadapter.connections.cim.CimFilterInfo"
+	abstract="true"
+/>
+
+<bean
+	id="CimManagedFilterInfo"
+	class="com.emc.storageos.cimadapter.connections.cim.CimManagedFilterInfo"
+	abstract="true"
+/>
+
+<bean id="CimFilterMap" class="com.emc.storageos.cimadapter.connections.cim.CimFilterMap">
+	<property name="filters">
+		<map>
+			<entry key="CIM_AlertIndication">
+			<bean parent="CimManagedFilterInfo">
+				<property name="key" value="CIM_AlertIndication"/>
+				<property name="queryLanguage" value="WQL"/>
+				<property name="query" value="SELECT * FROM CIM_AlertIndication"/>
+			</bean>
+			</entry>
+		
+			<entry key="CIM_InstCreation">
+			<bean parent="CimManagedFilterInfo">
+				<property name="key" value="CIM_InstCreation"/>
+				<property name="queryLanguage" value="WQL"/>
+				<property name="query" value="SELECT * FROM CIM_InstCreation"/>
+			</bean>
+			</entry>
+			
+			<entry key="CIM_InstModification">
+			<bean parent="CimManagedFilterInfo">
+				<property name="key" value="CIM_InstModification"/>
+				<property name="queryLanguage" value="WQL"/>
+				<property name="query" value="SELECT * FROM CIM_InstModification"/>
+			</bean>
+			</entry>
+			
+			<entry key="CIM_InstDeletion">
+			<bean parent="CimManagedFilterInfo">
+				<property name="key" value="CIM_InstDeletion"/>
+				<property name="queryLanguage" value="WQL"/>
+				<property name="query" value="SELECT * FROM CIM_InstDeletion"/>
+			</bean>
+			</entry>
+		</map>
+	</property>
+</bean>
+
+<bean
+    id="CimIndicationConsumer"
+    class="com.emc.storageos.cimadapter.consumers.CimIndicationConsumer"
+    abstract="true"
+/>
+
+<bean
+    id="CimIndicationConsumerList"
+    class="com.emc.storageos.cimadapter.consumers.CimIndicationConsumerList"
+>
+<constructor-arg>
+<list>
+<bean
+    parent="CimIndicationConsumer" 
+    class="com.emc.storageos.cimadapter.consumers.FileCimIndicationConsumer">
+    <property name="useDefaultProcessor" value="true"/>
+</bean>
+</list>
+</constructor-arg>
+</bean>
+
+</beans>

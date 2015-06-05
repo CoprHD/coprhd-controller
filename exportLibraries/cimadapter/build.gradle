@@ -1,0 +1,9 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+
+dependencies {
+    compile library(sblim_cim_client2),
+            "commons-codec:commons-codec:1.7",
+	        project(":errorhandling"),
+            project(":serviceutils")
+}

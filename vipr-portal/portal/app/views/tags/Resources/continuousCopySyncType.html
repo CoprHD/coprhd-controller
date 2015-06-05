@@ -1,0 +1,9 @@
+%{
+  type = _type ? _type : _arg
+}%
+#{if type == '6'}
+  &{'resources.continuouscopy.synctype.mirror'}
+#{/if}
+#{else}
+  ${continuousCopy?.syncType}
+#{/else}

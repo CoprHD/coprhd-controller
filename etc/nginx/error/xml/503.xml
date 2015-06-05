@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<error>
+  <code>6503</code>
+  <description>Unable to connect to the service. The service is unavailable, try again later.</description>
+  <details>The service is currently unavailable because a connection failed to a core component. Please contact an administrator or try again later.</details>
+  <retryable>true</retryable>
+</error>

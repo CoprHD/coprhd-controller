@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!--
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context 
+	http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+    <context:annotation-config />
+    <import resource="classpath:dbclient-conf.xml"/>
+    <import resource="classpath:auth-var.xml" />
+    <import resource="classpath:local-security-conf.xml" />
+    <import resource="classpath:jmx-conf.xml" />
+    <import resource="classpath:security-ciphers.xml" />    
+    <import resource="classpath:geoclient-conf.xml"/>
+    <import resource="classpath:truststore-conf.xml"/>
+
+    <bean id="authmanager"
+          class="com.emc.storageos.auth.impl.CustomAuthenticationManager">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator"/>
+        <property name="localAuthenticationProvider" ref="localAuthNProvider"/>
+    </bean>
+
+    <bean id="authnServiceApp"
+		class="com.emc.storageos.auth.service.impl.resource.AuthenticationApp">
+		<property name="resource">
+			<set>
+                <bean class="com.emc.storageos.auth.service.impl.resource.AuthenticationResource" />
+                <bean class="com.emc.storageos.auth.service.impl.resource.PrincipalValidatorResource" />
+                <bean class="com.emc.storageos.auth.service.impl.resource.ReloadProviderResource" />
+                <bean class="com.emc.storageos.auth.service.impl.resource.UserTenantResource" />
+                <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
+                <bean class="com.emc.storageos.auth.service.impl.resource.AuthnProviderValidatorResource">
+                    <property name="ldapConnectionTimeoutInSecs" value="5"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
+                <bean class="com.emc.storageos.security.resource.UserInfoPage" />
+                <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+			</set>
+		</property>
+	</bean>
+
+    <bean id ="requestedTokenMapHelper" class="com.emc.storageos.security.geo.RequestedTokenHelper" />
+
+    <bean id="permissionsHelper" class="com.emc.storageos.security.authorization.BasePermissionsHelper">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+        <constructor-arg name="usingCache" value="false"/>
+    </bean>
+
+    <bean id="userFromRequestHelper" class="com.emc.storageos.security.authentication.UserFromRequestHelper">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+    </bean>
+    
+    <bean id="keyGenerator" class="com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator">
+         <property name="coordinator" ref="coordinator"/>
+    </bean>    
+    <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="maxAuthnLoginAttemtsCount" value="10"/>
+        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
+        <property name="cleanupThreadInitialDelay" value="10"/>
+    </bean>
+       
+    <bean id="tokenManager" class="com.emc.storageos.auth.impl.CassandraTokenManager"/>
+    <bean id="interVDCTokenCacheHelper" class="com.emc.storageos.security.geo.InterVDCTokenCacheHelper"/>
+    <bean id="tokenEncoder" class="com.emc.storageos.security.authentication.Base64TokenEncoder" init-method="managerInit"/>
+    <bean id="tokenKeyGenerator" class="com.emc.storageos.security.authentication.TokenKeyGenerator" destroy-method="destroy" />
+    <bean id="tokenMaxLifeValuesHolder" class="com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder" />
+    <!-- Uncomment this to disable token encoding/decoding, signing
+    <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>
+    -->
+
+    <bean id="tokenProcessingFilter" class="com.emc.storageos.auth.impl.CustomTokenBasedAthenticationFilter"/>
+    <bean id="authSvcEndpointLocator" class="com.emc.storageos.security.authentication.AuthSvcEndPointLocator"/>
+    
+    <bean name="interNodeHmacFilter" class="com.emc.storageos.security.authentication.InterNodeHMACAuthFilter">
+        <property name="keyGenerator" ref="keyGenerator" />
+    </bean>
+    
+    <bean id="userRepository" class="com.emc.storageos.security.authentication.StorageOSUserRepository">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="localUsers" ref="localUserMap"/>
+    </bean>
+
+    <bean id="localAuthNHandler" class="com.emc.storageos.auth.local.StorageOSLocalAuthenticationHandler">
+        <property name="localUsers" ref="localUserMap"/>
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+    </bean>
+    
+    <bean id="localAuthNPersonAttributeDao" class="com.emc.storageos.auth.local.StorageOSLocalPersonAttributeDao"/>
+    
+    <bean id="localAuthNProvider" class="com.emc.storageos.auth.impl.AuthenticationProvider">
+    	<constructor-arg index="0" ref="localAuthNHandler"/>
+    	<constructor-arg index="1" ref="localAuthNPersonAttributeDao"/>    	
+    </bean>
+    <bean id="secFilters" class="org.springframework.web.filter.CompositeFilter">
+        <property name="filters">
+            <list>
+                <ref bean="requestAuditFilter" />      
+                <ref bean="interNodeHmacFilter"/>
+                <ref bean="tokenProcessingFilter" />                
+            </list>
+        </property>
+    </bean>
+    
+    <bean name="requestAuditFilter" class="com.emc.storageos.security.audit.RequestAuditFilter"/>
+    <bean name="requestStatTracker" class="com.emc.storageos.security.audit.RequestStatTracker" init-method="init" destroy-method="destroy">
+        <property name="displayRateInMins" value="15" />
+    </bean>
+  
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+    
+    <bean id="authnserver" class="com.emc.storageos.auth.service.impl.AuthenticationServerImpl">
+		<property name="application" ref="authnServiceApp" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="secFilters" ref="secFilters"/>
+        <property name="authManager" ref="authmanager"/>
+        <property name="cassTokenManager" ref="tokenManager"/>
+        <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="serviceInfo" ref="serviceinfo"/>
+        <property name="ciphersToInclude" ref="strongCiphers"/>
+        <property name="disableHTTP" value="true"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="trustStoreLoader" ref="trustStoreLoader"/>
+	</bean>
+
+    <bean id="auditLogManager" class="com.emc.storageos.security.audit.AuditLogManager">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>    
+
+    <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="true" />
+    </bean>
+        
+    <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">
+        <property name="defaultProperties" ref="defaultProperties"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="localUsers" ref="localUserMap"/>
+    </bean>
+
+</beans>

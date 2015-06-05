@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/util
+                           http://www.springframework.org/schema/util/spring-util-3.0.xsd
+                           http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+    <import resource="classpath:dbversion-info.xml"/>
+    
+    <util:properties id="defaultProperties" location="file:///etc/config.defaults" />
+    <util:properties id="ovfProperties" location="file:///etc/ovfenv.properties" />
+
+    <!-- On deployed system, content of this file is generated from coordinatorclient-var-template.xml -->
+    <import resource="nodeaddrmap-var.xml" /> 
+    <bean id="zkconn" class="com.emc.storageos.coordinator.common.impl.ZkConnection"
+          init-method="build">
+        <property name="server">
+            <list>
+                <value>coordinator://localhost:2181</value>
+            </list>
+        </property>
+        <!-- 9 minutes timeout -->
+        <property name="timeoutMs" value="540000"/>
+    </bean>
+
+    <context:property-placeholder location="classpath:syssvc-info.properties" />
+
+    <bean id="coordinator" class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl" init-method="start">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="sysSvcName" value="${syssvc.name}"/>
+        <property name="sysSvcVersion" value="${syssvc.version}"/>
+        <property name="nodeCount" ref="nodeCount"/>
+        <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
+        <property name="defaultProperties" ref="defaultProperties"/>
+        <property name="ovfProperties" ref="ovfProperties"/>                                                    
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+    </bean>
+
+    <bean id="nodeCount" class="java.lang.Integer">
+        <constructor-arg value="1"/>
+    </bean>
+
+    <bean id="productName" class="com.emc.storageos.coordinator.client.model.ProductName">
+        <property name="name" value="vipr" />
+    </bean>
+</beans>

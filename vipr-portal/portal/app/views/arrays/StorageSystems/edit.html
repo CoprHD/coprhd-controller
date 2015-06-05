@@ -1,0 +1,551 @@
+%{
+  titleKey = 'StorageSystems.' + (storageArray?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'StorageSystems.description';
+  image = '/public/img/assets/StorageArray.png';
+  currentReferrerUrl = flash["storageArray.referrerUrl"] != null ? flash["storageArray.referrerUrl"] : storageArray.referrerUrl
+}%
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:storageArray?.id ? true : false/}
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  
+    var smisStorageSystemTypeList = [];
+    #{list items:smisStorageSystemTypeList, as:'typeList'}
+       smisStorageSystemTypeList.push('${typeList.id}');
+    #{/list}
+    
+    var nonSmisStorageSystemTypeList = [];
+    #{list items:nonSmisStorageSystemTypeList, as:'typeList'}
+      nonSmisStorageSystemTypeList.push('${typeList.id}');
+    #{/list}   
+    
+    var sslDefaultStorageSystemList = [];
+    #{list items:sslDefaultStorageSystemList, as:'typeList'}
+    sslDefaultStorageSystemList.push('${typeList.id}');
+    #{/list}   
+    
+    var nonSSLStorageSystemList = [];
+    #{list items:nonSSLStorageSystemList, as:'typeList'}
+    nonSSLStorageSystemList.push('${typeList.id}');
+    #{/list}
+    
+    // Port Map of all default ports for various storage array types
+    var portMap = new Object();
+    #{list items:defaultStorageArrayPortMap, as:'defaultPort'}
+      portMap['${defaultPort.id}'] = '${defaultPort.name}';
+    #{/list}
+  
+    $(document).ready(function() {
+    	var editMode = #{get 'editMode'/};
+    	var isUnregistered = editMode && ${storageArray.unregistered};
+        var resourceType = "${storageArray.resourceType}";    	
+    	
+        $('#storageArray_unlimitResourceControlGroup span.help-block').removeClass('clear');
+
+    	
+        //
+        // know here it came from so can navigate back
+        //
+        // Only set if has not already been set - as in when there is a validation/exception roundtrip back to page
+        var referrer = '${currentReferrerUrl}'; 
+        if ( !referrer){
+            $('input[name="storageArray.referrerUrl"]').val(window.document.referrer);
+        }       
+        
+        //
+        // navigate cancel button to previous page
+        //
+        //only over-ride default cancel button href if not coming from the pool/port edit pages
+        //in this case canceling should simply return to original list
+        if (window.document.referrer.indexOf("render") == -1) {
+            $('div.form-actions a.btn').attr('href','#').click( function() {
+            	// Use referrer if available - window.history does not reflect previous page
+            	// when there was a validation/platform error and page roundtrips back to itself
+            	// history is used when canceling array edit from Varray side
+                if (!referrer){
+                	window.history.back(); //HTML5 History API .go(-1) not IE9 compatible
+                    return false;
+            	    }
+                else {
+                    window.location.href = referrer;
+                	}          
+                });
+            }
+    
+        
+        
+    	//
+    	// too much spaning for checkbox.  Remove it
+    	//
+    	$('#storageArray_useSSL').removeClass('span6');
+        $('#storageArray_smisProviderUseSSL').removeClass('span6');
+    	
+        
+        //
+        // register handler to change port number when useSSL is
+        // selection is changed
+        //
+        $('#storageArray_useSSL').on('change', updateInterfaceSettings);
+        $('#storageArray_smisProviderUseSSL').on('change', updateInterfaceSettings);
+        
+        
+        //
+        // register handler to show/hide attributes appropriately
+        // for block or file storage array
+        //
+        $('#storageArray_type, #storageArray_unlimitResource').on('change', updateStorageArrayType);      
+        updateStorageArrayType();
+        
+        //copy from discovery to smi-s ip if blank or if smi-s contains the pre-edited value from discovery
+        $('#storageArray_ipAddress').data('existingVal',  $('#storageArray_ipAddress').val());
+        $('#storageArray_smisProviderIpAddress').data('existingVal',  $('#storageArray_smisProviderIpAddress').val());
+        $('#storageArray_ipAddress').on('change.updateStorageArrayType', autoPopulateSmisIp);
+
+     
+        //
+        // for edit mode, do not allow "type" change
+        //
+      	if ( editMode ) { 		
+      		
+     		$('#storageArray_type').prop("disabled", true);   
+//          $('#storageArray_serialNumber').prop('disabled', true);                 
+//          $('#storageArray_name').prop('disabled', true);                 
+      		
+//     		if ( $.inArray('${storageArray.type}', nonSmisStorageSystemTypeList) >= 0 ) {
+//             $('#storageArray_serialNumberControlGroup').attr('required', true);      		    
+//     		}
+      		
+            if ( $.inArray('${storageArray.type}', smisStorageSystemTypeList) >= 0 ) {
+                $('#storageArray_nameControlGroup').attr('required', true);                 
+            }
+            
+            $('#storageArray_unlimitResource').on('change', updateResourceLimit);
+            
+            //
+            // if resource limit is set to unlimit ( -1 ), hide "Resource Limit" control
+            // 
+            var resourceLimit = ${storageArray.resourceLimit != null ? storageArray.resourceLimit : "''"};
+            if (  ${storageArray.unlimitResource} ) {
+                $('#storageArray_unlimitResource').prop('checked', true).trigger('change');
+                $('#storageArray_resourceLimit').val('');                                                
+            } else {
+                $('#storageArray_unlimitResource').prop('checked', false).trigger('change');                
+                $('#storageArray_resourceLimit').val(resourceLimit);                            
+            }
+            
+      	}
+      	else {      	    
+            updateStorageArrayType();
+        }
+                
+        
+        //
+        // ensure these 2 field are blank, because for some weird reasons
+        // userName is initially set to cache value  from browser
+        // and userPassword is set to some garbage when using "inputPasswordControlGroup" for
+        // userPassword field
+        //
+        //$('#storageArray_userName').val('');
+        $('#storageArray_userPassword').val('');        
+        $('#storageArray_confirmPassword').val('');        
+        $('#storageArray_smisUserPassword').val('');        
+        $('#storageArray_smisConfirmPassword').val('');    
+        
+        
+        if ( isUnregistered ) {
+            var saveTxt = '${messages.get("button.save")}';
+            $('div.form-actions button:contains("'+saveTxt+'")').hide();
+            
+            $('input:text').attr('readonly', 'readonly');
+            $('input:checkbox').prop('disabled', true);
+            $('input:password').prop('disabled', true);
+            $('select').prop('disabled', true);                        
+        }
+        
+        if (resourceType == "block_file") {
+            $('#storageArray_resourceLimitControlGroup label[for="storageArray_resourceLimit"]').text("${messages.get('storageArray.block_fileResourceLimit')}"+":");
+            $('#storageArray_resourceLimitControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.block_fileResourceLimit.help')}");
+        }
+        else if ( resourceType == "file") {
+            $('#storageArray_resourceLimitControlGroup label[for="storageArray_resourceLimit"]').text("${messages.get('storageArray.fileResourceLimit')}"+":");
+            $('#storageArray_resourceLimitControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.fileResourceLimit.help')}");
+        } else if ( resourceType == "block") {
+            $('#storageArray_resourceLimitControlGroup label[for="storageArray_resourceLimit"]').text("${messages.get('storageArray.blockResourceLimit')}"+":");
+            $('#storageArray_resourceLimitControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.blockResourceLimit.help')}");            
+        }
+        
+    });
+    
+    //
+    // set port number depending on useSSL selection
+    //
+    function updateInterfaceSettings(eventObject) {
+
+        var storageArrayType = $('#storageArray_type').val();
+        var portField = $('#storageArray_portNumber');
+        var target = $(eventObject.target);
+        var targetCheckboxIsOriginalTarget = eventObject.hasOwnProperty('originalEvent');
+        var smisProviderUseSSLCheckbox = $('#storageArray_smisProviderUseSSL')
+        var isSmis = target[0] === smisProviderUseSSLCheckbox[0];
+        
+        if (isSmis) {
+            storageArrayType += "_smis";    
+            portField = $('#storageArray_smisProviderPortNumber');       
+        }
+        
+        var useSSL = calculateUseSSL(target, storageArrayType, targetCheckboxIsOriginalTarget)
+        if (useSSL) {
+            storageArrayType += "_useSSL";
+        }
+        
+        if (!targetCheckboxIsOriginalTarget) {
+            target.prop('checked', useSSL);
+        }
+        
+        portField.val(portMap[storageArrayType]);
+        
+    }       
+    
+    function calculateUseSSL(targetCheckbox, storageArrayType, isSslCheckboxTarget) {
+        var visible = targetCheckbox.is(":visible");
+        var checked = targetCheckbox.is(":checked");
+        var isSslCheckboxChecked = visible && checked && isSslCheckboxTarget;
+        var isSslDefaultTypeSelected = visible && !isSslCheckboxTarget && isSSLDefaultType(storageArrayType);
+        
+        return isSslCheckboxChecked || isSslDefaultTypeSelected;
+    }
+    
+    function isSSLDefaultType(storageSystemType) {
+        return $.inArray(storageSystemType, sslDefaultStorageSystemList) >= 0;
+    }
+    
+    function isSmisStorageSystem(storageSystemType) {
+        return $.inArray(storageSystemType, smisStorageSystemTypeList) >= 0;
+    }
+    
+    function isNonSmisStorageSystem(storageSystemType) {
+        return $.inArray(storageSystemType, nonSmisStorageSystemTypeList) >= 0;
+    }    
+    
+    function updateResourceLimit() {
+        var checked =   $('#storageArray_unlimitResource').is(':checked');
+ 
+        if ( checked ) {
+            $('#storageArray_resourceLimitControlGroup').hide();
+        } else {
+            $('#storageArray_resourceLimitControlGroup').show();
+        }
+    }
+    
+    function isHideSSLCheckboxStorageSystem(storageSystemType) {
+        return $.inArray(storageSystemType, nonSSLStorageSystemList) >= 0;
+    }
+    
+    //
+    // appropriately show/hide field for block or file storage array type
+    //
+    function updateStorageArrayType() {
+      var editMode = #{get 'editMode'/};
+      var selectedType = $('#storageArray_type').val();
+      
+      if ( !editMode ) {
+          $('fieldset#settings').hide(); //can only set/edit resouce limit value post create
+      }
+      
+      //
+      // toggle required for serialNumber and name depend on storage array type
+      //
+      if (isSmisStorageSystem(selectedType) ) {
+    	  	$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.smisProviderIpAddress')}"+":");
+    	  	$('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.smisProviderIpAddress.help')}");
+//    		$('#storageArray_serialNumberControlGroup').hide().removeClass('required');    		
+//	  		$('#storageArray_nameControlGroup').show().addClass('required');   
+            if (isHideSSLCheckboxStorageSystem(selectedType)) {
+                $('#storageArray_useSSLControlGroup').hide();
+            }
+            else {
+                $('#storageArray_useSSLControlGroup').show();
+            }
+            
+            if (!editMode) {
+            	$('#storageArray_elementManagerURLControlGroup').show();
+                if ($('#storageArray_type').val() == '${scaleIOStorageSystemType}') {
+                    $('#storageArray_secondaryUsernameControlGroup').show();
+                    $('#storageArray_secondaryPasswordControlGroup').show();
+                    $('#storageArray_secondaryPasswordConfirmControlGroup').show();
+                } else {
+                    $('#storageArray_secondaryUsernameControlGroup').hide();
+                    $('#storageArray_secondaryPasswordControlGroup').hide();
+                    $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
+                }
+            } else {
+            	$('#storageArray_secondaryUsernameControlGroup').hide();
+                $('#storageArray_secondaryPasswordControlGroup').hide();
+                $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
+                $('#storageArray_elementManagerURLControlGroup').hide();
+            }
+            
+            $('fieldset.onboardSmisProvider').hide();            
+    	
+	  		if ( !editMode ) {
+	  			$('#storageArray_useSSL').trigger('change'); // trigger change 
+	  		} else {
+	  		    // if it is a smis managed storage system, hide all but name field for editing purpose
+	  		    $('#storageArray_useSSLControlGroup').hide();
+                $('#storageArray_portNumberControlGroup').hide();
+                $('#storageArray_ipAddressControlGroup').hide();
+                $('#storageArray_userNameControlGroup').hide();
+                $('#storageArray_userPasswordControlGroup').hide();
+                $('#storageArray_confirmPasswordControlGroup').hide();
+	  		    
+	  		}
+	  		
+      } else  if (isNonSmisStorageSystem(selectedType) ) {
+  	  		$('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.ipAddress')}"+":");
+  	  	    $('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.ipAddress.help')}");
+//   			$('#storageArray_serialNumberControlGroup').show().addClass('required');    		
+// 	  		$('#storageArray_nameControlGroup').hide().removeClass('required');    		    	  
+	  		$('#storageArray_useSSLControlGroup').hide();
+	  		$('#storageArray_secondaryUsernameControlGroup').hide();
+	  		$('#storageArray_secondaryPasswordControlGroup').hide();
+	  		$('#storageArray_secondaryPasswordConfirmControlGroup').hide();
+	  		$('#storageArray_elementManagerURLControlGroup').hide();
+            if ( !editMode ) {
+                $('#storageArray_useSSL').trigger('change'); // trigger change
+            }
+	  		
+	        if ( $('#storageArray_type').val() == '${vnxfileStorageSystemType}') {
+	            $('#storageArray_ipAddressControlGroup label[for="storageArray_ipAddress"]').text("${messages.get('storageArray.vnxFileIPAddress')}"+":");
+	            $('#storageArray_ipAddressControlGroup DIV.controls SPAN.help-block').text("${messages.get('storageArray.vnxFileIPAddress.help')}");
+	            
+	            $('fieldset.onboardSmisProvider').show();
+	            if ( !editMode ) { //only fire change if not set - otherwise let existing value pass through
+	                $('#storageArray_smisProviderUseSSL').trigger('change'); // trigger change
+	            }
+	        } else {
+	            $('fieldset.onboardSmisProvider').hide();            
+	        }	  		
+      }            
+    }
+    
+    function handleListPools() {
+        var saId = "${storageArray.id}";
+        
+        var url = #{jsAction @pools() /};
+        window.location.href = url() + (saId ? "?id=" + saId : '');   
+   }
+    
+    function handleListPorts() {
+        var saId = "${storageArray.id}";
+        
+        var url = #{jsAction @ports() /};
+        window.location.href = url() + (saId ? "?id=" + saId : '');   
+    }
+    
+    function autoPopulateSmisIp (){
+    	 if ( $('#storageArray_type').val() == '${vnxfileStorageSystemType}') {
+    		var smisIp = $('#storageArray_smisProviderIpAddress').val();  		 
+  			var existingDiscoveryVal = $('#storageArray_ipAddress').data('existingVal');
+  			var existingSmisVal = $('#storageArray_smisProviderIpAddress').data('existingVal');
+  			 //only copy discovery ip if smi-s field is blank or holds the previous value passed in from edit
+  			 if (existingSmisVal == '' || smisIp == existingDiscoveryVal ){
+  				$('#storageArray_smisProviderIpAddress').val($('#storageArray_ipAddress').val());
+  			 }
+    	 }	
+    }
+  </script>
+#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+	#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+	
+	#{alerts/}
+	
+#{form @save(), id:'storageArrayForm', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+	  #{field 'storageArray.type'}
+	    %{
+	      field.options = storageArrayTypeList
+	      field.required = true
+	      field.cssClass = 'span6 initialFocus'
+	    }%
+	    #{Form.selectOneControlGroup field:field /}
+	  #{/field}
+*{	  
+    #{field 'storageArray.serialNumber'}
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+}*    
+    #{field 'storageArray.name'}
+        %{
+          field.required = true
+        }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'storageArray.ipAddress'}
+      %{
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'storageArray.useSSL'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    
+    #{field 'storageArray.portNumber'}
+      %{
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'storageArray.userName'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'storageArray.userPassword'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+
+    #{field 'storageArray.confirmPassword'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+    
+    #{field 'storageArray.secondaryUsername'}
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+ 
+    #{field 'storageArray.secondaryPassword'}
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+ 
+    #{field 'storageArray.secondaryPasswordConfirm'}
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+ 
+    #{field 'storageArray.elementManagerURL'}
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}  
+    
+    </fieldset>
+
+    <fieldset class="onboardSmisProvider" style="display:none">
+      <legend>&{'StorageSystems.onboardSmisProvider'}<small>&{'StorageSystems.onboardSmisProvider.description'}</small></legend>
+
+        #{field 'storageArray.smisProviderIpAddress'}
+          %{
+            field.required = true
+            field.cssClass = 'span3'
+          }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+    
+        #{field 'storageArray.smisProviderUseSSL'}
+          #{Form.booleanCheckBoxControlGroup field:field /}
+        #{/field}
+        
+        #{field 'storageArray.smisProviderPortNumber'}
+          %{
+            field.required = true
+            field.cssClass = 'span3'
+          }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+    
+        #{field 'storageArray.smisProviderUserName'}
+          %{
+            field.required = !editMode
+          }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+        
+        #{field 'storageArray.smisProviderUserPassword'}
+          %{
+            field.required = !editMode
+          }%
+          #{Form.inputPasswordControlGroup field:field /}
+        #{/field}
+    
+        #{field 'storageArray.smisProviderConfirmPassword'}
+          %{
+            field.required = !editMode
+          }%
+          #{Form.inputPasswordControlGroup field:field /}
+        #{/field}
+    </fieldset>
+    <fieldset id="settings">
+    <legend>&{'StorageSystems.configSettings'}</legend>
+        
+        #{field 'storageArray.unlimitResource'}
+          %{
+            field.required = false
+            field.cssClass = 'span0'
+          }%
+          #{Form.booleanCheckBoxControlGroup field:field /}
+        #{/field} 
+        #{field 'storageArray.resourceLimit'}
+          %{
+            field.required = true
+            field.cssClass = 'span1'
+          }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}       
+    
+	  #{if storageArray?.id}
+	    #{field 'storageArray.id'}
+	      <input type="hidden" name="${field.name}" value="${field.value}">
+	    #{/field}
+	    #{field 'storageArray.type'}
+	      <input type="hidden" name="${field.name}" value="${field.value}">
+	    #{/field}	      
+        #{field 'storageArray.unlimitResourceWasVisible'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}         
+*{      
+        #{field 'storageArray.name'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+        #{field 'storageArray.serialNumber'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}     
+}*               
+	  #{/if} 
+    
+    #{field 'storageArray.referrerUrl'}
+      #{Form.hidden field:field /}
+    #{/field}           
+
+  </fieldset>
+  #{if editMode}
+    #{set 'moreButtons'}
+      <button class="btn btn-default btn-large" name="editPools" onclick="handleListPools(this);return false;" >#{icon 'edit'/} ${messages.get('StorageSystems.editPools')}</button>
+      <button class="btn btn-default btn-large" name="editPorts" onclick="handleListPorts(this);return false;" >#{icon 'edit'/} ${messages.get('StorageSystems.editPorts')}</button>
+    #{/set}
+  #{/if}
+  
+  #{Form.saveCancel /}
+#{/form}
+</div>

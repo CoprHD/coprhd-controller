@@ -1,0 +1,17 @@
+%{ parameters = _parameters }%
+<dl class="dl-horizontal nomargin wide">
+  #{list items:parameters, as:'parameter'}
+    #{if parameter.userInput}
+      <dt>${parameter?.friendlyLabel ?: parameter?.label}:</dt>
+      <dd>
+        #{if parameter.friendlyValue}
+          #{list items:parameter.friendlyValue.parseCSV(), as:'item'}
+            ${item.abbreviate(60)}#{if !item_isLast}<br>#{/if}
+          #{/list}
+        #{/if}
+        #{else}&nbsp;#{/else}
+      </dd>          
+    #{/if}
+  #{/list}
+  #{doBody/}
+</dl>

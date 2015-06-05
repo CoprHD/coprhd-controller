@@ -1,0 +1,12 @@
+%{
+  cifsShare = _resource
+}%
+#{AffectedResources.resource img: 'fileShare.png', classes: 'cifsShare', typeKey: 'resources.cifsShare'}
+#{AffectedResources.singleColumn }
+  <dt>&{'resources.cifsShare.type.label'}</dt><dd>&{'resources.cifsShare.type'}</dd>
+  <dt>&{'resources.cifsShare.name'}</dt><dd>${cifsShare.shareName}</dd>
+  <dt>&{'resources.cifsShare.mountPoint'}</dt><dd>${cifsShare.mountPoint}&nbsp;</dd>
+  <dt>&{'resources.cifsShare.description'}</dt><dd>${cifsShare.description}&nbsp;</dd>
+  <dt>&{'resources.cifsShare.permissions'}</dt><dd>${cifsShare.permissionType} - ${cifsShare.permission}</dd>
+#{/AffectedResources.singleColumn }
+#{/AffectedResources.resource}

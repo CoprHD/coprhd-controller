@@ -1,0 +1,14 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.viewOrders'] /}
+
+#{DataTable.header titleKey:'orders.title'/}
+#{DataTable.table id:'orders', dataTable:dataTable, source:@listJson(), cssClass:'editableRows'/}
+<script type="text/javascript">
+table.orders.dataTable.afterCreate(function(dataTable) {
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchOrderStatus(dataTable.getDataTable(), itemsJson);
+});
+</script>

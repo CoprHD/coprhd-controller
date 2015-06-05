@@ -1,0 +1,182 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'play'
+apply plugin: 'scripts'
+
+// Portal cannot be analyzed by sonar, it's not built like a standard Java project
+sonarRunner {
+    skipProject = true
+}
+
+scripts {
+    portalsvc {
+        mainClass = "play.server.Server"
+        debugPort = "8007"
+        maxMemory = "428.3m"
+        maxMemoryFactor = "0.0211"
+        minMemory = "428.3m"
+        minMemoryFactor = "0.0211"
+        maxPermMemory = "171.1m"
+        maxPermMemoryFactor = "0.0053"
+        jvmArgs += " -XX:CompileCommand=exclude,jregex/Pretokenizer,next" +
+                   " -Dapplication.path=${project.installDir}/portal -Dplay.id=prod -Dprecompiled=true"+
+                   " -DINSTALL_HOME=${project.installDir} -Dfile.encoding=utf-8"
+        jvmArgs += " -DbuildType=" + buildType
+
+        extraDefines = """
+FRAMEWORK_PATH="${project.installDir}/portal/conf"
+for f in ${project.installDir}/play/framework/play-*.jar ; do
+    FRAMEWORK_PATH="\${FRAMEWORK_PATH}:\${f}"
+done
+for f in ${project.installDir}/play/framework/lib/* ; do
+    FRAMEWORK_PATH="\${FRAMEWORK_PATH}:\${f}"
+done
+for f in ${project.installDir}/portal/modules/*/lib/* ; do
+    FRAMEWORK_PATH="\${FRAMEWORK_PATH}:\${f}"
+done
+"""
+        extraClasspath = "\${FRAMEWORK_PATH}"
+        startupTimeoutSec = "180"
+    }
+}
+
+configurations {
+    webjar
+    documentation
+    license
+    scaleio120
+    all*.exclude group:"org.slf4j", module:"slf4j-log4j12"
+    all*.exclude group:"org.slf4j", module:"slf4j-simple"
+}
+
+dependencies {
+    compile project(":com.emc.sa.common"),
+            project(":com.emc.sa.model"),
+            project(":com.iwave.ext.windows"),
+            project(":com.iwave.ext.linux"),
+            project(":com.iwave.ext.vmware.vcenter"),
+            project(":processmonitor"),
+            project(":vipr-client"),
+            "org.lesscss:lesscss:1.7.0.1.1"
+    webjar "org.webjars:jquery:1.11.1",
+           "org.webjars:angularjs:1.2.18",
+           "org.webjars:datatables:1.9.4",
+           "org.webjars:momentjs:2.8.2",
+           "org.webjars:chosen:1.1.0",
+           "org.webjars:sprintf.js:1.0.0",
+           "org.webjars:bootstrap:3.1.1-2"
+
+    documentation "com.emc.vipr:vipr-docs:${docsVersion}.+@zip"
+    license "com.emc.vipr:vipr-licenses:${licenseVersion}.+@zip"
+}
+
+// Customizations for portal-only mode launcher
+def viprHost = project.hasProperty('viprHost') ? project.viprHost : 'localhost'
+def viprUsername = project.hasProperty('viprUsername') ? project.viprUsername : 'root'
+def viprPassword = project.hasProperty('viprPassword') ? project.viprPassword : 'ChangeMe'
+play {
+    libDir = "lib"
+    logFile = "logs/portalsvc.log"
+    compileArgs = "-DINSTALL_HOME=${project.buildDir.absolutePath}"
+    testArgs = "-DINSTALL_HOME=${project.buildDir.absolutePath}"
+    
+   
+    // pattern for play framework zip
+
+    // see if OSS mode build requested otherwise default to EMC mode
+    //
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+	// version of play framework
+        version = "1.3.0"
+
+        // play deadbolt 1.5.3 is available from GoogleCode
+        // vipr-portal/portal/conf/dependencies.yml specifies dependency on  version 1.5.3
+        mavenRepo = "https://maven-play-plugin.googlecode.com/svn/mavenrepo/releases/com/google/code/maven-play-plugin/org/playframework/modules"
+
+    } else { 
+	// version of play framework
+        version = "1.2.7.9-vipr"
+
+        mavenRepo = artifactoryUrl
+    }
+
+    contributedModulesDescriptor = "${mavenRepo}/deadbolt/[module]/[revision]/dependencies.yml"
+    contributedModulesArtifact = "${mavenRepo}/deadbolt/[module]/[revision]/[module]-[revision]-module.zip" 
+
+    launchers {
+        portalOnly {
+            launcherName = "portal-only"
+            jvmArgs = "-Dplay.id=portalonly -DviprHost=${viprHost} -DviprUsername=${viprUsername} -DviprPassword=${viprPassword}"
+        }
+    }
+
+    ivyCacheFiles.with {
+        include "sa/**"
+        include "sa-*"
+        include "resolved-sa-*"
+    }
+    
+    distribution.with {
+        exclude '**/*.less'
+        exclude 'lib'
+        exclude 'eclipse'
+        modules.each {
+            exclude "modules/${it}/lib"
+            exclude "modules/${it}/modules"
+            exclude "modules/${it}/eclipse"
+        }
+        exclude "conf/dev-assets.json"
+        into ("public") {
+            from zipTree(configurations.license.singleFile)
+        }
+        into("public") {
+            includeEmptyDirs = false
+            String[] base = 'public/docs/en_US'.split("\\/")
+            from zipTree(configurations.documentation.singleFile)
+            eachFile { details->
+                rebase(base, details)
+            }
+        }
+        into("public/scaleio-1.20") {
+            from configurations.scaleio120
+        }
+    }
+}
+
+/**
+ * Unpacks all webjars into the 'public/lib' folder within the portal source
+ */
+task unpackWebjars(type:com.emc.gradle.webjar.UnpackWebJars) {
+    destinationDir = file("public/lib")
+    webjars configurations.webjar.files
+}
+playPrepare.dependsOn(unpackWebjars)
+
+clean.dependsOn('cleanUnpackWebjars')
+
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:[unpackWebjars, playPrepare]) {
+    compress = true
+    sourceFile file("public/stylesheets/main.less")
+    destinationFile file("${play.compileDir}/public/stylesheets/main.css")
+}
+playCompile.dependsOn(compileCss)
+
+task copyTools(type: Copy) {
+    into "public/scaleio-1.20"
+    from configurations.scaleio120
+}
+tasks['eclipse'].dependsOn(copyTools, unpackWebjars)
+tasks['idea'].dependsOn(copyTools, unpackWebjars)
+
+void rebase(String[] base, FileCopyDetails details) {
+    def oldPath = details.relativePath.toString()
+    String[] segments = details.relativePath.segments
+    for (int i = 0; i < base.length && i < segments.length; i++) {
+        segments[i] = base[i]
+    }
+    details.relativePath = new RelativePath(details.relativePath.isFile(), segments)
+    project.logger.debug("  ${oldPath} -> ${details.relativePath}")
+}
+
+sourceCompatibility = rootProject.javaSourceCompatibility
+targetCompatibility = rootProject.javaTargetCompatibility

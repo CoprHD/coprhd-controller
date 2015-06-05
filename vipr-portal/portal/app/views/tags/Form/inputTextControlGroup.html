@@ -1,0 +1,20 @@
+%{
+  field =_field;
+  noLabel = _noLabel;
+  
+  if (_cssClass) {
+    field.cssClass = _cssClass
+  }
+  if (_required) {
+    field.required = _required
+  }
+  if (_disabled) {
+    field.disabled = _disabled
+  }
+  if (_attr) {
+    field.atts = _attr;
+  }
+}%
+#{Form.controlGroup field:field, noLabel:noLabel, width: _width}
+  #{Form.inputText field:field /}
+#{/Form.controlGroup}

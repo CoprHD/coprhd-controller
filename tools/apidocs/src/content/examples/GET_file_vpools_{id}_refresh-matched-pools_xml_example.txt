@@ -1,0 +1,17 @@
+GET https://192.168.0.0:4443/file/vpools/urn:storageos:VirtualPool:bb133037-1f22-4cc5-84bc-7b90049c9ad0:/refresh-matched-pools HTTP/1.1
+
+Content-Type: application/xml 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<storage_pools>
+  <storage_pool>
+    <id>urn:storageos:StoragePool:62171f79-2e6d-47db-b303-32c856062c29:</id>
+    <link href="/vdc/storage-systems/urn:storageos:StorageSystem:a1895790-5977-4115-a9f5-b70d033da537:/storage-pools/urn:storageos:StoragePool:62171f79-2e6d-47db-b303-32c856062c29:" rel="self"/>
+    <name>ISILON+6805ca00ad4426b77a51381b1ff2f2af5a41+POOL+x200_5.5tb_200gb-ssd_6gb</name>
+  </storage_pool>
+</storage_pools>

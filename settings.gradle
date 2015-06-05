@@ -1,0 +1,81 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+rootProject.name = "ViPR"
+addProjects(
+        "apisvc",
+        "authsvc",
+        "dbclient",
+        "dbsvc",
+        "coordinatorsvc",
+        "controllersvc",
+        "syssvc",
+        "installer",
+        "exportLibraries/cimadapter",
+        "exportLibraries/discoveryplugins",
+        "exportLibraries/vnx",
+        "exportLibraries/netapp",
+	    "exportLibraries/netappc",
+        "exportLibraries/recoverpoint",
+        "exportLibraries/isilon",
+        "exportLibraries/datadomain",
+        "exportLibraries/vplex",
+        "exportLibraries/vnxe",
+        "exportLibraries/hds",
+        "exportLibraries/compute",
+        "exportLibraries/cinder",
+        "exportLibraries/scaleio",
+        "exportLibraries/xtremio",
+        "geodbsvc",
+        "geosvc",
+        "internalLibraries/security",
+        "internalLibraries/errorhandling",
+        "internalLibraries/geomodels",
+        "internalLibraries/processmonitor",
+        "internalLibraries/jmx",
+        "internalLibraries/serviceutils",
+        "internalLibraries/models",
+        "internalLibraries/backup",
+        "tools/dbutils",
+        "tools/simulators",
+        "tools/zkutils",
+        "tools/dbcli",
+        "tools/geniso",
+        "tools/ipreconfig",
+        "vasa",
+        "vipr-portal/vipr-client",
+        "vipr-portal/com.iwave.ext.linux",
+        "vipr-portal/com.iwave.ext.windows",
+        "vipr-portal/com.iwave.ext.vmware.vcenter",
+        "vipr-portal/com.iwave.ext.command",
+        "vipr-portal/com.iwave.ext.ssh",
+        "vipr-portal/com.iwave.platform",
+        "vipr-portal/com.iwave.isa.content",
+        "vipr-portal/StorageAPI",
+        "vipr-portal/com.emc.sa.model",
+        "vipr-portal/com.emc.sa.common",
+        "vipr-portal/com.emc.sa.engine",
+        "vipr-portal/portal",
+        "vipr-portal/sanity",
+        "tools/apidiff",
+        "tools/apidocs",
+        "installer",
+        "runtime"
+)
+
+
+if (ext.has('buildType') && ext.get('buildType') == "emc") {
+    addProjects("vipr-portal/com.iwave.ext.netapp",
+                "vipr-portal/com.iwave.ext.netappc"
+    )
+}
+
+
+def addProjects(String... paths) {
+    paths?.each { path ->
+        def dir = file(path)
+        include dir.name
+        def p = project(":${dir.name}")
+        p.projectDir = dir
+    }
+
+}

@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!-- Ant Script to create a Jar file and restart the StorageOS services 
+     @author Boris Zeldin
+-->
+<project name="datadomain" default="CreateJar">
+  <target name="CreateJar" description="Create Jar file">
+
+	<!--  Drag in the environment variables -->
+
+	<property environment="env"/> 
+	
+    <!--  Stop the services -->
+
+    <sshexec host="${env.STORAGEOS_IP}" username="root" password="ChangeMe" command="service storageos stop" trust="true"/>
+
+    <!--  Brief sleep for NFS file drops -->
+
+    <sleep seconds="1" />
+
+    <!--  Generate the JAR file directly where it lives on the StorageOS /opt filesystem -->
+
+    <jar jarfile="${env.OPT_DRIVELETTER}:\storageos\lib\storageos-datadomain.jar">
+    	<fileset dir="bin"/>
+    </jar>
+
+    <!--  I like to drop the logs, remove if you don't -->
+
+    <sshexec host="${env.STORAGEOS_IP}" username="root" password="ChangeMe" command="rm -f /opt/storageos/logs/*" trust="true"/>
+
+    <!--  These two lines are optional.  Right now I like a clean slate. -->
+
+    <sshexec host="${env.STORAGEOS_IP}" username="root" password="ChangeMe" command="rm -rf /data/db/1/*" trust="true"/>
+    <sshexec host="${env.STORAGEOS_IP}" username="root" password="ChangeMe" command="rm -rf /data/zk/1/version-2/**" trust="true"/>
+
+    <!--  Start the services again -->
+
+    <sshexec host="${env.STORAGEOS_IP}" username="root" password="ChangeMe" command="service storageos start" trust="true"/>
+  </target>
+</project>

@@ -1,0 +1,71 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
+
+  <script type="text/javascript">
+    var route = #{jsAction @volumesJson(':id')/};
+   
+    function reloadVolumes() {
+      var table = $('#volumes table'); 
+      var xhr = table.data('previousXHR');
+      if (xhr) {
+          xhr.abort();
+      }
+      var projectId = $('#project option:selected').val();
+      table.dataTable().fnReloadAjax(route({id: projectId}));
+    }
+    
+    function disableSRDFSource() {
+        //Do nothing if dataTable is not created
+        if (table.volumes.dataTable.getDataTable() != null) {
+            var count = 0;
+            $('#volumes table tr').each(function() {
+                var rowData = table.volumes.dataTable.getRowData(this);
+                if (rowData != null && rowData.srdfTarget) {
+                    $(this).find('input').prop('disabled', true);
+                    count++;
+                }
+            });
+            (count > 0) ? $('#srdfAlert').show() : $('#srdfAlert').hide();
+        }
+    }
+    
+    table.volumes.dataTable.setDrawCallback(disableSRDFSource);
+    
+    $(document).ready(function() {
+      $('#project').on('change', reloadVolumes);
+    });
+  </script>
+
+#{Resources.projectsControl projects:projects /}
+
+<p id="srdfAlert" class="alert alert-info" style="display:none">&{'resources.volume.disabledSRDF'}</p> 
+
+#{DataTable.header titleKey:'nav.block.volumes' /}  
+#{DataTable.table id:'volumes',
+                  dataTable:dataTable,
+                  source:@volumesJson(session.activeProjectId), 
+                  cssClass:'editableRows',
+                  selectable:true}
+  #{DataTable.buttonBar}
+    <div class="btn-group">
+      <button type="button" class="btn btn-danger dropdown-toggle" name="button.delete" data-toggle="dropdown" data-enabled="selected">
+        <span class="glyphicon glyphicon-trash"></span>
+        &{'resources.volume.deleteLink'} <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu" role="menu">
+        <li><a onclick="return $('#deleteFormFull').submit();">&{'resources.volume.deleteLink.FULL'}</a></li>
+        <li><a onclick="return $('#deleteFormViPRonly').submit();">&{'resources.volume.deleteLink.VIPR_ONLY'}</a></li>
+      </ul>
+    </div>
+    #{doBody/}
+  #{/DataTable.buttonBar}
+  #{DataTable.formAction @delete(), id:'deleteFormFull', table:'volumes', confirm:messages.get('resources.volumes.deleteConfirm.FULL')}
+    <input type="hidden" name="type" value="FULL">
+  #{/DataTable.formAction}
+  #{DataTable.formAction @delete(), id:'deleteFormViPRonly', table:'volumes', confirm:messages.get('resources.volumes.deleteConfirm.VIPR_ONLY')}
+    <input type="hidden" name="type" value="VIPR_ONLY">
+  #{/DataTable.formAction}
+#{/DataTable.table}

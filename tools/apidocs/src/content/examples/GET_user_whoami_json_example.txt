@@ -1,0 +1,33 @@
+GET https://192.168.0.0:4443/user/whoami.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json  
+
+{
+   "roles" : [
+      "SECURITY_ADMIN",
+      "SYSTEM_ADMIN",
+      "SYSTEM_MONITOR",
+      "TENANT_ADMIN"
+   ],
+   "subtenant_roles" : [
+      {
+         "roles" : [
+            "TENANT_ADMIN"
+         ],
+         "tenant" : "urn:storageos:TenantOrg:4079d91e-df43-4899-97f2-b284adc232ce:"
+      },
+      {
+         "roles" : [
+            "TENANT_ADMIN"
+         ],
+         "tenant" : "urn:storageos:TenantOrg:68f91da5-cc86-4fe6-af6d-1a7470c981f0:"
+      }
+   ],
+   "common_name" : "root",
+   "tenant" : "urn:storageos:TenantOrg:5f10f64c-38a3-49de-b941-8370d7ebf1df:",
+   "distinguished_name" : "root"
+}

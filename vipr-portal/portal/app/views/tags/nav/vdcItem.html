@@ -1,0 +1,14 @@
+%{
+    title = _arg
+    active = navSelected?.find { it == title }
+    token = _token
+    
+    host = _host
+}%
+<li class="${active ? 'active' : ''}">
+	<form action="#{./vdcLink host:host, path:''/}" method="post" accept-charset="utf-8" enctype="application/x-www-form-urlencoded" id="link${title.htmlId()}">
+      #{authenticityToken /}
+	  <input type="hidden" name="auth-token" value="${token}">
+ 	</form>
+ 	<a href="#" onclick="$('#link${title.htmlId()}').submit(); return false;">&{title}</a>
+</li>

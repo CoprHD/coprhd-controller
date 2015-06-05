@@ -1,0 +1,22 @@
+<dl class="dl-horizontal">
+  <dt>&{'dataProtectionSystem.version'}</dt>
+  <dd>${protectionSystem.majorVersion ?: '-'}</dd>
+  
+  <dt>&{'dataProtectionSystem.sitePairing'}</dt>
+  <dd>
+    #{list connectivity?.protectionSites.sort{ it.siteID }, as:'site'}
+      <div>
+        ${site.siteID}
+        #{if site.storageSystems}
+        ( #{list site.storageSystems, as:'ref'}
+            <a href="@{arrays.StorageSystems.edit(ref.id)}">${storageSystemMap[ref.id].name}</a>#{if !ref_isLast},#{/if}
+          #{/list} )
+        #{/if}
+        #{else}<i>&{'common.none'}</i>#{/else}
+      </div>
+    #{/list}
+    #{else}<i>&{'common.none'}</i>#{/else}
+  </dd>
+  
+  #{discoveryDetails protectionSystem/}
+</dl>

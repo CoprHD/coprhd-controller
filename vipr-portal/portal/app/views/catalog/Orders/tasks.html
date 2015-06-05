@@ -1,0 +1,9 @@
+<div id="Order_viprTasks" #{if !details.viprTasks}style="display:none"#{/if}>
+  <div class="master-detail">
+    <div class="header"><i class="indicator"></i>&{'order.viprTasks'}</div>
+    <div class="content" style="display:none">
+      #{Orders.viprTasks viprTasks:details.viprTasks/}
+    </div>
+  </div>
+  <script>initStaticMasterDetail('#Order_viprTasks .master-detail');</script>
+</div>

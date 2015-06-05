@@ -1,0 +1,185 @@
+%{
+  titleKey = 'Networks.' + (network?.id ? 'edit' : 'create') + network?.type + '.title';
+  descriptionKey = 'Networks.' + (network?.id ? 'edit' : 'create') + '.description';
+  image = '/public/img/assets/Switch.png';
+}%
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.networks'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  %{ virtualArrayName = virtualArrayId ? virtualArrayOptions.find{ it.id == virtualArrayId }?.name : null }%
+  #{if virtualArrayId && virtualArrayName}
+    #{breadcrumb.item @VirtualArrays.list()}&{'VirtualArrays.list.title'}#{/breadcrumb.item}
+    #{breadcrumb.item @VirtualArrays.edit(virtualArrayId)}${virtualArrayName}#{/breadcrumb.item}
+    #{breadcrumb.item @VirtualArrays.networks(virtualArrayId)}&{'VirtualArray.networks.title'}#{/breadcrumb.item}
+  #{/if}
+  #{else}
+    #{breadcrumb.item @list()}&{'Networks.list.title'}#{/breadcrumb.item}
+  #{/else}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+#{alerts/}
+
+#{form @save(), class:'form form-horizontal', autocomplete:'off'}
+  #{field 'referrer'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  #{field 'virtualArrayId'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  #{field 'network.id'}
+    #{if field.value}<input type="hidden" name="${field.name}" value="${field.value}">#{/if}
+  #{/field}
+  #{field 'network.type'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  
+  #{field 'network.name'}
+    %{ 
+      field.cssClass = 'initialFocus'
+      field.required = true 
+    }%
+    #{Form.inputTextControlGroup field:field/}
+  #{/field}
+  
+  #{field 'network.virtualArrays'}
+    %{ field.options = virtualArrayOptions }%
+    #{Form.selectManyControlGroup field:field /}
+  #{/field}
+  
+  #{if network?.discovered}
+    #{field 'network.fabricId'}
+      #{Form.inputTextControlGroup disabled:true, field:field /}
+    #{/field}
+  #{/if}
+  
+  #{Form.saveCancelButtonBar size:'large', cancelHref:(virtualArrayId ? @VirtualArrays.networks(virtualArrayId) : null)/}
+#{/form}
+
+#{if network?.id}
+
+%{
+  formFields = ['id': network?.id]
+  if (virtualArrayId) {
+    formFields['virtualArrayId'] = virtualArrayId
+  }
+}%
+#{DataTable.formAction @removePorts(), id:'removePortsForm', table:'endpoints', fields:formFields,
+                       confirm:messages.get('storagePorts.deleteConfirm', network?.name) /}
+#{DataTable.formAction @addHostPorts(), id:'addHostPortsForm', table:'hostEndpoints', fields:formFields/}
+#{DataTable.formAction @addArrayPorts(), id:'addArrayPortsForm', table:'arrayEndpoints', fields:formFields/}
+
+#{DataTable.header titleKey:"Network.endpoints${network.type}.title", 
+                   descriptionKey: "Network.endpoints${network.type}.description",
+                   hideAlerts:true/}
+#{DataTable.table id:'endpoints',
+                  dataTable: dataTable,
+                  source: @endpointsJson(network.id),
+                  selectable: true,
+                  options: ['iDisplayLength': '10']}
+  #{DataTable.buttonBar}
+    <div class="btn-group">
+      #{Form.button name:'button.add', class:'success', icon:'plus', dropdown:true/}
+      <ul class="dropdown-menu above">
+        <li><a href="#" onclick="showAddPortsDialog(); return false;">&{'network.addPorts'}</a></li>
+        <li><a href="#" onclick="showAddHostPortsDialog(); return false;">&{'network.addHostPorts'}</a></li>
+        <li><a href="#" onclick="showAddArrayPortsDialog(); return false;">&{'network.addStorageSystemPorts'}</a></li>
+      </ul>
+    </div>
+    #{Form.button name:'button.remove', class:'danger', icon:'minus', submit:'removePortsForm', 
+                  data:['enabled': 'selected', 'property': 'discovered', 'value': false] /}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+
+#{Modal.dialog titleKey:'Network.addPorts.title', id:'addPortsDialog', cssClass:'wide'}
+  #{form @addPorts(), id:'addPortsForm', class:'form form-horizontal', autocomplete:'off', style:'margin:0; padding: 0;'}
+    <input type="hidden" name="id" value="${network?.id}">
+    #{if virtualArrayId}
+      <input type="hidden" name="virtualArrayId" value="${virtualArrayId}">
+    #{/if}
+    #{Modal.body}
+      #{field 'ports'}
+        %{
+           field.label = messages.get("network.${network.type}ports")
+           field.helpText = messages.get("network.${network.type}ports.help")
+        }%
+        #{Form.textAreaControlGroup field:field, rows:10/}
+      #{/field}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addPortsForm' /}
+      #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/form}
+#{/Modal.dialog}
+
+#{Modal.dialog id:'addHostPortsDialog', cssClass:'extra-wide'}
+  #{Modal.body}
+    %{
+      dataTable.alterColumn("host").setVisible(true)
+      dataTable.alterColumn("storageSystem").setVisible(false)
+    }%
+    #{DataTable.header titleKey:'Network.addHostPorts.title', hideAlerts:true/}
+    #{DataTable.table id: 'hostEndpoints',
+                      prefix: 'endpoints',
+                      dataTable: dataTable,
+                      source: @availableHostEndpointsJson(network.id),
+                      selectable: true,
+                      delayCreate: true,
+                      options: ['iDisplayLength': '8'] /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addHostPortsForm', 
+                  data:['enabled':'selected', 'table':'hostEndpoints']/}
+    #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+
+#{Modal.dialog id:'addArrayPortsDialog', cssClass:'extra-wide'}
+  #{Modal.body}
+    %{
+      dataTable.alterColumn("host").setVisible(false)
+      dataTable.alterColumn("storageSystem").setVisible(true)
+    }%
+    #{DataTable.header titleKey:'Network.addArrayPorts.title', hideAlerts:true/}
+    #{DataTable.table id: 'arrayEndpoints',
+                      prefix: 'endpoints',
+                      dataTable: dataTable,
+                      source: @availableArrayEndpointsJson(network.id),
+                      selectable: true,
+                      delayCreate: true,
+                      options: ['iDisplayLength': '8'] /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addArrayPortsForm', 
+                  data:['enabled':'selected', 'table':'arrayEndpoints']/}
+    #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+
+#{/if}
+</div>
+
+<script type="text/javascript">
+function showAddPortsDialog() {
+    $('#addPortsDialog textarea').val('');
+    $('#addPortsDialog').modal();
+}
+function showAddHostPortsDialog() {
+    table.hostEndpoints.dataTable.create();
+    table.hostEndpoints.dataTable.updateSelectedFooter()
+    table.hostEndpoints.dataTable.reset();
+    $('#addHostPortsDialog').modal();
+}
+function showAddArrayPortsDialog() {
+    table.arrayEndpoints.dataTable.create();
+    table.arrayEndpoints.dataTable.updateSelectedFooter();
+    table.arrayEndpoints.dataTable.reset();
+    $('#addArrayPortsDialog').modal();
+}
+</script>

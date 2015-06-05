@@ -1,0 +1,23 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"UnmountAndDeleteBlockVolume.Block.Windows",
+  serviceId:"Windows-UnmountAndDeleteBlockVolume",
+  destructive: true,
+  fields: {
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+        lockable:true,
+        initialValue:"exclusive"
+    },
+
+    host:{
+      type:"assetType.vipr.windowsHost"
+    },
+
+    volumes: {
+      type:"assetType.vipr.mountedBlockResourceNoTargets",
+      select:"many"
+    }
+  }
+}

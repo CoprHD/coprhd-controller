@@ -1,0 +1,11 @@
+%{
+  titleKey = _titleKey;
+  descriptionKey = _descriptionKey
+}%
+#{if !_hideAlerts}
+  #{alerts/}
+#{/if}
+<div class="section-header pull-left ${_class}" >
+    <h1 class="">&{titleKey}</h1>
+    #{if descriptionKey}<p><small>&{descriptionKey}</small></p>#{/if}
+</div>

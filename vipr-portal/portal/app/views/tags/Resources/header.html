@@ -1,0 +1,21 @@
+%{
+  imgKey = _typeKey != null ? "${_typeKey}.image" : "affectedResources.unknown.image"
+  typeKey = _typeKey ?: "affectedResources.unknown"
+  resource = _resource
+  href = _href
+}%
+<div class="resource-header">
+  <div class="image">
+    <div class="resourceIcon">
+        <div style="margin-top: 0px;"><img src="/public/img/&{imgKey}"/></div>
+    </div>
+  </div>
+  <div class="description">
+    <h2>#{if href}<a href="${href}">#{/if}${resource?.name}#{if href}</a>#{/if}#{if resource?.inactive} (&{'affectedResources.inactive'})#{/if}</h2>
+    &{typeKey}
+  </div>
+  <div class="actions">
+    #{doBody/}
+  </div>
+  <div style="clear:both"></div>
+</div>

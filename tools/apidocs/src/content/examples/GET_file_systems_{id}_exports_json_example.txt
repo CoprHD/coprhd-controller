@@ -1,0 +1,22 @@
+GET https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:08c12093-ab21-4a50-b2c3-f039948ff0aa:/exports.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "filesystem_export": [
+    {
+      "permissions": "rw",
+      "protocol": "NFS",
+      "endpoints": [
+        "lglw9045.lss.emc.com"
+      ],
+      "type": "sys",
+      "root_user": "nobody",
+      "mount_point": "192.168.0.10:/ProviderTenan_MSTVolFinance_08c12093-ab21-4a50-b2c3-f039948ff0aa"
+    }
+  ]
+}

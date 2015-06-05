@@ -1,0 +1,16 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+	compile project(":errorhandling")
+	compile project(":serviceutils")
+
+    testCompile library(commons_logging)
+}
+
+test {
+    exclude "com/emc/storageos/isilon/restapi/IsilonApiTest.class"
+}
+
+task IsilonApiTest(type:Test, dependsOn:compileTestJava) {
+    include "com/emc/storageos/isilon/restapi/IsilonApiTest.class"
+}

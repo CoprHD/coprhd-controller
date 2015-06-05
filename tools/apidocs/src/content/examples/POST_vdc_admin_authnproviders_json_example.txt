@@ -1,0 +1,42 @@
+POST https://192.168.0.0:4443/vdc/admin/authnproviders.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+  "name": "ad configuration", 
+  "mode": "ad",  
+  "server_urls": ["ldap://192.168.0.10"], 
+  "domains": ["mycompany.com"]
+  "group_whitelist_values": ["*Admin*", "*Test*"], 
+  "search_filter": "userPrincipalName=%u", 
+  "search_attribute_key" : "userPrincipalName",
+  "search_base": "CN=Users,DC=mycompany,DC=com", 
+  "manager_dn": "CN=Administrator,CN=Users,DC=mycompany,DC=com", 
+  "manager_password": "password",
+  "search_scope": "SUBTREE",
+  "group_attribute": "CN", 
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+	"name":"ad configuration",
+	"id":"urn:storageos:AuthnProvider:376238bf-dc31-43ee-850b-ef49a15f5c49:",
+	"link":{"rel":"self","href":"/vdc/admin/authnproviders/urn:storageos:AuthnProvider:376238bf-dc31-43ee-850b-ef49a15f5c49:"},
+	"inactive":false,
+	"tags":[],
+	"mode":"ad",
+	"domains":["mycompany.com"],
+	"disable":false,
+	"creation_time":1379087030417,
+	"search_filter":"userPrincipalName=%u",
+	"search_base":"CN=Users,DC=mycompany,DC=com",
+	"search_attribute_key":"userPrincipalName",
+	"manager_dn":"CN=Administrator,CN=Users,DC=mycompany,DC=com",
+	"group_attribute":"CN",
+	"server_urls":["ldap://192.168.0.10"],
+	"group_whitelist_values":["*Admin*","*Test*"],
+	"search_scope"ù:"SUBTREE"ù
+}

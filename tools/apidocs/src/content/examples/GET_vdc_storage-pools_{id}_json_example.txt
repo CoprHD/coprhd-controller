@@ -1,0 +1,81 @@
+GET https://192.168.0.0:4443/vdc/storage-pools/urn:storageos:StoragePool:06ddb367-d8fe-4e3e-b772-ec9d28c21bdd:.json HTTP/1.1  
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "name": "CLARIION+APM00112900836+POOL+U+CapacityPool",
+  "id": "urn:storageos:StoragePool:06ddb367-d8fe-4e3e-b772-ec9d28c21bdd:",
+  "link": {
+    "rel": "self",
+    "href": "/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:/storage-pools/urn:storageos:StoragePool:06ddb367-d8fe-4e3e-b772-ec9d28c21bdd:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "protocols": [
+    "iSCSI",
+    "FC"
+  ],
+  "creation_time": 1379168887836,
+  "native_guid": "CLARIION+APM00112900836+POOL+U+CapacityPool",
+  "controller_params": [
+    
+  ],
+  "operational_status": "READY",
+  "registration_status": "REGISTERED",
+  "usable_gb": 3657,
+  "free_gb": 3636,
+  "used_gb": 21,
+  "percent_used": 1,
+  "subscribed_gb": 43,
+  "percent_subscribed": 2,
+  "assigned_varrays": [
+    
+  ],
+  "connected_varrays": [
+    "urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:"
+  ],
+  "tagged_varrays": [
+    "urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:"
+  ],
+  "max_resources": -1,
+  "num_resources": 0,
+  "maximum_thin_volume_size_gb": 16384,
+  "minimum_thin_volume_size_gb": 0,
+  "maximum_thick_volume_size_gb": 3561,
+  "minimum_thick_volume_size_gb": 0,
+  "raid_levels": [
+    "RAID6"
+  ],
+  "drive_types": [
+    
+  ],
+  "copy_types": [
+    "SYNC",
+    "UNSYNC_ASSOC"
+  ],
+  "tier_utilization_percentages": [
+    {
+      "name": "SATA",
+      "value": "100"
+    }
+  ],
+  "pool_name": "CapacityPool",
+  "pool_service_type": "block",
+  "supported_resource_types": "THIN_AND_THICK",
+  "storage_system": {
+    "id": "urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:"
+    }
+  },
+  "max_thin_pool_subscription_percentage": 300,
+  "max_pool_utilization_percentage": 75,
+  "thin_volume_preallocation_supported": false
+}

@@ -1,0 +1,10 @@
+%{
+  maintenance = com.emc.storageos.fabric.models.utils.ModeEnum.MAINTENANCE.equals(_arg)
+  operational = com.emc.storageos.fabric.models.utils.ModeEnum.OPERATIONAL.equals(_arg)
+}%
+#{if maintenance}
+  <span class="text-warning">#{icon 'wrench'/} &{'fabric.mode.MAINTENANCE'}</span>
+#{/if}
+#{elseif operational}
+  <span class="text-info">#{icon 'ok-sign'/} &{'fabric.mode.OPERATIONAL'}</span>
+#{/elseif}

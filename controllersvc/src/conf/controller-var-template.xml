@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="controllersvc"/>
+        <property name="id" value="controller-${node_index}"/>
+        <property name="endpointMap">
+            <map>
+                <entry key="FileController"  value="rmi://${node_name}:10099/FileController"/>
+                <entry key="BlockController" value="rmi://${node_name}:10099/BlockController"/>
+                <entry key="NetworkController" value="rmi://${node_name}:10099/NetworkController"/>
+                <entry key="RPController" value="rmi://${node_name}:10099/RPController"/>
+                <entry key="VPlexController"  value="rmi://${node_name}:10099/VPlexController"/>
+                <entry key="ComputeController" value="rmi://${node_name}:10099/ComputeController"/>
+                <entry key="VcenterController" value="rmi://${node_name}:10099/VcenterController"/>
+                <entry key="ImageServerController" value="rmi://${node_name}:10099/ImageServerController"/>
+                <entry key="BlockExportController"
+                       value="rmi://${node_name}:10099/BlockExportController"/>
+                <entry key="BlockOrchestrationController" value="rmi://${node_name}:10099/BlockOrchestrationController"/>
+                <entry key="SRDFController" value="rmi://${node_name}:10099/SRDFController" />
+                <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
+            </map>
+        </property>
+        <property name="version" value="1"/>
+        <property name="tags">
+            <set>
+                <value>isilon</value>
+                <value>datadomain</value>
+                <value>ddmc</value>
+                <value>vnxfile</value>
+                <value>vnxe</value>
+                <value>netapp</value>
+                <value>netappc</value>
+                <value>vmax</value>
+                <value>smis</value>
+                <value>hds</value>
+                <value>hicommand</value>
+                <value>cinder</value>
+                <value>openstack</value>
+                <value>vnxblock</value>
+                <value>ibmxiv</value>
+                <value>mds</value>
+                <value>brocade</value>
+                <value>rp</value>
+                <value>vplex</value>
+                <value>export</value>
+                <value>block-orchestration</value>
+                <value>ucs</value>
+                <value>host</value>
+                <value>vcenter</value>
+                <value>scaleio</value>
+                <value>xtremio</value>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="rmiserver" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="staticMethod" value="java.lang.System.setProperty"/>
+        <property name="arguments">
+            <array>
+                <value>java.rmi.server.hostname</value>
+                <value>${network_ipaddr_service}</value>
+            </array>
+        </property>
+    </bean>
+
+</beans>

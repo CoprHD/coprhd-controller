@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
+    <!-- can be referenced.                                                            -->
+    <import resource="classpath:CimAdapterSpringContext-test.xml"/>    
+    <import resource="classpath:dbutils-conf.xml"/>
+
+    <!-- workflowService and xivSmisDevice beans are copied from controller-conf.xml, but removed dispatcher for workflowService -->
+    <bean id="workflowService" class="com.emc.storageos.workflow.WorkflowService">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="xivSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="smisStorageDevicePostProcessor" ref="xivStoragedevicePostProcessor"/>
+    </bean>
+    
+    <bean id="xivCloneOperations" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVCloneOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="smisStorageDevicePostProcessor" ref="xivStoragedevicePostProcessor"/>
+    </bean>
+    
+    <bean id="xivSmisDevice" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="exportMaskOperationsHelper" ref="xivExportMaskOperationsHelper"/>
+        <property name="snapshotOperations" ref="xivSnapshotOperations"/>
+        <property name="cloneOperations" ref="xivCloneOperations"/>
+        <property name="smisStorageDevicePreProcessor" ref="xivStoragedevicePreProcessor"/>
+        <property name="smisStorageDevicePostProcessor" ref="xivStoragedevicePostProcessor"/>
+        <property name="isForceSnapshotGroupRemoval" value="false"/>
+    </bean>
+
+    <bean id="xivSmisCommandHelper" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisCommandHelper">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="ibmCIMObjectPathFactory" class="com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory">
+        <property name="systemNamePrefix" value="IBM."/>
+        <property name="paramNamePrefix" value="IBMTSDS"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+    </bean>
+    
+    <bean id="xivExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVExportOperations">
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+    </bean>
+    
+    <bean id="xivStoragedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevicePreProcessor">
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+    </bean>
+
+    <bean id="xivStoragedevicePostProcessor" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevicePostProcessor">
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="CIMArgumentFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMArgumentFactory"/>
+    <bean id="CIMPropertyFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory"/>
+
+    <bean id="CIMConnectionFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory">
+        <property name="connectionManager" ref="ConnectionManager"/>
+    <property name="dbClient" ref="dbclient"/>
+    </bean>
+        
+    <bean id="locker" class="com.emc.storageos.volumecontroller.impl.ControllerLockingServiceImpl">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+    
+    <bean id="defaultNameGenerator" class="com.emc.storageos.db.client.util.ResourceOnlyNameGenerator"/>
+</beans>

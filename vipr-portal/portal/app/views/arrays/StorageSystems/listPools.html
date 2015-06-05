@@ -1,0 +1,40 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays'] /}
+#{set 'title'}&{'StorageSystems.pools.title'}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @arrays.StorageSystems.list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
+  #{breadcrumb.dropdown currentPage:'StorageSystems.pools.title' }
+    #{breadcrumb.item @arrays.StorageSystems.ports(storageSystem.id)}&{'StorageSystems.listPorts.title'}#{/breadcrumb.item}
+  #{/breadcrumb.dropdown}
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey:'StorageSystems.listPools.title'/}
+#{DataTable.table id:'storageArrayPools', 
+                  dataTable:dataTable,
+                  source:@arrayPoolsJson(storageSystem.id),
+                  selectable:true}
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.register', icon:'ok', submit:'registerForm',
+                  data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
+    #{Form.button name:'button.deregister', icon:'remove', submit:'deregisterForm',
+                  data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/} 
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+
+%{ formFields = ['arrayId': storageSystem.id] }%
+#{DataTable.formAction @registerPools(), id:'registerForm', table:'storageArrayPools', fields:formFields/}
+#{DataTable.formAction @deregisterPools(), id:'deregisterForm', table:'storageArrayPools', fields:formFields/}
+
+<script type="text/javascript">
+function renderStorageArrayPoolEditLink(o, val) {
+    var id = o.aData.id;    
+    var url = #{jsAction @editPool(':id', ':poolId')/}({"id": "${storageSystem.id}", "poolId": id});
+    return "<a href='"+url+"'>" + val + "</a>";
+}
+</script>

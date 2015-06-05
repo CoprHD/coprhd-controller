@@ -1,0 +1,24 @@
+*{
+  Adds expandable row support that call a javascript function with the row data as a parameter to render the row details.
+  
+  arg: the function name 
+  table: the table name
+  target: the target selector for the expand click event (optional)
+}*
+<script type="text/javascript">
+  table.${_table}.dataTable.beforeCreate(function(dataTable) {
+      var expandRowHandler = function(result, data, row) {
+          try {
+              var html = ${_arg}(data);
+              result.resolve(html);
+          }
+          catch (e) {
+              result.reject('<div class="error">'+e+'</div>');
+          }
+      }
+      var options = { 'expandRow': expandRowHandler };
+      #{if _target}options.target = '${_target}';#{/if}
+
+      dataTable.setDefaultExpandable(options);
+  });
+</script>

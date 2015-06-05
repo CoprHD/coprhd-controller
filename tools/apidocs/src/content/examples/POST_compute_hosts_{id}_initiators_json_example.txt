@@ -1,0 +1,32 @@
+POST https://192.168.0.0:4443/compute/hosts/urn:storageos:Host:0ad4cab1-77b6-4919-bfb5-07e1fc3f3ac5:/initiators.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+   "protocol": "iSCSI",
+   "initiator_port": "iqn.2001-10.com.emc.lss.host1"
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+   "creation_time": "1380656352646",
+   "id": "urn:storageos:Initiator:6f67a31e-db04-4cd1-bd06-15a2f0acebb9:",
+   "inactive": "false",
+   "link": {
+      "href": "/compute/initiators/urn:storageos:Initiator:6f67a31e-db04-4cd1-bd06-15a2f0acebb9:",
+      "rel": "self"
+   },
+   "tags": [],
+   "host": {
+      "id": "urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:",
+      "link": {
+         "href": "/compute/hosts/urn:storageos:Host:2df35fce-e946-4b5f-8598-676a94f29a59:",
+         "rel": "self"
+      }
+   },
+   "protocol": "iSCSI",
+   "hostname": "halahost1.lss.emc.com",
+   "initiator_port": "iqn.2001-10.com.emc.lss.host1"
+}

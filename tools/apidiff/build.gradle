@@ -1,0 +1,31 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+import java.util.concurrent.CopyOnWriteArrayList
+
+ext {
+    internalLibrary = true
+}
+dependencies {
+    compile library(commons_lang),
+            library(commons_io),
+            library(jdom2)
+    testCompile library(junit)
+}
+
+task copyXmlDocs(type: Copy, dependsOn: [':apisvc:restDocs']) {
+    def apiProj = project(':apisvc')
+    from("${apiProj.buildDir}/docs_xml/docs") {
+        include 'docs.xml'
+        rename {"apisvc-${rootProject.gitVersion}.xml"}
+    }
+    into "${project.buildDir}/apidiff"
+}
+
+task runApiDiff(type: JavaExec, dependsOn: 'copyXmlDocs') {
+    main = "com.emc.storageos.apidiff.Main"
+    args = [
+        "${project.projectDir}/src/resources",
+        "${project.buildDir}/apidiff"
+    ]
+    classpath = sourceSets.main.runtimeClasspath
+}

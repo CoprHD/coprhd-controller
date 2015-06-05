@@ -1,0 +1,112 @@
+%{
+  titleKey = 'DataProtectionSystems.' + (dataProtectionSystem?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'DataProtectionSystems.description';
+  image = '/public/img/assets/Protection.png';
+}%
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.dataProtectionSystems'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:dataProtectionSystem?.id ? true : false/}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'DataProtectionSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  
+    $(document).ready(function() {
+        var editMode = #{get 'editMode'/};
+        
+        $('#dataProtectionSystem_password').val('');
+        $('#dataProtectionSystem_passwordConfirm').val('');
+            
+        if ( editMode ) {            
+            $('#dataProtectionSystem_name').prop("disabled", true);
+            $('#dataProtectionSystem_systemType').prop("disabled", true);                       
+        } else {
+            // default port for RecoverPoint systems
+            $('#dataProtectionSystem_port ').val('${messages.get("DefaultDataProtectionPortMap.rp")}');
+        }
+    });
+    
+  </script>
+#{/set}
+
+<div class="container">
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    
+    #{alerts/}
+    
+#{form @save(), id:'dataProtectionSystem', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+    
+    #{field 'dataProtectionSystem.name'}
+      %{
+        field.required = true;
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'dataProtectionSystem.systemType'}
+        %{
+          field.options = dataProtectionSystemTypeList
+          field.required = true
+          field.cssClass = 'span6 initialFocus'
+        }%
+        #{Form.selectOneControlGroup field:field /}
+    #{/field}
+
+    #{field 'dataProtectionSystem.ipAddress'}
+      %{
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'dataProtectionSystem.port'}
+      %{
+        field.required = true
+        field.cssClass = 'span3'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+    #{field 'dataProtectionSystem.userName'}
+      %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'dataProtectionSystem.password'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+
+    #{field 'dataProtectionSystem.passwordConfirm'}
+      %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
+    
+      #{if dataProtectionSystem?.id}
+        #{field 'dataProtectionSystem.id'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+        #{field 'dataProtectionSystem.name'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+      #{/if}    
+
+  </fieldset>
+  #{Form.saveCancel /}
+#{/form}
+</div>

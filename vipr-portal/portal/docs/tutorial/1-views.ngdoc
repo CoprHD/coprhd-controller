@@ -1,0 +1,41 @@
+@ngdoc overview
+@name Views
+@description
+
+# Views
+
+Mostly HTML, plus:
+
+* Angular directives. `ng-if`, `ng-show`, `ng-model`, etc.
+* Interpolated values in <span ng:non-bindable>{{ expressions }}</span>.
+* Filters (<span ng:non-bindable>{{ expressions | filter }}</span>), which can transform an expression.
+
+## Key Concepts
+
+* Views are backed by models. (JavaScript object)
+* Models live in a scope.
+* Scopes can inherit from other scopes.
+
+@example
+<example module="vipr">
+<file name="script.js">
+angular.module("vipr").controller("ExampleCtrl", function($scope) {
+  $scope.deleteParent = function() {
+    delete this.parentValue;
+  }
+});
+</file>
+<file name="index.html">
+<div ng-controller="ExampleCtrl">
+  Parent scope:<br>
+  parent <input ng-model="parentValue"><br>
+  Child value (in parent): {{childValue}}
+  <div v-scope style="padding-left:20px">
+    Child scope:<br>
+    parent <input ng-model="parentValue"><button ng-click="deleteParent()">delete parentValue</button><br>
+    child <input ng-model="childValue"><br>
+  </div>
+</div>
+</file>
+</example>
+

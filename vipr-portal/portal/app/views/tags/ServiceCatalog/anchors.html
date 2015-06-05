@@ -1,0 +1,8 @@
+%{
+  catalog = _catalog;
+}%
+<div id="anchors">
+#{list catalog?.values(), as:'category'}
+  <a id="${category.path}"></a>
+#{/list}
+</div>

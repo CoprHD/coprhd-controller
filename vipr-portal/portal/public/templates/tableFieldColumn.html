@@ -1,0 +1,9 @@
+<div class="service-table-cell {{required}} {{field.error ? 'has-error' : ''}}">
+  <div class="controls">
+    <content />
+    <loading ng-show='field.loading'></loading>
+  </div>
+  <div>
+    <span class="errorMessage">{{field.error}}</span>
+  </div>
+</div>

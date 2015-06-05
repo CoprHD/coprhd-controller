@@ -1,0 +1,23 @@
+PUT https://192.168.0.0:4443/vdc/varrays/urn:storageos:VirtualArray:88543171-9a1b-4133-ac71-d93990d3bebd:
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN=BAAcRGtUUmNOZHNpbitMaEVhZUhhdWtad1J3WDRRPQMAUAQADTEzNzk1NDIwMjQ4MzACAAEABQA5dXJuOnN0b3JhZ2VvczpUb2tlbjoxYmVhNGJiMy04M2MwLTRlOGItODc4Ni1iYWYxYmM4NTZkNTY6AgAC0A8=
+
+<varray_update>
+    <auto_san_zoning>true</auto_san_zoning>
+    <name>Arizona</name>
+</varray_update>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+     <varray>
+          <creation_time>1379559712100</creation_time>
+          <id>urn:storageos:VirtualArray:88543171-9a1b-4133-ac71-d93990d3bebd:</id>
+          <inactive>false</inactive>
+          <link href="/vdc/varrays/urn:storageos:VirtualArray:88543171-9a1b-4133-ac71-d93990d3bebd:" rel="self"/>
+          <name>Arizona</name>
+          <tags/>
+          <auto_san_zoning>true</auto_san_zoning>
+     </varray>

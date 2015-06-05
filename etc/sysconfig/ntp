@@ -1,0 +1,69 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+## Path:           Network/NTP
+## Description:    Network Time Protocol (NTP) server settings
+## Type:           string
+## Default:        "-g -u ntp:ntp"
+#
+# Additional arguments when starting ntpd. The most
+# important ones would be
+# -u user[:group]   to make ntpd run as a user (group) other than root.
+#
+NTPD_OPTIONS="-g -u ntp:ntp"
+
+## Type:           yesno
+## Default:        yes
+## ServiceRestart: ntp
+#
+# Shall the time server ntpd run in the chroot jail /var/lib/ntp?
+#
+# Each time you start ntpd with the init script, /etc/ntp.conf will be
+# copied to /var/lib/ntp/etc/.
+# 
+# The pid file will be in /var/lib/ntp/var/run/ntpd.pid. 
+#
+NTPD_RUN_CHROOTED="yes"
+
+## Type:           string
+## Default:        ""
+## ServiceRestart: ntp
+#
+# If the time server ntpd runs in the chroot jail these files will be
+# copied to /var/lib/ntp/ besides the default of /etc/{localtime,ntp.conf}
+#
+NTPD_CHROOT_FILES=""
+
+## Type:           string(/dev/refclock-0,/dev/refclock-1,/dev/refclock-2,/dev/refclock-3)
+## Default:        ""
+## ServiceRestart: ntp
+#
+# Parse driver symlink
+# For more information see the ntp documentation in the package ntp-doc
+# /usr/share/doc/packages/ntp-doc/drivers/driver8.html
+#
+NTP_PARSE_LINK=""
+
+## Type:           string
+## Default:        ""
+## ServiceRestart: ntp
+#
+# Parse driver device
+# For more information see the ntp documentation in the package ntp-doc
+# /usr/share/doc/packages/ntp-doc/drivers/driver8.html
+#
+NTP_PARSE_DEVICE=""
+
+## Type:           boolean
+## Default:        "no"
+#
+# Force time synchronization befor start ntpd
+#
+NTPD_FORCE_SYNC_ON_STARTUP="yes"
+
+#
+# To fix "the system time of a HyperV guest will drift several seconds per day",
+# you need set the following NTP config to "yes" on SLES12 
+# See https://www.suse.com/releasenotes/x86_64/SUSE-SLES/12/
+#
+NTPD_FORCE_SYNC_HWCLOCK_ON_STARTUP="yes"

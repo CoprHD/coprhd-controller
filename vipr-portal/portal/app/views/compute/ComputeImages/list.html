@@ -1,0 +1,32 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.computeImages'] /}
+
+#{DataTable.header titleKey:'ComputeImages.list.title' /}
+#{DataTable.formAction @createClone(), id:'cloneForm', table:'computeImages'/}
+
+#{DataTable.crudTable id:'computeImages',
+                      dataTable:dataTable,
+                      expandable: true,
+                      deleteData: ['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS'],
+                      deleteConfirm:messages.get('ComputeImages.deleteConfirm')}
+#{/DataTable.crudTable}
+#{DataTable.expandHtml @itemDetails(':id'), table:'computeImages' /}
+
+<script type="text/javascript">
+function watchLoadStatus(datatable, itemsJson) {
+    var fields = ['computeImageStatus','imageName','imageType','discoveryStatus'];
+    var fieldToWatch = 'computeImageStatus';
+    var triggerValues = ['IN_PROGRESS'];
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+}
+$(document).ready(function() {
+    var dataTable = table.computeImages.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchLoadStatus(dataTable, itemsJson);
+
+
+});
+</script>

@@ -1,0 +1,29 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if catalogServices}
+  <table class="table" style="width: 400px; margin: 0;">
+  <thead>
+      <th>&{'service.title'}</th>
+      <th></th>
+      <th></th>
+  </thead>
+  <tbody>
+  #{list items:catalogServices, as:'catalogService'}
+      <tr>
+          <td>${catalogService.title}</td>
+          <td style="text-align:center;">
+            #{if catalogService_isFirst == false}
+                <a href='#' onclick='moveUpService("${catalogService?.id}");return false;'>#{icon 'chevron-up'/}</a>
+            #{/if}
+          </td>
+          <td style="text-align:center;">
+            #{if catalogService_isLast == false}
+              <a href='#' onclick='moveDownService("${catalogService?.id}");return false;'>#{icon 'chevron-down'/}</a>
+            #{/if}
+          </td>
+      </tr>
+  #{/list}
+  </tbody>
+  </table>
+#{/if}

@@ -1,0 +1,58 @@
+GET https://192.168.0.0:4443/vdc/network-systems/rn:storageos:FCEndpoint:00ece5b8-567e-4f17-aeb7-a17f5af0f75a:/fc-endpoints HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<fc_endpoints>
+       <fc_endpoint>
+              <creation_time>1380666661215</creation_time>
+              <id>urn:storageos:FCEndpoint:00ece5b8-567e-4f17-aeb7-a17f5af0f75a:
+              </id>
+              <inactive>false</inactive>
+              <link
+                     href="/vdc/fc-port-connections/urn:storageos:FCEndpoint:00ece5b8-567e-4f17-aeb7-a17f5af0f75a:"
+                     rel="self" />
+              <tags />
+              <fabric_id>losam082-fabric</fabric_id>
+              <fabric_wwn>10:00:00:27:F8:58:F6:BD</fabric_wwn>
+              <networkDevice>
+                     <id>urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:
+                     </id>
+                     <link
+                           href="/vdc/network-systems/urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:"
+                           rel="self" />
+              </networkDevice>
+              <remote_node_name>50:01:24:80:00:69:F7:77</remote_node_name>
+              <remote_port_name>50:01:24:81:00:69:F7:77</remote_port_name>
+              <switch_interface>slot12 port14</switch_interface>
+              <switch_name>losam018_10</switch_name>
+              <switch_port_name>20:7E:00:27:F8:58:F6:BD</switch_port_name>
+       </fc_endpoint>
+       <fc_endpoint>
+              <creation_time>1380666661216</creation_time>
+              <id>urn:storageos:FCEndpoint:04449410-1d75-4238-bc45-2c1f3594e7a9:
+              </id>
+              <inactive>false</inactive>
+              <link
+                     href="/vdc/fc-port-connections/urn:storageos:FCEndpoint:04449410-1d75-4238-bc45-2c1f3594e7a9:"
+                     rel="self" />
+              <tags />
+              <fabric_id>VPlex_LGL6221_FID_40</fabric_id>
+              <fabric_wwn>10:00:00:27:F8:58:F6:C2</fabric_wwn>
+              <networkDevice>
+                     <id>urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:
+                     </id>
+                     <link
+                           href="/vdc/network-systems/urn:storageos:NetworkSystem:205a419f-0d63-4925-80cc-0f44b017ad69:"
+                           rel="self" />
+              </networkDevice>
+              <remote_node_name>50:00:14:40:47:30:71:23</remote_node_name>
+              <remote_port_name>50:00:14:42:90:71:23:00</remote_port_name>
+              <switch_interface>slot4 port30</switch_interface>
+              <switch_name>switch_40</switch_name>
+              <switch_port_name>20:BE:00:27:F8:58:F6:C2</switch_port_name>
+       </fc_endpoint>
+</fc_endpoints>

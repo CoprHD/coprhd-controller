@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<image schemaversion="5.8" name="__NAME__">
+  <description type="system">
+    <author>ADG</author>
+    <contact>Ionix_Appliance_Development_Group@emc.com</contact>
+    <specification>A SUSE Linux Enterprise Server 11 JeOS SP3 product appliance</specification>
+  </description>
+  <profiles>
+    <profile name="appliance" description="Appliance (OVF) specification" import="true"/>
+    <profile name="container" description="Container (TBZ) specification"/>
+  </profiles>
+  <preferences>
+    <version>__VERSION__</version>
+    <packagemanager>zypper</packagemanager>
+    <bootsplash-theme>SLES</bootsplash-theme>
+    <bootloader-theme>SLES</bootloader-theme>
+    <rpm-excludedocs>true</rpm-excludedocs>
+    <locale>en_US</locale>
+    <keytable>us.map.gz</keytable>
+    <timezone>US + Canada/Eastern Time</timezone>
+    <hwclock>utc</hwclock>
+  </preferences>
+  <preferences profiles="container">
+    <type image="tbz" container="__NAME__" primary="true"/>
+  </preferences>
+  <preferences profiles="appliance">
+    <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES11-grub2" primary="true" format="vmdk">
+      <systemdisk name="systemVG">
+        <volume name="swap" size="6144"/>
+      </systemdisk>
+      <machine memory="8192" guestOS="sles11-64" HWversion="7" arch="x86_64">
+        <vmdisk controller="lsilogic" id="0"/>
+        <vmdvd  controller="ide" id="0"/>
+        <vmnic driver="vmxnet3" interface="0" mode="bridged"/>
+      </machine>
+      <size unit="G">50</size>
+    </type>
+  </preferences>
+  <users group="root">
+    <user password="5fBo/9Jwq/kZY" home="/root" name="root"/>
+  </users>
+  <repository type="yast2" priority="3">
+    <source path="http://lglob090.lss.emc.com/SLES11SP3/SLE"/>
+  </repository>
+  <repository type="rpm-md" priority="2">
+    <source path="http://lglaf020.lss.emc.com/kiwi_build_requires"/>
+  </repository>
+  <packages type="image" profiles="appliance,container">
+    <package name="ipw-firmware"/>
+    <package name="pam"/>
+    <package name="rsyslog"/>
+    <package name="filesystem"/>
+    <package name="grub"/>
+    <package name="atmel-firmware"/>
+    <package name="pam-modules"/>
+    <package name="iputils"/>
+    <package name="aaa_base"/>
+    <package name="irqbalance"/>
+    <package name="bash"/>
+    <package name="sysvinit"/>
+    <package name="yast2-installation"/>
+    <package name="brocade-firmware"/>
+    <package name="procps"/>
+    <package name="coreutils"/>
+    <package name="login"/>
+    <package name="rpcbind"/>
+    <package name="rpm"/>
+    <package name="adaptec-firmware"/>
+    <package name="yast2-registration"/>
+    <package name="device-mapper"/>
+    <package name="kbd"/>
+    <package name="mpt-firmware"/>
+    <package name="nfs-client"/>
+    <package name="pwdutils"/>
+    <package name="dhcpcd"/>
+    <package name="e2fsprogs"/>
+    <package name="efibootmgr"/>
+    <package name="zypper"/>
+    <package name="elilo"/>
+    <package name="suse-build-key"/>
+    <package name="suseRegister"/>
+    <package name="sles-release"/>
+    <package name="mkinitrd"/>
+    <package name="module-init-tools"/>
+    <package name="sysconfig"/>
+    <package name="glibc"/>
+    <package name="initviocons"/>
+    <package name="insserv"/>
+    <package name="w3m"/>
+    <package name="PolicyKit-doc"/>
+    <package name="augeas-lenses"/>
+    <package name="bash-doc"/>
+    <package name="bootsplash"/>
+    <package name="bootsplash-branding-SLES"/>
+    <package name="checkmedia"/>
+    <package name="coreutils-lang"/>
+    <package name="desktop-translations"/>
+    <package name="dosfstools"/>
+    <package name="fbset"/>
+    <package name="freetype2"/>
+    <package name="gfxboot"/>
+    <package name="gfxboot-branding-SLES"/>
+    <package name="lcms"/>
+    <package name="libebl1"/>
+    <package name="libjpeg"/>
+    <package name="liblcms1"/>
+    <package name="libldapcpp1"/>
+    <package name="libmng"/>
+    <package name="libtiff3"/>
+    <package name="lsof"/>
+    <package name="mtools"/>
+    <package name="perl-Digest-SHA1"/>
+    <package name="perl-HTML-Parser"/>
+    <package name="perl-HTML-Tagset"/>
+    <package name="perl-Parse-RecDescent"/>
+    <package name="perl-X500-DN"/>
+    <package name="perl-doc"/>
+    <package name="polkit-default-privs"/>
+    <package name="python-argparse"/>
+    <package name="readline-doc"/>
+    <package name="release-notes-sles"/>
+    <package name="vim-data"/>
+    <package name="xz-lang"/>
+    <package name="yast2-add-on"/>
+    <package name="yast2-firewall"/>
+    <package name="yast2-ldap"/>
+    <package name="yast2-ldap-client"/>
+    <package name="yast2-network"/>
+    <package name="yast2-online-update"/>
+    <package name="yast2-pam"/>
+    <package name="yast2-security"/>
+    <package name="yast2-trans-en_US"/>
+    <package name="yast2-users"/>
+    <package name="zypper-log"/>
+    <package name="bind-utils"/>
+    <package name="libxml2-python"/>
+    <package name="python-xml"/>
+    <package name="wget"/>
+    <package name="libgmodule-2_0-0"/>
+    <package name="gettext-runtime"/>
+  </packages>
+  <packages type="image" profiles="appliance">
+    <package name="kernel-firmware"/>
+    <package name="kernel-default"/>
+    <package name="kernel-default-base"/>
+    <package name="gdb"/>
+    <package name="libnet"/>
+    <package name="tcpdump"/>
+  </packages>
+  <packages type="image" profiles="container">
+  </packages>
+  <packages type="delete" profiles="container">
+    <package name="kernel-firmware"/>
+    <package name="kernel-default"/>
+    <package name="kernel-default-base"/>
+  </packages>
+  <packages type="bootstrap">
+    <package name="filesystem"/>
+    <package name="glibc-locale"/>
+    <package name="cracklib-dict-full"/>
+    <package name="openssl-certs"/>
+    <!-- Adding unixODBC here is a hack for now covering for a java jdbc dependency issue -->
+    <package name="unixODBC"/>
+  </packages>
+</image>

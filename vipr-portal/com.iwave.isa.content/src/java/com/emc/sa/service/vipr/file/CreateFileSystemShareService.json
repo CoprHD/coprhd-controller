@@ -1,0 +1,64 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateFileSystemShare.File",
+  serviceId:"CreateFileSystemShare",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileCIFSFilesystem"
+    },
+
+    volumeName:{
+      type:"text",
+      validation:{
+        regEx:"[a-zA-Z0-9_]+",
+        min:2,
+        max:128
+      }
+    },
+    
+    subDirectory: {
+      type:"text",
+      required: false
+    },
+
+    shareComment:{
+      type:"text",
+      required: false,
+      validation:{
+        regEx:"[^\-\u0080-\u009f]*",
+        max:256
+      },
+      lockable: true
+    },
+    
+    accessControlList:{
+      type:"table",
+      items:{
+        aclType:{
+          type: "choice",
+          initialValue: "USER",
+          select: "one",
+          options: {
+            "USER": "User",
+            "GROUP": "Group"
+          }
+        },
+        
+        aclName:{
+          type:"text"
+        },
+                
+        aclPermission:{
+          type:"assetType.vipr.fileShareACLPermission",
+          initialValue:"CHANGE"
+        }
+      }
+    }
+  }
+}

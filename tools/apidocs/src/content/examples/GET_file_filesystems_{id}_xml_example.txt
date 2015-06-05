@@ -1,0 +1,48 @@
+GET  https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:02fd3421-5124-417e-a859-53f92d4e4e64: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<filesystem>
+    <creation_time>1379401332892</creation_time>
+    <id>urn:storageos:FileShare:02fd3421-5124-417e-a859-53f92d4e4e64:</id>
+    <inactive>false</inactive>
+    <link href="/file/filesystems/urn:storageos:FileShare:02fd3421-5124-417e-a859-53f92d4e4e64:" rel="self"/>
+    <name>MST_Vol_coke_0300dd2a-82d4-4cec-b421-387204219c2e</name>
+    <tags/>
+    <mount_path>/ifs/sos/ProviderTenan_MSTVolcoke030_02fd3421-5124-417e-a859-53f92d4e4e64</mount_path>
+    <capacity_gb>1.00</capacity_gb>
+    <native_id>/ifs/sos/ProviderTenan_MSTVolcoke030_02fd3421-5124-417e-a859-53f92d4e4e64</native_id>
+    <storage_pool>
+        <id>urn:storageos:StoragePool:e6692a4d-8ce3-4b83-881a-0da8163804aa:</id>
+        <link href="/vdc/storage-systems/urn:storageos:StorageSystem:b8017683-e5b7-492b-92ce-063d3acc1eb4:/storage-pools/urn:storageos:StoragePool:e6692a4d-8ce3-4b83-881a-0da8163804aa:" rel="self"/>
+    </storage_pool>
+    <project>
+        <id>urn:storageos:Project:403946c1-029f-4f40-8159-87be97dbe2d0:</id>
+        <link href="/projects/urn:storageos:Project:403946c1-029f-4f40-8159-87be97dbe2d0:" rel="self"/>
+    </project>
+    <protocols>
+        <protocol>CIFS</protocol>
+    </protocols>
+    <storage_system>
+        <id>urn:storageos:StorageSystem:b8017683-e5b7-492b-92ce-063d3acc1eb4:</id>
+        <link href="/vdc/storage-systems/urn:storageos:StorageSystem:b8017683-e5b7-492b-92ce-063d3acc1eb4:" rel="self"/>
+    </storage_system>
+    <tenant>
+        <id>urn:storageos:TenantOrg:c3f022ff-5e3a-49ca-a5ef-b0aaa74cebb3:</id>
+        <link href="/tenants/urn:storageos:TenantOrg:c3f022ff-5e3a-49ca-a5ef-b0aaa74cebb3:" rel="self"/>
+    </tenant>
+    <thinly_provisioned>true</thinly_provisioned>
+    <varray>
+        <id>urn:storageos:VirtualArray:b8f947af-a149-4192-846d-cbbaca4968cb:</id>
+        <link href="/vdc/varrays/urn:storageos:VirtualArray:b8f947af-a149-4192-846d-cbbaca4968cb:" rel="self"/>
+    </varray>
+    <vpool>
+        <id>urn:storageos:VirtualPool:51575f8d-e51d-4c77-a741-a66534cb62ed:</id>
+        <link href="/file/vpools/urn:storageos:VirtualPool:51575f8d-e51d-4c77-a741-a66534cb62ed:" rel="self"/>
+    </vpool>
+</filesystem>

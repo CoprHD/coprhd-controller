@@ -1,0 +1,28 @@
+POST https://192.168.0.0:4443/file/filesystems?project=urn:storageos:Project:5e93a1ec-6a2c-457f-9ef6-16487265dc98: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<filesystem_create>
+    <name>fs-sarav-test-xml-1</name>
+    <size>20MB</size>
+    <varray>urn:storageos:VirtualArray:8192a5e7-bb39-4f75-bdad-10f8fa1d105e:</varray> 
+    <vpool>urn:storageos:VirtualPool:74cd5776-62fc-4972-ad10-da882db659b3:</vpool>
+</filesystem_create>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <task>
+       <description>Filesystem create</description>
+       <op_id>50ab3493-8896-423b-bc8a-24c01117caef</op_id>
+       <resource>
+       <id>urn:storageos:FileShare:7d6dc956-9a38-4c17-bd68-9b82ef6e7111:</id>
+       <link href="/file/filesystems/urn:storageos:FileShare:7d6dc956-9a38-4c17-bd68-9b82ef6e7111:" rel="self"/>
+       <name>fs-sarav-test-xml-1</name>
+       </resource>
+       <link href="/file/filesystems/urn:storageos:FileShare:7d6dc956-9a38-4c17-bd68-9b82ef6e7111:/tasks/50ab3493-8896-423b-bc8a-24c01117caef" rel="self"/>
+       <start_time>1380046335790</start_time>
+       <state>pending</state>
+  </task>

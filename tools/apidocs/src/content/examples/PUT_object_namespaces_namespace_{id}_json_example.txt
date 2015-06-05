@@ -1,0 +1,15 @@
+PUT https://192.168.0.0:4443/object/namespaces/namespace/urn:storageos:Project:6501579f-11ac-4c37-b3e8-f38d40b138d4:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+	"vdc_update": [{
+	"default_object_project": "urn:storageos:Project:6501579f-11ac-4c37-b3e8-f38d40b138d4:", 
+	"tenant": "urn:storageos:TenantOrg:19f59393-254d-4c57-bf5f-9dec09202a98:", 
+	"default_data_services_vpool": "urn:storageos:ObjectStore:28ad6262-b845-41d2-be3c-65ff38e1a05b:"
+	}]
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json

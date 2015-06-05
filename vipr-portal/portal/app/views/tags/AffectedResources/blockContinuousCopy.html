@@ -1,0 +1,36 @@
+%{
+  resourceId = _resource.resourceId;
+  blockContinuousCopy = _resource.blockContinuousCopy;
+  varray = _resource.varray;
+  vpool = _resource.vpool;
+}%
+#{AffectedResources.resource img: 'volume.png', classes: 'blockContinuousCopy', typeKey: 'affectedResources.blockContinuousCopy'}
+  #{if blockContinuousCopy}
+    #{AffectedResources.singleColumn }
+    
+      <dt>&{'affectedResources.blockContinuousCopy'}:</dt>
+      <dd>#{spaceForNull resourceId ?: blockContinuousCopy?.id /}</dd>
+      
+      <dt>&{'affectedResources.blockContinuousCopy.name'}:</dt>
+      <dd>
+        <a href="@{resources.BlockVolumes.volume(blockContinuousCopy.source.id, blockContinuousCopy.id)}"
+        >#{spaceForNull blockContinuousCopy?.name/}#{if blockContinuousCopy.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+      </dd>
+
+      <dt>&{'affectedResources.blockContinuousCopy.wwn'}:</dt>
+      <dd>#{spaceForNull blockContinuousCopy.wwn/}</dd>
+      
+      <dt>&{'affectedResources.varray'}:</dt>
+      <dd>#{spaceForNull varray?.name/}</dd>
+
+*{ TODO
+      <dt>&{'affectedResources.cos'}:</dt>
+      <dd>#{spaceForNull vpool?.name/}</dd>
+}*      
+    #{/AffectedResources.singleColumn}
+   #{/if}
+   #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.blockContinuousCopy')}</dd>
+   #{/else}
+#{/AffectedResources.resource}

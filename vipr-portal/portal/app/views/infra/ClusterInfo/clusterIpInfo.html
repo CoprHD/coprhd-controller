@@ -1,0 +1,194 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.settings', 'nav.clusterInfo'] /}
+
+#{set 'moreScripts'}
+ <script type="text/javascript">
+ 
+    $(document).ready(function() {
+    	toggleNodeControls();
+    	if ("${reconfigSupported}" == "false") {
+    		$("form :input").not('.alert :input').attr("disabled","disabled");
+        	$('#powerOffWarning').hide();
+        	$('#rebootWarning').hide();
+    	} else {
+			$('#powerOffWarning').hide();
+  	    	$('#rebootWarning').show();
+    	}
+
+    	$("#ipReconfigForm_powerOff").click( function (event) {
+   		   if ($(event.currentTarget).is(':checked')) {
+   				$('#powerOffWarning').show();
+   	    		$('#rebootWarning').hide();
+   		   } else {
+   				$('#powerOffWarning').hide();
+   	    		$('#rebootWarning').show();
+   	   	   }
+    	});
+    });
+    
+    function toggleNodeControls() {
+    	var nodeCount = ${ipReconfigForm.nodeCount};
+    	if (nodeCount == '1') {
+    	    $('#ipReconfigForm_ipv4_network_addrs2').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv4_network_addrs3').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv4_network_addrs4').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv4_network_addrs5').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv4_network_addrs2ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv4_network_addrs3ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv4_network_addrs4ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv4_network_addrs5ControlGroup').hide();
+    	    
+    	    $('#ipReconfigForm_ipv6_network_addrs2').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv6_network_addrs3').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv6_network_addrs4').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv6_network_addrs5').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv6_network_addrs2ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv6_network_addrs3ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv6_network_addrs4ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv6_network_addrs5ControlGroup').hide();
+        } else if (nodeCount == '3') {
+    	    $('#ipReconfigForm_ipv4_network_addrs4').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv4_network_addrs5').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv4_network_addrs4ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv4_network_addrs5ControlGroup').hide();
+    	    
+    	    $('#ipReconfigForm_ipv6_network_addrs4').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv6_network_addrs5').attr('disabled', 'disabled');
+    	    $('#ipReconfigForm_ipv6_network_addrs4ControlGroup').hide();
+    	    $('#ipReconfigForm_ipv6_network_addrs5ControlGroup').hide();
+        }
+    }
+ </script>
+#{/set}
+<div class="container">
+#{form @ipReconfig(), class:'form form-horizontal', autocomplete:"off", confirm:messages.get('ipReconfigForm.submitConfirm')}
+
+  <form-header title-key="ipReconfigForm.title"></form-header>
+
+  #{alerts/}
+  #{errors}
+  	<div class="clear"></div>
+  	<p class="alert alert-warning">${error}</p>
+  #{/errors}
+  <fieldset>
+  	#{Form.subheader titleKey:"ipReconfigForm.ipv4.title", descriptionKey:"ipReconfigForm.ipv4.description"/}
+  	#{field 'ipReconfigForm.nodeCount'}
+      #{Form.hidden field:field /}
+    #{/field}
+  	#{field 'ipReconfigForm.network_vip'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+  	#{field 'ipReconfigForm.ipv4_network_addrs1'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+  	#{field 'ipReconfigForm.ipv4_network_addrs2'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+  	#{field 'ipReconfigForm.ipv4_network_addrs3'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.ipv4_network_addrs4'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+   	#{field 'ipReconfigForm.ipv4_network_addrs5'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+  	#{field 'ipReconfigForm.network_netmask'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+  	#{field 'ipReconfigForm.network_gateway'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+  </fieldset>
+  <br/>
+  <fieldset>
+  	#{Form.subheader titleKey:"ipReconfigForm.ipv6.title", descriptionKey:"ipReconfigForm.ipv6.description"/}
+    #{field 'ipReconfigForm.network_vip6'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.ipv6_network_addrs1'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.ipv6_network_addrs2'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.ipv6_network_addrs3'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.ipv6_network_addrs4'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.ipv6_network_addrs5'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.network_prefix_length'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'ipReconfigForm.network_gateway6'}
+     %{
+        field.required = true
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+  </fieldset>
+    #{field 'ipReconfigForm.powerOff'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    <div class="form-group button-bar">
+		<div class="col-sm-offset-3 col-sm-2">
+			#{Form.button name:'ipReconfigForm.button.reconfigure', class:'primary', icon:'ok-sign', size:_size, type:'submit', disabled:_disabled, id:'btnReconfig'/}
+		</div>
+		<span id="powerOffWarning" class="text-danger">&{'ipReconfigForm.powerOff.warning'}</span>
+		<span id="rebootWarning" class="text-danger">&{'ipReconfigForm.reboot.warning'}</span>
+	</div>
+#{/form}
+#{get 'forms'/}
+</div>

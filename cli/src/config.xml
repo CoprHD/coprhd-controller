@@ -1,0 +1,421 @@
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<command name="viprcli">
+        <module name="network">
+            <operation name="create">
+                	<parameter name="-name" metavar="network"></parameter>
+		    	<parameter name="-varray" metavar="varray"></parameter>
+		    	<parameter name="-transport_type" metavar="{FC,IP,Ethernet}"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="network"></parameter>
+		      <parameter name="-varray" metavar="varray"></parameter>
+            </operation>
+            <operation name="list">
+			<parameter name="-varray" metavar="varray"></parameter>
+            </operation>
+            <operation name="endpoint">
+			<positional name="add"> </positional>
+			<positional name="remove"> </positional>
+            </operation>
+            <operation name="update">
+			<parameter name="-name" metavar="network"></parameter>
+			<parameter name="-label" metavar="label"></parameter>
+		      <parameter name="-varray" metavar="varray"></parameter>
+			<parameter name="-endpoint" metavar="endpoint"></parameter>
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="network"></parameter>
+		      <parameter name="-varray" metavar="varray"></parameter>
+            </operation> 
+        </module>
+        <module name="volume">
+            <operation name="create">
+			<parameter name="-name" metavar="volumename"></parameter>
+			<parameter name="-size" metavar="volumesize[kKmMgGtT]"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-vpool" metavar="vpoolname"></parameter>
+			<parameter name="-varray" metavar="varray"></parameter>
+			<parameter name="-protocol" metavar="{FC,iSCSI}"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="volumename"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="list">
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="tasks">
+                        <parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="expand">
+                        <parameter name="-name" metavar="volumename"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+                        <parameter name="-size" metavar="newsize"></parameter>
+            </operation>
+            <operation name="update">
+			<parameter name="-name" metavar="volumename"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-label" metavar="label"></parameter>
+			<parameter name="-vpool" metavar="vpoolname"></parameter>
+            </operation>
+            <operation name="delete">
+                        <parameter name="-name" metavar="volumename"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+            </operation> 
+        </module>
+        <module name="vpool">
+            <operation name="create">
+			<parameter name="-name" metavar="vpoolname"></parameter>
+			<parameter name="-protocol" metavar="[protocol [protocol ...]]"></parameter>
+			<parameter name="-resiliencyMin" metavar="resiliencyMin"></parameter>
+			<parameter name="-resiliencyMax" metavar="resiliencyMax"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="vpoolname"></parameter>
+            </operation>
+            <operation name="list">
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="vpoolname"></parameter>
+            </operation>
+            <operation name="allow">
+			<parameter name="-name" metavar="vpoolname"></parameter>
+			<parameter name="-tenant" metavar="tenant"></parameter>
+            </operation>
+
+        </module>
+        <module name="authenticate">
+            <operation name="Noop">
+                <parameter name="-username" metavar="User name"></parameter>
+                <parameter name="-cookiedir" metavar="cookie directory"></parameter>
+            </operation>
+        </module>
+        <module name="varray">
+	    <operation name="create">
+			<parameter name="-name" metavar="varrayname"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="varrayname"></parameter>
+            </operation>
+            <operation name="list">
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="varrayname"></parameter>
+            </operation>
+            <operation name="allow">
+			<parameter name="-name" metavar="varrayname"></parameter>
+			<parameter name="-tenant" metavar="tenant"></parameter>
+            </operation>
+        </module>
+        <module name="filesystem">
+	    <operation name="create">
+			<parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-size" metavar="filesystemsize[kKmMgGtT]"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-vpool" metavar="vpoolname"></parameter>
+			<parameter name="-varray" metavar="varray"></parameter>
+			<parameter name="-protocol" metavar="{NFS,NFSv4,CIFS}"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="list">
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="export">
+			<parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-type" metavar="type"></parameter>
+			<parameter name="-perm" metavar="permission"></parameter>
+			<parameter name="-root_user" metavar="root_user"></parameter>
+			<parameter name="-endpoint" metavar="endpoint"></parameter>
+			<parameter name="-protocol" metavar="{NFS,NFSv4,CIFS}"></parameter>
+            </operation>
+            <operation name="unexport">
+			<parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-type" metavar="type"></parameter>
+			<parameter name="-perm" metavar="permission"></parameter>
+			<parameter name="-root_user" metavar="root_user"></parameter>
+			<parameter name="-protocol" metavar="{NFS,NFSv4,CIFS}"></parameter>
+            </operation>
+            <operation name="update">
+			<parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-label" metavar="label"></parameter>
+			<parameter name="-vpool" metavar="vpoolname"></parameter>
+            </operation>
+            <operation name="mount">
+			<parameter name="-mountpoint" metavar="mountpoint"></parameter>
+			<parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-type" metavar="type"></parameter>
+			<parameter name="-perm" metavar="permission"></parameter>
+			<parameter name="-root_user" metavar="root_user"></parameter>
+			<parameter name="-protocol" metavar="{NFS,NFSv4,CIFS}"></parameter>
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="expand">
+                        <parameter name="-name" metavar="filesystemname"></parameter>
+                        <parameter name="-project" metavar="projectname"></parameter>
+                        <parameter name="-size" metavar="new_size"></parameter>
+            </operation> 
+            <operation name="tasks">
+                        <parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+        </module>
+        <module name="exportgroup">
+            <operation name="create">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+                        <parameter name="-varray" metavar="varray"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="list">
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="add_vol">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-volume" metavar="volume"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+	    </operation>
+	    <operation name="remove_vol">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-volume" metavar="volume"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+	    </operation>
+	    <operation name="add_initiator">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-protocol" metavar="protocol"></parameter>
+			<parameter name="-initiatorNode" metavar="initiatorNode"></parameter>
+			<parameter name="-initiatorPort" metavar="initiatorPort"></parameter>
+			<parameter name="-hostId" metavar="hostid"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+	    </operation>
+	    <operation name="remove_initiator">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-initiator" metavar="initiator"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-protocol" metavar="protocol"></parameter>
+	    </operation>
+	    <operation name="get_ports">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+	    </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="exportgroupname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+        </module>
+        <module name="storagesystem">
+	    <operation name="show">
+			<parameter name="-name" metavar="storagesystemname"></parameter>
+                        <parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+            <operation name="list">
+            </operation>
+	    <operation name="register">
+			<parameter name="-name" metavar="storagesystemname"></parameter>
+            </operation>
+            <operation name="unregister">
+			<parameter name="-serialnumber" metavar="serialnumber"></parameter>
+            </operation>
+            <operation name="create">
+                        <parameter name="-name" metavar="storagesystemname"></parameter>
+                        <parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+        </module>
+        <module name="storageport">
+	    <operation name="show">
+			<parameter name="-name" metavar="storageportname"></parameter>
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+            <operation name="list">
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+	     <operation name="update">
+			<parameter name="-transporttype" metavar="{FC, Ethernet,IP}"></parameter>
+                     <parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+			<parameter name="-nw" metavar="network"></parameter>
+			<parameter name="-varray" metavar="varray"></parameter>
+            </operation>
+	     <operation name="register">
+			<parameter name="-transporttype" metavar="{FC, Ethernet,IP}"></parameter>
+                     <parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+	     <operation name="deregister">
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+			<parameter name="-name" metavar="storageportname"></parameter>
+            </operation>
+        </module>
+        <module name="project">
+            <operation name="create">
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-name" metavar="projectname"></parameter>
+	    </operation>
+            <operation name="show">
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-name" metavar="projectname"></parameter>
+            </operation>
+            <operation name="list">
+                        <parameter name="-tenant" metavar="tenantname"></parameter>
+            </operation>
+            <operation name="update">
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-name" metavar="projectname"></parameter>
+			<parameter name="-newname" metavar="newname"></parameter>
+			<parameter name="-newowner" metavar="newowner"></parameter>
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="projectname"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+            </operation> 
+        </module>
+        <module name="snapshot">
+	    <operation name="create">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="list">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="export-file">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-fileshare" metavar="filesharename"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-protocol" metavar="{NFS, CIFS}"></parameter>
+           </operation>
+            <operation name="unexport-file">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-fileshare" metavar="filesharename"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+			<parameter name="-protocol" metavar="{NFS,CIFS}"></parameter>
+            </operation>
+	    <operation name="restore">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+	     <operation name="activate">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="snapshotname"></parameter>
+			<parameter name="-tenant" metavar="tenantname"></parameter>
+			<parameter name="-project" metavar="projectname"></parameter>
+            </operation>
+        </module>
+        <module name="storagepool">
+	    <operation name="register">
+			<parameter name="-serialnumber" metavar="serialnumber"></parameter>
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+			<parameter name="-protocol" metavar="[{NFS,CIFS,FC,iSCSI} [{NFS,CIFS,FC,iSCSI} ...]]"></parameter>
+			<parameter name="-vpool" metavar="vpool"></parameter>
+            </operation>
+	     <operation name="update">
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+			<parameter name="-vpool" metavar="vpool"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="poolname"></parameter>
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+            <operation name="list">
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="poolname"></parameter>
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+            <operation name="deregister">
+			<parameter name="-name" metavar="poolname"></parameter>
+			<parameter name="-type" metavar="{isilon,vnxblock,vnxfile,vmax}"></parameter>
+            </operation>
+        </module>
+        <module name="tenant">
+	    <operation name="create">
+			<parameter name="-name" metavar="tenantname"></parameter>
+			<parameter name="-key" metavar="key"></parameter>
+			<parameter name="-value" metavar="value"></parameter>
+            </operation>
+            <operation name="show">
+			<parameter name="-name" metavar="tenantname"></parameter>
+            </operation>
+            <operation name="list">
+            </operation>
+            <operation name="delete">
+			<parameter name="-name" metavar="tenantname"></parameter>
+            </operation>
+            <operation name="assign-role">
+			<parameter name="-name" metavar="tenantname"></parameter>
+			<parameter name="-subject-id" metavar="subjectid"></parameter>
+			<parameter name="-role" metavar="{SYSTEM_ADMIN, TENANT_ADMIN,SECURITY_ADMIN, PROJECT_ADMIN}"></parameter>
+            </operation>
+            <operation name="get-role">
+			<parameter name="-name" metavar="tenantname"></parameter>
+			<parameter name="-subject-id" metavar="subjectid"></parameter>
+            </operation>
+            <operation name="add-attribute">
+			<parameter name="-key" metavar="key"></parameter>
+			<parameter name="-value" metavar="value"></parameter>
+            </operation>
+        </module>
+        <module name="meter">
+            <operation name="Noop">
+            	<parameter name="-year" metavar="year" />
+                <parameter name="-month" metavar="month" />
+		<parameter name="-day" metavar="day" />
+		<parameter name="-hour" metavar="hour" />
+            </operation>
+        </module>
+
+	<module name="monitor">
+            <operation name="Noop">
+                <parameter name="-year" metavar="year" />
+                <parameter name="-month" metavar="month" />
+                <parameter name="-day" metavar="day" />
+                <parameter name="-hour" metavar="hour" />
+            </operation>
+        </module>
+	<module name="system">
+            <operation name="get-logs">
+                <parameter name="-filepath" metavar="filepath" />
+            </operation>
+            <operation name="remove-image">
+                <parameter name="-version" metavar="target_version" />
+            </operation>
+            <operation name="update-cluster">
+                <parameter name="-version" metavar="target_version" />
+            </operation>
+            <operation name="get-target-version">
+            </operation>
+            <operation name="install-image">
+                <parameter name="-version" metavar="target_version" />
+            </operation>
+            <operation name="get-cluster-state">
+            </operation>
+        </module>
+
+</command>

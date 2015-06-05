@@ -1,0 +1,69 @@
+GET https://192.168.0.0:4443/vdc/storage-ports.json HTTP/1.1  
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+   "storage_port" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:5993a547-2af5-4e30-a4ff-9ecd057b0ece:/storage-ports/urn:storageos:StoragePort:b7109bdf-3fcc-45ba-9ece-bafceec901b6:"
+         },
+         "name" : "CLARIION+APM00121202922+PORT+iqn.1992-04.com.emc:cx.apm00121202922.b8",
+         "id" : "urn:storageos:StoragePort:b7109bdf-3fcc-45ba-9ece-bafceec901b6:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:f38dece5-7160-4675-a163-0cbc2d6660f8:/storage-ports/urn:storageos:StoragePort:e1728c8b-4d59-4697-862f-d94eb4ae1b28:"
+         },
+         "name" : "SYMMETRIX+000195701505+PORT+50:00:09:73:00:17:85:1D",
+         "id" : "urn:storageos:StoragePort:e1728c8b-4d59-4697-862f-d94eb4ae1b28:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:f38dece5-7160-4675-a163-0cbc2d6660f8:/storage-ports/urn:storageos:StoragePort:b5a35a2c-3d18-403b-8772-23e956e020f4:"
+         },
+         "name" : "SYMMETRIX+000195701505+PORT+iqn.1992-04.com.emc:5000097300178524",
+         "id" : "urn:storageos:StoragePort:b5a35a2c-3d18-403b-8772-23e956e020f4:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:9b579c2d-fa33-4006-95f7-6e3d6fabc0d1:/storage-ports/urn:storageos:StoragePort:46fc36bc-0c7f-4a21-be97-293e44b96e01:"
+         },
+         "name" : "SYMMETRIX+000195701573+PORT+000195701573:78:00",
+         "id" : "urn:storageos:StoragePort:46fc36bc-0c7f-4a21-be97-293e44b96e01:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:db0976bf-f2e5-40cf-bc1d-3c08926bfb52:/storage-ports/urn:storageos:StoragePort:19e5c064-a3d7-4e4f-9c5d-63c89a039aa1:"
+         },
+         "name" : "CLARIION+APM12380127239+PORT+50:00:09:82:94:A7:EC:01",
+         "id" : "urn:storageos:StoragePort:19e5c064-a3d7-4e4f-9c5d-63c89a039aa1:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:9b579c2d-fa33-4006-95f7-6e3d6fabc0d1:/storage-ports/urn:storageos:StoragePort:f1b6e024-749c-4c85-bd5c-a8f661b88641:"
+         },
+         "name" : "SYMMETRIX+000195701573+PORT+000195701573:77:00",
+         "id" : "urn:storageos:StoragePort:f1b6e024-749c-4c85-bd5c-a8f661b88641:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:9b579c2d-fa33-4006-95f7-6e3d6fabc0d1:/storage-ports/urn:storageos:StoragePort:8a69b958-6d71-4e3a-a27c-f1bad5078461:"
+         },
+         "name" : "SYMMETRIX+000195701573+PORT+50:00:09:73:00:18:95:18",
+         "id" : "urn:storageos:StoragePort:8a69b958-6d71-4e3a-a27c-f1bad5078461:"
+      }
+   ]
+}

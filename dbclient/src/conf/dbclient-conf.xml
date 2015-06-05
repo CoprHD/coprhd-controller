@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    
+    <import resource="classpath:coordinatorclient-var.xml"/>
+
+    <bean id="dbclientcontext" class="com.emc.storageos.db.client.impl.DbClientContext">
+    	<property name="clusterName" value="StorageOS"/>
+    	<property name="keyspaceName" value="StorageOS"/>
+        <property name="keyStoreFile" value="/opt/storageos/conf/storageos.ks"/>
+    	<property name="trustStoreFile" value="/opt/storageos/conf/storageos.ts"/>
+        <property name="trustStorePassword" value="geostorageos"/>
+        <property name="cipherSuite" value="TLS_RSA_WITH_AES_128_CBC_SHA"/>
+        <property name="clientToNodeEncrypted" value="false"/>
+    </bean>
+    
+    <bean id="geodbclientcontext" class="com.emc.storageos.db.client.impl.DbClientContext">
+    	<property name="clusterName" value="GeoStorageOS"/>
+    	<property name="keyspaceName" value="GeoStorageOS"/>
+        <property name="keyStoreFile" value="/opt/storageos/conf/geostorageos.ks"/>
+    	<property name="trustStoreFile" value="/opt/storageos/conf/geostorageos.ts"/>
+        <property name="trustStorePassword" value="geostorageos"/>
+        <property name="cipherSuite" value="TLS_RSA_WITH_AES_128_CBC_SHA"/>
+        <property name="clientToNodeEncrypted" value="false"/>
+    </bean>
+    
+    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl" init-method="start">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
+        <property name="localContext" ref="dbclientcontext"/>
+        <property name="geoContext" ref="geodbclientcontext"/>
+    </bean>
+
+    <bean id ="vdcUtilInitializer" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.db.common.VdcUtil"/>
+        <property name="targetMethod" value="setDbClient"/>       
+        <property name="arguments" ref="dbclient"/>
+    </bean>
+    
+    <bean id="encryptionProvider" class="com.emc.storageos.db.client.impl.EncryptionProviderImpl">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>    
+    
+    <bean id="geoEncryptionProvider" class="com.emc.storageos.db.client.impl.EncryptionProviderImpl">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="encryptId" value="geoid"/>
+    </bean>    
+
+    <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="false" />
+    </bean>
+</beans>

@@ -1,0 +1,32 @@
+GET https://192.168.0.0:4443/vdc/workflows/steps/urn:storageos:WorkflowStep:6e69f786-5f16-4eef-8233-b4d67bdd60e6: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <workflow_step>
+       <creation_time>1380568558477</creation_time>
+       <id>urn:storageos:WorkflowStep:6e69f786-5f16-4eef-8233-b4d67bdd60e6:</id>
+       <inactive>false</inactive>
+       <link href="/vdc/workflows/steps/urn:storageos:WorkflowStep:6e69f786-5f16-4eef-8233-b4d67bdd60e6:" rel="self"/>
+       <tags/>
+       <controller_name>com.emc.storageos.volumecontroller.impl.block.BlockDeviceController</controller_name>
+       <description>Deleting volumes:
+Volume: HalaVmaxVol (urn:storageos:Volume:af7109ae-b801-46d3-a596-ec01a47f105f:) wwn: 60000970000195701505533030314333 native id: 001C3
+       </description>
+       <execute_method>deleteVolumes</execute_method>
+       <message>Step is being executed</message>
+       <start_time>2013-09-30T19:15:58.506Z</start_time>
+       <state>EXECUTING</state>
+       <step_group>BlockDeviceDeleteVolumes</step_group>
+       <step_id>6d574ed9-10f4-4118-8053-085866ce8ceda8630a17-106c-43f0-84b0-20e82add16b2</step_id>
+       <system_id>urn:storageos:StorageSystem:cc047b91-3b2f-4acf-9ba0-6dbb2170c7ca:</system_id>
+       <system_type>vmax</system_type>
+       <workflow>
+            <id>urn:storageos:Workflow:0588b55a-c47c-434b-8a9d-d867ece6433e:</id>
+            <link href="/vdc/workflows/urn:storageos:Workflow:0588b55a-c47c-434b-8a9d-d867ece6433e:" rel="self"/>
+       </workflow>
+  </workflow_step>

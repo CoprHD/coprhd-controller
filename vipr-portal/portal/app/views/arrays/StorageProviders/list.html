@@ -1,0 +1,24 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.storageProviders'] /}
+
+#{DataTable.header titleKey:'SMISProviders.list.title' /}
+#{DataTable.crudTable id:'smisProvider',
+                      dataTable:dataTable,
+                      expandable:true,
+                      deleteConfirm:messages.get('SMISProviders.deleteConfirm')}
+  #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'discoverForm', 
+  	data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
+#{/DataTable.crudTable}
+#{DataTable.formAction @discover(), id:'discoverForm', table:'smisProvider'/}
+#{DataTable.expandHtml @itemDetails(':id'), table:'smisProvider' /}
+
+<script type="text/javascript">
+
+table.smisProvider.dataTable.afterCreate(function(dataTable) {
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDiscoveryStatus(dataTable.getDataTable(), itemsJson, ['version', 'storageSystems', 'storageSystemsNames']);
+});
+</script>

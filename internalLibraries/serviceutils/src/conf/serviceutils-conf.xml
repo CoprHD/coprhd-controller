@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="controlRoleInfo" class="com.emc.storageos.services.RoleMetadata">
+        <property name="name" value="control" />
+    </bean>
+
+    <bean id="sysRoleInfo" class="com.emc.storageos.services.RoleMetadata">
+        <property name="name" value="sys" />
+    </bean>
+
+    
+    <bean id="apiSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="apisvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="sysSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="syssvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="sys" />
+    </bean>
+
+    <bean id="dbSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="dbsvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="controllerSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="controllersvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="coordinatorSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="coordinatorsvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="authSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="authsvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="vasaSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="vasasvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="saSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="sasvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="portalSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="portalsvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+    <bean id="geoSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="geosvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+    
+    <bean id="geodbSvcInfo" class="com.emc.storageos.services.ServiceMetadata">
+        <property name="name" value="geodbsvc" />
+        <property name="isControlNodeService" value="true" />
+        <property name="roles" value="control" />
+    </bean>
+
+</beans>

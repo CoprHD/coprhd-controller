@@ -1,0 +1,24 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"
+	xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" 
+	xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<s:Header>
+		<a:To>${url}</a:To>
+		<w:ResourceURI s:mustUnderstand='true'>${resourceUri}</w:ResourceURI>
+		<a:ReplyTo>
+			<a:Address s:mustUnderstand='true'>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:Address>
+		</a:ReplyTo>
+		<a:Action s:mustUnderstand='true'>${actionUri}</a:Action>
+		<w:MaxEnvelopeSize s:mustUnderstand='true'>153600</w:MaxEnvelopeSize>
+		<a:MessageID>uuid:${messageId}</a:MessageID>
+		<w:Locale xml:lang='en-US' s:mustUnderstand='false'></w:Locale>
+		${selectorSet}${optionSet}
+		<w:OperationTimeout>PT${timeoutSeconds}.000S</w:OperationTimeout>
+	</s:Header>
+	<s:Body>
+		${body}
+	</s:Body>
+</s:Envelope>

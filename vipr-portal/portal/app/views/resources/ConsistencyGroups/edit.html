@@ -1,0 +1,44 @@
+%{
+  titleKey = 'consistencyGroups.' + (project?.id ? 'edit' : 'create') + '.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.consistencygroups'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+#{form @save(), id:'consistencyGroup', class:'form form-horizontal', autocomplete:"off"}
+  #{if consistencyGroup?.id}
+    #{field 'consistencyGroup.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}  
+  #{/if}
+
+  #{field 'consistencyGroup.projectId'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+
+  #{field 'consistencyGroup.referrerUrl'}
+     <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  
+  <fieldset>
+  
+    #{field 'consistencyGroup.name'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.required = true
+        field.fieldKey = 'projects.name'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+
+  </fieldset>
+
+  #{Form.saveCancel /}
+#{/form}
+</div>
+

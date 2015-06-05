@@ -1,0 +1,7 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+dependencies {
+    compile library(guava),
+            "com.jcraft:jsch:0.1.51",
+            project(":com.iwave.ext.command")
+}

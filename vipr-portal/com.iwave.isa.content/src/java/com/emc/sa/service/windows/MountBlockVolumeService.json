@@ -1,0 +1,83 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"MountBlockVolume.Block.Windows",
+  serviceId:"Windows-MountBlockVolume",
+  destructive: true,
+  fields:{
+    blockStorageType: {
+        type:"assetType.vipr.blockStorageType",
+        lockable:true,
+        initialValue:"exclusive"
+    },
+
+    host:{
+      type:"assetType.vipr.windowsHost"
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    volume: {
+      type:"assetType.vipr.unmountedBlockResource",
+      select:"one"
+    },
+
+    fileSystemType:{
+      type: "assetType.vipr.fileSystemType",
+      lockable: true
+    },
+    
+    doFormat:{
+      type: "boolean",
+      initialValue: "true",
+      required: "false",
+      lockable: true
+    },
+    
+    partitionType:{
+      type: "choice",
+      initialValue: "GPT",
+      select: "one",
+      options: {
+        "GPT": "GPT",
+        "MBR": "MBR"
+      },
+      lockable: true
+    },
+
+    blockSize:{
+        type: "assetType.vipr.blockSize"
+    },
+
+    mountPoint:{
+        type: "text",
+        required: false,
+        comment-validation: {
+          regEx:"\\A[A-Za-z](:[[\\\\]\\w^&@{}\\[\\],$=!\\-#()%.+~_]+)?"
+        }
+    },
+
+    label:{
+        type:"text",
+        required: false,
+        lockable: true,
+        validation:{
+          min:2,
+          max:32
+        }  
+    },
+
+    hlu: {
+        type:"number",
+        lockable: true,
+        required: false,
+        initialValue: "-1",
+        validation: {
+          min:-1
+        }
+    }
+  }
+}

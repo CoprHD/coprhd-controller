@@ -1,0 +1,274 @@
+%{
+  titleKey = 'Service.' + (service?.id ? 'edit' : 'create') + '.title';
+  //descriptionKey = 'Service.' + (service?.id ? 'edit' : 'create') + '.description';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.catalog', 'nav.editCatalog'] /}
+
+#{set 'moreScripts'}
+  #{get 'moreScripts'/}
+  #{script src:'jquery.dd.js'/}
+  <script type="text/javascript">
+    var serviceTitle = "";
+    var serviceDescription = "";
+    var services = {
+      #{list items:baseServices.values(), as:'serviceList'}
+        #{list items:serviceList, as:'item'}
+          "${item.serviceId}": {
+              "title": "${item.title}",
+              "description": "${item.description}",
+              "containsStorageSizeType": ${item?.getAllItemsList()?.any{ com.emc.sa.descriptor.ServiceField.TYPE_STORAGE_SIZE.equals(it.type) }},
+              "roles": [
+                #{if item.roles}
+                  #{list items: item.roles, as: 'role'}
+                    "${role}"#{if !role_isLast},#{/if}
+                  #{/list}
+                #{/if}
+              ]
+          }
+          #{if !(item_isLast && serviceList_isLast)},#{/if}
+        #{/list}
+      #{/list}
+    };
+    
+    function updateService() {
+        var key = $("#service_baseService").val();
+        var currentService = services[key];
+        
+        if (currentService != null) {
+            var currentTitle = $('#service_title').val();
+            if (currentTitle == "" || currentTitle == serviceTitle) {
+                $('#service_title').val(currentService.title);
+                serviceTitle = currentService.title;
+            }
+            var currentDescription = $('#service_description').val();
+            if (currentDescription == "" || currentDescription == serviceDescription) {
+                $('#service_description').val(currentService.description);
+                serviceDescription = currentService.description;
+            }
+            if (currentService.roles.length > 0) {
+                $('#service_baseServiceControlGroup > .controls > .help-block').text("&{'service.roles'} " + currentService.roles.join());
+            }
+            else {
+                $('#service_baseServiceControlGroup > .controls > .help-block').text("");
+            }
+            
+            if (currentService.containsStorageSizeType) {
+                $("#service_maxSizeControlGroup").show();
+            }
+            else {
+                $("#service_maxSizeControlGroup").hide();
+            }
+        }
+    }
+    
+    $(document).ready(function() {
+      updateService();
+      updateIconChooser();
+
+      $('#service_image').on('change', updateImage);
+      
+      $("#service_baseService").on("change", function() {
+        loadServiceFields();
+        updateService();
+      });
+      
+      $("#service_executionWindowRequired").on("change", function() {
+        updateDefaultExecutionWindowState();
+      });        
+ 
+      updateDefaultExecutionWindowState();
+    });
+    
+    function updateDefaultExecutionWindowState() {
+      if ($("#service_executionWindowRequired").is(":checked") == true) {
+        $('#service_defaultExecutionWindowId').prop("disabled", false);
+      } 
+      else {
+        $('#service_defaultExecutionWindowId').prop('disabled', true);
+      }      
+      $('#service_defaultExecutionWindowId').trigger("chosen:updated");
+    }
+    
+    function updateIconChooser() {
+        $('#service_image').msDropDown();
+        $('#service_image').msDropDown({visibleRows:4, rowHeight:60});
+        $('#service_image').on('change', updateImage);
+        // Remove direct width on the msdd div
+        $('#service_image_msdd').css('width', '');
+        updateImage();
+    }
+    
+    function updateImage() {
+      var imageDiv = $('.form-header .image');
+      var image = $('#service_image').val();
+      var imageUrl = catalogImageURL(image);
+      
+      var img = $('img', imageDiv);
+      if (img.size() == 0) {
+        imageDiv.html("<img src=\""+imageUrl+"\">");
+      }
+      else {
+        img.attr("src", imageUrl);
+      }
+      imageDiv.show();
+    }
+    
+    function loadServiceFields() {
+      var baseService = $('#service_baseService').val();
+      $('#serviceFields').html('<img src=\"@{'/public/img/loading.gif'}\">&{"ServiceCatalog.editService.loading"}');
+      var url = #{jsAction @serviceFields(':baseService', ':serviceId')/}({"baseService": baseService,"serviceId" : "${service?.id}"});
+      $('#serviceFields').load(url, function(response, status, xhr) {
+          if (status == 'error') {
+              $('#serviceFields').html('');
+          }
+      });      
+    }
+
+    function overrideField(current, id) {
+      var newState = 'disabled';
+      if ($(current).is(':checked')) {
+        newState = false;
+      }
+      $(id).prop('disabled', newState);
+      $(id).trigger("chosen:updated");
+
+      // Select Many has multiple controls. Disable them all
+      $(id + " input").prop('disabled', newState);
+      $(id + "Search").prop('disabled', newState);
+      $(id + "Check").prop('disabled', newState);
+      $(id + "Uncheck").prop('disabled', newState);
+    }
+    
+    function showImageDialog() {
+      if (window.FormData) {
+        imageDialog.show();
+      }
+      else {
+        if (confirm("&{'catalogImage.leavingPage'}")) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
+  </script>
+#{/set}
+
+#{ServiceCatalog.breadcrumb items:breadcrumbs, baseUrl:@edit(), visible:true /}
+#{alerts /}
+<div class="container">
+#{Form.header titleKey:titleKey /}
+#{form @saveService(), method:'POST', class:'form form-horizontal', autocomplete:"off"}
+  #{field 'service.id'}
+    #{if service?.id}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/if}
+  #{/field}
+  #{field 'service.fromId'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+
+  #{field 'service.baseService'}
+    %{
+      field.options = baseServices;
+      field.valueProperty = "serviceId";
+      field.labelProperty = "title";
+      field.categorized = true;
+      field.required = true;
+      field.addEmptyOption = true;
+      field.emptyOptionLabel = " ";
+    }%
+    #{Form.selectOneControlGroup field:field /}
+    <p id="service_roles" class="help-block clear"></p>
+  #{/field}
+
+  #{field 'service.title'}
+    %{ 
+      field.cssClass = 'span6 initialFocus';
+      field.required = true
+    }%
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+
+  #{field 'service.description'}
+    %{
+      field.required = true
+    }%        
+    #{Form.textAreaControlGroup field:field /}
+  #{/field}
+
+  #{field 'service.image'}
+    #{Form.controlGroup field:field}
+      <div class="input-group">
+        <select id="${field.id}" name="${field.name}" class="${cssClass} iconChooser">
+          #{list items:images, as:'image'}
+            %{
+              label = image.value.replaceAll("(icon_|.png)", "")
+              optionValue = image.key
+              value = flash[field.name] ?: String.valueOf(field.value)
+              selected = value.equals(optionValue)
+            }%
+            <option value="${optionValue}" #{if selected}selected="selected"#{/} title="#{ServiceCatalog.serviceImageURL image:optionValue/}">${label}</option>
+          #{/}
+        </select>
+        <span class="input-group-btn">
+          <a href="@{catalog.CatalogImages.create()}" class="btn btn-default" onclick="return showImageDialog()">#{icon 'upload'/} &{'catalogImage.link'}</a>
+        </span>
+      </div>
+    #{/Form.controlGroup}
+  #{/field}
+  
+  #{field 'service.owningCategoryId'}
+  %{
+    field.options = categories;
+    field.labelProperty = "label";
+    }%
+    #{Form.selectOneControlGroup field:field /}
+  #{/field}
+
+  <div id="serviceFields">
+    #{include 'catalog/EditCatalog/serviceFields.html'/}
+  </div>
+
+  <fieldset>
+    <legend>&{'service.options.title'}</legend>
+    #{field 'service.maxSize'}
+      %{
+        field.helpTextKey = "service.maxSize.helpText"
+        field.cssClass = "span2"
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{field 'service.approvalRequired'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    #{field 'service.executionWindowRequired'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    #{field 'service.defaultExecutionWindowId'}
+      %{
+        field.valueProperty = "id"
+        field.labelProperty = "name"
+        field.options = [[id:"next", name:messages.get("executionwindow.usenext")]]
+        field.options.addAll(executionWindows)
+        field.helpTextKey = "service.defaultExecutionWindowId.helpText"
+      }%
+      #{Form.selectOneControlGroup field:field /}
+    #{/field}
+  </fieldset>
+
+  #{field 'service.aclEntries'}
+    %{
+      field.aclEntries = service.aclEntries;
+      field.aclAccess = acls;
+      field.aclTypes = aclTypes;
+    }%
+    #{Acl.crud field:field /}
+  #{/field}  
+
+  #{Form.saveCancel cancelHref:backUrl/}  
+#{/form}
+</div>
+#{include 'catalog/EditCatalog/imageDialog.html'/}

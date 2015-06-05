@@ -1,0 +1,12 @@
+GET https://192.168.0.0:4443/vdc/auto-tier-policies/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+	<id>urn:storageos:AutoTieringPolicy:0c88504d-6bd6-461c-8d11-12201fa5beb5:</id>
+	<id>urn:storageos:AutoTieringPolicy:15851e12-e4a2-4492-a730-4813e5978c3e:</id>
+</ids>

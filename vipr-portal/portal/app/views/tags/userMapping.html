@@ -1,0 +1,224 @@
+%{
+    field = _field;
+    fieldName = field.name;
+    fieldId = field.id;
+    userMappings = field.userMapping;
+    domainsJson = field.domainsJson;
+    maxUserMappingIndex = 0;
+    disabled = field.disabled;
+    attributeMappingIndex = [:]
+    useFlashData = (flash?.data?.containsKey("tenant.id"));
+
+    // Check Flash Data for stored mappings
+    flashUserMappings = [];
+    for (e in flash.data) {
+        if (e.key.contains(fieldName + "[") && e.key.contains("].domain")) {
+            prefix = e.key.substring(0, e.key.indexOf(".domain"))
+            index = e.key.substring(e.key.indexOf("[") + 1, e.key.indexOf("]"))
+            domain = flash[prefix + ".domain"]
+
+            groups = flash[prefix + ".groups"]
+
+            // Now Look for Attributes
+            attributes = []
+            attributePrefix = prefix + ".attributes"
+            maxAttributeIndex = 0;
+            for (inner in flash.data) {
+                if (inner.key.contains(attributePrefix + "[") && inner.key.contains("].name")) {
+                    attributeIndex = inner.key.substring(inner.key.lastIndexOf("[") + 1, inner.key.lastIndexOf("]"))
+                    attributeName = flash[inner.key]
+                    attributeValues = flash[inner.key.substring(0, inner.key.lastIndexOf(".name"))+".values"]
+
+                    attributeMapping = new controllers.tenant.UserMappingForm.AttributeMapping()
+                    attributeMapping.name = attributeName
+                    attributeMapping.values = attributeValues
+
+                    attributes << attributeMapping
+                    maxAttributeIndex = Math.max(maxAttributeIndex, Integer.valueOf(attributeIndex));
+                }
+            }
+
+            attributes.removeAll([null]); // Compact list back down
+            maxAttributeIndex = attributes.size();
+
+            userMappingForm = new controllers.tenant.UserMappingForm()
+            userMappingForm.domain = domain
+            userMappingForm.groups = groups
+            userMappingForm.attributes = attributes
+
+            if (flashUserMappings == null) {
+                flashUserMappings = []
+            }
+
+            mappingIndex = Integer.parseInt(index)
+            flashUserMappings.putAt(mappingIndex, userMappingForm)
+            maxUserMappingIndex = Math.max(maxUserMappingIndex, mappingIndex)
+            attributeMappingIndex = attributes
+            useFlashData = true;
+        }
+    }
+
+    if (useFlashData) {
+        flashUserMappings.removeAll([null]); // Compact list back down
+        maxUserMappingIndex = flashUserMappings.size();
+    }
+    else {
+        maxUserMappingIndex = (!userMappings?.isEmpty()) ? userMappings.size() : 0;
+    }
+}%
+
+<div class="control-group ${field.error ? "has-error" : ""}">
+<fieldset>
+<legend>&{'tenant.usermapping'}<small>&{'tenant.usermapping.description'}</small></legend>
+<span style="position:relative;top:-10px">&{'tenant.usermapping.detailedHelp'}</span>
+
+#{if field.error}
+    <div class="alert alert-danger clearfix">${field.error}</div>
+#{/if}
+
+    <table id="domainTable" class="table">
+        <thead>
+        <tr>
+            <th style="width: 20%">{{ 'tenant.usermapping.domain' | t }}</th>
+            <th style="width: 30%">{{ 'tenant.usermapping.groups' | t }}</th>
+            <th style="width: 50%">{{ 'tenant.usermapping.attr' | t }}</th>
+        </tr>
+        </thead>
+        <tbody>
+
+        #{list items: useFlashData ? flashUserMappings : userMappings, as:'userMapping'}
+            <tr data-mappingindex="${userMapping_index}">
+                <td>
+                    ${userMapping.domain}<br/>
+                    <button name="userMappingRemoveButton" class="btn btn-danger btn-xs right-space" type="button" #{if disabled} disabled="disabled"#{/if}>&{'tenant.usermapping.removeRule'}</button>
+
+                    <input type="hidden" name="tenant.usermapping[${userMapping_index}].domain" value="${userMapping.domain}">
+                </td>
+                <td>
+                      <textarea class="form-control" rows="3" name="tenant.usermapping[${userMapping_index}].groups" #{if disabled} disabled="disabled"#{/if}>${userMapping.groups}</textarea>
+                      <span class="help-block">&{'tenant.group.help'}</span>
+                </td>
+                <td>
+                    <table class="embedded-table">
+                    <tfoot>
+                        <tr>
+                            <td colspan="4">
+                                <button type="button" name="addAttributeButton" class="btn btn-xs btn-success" #{if disabled} disabled="disabled"#{/if}>&{'tenant.usermapping.add.attr'}</button>
+                            </td>
+                        </tr>
+                    </tfoot>
+                    <tbody>
+                    #{list items:userMapping.attributes, as:'attribute'}
+                            <tr>
+                                <td>
+                                    <input class="form-control" type="text" name="tenant.usermapping[${userMapping_index}].attributes[${attribute_index}].name" value="${attribute.name}" data-attributeindex="${attribute_index}" #{if disabled} disabled="disabled"#{/if}>
+                                </td>
+                                <td>=</td>
+                                <td>
+                                  <textarea class="form-control" rows="2" name="tenant.usermapping[${userMapping_index}].attributes[${attribute_index}].values" #{if disabled} disabled="disabled"#{/if}>${attribute.values}</textarea>
+                                  <span class="help-block">&{'tenant.attribute.help'}</span>                                
+                             </td>
+                             <td><button style="margin-left:5px" type="button" name="deleteAttributeButton" class="btn btn-danger btn-xs left-space" alt="Delete Attribute" #{if disabled} disabled="disabled"#{/if}>#{icon 'trash', class:'white'/}</button></td>
+                            </tr>
+                    #{/list}
+                    </tbody>
+                    </table>
+                </td>
+            </tr>
+        #{/list}
+        </tbody>
+         #{if controllers.security.Security.isSecurityAdmin()}
+        <tfoot id="domainFooter">
+        <th colspan="3">
+                <div id="addDomainBar">
+                    <div class="col-sm-4">
+                      <select id="domainSelector" class="form-control" #{if disabled} disabled="disabled"#{/if}>
+                      </select>
+                    </div>
+                    <button id="addDomainButton" class="btn btn-sm btn-success" type="button" #{if disabled} disabled="disabled"#{/if}>{{ 'tenant.usermapping.addUserMapping' | t }}</button>
+                </div>
+                <br/>
+                <div id="noDomainsMessage" class="alert alert-warning">&{'tenant.noDomains'}</div>
+        </th>
+        </tfoot>
+        #{/if}        
+    </table>
+</fieldset>
+</div>
+
+<script type="text/javascript">
+    var maxUserMappingIndex = ${maxUserMappingIndex};
+    var domains = ${domainsJson.raw()}
+
+    $(document).ready(function() {
+        $('#addDomainButton').on('click', addDomain);
+        $(document).on('click', 'button[name="addAttributeButton"]', addAttribute);
+        $(document).on('click', 'button[name="deleteAttributeButton"]', deleteAttribute);
+        $(document).on('click', 'button[name="userMappingRemoveButton"]', removeDomain);
+
+        updateDomainOptions(true);
+    });
+
+    function removeDomain() {
+        $(this).closest('tr').remove();
+        updateDomainOptions(false);
+    }
+
+    function addDomain() {
+        maxUserMappingIndex++;
+        var prefix = "${fieldName}[" + maxUserMappingIndex + "]";
+        var domain = $("#domainSelector").val();
+        $('#domainTable > tbody:last').append('<tr data-mappingindex="'+maxUserMappingIndex+'"><td>'+domain+'<br><button name="userMappingRemoveButton" class="btn btn-danger btn-xs right-space" type="button">&{'tenant.usermapping.removeRule'}</button><input type="hidden" name="tenant.usermapping['+maxUserMappingIndex+'].domain" value="'+domain+'"></td><td><textarea class="form-control" rows="3" name="tenant.usermapping['+maxUserMappingIndex+'].groups"></textarea><span class="help-block">&{'tenant.group.help'}</span></td><td><table class="embedded-table"><tfoot><tr><td colspan="4"><button type="button" name="addAttributeButton" class="btn btn-xs btn-success">' + Messages.get("tenant.usermapping.add.attr") + '</button></td></tr></tfoot><tbody></tbody></table></td></tr>');
+
+        updateDomainOptions(false);
+    }
+
+    function addAttribute() {
+        attributeIndex = 0;
+
+        attributeTable = $(this).closest('table');
+        attributeTable.closest('table').find("input[name$='].name']").each(
+                function() {
+                    attributeIndex = Math.max(attributeIndex, $(this).data("attributeindex"));
+                }
+        )
+
+        attributeIndex = attributeIndex + 1
+        mappingIndex = attributeTable.parents("tr").data("mappingindex");
+
+        attributeTable.append('<tr><td><input class="form-control" type="text" name="tenant.usermapping['+mappingIndex+'].attributes['+attributeIndex+'].name" value="" data-attributeindex="'+attributeIndex+'"></td><td>=</td><td><textarea class="form-control" rows="2" name="tenant.usermapping['+mappingIndex+'].attributes['+attributeIndex+'].values"></textarea><span class="help-block">&{'tenant.attribute.help'}</span></td><td><button type="button" name="deleteAttributeButton" class="btn btn-danger btn-xs left-space">#{icon 'trash', class:'white'/}</button></td></tr>')
+    }
+
+    function deleteAttribute() {
+        $(this).closest('tr').remove();
+        return false;
+    }
+
+    function updateDomainOptions(isOnLoad) {
+      
+        // Add any domain options not selected
+        var domainSelector = $("#domainSelector");
+        domainSelector.empty();
+        $.each(domains, function(index, value) {
+            domainSelector.append($('<option>', {
+                                    value: value,
+                                    text : value
+                                    }));
+        });
+
+        var domainSelectOptions =  domainSelector.find("option");
+        if (domainSelectOptions.size() == 0) {
+            if (isOnLoad) {
+                $("#noDomainsMessage").show();
+            }
+            $("#addDomainButton").attr('disabled','disabled');
+        }
+        else {
+            if (isOnLoad) {
+                $("#noDomainsMessage").hide();
+            }
+            $("#addDomainButton").removeAttr('disabled');
+        }
+    }
+</script>
+

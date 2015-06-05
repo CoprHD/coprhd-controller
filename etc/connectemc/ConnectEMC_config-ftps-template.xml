@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<ConnectEMCConfig SchemaVersion="1.1.0">
+
+  <ConnectConfig Type="FTPS">
+    <Retries>3</Retries>
+    <Notification>Primary</Notification>
+    <Timeout>300</Timeout>
+    <Description></Description>
+    <BsafeEncrypt>${system_connectemc_encrypt}</BsafeEncrypt>
+    <IPProtocol>${system_connectemc_ipprotocol}</IPProtocol>
+    <IPAddress>${system_connectemc_ftps_hostname_addr}</IPAddress>
+    <FTPPort>${system_connectemc_ftps_port}</FTPPort>
+    <UserName>${system_connectemc_ftps_username}</UserName>
+    <Password>${system_connectemc_ftps_password}</Password>
+    <FEPFolder>${system_connectemc_ftps_fepfolder}</FEPFolder>
+    <Mode>Passive</Mode>
+    <PrivateKeyFile>Default</PrivateKeyFile>
+    <PrivateKeyPassPhrase>Default</PrivateKeyPassPhrase>
+    <ClientCertificate>Default</ClientCertificate>
+    <ServerCABundle>Default</ServerCABundle>
+    <VerifyServerName>no</VerifyServerName>
+  </ConnectConfig>
+
+  <ConnectConfig Type="Email">
+    <Retries>3</Retries>
+    <Notification>onSuccess/onFailure</Notification>
+    <Timeout>300</Timeout>
+    <Description>ConnectEMC Success/Fail Customer Notification</Description>
+    <BsafeEncrypt>${system_connectemc_encrypt}</BsafeEncrypt>
+    <IPProtocol>${system_connectemc_ipprotocol}</IPProtocol>
+    <EmailServer>${system_connectemc_smtp_server_addr}:${smtp_server_port}</EmailServer>
+    <EmailAddress>${system_connectemc_smtp_to}</EmailAddress>
+    <EmailSender>${system_connectemc_smtp_from}</EmailSender>
+    <EmailFormat>HTML</EmailFormat>
+    <EmailSubject>ConnectEMC Customer Notification</EmailSubject>
+    <IncludeCallHomeData>yes</IncludeCallHomeData>
+    <InsertBefore></InsertBefore>
+    <PreProcess></PreProcess>
+    <PostProcess></PostProcess>
+  </ConnectConfig>
+
+</ConnectEMCConfig>

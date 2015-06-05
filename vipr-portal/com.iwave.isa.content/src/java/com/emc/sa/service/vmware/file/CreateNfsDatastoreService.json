@@ -1,0 +1,54 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateNfsDatastore.File.VMware",
+  serviceId:"VMware-CreateNfsDatastore",
+  fields:{
+    datastoreName:{
+      type:"text",
+      validation:{
+        regEx:"[a-zA-Z0-9 \\-\\_]+",
+        min: 2,
+        max: 128
+      }
+    },
+    
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"shared"
+    },
+    
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileUnmountedFilesystem"
+    },
+    
+    exportName:{
+      type:"assetType.vipr.fileExportsWithRootPermissions"
+    },
+    
+    storageIOControl: {
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    }
+  }
+}

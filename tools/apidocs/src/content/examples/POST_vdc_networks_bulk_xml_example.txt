@@ -1,0 +1,165 @@
+POST https://192.168.0.0:4443/vdc/networks/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:Network:14d241e0-4cf1-4837-bb2d-6b94efa8928e:</id>
+    <id>urn:storageos:Network:e872a293-49c5-46a4-bd23-4a64471160fc:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_networks>
+    <network>
+        <creation_time>1379169017380</creation_time>
+        <id>urn:storageos:Network:e872a293-49c5-46a4-bd23-4a64471160fc:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/networks/urn:storageos:Network:e872a293-49c5-46a4-bd23-4a64471160fc:" rel="self"/>
+        <name>FABRIC_losam059-fid2</name>
+        <tags/>
+        <native_guid>FC+BROCADE+10:00:00:05:1E:56:78:41</native_guid>
+        <discovered>true</discovered>
+        <endpoints>
+            <endpoint>50:06:01:65:3E:A0:59:B0</endpoint>
+            <endpoint>10:00:00:00:C9:51:C1:2E</endpoint>
+            <endpoint>50:06:01:64:3E:A0:59:B0</endpoint>
+            <endpoint>50:06:01:6D:3E:A0:59:B0</endpoint>
+        </endpoints>
+        <endpoints_discovered>
+            <endpoint_discovered>
+                <name>50:06:01:65:3E:A0:59:B0</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:06:01:64:3E:A0:59:B0</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>10:00:00:00:C9:51:C1:2E</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:06:01:6D:3E:A0:59:B0</name>
+                <value>true</value>
+            </endpoint_discovered>
+        </endpoints_discovered>
+        <fabric_id>losam059-fid2</fabric_id>
+        <network_systems>
+            <network_system>urn:storageos:NetworkSystem:f8cb0945-ca59-4ad2-b7b7-772587da0d6e:</network_system>
+            <network_system>urn:storageos:NetworkSystem:e5ab70ee-91b3-43ce-a6ba-48bd15ffb7f2:</network_system>
+        </network_systems>
+        <registration_status>REGISTERED</registration_status>
+        <transport_type>FC</transport_type>
+        <varray>
+            <id>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</id>
+            <link href="/vdc/varrays/urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:" rel="self"/>
+        </varray>
+    </network>
+    <network>
+        <creation_time>1379169021430</creation_time>
+        <id>urn:storageos:Network:14d241e0-4cf1-4837-bb2d-6b94efa8928e:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/networks/urn:storageos:Network:14d241e0-4cf1-4837-bb2d-6b94efa8928e:" rel="self"/>
+        <name>FABRIC_VPLEX_WAN_lglw9208/lglw9209</name>
+        <tags/>
+        <native_guid>FC+BROCADE+10:00:00:27:F8:58:F6:BF</native_guid>
+        <discovered>true</discovered>
+        <endpoints>
+            <endpoint>50:00:14:42:80:60:0B:20</endpoint>
+            <endpoint>50:00:14:42:80:60:0B:21</endpoint>
+            <endpoint>50:00:14:42:80:60:0B:22</endpoint>
+            <endpoint>50:00:14:42:80:60:0B:23</endpoint>
+            <endpoint>50:00:14:42:90:60:0B:20</endpoint>
+            <endpoint>50:00:14:42:90:70:54:23</endpoint>
+            <endpoint>50:00:14:42:90:60:0B:21</endpoint>
+            <endpoint>50:00:14:42:80:70:54:21</endpoint>
+            <endpoint>50:00:14:42:90:70:54:22</endpoint>
+            <endpoint>50:00:14:42:90:60:0B:22</endpoint>
+            <endpoint>50:00:14:42:80:70:54:20</endpoint>
+            <endpoint>50:00:14:42:90:70:54:21</endpoint>
+            <endpoint>50:00:14:42:90:70:54:20</endpoint>
+            <endpoint>50:00:14:42:90:60:0B:23</endpoint>
+            <endpoint>50:00:14:42:80:70:54:23</endpoint>
+            <endpoint>50:00:14:42:80:70:54:22</endpoint>
+        </endpoints>
+        <endpoints_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:60:0B:20</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:60:0B:21</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:60:0B:22</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:60:0B:23</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:70:54:23</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:60:0B:20</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:70:54:22</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:70:54:21</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:60:0B:21</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:70:54:21</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:70:54:20</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:60:0B:22</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:70:54:23</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:60:0B:23</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:90:70:54:20</name>
+                <value>true</value>
+            </endpoint_discovered>
+            <endpoint_discovered>
+                <name>50:00:14:42:80:70:54:22</name>
+                <value>true</value>
+            </endpoint_discovered>
+        </endpoints_discovered>
+        <fabric_id>VPLEX_WAN_lglw9208/lglw9209</fabric_id>
+        <network_systems>
+            <network_system>urn:storageos:NetworkSystem:56eb4b2f-3957-4271-9b89-abac1868336e:</network_system>
+        </network_systems>
+        <registration_status>REGISTERED</registration_status>
+        <transport_type>FC</transport_type>
+        <varray>
+            <id>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</id>
+            <link href="/vdc/varrays/urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:" rel="self"/>
+        </varray>
+    </network>
+</bulk_networks>

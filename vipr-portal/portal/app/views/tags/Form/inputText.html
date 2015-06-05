@@ -1,0 +1,6 @@
+%{
+  field = _field
+  value = flash[field.name] != null ? flash[field.name] : field.value
+  cssClass = field.cssClass ?: "span6"
+}%
+<input type="text" class="form-control ${cssClass}"#{if field.id} id="${field.id}"#{/if} name="${field.name}" value="${value}" autocomplete="off" #{if field.disabled}disabled="disabled"#{/if}#{Form.extraAtts atts:field.atts/}>

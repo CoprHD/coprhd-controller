@@ -1,0 +1,29 @@
+POST https://192.168.0.0:4443/block/volumes/urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:/expand.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+ {
+    "new_size": "2GB" 
+ }
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+ {
+    "resource": {
+        "name": "sfsfsfsfsf",
+        "id": "urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:",
+        "link": {
+            "rel": "self",
+            "href": "/block/volumes/urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:"
+        }
+    },
+    "state": "pending",
+    "description": "EXPAND_BLOCK_VOLUME",
+    "op_id": "d353e717-8721-4677-97f9-e4b9e199d3b6",
+    "link": {
+        "rel": "self",
+        "href": "/block/volumes/urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:/tasks/d353e717-8721-4677-97f9-e4b9e199d3b6"
+    }
+ }

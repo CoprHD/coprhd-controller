@@ -1,0 +1,11 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+dependencies {
+    compile library(commons_io),
+            project(":com.iwave.ext.ssh"),
+			"commons-beanutils:commons-beanutils:1.8.3"
+			
+    testCompile library(easymock),
+                library(cglib),
+                "org.mockito:mockito-all:1.9.5"
+}

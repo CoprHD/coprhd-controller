@@ -1,0 +1,46 @@
+GET https://192.168.0.0:4443/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:/auto-tier-policies HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <auto_tier_policies>
+       <auto_tier_policy>
+            <id>urn:storageos:AutoTieringPolicy:9536c54c-bd81-4379-9601-03ce766af36b:</id>
+            <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:9536c54c-bd81-4379-9601-03ce766af36b:" rel="self"/>
+            <name>SYMMETRIX+000195701185+FASTPOLICY+SplitPools</name>
+       </auto_tier_policy>
+       <auto_tier_policy>
+            <id>urn:storageos:AutoTieringPolicy:5b770a8b-b8bb-4f2f-8f23-1fd0880037b7:</id>
+            <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:5b770a8b-b8bb-4f2f-8f23-1fd0880037b7:" rel="self"/>
+            <name>DEFAULT_LOWEST_AVAILABLE</name>
+       </auto_tier_policy>
+       <auto_tier_policy>
+            <id>urn:storageos:AutoTieringPolicy:c6108050-d01c-4865-9ec1-198b2f46455c:</id>
+            <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:c6108050-d01c-4865-9ec1-198b2f46455c:" rel="self"/>
+            <name>DEFAULT_HIGHEST_AVAILABLE</name>
+       </auto_tier_policy>
+       <auto_tier_policy>
+            <id>urn:storageos:AutoTieringPolicy:f04877fb-7f41-4527-9886-bf5235f4e397:</id>
+            <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:f04877fb-7f41-4527-9886-bf5235f4e397:" rel="self"/>
+            <name>SYMMETRIX+000198700412+FASTPOLICY+Prov_FAST_Policy</name>
+       </auto_tier_policy>
+       <auto_tier_policy>
+            <id>urn:storageos:AutoTieringPolicy:d05d11f1-87d3-4243-a469-7de63a6e8d80:</id>
+            <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:d05d11f1-87d3-4243-a469-7de63a6e8d80:" rel="self"/>
+            <name>SYMMETRIX+000195600235+FASTPOLICY+Prov_Policy_SATA_FC</name>
+       </auto_tier_policy>
+       <auto_tier_policy>
+            <id>urn:storageos:AutoTieringPolicy:edda1f00-dc42-4368-b390-4d5d6a78e117:</id>
+            <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:edda1f00-dc42-4368-b390-4d5d6a78e117:" rel="self"/>
+            <name>SYMMETRIX+000195701185+FASTPOLICY+Demo_Policy</name>
+       </auto_tier_policy>
+       <auto_tier_policy>
+            <id>urn:storageos:AutoTieringPolicy:92fa5d55-a98e-4c07-b994-b02311deac62:</id>
+            <link href="/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:92fa5d55-a98e-4c07-b994-b02311deac62:" rel="self"/>
+            <name>SYMMETRIX+000195701430+FASTPOLICY+FAST2</name>
+       </auto_tier_policy>
+  </auto_tier_policies>

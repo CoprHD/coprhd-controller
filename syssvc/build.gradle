@@ -1,0 +1,90 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    syssvc {
+        mainClass = "com.emc.storageos.systemservices.impl.Main"
+        debugPort = "8010"
+        maxMemory = "86.2m" 
+        maxMemoryFactor = "0.0106"
+        jvmArgs += " -DentityExpansionLimit=-1 -DbuildType=" + buildType
+    }
+}
+
+sourceSets.main.java.srcDir 'src/' + buildType + '/java'
+sourceSets.test.java.srcDir 'src/' + buildType + '/test'
+
+dependencies {
+    if (buildType == 'emc') {
+        compile library(jema_api),
+                library(clp)
+    }
+
+    compile library(commons_compress),
+            library(commons_codec),
+            project(":dbsvc"),
+            project(":security"),
+            project(":coordinatorsvc"),
+            project(":controllersvc"),
+            project(":backup")
+
+    testCompile library(enunciate),
+            rootProject.toolsJar
+}
+
+task genconfig_test(type: Exec) {
+    commandLine './src/main/test/shell/genconfig_ssh_test.sh'
+}
+
+test {
+    maxHeapSize = '512m'
+    
+    // Exclude PerformanceTest classes
+    exclude "com/emc/storageos/systemservices/impl/logsvc/performance/LogReaderPerfTest.class"
+    exclude "com/emc/storageos/systemservices/impl/logsvc/performance/LogStreamPerfTest.class"
+    exclude "com/emc/storageos/systemservices/impl/logsvc/performance/LogStreamMergerPerfTest.class"
+    exclude "com/emc/storageos/systemservices/impl/logsvc/performance/LogNetworkWriterPerfTest.class"
+    exclude "com/emc/storageos/systemservices/impl/logsvc/performance/LogNetworkReaderPerfTest.class"
+    
+    // Exclude integration tests
+    exclude "com/emc/storageos/systemservices/LocalRepositoryTest.class"
+    exclude "com/emc/storageos/systemservices/RemoteRepositoryTest.class"
+    exclude "com/emc/storageos/systemservices/TestCallHome.class"
+    exclude "com/emc/storageos/systemservices/UpgradesvcTestBase.class"
+    exclude "com/emc/storageos/systemservices/UpgradeCoordinatorClientTest.class"
+    exclude "com/emc/storageos/systemservices/impl/healthmonitor/DiagnosticsExecTest.class"
+    exclude "com/emc/storageos/systemservices/impl/healthmonitor/NodeStatsExtractorTest.class"
+    exclude "com/emc/storageos/systemservices/impl/healthmonitor/ProcStatsTest.class"
+    exclude "com/emc/storageos/systemservices/impl/healthmonitor/ProcStatsTest.class"
+    exclude "com/emc/storageos/systemservices/impl/resource/HealthMonitorServiceTest.class"
+    exclude "com/emc/storageos/systemservices/impl/logsvc/LogServiceTest.class"
+    exclude "com/emc/storageos/systemservices/impl/logsvc/parse/SysLogReaderTest.class"
+}
+
+task PerformanceTest(type: Test, dependsOn: compileTestJava){
+
+    testLogging {
+        lifecycle {
+            showStandardStreams = true
+        }
+    }
+
+    maxHeapSize = '512m'
+    include "com/emc/storageos/systemservices/impl/logsvc/performance/LogReaderPerfTest.class"
+    include "com/emc/storageos/systemservices/impl/logsvc/performance/LogStreamPerfTest.class"
+    include "com/emc/storageos/systemservices/impl/logsvc/performance/LogStreamMergerPerfTest.class"
+    include "com/emc/storageos/systemservices/impl/logsvc/performance/LogNetworkWriterPerfTest.class"
+    include "com/emc/storageos/systemservices/impl/logsvc/performance/LogNetworkReaderPerfTest.class"
+
+}
+
+task restDocs(type: JavaExec) {
+    main = "com.emc.storageos.systemservices.utils.DocGenerator"
+    args = [
+            "${project.buildDir}"
+    ]
+    maxHeapSize = '1024m'
+    classpath = sourceSets.test.runtimeClasspath
+    workingDir(rootProject.projectDir)
+}

@@ -1,0 +1,32 @@
+%{
+  resourceId = _resource.resourceId;
+  host = _resource.host;
+}%
+#{AffectedResources.resource img: 'Host.png', classes: 'host', typeKey: 'affectedResources.host'}
+  #{AffectedResources.singleColumn }
+	  #{if host}
+	      <dt>&{'affectedResources.host'}:</dt>
+	      <dd>#{spaceForNull resourceId ?: host?.id /}</dd>
+	      <dt>&{'affectedResources.host.name'}:</dt>
+	      #{if controllers.security.Security.isTenantAdmin()}
+		      <dd>
+		        <a href="@{compute.Hosts.edit(host?.id)}"
+		        >#{spaceForNull host?.name/}#{if host.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+		      </dd>
+	      #{/if}
+	      #{else}
+	      	  <dd>#{spaceForNull host?.name/}#{if host.inactive} (&{'affectedResources.inactive'})#{/if}</dd>
+	      #{/else}
+	      <dt>&{'affectedResources.host.hostName'}:</dt>
+	      <dd>#{spaceForNull host?.hostName/}#{if host.inactive} (&{'affectedResources.inactive'})#{/if}</dd>
+	      <dt>&{'affectedResources.host.type'}:</dt>
+	      #{if host}
+	         <dd>${models.HostTypes.getDisplayValue(host.type)}</dd>
+	      #{/if}
+	   #{/if}
+	   #{else}
+	    <dt></dt>
+	    <dd>&{'affectedResources.notFound', messages.get('affectedResources.host')}</dd>
+	   #{/else}
+   #{/AffectedResources.singleColumn}
+#{/AffectedResources.resource}

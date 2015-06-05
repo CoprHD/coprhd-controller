@@ -1,0 +1,31 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.SANSwitches'] /}
+
+#{DataTable.formAction @introspect(), id:'rediscoverForm', table:'sanSwitches'/}
+#{DataTable.formAction @deregister(), id:'deregisterForm', table:'sanSwitches'/}
+#{DataTable.formAction @register(), id:'registerForm', table:'sanSwitches'/}
+
+#{DataTable.header titleKey:'SanSwitches.list.title' /}
+#{DataTable.crudTable id:'sanSwitches', prefix:'sanSwitch',
+                      dataTable:dataTable,
+                      expandable:true,
+                      deleteConfirm:messages.get('SanSwitches.deleteConfirm')}
+  #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm',
+                data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
+  #{Form.button name:'button.register', icon:'ok', submit:'registerForm', 
+                data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
+  #{Form.button name:'button.deregister', icon:'remove', submit:'deregisterForm', 
+                data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/}
+#{/DataTable.crudTable}
+#{DataTable.expandHtml @itemDetails(':id'), table:'sanSwitches'/}
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var dataTable = table.sanSwitches.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDiscoveryStatus(dataTable, itemsJson, ['version', 'registrationStatus']);
+});
+</script>

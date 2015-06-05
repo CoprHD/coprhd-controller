@@ -1,0 +1,45 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    coordinatorsvc {
+        mainClass = "com.emc.storageos.coordinator.service.impl.Main"
+        debugPort = "8002"
+        maxMemory = "4.9m"
+        maxMemoryFactor = "0.0634"
+        jvmArgs += " -DbuildType=" + buildType
+    }
+}
+
+sourceSets.test.java.srcDir 'src/' + buildType + '/conf'
+
+dependencies {
+
+    compile library(commons_logging),
+            library(guava),
+            library(spring),
+            library(zookeeper),
+            library(curator_client),
+            library(httpclient4),
+
+            project(":errorhandling"),
+            project(":recoverpoint"),
+            project(":models"),
+            project(":serviceutils")
+    
+    runtimeOnly project(":jmx"),
+                project(":backup")
+}
+
+test {
+    exclude "com/emc/storageos/coordinator/client/service/CoordinatorClientInetAddressMapTest.class"
+    exclude "com/emc/storageos/coordinator/client/service/LeaderSelectionTest.class"
+}
+
+task zkScripts(type: Copy) {
+    from "src/scripts"
+    into "${buildDir}/bin"
+    fileMode = 0755
+}
+project.tasks['scripts'].dependsOn(zkScripts)

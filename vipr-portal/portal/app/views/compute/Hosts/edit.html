@@ -1,0 +1,268 @@
+%{
+  titleKey = 'Hosts.' + (host?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'Hosts.description';
+  image = '/public/img/assets/Host.png';
+  isNoOS = host?.type == models.HostTypes.No_OS ? true : false;
+  disableForm = isNoOS;
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.hosts'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'Hosts.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      $('#host_type').on('change', updateOsType);
+      $('#host_useHttps').on('change', updateDefaultPort);
+      $('#host_discoverable').on('change',hostDiscovery);
+      updateOsType();
+    });
+    
+    function updateOsType() {
+      var selectedType = $('#host_type').val();
+      $('.osType').addClass('hide');
+      $('.osType.'+selectedType).removeClass('hide');
+      
+      setControlEnabled('.osType input', false);
+      setControlEnabled('.osType textarea', false);
+      setControlEnabled('.osType.'+selectedType+' input', true); 
+      setControlEnabled('.osType.'+selectedType+' textarea', true); 
+      
+      if (selectedType && (selectedType == "Other" || selectedType == "HPUX" || selectedType == "SUNVCS")) {
+        $("#validateConnectionLabel").hide();
+      }
+      else {
+        $("#validateConnectionLabel").show();
+      }
+    }
+    
+    function setControlEnabled(selector, enabled) {
+      if (enabled) {
+        $(selector).prop('disabled', false);
+        $(selector).removeClass('disabled');
+      }
+      else {
+        $(selector).prop('disabled', true);
+        $(selector).addClass('disabled');
+      }
+    }
+    
+    function updateDefaultPort() {
+      var defaultHttpPort = 5985;
+      var defaultHttpsPort = 5986;
+      var useHttps = $('#host_useHttps');
+      var port = $('#host_port_windows');
+
+      var isHttp = useHttps.val() == 'false';
+      var isHttps = useHttps.val() == 'true';
+      if (isHttp && (port.val() == defaultHttpsPort)) {
+        // Switch from the default https -> http
+        port.val(defaultHttpPort);
+      }
+      else if (isHttps && (port.val() == defaultHttpPort)) {
+        // Switch from the default http -> https
+        port.val(defaultHttpsPort);
+      }
+    }
+    
+    function hostDiscovery(){
+    	var class1 = $('#host_usernameControlGroup').attr('class');
+        var checked = $('#host_discoverable').is(':checked');    	   	
+    	if (checked){    		
+    		$('#host_usernameControlGroup').prop('class',class1+" required");
+    		$('#host_passwordControlGroup').prop('class',class1+" required");
+    		$('#host_passwordConfirmControlGroup').prop('class',class1+" required");
+    		$('#validateConnectionLabel').find('input').prop('disabled', false);
+    		$('#validateConnectionLabel').find('input').prop('checked',true);   		   		
+    	} 
+    	else {
+    		var class_name = class1.replace(" required","");
+    		$('#host_usernameControlGroup').attr('class',class_name);    		
+    		$('#host_passwordControlGroup').attr('class',class_name);
+    		$('#host_passwordConfirmControlGroup').attr('class',class_name);
+    		$('#validateConnectionLabel').find('input').prop('checked',false);
+    		$('#validateConnectionLabel').find('input').prop("disabled", true);    		
+    	}
+    }
+  </script>
+#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+
+#{form @save(), id:'hostForm', class:'form-horizontal', autocomplete:"off"}
+  %{ editing = host?.id }%
+  #{if editing}
+    #{field 'host.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+  #{/if}
+  #{field 'host.tenantId'}
+      <input type="hidden" name="${field.name}" value="${field.value}"/>
+  #{/field}
+  
+  #{field 'host.type'}
+    %{
+      field.required = true
+      field.disabled = (editing && !models.HostTypes.isOther(host?.type))
+      field.options = !field.disabled ? types : [ models.HostTypes.option(host?.type) ]
+      field.cssClass = !field.disabled ? 'initialFocus' : ''
+    }%
+    #{dynamicHelp trigger:"#${field.id}", help: ['other': 'host.otherHelp']}
+      #{Form.selectOneControlGroup field:field /}
+    #{/dynamicHelp}
+    #{if field.disabled}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/if}
+  #{/field}
+  
+  #{field 'host.name'}
+    %{
+      field.required = true
+      field.cssClass = editing ? 'initialFocus' : ''
+      field.disabled = disableForm
+    }%
+    #{Form.inputTextControlGroup field:field /}
+    #{if field.disabled}
+        <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/if}
+  #{/field}
+  
+  #{field 'host.hostname'}
+    %{
+      field.required = true
+      field.disabled = disableForm
+    }%
+    #{dynamicHelp trigger:'#host_type', defaultHelp:"${field.name}.help", help:["windows": "${field.name}.help.windows"]}
+      #{Form.inputTextControlGroup field:field /}
+    #{/dynamicHelp}
+    #{if field.disabled}
+        <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/if}
+  #{/field}
+  <div class="osType Windows Esx">
+  #{field 'host.useHttps'}
+    %{
+      field.cssClass = 'span2'
+      if (!host?.id) {
+        field.value = 'true'
+      }
+      field.options = [
+        'false':'http',
+        'true':'https'
+      ]
+      field.valueType = String.class
+      field.valueProperty = 'key'
+      field.labelProperty = 'value'
+    }%
+    #{Form.selectOneControlGroup field:field/}
+  #{/field}
+  </div>
+  #{field 'host.port'}
+    %{
+      field.required = true
+      field.cssClass = 'span2'
+    }%
+    <div class="osType Linux AIX AIXVIO">
+      %{ 
+        field.id = 'host_port_linux'
+        if (!host?.id) {
+          field.value = 22
+        }
+        field.helpTextKey = 'host.port.help.linux'
+      }%
+      #{Form.inputTextControlGroup field:field/}
+    </div>
+    <div class="osType Windows">
+      %{
+        field.id = 'host_port_windows'
+        if (!host?.id) {
+          field.value = 5986
+        }
+        field.helpTextKey = 'host.port.help.windows'
+      }%
+      #{Form.inputTextControlGroup field:field/}
+    </div>
+    <div class="osType Esx">
+      %{
+        field.id = 'host_port_esx'
+        if (!host?.id) {
+          field.value = 443
+        }
+        field.helpTextKey = 'host.port.help.esx'
+      }%
+      #{Form.inputTextControlGroup field:field/}
+    </div>
+  #{/field}
+  <div class="osType Windows Linux AIX AIXVIO Esx">
+  #{field 'host.discoverable'}
+    %{
+      field.required = true
+      field.cssClass = 'span2'
+    }%
+    #{Form.booleanCheckBoxControlGroup field:field/}
+  #{/field}
+
+  #{field 'host.username'}
+    %{
+      field.required = true
+    }%
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+  
+  #{field 'host.password'}
+    %{
+      field.required = true
+    }%
+    #{Form.inputPasswordControlGroup field:field /}
+  #{/field}
+  
+  #{field 'host.passwordConfirm'}
+    %{
+      field.required = true
+    }%
+    #{Form.inputPasswordControlGroup field:field /}
+  #{/field}
+  </div>
+
+  #{Form.saveValidateCancelButtonBar size:'large', disabled:disableForm}
+    #{if host?.id}
+      #{Form.button name:'initiators.label', size:'large', icon:'edit', href:@compute.Hostinitiators.list(host.id)/}
+    #{/if}
+  #{/Form.saveValidateCancelButtonBar}
+#{/form}
+
+#{if !host?.discoverable}
+   #{Resources.tasks resourceId:host.id /}
+#{/if}
+
+#{if play.mode.isDev() && dbHost}
+  <fieldset>
+      <legend>&{'discovery.details'}<small>&{'discovery.details.description'}</small></legend>
+
+      <h4>&{'host.initiators'}</h4>
+      #{list items:initiators, as:'initiator'}
+          <ul>
+              <li>${initiator.wwn()} [${initiator.protocol}]</li>
+          </ul>
+      #{/list}
+
+      <h4>&{'host.ipInterfaces'}</h4>
+      #{list items:ipInterfaces, as:'ipInterface'}
+        #{if ipInterface.ipAddress}
+          <ul>
+              <li>${ipInterface.name} - ${ipInterface.ipAddress}</li>
+          </ul>
+        #{/if}
+      #{/list}
+  </fieldset>
+#{/if}
+
+</div>

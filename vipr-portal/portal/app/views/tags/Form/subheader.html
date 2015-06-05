@@ -1,0 +1,20 @@
+%{
+title = _title;
+titleKey = _titleKey;
+description = _description;
+descriptionKey = _descriptionKey;
+}%
+<div class="form-subheader">
+#{if titleKey}
+<legend>&{titleKey}</legend>
+#{/if}
+#{else}
+<legend style="margin-bottom:4px">${title}</legend>
+#{/else}
+#{if descriptionKey}
+<p>&{descriptionKey}</p>
+#{/if}
+#{elseif description}
+<p>${description}</p>
+#{/elseif}
+</div>

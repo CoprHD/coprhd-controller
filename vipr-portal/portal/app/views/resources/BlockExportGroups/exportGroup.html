@@ -1,0 +1,200 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.exportgroups'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @exportGroups()}&{'resources.exportgroups'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${exportGroup?.name}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="clear"></div>
+
+<div id="exportGroupDetails" class="container" style="margin-bottom: 2em;">
+
+  #{alerts/}
+
+  #{if exportGroup}
+        %{
+          typeKey = 'resources.exportgroup'
+          if ('host'.equalsIgnoreCase(exportGroup.type)) {
+            typeKey += '.host'
+          }
+          else if('cluster'.equalsIgnoreCase(exportGroup.type)) {
+            typeKey += '.cluster'
+          }
+          else if('exclusive'.equalsIgnoreCase(exportGroup.type)) {
+            typeKey += '.exclusive'
+          }
+        }%	
+		#{Resources.header resource:exportGroup, typeKey: typeKey/}
+        #{Resources.actions hide:exportGroup?.inactive }
+          <a href="@{deleteExportGroup(exportGroup.id)}"
+            onclick="return confirm('&{'resources.exportgroup.deleteConfirm'}');"
+          >&{'resources.exportgroup.deleteLink'}</a><br/>          
+        #{/Resources.actions}
+      
+		<dl class="dl-horizontal pull-left">
+    
+    	  <dt>&{'resources.exportgroup.type'}:</dt>
+    	  <dd>#{spaceForNull exportGroup?.type/}</dd>
+    	
+    	  <dt>&{'resources.exportgroup.varray'}:</dt>
+    	  <dd><img src="/public/img/serviceCatalog/Virtual_Array.png" style="width: 32px;"/> #{spaceForNull virtualArray?.name/}</dd>
+      
+          #{Resources.commonAttributes resource:exportGroup /}
+		</dl>
+		    
+        <div class="clearfix"></div>
+        
+        #{if exportGroup.clusters}
+          <fieldset>
+            <legend>&{'resources.clusters'}</legend>
+            <table class='table table-condensed table-striped'>
+            <thead>
+              <tr>
+                <th>&{'resources.cluster'}</th>
+                <th class="actions">&{'resources.actions'}</th>
+              </tr>
+            </thead>
+            <tbody>
+            #{list items:exportGroup.clusters, as:'cluster'}
+              <tr>
+                <td>${cluster.name}</td>
+                <td class="actions">
+                  <a href="@{removeCluster(exportGroup.id, cluster.id)}"  onclick="return confirm('&{'resources.exportgroup.cluster.remove.confirm'}')" 
+                  class='btn btn-xs btn-danger'
+                  >&{'button.remove'}</a>                
+                </td>
+              </tr>
+            #{/list}
+            </tbody>
+            </table>
+          </fieldset>
+        #{/if}
+        #{if exportGroup.hosts}
+          <fieldset>
+            <legend>&{'resources.hosts'}</legend>
+            <table class='table table-condensed table-striped'>
+            <thead>
+              <tr>
+                <th>&{'resources.host.name'}</th>
+                <th>&{'resources.host.hostname'}</th>
+                <th>&{'resources.host.type'}</th>
+                <th>&{'resources.host.osversion'}</th>
+                <th class="actions">&{'resources.actions'}</th>
+              </tr>
+            </thead>
+            <tbody>            
+            #{list exportGroup.hosts, as:'host'}
+              <tr>
+                <td><img src="/public/img/assets/Host.png" style="width: 32px;"/> ${host.name}</td>
+                <td>${host.hostName}</td>
+                <td>${host.type}</td>
+                <td>${host.osVersion}</td>
+                <td class="actions">
+                  <a href="@{removeHost(exportGroup.id, host.id)}" onclick="return confirm('&{'resources.exportgroup.host.remove.confirm'}')" 
+                  class='btn btn-xs btn-danger'
+                  >&{'button.remove'}</a>                
+                </td>
+              </tr>
+            #{/list}
+            </tbody>
+            </table>
+          </fieldset>        
+        #{/if}      
+        #{if exportGroup.initiators}
+          <fieldset>
+            <legend>&{'resources.initiators'}</legend>
+            <table class='table table-condensed table-striped'>
+            <thead>
+              <tr>
+                <th>&{'resources.initiator.node'}</th>
+                <th>&{'resources.initiator.port'}</th>
+                <th>&{'resources.initiator.host'}</th>
+                <th>&{'resources.initiator.cluster'}</th>
+                <th class="actions">&{'resources.actions'}</th>
+              </tr>
+            </thead>
+            <tbody>
+            #{list items:exportGroup.initiators, as:'initiator'}
+              <tr>
+                <td>${initiator.initiatorNode}</td>
+                <td>${initiator.initiatorPort}</td>
+                <td>${initiator.hostName}</td>
+                <td>${initiator.clusterName}</td>
+                <td class="actions">
+                  <a href="@{removeInitiator(exportGroup.id, initiator.id)}" onclick="return confirm('&{'resources.exportgroup.initiator.remove.confirm'}')" 
+                  class='btn btn-xs btn-danger'
+                  >&{'button.remove'}</a>
+                </td>
+              </tr>
+            #{/list}
+            </tbody>
+            </table>            
+          </fieldset>
+		#{/if}
+
+		  <fieldset class="table table-condensed table-striped">
+            <legend>&{'resources.volumes'}</legend>
+            %{ 
+     			options = [
+        			 'bFilter': false
+    			 ]  
+   			}%
+  
+            #{DataTable.table id:'volumes',
+                              dataTable:volumeDataTable, 
+                              cssClass:'editableRows',
+                              options: options,
+                              source: @volumeJson(exportGroup.id)}                 
+            #{/DataTable.table}       
+
+          </fieldset>
+          
+          <fieldset class="table table-condensed table-striped">
+            <legend>&{'resources.snapshots'}</legend>
+            
+            #{DataTable.table id:'snapshots',
+                              dataTable:snapshotDataTable,
+                              cssClass:'editableRows',
+                              options: options,
+                              source: @blockSnapshotJson(exportGroup.id)}                  
+            #{/DataTable.table}       
+
+          </fieldset>  
+      
+	#{/if}
+	#{else}
+		<span class="errorMessage">&{'resources.exportgroup.notfound'}</span>
+	#{/else}
+  
+    #{Resources.tasks resourceId:exportGroup.id /}
+    
+</div>
+
+<script type="text/javascript">
+
+  function renderLink(o, val) {
+    var url = #{jsAction @resources.BlockVolumes.volume(':volumeId') /};
+    return "<a href='" + url({volumeId: o.aData.id}) + "'><img src='/public/img/assets/Volume.png' style='width: 32px;'/> " + val + "</a>";
+  }
+  
+  function renderVolumeActions(o, val) {
+    var url = #{jsAction @removeVolume(':exportGroupId', ':volumeId') /};
+    return '<a href="' + url({exportGroupId : '${exportGroup.id}', volumeId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.volume.remove.confirm'}\')">&{'button.remove'}</a>';    
+  }
+  
+  function renderSnapshotActions(o,val) {
+  	var url = #{jsAction @removeSnapshot(':exportGroupId',':snapshotId') /};
+  	return '<a href="'+ url({exportGroupId : '${exportGroup.id}', snapshotId: o.aData.id}) + '" class="btn btn-xs btn-danger" onclick="return confirm(\'&{'resources.exportgroup.snapshot.remove.confirm'}\')">&{'button.remove'}</a>';
+  }
+  
+  function renderSnapshotLink(o, val) {
+      var url = #{jsAction @resources.BlockSnapshots.snapshotDetails(':snapshotId') /};
+      return "<a href='" + url({snapshotId: o.aData.id}) + "'><img src='/public/img/assets/Snapshot.png' style='width: 32px;'/> " + val + "</a>";
+
+  }
+  
+</script>

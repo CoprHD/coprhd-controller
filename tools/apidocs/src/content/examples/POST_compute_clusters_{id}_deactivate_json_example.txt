@@ -1,0 +1,7 @@
+POST https://192.168.0.0:4443/compute/clusters/urn:storageos:Cluster:a176eb9c-0b64-4335-9955-89bf1f46f53f:/deactivate.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json

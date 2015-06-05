@@ -1,0 +1,22 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# /etc/sudoers.d/storageos
+#
+# sudo security policy plugin for storageos. It defines sudo privilieges for svcuser/storageos
+#
+
+Defaults always_set_home
+Defaults env_reset
+Defaults env_keep = "LANG LC_ADDRESS LC_CTYPE LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE LC_TIME LC_ALL LANGUAGE LINGUAS XDG_SESSION_COOKIE"
+Defaults targetpw
+
+
+Cmnd_Alias    CMD_SVCUSER   = /etc/diagtool,/etc/getovfproperties, /etc/gatherheapdumps
+Cmnd_Alias    CMD_STORAGEOS = /etc/systool, /etc/mnttool, /etc/diagtool, /bin/df, /etc/powerofftool, /etc/ipchecktool, /opt/storageos/bin/zkutils, /etc/getovfproperties, /bin/cat, /bin/lsblk
+
+ALL           ALL=(ALL) ALL
+root          ALL=(ALL) ALL
+storageos     ALL=NOPASSWD: CMD_STORAGEOS
+svcuser       ALL=NOPASSWD: CMD_SVCUSER

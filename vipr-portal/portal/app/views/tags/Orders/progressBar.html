@@ -1,0 +1,32 @@
+%{
+  taskCount = _tasks?.size() ?: 0;
+  error = _tasks?.find{it.level == 'ERROR'};
+  if (taskCount > 0) {  
+    maxDots = 10;
+    dotCount = taskCount % maxDots;
+    if (dotCount == 0) {
+      dotCount = maxDots;
+    }
+    endIndex = taskCount - 1;
+    startIndex = taskCount - dotCount;
+    
+    tasks = _tasks[startIndex..endIndex];
+  }
+}%
+<div class="progressBar">
+  <span class="label ${!error ? 'label-success' : 'label-danger'}">${taskCount}</span>
+  #{list items:tasks, as:'task'}
+    #{if task.level == 'ERROR'}
+      <span class="dot dot-danger"></span>
+    #{/if}
+    #{elseif task.level == 'WARN'}
+      <span class="dot dot-warning"></span>
+    #{/elseif}
+    #{elseif task.elapsed != null}
+      <span class="dot dot-success"></span>
+    #{/elseif}
+    #{else}
+      <span class="dot dot-info dot-active"></span>
+    #{/else}
+  #{/list}
+</div>

@@ -1,0 +1,24 @@
+@ngdoc overview
+@name Filters
+@description
+
+# Filters
+### Transform data passed to the view
+
+
+## A simple example
+
+@example
+<example module="vipr">
+<file name="index.html">
+  Your name: <input ng-model="name"><br>
+  <div ng-if="name">Hello {{ name | upcase }}!!!</div>
+</file>
+<file name="script.js">
+  angular.module("vipr").filter("upcase", function() {
+    return function(val) {
+      return val.toUpperCase();
+    }
+  });
+</file>
+</example>

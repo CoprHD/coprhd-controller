@@ -1,0 +1,14 @@
+GET https://192.168.0.0:4443/user/tenant?username=root
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <tenants>
+       <tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+       </tenant>
+  </tenants>

@@ -1,0 +1,8 @@
+*{
+  id: the ID of the element
+  cssClass: any additional CSS classes for the element
+}*
+<div #{if _id}id="${_id}" #{/if} class="modal-body ${_cssClass}">
+  #{doBody/}
+  <div class="clearfix"></div>
+</div>

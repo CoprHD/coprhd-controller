@@ -1,0 +1,92 @@
+GET https://192.168.0.0:4443/vdc/smis-providers.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+   "smis_provider" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:9e6a2aac-05e8-47e2-a6de-f8a9e2f3c376:"
+         },
+         "name" : "lglw0121 Array SMI-S SIM",
+         "id" : "urn:storageos:SMISProvider:9e6a2aac-05e8-47e2-a6de-f8a9e2f3c376:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:9491eba7-ebb6-41a6-9f4e-64ad6017a896:"
+         },
+         "name" : "lglw9026 (vnx lglad035, 070)",
+         "id" : "urn:storageos:SMISProvider:9491eba7-ebb6-41a6-9f4e-64ad6017a896:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:e415efcd-582c-40b8-8615-38b96d4f3cbe:"
+         },
+         "name" : "lglw9024 VNX 922 lglad094",
+         "id" : "urn:storageos:SMISProvider:e415efcd-582c-40b8-8615-38b96d4f3cbe:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:948c68bd-56b9-4058-a044-9b01e046557f:"
+         },
+         "name" : "lglw9075 sym235",
+         "id" : "urn:storageos:SMISProvider:948c68bd-56b9-4058-a044-9b01e046557f:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:c78ade5a-332b-45b1-91b9-6d4dca9bbdec:"
+         },
+         "name" : "lglw9061 sym424",
+         "id" : "urn:storageos:SMISProvider:c78ade5a-332b-45b1-91b9-6d4dca9bbdec:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:d65b5e1b-39f7-4ee2-b5c3-41907cd69a6d:"
+         },
+         "name" : "lglw9071",
+         "id" : "urn:storageos:SMISProvider:d65b5e1b-39f7-4ee2-b5c3-41907cd69a6d:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:a9553f34-45c3-4bda-b4d1-5769f12ea70e:"
+         },
+         "name" : "lglw9072",
+         "id" : "urn:storageos:SMISProvider:a9553f34-45c3-4bda-b4d1-5769f12ea70e:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:f797af7a-0336-4f42-935c-e4b033465de7:"
+         },
+         "name" : "lglw9025 (vnx lglap249, 480)",
+         "id" : "urn:storageos:SMISProvider:f797af7a-0336-4f42-935c-e4b033465de7:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:875531ea-36c9-47f4-8cf5-397c0b4ff7b2:"
+         },
+         "name" : "lglw9070 symc351",
+         "id" : "urn:storageos:SMISProvider:875531ea-36c9-47f4-8cf5-397c0b4ff7b2:"
+      },
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/smis-providers/urn:storageos:SMISProvider:fe7c183b-7955-4563-ac49-7b1dc44e37bb:"
+         },
+         "name" : "lglw9066 (vnx lglw6155, 836)",
+         "id" : "urn:storageos:SMISProvider:fe7c183b-7955-4563-ac49-7b1dc44e37bb:"
+      }
+   ]
+}

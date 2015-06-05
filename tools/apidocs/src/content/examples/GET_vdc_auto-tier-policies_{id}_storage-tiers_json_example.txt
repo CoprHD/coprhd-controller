@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/vdc/auto-tier-policies/urn:storageos:AutoTieringPolicy:8acf6bb6-f306-4931-a417-e6f1957fb910:/storage-tiers.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "storage_tier": [
+    {
+      "name": "SYMMETRIX+000195700363+TIER+KT_TIER1",
+      "id": "urn:storageos:StorageTier:719d2d85-dc2e-44ef-a4c6-9a1af2303b23:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-tiers/urn:storageos:StorageTier:719d2d85-dc2e-44ef-a4c6-9a1af2303b23:"
+      }
+    }
+  ]
+}

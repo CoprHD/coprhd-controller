@@ -1,0 +1,74 @@
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<project name="vasa" basedir="." default="run">
+
+	<description>Bourne Vendor Provider VASA API build file</description>
+
+	<!-- Property definitions -->
+	<property name="vasa-api-version" value="_1_0" />
+	<property name="vasa-api-version-namespace" value="1.0" />
+	<property name="wsdl.uri" value="./vasaService.wsdl" />
+	<property name="api.dir" value="./api" />
+	<property name="build.dir" value="${api.dir}/build" />
+	<property name="thirdparty-java" location="../thirdparty/java" />
+	<property name="vasa-api-jar"
+		value="vasa-api-${vasa-api-version-namespace}.jar" />
+
+	<path id="project.class.path">
+		<fileset dir="${build.dir}/lib/axis2/WEB-INF/lib">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="init">
+		<tstamp />
+		<delete dir="${api.dir}" failonerror="false" />
+		<mkdir dir="${build.dir}" />
+		<mkdir dir="${build.dir}/src" />
+		<mkdir dir="${build.dir}/classes" />
+		<mkdir dir="${build.dir}/dist" />
+		<mkdir dir="${build.dir}/lib" />
+		<mkdir dir="${thirdparty-java}/vasa-api-${vasa-api-version-namespace}" />
+		<unzip src="${thirdparty-java}/axis2-1.5.2/axis2.war" dest="${build.dir}/lib/axis2" />
+	</target>
+
+	<target name="generate-server-stubs" depends="init">
+		<echo message="Generating server stubs from vasa WSDL..." />
+		<java classname="org.apache.axis2.wsdl.WSDL2Java" fork="true"
+			classpathref="project.class.path">
+			<arg line="-uri ${wsdl.uri}" />
+			<arg line="-a" />
+			<arg line="-s" />
+			<arg line="-ss" />
+			<arg line="-sd" />
+			<arg line="-ssi" />
+			<arg line="-ap" />
+			<arg
+				line="-ns2p http://data.vasa.vim.vmware.com/xsd=com.vmware.vim.vasa.${vasa-api-version}.data.xsd,http://fault.vasa.vim.vmware.com/xsd=com.vmware.vim.vasa.${vasa-api-version}.fault.xsd,http://com.vmware.vim.vasa/${vasa-api-version-namespace}=com.vmware.vim.vasa.${vasa-api-version},http://com.vmware.vim.vasa/${vasa-api-version-namespace}/xsd=com.vmware.vim.vasa.${vasa-api-version}.xsd" />
+			<arg line="-l java" />
+			<arg line="-p com.vmware.vim.vasa.${vasa-api-version}" />
+			<arg line="-d adb" />
+			<arg line="-wv" />
+			<arg line="-uw" />
+			<arg line="-g" />
+			<arg line="-f" />
+			<arg line="-o ${build.dir}/src" />
+		</java>
+	</target>
+
+	<target name="build-server-stubs" depends="generate-server-stubs">
+		<echo message="Building WSDL generated server stubs..." />
+		<javac srcdir="${build.dir}/src" destdir="${build.dir}/classes"
+			includeAntRuntime="yes">
+			<classpath refid="project.class.path" />
+		</javac>
+		
+		<jar destfile="${api.dir}/${vasa-api-jar}" basedir="${build.dir}/classes" />
+	</target>
+	
+	<target name="run" depends="build-server-stubs">
+		<echo message="Cleaning up resources..." />
+		<delete dir="${build.dir}"  failonerror="false" />
+	</target>
+</project>

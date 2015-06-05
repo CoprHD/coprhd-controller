@@ -1,0 +1,191 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    dbsvc {
+        mainClass = "com.emc.storageos.db.server.impl.Main"
+        debugPort = "8003"
+        maxMemory = "19.7m"
+        maxMemoryFactor = "0.2535"
+        youngGenMemory = "68.3m"
+        youngGenMemoryFactor = "0.0206"
+        jvmArgs += " -XX:+UseThreadPriorities -XX:ThreadPriorityPolicy=42 -Xss228k -XX:+UseParNewGC"+
+                   " -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -XX:SurvivorRatio=8 -XX:MaxTenuringThreshold=1"+
+                   " -XX:CMSInitiatingOccupancyFraction=75 -XX:+UseCMSInitiatingOccupancyOnly"+
+                   " -javaagent:${project.installDir}/lib/jamm-0.2.5.jar"
+        jvmArgs += " -DbuildType=" + buildType
+
+        String p = project.rootDir
+       p += "/build/conf"
+       sourceSets.test.runtimeClasspath = files(p) + sourceSets.test.runtimeClasspath
+    }
+
+    cassandraCli {
+        scriptName = "cassandra-cli"
+        mainClass = "org.apache.cassandra.cli.CliMain"
+        maxMemory = "256m"
+        service = false
+    }
+    nodetool {
+        mainClass = "org.apache.cassandra.tools.NodeCmd"
+        jvmArgs += " -Dstorage-config=${project.installDir}/conf"
+        maxMemory = "32m"
+        service = false
+    }
+}
+
+configurations {
+    springloaded
+    jamm
+}
+
+dependencies {
+    compile library(cglib),
+            project(":dbclient"),
+            project(":security")
+    provided rootProject.toolsJar
+    
+    testCompile library(javassist),
+            rootProject.toolsJar
+
+    runtimeOnly project(":com.emc.sa.model")
+    springloaded library(spring_loaded)
+    jamm "com.github.stephenc:jamm:0.2.5"
+}
+
+task dbScripts(type: Copy) {
+    from "src/scripts"
+    into "${buildDir}/bin"
+    fileMode = 0755
+}
+
+project.tasks['scripts'].dependsOn("dbScripts")
+
+// Note these tests are run with JavaExec. The springloaded tool and Javassist causes issues in gradle's test framework
+// The following manually run single tests directly using JUnit
+
+def testUsingSpringLoaded(parentTask, classes) {
+    classes.each {String clazz->
+        String name = clazz.tokenize(".").last()
+        def task = project.task(name, type: JavaExec, dependsOn: compileTestJava).configure {
+            main = "org.junit.runner.JUnitCore"
+            args clazz
+            jvmArgs "-Djava.library.path=/opt/storageos/lib/", "-javaagent:${configurations.springloaded.asPath}", "-noverify"
+            maxHeapSize "1024m"
+            // Displays stdout/stderr at info level
+            logging.captureStandardOutput LogLevel.INFO
+            logging.captureStandardError LogLevel.INFO
+            // Allows the build to continue if the tests fail
+            ignoreExitValue = (parentTask == test)
+            // Note that dbclient is put on the classpath as a directory. This is because the code manipulates files and does not work when packaged as a jar
+            classpath = files(project(':dbclient').sourceSets.main.output.classesDir) + sourceSets.test.runtimeClasspath
+            doFirst {
+                logger.lifecycle("${clazz} > STARTED")
+            }
+            doLast {
+                logger.lifecycle("${clazz} > FINISHED")
+            }
+        }
+        parentTask.dependsOn task
+        tasks.withType(Test) {
+            // exclude the class from the standard tests
+            exclude "${clazz.replace('.', '/')}.class"
+        }
+    }
+}
+
+def testUsingJavassist(parentTask, classes) {
+    classes.each {String clazz->
+        String name = clazz.tokenize(".").last()
+        def task = project.task(name, type: JavaExec, dependsOn: compileTestJava).configure {
+            main = 'org.junit.runner.JUnitCore'
+            args clazz
+            maxHeapSize "1024m"
+            // Displays stdout/stderr at info level
+            logging.captureStandardOutput LogLevel.INFO
+            logging.captureStandardError LogLevel.INFO
+            // Allows the build to continue if the tests fail
+            ignoreExitValue = (parentTask == test)
+            classpath sourceSets.test.runtimeClasspath
+            jvmArgs = [
+                    "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000",
+                    "-Dlog4j.configuration=dbsvc-log4j.properties",
+                    "-Xmn400m",
+                    "-XX:+UseThreadPriorities",
+                    "-XX:ThreadPriorityPolicy=42",
+                    "-Xss228k",
+                    "-XX:+UseParNewGC",
+                    "-XX:+UseConcMarkSweepGC",
+                    "-XX:+CMSParallelRemarkEnabled",
+                    "-XX:SurvivorRatio=8",
+                    "-XX:MaxTenuringThreshold=1",
+                    "-XX:CMSInitiatingOccupancyFraction=75",
+                    "-XX:+UseCMSInitiatingOccupancyOnly",
+                    "-javaagent:${configurations.jamm.asPath}"
+            ]
+            doFirst {
+                logger.lifecycle("${clazz} > STARTED")
+            }
+            doLast {
+                logger.lifecycle("${clazz} > FINISHED")
+            }
+        }
+        parentTask.dependsOn task
+        tasks.withType(Test) {
+            // exclude the class from the standard tests
+            exclude "${clazz.replace('.', '/')}.class"
+        }
+    }
+}
+
+// Add normal tests that should be run with the "negative" log4j configuration
+task negativeTests(type: Test, dependsOn: compileTestJava) {
+    forkEvery = 1
+    maxHeapSize = '4096m'
+    jvmArgs "-Dlog4j.configuration=dbnegativetest-log4j.properties"
+
+    reports.junitXml.destination = file("${reporting.baseDir}/negative-tests")
+    reports.html.destination = reports.junitXml.destination
+
+    include "com/emc/storageos/db/server/upgrade/impl/negative/DbCrashAtSchemaUtilTest.class"
+    include "com/emc/storageos/db/server/upgrade/impl/negative/DbCrashAtMigrationHandlerTest.class"
+}
+
+// Upgrade tests, run separately from standard unit tests
+task upgradeTests(type:Test, dependsOn:compileTestJava) {
+    forkEvery = 1
+    maxHeapSize = '4096m'
+
+    reports.junitXml.destination = file("${reporting.baseDir}/upgrade-tests")
+    reports.html.destination = reports.junitXml.destination
+
+    include "com/emc/storageos/db/server/upgrade/**/*.class"
+    exclude "com/emc/storageos/db/server/upgrade/impl/negative/**/*.class"
+    exclude "com/emc/storageos/db/server/upgrade/impl/callback/AddFooToProjectTest.class"
+    exclude "com/emc/storageos/db/server/upgrade/impl/callback/AddPrefixToProjectOwner.class"
+}
+testUsingJavassist(upgradeTests, [
+    "com.emc.storageos.db.server.upgrade.impl.DbUpgradeTest",
+])
+testUsingSpringLoaded(upgradeTests, [
+    "com.emc.storageos.db.server.upgrade.impl.callback.DbTestInternalFlags",
+])
+
+// Runs a full tests suite, outside the standard unit tests 
+task fullTest(dependsOn:upgradeTests) {
+}
+testUsingSpringLoaded(fullTest, [
+    "com.emc.storageos.db.gc.GarbageCollectorTests",
+    "com.emc.storageos.db.server.DbClientTest",
+    "com.emc.storageos.db.server.util.VdcUtilTest",
+])
+
+// Add normal tests here that should be run without any special configuration
+test {
+    forkEvery = 1
+    maxHeapSize = '1024m'
+
+    // Only exclude tests not to be run, new tests will get picked up automatically
+    exclude "com/emc/storageos/db/server/upgrade/**/*.class"
+}

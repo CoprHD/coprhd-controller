@@ -1,0 +1,51 @@
+POST  https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:79600b60-eb8e-4073-802d-7ef9be620893:/subtenants HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+ 
+<tenant_create>
+     <name>sub1</name>
+     <description>My sub tenant</description>
+     <user_mappings>
+          <user_mapping>
+               <domain>sanity.local</domain>
+               <attributes>
+                    <attribute>
+                         <key>company</key>
+                         <value>abc</value>
+                    </attribute>
+               </attributes>
+          </user_mapping>
+     </user_mappings>
+</tenant_create>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<tenant>
+     <creation_time>1379960599440</creation_time>
+     <id>urn:storageos:TenantOrg:b41e7de9-7bee-4e07-bb3d-1404b2aa9305:</id>
+     <inactive>false</inactive>
+     <link href="/tenants/urn:storageos:TenantOrg:b41e7de9-7bee-4e07-bb3d-1404b2aa9305:" rel="self"/>
+     <name>sub1</name>
+     <tags/>
+     <description>My sub tenant</description>
+     <parent_tenant>
+     <id>urn:storageos:TenantOrg:79600b60-eb8e-4073-802d-7ef9be620893:</id>
+     <link href="/tenants/urn:storageos:TenantOrg:79600b60-eb8e-4073-802d-7ef9be620893:" rel="self"/>
+     </parent_tenant>
+     <user_mappings>
+          <user_mapping>
+               <attributes>
+                    <attribute>
+                         <key>company</key>
+                         <value>abc</value>
+                    </attribute>
+               </attributes>
+               <domain>sanity.local</domain>
+               <groups/>
+          </user_mapping>
+     </user_mappings>
+</tenant>
+
+

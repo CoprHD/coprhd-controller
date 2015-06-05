@@ -1,0 +1,14 @@
+Be careful when you change service unit dependency. Circular dependency in systemd units may result to unexpected boot sequence.
+
+Expected boot sequence
+- boot-ovfenv
+- network.service
+- SuSEfirewall2
+- storageos-installer
+- syncNTP
+- ntp
+- keepalived, connectEMC, storageos services, nginx
+
+Use 'systemctl status <service>' to check boot sequence if you observe weired network/firewall issues.
+
+Debug service bootup issues - add "emergency" to kernel command line at grub boot menu. Systemd breaks into shell before loading a service. Input "password" to debug in that shell

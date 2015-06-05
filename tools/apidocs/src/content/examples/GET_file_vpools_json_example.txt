@@ -1,0 +1,22 @@
+GET https://192.168.0.0:4443/file/vpools.json HTTP/1.1  
+
+Content-Type: application/json 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK 
+Content-Type: application/json 
+
+{
+   "virtualpool" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/file/vpools/urn:storageos:VirtualPool:bb133037-1f22-4cc5-84bc-7b90049c9ad0:"
+         },
+         "vpool_type" : "file",
+         "name" : "cosisi",
+         "id" : "urn:storageos:VirtualPool:bb133037-1f22-4cc5-84bc-7b90049c9ad0:"
+      }
+   ]
+}

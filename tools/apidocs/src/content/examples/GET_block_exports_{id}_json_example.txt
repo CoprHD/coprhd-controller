@@ -1,0 +1,610 @@
+GET https://192.168.0.0:4443/block/exports/urn:storageos:ExportGroup:491fc994-36ec-4d47-a0c7-2dd84b9df8dc:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+COntent-Type: application/json
+
+{
+  "name": "billhost1-1379682635864",
+  "id": "urn:storageos:ExportGroup:491fc994-36ec-4d47-a0c7-2dd84b9df8dc:",
+  "link": {
+    "rel": "self",
+    "href": "/block/exports/urn:storageos:ExportGroup:491fc994-36ec-4d47-a0c7-2dd84b9df8dc:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "volumes": [
+    {
+      "id": "urn:storageos:Volume:02ed86cd-d894-4ae5-b9b1-2d491d1b2f65:",
+      "lun": 0
+    }
+  ],
+  "initiators": [
+    {
+      "id": "urn:storageos:Initiator:e59b739a-a796-4541-8a25-aa57fe2319bb:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:e59b739a-a796-4541-8a25-aa57fe2319bb:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169059555,
+      "hostname": "billhost2",
+      "initiator_node": "20:00:00:00:99:67:BB:B1",
+      "initiator_port": "10:00:00:00:99:67:BB:B1"
+    },
+    {
+      "id": "urn:storageos:Initiator:d862ace5-edd9-455f-af04-e4fd99f3c553:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:d862ace5-edd9-455f-af04-e4fd99f3c553:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169060321,
+      "hostname": "billhost3",
+      "initiator_node": "20:00:00:00:99:67:CC:C1",
+      "initiator_port": "10:00:00:00:99:67:CC:C1"
+    },
+    {
+      "id": "urn:storageos:Initiator:8d08b370-b4e0-4d15-9c7e-6c536164c25e:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:8d08b370-b4e0-4d15-9c7e-6c536164c25e:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169059261,
+      "hostname": "billhost1",
+      "initiator_node": "20:00:00:00:99:66:AA:A2",
+      "initiator_port": "10:00:00:00:99:66:AA:A2"
+    },
+    {
+      "id": "urn:storageos:Initiator:dea5c57e-338f-4662-bae1-dc838698fc40:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:dea5c57e-338f-4662-bae1-dc838698fc40:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169841467,
+      "hostname": "wjehost3",
+      "initiator_node": "20:00:00:00:47:68:CC:C2",
+      "initiator_port": "10:00:00:00:47:68:CC:C2"
+    },
+    {
+      "id": "urn:storageos:Initiator:515a3741-e25a-4673-8365-4997a93fe147:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:515a3741-e25a-4673-8365-4997a93fe147:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169839656,
+      "hostname": "wjehost1",
+      "initiator_node": "20:00:00:00:47:65:AA:A1",
+      "initiator_port": "10:00:00:00:47:65:AA:A1"
+    },
+    {
+      "id": "urn:storageos:Initiator:0b70ddac-0b0f-4af4-8c6d-83b16eda0d5f:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:0b70ddac-0b0f-4af4-8c6d-83b16eda0d5f:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169058947,
+      "hostname": "billhost1",
+      "initiator_node": "20:00:00:00:99:65:AA:A1",
+      "initiator_port": "10:00:00:00:99:65:AA:A1"
+    },
+    {
+      "id": "urn:storageos:Initiator:cc256e91-cc58-4500-999b-4ea00f46eed1:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:cc256e91-cc58-4500-999b-4ea00f46eed1:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169060614,
+      "hostname": "billhost3",
+      "initiator_node": "20:00:00:00:99:68:CC:C2",
+      "initiator_port": "10:00:00:00:99:68:CC:C2"
+    },
+    {
+      "id": "urn:storageos:Initiator:de86f1b0-3f6b-473a-9d7d-6405b32bc7b7:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:de86f1b0-3f6b-473a-9d7d-6405b32bc7b7:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169841139,
+      "hostname": "wjehost3",
+      "initiator_node": "20:00:00:00:47:67:CC:C1",
+      "initiator_port": "10:00:00:00:47:67:CC:C1"
+    },
+    {
+      "id": "urn:storageos:Initiator:579c7bf5-83d6-459a-844e-0b21d29d9a22:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:579c7bf5-83d6-459a-844e-0b21d29d9a22:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169060018,
+      "hostname": "billhost2",
+      "initiator_node": "20:00:00:00:99:68:BB:B2",
+      "initiator_port": "10:00:00:00:99:68:BB:B2"
+    },
+    {
+      "id": "urn:storageos:Initiator:813c99d0-233b-4348-bae1-9d6f1a8df4c3:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:813c99d0-233b-4348-bae1-9d6f1a8df4c3:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169839976,
+      "hostname": "wjehost1",
+      "initiator_node": "20:00:00:00:47:66:AA:A2",
+      "initiator_port": "10:00:00:00:47:66:AA:A2"
+    },
+    {
+      "id": "urn:storageos:Initiator:9a5a2540-5678-447e-8fda-7e89edd6b9d1:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:9a5a2540-5678-447e-8fda-7e89edd6b9d1:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169840814,
+      "hostname": "wjehost2",
+      "initiator_node": "20:00:00:00:47:68:BB:B2",
+      "initiator_port": "10:00:00:00:47:68:BB:B2"
+    },
+    {
+      "id": "urn:storageos:Initiator:11bb0a5e-9502-4c1e-a772-cee848b1b8ac:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/initiators/urn:storageos:Initiator:11bb0a5e-9502-4c1e-a772-cee848b1b8ac:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "host": {
+        "id": "urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/hosts/urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:"
+        }
+      },
+      "protocol": "FC",
+      "creation_time": 1379169840312,
+      "hostname": "wjehost2",
+      "initiator_node": "20:00:00:00:47:67:BB:B1",
+      "initiator_port": "10:00:00:00:47:67:BB:B1"
+    }
+  ],
+  "hosts": [
+    {
+      "name": "billhost1",
+      "id": "urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/hosts/urn:storageos:Host:eb8f31f7-1960-484a-a52e-627d04c2dad5:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "tenant": {
+        "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+        "link": {
+          "rel": "self",
+          "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+        }
+      },
+      "type": "Windows",
+      "cluster": {
+        "id": "urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:"
+        }
+      },
+      "creation_time": 1379169055934,
+      "native_guid": "",
+      "job_discovery_status": "ERROR",
+      "job_metering_status": "CREATED",
+      "last_discovery_status_message": "Unknown host: billhost1",
+      "last_discovery_run_time": 1379686619032,
+      "next_discovery_run_time": 0,
+      "last_metering_run_time": 0,
+      "next_metering_run_time": 0,
+      "compatibility_status": "UNKNOWN",
+      "registration_status": "REGISTERED",
+      "host_name": "billhost1",
+      "user_name": "user",
+      "port_number": 8111,
+      "os_version": "1.0",
+      "use_ssl": false
+    },
+    {
+      "name": "billhost2",
+      "id": "urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/hosts/urn:storageos:Host:96467c70-b319-4888-9617-554b987e846e:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "tenant": {
+        "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+        "link": {
+          "rel": "self",
+          "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+        }
+      },
+      "type": "Windows",
+      "cluster": {
+        "id": "urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:"
+        }
+      },
+      "creation_time": 1379169056272,
+      "native_guid": "",
+      "job_discovery_status": "ERROR",
+      "job_metering_status": "CREATED",
+      "last_discovery_status_message": "Unknown host: billhost2",
+      "last_discovery_run_time": 1379686619047,
+      "next_discovery_run_time": 0,
+      "last_metering_run_time": 0,
+      "next_metering_run_time": 0,
+      "compatibility_status": "UNKNOWN",
+      "registration_status": "REGISTERED",
+      "host_name": "billhost2",
+      "user_name": "user",
+      "port_number": 8111,
+      "os_version": "1.0",
+      "use_ssl": false
+    },
+    {
+      "name": "wjehost2",
+      "id": "urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/hosts/urn:storageos:Host:d5537822-f6cf-4f67-bee4-f8757adad8a5:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "tenant": {
+        "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+        "link": {
+          "rel": "self",
+          "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+        }
+      },
+      "type": "Windows",
+      "cluster": {
+        "id": "urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:"
+        }
+      },
+      "creation_time": 1379169836224,
+      "native_guid": "",
+      "job_discovery_status": "ERROR",
+      "job_metering_status": "CREATED",
+      "last_discovery_status_message": "Unknown host: wjehost2",
+      "last_discovery_run_time": 1379686619059,
+      "next_discovery_run_time": 0,
+      "last_metering_run_time": 0,
+      "next_metering_run_time": 0,
+      "compatibility_status": "UNKNOWN",
+      "registration_status": "REGISTERED",
+      "host_name": "wjehost2",
+      "user_name": "user",
+      "port_number": 8111,
+      "os_version": "1.0",
+      "use_ssl": false
+    },
+    {
+      "name": "wjehost3",
+      "id": "urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/hosts/urn:storageos:Host:64f33d7f-54c6-4a10-8c2b-f55104a8e83a:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "tenant": {
+        "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+        "link": {
+          "rel": "self",
+          "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+        }
+      },
+      "type": "Windows",
+      "cluster": {
+        "id": "urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:"
+        }
+      },
+      "creation_time": 1379169836685,
+      "native_guid": "",
+      "job_discovery_status": "ERROR",
+      "job_metering_status": "CREATED",
+      "last_discovery_status_message": "Unknown host: wjehost3",
+      "last_discovery_run_time": 1379686619019,
+      "next_discovery_run_time": 0,
+      "last_metering_run_time": 0,
+      "next_metering_run_time": 0,
+      "compatibility_status": "UNKNOWN",
+      "registration_status": "REGISTERED",
+      "host_name": "wjehost3",
+      "user_name": "user",
+      "port_number": 8111,
+      "os_version": "1.0",
+      "use_ssl": false
+    },
+    {
+      "name": "billhost3",
+      "id": "urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/hosts/urn:storageos:Host:14864ef8-7ffe-4252-a8c8-17e230798646:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "tenant": {
+        "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+        "link": {
+          "rel": "self",
+          "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+        }
+      },
+      "type": "Windows",
+      "cluster": {
+        "id": "urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:"
+        }
+      },
+      "creation_time": 1379169056771,
+      "native_guid": "",
+      "job_discovery_status": "ERROR",
+      "job_metering_status": "CREATED",
+      "last_discovery_status_message": "Unknown host: billhost3",
+      "last_discovery_run_time": 1379686619064,
+      "next_discovery_run_time": 0,
+      "last_metering_run_time": 0,
+      "next_metering_run_time": 0,
+      "compatibility_status": "UNKNOWN",
+      "registration_status": "REGISTERED",
+      "host_name": "billhost3",
+      "user_name": "user",
+      "port_number": 8111,
+      "os_version": "1.0",
+      "use_ssl": false
+    },
+    {
+      "name": "wjehost1",
+      "id": "urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/hosts/urn:storageos:Host:2d946e9f-af2f-410e-b001-5ced40773871:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "tenant": {
+        "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+        "link": {
+          "rel": "self",
+          "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+        }
+      },
+      "type": "Windows",
+      "cluster": {
+        "id": "urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:",
+        "link": {
+          "rel": "self",
+          "href": "/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:"
+        }
+      },
+      "creation_time": 1379169835921,
+      "native_guid": "",
+      "job_discovery_status": "ERROR",
+      "job_metering_status": "CREATED",
+      "last_discovery_status_message": "Unknown host: wjehost1",
+      "last_discovery_run_time": 1379686619000,
+      "next_discovery_run_time": 0,
+      "last_metering_run_time": 0,
+      "next_metering_run_time": 0,
+      "compatibility_status": "UNKNOWN",
+      "registration_status": "REGISTERED",
+      "host_name": "wjehost1",
+      "user_name": "user",
+      "port_number": 8111,
+      "os_version": "1.0",
+      "use_ssl": false
+    }
+  ],
+  "clusters": [
+    {
+      "name": "cluster",
+      "id": "urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:",
+      "link": {
+        "rel": "self",
+        "href": "/compute/clusters/urn:storageos:Cluster:85c0e380-6a14-41fe-898b-31b6f1fe0112:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "tenant": {
+        "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+        "link": {
+          "rel": "self",
+          "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+        }
+      },
+      "creation_time": 1379169055067
+    }
+  ],
+  "project": {
+    "id": "urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:",
+    "link": {
+      "rel": "self",
+      "href": "/projects/urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:"
+    }
+  },
+  "tenant": {
+    "id": "urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:",
+    "link": {
+      "rel": "self",
+      "href": "/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:"
+    }
+  },
+  "type": "Cluster",
+  "creation_time": 1379682641887,
+  "varray": {
+    "id": "urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:",
+    "link": {
+      "rel": "self",
+      "href": "/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:"
+    }
+  },
+  "generated_name": "billhost11379682635864"
+}

@@ -1,0 +1,6 @@
+%{
+  prefix = _prefix
+  value = _value
+  key = prefix + value;
+}%
+#{if key.equals(messages.get(key))}${value}#{/if}#{else}${messages.get(key)}#{/else}

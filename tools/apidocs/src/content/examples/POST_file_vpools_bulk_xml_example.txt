@@ -1,0 +1,122 @@
+POST https://192.168.0.0:4443/file/vpools/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:</id>
+    <id>urn:storageos:BlockConsistencyGroup:beecb228-5560-412d-8716-ad871b8a174a:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_file_vpools>
+    <file_vpool>
+        <creation_time>1379960379304</creation_time>
+        <id>urn:storageos:VirtualPool:b1049b14-41c1-458e-96aa-f541fc9be6c2:</id>
+        <inactive>false</inactive>
+        <link href="/file/vpools/urn:storageos:VirtualPool:b1049b14-41c1-458e-96aa-f541fc9be6c2:" rel="self"/>
+        <name>VNX_File_Thin_vPool</name>
+        <tags/>
+        <assigned_storage_pools>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:adb29c93-4b8a-4eb0-8cf3-04f68fb58aaf:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:9180ed33-c52b-4580-92ea-cf12df3de08f:/storage-pools/urn:storageos:StoragePool:adb29c93-4b8a-4eb0-8cf3-04f68fb58aaf:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:35ffdb5e-51d1-4fa5-8629-1241204195a7:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:9180ed33-c52b-4580-92ea-cf12df3de08f:/storage-pools/urn:storageos:StoragePool:35ffdb5e-51d1-4fa5-8629-1241204195a7:" rel="self"/>
+            </storage_pool>
+        </assigned_storage_pools>
+        <description>VNX_File_Thin_vPool</description>
+        <invalid_matched_pools/>
+        <matched_storage_pools>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:750f4c2a-08a7-4593-b972-fb3e4e283a07:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c07a5e1b-4245-4372-9974-a80f6ac27201:/storage-pools/urn:storageos:StoragePool:750f4c2a-08a7-4593-b972-fb3e4e283a07:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:0091c820-f4eb-4c63-a05a-b369bf125708:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c07a5e1b-4245-4372-9974-a80f6ac27201:/storage-pools/urn:storageos:StoragePool:0091c820-f4eb-4c63-a05a-b369bf125708:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:b4b4c54a-bfe2-4f91-9a32-d2beaf224b21:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c07a5e1b-4245-4372-9974-a80f6ac27201:/storage-pools/urn:storageos:StoragePool:b4b4c54a-bfe2-4f91-9a32-d2beaf224b21:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:5495eb97-69a1-44c3-b856-7a23cd4dd273:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c07a5e1b-4245-4372-9974-a80f6ac27201:/storage-pools/urn:storageos:StoragePool:5495eb97-69a1-44c3-b856-7a23cd4dd273:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:44fbdea9-b202-44bf-b590-e1f734442cae:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c07a5e1b-4245-4372-9974-a80f6ac27201:/storage-pools/urn:storageos:StoragePool:44fbdea9-b202-44bf-b590-e1f734442cae:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:adb29c93-4b8a-4eb0-8cf3-04f68fb58aaf:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:9180ed33-c52b-4580-92ea-cf12df3de08f:/storage-pools/urn:storageos:StoragePool:adb29c93-4b8a-4eb0-8cf3-04f68fb58aaf:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:35ffdb5e-51d1-4fa5-8629-1241204195a7:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:9180ed33-c52b-4580-92ea-cf12df3de08f:/storage-pools/urn:storageos:StoragePool:35ffdb5e-51d1-4fa5-8629-1241204195a7:" rel="self"/>
+            </storage_pool>
+        </matched_storage_pools>
+        <num_resources>15</num_resources>
+        <protocols>
+            <protocol>NFS</protocol>
+        </protocols>
+        <provisioning_type>Thin</provisioning_type>
+        <system_type>vnxfile</system_type>
+        <type>file</type>
+        <use_matched_pools>false</use_matched_pools>
+        <varrays>
+            <varray>
+                <id>urn:storageos:VirtualArray:a8ca963e-aa85-457e-b69f-1a44079f5646:</id>
+                <link href="/vdc/varrays/urn:storageos:VirtualArray:a8ca963e-aa85-457e-b69f-1a44079f5646:" rel="self"/>
+            </varray>
+        </varrays>
+        <protection>
+            <snapshots>
+                <max_native_snapshots>0</max_native_snapshots>
+            </snapshots>
+        </protection>
+    </file_vpool>
+    <file_vpool>
+        <creation_time>1379959815908</creation_time>
+        <id>urn:storageos:VirtualPool:45f7d4dc-f1db-4758-b26c-f52e898ac73b:</id>
+        <inactive>false</inactive>
+        <link href="/file/vpools/urn:storageos:VirtualPool:45f7d4dc-f1db-4758-b26c-f52e898ac73b:" rel="self"/>
+        <name>Isilon_vpool</name>
+        <tags/>
+        <assigned_storage_pools/>
+        <description>NFS &amp; CIFS</description>
+        <invalid_matched_pools/>
+        <matched_storage_pools>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:69be47bd-ad3b-402f-bbd0-e1c90d73cd03:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:79b2bb86-d0b7-4f81-a15b-16f78b8473f8:/storage-pools/urn:storageos:StoragePool:69be47bd-ad3b-402f-bbd0-e1c90d73cd03:" rel="self"/>
+            </storage_pool>
+        </matched_storage_pools>
+        <num_resources>8279</num_resources>
+        <protocols>
+            <protocol>CIFS</protocol>
+            <protocol>NFS</protocol>
+        </protocols>
+        <provisioning_type>Thin</provisioning_type>
+        <system_type>isilon</system_type>
+        <type>file</type>
+        <use_matched_pools>true</use_matched_pools>
+        <varrays>
+            <varray>
+                <id>urn:storageos:VirtualArray:a8ca963e-aa85-457e-b69f-1a44079f5646:</id>
+                <link href="/vdc/varrays/urn:storageos:VirtualArray:a8ca963e-aa85-457e-b69f-1a44079f5646:" rel="self"/>
+            </varray>
+        </varrays>
+        <protection>
+            <snapshots>
+                <max_native_snapshots>10</max_native_snapshots>
+            </snapshots>
+        </protection>
+    </file_vpool>
+</bulk_file_vpools>

@@ -1,0 +1,36 @@
+GET https://192.168.0.0:4443/user/whoami HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<user>
+  <common_name>root</common_name>
+  <distinguished_name>root</distinguished_name>
+  <tenant>urn:storageos:TenantOrg:5f10f64c-38a3-49de-b941-8370d7ebf1df:</tenant>
+  <roles>
+    <role>SECURITY_ADMIN</role>
+    <role>SYSTEM_ADMIN</role>
+    <role>SYSTEM_MONITOR</role>
+    <role>TENANT_ADMIN</role>
+  </roles>
+  <subtenant_roles>
+    <subtenant>
+      <tenant>urn:storageos:TenantOrg:4079d91e-df43-4899-97f2-b284adc232ce:</tenant>
+      <roles>
+        <role>TENANT_ADMIN</role>
+      </roles>
+    </subtenant>
+    <subtenant>
+      <tenant>urn:storageos:TenantOrg:68f91da5-cc86-4fe6-af6d-1a7470c981f0:</tenant>
+      <roles>
+        <role>TENANT_ADMIN</role>
+      </roles>
+    </subtenant>
+  </subtenant_roles>
+</user>

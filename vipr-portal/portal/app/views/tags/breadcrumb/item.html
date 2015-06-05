@@ -1,0 +1,10 @@
+*{
+  Creates a breadcrumb item containing the body of the tag
+  
+  arg: the href for the breadcrumb, if not provided no link is created
+  active: whether to create the active breadcrumb
+}*
+<li#{if _active} class="active"#{/if}>
+  #{if _arg}<a href="${_arg}">#{/if}#{doBody/}#{if _arg}</a>#{/if} 
+  #{if !_active}<span class="divider"></span>#{/if}
+</li>

@@ -1,0 +1,63 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    controllersvc {
+        mainClass = "com.emc.storageos.volumecontroller.impl.Main"
+        debugPort = "8001"
+        maxMemory = "514.5m"
+        maxMemoryFactor = "0.0317"
+        maxPermMemory = "192m"
+        maxPermMemoryFactor = ""        
+        jvmArgs += " -Djava.library.path=${project.installDir}/lib -Dsblim.wbem.configURL=file:${project.installDir}/conf/cimom.properties -DbuildType=" + buildType
+        startupTimeoutSec = "180"
+    }
+}
+
+dependencies {
+
+    compile library(google_gson),
+            library(httpclient3),
+            library(jsch),
+
+            project(":com.iwave.ext.vmware.vcenter"),
+            project(":com.iwave.ext.windows"),
+            project(":com.iwave.ext.linux"),
+            project(":dbsvc"),
+
+            project(":processmonitor"),
+            project(":security"),
+
+            project(":cimadapter"),
+            project(":discoveryplugins"),
+            project(":isilon"),
+            project(":datadomain"),
+            project(":vplex"),
+            project(":vnx"),
+            project(":vnxe"),
+
+            project(":netapp"),
+	    	project(":netappc"),
+            project(":recoverpoint"),
+            project(":compute"),
+            project(":cinder"),
+            project(":hds"),
+            project(":scaleio"),
+            project(":xtremio")
+            
+    testCompile library(easymock)
+}
+
+test {
+    exclude "com/emc/storageos/volumecontroller/impl/isilon/IsilonFileStorageDeviceTest.class"
+    exclude "com/emc/storageos/volumecontroller/impl/isilon/IsilonSimulatorTest.class"
+    exclude "com/emc/storageos/volumecontroller/impl/isilon/IsilonFileStorageDeviceTest.class"
+    exclude "com/emc/storageos/volumecontroller/impl/metering/plugins/smis/SMICommunicationInterfaceTest.class"
+    exclude "com/emc/storageos/volumecontroller/impl/monitoring/cim/IndicationTest.class"
+    exclude "com/emc/storageos/volumecontroller/impl/plugins/discovery/smis/DataCollectionTest.class"
+    exclude "com/emc/storageos/volumecontroller/impl/smis/RefreshRequiredUpdateFunctionTest.class"
+    exclude "com/emc/storageos/computecontroller/impl/ucs/ComputeElementsCreateTest.class"
+    exclude "com/emc/storageos/computecontroller/impl/ucs/TaskUpdateTest.class"
+    exclude "com/emc/storageos/volumecontroller/BlockStorageDeviceTest.class"
+}

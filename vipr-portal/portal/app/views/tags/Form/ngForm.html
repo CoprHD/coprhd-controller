@@ -1,0 +1,10 @@
+%{
+  _attrs["ng-controller"] = _controller ?: "DefaultCtrl"
+}%
+
+#{form _:_}
+  #{if _model }
+    #{addModelToScope _model /}
+  #{/if}
+  #{doBody /}
+#{/form}

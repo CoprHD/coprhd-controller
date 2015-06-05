@@ -1,0 +1,26 @@
+POST https://192.168.0.0:4443/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:/restore.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+    "link": {
+        "href": "/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:/tasks/6fcfd9ba-772b-4dc0-a5c6-76f93a5919ef", 
+        "rel": "self"
+    }, 
+    "op_id": "6fcfd9ba-772b-4dc0-a5c6-76f93a5919ef", 
+    "resource": {
+        "id": "urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:", 
+        "link": {
+            "href": "/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:", 
+            "rel": "self"
+        }, 
+        "name": "fs-cosnetappf-00:50:56:91:58:91-092313174649-2"
+    }, 
+    "start_time": 1379958447488, 
+    "state": "pending"
+}
+

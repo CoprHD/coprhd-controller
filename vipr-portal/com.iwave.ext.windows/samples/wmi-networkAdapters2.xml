@@ -1,0 +1,543 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+  <s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse</a:Action>
+    <a:MessageID>uuid:49724ADF-0B8A-4C8C-9547-24894E447AFA</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:8b707322-5aa8-46e1-b60f-4e5239f9a8aa</a:RelatesTo>
+  </s:Header>
+  <s:Body>
+    <n:EnumerateResponse>
+      <n:EnumerationContext>uuid:4E359973-A0C1-4D8E-B562-02C5198512AC</n:EnumerationContext>
+      <w:Items>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000000] WAN Miniport (SSTP)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (SSTP)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>0</p:Index>
+          <p:InterfaceIndex>2</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>RasSstp</p:ServiceName>
+          <p:SettingID>{4AE6B55C-6DD6-427D-A5BB-13535D4BE926}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000001] WAN Miniport (IKEv2)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (IKEv2)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>1</p:Index>
+          <p:InterfaceIndex>10</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>RasAgileVpn</p:ServiceName>
+          <p:SettingID>{FB474E6C-F93F-4848-945E-86780D2A9897}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000002] WAN Miniport (L2TP)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (L2TP)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>2</p:Index>
+          <p:InterfaceIndex>3</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>Rasl2tp</p:ServiceName>
+          <p:SettingID>{66973E50-CF44-46A7-AD86-0F369D30ACA2}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000003] WAN Miniport (PPTP)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (PPTP)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>3</p:Index>
+          <p:InterfaceIndex>4</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>PptpMiniport</p:ServiceName>
+          <p:SettingID>{F93EB786-8968-43C5-BC58-54D87385060E}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000004] WAN Miniport (PPPOE)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (PPPOE)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>4</p:Index>
+          <p:InterfaceIndex>5</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>RasPppoe</p:ServiceName>
+          <p:SettingID>{6A16EDEB-24DF-416A-B427-CED88EFCA006}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000005] WAN Miniport (IPv6)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (IPv6)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>5</p:Index>
+          <p:InterfaceIndex>6</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>NdisWan</p:ServiceName>
+          <p:SettingID>{F4373218-ED19-4F3D-8DB4-982009ED86B7}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000006] WAN Miniport (Network Monitor)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (Network Monitor)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>6</p:Index>
+          <p:InterfaceIndex>7</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>NdisWan</p:ServiceName>
+          <p:SettingID>{5356FE17-48EE-4A7A-BECE-645E20060A52}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000007] Intel(R) PRO/1000 MT Network Connection</p:Caption>
+          <p:DatabasePath>%SystemRoot%\System32\drivers\etc</p:DatabasePath>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>Intel(R) PRO/1000 MT Network Connection</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSDomainSuffixSearchOrder>iwave.local</p:DNSDomainSuffixSearchOrder>
+          <p:DNSEnabledForWINSResolution>false</p:DNSEnabledForWINSResolution>
+          <p:DNSHostName>iwave-lab1-windows-dev1</p:DNSHostName>
+          <p:DomainDNSRegistrationEnabled>false</p:DomainDNSRegistrationEnabled>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled>true</p:FullDNSRegistrationEnabled>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>7</p:Index>
+          <p:InterfaceIndex>11</p:InterfaceIndex>
+          <p:IPAddress>10.200.0.76</p:IPAddress>
+          <p:IPAddress>fe80::909a:b647:7249:3985</p:IPAddress>
+          <p:IPConnectionMetric>10</p:IPConnectionMetric>
+          <p:IPEnabled>true</p:IPEnabled>
+          <p:IPFilterSecurityEnabled>false</p:IPFilterSecurityEnabled>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPSubnet>255.255.255.0</p:IPSubnet>
+          <p:IPSubnet>64</p:IPSubnet>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress>00:50:56:9F:3B:01</p:MACAddress>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>E1G60</p:ServiceName>
+          <p:SettingID>{DE2B206A-B548-48F4-89BC-B54660896C63}</p:SettingID>
+          <p:TcpipNetbiosOptions>0</p:TcpipNetbiosOptions>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup>true</p:WINSEnableLMHostsLookup>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000008] Microsoft ISATAP Adapter</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>Microsoft ISATAP Adapter</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>8</p:Index>
+          <p:InterfaceIndex>12</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>tunnel</p:ServiceName>
+          <p:SettingID>{D6F7E5B1-C4A1-48FC-B674-E08B6F219583}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+        <p:Win32_NetworkAdapterConfiguration xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_NetworkAdapterConfiguration" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_NetworkAdapterConfiguration_Type">
+          <p:ArpAlwaysSourceRoute xsi:nil="true"/>
+          <p:ArpUseEtherSNAP xsi:nil="true"/>
+          <p:Caption>[00000009] WAN Miniport (IP)</p:Caption>
+          <p:DatabasePath xsi:nil="true"/>
+          <p:DeadGWDetectEnabled xsi:nil="true"/>
+          <p:DefaultTOS xsi:nil="true"/>
+          <p:DefaultTTL xsi:nil="true"/>
+          <p:Description>WAN Miniport (IP)</p:Description>
+          <p:DHCPEnabled>false</p:DHCPEnabled>
+          <p:DHCPLeaseExpires xsi:nil="true"/>
+          <p:DHCPLeaseObtained xsi:nil="true"/>
+          <p:DHCPServer xsi:nil="true"/>
+          <p:DNSDomain xsi:nil="true"/>
+          <p:DNSEnabledForWINSResolution xsi:nil="true"/>
+          <p:DNSHostName xsi:nil="true"/>
+          <p:DomainDNSRegistrationEnabled xsi:nil="true"/>
+          <p:ForwardBufferMemory xsi:nil="true"/>
+          <p:FullDNSRegistrationEnabled xsi:nil="true"/>
+          <p:IGMPLevel xsi:nil="true"/>
+          <p:Index>9</p:Index>
+          <p:InterfaceIndex>8</p:InterfaceIndex>
+          <p:IPConnectionMetric xsi:nil="true"/>
+          <p:IPEnabled>false</p:IPEnabled>
+          <p:IPFilterSecurityEnabled xsi:nil="true"/>
+          <p:IPPortSecurityEnabled xsi:nil="true"/>
+          <p:IPUseZeroBroadcast xsi:nil="true"/>
+          <p:IPXAddress xsi:nil="true"/>
+          <p:IPXEnabled xsi:nil="true"/>
+          <p:IPXMediaType xsi:nil="true"/>
+          <p:IPXVirtualNetNumber xsi:nil="true"/>
+          <p:KeepAliveInterval xsi:nil="true"/>
+          <p:KeepAliveTime xsi:nil="true"/>
+          <p:MACAddress xsi:nil="true"/>
+          <p:MTU xsi:nil="true"/>
+          <p:NumForwardPackets xsi:nil="true"/>
+          <p:PMTUBHDetectEnabled xsi:nil="true"/>
+          <p:PMTUDiscoveryEnabled xsi:nil="true"/>
+          <p:ServiceName>NdisWan</p:ServiceName>
+          <p:SettingID>{66513FCE-F1B9-480C-B278-3DD588D5D452}</p:SettingID>
+          <p:TcpipNetbiosOptions xsi:nil="true"/>
+          <p:TcpMaxConnectRetransmissions xsi:nil="true"/>
+          <p:TcpMaxDataRetransmissions xsi:nil="true"/>
+          <p:TcpNumConnections xsi:nil="true"/>
+          <p:TcpUseRFC1122UrgentPointer xsi:nil="true"/>
+          <p:TcpWindowSize xsi:nil="true"/>
+          <p:WINSEnableLMHostsLookup xsi:nil="true"/>
+          <p:WINSHostLookupFile xsi:nil="true"/>
+          <p:WINSPrimaryServer xsi:nil="true"/>
+          <p:WINSScopeID xsi:nil="true"/>
+          <p:WINSSecondaryServer xsi:nil="true"/>
+        </p:Win32_NetworkAdapterConfiguration>
+      </w:Items>
+    </n:EnumerateResponse>
+  </s:Body>
+</s:Envelope>

@@ -1,0 +1,138 @@
+/**
+* Copyright 2015 EMC Corporation
+* All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2012 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
+
+package com.emc.storageos.api.service.impl.resource.utils;
+
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.security.audit.AuditLogUtils;
+import com.emc.storageos.db.client.model.AuditLog;
+
+import java.util.Locale;
+import java.util.ResourceBundle;   
+
+/**
+ *  An XML auditlog marshaler based on JAXB API
+ */
+public class XMLAuditLogMarshaller implements AuditLogMarshaller {
+
+    final private Logger _logger = LoggerFactory.getLogger(XMLAuditLogMarshaller.class);
+    
+    final static private Logger _staticLogger = LoggerFactory.getLogger(XMLAuditLogMarshaller.class);
+
+    private static JAXBContext _context = null;
+    private static Locale locale = null;
+    private static ResourceBundle resb = null;
+
+    static {
+        try {
+            _context = JAXBContext.newInstance(AuditLog.class);
+        } catch (JAXBException e) {
+            _staticLogger.error("XML Marshaller Creation Error", e);
+        }
+      }
+    
+    private final ThreadLocal<Marshaller> marshallers = new ThreadLocal<Marshaller>() {
+
+        protected Marshaller initialValue() {
+            Marshaller m = null;
+            try {
+                m = _context.createMarshaller();
+                m.setProperty(Marshaller.JAXB_FRAGMENT, true);
+            } catch (JAXBException e) {
+                _logger.error("XML marshaller creation failed", e);
+            }
+
+            return m;
+        }
+    };
+
+    private Marshaller getMarshaller() {
+        return marshallers.get();
+    }
+
+    @Override
+    public void header(Writer writer) throws MarshallingExcetion {
+        BufferedWriter ow = ((BufferedWriter)writer);
+        try {
+            ow.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            writer.write("<auditlogs>");
+        } catch (IOException e) {
+            throw new MarshallingExcetion("XML head Streaming failed", e);
+        }
+    }
+
+    @Override
+    public void marshal(AuditLog auditlog, Writer writer) throws MarshallingExcetion {
+        BufferedWriter ow = ((BufferedWriter)writer);
+        try {
+            if (auditlog == null) {
+                _logger.warn("null auditlog dropped");
+            } else {
+                Marshaller marshaller = getMarshaller();
+
+                if (marshaller == null) {
+                    _logger.error("Unable to create XML marshaller");
+                } else {
+                    AuditLogUtils.resetDesc(auditlog, resb);
+
+                    StringWriter sw = new StringWriter();
+                    marshaller.marshal(auditlog, sw);
+                    ow.write(sw.toString());
+                }
+            }
+        } catch (JAXBException e) {
+            throw new MarshallingExcetion("XML Marshalling Error", e);
+        } catch (IOException e) {
+            throw new MarshallingExcetion("XML Streaming Error", e);
+        }
+    }
+
+    @Override
+    public void tailer(Writer writer) throws MarshallingExcetion {
+        BufferedWriter ow = ((BufferedWriter)writer);
+        try {
+            ow.write("</auditlogs>");
+        } catch (IOException e) {
+            throw new MarshallingExcetion("XML tail Streaming failed", e);
+        }
+    }
+
+    @Override
+    public void setLang(String lang) {
+        String language, country;
+        String[] array = lang.split("_");
+        if (array.length != 2){
+            language = "en"; 
+            country = "US";
+        } else {
+            language = array[0];
+            country = array[1];
+        }
+        
+        locale = new Locale(language, country);
+        resb = ResourceBundle.getBundle("SDSAuditlogRes", locale);
+    }
+}

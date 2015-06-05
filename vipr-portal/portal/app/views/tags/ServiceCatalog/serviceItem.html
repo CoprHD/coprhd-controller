@@ -1,0 +1,35 @@
+%{
+  service = _service
+  editable = _editable == true
+}%
+<li class="catalog-item service-item" data-id="${service.id}" data-name="${service.name}" data-title="${service.title}">
+  <div class="panel panel-default">
+    <div class="panel-heading catalog-title">
+      <h3 class="panel-title">${service.title}</h3>
+    #{if editable}
+      <div class="editButtons">
+        <button type="button" class="btn btn-xs btn-primary edit" data-target="${service.id}" 
+                value="&{'ServiceCatalog.service.edit'}" title="&{'ServiceCatalog.service.edit'}">
+          #{icon 'pencil'/}
+        </button>
+        <button type="button" class="btn btn-xs btn-info copy" data-target="${service.id}" 
+                value="&{'ServiceCatalog.service.copy'}" title="&{'ServiceCatalog.service.copy'}">
+          #{icon 'share'/}
+        </button>
+        <button type="button" class="btn btn-xs btn-danger delete" data-target="${service.id}" 
+                value="&{'ServiceCatalog.service.delete'}" title="&{'ServiceCatalog.service.delete'}">
+          #{icon 'trash'/}
+        </button>
+      </div>
+    #{/if}
+    </div>
+    <div class="panel-body">
+      <div class="catalog-image">
+        <div class="catalog-image-inner">
+          #{ServiceCatalog.serviceImage image:service.image/}
+        </div>
+      </div>
+      <p class="catalog-description">${service.description}</p>
+    </div>
+  </div>
+</li>

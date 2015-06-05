@@ -1,0 +1,18 @@
+%{
+    list = _list;
+    label = _label;
+
+    first =true;
+}%
+
+    #{list items:list, as:'listItem'}
+        #{if first}
+        <dt>${label}</dt>
+        #{/if}
+        #{else}
+        <dt>&nbsp;</dt>
+        #{/else}
+    %{first=false}%
+
+    <dd>${listItem}</dd>
+    #{/list}

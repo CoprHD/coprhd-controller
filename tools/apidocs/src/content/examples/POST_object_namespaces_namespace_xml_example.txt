@@ -1,0 +1,30 @@
+POST https://192.168.0.0:4443/object/namespaces/namespace HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<namespace_create>
+   <namespace>s3</namespace>
+   <vdcs>
+     <tenant>urn:storageos:TenantOrg:19f59393-254d-4c57-bf5f-9dec09202a98:</tenant>
+   </vdcs>
+</namespace_create>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<namespace>
+   <name>s3</name>
+   <id>s3</id>
+   <inactive>false</inactive>
+   <link href="/object/namespaces/namespace/s3" 
+      rel="self"/>
+   <tags/>
+   <vdcs>
+      <ZONE0>
+         <tenant>urn:storageos:TenantOrg:19f59393-254d-4c57-bf5f-9dec09202a98:</tenant>
+      </ZONE0>
+   </vdcs>
+</namespace>

@@ -1,0 +1,16 @@
+<div class="panel panel-default panel-collapse">
+  <div class="panel-heading {{state}}" data-toggle="collapse" data-target="#{{uid}}">
+    <h4 class="panel-title">
+      <i v-icon="chevron-right" class="indicator indicator-collapsed"></i>
+      <i v-icon="chevron-down" class="indicator indicator-expanded"></i>
+      <i v-icon="{{icon}}"></i>
+      {{title}}
+      <span ng-show="badge" class="badge"></span>
+    </h4>
+  </div>
+  <div id="{{uid}}" class="panel-collapse collapse {{state}}">
+    <div class="{{!noPanelBody && 'panel-body'}}">
+      <content />
+    </div>
+  </div>
+</div>

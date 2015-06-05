@@ -1,0 +1,16 @@
+GET https://192.168.0.0:4443/vdc/protection-systems/urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:/connectivity HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <protection_connectivity>
+       <protection_system>
+            <id>urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:</id>
+            <link href="/vdc/protection-systems/urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:" rel="self"/>
+            <name>vRPA</name>
+            </protection_system>
+  </protection_connectivity>

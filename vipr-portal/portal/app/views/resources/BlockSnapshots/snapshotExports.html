@@ -1,0 +1,47 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if exportGroups}
+    #{list items:exportGroups, as:'exportGroup'}
+      %{
+        typeKey = 'resources.exportgroup'
+        if ('host'.equalsIgnoreCase(exportGroup.value.type)) {
+          typeKey += '.host'
+        }
+        else if('cluster'.equalsIgnoreCase(exportGroup.value.type)) {
+          typeKey += '.cluster'
+        }
+        else if('exclusive'.equalsIgnoreCase(exportGroup.value.type)) {
+          typeKey += '.exclusive'
+        }
+      }%
+      #{Resources.header resource:exportGroup.value, typeKey: typeKey, href:@resources.BlockExportGroups.exportGroup(exportGroup.value.id)/}
+      <div style="margin-left: 2em;">
+        <table class='table table-condensed table-striped'>
+          <thead>
+            <tr>
+              <th>&{'resources.hostExport.initiator'}</th>
+              <th>&{'resources.hostExport.target'}</th>
+              <th>&{'resources.hostExport.sanZone'}</th>
+              <th>&{'resources.hostExport.hlu'}</th>
+            </tr>
+          </thead>
+          <tbody>
+          %{ lastInitiator = null }%
+          #{list exportGroupItlMap[exportGroup.key], as:'itl'}
+            <tr>
+              <td>#{if lastInitiator != itl.initiator.port}${itl.initiator.port}#{/if}</td>
+              <td>${itl.storagePort?.port}</td>
+              <td>${itl.sanZoneName}</td>
+              <td>${itl.hlu}</td>
+            </tr>
+            %{ lastInitiator = itl.initiator.port }%
+          #{/list}
+          </tbody>
+        </table>                  
+      </div>
+    #{/list}
+#{/if}
+#{else}
+  &{'resources.exports.none'}
+#{/else}

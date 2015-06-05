@@ -1,0 +1,14 @@
+<dl class="dl-horizontal">
+  <dt>&{'smisProvider.version'}</dt>
+  <dd>${storageProvider.versionString ?: '-'}</dd>
+  
+  <dt>&{'smisProvider.storageSystems'}</dt>
+  <dd>
+    #{list storageSystems, as:'system'}
+      <a href="@{arrays.StorageSystems.edit(system.id)}">${system.name}</a>#{if !system_isLast}, #{/if}
+    #{/list}
+    #{else}&nbsp;#{/else}
+  </dd>
+
+  #{discoveryDetails storageProvider/}
+</dl>

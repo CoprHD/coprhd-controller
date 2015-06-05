@@ -1,0 +1,306 @@
+#!/bin/bash 
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2014 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/storageos/ipchecktool
+#
+# This script tests if there is any other running VMs which has the the same ip as the this machine. 
+#
+
+export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin 
+
+. /etc/sysconfig/storageos
+
+NIC_NAME=$(/etc/getnic)
+OVFENV_FILE="/etc/ovfenv.properties"
+
+_usage() {
+    echo "Usage: $0 -p|--panic"     >&2
+    echo "   or: $0 --ip ipaddress" >&2
+    exit 2
+}
+
+_fatal() {
+    if [ "$STORAGEOS_BUILD_TYPE" == "oss" ]; then
+        echo -e "\n\e[1;31m***\n*** ${1} ${2} is in use somewhere else!\n*** If you saw this message at times other than initial deployment, you should negotiate the usage of this IP with the other users.\n***\n*** Press any key to edit ${OVFENV_FILE} to correct network settings, and exit the shell. Current node will be rebooted.\n***\e[0m"
+        read -n 1
+        /bin/bash
+        /etc/systool --reboot
+    else
+        echo -e "\n\e[1;31m***\n*** ${1} ${2} is in use somewhere else!\n*** If you are deploying a new appliance, please power it off and configure a new IP address then power it on again.\n*** If you saw this message at times other than initial deployment, you should negotiate the usage of this IP with the other users.\n***\n*** Press any key to power off this VM\n***\e[0m"
+        read -n 1
+        /etc/systool --poweroff
+    fi
+}
+
+_exit() {
+    local code=${1:-1} ; shift
+    set +Ex	
+    echo "$0: Error: $*" >&2
+    exit ${code}	
+}
+
+_error() {
+    local keystroke
+    local code=${1:-1} ; shift
+    set +Ex	
+    echo "$0: Error: $*" >&2
+    if [ "$STORAGEOS_BUILD_TYPE" == "oss" ]; then
+        echo -e "\n\e[1;31m***\n*** ${*}\n***\n*** Press c to continue boot up, or other keys to edit ${OVFENV_FILE} to correct network settings, and exit the shell. Current node will be rebooted.\n***\e[0m"
+    else
+        echo -e "\n\e[1;31m***\n*** ${*}\n***\n*** Press c to continue boot up, or other keys to power off this VM\n***\e[0m"
+    fi
+    read -n 1 keystroke
+    if [[ $keystroke != [cC] ]]; then
+        if [ "$STORAGEOS_BUILD_TYPE" == "oss" ]; then
+            /bin/bash
+            /etc/systool --reboot
+        else
+            /etc/systool --poweroff 
+        fi
+        exit ${code}
+    fi		
+}
+# Get OVF property with the key provided as $1
+_get_ovf_property() {
+    [ -z "${OVF_PROPERTY}" ] && OVF_PROPERTY="$(/etc/systool --getprops)"
+    [ -n "$1" ] && sed -n "s/^${1}=\(.*\)/\1/p" <<EOF
+${OVF_PROPERTY}
+EOF
+}
+
+_get_inet6_addr() {
+    # This method returns the configured ipv6 address of this machine
+    local addr6
+    local standalone_ip6=$(_get_ovf_property "network_standalone_ipaddr6")
+    if [[ ! -z  $standalone_ip6 ]]; then
+        addr6=$standalone_ip6
+    else    
+        local nodeid=$(_get_ovf_property "node_id")
+        local nodenum=${nodeid#vipr}
+        addr6=$(_get_ovf_property "network_${nodenum}_ipaddr6")
+    fi
+    echo ${addr6}   
+}
+
+_get_inet_addr() {
+    local addr=$(ifconfig ${NIC_NAME} | sed -rn 's/.*inet addr:([0-9.]+) .*/\1/p')
+    echo ${addr}   
+}
+
+_routing_get_gw() {
+    local gateway=$(ip -4 route show | grep "default via .* dev ${NIC_NAME}" | awk 'NR==1{print $3}')
+    echo ${gateway}
+}
+
+_routing_get_gw6() {
+    local gateway=$(ip -6 route show | grep "default via .* dev ${NIC_NAME}" | grep -v "[Ff][eE]80" | awk 'NR==1{print $3}')
+    echo ${gateway}
+}
+
+_ping6_test() {
+    ping6 -c 1 -n -w 5 "$1" &> /dev/null
+}
+
+_ping_test() {
+    ping -c 1 -w 5 "$1" &> /dev/null
+}
+
+_boot_time_ipv6_dup_test(){
+    local compressed_ip=$(_get_ipv6_compressed ${1})
+    local num_mac_addresses=$(ndisc6 -m -w 1000 ${compressed_ip} ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq | wc -l)
+    # 0 means ok, 1 means duplicate
+    [[ ${num_mac_addresses} > 0 ]] && return 1 || return 0 # If we detect another existence of it we flag it as duplicate
+}
+
+#get compressed form of IPV6 address
+_get_ipv6_compressed(){
+    local ipaddr
+    if [ "${1}" = "::0" ]; then
+        echo ""
+        return 0
+    fi
+    ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
+    [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
+}
+
+_check_ip() {
+    local ip=${1}
+    local test_status
+    
+    if grep -q ":" <<< ${1} ; then
+        _ipv6_dup_test ${ip}       
+        test_status=$?   
+    else
+        _ipv4_dup_test ${ip}
+        test_status=$?                 
+    fi
+    [ ${test_status} = 1 ] && _exit 3 "There is an IP address conflict at: ${ip}"
+    [ ${test_status} = 2 ] && _exit 4 "There is no node with IP address: ${ip}"
+}
+
+_ipv4_dup_test(){
+    local local_ip=$(ifconfig ${NIC_NAME} | sed -rn 's/.*inet addr:([0-9.]+) .*/\1/p')
+    local local_vip=$(ip -4 addr show dev ${NIC_NAME} | grep "inet .* secondary ${NIC_NAME}" | awk 'NR==1{print $2}' |  cut -d"/" -f1) # If this node doesn't own the vip, local_vip would be null
+    if [[ "${1}" == "${local_ip}" || "${1}" == "${local_vip}" ]] ; then
+            arping -D -I ${NIC_NAME} -c 2 ${1} &> /dev/null || return 1 # Return 1 if the arping command gets response
+    else
+        local num_mac_addresses=$(arping -I ${NIC_NAME} -c 3 ${1} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq | wc -l)
+        if [ ${num_mac_addresses} -gt 1 ] ; then
+            return 1
+        elif [ ${num_mac_addresses} -eq 0 ] ; then
+            return 2
+        fi
+    fi
+}
+
+_ipv6_dup_test(){
+    local is_local
+    local compressed_ip=$(_get_ipv6_compressed ${1})
+    ifconfig -a ${NIC_NAME} | egrep -oi "inet6 addr: ${compressed_ip}/.*Scope:Global" &> /dev/null && is_local=true || is_local=false # If this node doesn't own the vip, the vip of the cluster will not apear in the ifconfig output
+    
+    local num_mac_addresses=$(ndisc6 -m -w 1000 ${compressed_ip} ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq | wc -l)
+
+    # 0 means ok, 1 means duplicate, 2 means not found 
+    # When it is local IP you should not get any response
+    [[ ${is_local} = true ]] && {
+        [[ ${num_mac_addresses} > 0 ]] && return 1 || return 0 # If the IP is local and we detect another existence of it we flag it as duplicate
+    } || {
+        [[ ${num_mac_addresses} = 0 ]] && return 2 # If IP is not local and we can't detect its existence we flag it as not found 
+        [[ ${num_mac_addresses} > 1 ]] && return 1 || return 0 # f IP is not local and we find more than one existence, we flag it as duplicate 
+    }
+}
+
+_boot_time_ips_check(){  
+    local ipv4_addr=$(_get_inet_addr)   
+    local ipv4_vip=$(_get_ovf_property "network_vip")
+    local nodeid=$(_get_ovf_property "node_id")
+    local nodenum=${nodeid#vipr}
+    local node_count=$(_get_ovf_property "node_count")
+    
+    if [ ! -z "${ipv4_addr}" ]; then
+        arping -D -I ${NIC_NAME} -c 2 ${ipv4_addr} &> /dev/null || _fatal "The ipv4 address of this machine" "${ipv4_addr}"
+        if [[ "${ipv4_vip}" == "0.0.0.0" ]]; then
+            : # Don't check vip if it's disabledt
+        elif [ "${node_count}" = 1 ]; then
+            arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} &> /dev/null || _fatal "The ipv4 virtual IP(vip) of this cluster" "${ipv4_vip}"
+        else
+            _boot_time_ipv4_vip_dup_test $node_count $ipv4_vip $nodenum || _fatal "The ipv4 virtual IP(vip) of this cluster" "${ipv4_vip}"
+        fi
+    fi
+    local ipv6_addr=$(_get_inet6_addr)            
+    local ipv6_vip=$(_get_ovf_property "network_vip6")
+    if [ "${ipv6_addr}" != "::0" ]; then
+        _boot_time_ipv6_dup_test ${ipv6_addr} || _fatal "The ipv6 address of this machine" "${ipv6_addr}"
+        if [[ "${ipv6_vip}" == "::0" ]]; then
+            : # Don't check vip if it's disabled
+        elif [ "${node_count}" = 1 ]; then
+            _boot_time_ipv6_dup_test ${ipv6_vip} || _fatal "The ipv6 virtual IP(vip) of this cluster" "${ipv6_vip}"
+        else
+            _boot_time_ipv6_vip_dup_test $node_count $ipv6_vip $nodenum || _fatal "The ipv6 virtual IP(vip) of this cluster" "${ipv6_vip}"
+        fi
+    fi 
+}
+
+_boot_time_ipv4_vip_dup_test() {
+    local node_count=$1
+    local ipv4_vip=$2
+    local node_num=$3
+    local vip_mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq) # Sometimes gratuitous arp request puts FF:FF:FF:FF:FF:FF in the list
+    [ -z "$vip_mac_addr" ] && {
+        return 0 # This means no one grabed the vip yet
+    } || {
+        # If vip_mac_addr is not null, it means other nodes grabed the vip, we need to check if it's within the cluster
+        local loopflag=false
+        while true; do
+            for (( n=1; n<=${node_count}; n++ )); do
+                [ "${node_num}" = "${n}" ] && continue
+                local ip=$(_get_ovf_property "network_${n}_ipaddr")
+                local mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)  
+                [ -z "${mac_addr}" ] && {
+                    # This node is down, this node might previously have the vip, so we need to update the vip mac address and do another iteration
+                    loopflag=true
+                    vip_mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+                    [ -z "${vip_mac_addr}" ] && return 0 || continue # The current node might grab the vip back or the vip belongs to no one at this point of time
+                }
+                [[ "${vip_mac_addr}" == *"${mac_addr}"* ]] && return # This means another node in the cluster grabbed the vip, means this vip is not used outside of this cluster, use wildcard here because sometimes FF:FF:FF:FF:FF:FF appears in the vipr_mac_addr
+            done
+            [ "${loopflag}" = false ] && break || loopflag=false
+        done
+        return 1 # When the program reaches this line, it means no nodes grabbed the vip successfully, means the vip is in use out side of the cluster
+    }  
+}
+
+_boot_time_ipv6_vip_dup_test() {
+    local node_count=$1
+    local ipv6_vip=$2
+    local node_num=$3
+    local vip_mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ipv6_vip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+    [ -z "${vip_mac_addr}" ] && {
+        return 0 # This means no one grabed the vip yet
+    } || {
+        local loopflag=false
+        while true; do
+            for (( n=1; n<=${node_count}; n++ )); do
+                [ "${node_num}" = "${n}" ] && continue
+                local ip=$(_get_ovf_property "network_${n}_ipaddr6")
+                local mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+                [ -z "${mac_addr}" ] && {
+                    # This node is down, this node might previously have the vip, so we need to update the vip mac address and do another iteration
+                    loopflag=true
+                    vip_mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ipv6_vip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
+                    [ -z "${vip_mac_addr}" ] && return 0 || continue # The current node might grab the vip back or the vip belongs to no one at this point of time
+                }
+                [[ "${vip_mac_addr}" == "${mac_addr}" ]] && return # This means another node in the cluster grabbed the vip, means this vip is not used outside of this cluster
+            done            
+            [ "${loopflag}" = false ] && break || loopflag=false
+        done
+        return 1 # When the program reaches this line, it means no nodes grabbed the vip successfully, means the vip is in use out side of the cluster
+    }
+}
+
+_check_gateway(){
+    local ipv6_gateway=$(_routing_get_gw6) 
+    local ipv4_gateway=$(_routing_get_gw)
+    local actionMessage="power down ViPR";
+
+    if [ "${STORAGEOS_BUILD_TYPE}" == "oss" ]; then
+        actionMessage="edit ${OVFENV_FILE}"
+    else
+        actionMessage="power down ViPR"
+    fi
+    
+    if [[ -n "${ipv4_gateway}" ]]; then
+        _ping_test ${ipv4_gateway} || _error 3 "Gateway ${ipv4_gateway} is not reachable. Please ${actionMessage} and correct the IPv4 gateway." 
+    fi 
+    if [[ -n "${ipv6_gateway}" ]]; then
+        _ping6_test ${ipv6_gateway} || _error 3 "Gateway ${ipv6_gateway} is not reachable. Please ${actionMessage} and correct the IPv6 gateway." 
+    fi 
+    if [[ -z "${ipv4_gateway}"  &&  -z "${ipv6_gateway}" ]] ; then
+        _error 2 "Gateway not configured for this VM. Please ${actionMessage} and correct the gateway settings."
+    fi
+}
+
+PANIC=false
+
+case ${#} in
+    1)  case ${1} in
+            --panic|-p) PANIC=true; _boot_time_ips_check; _check_gateway ;;
+	     *)    _usage
+	    esac ;;
+    2)  case ${1} in
+            --ip)        _check_ip ${2} ;;
+	     *)          _usage
+        esac ;;
+    *)  _usage  		
+esac

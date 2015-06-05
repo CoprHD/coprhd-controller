@@ -1,0 +1,38 @@
+%{
+  field = _field
+  noLabel = _noLabel?: false
+  hasLoading = _hasLoading ?: false
+  
+  helpText = field.helpText
+  if (!helpText) {
+    if (field.helpTextKey) {
+      helpText = messages.get(field.helpTextKey, field.helpTextArgs)
+    }
+    else {
+      helpKey = "${field.name}.help"
+      help = messages.get(helpKey)
+      if (help != helpKey) {
+        helpText = help
+      }
+    }
+  }
+  controlWidth = _width ?: 6
+  labelWidth = 3
+  errorWidth = 12 - (controlWidth + labelWidth)
+}%
+<div id="${field.id}ControlGroup" class="form-group ${field.error ? "has-error" : ""} ${field.required ? "required" : ""}">
+  #{if noLabel}
+    <div class="col-sm-${labelWidth}"></div>
+  #{/if}
+  #{else}
+    <label class="control-label col-sm-${labelWidth}" for="${field.id}">#{if field.label}${field.label}#{/}#{else}&{field.name}#{/}:</label>
+  #{/else}
+  <div class="col-sm-${controlWidth} controls">
+    #{doBody/}
+    #{if helpText}<span class="help-block">${helpText}</span>#{/if}
+  </div>
+  <div class="col-sm-${errorWidth}">
+    <span class="help-inline">${field.error}</span>
+    #{if hasLoading}#{loading false/}#{/if}
+  </div>
+</div>

@@ -1,0 +1,844 @@
+/block/vpools
+    POST createBlockVirtualPool
+    GET getBlockVirtualPool
+    /block/vpools/{id}/varrays/{varrayId}/capacity
+        GET getCapacity
+    /block/vpools/{id}
+        GET getVirtualPool
+        PUT updateBlockVirtualPool
+    /block/vpools/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /block/vpools/{id}/quota
+        GET getQuota
+        PUT updateQuota
+    /block/vpools/matching-pools
+        POST getMatchingPoolsForVirtualPoolAttributes
+    /block/vpools/{id}/acl
+        GET getAcls
+        PUT updateAcls
+    /block/vpools/{id}/storage-pools
+        GET getStoragePools
+    /block/vpools/{id}/refresh-matched-pools
+        GET refreshMatchedStoragePools
+    /block/vpools/{id}/deactivate
+        POST deleteBlockVirtualPool
+    /block/vpools/{id}/assign-matched-pools
+        PUT updateBlockVirtualPoolWithAssignedPools
+    /block/vpools/search
+        GET search
+    /block/vpools/{id}/tags
+        GET getTags
+        PUT assignTags
+/block/snapshots
+    /block/snapshots/{id}/activate
+        POST activate
+    /block/snapshots/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /block/snapshots/{id}
+        GET getSnapshot
+    /block/snapshots/{id}/restore
+        POST restore
+    /block/snapshots/{id}/deactivate
+        POST deactivateSnapshot
+    /block/snapshots/{id}/exports
+        GET getSnapshotExports
+    /block/snapshots/{id}/tasks
+        GET getTasks
+    /block/snapshots/{id}/tasks/{op_id}/
+        GET getTask
+    /block/snapshots/search
+        GET search
+    /block/snapshots/{id}/tags
+        GET getTags
+        PUT assignTags
+/file/filesystems
+    POST createFileSystem
+    /file/filesystems/{id}
+        GET getFileSystem
+    /file/filesystems/{id}/expand
+        POST expand
+    /file/filesystems/{id}/protection/snapshots
+        POST snapshot
+        GET getSnapshots
+    /file/filesystems/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /file/filesystems/{id}/exports
+        GET getFileSystemExportList
+        POST export
+    /file/filesystems/{id}/exports/{protocol},{secType},{perm},{root_mapping}
+        PUT updateExport
+        DELETE unexport
+    /file/filesystems/{id}/shares
+        GET getFileSystemShareList
+        POST share
+    /file/filesystems/{id}/shares/{shareName}
+        DELETE deleteShare
+    /file/filesystems/{id}/deactivate
+        POST deactivateFileSystem
+    /file/filesystems/{id}/tasks
+        GET getTasks
+    /file/filesystems/{id}/tasks/{op_id}/
+        GET getTask
+    /file/filesystems/search
+        GET search
+    /file/filesystems/{id}/tags
+        GET getTags
+        PUT assignTags
+/internal/file/filesystems
+    POST createFileSystemInternal
+    /internal/file/filesystems/{id}
+        GET getFileSystemInternal
+    /internal/file/filesystems/{id}/tasks/{op_id}/
+        GET getTaskInternal
+    /internal/file/filesystems/{id}/exports
+        GET getFileSystemExportListInternal
+        POST exportInternal
+    /internal/file/filesystems/{id}/exports/{protocol},{secType},{perm},{root_mapping}
+        PUT modifyExportInternal
+        DELETE unexportInternal
+    /internal/file/filesystems/{id}/deactivate
+        POST deactivateFileSystemInternal
+/user
+    /user/whoami
+        GET getMyInfo
+    /user/tenant
+        GET getUserTenantList
+/file/snapshots
+    GET getSnapshots
+    /file/snapshots/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /file/snapshots/{id}/exports
+        POST export
+        GET getFileSystemSnapshotExportList
+    /file/snapshots/{id}/exports/{protocol},{secType},{perm},{rootMapping}
+        DELETE unexport
+    /file/snapshots/{id}/shares
+        GET getFileSystemShareList
+        POST share
+    /file/snapshots/{id}/shares/{shareName}
+        DELETE deleteShare
+    /file/snapshots/{id}
+        GET getSnapshot
+    /file/snapshots/{id}/restore
+        POST restore
+    /file/snapshots/{id}/deactivate
+        POST deleteSnapshot
+    /file/snapshots/{id}/tasks
+        GET getTasks
+    /file/snapshots/{id}/tasks/{op_id}/
+        GET getTask
+    /file/snapshots/search
+        GET search
+    /file/snapshots/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/varrays
+    GET getVirtualArrayList
+    POST createVirtualArray
+    /vdc/varrays/{id}/available-attributes
+        GET getAvailableAttributes
+    /vdc/varrays/{id}
+        GET getVirtualArray
+        PUT updateVirtualArray
+    /vdc/varrays/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/varrays/{id}/acl
+        GET getAcls
+        PUT updateAcls
+    /vdc/varrays/{id}/auto-tier-policies
+        GET getAutoTierPolicies
+    /vdc/varrays/{id}/deactivate
+        POST deleteVirtualArray
+    /vdc/varrays/{id}/storage-pools
+        GET getVirtualArrayStoragePools
+    /vdc/varrays/{id}/vpools
+        GET getVirtualArrayVirtualPool
+    /vdc/varrays/{id}/networks
+        POST createNetwork
+        GET getNetworkList
+    /vdc/varrays/{id}/connectivity
+        GET getVirtualArrayConnectivity
+    /vdc/varrays/search
+        GET search
+    /vdc/varrays/{id}/tags
+        GET getTags
+        PUT assignTags
+/compute/ip-interfaces
+    /compute/ip-interfaces/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /compute/ip-interfaces/{id}
+        GET getIpInterface
+        PUT updateIpInterface
+    /compute/ip-interfaces/{id}/deactivate
+        POST deactivateIpInterface
+    /compute/ip-interfaces/search
+        GET search
+    /compute/ip-interfaces/{id}/tags
+        GET getTags
+        PUT assignTags
+/tenants
+    /tenants/{id}
+        PUT setTenant
+        GET getTenant
+    /tenants/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /tenants/{id}/subtenants
+        POST createSubTenant
+        GET listSubTenants
+    /tenants/{id}/deactivate
+        POST deactivateTenant
+    /tenants/{id}/role-assignments
+        GET getRoleAssignments
+        PUT updateRoleAssignments
+    /tenants/{id}/projects
+        POST createProject
+        GET listProjects
+    /tenants/{id}/hosts
+        POST createHost
+        GET listHosts
+    /tenants/{id}/vcenters
+        POST createVcenter
+        GET listVcenters
+    /tenants/{id}/clusters
+        POST createCluster
+        GET listClusters
+    /tenants/{id}/quota
+        GET getQuota
+        PUT updateQuota
+    /tenants/search
+        GET search
+    /tenants/{id}/tags
+        GET getTags
+        PUT assignTags
+/block/consistency-groups
+    POST createConsistencyGroup
+    /block/consistency-groups/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /block/consistency-groups/{id}/deactivate
+        POST deleteConsistencyGroup
+    /block/consistency-groups/{id}
+        GET getConsistencyGroup
+        PUT updateConsistencyGroup
+    /block/consistency-groups/{id}/protection/snapshots
+        POST createConsistencyGroupSnapshot
+        GET getConsistencyGroupSnapshots
+    /block/consistency-groups/{id}/protection/snapshots/{sid}
+        GET getConsistencyGroupSnapshot
+    /block/consistency-groups/{id}/protection/snapshots/{sid}/activate
+        POST activateConsistencyGroupSnapshot
+    /block/consistency-groups/{id}/protection/snapshots/{sid}/deactivate
+        POST deactivateConsistencyGroupSnapshot
+    /block/consistency-groups/{id}/protection/snapshots/{sid}/restore
+        POST restoreConsistencyGroupSnapshot
+    /block/consistency-groups/{id}/tasks
+        GET getTasks
+    /block/consistency-groups/{id}/tasks/{op_id}/
+        GET getTask
+    /block/consistency-groups/search
+        GET search
+    /block/consistency-groups/{id}/tags
+        GET getTags
+        PUT assignTags
+/compute/clusters
+    /compute/clusters/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /compute/clusters/{id}
+        GET getCluster
+        PUT updateCluster
+    /compute/clusters/{id}/hosts
+        GET getClusterHosts
+    /compute/clusters/{id}/deactivate
+        POST deactivateCluster
+    /compute/clusters/search
+        GET search
+    /compute/clusters/{id}/tags
+        GET getTags
+        PUT assignTags
+/tenant
+    GET getTenant
+/vdc/network-systems
+    GET getNetworkSystemList
+    POST createNetworkSystem
+    /vdc/network-systems/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/network-systems/{id}
+        PUT updateNetworkSystem
+        GET getNetworkSystem
+    /vdc/network-systems/{id}/deactivate
+        POST deleteNetworkSystem
+    /vdc/network-systems/{id}/discover
+        POST discoverNetworkSystem
+    /vdc/network-systems/{id}/register
+        POST registerNetworkSystem
+    /vdc/network-systems/{id}/deregister
+        POST deregisterNetworkSystem
+    /vdc/network-systems/{id}/fc-endpoints
+        GET getFCEndpoints
+    /vdc/network-systems/san-references/{wwnList}
+        GET getReferences
+    /vdc/network-systems/{id}/san-fabrics
+        GET getFabrics
+    /vdc/network-systems/{id}/san-fabrics/{fabricId}
+        GET getSanZones
+    /vdc/network-systems/{id}/add-san-zones/{fabricId}
+        POST addSanZones
+    /vdc/network-systems/{id}/remove-san-zones/{fabricId}
+        POST removeSanZones
+    /vdc/network-systems/{id}/tasks
+        GET getTasks
+    /vdc/network-systems/{id}/tasks/{op_id}/
+        GET getTask
+    /vdc/network-systems/search
+        GET search
+    /vdc/network-systems/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/workflows
+    GET getWorkflows
+    /vdc/workflows/active
+        GET getActiveWorkflows
+    /vdc/workflows/completed
+        GET getCompletedWorkflows
+    /vdc/workflows/recent
+        GET getRecentWorkflows
+    /vdc/workflows/{id}
+        GET getWorkflow
+    /vdc/workflows/{id}/steps
+        GET getStepList
+    /vdc/workflows/steps/{stepid}
+        GET getStep
+/audit
+    /audit/logs
+        GET getAuditLogs
+/vdc/storage-ports
+    GET getStoragePorts
+    /vdc/storage-ports/{id}
+        GET getStoragePort
+        PUT updateStoragePort
+    /vdc/storage-ports/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/storage-ports/{id}/deregister
+        POST deregisterStoragePort
+    /vdc/storage-ports/search
+        GET search
+    /vdc/storage-ports/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/admin/authnproviders
+    GET listProviders
+    POST createProvider
+    /vdc/admin/authnproviders/{id}
+        GET getProvider
+        PUT updateProvider
+        DELETE deleteProvider
+    /vdc/admin/authnproviders/search
+        GET search
+    /vdc/admin/authnproviders/{id}/tags
+        GET getTags
+        PUT assignTags
+    /vdc/admin/authnproviders/bulk
+        POST getBulkResources
+        GET getBulkIds
+/compute/vcenter-data-centers
+    /compute/vcenter-data-centers/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /compute/vcenter-data-centers/{id}
+        GET getVcenterDataCenter
+        PUT updateVcenterDataCenter
+    /compute/vcenter-data-centers/{id}/deactivate
+        POST deactivateVcenterDataCenter
+    /compute/vcenter-data-centers/{id}/clusters
+        GET getVcenterDataCenterClusters
+    /compute/vcenter-data-centers/{id}/hosts
+        GET getVcenterDataCenterHosts
+    /compute/vcenter-data-centers/search
+        GET search
+    /compute/vcenter-data-centers/{id}/tags
+        GET getTags
+        PUT assignTags
+/
+    //login
+        GET landingPage
+    //proxytoken
+        GET getProxyToken
+/vdc/capacities
+    GET getZoneCapacities
+/compute/vcenters
+    /compute/vcenters/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /compute/vcenters/{id}
+        PUT updateVcenter
+        GET getVcenter
+    /compute/vcenters/{id}/hosts
+        GET getVcenterHosts
+    /compute/vcenters/{id}/clusters
+        GET getVcenterClusters
+    /compute/vcenters/{id}/deactivate
+        POST deactivateVcenter
+    /compute/vcenters/{id}/vcenter-data-centers
+        POST createVcenterDataCenter
+        GET getVcenterDataCenters
+    /compute/vcenters/{id}/tasks
+        GET getTasks
+    /compute/vcenters/{id}/tasks/{op_id}/
+        GET getTask
+    /compute/vcenters/search
+        GET search
+    /compute/vcenters/{id}/tags
+        GET getTags
+        PUT assignTags
+/projects
+    /projects/{id}
+        GET getProject
+        PUT updateProject
+    /projects/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /projects/{id}/acl
+        GET getRoleAssignments
+        PUT updateRoleAssignments
+    /projects/{id}/quota
+        GET getQuota
+        PUT updateQuota
+    /projects/{id}/resources
+        GET getResourceList
+    /projects/{id}/deactivate
+        POST deactivateProject
+    /projects/search
+        GET search
+    /projects/{id}/tags
+        GET getTags
+        PUT assignTags
+/block/volumes
+    POST createVolume
+    /block/volumes/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /block/volumes/{id}/protection/snapshots
+        GET getSnapshots
+        POST createSnapshot
+    /block/volumes/deactivate
+        POST deleteVolumes
+    /block/volumes/{id}/vpool-change/vpool
+        GET getVirtualPoolForVirtualPoolChange
+    /block/volumes/{id}/protection/continuous-copies/start
+        POST startNativeContinuousCopies
+    /block/volumes/{id}/protection/continuous-copies/stop
+        POST stopNativeContinuousCopies
+    /block/volumes/{id}/protection/continuous-copies/pause
+        POST pauseNativeContinuousCopies
+    /block/volumes/{id}/protection/continuous-copies/resume
+        POST resumeNativeContinuousCopies
+    /block/volumes/{id}/protection/continuous-copies/{mid}/deactivate
+        POST deactivateMirror
+    /block/volumes/{id}/vpool
+        PUT changeVolumeVirtualPool
+    /block/volumes/{id}/varray
+        PUT changeVolumeVirtualArray
+    /block/volumes/{id}/expand
+        POST expandVolume
+    /block/volumes/{vid}/protection/protection-sets/{id}
+        GET getProtectionSet
+    /block/volumes/{id}
+        GET getVolume
+    /block/volumes/{id}/storage-pool
+        GET getStoragePool
+    /block/volumes/{id}/protection/continuous-copies/{pid}/stop/
+        POST stopNativeContinuousCopy
+    /block/volumes/{id}/protection/full-copies
+        POST createFullCopy
+    /block/volumes/{id}/protection/full-copies/{pid}/activate
+        POST activateFullCopy
+    /block/volumes/{id}/protection/full-copies/{pid}/check-progress
+        POST getFullCopyProgressCheck
+    /block/volumes/{id}/protection/full-copies/{pid}/detach
+        POST detachFullCopy
+    /block/volumes/{id}/protection/continuous/stop
+        POST stopProtection
+    /block/volumes/{id}/protection/continuous/start
+        POST startProtection
+    /block/volumes/{id}/protection/continuous/pause
+        POST pauseProtection
+    /block/volumes/{id}/protection/continuous/resume
+        POST resumeProtection
+    /block/volumes/{id}/protection/continuous/failover-test
+        POST failoverTest
+    /block/volumes/{id}/protection/continuous/failover-test-cancel
+        POST failoverTestCancel
+    /block/volumes/{id}/protection/continuous/failover
+        POST failoverProtection
+    /block/volumes/{id}/exports
+        GET getVolumeExports
+    /block/volumes/{id}/deactivate
+        POST deleteVolume
+    /block/volumes/{id}/protection/continuous-copies
+        GET getNativeContinuousCopies
+    /block/volumes/{id}/protection/continuous-copies/{mid}
+        GET getMirror
+    /block/volumes/{id}/protection/continuous-copies/{pid}/pause
+        POST pauseNativeContinuousCopy
+    /block/volumes/{id}/protection/continuous-copies/{pid}/resume
+        POST resumeNativeContinuousCopy
+    /block/volumes/{id}/migrations
+        GET getVolumeMigrations
+    /block/volumes/{id}/tasks
+        GET getTasks
+    /block/volumes/{id}/tasks/{op_id}/
+        GET getTask
+    /block/volumes/search
+        GET search
+    /block/volumes/{id}/tags
+        GET getTags
+        PUT assignTags
+/monitoring
+    /monitoring/events
+        GET getEvents
+/vdc/storage-systems
+    GET getStorageSystems
+    POST createStorageSystem
+    /vdc/storage-systems/{id}
+        GET getStorageSystem
+        PUT updateStorageSystem
+    /vdc/storage-systems/{id}/storage-ports/{portId}
+        GET getStoragePort
+    /vdc/storage-systems/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/storage-systems/{id}/connectivity
+        GET getStorageSystemConnectivity
+    /vdc/storage-systems/{id}/storage-pools/{poolId}
+        GET getStoragePool
+    /vdc/storage-systems/{id}/deactivate
+        POST deleteStorageSystem
+    /vdc/storage-systems/discover
+        POST discoverStorageSystemsAll
+    /vdc/storage-systems/{id}/discover
+        POST discoverSystem
+    /vdc/storage-systems/{id}/register
+        POST registerStorageSystem
+    /vdc/storage-systems/{id}/deregister
+        POST deregisterStorageSystem
+    /vdc/storage-systems/{id}/storage-pools/{poolId}/register
+        POST registerStoragePool
+    /vdc/storage-systems/{id}/storage-pools
+        GET getAllStoragePools
+    /vdc/storage-systems/{id}/auto-tier-policies
+        GET getAllFastPolicies
+    /vdc/storage-systems/{id}/storage-ports/{portId}/register
+        POST registerStoragePort
+    /vdc/storage-systems/{id}/storage-ports
+        GET getAllStoragePorts
+    /vdc/storage-systems/{id}/unmanaged/volumes
+        GET getUnManagedVolumes
+    /vdc/storage-systems/{id}/unmanaged/filesystems
+        GET getUnManagedFileSystems
+    /vdc/storage-systems/{id}/tasks
+        GET getTasks
+    /vdc/storage-systems/{id}/tasks/{op_id}/
+        GET getTask
+    /vdc/storage-systems/search
+        GET search
+    /vdc/storage-systems/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/storage-tiers
+    GET getStorageTiers
+    /vdc/storage-tiers/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/storage-tiers/{id}
+        GET getStorageTier
+    /vdc/storage-tiers/search
+        GET search
+    /vdc/storage-tiers/{id}/tags
+        GET getTags
+        PUT assignTags
+/file/vpools
+    POST createFileVirtualPool
+    GET listFileVirtualPool
+    /file/vpools/{id}/varrays/{varrayId}/capacity
+        GET getCapacity
+    /file/vpools/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /file/vpools/{id}/quota
+        GET getQuota
+        PUT updateQuota
+    /file/vpools/{id}
+        GET getFileVirtualPool
+        PUT updateFileVirtualPool
+    /file/vpools/{id}/deactivate
+        POST deleteFileVirtualPool
+    /file/vpools/matching-pools
+        POST getMatchingPoolsForVirtualPoolAttributes
+    /file/vpools/{id}/acl
+        GET getAcls
+        PUT updateAcls
+    /file/vpools/{id}/storage-pools
+        GET getStoragePools
+    /file/vpools/{id}/refresh-matched-pools
+        GET refreshMatchedStoragePools
+    /file/vpools/{id}/assign-matched-pools
+        PUT updateFileVirtualPoolWithAssignedPools
+    /file/vpools/search
+        GET search
+    /file/vpools/{id}/tags
+        GET getTags
+        PUT assignTags
+/internal/vdc/networks
+    /internal/vdc/networks/{id}/endpoints
+        POST updateNetworkEndpointsInternal
+/block/exports
+    POST createExportGroup
+    GET getInitiatorsExports
+    /block/exports/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /block/exports/{id}
+        PUT updateExportGroup
+        GET getExportGroup
+    /block/exports/{id}/deactivate
+        POST deactivateExportGroup
+    /block/exports/{id}/tasks
+        GET getTasks
+    /block/exports/{id}/tasks/{op_id}/
+        GET getTask
+    /block/exports/search
+        GET search
+    /block/exports/{id}/tags
+        GET getTags
+        PUT assignTags
+/metering
+    /metering/stats
+        GET getStats
+/vdc/smis-providers
+    POST registerSMISProvider
+    GET getSmiSProviderList
+    /vdc/smis-providers/{id}/storage-systems/{systemId}
+        GET getStorageSystem
+    /vdc/smis-providers/storage-systems
+        POST addStorageSystem
+    /vdc/smis-providers/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/smis-providers/{id}/storage-systems
+        GET getStorageSystems
+    /vdc/smis-providers/storage-systems/{system_id}
+        PUT updateStorageSystem
+    /vdc/smis-providers/scan
+        POST scanSMISProviders
+    /vdc/smis-providers/{id}
+        GET getSMISProvider
+        PUT updateSMISProvider
+    /vdc/smis-providers/{id}/deactivate
+        POST deleteSMISProvider
+    /vdc/smis-providers/deactivated-systems
+        GET getDecommissionedResources
+    /vdc/smis-providers/{id}/tasks
+        GET getTasks
+    /vdc/smis-providers/{id}/tasks/{op_id}/
+        GET getTask
+    /vdc/smis-providers/search
+        GET search
+    /vdc/smis-providers/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/storage-pools
+    GET getStoragePools
+    /vdc/storage-pools/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/storage-pools/{id}
+        GET getStoragePool
+        PUT updateStoragePool
+    /vdc/storage-pools/{id}/matched-vpools
+        GET getMatchedVirtualPoolForPool
+    /vdc/storage-pools/{id}/storage-tiers
+        GET getStorageTiers
+    /vdc/storage-pools/{id}/deregister
+        POST deregisterStoragePool
+    /vdc/storage-pools/{id}/resources
+        GET getStoragePoolResources
+    /vdc/storage-pools/search
+        GET search
+    /vdc/storage-pools/{id}/tags
+        GET getTags
+        PUT assignTags
+/block/migrations
+    POST migrateVolume
+    GET getMigrations
+    /block/migrations/{id}
+        GET getMigration
+    /block/migrations/{id}/pause
+        POST pauseMigration
+    /block/migrations/{id}/resume
+        POST resumeMigration
+    /block/migrations/{id}/commit
+        POST commitMigration
+    /block/migrations/{id}/cancel
+        POST cancelMigration
+    /block/migrations/{id}/tasks
+        GET getTasks
+    /block/migrations/{id}/tasks/{op_id}/
+        GET getTask
+    /block/migrations/search
+        GET search
+    /block/migrations/{id}/tags
+        GET getTags
+        PUT assignTags
+    /block/migrations/bulk
+        POST getBulkResources
+        GET getBulkIds
+/vdc/unmanaged/filesystems
+    /vdc/unmanaged/filesystems/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/unmanaged/filesystems/{id}
+        GET getUnManagedFileSystemInfo
+    /vdc/unmanaged/filesystems/ingest
+        POST ingestFileSystems
+    /vdc/unmanaged/filesystems/search
+        GET search
+    /vdc/unmanaged/filesystems/{id}/tags
+        GET getTags
+        PUT assignTags
+/compute/hosts
+    /compute/hosts/{id}
+        GET getHost
+        PUT updateHost
+    /compute/hosts/{id}/deactivate
+        POST deactivateHost
+    /compute/hosts/{id}/ip-interfaces
+        POST createIpInterface
+        GET getIpInterfaces
+    /compute/hosts/{id}/initiators
+        POST createInitiator
+        GET getInitiators
+    /compute/hosts/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /compute/hosts/{id}/tasks
+        GET getTasks
+    /compute/hosts/{id}/tasks/{op_id}/
+        GET getTask
+    /compute/hosts/search
+        GET search
+    /compute/hosts/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/auto-tier-policies
+    GET getAutoTierPolicies
+    /vdc/auto-tier-policies/{id}
+        GET getAutoTierPolicy
+    /vdc/auto-tier-policies/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/auto-tier-policies/{id}/storage-tiers
+        GET getStorageTiersForGivenPolicy
+    /vdc/auto-tier-policies/search
+        GET search
+    /vdc/auto-tier-policies/{id}/tags
+        GET getTags
+        PUT assignTags
+/compute/initiators
+    /compute/initiators/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /compute/initiators/{id}/exports
+        GET getInitiatorExports
+    /compute/initiators/{id}
+        GET getInitiator
+        PUT updateInitiator
+    /compute/initiators/{id}/deactivate
+        POST deleteInitiator
+    /compute/initiators/search
+        GET search
+    /compute/initiators/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/protection-systems
+    POST createProtectionSystem
+    GET getProtectionSystems
+    /vdc/protection-systems/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/protection-systems/{id}
+        GET getProtectionSystem
+        PUT updateProtectionSystem
+    /vdc/protection-systems/discover
+        POST discoverProtectionSystemsAll
+    /vdc/protection-systems/{id}/discover
+        POST discoverProtectionSystem
+    /vdc/protection-systems/{id}/connectivity
+        GET getProtectionSystemConnectivity
+    /vdc/protection-systems/{id}/deactivate
+        POST deleteProtectionSystem
+    /vdc/protection-systems/{id}/tasks
+        GET getTasks
+    /vdc/protection-systems/{id}/tasks/{op_id}/
+        GET getTask
+    /vdc/protection-systems/search
+        GET search
+    /vdc/protection-systems/{id}/tags
+        GET getTags
+        PUT assignTags
+/internal/system
+    /internal/system/managed-capacity
+        GET getManagedCapacity
+/vdc
+    /vdc/role-assignments
+        GET getRoleAssignments
+        PUT updateRoleAssignments
+/vdc/unmanaged/volumes
+    /vdc/unmanaged/volumes/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/unmanaged/volumes/{id}
+        GET getUnManagedVolumeInfo
+    /vdc/unmanaged/volumes/ingest
+        POST ingestVolumes
+    /vdc/unmanaged/volumes/search
+        GET search
+    /vdc/unmanaged/volumes/{id}/tags
+        GET getTags
+        PUT assignTags
+/vdc/networks
+    GET getAllNetworks
+    /vdc/networks/{id}
+        GET getNetwork
+        PUT updateNetwork
+    /vdc/networks/{id}/ip-interfaces
+        GET getIpInterfaces
+    /vdc/networks/{id}/initiators
+        GET getInitiators
+    /vdc/networks/bulk
+        POST getBulkResources
+        GET getBulkIds
+    /vdc/networks/{id}/deactivate
+        POST deleteNetwork
+    /vdc/networks/{id}/endpoints
+        PUT updateNetworkEndpoints
+    /vdc/networks/{id}/deregister
+        POST deregisterNetwork
+    /vdc/networks/{id}/register
+        POST registerNetwork
+    /vdc/networks/{id}/storage-ports
+        GET getStoragePorts
+    /vdc/networks/search
+        GET search
+    /vdc/networks/{id}/tags
+        GET getTags
+        PUT assignTags

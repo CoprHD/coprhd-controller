@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Service Unavailable</title>
+  <meta charset="utf-8">
+  <meta content="text/html;charset=UTF-8" http-equiv="content-type">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta http-equiv="X-UA-Compatible" content="IE=EDGE; IE=9; IE=8" />
+  <link rel="shortcut icon" type="image/png" href="./errorResources/branding/favicon.ico"></link>  
+  <link rel="stylesheet" type="text/css" href="./errorResources/stylesheets/main.css" media="screen" charset="utf-8" ></link>
+</head>
+
+<body>
+  <header>
+    <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="/">EMC ViPR</a>
+      </div>
+    </nav>
+  </header>
+  
+  <div class="container">
+    <div class="wide-box">
+      <div class="well">
+        <div class="section-header">
+          <h1>Service Unavailable (6503)</h1>
+        </div>
+        <p>The service is currently unavailable. Please contact an administrator or try again later.</p>
+        <br/>
+        <p>
+          <span class="text-info"><span class="glyphicon glyphicon-refresh"></span> Auto Reconnect</span> 
+          <span id="connectMessage">Will attempt to reconnect in <span id="seconds">30</span> seconds.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+  <script type="text/javascript">
+  	var seconds = 30;
+  	var countdown = setInterval(function() {
+  	  if (seconds <= 1) {
+  	    clearInterval(countdown);
+  	    document.getElementById('connectMessage').innerHTML = "Connecting ...";
+  	    window.location.reload(true); 
+  	  }
+  	  else {
+  	    document.getElementById('seconds').innerHTML = --seconds;
+  	  }
+  	}, 1000);
+  </script>
+</body>
+
+</html>

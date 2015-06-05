@@ -1,0 +1,97 @@
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+
+<!--
+
+      Axis2 service deployment file. This is a mandatory component of an Axis2 archive that describes
+
+      the properties of the service.  
+
+  -->
+
+
+
+<serviceGroup>
+
+   <!-- Configure the service for application scope so that it gets initialized on startup -->
+
+   <service name="vasaService" scope="application">
+
+    <description>Bourne VP</description>
+
+    <messageReceivers>
+
+        <messageReceiver mep="http://www.w3.org/2004/08/wsdl/in-out"
+
+                         class="com.vmware.vim.vasa._1_0.VasaServiceMessageReceiverInOut"/>
+
+       <!--                 
+
+        <messageReceiver mep="http://www.w3.org/2004/08/wsdl/in-only"
+
+                         class="com.vmware.vim.vasa._1_0.VasaServiceMessageReceiverInOnly"/>
+
+        -->  
+
+    </messageReceivers>
+
+
+
+    <!-- there is a bug in some versions of axis2 wsdl2java that does not correctly generate the code to 
+
+         handle service methods which return void but throw Exceptions.
+
+         map the one VASA API that returns void to the in-out MR manually.
+
+         Refer to https://issues.apache.org/jira/browse/AXIS2-4408 -->
+
+    <operation name="unregisterVASACertificate" namespace="http://com.emc.storageos.vasa/_1_0/">
+
+    <!-- <operation name="unregisterVASACertificate" namespace="http://com.vmware.vim.vasa/_1_0/"> -->
+            <actionMapping>urn:unregisterVASACertificate</actionMapping>
+
+            <outputActionMapping>urn:unregisterVASACertificateResponse</outputActionMapping>
+
+            <faultActionMapping faultName="InvalidCertificate">urn:unregisterVASACertificateInvalidCertificate</faultActionMapping>
+
+            <faultActionMapping faultName="InvalidSession">urn:unregisterVASACertificateInvalidSession</faultActionMapping>
+
+            <faultActionMapping faultName="StorageFault">urn:unregisterVASACertificateStorageFault</faultActionMapping>
+
+    </operation>
+
+
+
+    <!-- Specify the implementation class for the service -->
+
+    <parameter name="ServiceClass">com.emc.storageos.vasa.ServiceImpl</parameter>
+
+     
+
+    <!-- set password for SampleVP trustStore -->
+
+    <parameter name="trustStorePassword">changeit</parameter>
+
+
+
+    <!-- 
+
+       Force the WSDL served through the ?wsdl option in the URL to be retrieved from the 
+
+       WSDL file in the archive instead of an auto generated version.
+
+      -->
+
+    <parameter name="useOriginalwsdl">false</parameter>
+
+
+
+    <!-- Prevents Axis2 from mucking around with the SOAP service address -->
+
+    <parameter name="modifyUserWSDLPortAddress">false</parameter> 
+
+   </service>
+
+</serviceGroup>
+
+

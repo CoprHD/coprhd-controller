@@ -1,0 +1,16 @@
+       name : @product_name@-@product_version@-controller-2+1.ova
+      title : @product_brand@ Controller 1.1 - 3 VM vApp
+description : @product_brand@ Controller 2+1 (3 VM) vApp OVA deployment file. This deployment will tolerate the loss of any single VM.
+
+       name : @product_name@-@product_version@-controller-3+2.ova
+      title : @product_brand@ Controller 1.1 - 5 VM vApp
+description : @product_brand@ Controller 3+2 (5 VM) vApp OVA deployment file. This deployment will tolerate the loss up to 2 VMs.
+
+       name : @product_name@-@product_version@-dataservice.zip
+      title : @product_brand@ Data Service 1.1 
+description : @product_brand@ bject Data Service deployment package. This package contains the deployment 'OVF' and 'VMDK' files necessary to deploy Object Data Service virtual machines. The zip package also contains an 'MF' file that contains hashes for the 'OVF' and 'VMDK' files. Please note a @product_brand@ Controller vApp must be deployed and configured before deploying @product_brand@ Data Service VMs.
+
+       name : @product_name@-@product_version@.img
+      title : @product_brand@ Controller and Object Data Service upgrade image - @product_version@
+description : This file is used by @product_brand@ Controller vApp to upgrade both the Controller vApp and Object Data Service VMs.
+

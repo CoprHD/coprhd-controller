@@ -1,0 +1,57 @@
+GET https://192.168.0.0:4443/monitor/health HTTP/1.1 
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<health>
+  <node_health_list>
+    <node_health>
+      <ip>localhost</ip>
+      <node_id>standalone</node_id>
+      <service_health_list>
+        <service_health>
+          <name>apisvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>authsvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>controllersvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>coordinatorsvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>dbsvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>portalsvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>sasvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>syssvc</name>
+          <status>Good</status>
+        </service_health>
+        <service_health>
+          <name>vasasvc</name>
+          <status>Good</status>
+        </service_health>
+      </service_health_list>
+      <status>Good</status>
+    </node_health>
+  </node_health_list>
+</health>

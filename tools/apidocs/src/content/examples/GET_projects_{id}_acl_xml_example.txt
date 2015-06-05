@@ -1,0 +1,16 @@
+GET https://192.168.0.0:4443/projects/urn:storageos:Project:68c853bc-7534-45e9-b718-195afbb6f7d8:/acl HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <acl_assignments>
+       <acl_assignment>
+       <privilege>ALL</privilege>
+       <subject_id>bbrown@corp.example.com</subject_id>
+  </acl_assignment>
+</acl_assignments>
+

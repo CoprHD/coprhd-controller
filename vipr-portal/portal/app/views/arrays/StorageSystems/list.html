@@ -1,0 +1,32 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.storageArrays'] /}
+
+#{DataTable.formAction @introspect(), id:'rediscoverForm', table:'storageArray'/}
+#{DataTable.formAction @registerArrays(), id:'registerForm', table:'storageArray'/}
+#{DataTable.formAction @deregisterArrays(), id:'deregisterForm', table:'storageArray'/}
+
+#{DataTable.header titleKey:'StorageSystems.list.title'/}
+#{DataTable.crudTable id:'storageArray',
+                      dataTable:dataTable,
+                      expandable: true,
+                      actions: ['StorageSystems.pools': @pools(':id'), 'StorageSystems.ports': @ports(':id')],
+                      deleteConfirm:messages.get('StorageSystems.deleteConfirm')}
+  #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm',
+                data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
+  #{Form.button name:'button.register', icon:'plus', submit:'registerForm', 
+                data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
+  #{Form.button name:'button.deregister', icon:'minus', submit:'deregisterForm', 
+                data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/}
+#{/DataTable.crudTable}
+#{DataTable.expandHtml @itemDetails(':id'), table:'storageArray' /}
+
+<script type="text/javascript">
+$(document).ready(function() {
+    var dataTable = table.storageArray.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchDiscoveryStatus(dataTable, itemsJson, ['version', 'registrationStatus']);
+});
+</script>

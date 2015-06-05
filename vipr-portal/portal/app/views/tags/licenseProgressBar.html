@@ -1,0 +1,24 @@
+%{
+  lf = _licenseFeature
+  storageStatsWrapper = _storageStatsWrapper
+}%
+
+#{if _storageStatsWrapper}
+  %{
+    percentage = _storageStatsWrapper.getUsagePercentage(lf)
+    label = _storageStatsWrapper.getUsageLabel(lf)
+  }%
+  <div class="progress" style="margin-bottom:0px;">        
+  	<div class="progress-bar #{if percentage >= 90}progress-bar-danger#{/if}#{elseif percentage >=60}progress-bar-warning#{/elseif}#{else}progress-bar-success#{/else}"  style="width: ${percentage}%">
+  	</div>
+  </div>
+  <small>${label}</small> 
+#{/if}
+#{else}
+  <div class="progress" style="margin-bottom:0px;">
+    <div class="progress-bar progress-bar-info" style="width: 100%">
+      &{'license.unknown.usage'}
+    </div>
+  </div>
+  <small>&{'license.total.capacity', com.emc.sa.util.SizeUtils.humanReadableByteCount(Double.parseDouble(lf.storageCapacity), true)}</small>
+#{/else}

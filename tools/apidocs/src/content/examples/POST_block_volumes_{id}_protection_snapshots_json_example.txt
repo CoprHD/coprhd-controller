@@ -1,0 +1,36 @@
+POST https://192.168.0.0:4443/block/volumes/urn:storageos:Volume:20da03df-beac-4ab6-bd19-42c416f4a4d9:/protection/snapshots.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "create_inactive": null,
+    "name": "rpsnap_for_cleanup-example.com-29849",
+    "type": "rp"
+}
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+{
+    "task": [
+        {
+            "description": "Block snapshot create",
+            "link": {
+                "href": "/block/snapshots/urn:storageos:BlockSnapshot:aa5fd876-2191-4b6c-abaf-c39d4bbd98bb:/tasks/3b6e5d0a-13b1-450e-9294-fc3d7d0d180f",
+                "rel": "self"
+            },
+            "message": "Block snapshot create",
+            "op_id": "3b6e5d0a-13b1-450e-9294-fc3d7d0d180f",
+            "resource": {
+                "id": "urn:storageos:BlockSnapshot:aa5fd876-2191-4b6c-abaf-c39d4bbd98bb:",
+                "link": {
+                    "href": "/block/snapshots/urn:storageos:BlockSnapshot:aa5fd876-2191-4b6c-abaf-c39d4bbd98bb:",
+                    "rel": "self"
+                },
+                "name": "rpsnap_for_cleanup-example.com-29849"
+            },
+            "start_time": 1380722124180,
+            "state": "pending"
+        }
+    ]
+}

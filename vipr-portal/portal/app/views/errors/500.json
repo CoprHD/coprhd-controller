@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 500,
+  "description": "${result?.message ?: messages.get("errors.500.title")}",
+  "details": "${exception?.message}",
+  "retryable": false
+}

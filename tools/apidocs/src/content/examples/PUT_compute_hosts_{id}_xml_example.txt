@@ -1,0 +1,35 @@
+PUT https://192.168.0.0:4443/compute/hosts/urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<host_update>
+ <name>host11Updated</name>
+ <user_name>admin</user_name>
+ <password>nopass</password>
+ <use_ssl>true</use_ssl>
+ <port_number>8080</port_number>
+ <host_name>halahost1.lss.emc.com</host_name>
+ <type>Other</type>
+</host_update>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/xml
+
+<task>
+       <message>Operation completed successfully</message>
+       <op_id>bc2618f8-e9d0-488d-b04a-c2656e52613e</op_id>
+       <resource>
+              <id>urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:</id>
+              <link
+                     href="/compute/hosts/urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:"
+                     rel="self" />
+              <name>host11Updated</name>
+       </resource>
+       <link
+              href="/compute/hosts/urn:storageos:Host:584d9dd9-0ef6-4207-8721-6c8b4de94f00:/tasks/bc2618f8-e9d0-488d-b04a-c2656e52613e"
+              rel="self" />
+       <start_time>1380748500785</start_time>
+       <state>ready</state>
+</task>
+

@@ -1,0 +1,33 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"RemoveBlockVolume.Block.VMware",
+  serviceId:"VMware-RemoveBlockVolume",
+  destructive: true,
+  fields:{
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"shared"
+    },
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+    volumes: {
+      type:"assetType.vipr.unmountedBlockResource",
+      select:"many"
+    },
+    deletionType:{
+      type:"assetType.vipr.fullOnlyDeletionType",
+      lockable:true,
+      initialValue:"FULL",
+      select:"one"
+    }
+  }
+}

@@ -1,0 +1,106 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateComputeCluster.Compute",
+  serviceId:"CreateComputeCluster",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    },
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+    computeVirtualPool: {
+      type:"assetType.vipr.computeVirtualPool"
+    },
+    computeImage:{
+      type:"assetType.vipr.computeImage",
+      lockable: true
+    }, 
+    hosts:{
+      type:"table",
+      items:{
+          fqdns:{ type:"text",
+            validation:{
+              max:255
+            }          
+          },
+          ips:{ type:"text",
+            validation:{
+            max:255
+          }
+        }
+      }
+    },
+    netmask:{
+      type:"text",
+       validation:{
+        max:255
+      }
+    },
+    gateway:{
+      type:"text",
+      validation:{
+        max:255
+      }
+    },
+    managementNetwork:{
+      type:"number",
+      validation:{
+        min:1,
+        max:4093
+      }
+    },
+    ntpServer:{
+      type:"text",
+      required:false,
+      validation:{
+        max:255
+      }
+    },
+    dnsServers:{
+      type:"text",
+      required:false,
+        validation:{
+        max:255
+      }
+    },
+    hostPassword:{
+      type:"password",
+      required:true,
+        validation:{
+        max:128
+      }
+    },
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true,
+      group:1
+    },
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    },
+    vcenter:{
+      type:"assetType.vipr.vcenter",
+      lockable: true,
+      required:false
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter",
+      lockable: true,
+      required:false
+    }       
+  }  
+}

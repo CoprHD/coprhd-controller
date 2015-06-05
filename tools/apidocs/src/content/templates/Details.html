@@ -1,0 +1,147 @@
+<@include "StartHead.html">
+<script type="text/javascript" src="static/js/detailPage.js"></script>
+<script>
+    function showExample() {
+        \$("#xmlExample").hide();
+        \$("#jsonExample").hide();
+        var toShow = \$("#example").val();
+        \$("#"+toShow).show();
+    }
+
+    \$(document).ready(function() {
+        addSearchKeyBinding();
+        setupTOC("${apiMethod.apiService.overviewFileName}");
+    });
+</script>
+<@include "EndHead.html">
+<@include "StartBody.html">
+<ul class="breadcrumb">
+    <li><a href="${apiMethod.apiService.overviewFileName}">${apiMethod.apiService.title}</a></li>
+</ul>
+<@include "details/ChangeNotification.html">
+<h3>${apiMethod.title}</h3>
+<div class="resource">${apiMethod.httpMethod} ${apiMethod.path}</div>
+<% if (apiMethod.isDeprecated || apiMethod.apiService.isDeprecated) { %>
+<div class="alert alert-warning">
+This call has been deprecated and will be removed in future versions
+</div>
+<% }
+%>
+<p>${apiMethod.description}</p>
+
+
+<% if (apiMethod.alert != null) { %>
+<div class="alert alert-info">${apiMethod.alert}</div>
+<% } %>
+
+<@include "details/URLFormat.html">
+<@include "details/PathParameters.html">
+<@include "details/QueryParameters.html">
+<@include "details/RequestHeaders.html">
+<@include "details/Permissions.html">
+<@include "details/PreRequisites.html">
+<@include "details/RequestPayload.html">
+<@include "details/ResponseHeaders.html">
+<@include "details/ResponseBody.html">
+<@include "details/Examples.html">
+<@include "EndBody.html">
+
+<% def addPayloadLine(element, level) {
+
+   if (!element.wrapperName.equals("")) {
+%>
+<tr>
+    <td><span class="level${level}">&lt;${element.wrapperName}&gt;</span></td>
+    <td>${element.description}</td>
+    <td></td>
+    <td><%addWrapperNotes(element)%></td>
+</tr>
+<%
+        level = level+1;
+
+    }
+
+   if (!element.hasChildElements()) {
+%>
+    <tr>
+        <td><span class="level${level}">&lt;${element.name}<%addAttributes(element.type)%>&gt;</span></td>
+        <td>${element.wrapperName.equals("")?element.description:""}</td>
+        <td>${element.primitiveType}</td>
+        <td><%addNotes(element)%></td>
+    </tr>
+<% } else { %>
+    <tr>
+        <td><span class="level${level}">&lt;${element.name}<%addAttributes(element.type)%>&gt;</span></td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td><%addNotes(element)%></td>
+    </tr>
+<%
+        element.type.fields.each { field ->
+            addPayloadLine(field, level+1)
+        }
+%>
+
+    <tr>
+        <td><span class="level${level}">&lt;/${element.name}&gt;</span></td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+    </tr>
+
+<%
+    }
+
+    if (!element.wrapperName.equals("")) {
+        level = level -1;
+    %>
+    <tr>
+        <td><span class="level${level}">&lt;/${element.wrapperName}&gt;</span></td>
+        <td></td>
+        <td></td>
+        <td></td>
+    </tr>
+<%
+      }
+}
+
+def addAttributes(field) {
+    if (field != null) {
+        field.attributes.each { attribute ->
+%>
+&nbsp;${attribute.name}=""<%
+        }
+    }
+}
+
+def addNotes(field) {
+%>
+    ${field.collection?"0-* Elements<br/>":""}
+<%
+    if (!field.validValues.isEmpty()) {
+%>
+    <b>Valid Values:</b>
+    <ul>
+<%
+        field.validValues.each { value ->
+%>
+        <li>&nbsp;${value}</li>
+<%
+        }
+%>
+    </ul>
+<%
+    }
+}
+
+def addWrapperNotes(field) {
+%>
+<%
+}
+%>
+
+
+
+
+
+

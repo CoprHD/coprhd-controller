@@ -1,0 +1,37 @@
+PUT https://192.168.0.0:4443/vdc/admin/authnproviders/urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d: HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<authnprovider_update>
+      <group_whitelist_value_changes>
+           <add>
+                <group_whitelist_value>*Review</group_whitelist_value>
+           </add>
+      </group_whitelist_value_changes>
+</authnprovider_update>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <authnprovider>
+       <creation_time>1379170785677</creation_time>
+       <id>urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:</id>
+       <inactive>false</inactive>
+       <link href="/vdc/admin/authnproviders/urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:" rel="self"/>
+       <tags/>
+       <disable>false</disable>
+       <domains>
+            <domain>tenant.domain</domain>
+       </domains>
+       <group_whitelist_values>
+            <group_whitelist_value>*Admins*</group_whitelist_value>
+            <group_whitelist_value>*Test*</group_whitelist_value>
+            <group_whitelist_value>*Review</group_whitelist_value>
+       </group_whitelist_values>
+       <mode>ldap</mode>
+       <server_urls>
+            <server_url>ldap://192.168.0.10</server_url>
+       </server_urls>
+  </authnprovider>

@@ -1,0 +1,21 @@
+GET https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:ebb67b64-5f98-4f4f-97a9-555427310386:/subtenants.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "subtenant": [
+    {
+      "name": "lglap135",
+      "id": "urn:storageos:TenantOrg:23243fa7-afda-4aec-8391-da69a79650ad:",
+      "link": {
+        "rel": "self",
+        "href": "/tenants/urn:storageos:TenantOrg:23243fa7-afda-4aec-8391-da69a79650ad:"
+      }
+    }
+  ]
+}

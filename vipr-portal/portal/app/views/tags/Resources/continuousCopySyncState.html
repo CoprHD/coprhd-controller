@@ -1,0 +1,21 @@
+%{
+  state = _state ? _state : _arg
+}%
+#{if state == '0'}
+  &{'resources.continuouscopy.syncstate.unknown'}
+#{/if}
+#{elseif state == '5'}
+  &{'resources.continuouscopy.syncstate.resynchronizing'}
+#{/elseif}
+#{elseif state == '6'}
+  &{'resources.continuouscopy.syncstate.synchronized'}
+#{/elseif}          
+#{elseif state == '13'}
+  &{'resources.continuouscopy.syncstate.fractured'}
+#{/elseif}
+#{elseif state == '15'}
+  &{'resources.continuouscopy.syncstate.copyInProgress'}
+#{/elseif}        
+#{else}
+  ${state}
+#{/else}

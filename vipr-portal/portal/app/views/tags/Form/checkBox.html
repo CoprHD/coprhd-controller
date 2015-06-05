@@ -1,0 +1,12 @@
+%{
+  field = _field
+  value = _value ?: true
+  fieldValue = flash[field.name] ?: new Boolean(field.value)
+  cssClass = field.cssClass
+  selected = fieldValue == value
+  wrapper = _wrapper ?: 'div'
+}%
+<${wrapper} #{if wrapper == 'label'}for="${field.id}"#{/if} class="checkbox">
+<input type="checkbox" class="${cssClass}" id="${field.id}" name="${field.name}" value="${value}" #{if field.disabled}disabled="disabled"#{/if} #{if selected}checked="checked"#{/}#{Form.extraAtts atts:field.atts/}/>
+#{doBody/}
+</${wrapper}>

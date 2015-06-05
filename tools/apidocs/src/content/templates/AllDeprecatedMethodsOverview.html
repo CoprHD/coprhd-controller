@@ -1,0 +1,36 @@
+<@include "StartHead.html">
+<script>
+    \$(document).ready(function() {
+        addSearchKeyBinding();
+        setupTOC("AllDeprecatedMethodsOverview.html");
+    });
+</script>
+<@include "EndHead.html">
+
+<@include "StartBody.html">
+<h3>Deprecated Methods</h3>
+<p class="description">The following methods have been deprecated in this release:</p>
+<table class="resourceTable table-striped">
+    <thead>
+    <tr>
+        <td width="30%">Service</td>
+        <td width="40%">Resource</td>
+        <td>Description</td>
+    </tr>
+    </thead>
+    <tbody>
+
+    <%methods.each{ method -> %>
+
+    <tr>
+        <td>${method.apiService.title}</td>
+        <td><a href="${method.detailFileName}">${method.httpMethod} ${method.path}</a></td>
+        <td>${method.brief}</td>
+    </tr>
+
+    <% } %>
+
+    </tbody>
+
+</table>
+<@include "EndBody.html">

@@ -1,0 +1,105 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2013-2015, EMC Corporation.
+# All Rights Reserved.
+#
+# Copyright (c) 2013 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+#
+# /etc/getplatform
+#
+# Parse the dmidecode output to determine host platform.
+# 
+
+_usage() {
+    echo "Usage: $0 [options]"                            >&2
+    echo "Options:"                                       >&2
+    echo "    -D|--debug - Print internal debug messages" >&2
+    exit 2
+}
+
+_fatal() {
+    echo "$0: Error: $*" >&2
+    exit 1
+}
+
+_warning() {
+    echo "$0: Warning: $*" >&2
+}
+
+_debug() {
+    echo "DEBUG: $*"     >&2
+}
+
+_translate() {
+  echo "${1}" | sed -rn '
+  /^System Information/ {
+    :system; n
+    s/[ \t]*Manufacturer: (.*)$/system_manufacturer="\1"/p
+    s/[ \t]*Product Name: (.*)/system_product_name="\1"/p
+    s/[ \t]*Version: (.*)/system_version="\1"/p
+    /[:=]/ b system
+  }
+  /^BIOS Information/ {
+    :bios; n 
+    s/[ \t]*Address: (.*)/bios_address="\1"/p
+    /[:=]/ b bios
+  }'
+}
+
+_test_esxi() {
+    [ "${system_product_name}" = "VMware Virtual Platform" ] || return 1
+
+    local ver ; case ${bios_address} in
+        0xEA6C0) ver="4.0.0";;
+        0xEA550) ver="4.0.1";;
+        0xEA2E0) ver="4.1.0";;
+        0xE72C0) ver="5.0.0";;
+        0xEA0C0) ver="5.1.0";;
+        0xEA050) ver="5.5.0";;
+        *)       ver=="${bios_address}" ; _warning "Unknown ESXi version: bios_address=${bios_address}"
+    esac
+    echo "VMware ESXi ${ver}"
+}
+
+_test_hyperv() {
+     [ "${system_manufacturer}" = "Microsoft Corporation" -a "${system_product_name}" = "Virtual Machine" ] || return 1
+     local ver ; case ${system_version} in
+         '7.0') ver='2012 R2';;
+          *)    ver="${system_version}" ; _warning "Unknown Hyper-V version: system_version=${system_version}"; 
+     esac
+     echo "Microsoft Hyper-V ${ver}"
+}
+
+_test_kvm() {
+     [ "${system_product_name}" = "KVM" ] || return 1
+     echo "Linux KVM ${system_version}"
+}
+
+
+info=${__dmidecode:-$(dmidecode)} || _fatal "Can't read SMBIOS."
+info=$(_translate "${info}")
+eval "${info}"
+
+case ${1} in
+    '-D'|'--debug') 
+        shift
+        _debug "system_manufacturer=${system_manufacturer}"
+        _debug "system_product_name=${system_product_name}"
+        _debug "system_version=${system_version}"
+        _debug "bios_address=${bios_address}"
+        ;;
+esac
+
+_test_esxi || _test_hyperv || _test_kvm || _fatal "Can't identify the platform"
+

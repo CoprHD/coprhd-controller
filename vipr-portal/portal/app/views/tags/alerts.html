@@ -1,0 +1,48 @@
+%{
+  if(_closable == null){
+  	closable = true;
+  }
+  else{
+  	closable = _closable == true;
+  }
+  disappear = _disappear == true;
+  duration = (_duration ?: 5) * 1000;
+  clear = !(_clear == false);
+}%
+#{if clear}
+  <div class="clear"></div>
+#{/if}
+<p id="alerts_success" class="alert alert-success"#{if !flash.success} style="display:none"#{/}>
+  #{if closable}
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+  #{/if}
+  <span class="message">${flash.success}</span>
+</p>
+<p id="alerts_error" class="alert alert-danger"#{if !flash.error} style="display:none"#{/}>
+  #{if closable}
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+  #{/if}
+  <span class="message">${flash.error}</span>
+</p>
+<p id="alerts_warning" class="alert alert-warning"#{if !flash.warning} style="display:none"#{/}>
+  #{if closable}
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+  #{/if}
+  <span class="message">${flash.warning}</span>
+</p>
+<p id="alerts_info" class="alert alert-info"#{if !flash.info} style="display:none"#{/}>
+  #{if closable}
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+  #{/if}
+  <span class="message">${flash.info}</span>
+</p>
+#{if disappear && (flash.error || flash.success || flash.warning || flash.info)}
+<script>
+  window.setTimeout(function() {
+    $('#alerts_success').slideUp(200);
+    $('#alerts_error').slideUp(200);
+    $('#alerts_warning').slideUp(200);
+    $('#alerts_info').slideUp(200);
+  }, ${duration});
+</script>
+#{/if}

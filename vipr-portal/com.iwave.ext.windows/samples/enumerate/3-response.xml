@@ -1,0 +1,46 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xml:lang="en-US"
+	xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.xmlsoap.org/ws/2005/06/management">
+	<s:Header>
+		<a:Action s:mustUnderstand="true">
+			http://schemas.xmlsoap.org/ws/2004/09/enumeration/PullResponse
+		</a:Action>
+		<a:MessageID s:mustUnderstand="true">
+			uuid:8820F22A-DB9C-448F-9297-C84519E93753
+		</a:MessageID>
+		<a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous
+		</a:To>
+		<a:RelatesTo s:mustUnderstand="true">
+			uuid:2C2D261E-D2C3-4A5D-80DE-BB1A48E90BD2
+		</a:RelatesTo>
+	</s:Header>
+	<s:Body>
+		<n:PullResponse>
+			<n:Items>
+				<p:myclass
+					xmlns:p="http://schemas.microsoft.com/wsman/2005/06/wmi/root/mynamespace/myclass">
+					<p:Data1>"Hello again"</p:Data1>
+					<p:id>2</p:id>
+					<cim:Location xmlns:cim="http://schemas.dmtf.org/wsman/2005/06/base"
+						xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+						xmlns:w="http://schemas.xmlsoap.org/ws/2005/06/management">
+						<a:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous
+						</a:Address>
+						<a:ReferenceParameters>
+							<w:ResourceURI>
+								http://schemas.microsoft.com/wsman/2005/06/wmi/root/mynamespace/myclass
+							</w:ResourceURI>
+							<w:SelectorSet>
+								<w:Selector Name="id">2</w:Selector>
+							</w:SelectorSet>
+						</a:ReferenceParameters>
+					</cim:Location>
+				</p:myclass>
+			</n:Items>
+			<n:EndOfSequence />
+		</n:PullResponse>
+	</s:Body>
+</s:Envelope>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="
+           http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+ 
+    <bean id="inetAddessLookupMap"
+        class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap"
+        scope="singleton" >
+        <property name="nodeName" value="standalone" />
+                <property name="dualInetAddress" >
+                <bean class="com.emc.storageos.coordinator.client.service.impl.DualInetAddress" factory-method="fromAddresses">
+                    <constructor-arg index="0" value="127.0.0.1"/>
+                    <constructor-arg index="1" value="::1"/>
+                </bean>
+        </property>
+
+	<property name="controllerNodeIPLookupMap">
+        <map>
+            <entry key="localhost"> 
+                <bean  class="com.emc.storageos.coordinator.client.service.impl.DualInetAddress" factory-method="fromAddresses">
+                    <constructor-arg index="0" value="127.0.0.1" />
+                    <constructor-arg index="1" value="::1" />
+                </bean> 
+            </entry>            
+        </map>
+        </property>
+    </bean>
+ 
+
+</beans>                      

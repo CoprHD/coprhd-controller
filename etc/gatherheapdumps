@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+LOG_DIR=/var/log
+HEAPDUMPS_PATTERN=*.hprof.*
+HEAPDUMP_ARCHIVE=vipr_hprofs.tar.gz
+# Find any heap dumps n the log directory 
+heapdumps=$(find ${LOG_DIR} -name "${HEAPDUMPS_PATTERN}")
+if [ -n "${heapdumps}" ] ; then
+    tar czvf ${HEAPDUMP_ARCHIVE} ${heapdumps} 
+fi
+#set the svcuser as the owner of the archive
+chown svcuser:users ${HEAPDUMP_ARCHIVE}

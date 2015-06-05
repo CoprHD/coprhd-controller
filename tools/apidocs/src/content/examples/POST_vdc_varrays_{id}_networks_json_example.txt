@@ -1,0 +1,37 @@
+POST: https://192.168.0.0:4443/vdc/varrays/urn:storageos:VirtualArray:3746b1cc-1980-4fe0-b897-a018ac08f224:/networks.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "name": "fctz_a",
+    "transport_type": "FC"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "creation_time": 1380721826906,
+    "discovered": false,
+    "endpoints": [],
+    "endpoints_discovered": [],
+    "id": "urn:storageos:Network:0e116bce-f137-4b89-a5d5-c171c6c67b4f:",
+    "inactive": false,
+    "link": {
+        "href": "/vdc/networks/urn:storageos:Network:0e116bce-f137-4b89-a5d5-c171c6c67b4f:",
+        "rel": "self"
+    },
+    "name": "fctz_a",
+    "native_guid": "",
+    "registration_status": "REGISTERED",
+    "tags": [],
+    "transport_type": "FC",
+    "varray": {
+        "id": "urn:storageos:VirtualArray:3746b1cc-1980-4fe0-b897-a018ac08f224:",
+        "link": {
+            "href": "/vdc/varrays/urn:storageos:VirtualArray:3746b1cc-1980-4fe0-b897-a018ac08f224:",
+            "rel": "self"
+        }
+    }
+}

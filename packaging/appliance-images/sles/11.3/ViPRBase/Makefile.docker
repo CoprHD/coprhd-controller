@@ -1,0 +1,23 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# Copyright (c) 2013 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+# Devkit related for containerized build
+DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/emcvipr/devkit:latest
+# for building OVF in viprdevkit container
+DOCKER_RUN_OVF_BUILD := docker run --rm -it --privileged -w /wd/$(shell basename $(CURDIR)) -v "$(HOME)/.subversion:/.subversion" -v "/var/.m2:/root/.m2" -v "$(CURDIR)/..:/wd" -v "/opt/ADG/createAppliance/jobs:/opt/ADG/createAppliance/jobs" -v "/opt/downloads/images:/opt/downloads/images" "$(DEVKIT_IMAGE)"
+
+
+# Default target which will call target in Makefile to build in vipr devkit container
+%:: 
+	$(DOCKER_RUN_OVF_BUILD) make -f Makefile $@ JOB=$(JOB)

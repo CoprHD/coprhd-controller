@@ -1,0 +1,27 @@
+POST https://192.168.0.0:4443/vdc/varrays.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "auto_san_zoning": "true",
+    "name": "Myvarray10"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+  "name": "Myvarray10",
+  "id": "urn:storageos:VirtualArray:3982eb91-7ac9-4c5d-9310-9b37f6b48663:",
+  "link": {
+    "rel": "self",
+    "href": "/vdc/varrays/urn:storageos:VirtualArray:3982eb91-7ac9-4c5d-9310-9b37f6b48663:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "creation_time": 1379559335417,
+  "auto_san_zoning": true
+}

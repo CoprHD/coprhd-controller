@@ -1,0 +1,6 @@
+DEFAULT esxi
+
+LABEL esxi
+  SAY Booting ${os_full_name} kernel image
+  KERNEL ${os_path}/mboot.c32
+  APPEND -c pxelinux.cfg/${pxe_identifier}.boot.cfg

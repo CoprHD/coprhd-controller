@@ -1,0 +1,24 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"UnexportSnapshot.Block",
+  serviceId:"UnexportSnapshot",
+  fields:{
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    snapshot:{
+      type:"assetType.vipr.blockSnapshot",
+      lockable:false
+     },
+     
+    export:{
+      type: "assetType.vipr.snapshotExport", 
+      lockable: false
+    }
+  }
+  
+}

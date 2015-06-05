@@ -1,0 +1,40 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xml:lang="en-US"
+	xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:x="http://schemas.xmlsoap.org/ws/2004/09/transfer" xmlns:e="http://schemas.xmlsoap.org/ws/2004/08/eventing"
+	xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"
+	xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wsman.xsd">
+	<s:Header>
+		<a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/fault</a:Action>
+		<a:MessageID>uuid:9F83E3CA-4C12-419D-9A16-80F6D434E151</a:MessageID>
+		<a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+		<a:RelatesTo>uuid:a02b8881-90d7-4e5f-8dc7-64dcc628bed3</a:RelatesTo>
+	</s:Header>
+	<s:Body>
+		<s:Fault>
+			<s:Code>
+				<s:Value>s:Receiver</s:Value>
+				<s:Subcode>
+					<s:Value>n:InvalidEnumerationContext</s:Value>
+				</s:Subcode>
+			</s:Code>
+			<s:Reason>
+				<s:Text xml:lang="en-US">The WS-Enumeration context in the
+					enumeration is not valid. Enumeration may have been completed or
+					canceled. You cannot use this enumeration context anymore. Start a
+					new enumeration. </s:Text>
+			</s:Reason>
+			<s:Detail>
+				<f:WSManFault xmlns:f="http://schemas.microsoft.com/wbem/wsman/1/wsmanfault"
+					Code="2150858779" Machine="iwave-lab1-windows-dev1.iwave.local">
+					<f:Message>The WS-Management service cannot process the request.
+						WS-Management cannot identify the enumeration context ID in the
+						SOAP packet. The packet may have been invalid, or the operation
+						may have timed out. </f:Message>
+				</f:WSManFault>
+			</s:Detail>
+		</s:Fault>
+	</s:Body>
+</s:Envelope>

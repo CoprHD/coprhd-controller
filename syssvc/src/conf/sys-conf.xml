@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:task="http://www.springframework.org/schema/task"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans  http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+                           http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.1.xsd
+	                       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+    <context:annotation-config />
+    <import resource="classpath:sys-metadata-var.xml" />
+    <import resource="classpath:sys-diagnostics-var.xml" />
+    <import resource="classpath:local-security-conf.xml" />
+    <import resource="classpath:security-common.xml" />
+    <import resource="classpath:serviceutils-conf.xml" />
+    <import resource="classpath:jmx-conf.xml" />
+    <import resource="classpath:backup-client-conf.xml" />
+    <import resource="classpath:geoclient-conf.xml" />
+    <import resource="classpath:sys-var.xml" />
+    
+    <context:component-scan base-package="com.emc.storageos.systemservices.impl" />  
+    <task:scheduler id="taskScheduler"/>
+    <task:executor id="taskExecutor" pool-size="1"/>
+    <task:annotation-driven executor="taskExecutor" scheduler="taskScheduler"/>
+    <util:properties id="logsvcProperties" location="classpath:logsvc.properties" />
+
+    <bean id="softwareUpdate" class="com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate">
+        <property name="catalogServerHostNames" >
+	        <list>
+		        <value>colu.emc.com</value>
+		        <value>colu-test.emc.com</value>
+	        </list>
+        </property>
+        <property name="catalogName" value="VIPR.SOFTWARE.EN_US.PRODUCTION"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+    </bean>
+    
+    <bean id="internalLogoutClient" class="com.emc.storageos.security.authentication.InternalLogoutClient" />
+
+    <bean id="localRepository" class="com.emc.storageos.systemservices.impl.upgrade.LocalRepository">
+        <property name="cmdZkutils" value="${product.home:/opt/storageos}/bin/zkutils"/>
+    </bean>
+
+    <bean id="logService" class="com.emc.storageos.systemservices.impl.resource.LogService">
+        <property name="coordinator" ref="coordinator" />
+        <property name="service" ref="serviceinfo" />
+        <property name="exemptLoggerService" >
+            <list>
+                <value>vasasvc</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="clusterPoller" class="com.emc.storageos.systemservices.impl.upgrade.ClusterAddressPoller">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="pollStartLag"  value="0" />
+        <property name="pollInterval"  value="60000" />
+    </bean>
+    
+    <bean id="upgradeManager" class="com.emc.storageos.systemservices.impl.upgrade.UpgradeManager">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />   
+        <property name="nodeCount" ref="nodeCount" />   
+        <property name="loopInterval"  value="600000" />
+        <property name="retryInterval"  value="3000" />
+    </bean>
+
+    <bean id="recoveryManager" class="com.emc.storageos.systemservices.impl.recovery.RecoveryManager"/>
+
+    <bean id="auditLogManager"
+        class="com.emc.storageos.security.audit.AuditLogManager">
+      <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="backupService" class="com.emc.storageos.systemservices.impl.resource.BackupService" >
+        <property name="backupOps" ref="backupOps" />
+    </bean>
+
+    <bean id="syssvcApp" class="com.emc.storageos.systemservices.impl.resource.SysSvcApp">
+        <property name="resource">
+            <set>
+                <ref bean="callHomeService"/>
+                <ref bean="licensingService"/>
+                <bean class="com.emc.storageos.systemservices.impl.resource.CliService">
+                    <property name="filePath" value="/opt/storageos/cli/package/storageos-cli.tar.gz" />
+                </bean>
+                <bean class="com.emc.storageos.systemservices.impl.resource.UpgradeService">
+                    <property name="proxy" ref="coordinatorclientext" />
+                    <property name="upgradeManager" ref="upgradeManager" />
+                    <property name="upgradeVoters">
+                    	<list>
+                    		<ref bean="geoUpgradeVoter"/>
+                    	</list>
+                    </property>
+                </bean>
+                <ref bean="logService"/>
+                <bean class="com.emc.storageos.systemservices.impl.resource.ConfigService">
+                    <property name="proxy" ref="coordinatorclientext" />
+                    <property name="propsMetadata" ref="metadata"/>
+                    <property name="propertiesConfigurationValidator" ref="propertiesConfigurationValidator" />
+                    <property name="defaultProperties" ref="defaultProperties"/>
+                    <property name="ovfProperties" ref="ovfProperties"/>
+                    <property name="propertyHandlers" ref="propertyHandlers"/>
+                </bean>
+                <bean class="com.emc.storageos.systemservices.impl.resource.ControlService">
+                    <property name="proxy" ref="coordinatorclientext" />
+                </bean>
+
+                <bean class="com.emc.storageos.systemservices.impl.resource.HealthMonitorService" />
+                <bean class="com.emc.storageos.security.resource.LoggingPage" />
+                <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
+                <!-- A REST resource to allow changing password, see Java doc for details -->
+                <bean class="com.emc.storageos.systemservices.impl.resource.PasswordService">
+                    <property name="passwordHandler" ref="localPasswordHandler"/>
+                    <property name="propertiesMetadata" ref="metadata"/>
+                    <property name="localUsers" ref="localUserMap"/>
+                    <property name="notificationManager" ref="notificationManager"/>
+                </bean>
+                <bean class="com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil" >
+                    <property name="coordinator" ref="coordinator" />
+                    <property name="service" ref="serviceinfo" />
+                    <property name="coordinatorExt" ref="coordinatorclientext" />
+                </bean>
+                <ref bean="backupService" />
+            </set>
+        </property>
+    </bean>
+
+    <bean id="localPasswordHandler" class="com.emc.storageos.systemservices.impl.util.LocalPasswordHandler">
+        <property name="passwordUtils" ref="passwordUtils" />
+        <property name="localUsers" ref="localUserMap"/>
+        <property name="configService" ref="passwordConfigService"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="passwordConfigService" class="com.emc.storageos.systemservices.impl.resource.ConfigService">
+        <property name="proxy" ref="coordinatorclientext" />
+        <property name="propsMetadata" ref="metadata"/> 
+        <property name="propertiesConfigurationValidator" ref="propertiesConfigurationValidator" />
+        <property name="propertyHandlers" ref="propertyHandlers"/>
+    </bean>
+                        
+    <bean id="propertiesConfigurationValidator" class="com.emc.storageos.systemservices.impl.validate.PropertiesConfigurationValidator">
+    	<property name="propertiesMetadata" ref="metadata"/>
+    	<property name="encryptionProvider" ref="encryptionProvider"/>
+    </bean>
+        
+    <bean id="keyGenerator" class="com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <!-- Authentication, validation and servlet wrapping filters -->
+    <!-- uncomment the below for disabling security checks- everyone gets a pass as sysadmin -->
+    <!--
+    <bean id="securityDisabler" class="com.emc.storageos.security.SecurityDisabler"/>
+    -->
+    <bean id="disablingFilters" class="com.emc.storageos.security.authentication.SecurityDisablerFilter"/>
+    <bean id="secFilters" class="org.springframework.web.filter.CompositeFilter">
+        <property name="filters">
+            <list>
+                <ref bean="requestAuditFilter" />
+                <ref bean="logoutFilter"/>
+                <ref bean="anonymousAccessFilter" />
+                <ref bean="interNodeHmacFilter" />
+                <ref bean="publicAPIFilter" />
+                <ref bean="tokenBasedAuthFilter" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean name="anonymousAccessFilter" class="com.emc.storageos.systemservices.impl.security.AnonymousAccessFilter" />
+    <bean name="interNodeHmacFilter" class="com.emc.storageos.security.authentication.InterNodeHMACAuthFilter">
+        <property name="keyGenerator" ref="keyGenerator" />
+    </bean> 
+
+    <bean name="publicAPIFilter"
+          class="com.emc.storageos.systemservices.impl.security.PublicAPIFilter" />
+   
+    <bean id="permissionsHelper" class="com.emc.storageos.security.authorization.BasePermissionsHelper">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="userFromRequestHelper" class="com.emc.storageos.security.authentication.UserFromRequestHelper">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+    </bean>
+
+    <bean id="userRepository" class="com.emc.storageos.security.authentication.StorageOSUserRepository">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="localUsers" ref="localUserMap"/>
+    </bean>
+
+    <bean id="permissionsFilterFactory" class="com.emc.storageos.systemservices.impl.security.SyssvcPermissionsFilterFactory">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+    </bean>
+
+    <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="true" />
+    </bean>
+
+    <bean id="sshConfigurator" class="com.emc.storageos.systemservices.impl.security.SshConfigurator">
+        <property name="coordinator" ref="coordinatorclientext" />
+    </bean>
+
+    <bean id="secretsManager" class="com.emc.storageos.systemservices.impl.security.SecretsManager">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="loopInterval"  value="600000" />
+        <property name="retryInterval"  value="3000" />
+    </bean>
+
+    <bean id="propertyManager" class="com.emc.storageos.systemservices.impl.property.PropertyManager">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="nodeCount" ref="nodeCount" />
+        <property name="powerOffStateChangeTimeout" value="120000" />
+        <property name="powerOffStateProbeInterval" value="3000" />
+        <property name="loopInterval"  value="600000" />
+        <property name="retryInterval"  value="4000" />
+    </bean>
+
+    <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
+        <property name="application" ref="syssvcApp" />
+        <property name="keyGenerator" ref="keyGenerator" />
+        <property name="upgradeManager" ref="upgradeManager" />
+        <property name="disableSSL" value="false"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="sysClientTimeout" value="300000" />
+        <property name="securePort" value="9993"/>
+        <property name="resourceFilterFactory" ref="permissionsFilterFactory" />
+        <property name="secFilters" ref="secFilters"/>
+        <property name="securityDisablingFilter" ref="disablingFilters"/>
+        <property name="serviceInfo" ref="serviceinfo"/>
+        <property name="ciphersToInclude" ref="strongCiphers"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">
+        <property name="defaultProperties" ref="defaultProperties"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="localUsers" ref="localUserMap"/>
+    </bean>
+
+    <bean id="propertyHandlers" class="com.emc.storageos.systemservices.impl.propertyhandler.PropertyHandlers">
+        <property name="handlers">
+            <list>
+                <ref bean="passwordExpireRuleHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
+            </list>
+        </property>
+    </bean>
+    <bean id="passwordExpireRuleHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordExpireRuleHandler">
+        <property name="passwordHandler" ref="localPasswordHandler"/>
+    </bean>
+
+    <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="localUsers" ref="localUserMap"/>
+        <property name="passwordUtils" ref="passwordUtils"/>
+        <property name="auditLogManager" ref="auditLogManager"/>
+    </bean>
+
+    <bean id="diagnosticsScheduler" class="com.emc.storageos.systemservices.impl.jobs.DiagnosticsScheduler">
+        <property name="dbLogAnalyser" ref="dbLogAnalyser" />
+        <property name="zkLogAnalyser" ref="zkLogAnalyser" />
+        <property name="controllerSvcLogAnalyser" ref="controllerSvcLogAnalyser" />
+    </bean>
+
+    <bean id="logSvcPropertiesLoader" class="com.emc.storageos.systemservices.impl.logsvc.LogSvcPropertiesLoader" />
+
+    <bean id="dbLogAnalyser" class="com.emc.storageos.systemservices.impl.healthmonitor.LogAnalyser">
+        <property name="logSvcPropertiesLoader" ref="logSvcPropertiesLoader" />
+        <property name="service" ref="serviceinfo" />
+        <property name="svcNames">
+            <list>
+                <value>dbsvc</value>
+                <value>geodbsvc</value>
+            </list>
+        </property>
+        <property name="warnningPatterns">
+            <list>
+                <value>.*java.lang.OutOfMemoryError: Java heap space.*</value>
+                <value>.*Repair job failed due to reach max retry times.*</value>
+                <value>.*Unexpected exception during initializing cassandra keystore.*</value>
+                <value>.*Unexpected exception during db maintenance.*</value>
+            </list>
+        </property>
+        <property name="errorPatterns">
+            <list>
+                <value>.*Cassandra service stopped unexpectedly.*stopping dbsvc forcely.*</value>
+                <value>.*DB migration failed. Skipping starting background tasks.*</value>
+            </list>
+        </property>
+        <property name="fatalPatterns">
+            <list />
+        </property>
+    </bean>
+
+    <bean id="zkLogAnalyser" class="com.emc.storageos.systemservices.impl.healthmonitor.LogAnalyser">
+        <property name="logSvcPropertiesLoader" ref="logSvcPropertiesLoader" />
+        <property name="service" ref="serviceinfo" />
+        <property name="svcNames">
+            <list>
+                <value>coordinatorsvc</value>
+            </list>
+        </property>
+        <property name="warnningPatterns">
+            <list>
+                <value>.*fsync-ing the write ahead log in SyncThread:.*took.*which will adversely effect operation latency.*</value>
+                <value>.*acquiring lock org.apache.zookeeper.KeeperException.*ConnectionLossException: KeeperErrorCode.*</value>
+            </list>
+        </property>
+        <property name="errorPatterns">
+            <list>
+                <value>.*Failed to start coordinatorsvc.*</value>
+            </list>
+        </property>
+        <property name="fatalPatterns">
+            <list />
+        </property>
+    </bean>
+
+    <bean id="controllerSvcLogAnalyser" class="com.emc.storageos.systemservices.impl.healthmonitor.LogAnalyser">
+        <property name="logSvcPropertiesLoader" ref="logSvcPropertiesLoader" />
+        <property name="service" ref="serviceinfo" />
+        <property name="svcNames">
+            <list>
+                <value>controllersvc</value>
+            </list>
+        </property>
+        <property name="warnningPatterns">
+            <list />
+        </property>
+        <property name="errorPatterns">
+            <list>
+                <value>.*Failed to acquire.*lock.*</value>
+            </list>
+        </property>
+        <property name="fatalPatterns">
+            <list />
+        </property>
+    </bean>
+
+    <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="maxAuthnLoginAttemtsCount" value="10"/>
+        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
+        <property name="cleanupThreadInitialDelay" value="10"/>
+    </bean>
+
+    <bean id="backupScheduler" class="com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler" init-method="startLeaderSelector">
+    </bean>
+
+    <bean id="nodeCheckResourceAllocationScheduler" class="com.emc.storageos.systemservices.impl.jobs.NodeCheckResourceAllocationScheduler">
+        <property name="checker" ref="nodeResourceAllocationChecker" />
+    </bean>
+
+    <bean id="nodeResourceAllocationChecker" class="com.emc.storageos.systemservices.impl.healthmonitor.NodeResourceAllocationChecker">
+        <property name="coordinator" ref="coordinatorclientext" />
+    </bean>
+
+    <bean id="IpReconfigManager" class="com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager" init-method="init">
+        <property name="ovfProperties" ref="ovfProperties"/>
+    </bean>
+</beans>

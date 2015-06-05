@@ -1,0 +1,1068 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    
+    
+    <bean id="vnxcommapi" class="com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi" >
+        <property name="provExecutor" ref="vnxfileprovexecutor" />
+        <property name="provNamespaces" ref="provisioningnamespaces" />
+        
+    </bean>
+
+    <bean id="vnxfileprovexecutor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor">
+        <property name="_generator" ref="commandgenerator" />
+        <property name="_util" ref="utility" />
+    </bean>
+
+    <bean id="provisioningnamespaces"
+          class="com.emc.storageos.plugins.common.domainmodel.NamespaceList">
+        <property name="nsList">
+            <map>
+                <entry key="vnxfile-prov-file" value-ref="vnxfilenamespace" />
+                <entry key="vnxfile-prov-del-file" value-ref="vnxfiledelnamespace" />
+                <entry key="vnxfile-prov-force-del-file" value-ref="vnxfileforcedelnamespace" />
+                <entry key="vnxfile-prov-cr-snap" value-ref="vnxsnapcrnamespace" />
+                <entry key="vnxfile-prov-file-export" value-ref="vnxexportnamespace" />
+                <entry key="vnxfile-prov-file-export-mount" value-ref="vnxexportmountnamespace" />
+                <entry key="vnxfile-prov-delete-snap" value-ref="vnxsnapshotdeletenamespace" />
+                <entry key="vnxfile-prov-snap-restore" value-ref="vnxsnaprestorenamespace" />
+                <entry key="vnxfile-prov-file-unexport" value-ref="vnxunexportnamespace" />
+                <entry key="vnxfile-prov-file-unexport-unmount" value-ref="vnxunexportunmountnamespace" />
+                <entry key="vnxfile-prov-file-delshare" value-ref="vnxdelsharenamespace" />
+                <entry key="vnxfile-prov-file-expand" value-ref="vnxexpandnamespace" />
+                <entry key="vnxfile-prov-file-mount-expand" value-ref="vnxmountexpandnamespace" />
+                <entry key="vnxfile-prov-filesysid-query" value-ref="vnxfileidquerynamespace" />
+                <entry key="vnxfile-prov-filesysid-delete-query" value-ref="vnxfilequerynamespaceForDelete" />
+                <entry key="vnxfile-prov-cifsserver-query" value-ref="vnxfilecifsserverquerynamespace" />
+                <entry key="vnxfile-prov-quota-dir-create" value-ref="vnxquotadircreatenamespace" />
+                <entry key="vnxfile-prov-mount-quota-dir-create" value-ref="vnxmountquotadircreatenamespace" />
+                <entry key="vnxfile-prov-quota-dir-modify" value-ref="vnxquotadirmodifynamespace" />
+                <entry key="vnxfile-prov-mount-quota-dir-modify" value-ref="vnxmountquotadirmodifynamespace" />
+                <entry key="vnxfile-prov-quota-dir-delete" value-ref="vnxquotadirdeletenamespace" />
+                <entry key="vnxfile-prov-mount-quota-dir-delete" value-ref="vnxmountquotadirdeletenamespace" />
+            </map>
+        </property>
+    </bean>
+
+    <bean id="vnxfilenamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxdatamoverquery"/>
+                <ref bean="vnxfscreate"/>
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id ="vnxfilecifsserverquerynamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxcifsserverquery"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id ="vnxfileidquerynamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id ="vnxfilequerynamespaceForDelete"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxfiledelnamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" /> 
+                <ref bean="vnxfsdelete"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxfileforcedelnamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" /> 
+                <ref bean="vnxqueryfssnap"/>
+                <ref bean="vnxqueryfsquotadirs"/>
+                <!-- No need to clean the session as this will be cleaned as part of snapshot delete -->
+            </list>
+        </property>
+    </bean>
+
+    
+    <bean id="vnxsnapshotdeletenamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" /> 
+                <ref bean="vnxsnapshotdelete"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="vnxsnapcrnamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="vnxsnapcreate"/>
+                <ref bean="vnxquerysnap"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxexportnamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxcifsserverquery"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxexportmountnamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+		        <ref bean="vnxfsmount"/>
+                <ref bean="vnxcifsserverquery"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxdelsharenamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxdatamovernamequery"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="commandgenerator"
+          class="com.emc.storageos.plugins.common.commandgenerator.CommandGenerator">
+        <property name="util" ref="utility" />
+    </bean>
+
+    <bean id="loginoperation"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="authprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="dologin" />
+        <property name="_arguments">
+            <list>
+                <ref bean="authuri" />
+                <ref bean="username" />
+                <ref bean="password" />
+                <ref bean="portnumber" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="sessioncleanoperation"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="disconnect" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxdatamoverquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxdatamoverprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxdmquery" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxdatamovernamequery"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxdatamovernameprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxdmquery" />
+            </list>
+        </property>
+    </bean>
+   
+    <bean id="vnxcifsserverquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxcifsserverprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxcifsquery" />
+            </list>
+        </property>
+    </bean> 
+
+    <bean id="vnxfscreate"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxprovprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxfscreatereq" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxfsdelete"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxdeletefsprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxfsdeletereq" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxsnapshotdelete"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxdeletesnapshotprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxsnapshotdeletereq" />
+            </list>
+        </property>
+    </bean>
+    
+    
+    <bean id="vnxsnapcreate"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxcreatesnapprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxsnapcrreq" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxfsunmount"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxunmountprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxfsunmountreq" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="vnxfsmount"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxmountprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxfsmountreq" />
+            </list>
+        </property>
+    </bean>
+
+	<!-- Snapshot restore NameSpace - Begin -->
+
+    <bean id="vnxsnaprestorenamespace" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="_operations">
+			<list>
+				<ref bean="loginoperation" />
+				<ref bean="vnxsnaprestore" />
+				<ref bean="vnxquerysnap"/>
+				<ref bean="vnxsnapshotdelete"/>
+				<ref bean="sessioncleanoperation" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxsnaprestore" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_processor" ref="vnxsnaprestoreprocessor" />
+		<property name="instance" ref="retriever" />
+		<property name="_method" value="execute" />
+		<property name="_arguments">
+			<list>
+				<ref bean="uri" />
+				<ref bean="cookie" />
+				<ref bean="session" />
+				<ref bean="vnxsnaprestorereq" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxsnaprestoreprocessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemSnapshotRestoreProcessor">
+		<property name="unmarshaller" ref="unmarshaller" />
+    </bean>
+
+    <bean id="vnxsnaprestorereq" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="doSnapshotRestore" />
+		<property name="_value" value="" />
+    </bean>
+
+	<!-- Snapshot restore NameSpace - End -->
+
+	<!-- File System Expand NameSpace - Begin -->
+
+    <bean id="vnxexpandnamespace" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="_operations">
+			<list>
+				<ref bean="loginoperation" />
+				<ref bean="vnxqueryfilesys"/>
+				<ref bean="vnxmodify" />
+				<ref bean="vnxexpand" />
+				<ref bean="sessioncleanoperation" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxmountexpandnamespace" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="_operations">
+			<list>
+				<ref bean="loginoperation" />
+				<ref bean="vnxqueryfilesys"/>
+				<ref bean="vnxdatamoverquery"/>
+				<ref bean="vnxfsmount"/>
+				<ref bean="vnxmodify" />
+				<ref bean="vnxexpand" />
+				<ref bean="vnxfsunmount"/>
+				<ref bean="sessioncleanoperation" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxexpand" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_processor" ref="vnxexpandprocessor" />
+		<property name="instance" ref="retriever" />
+		<property name="_method" value="execute" />
+		<property name="_arguments">
+			<list>
+				<ref bean="uri" />
+				<ref bean="cookie" />
+				<ref bean="session" />
+				<ref bean="vnxexpandreq" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxexpandprocessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemExpandProcessor">
+		<property name="unmarshaller" ref="unmarshaller" />
+    </bean>
+
+    <bean id="vnxexpandreq" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="doExpand" />
+		<property name="_value" value="" />
+    </bean>
+    
+    <bean id="vnxmodify" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_processor" ref="vnxmodifyprocessor" />
+		<property name="instance" ref="retriever" />
+		<property name="_method" value="execute" />
+		<property name="_arguments">
+			<list>
+				<ref bean="uri" />
+				<ref bean="cookie" />
+				<ref bean="session" />
+				<ref bean="vnxmodifyreq" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxmodifyprocessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemModifyProcessor">
+		<property name="unmarshaller" ref="unmarshaller" />
+    </bean>
+
+    <bean id="vnxmodifyreq" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="doModifyFS" />
+		<property name="_value" value="" />
+    </bean>
+
+	<!-- File System Expand NameSpace - End -->
+	
+	<!-- File System Quota directory NameSpace - Begin -->
+	<bean id="vnxquotadircreatenamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="vnxquotadircreate"/>
+                <ref bean="vnxquotadirquery"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxmountquotadircreatenamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="vnxdatamoverquery"/>
+				<ref bean="vnxfsmount"/>
+                <ref bean="vnxquotadircreate"/>
+                <ref bean="vnxquotadirquery"/>
+                <ref bean="vnxfsunmount"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxquotadirdeletenamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="vnxquotadirdelete"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxmountquotadirdeletenamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="vnxdatamoverquery"/>
+				<ref bean="vnxfsmount"/>
+                <ref bean="vnxquotadirdelete"/>
+                <ref bean="vnxfsunmount"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    
+    <bean id="vnxquotadirmodifynamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="vnxquotadirmodify"/>
+                <ref bean="vnxquotadirquery"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxmountquotadirmodifynamespace"
+          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+        <property name="_operations">
+            <list>
+                <ref bean="loginoperation" />
+                <ref bean="vnxqueryfilesys"/>
+                <ref bean="vnxdatamoverquery"/>
+				<ref bean="vnxfsmount"/>
+                <ref bean="vnxquotadirmodify"/>
+                <ref bean="vnxquotadirquery"/>
+                <ref bean="vnxfsunmount"/>
+                <ref bean="sessioncleanoperation" />
+            </list>
+        </property>
+    </bean>
+    
+    <!-- File System Quota directory NameSpace - End -->
+	
+	
+	<!-- Un-export namespace - Begin -->
+
+    <bean id="vnxunexportnamespace" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="_operations">
+			<list>
+				<ref bean="loginoperation" />
+				<ref bean="vnxunexport" />
+				<ref bean="sessioncleanoperation" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxunexportunmountnamespace" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="_operations">
+			<list>
+				<ref bean="loginoperation" />
+				<ref bean="vnxunexport" />
+				<ref bean="vnxfsunmount"/>
+				<ref bean="sessioncleanoperation" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxunexport" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_processor" ref="vnxunexportprocessor" />
+		<property name="instance" ref="retriever" />
+		<property name="_method" value="execute" />
+		<property name="_arguments">
+			<list>
+				<ref bean="uri" />
+				<ref bean="cookie" />
+				<ref bean="session" />
+				<ref bean="vnxunexportreq" />
+			</list>
+		</property>
+    </bean>
+
+    <bean id="vnxunexportprocessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemUnexportProcessor">
+		<property name="unmarshaller" ref="unmarshaller" />
+    </bean>
+
+    <bean id="vnxunexportreq" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="doUnexport" />
+		<property name="_value" value="" />
+    </bean>
+
+
+	<!-- Un-export namespace - End -->
+	
+	<bean id="vnxquotadircreate"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxquotadircreateprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxquotadircreatereq" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxquotadirdelete"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxquotadirdeleteprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxquotadirdeletereq" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxquotadirmodify"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxquotadirmodifyprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxquotadirmodifyreq" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxquotadirquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxquotadirqueryprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxquotadirqueryreq" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxquotadircreateprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileQuotaTreeProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+    <bean id="vnxquotadirdeleteprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileQuotaTreeProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+     <bean id="vnxquotadirmodifyprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileQuotaTreeProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+    <bean id="vnxquotadirqueryprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileQuotaDirectoryIdProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+    <bean id="vnxqueryfilesys"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxfilesysidprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxfilesysquery" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="vnxqueryuseraccounts"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxuseraccountsprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxuseraccquery" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="vnxquerysnap"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxsnapidprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxsnapquery" />
+            </list>
+        </property>
+    </bean>
+
+
+    <bean id="vnxqueryfssnap"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxfssnapprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+				<ref bean="vnxsnapquery" />
+            </list>
+        </property>
+    </bean>
+
+    <bean id="vnxqueryfsquotadirs"
+        class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_processor" ref="vnxfsquotadirsprocessor" />
+        <property name="instance" ref="retriever" />
+        <property name="_method" value="execute" />
+        <property name="_arguments">
+            <list>
+                <ref bean="uri" />
+                <ref bean="cookie" />
+                <ref bean="session" />
+                <ref bean="vnxquotadirsquery" />
+            </list>
+        </property>
+    </bean>
+    
+    <bean id="vnxfscreatereq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="createFileSystem" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="vnxsnapcrreq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="createSnapshot" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="vnxquotadircreatereq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="createQuotaDirectory" />
+        <property name="_value" value="" />
+    </bean>
+    
+    <bean id="vnxquotadirdeletereq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="deleteQuotaDirectory" />
+        <property name="_value" value="" />
+    </bean>
+    
+    <bean id="vnxquotadirmodifyreq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="modifyQuotaDirectory" />
+        <property name="_value" value="" />
+    </bean>
+    
+    <bean id="vnxquotadirqueryreq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchQuotaDirInfo" />
+        <property name="_value" value="" />
+    </bean>
+    
+    <bean id="vnxfsdeletereq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="deleteFileSystem" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="vnxsnapshotdeletereq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="deleteSnapshot" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="vnxfsunmountreq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="unmountFileSystem" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="vnxfsmountreq"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="mountFileSystem" />
+        <property name="_value" value="" />
+    </bean>
+
+
+    <bean id="vnxfilesysquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchFileSystemInfo" />
+        <property name="_value" value="" />
+    </bean> 
+
+    <bean id="vnxuseraccquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchUserAccounts" />
+        <property name="_value" value="" />
+    </bean> 
+
+    <bean id="vnxsnapquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchCheckpointInfo" />
+        <property name="_value" value="" />
+    </bean>  
+    
+    
+    <bean id="vnxquotadirsquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchQuotaDirInfo" />
+        <property name="_value" value="" />
+    </bean>
+    
+
+    <bean id="vnxdmquery"
+        class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchDataMoverInfo" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="vnxvdmquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchVdmInfo" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="vnxcifsquery"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="fetchCifsServerInfo" />
+        <property name="_value" value="" />
+    </bean>
+
+    <bean id="authuri"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="authuri" />
+    </bean>
+
+    <bean id="username"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="username" />
+    </bean>
+
+    <bean id="password"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="password" />
+    </bean>
+
+    <bean id="cookie"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="Cookie" />
+    </bean>
+
+    <bean id="session"
+          class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="CelerraConnector-Sess" />
+    </bean>
+    
+    <bean id="utility" class="com.emc.storageos.plugins.common.Util" />
+    <!-- <bean id="client" class="org.apache.commons.httpclient.HttpClient" /> -->
+    
+    <bean id="client" class="org.apache.commons.httpclient.HttpClient">
+      <property name="httpConnectionManager" ref="connectionManager"/>
+    </bean>
+    
+    <bean id="connectionManager" class="org.apache.commons.httpclient.MultiThreadedHttpConnectionManager">
+      <property name="params">
+        <bean class="org.apache.commons.httpclient.params.HttpConnectionManagerParams">
+          <property name="defaultMaxConnectionsPerHost" value="32" />
+          <property name="maxTotalConnections" value="32" />
+          <property name="soTimeout" value="600000" />
+          <property name="connectionTimeout" value="5000" />
+        </bean>
+      </property>
+    </bean>
+
+    <bean id="authprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXLoginProcessor">
+    </bean>
+
+    <bean id="vnxprovprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemCreateProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxcreatesnapprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSnapshotCreateProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxdeletefsprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemDeleteProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxdeletesnapshotprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSnapshotDeleteProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxfilesysidprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemIdProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxuseraccountsprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXUserAccountsProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxsnapidprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSnapshotIdProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxfssnapprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFSSnapshotsProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+
+    <bean id="vnxfsquotadirsprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFSQuotaDirsProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    
+
+    <bean id="vnxdatamoverprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXDataMoverIdProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxdatamovernameprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXDataMoverNameProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="vnxunmountprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemUnmountProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    <bean id="vnxmountprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemMountProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+    <bean id="vnxcifsserverprocessor"
+          class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXCifsConfigProcessor">
+        <property name="unmarshaller" ref="unmarshaller"/>
+    </bean>
+
+    <bean id="protocol"
+          class="com.emc.storageos.plugins.metering.vnxfile.VNXFileProtocol">
+        <property name="protocolType" value="https" />
+        <property name="protocolSocketFactory" ref="protocolfactory" />
+    </bean>
+
+    <bean id="portnumber" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="portnumber" />
+    </bean>
+
+    <bean id="protocolfactory"
+          class="com.emc.storageos.plugins.metering.vnxfile.VNXFileProtocolSocketFactory">
+        <property name="trustManagers" ref="trustManagers" />
+    </bean>
+
+    <bean id="trustManagers"
+          class="com.emc.storageos.plugins.metering.vnxfile.VNXFileX509TrustManager" />
+
+    <bean id="argscreator" class="com.emc.storageos.plugins.metering.vnxfile.VNXFileArgsCreator">
+        <constructor-arg ref="utility" />
+        <property name="vnxFileRequest" ref="vnxFileRequest" />
+    </bean>
+    
+    <bean id="vnxFileRequest" class="com.emc.storageos.plugins.metering.vnxfile.VNXFileInputRequestBuilder">
+        <property name="marshaller" ref="marshaller"/>
+    </bean>
+
+    <bean id="marshaller" factory-bean="jaxbContext" factory-method="createMarshaller" />
+
+    <bean id="unmarshaller" factory-bean="jaxbContext" factory-method="createUnmarshaller" />
+
+    <bean id="jaxbContext" class="javax.xml.bind.JAXBContext" factory-method="newInstance" >
+        <constructor-arg><value>com.emc.nas.vnxfile.xmlapi</value></constructor-arg>
+    </bean>
+
+    <!-- Bean id for DataRetriever -->
+    <bean id="retriever"
+          class="com.emc.storageos.plugins.metering.vnxfile.DataRetriever">
+        <property name="client" ref="client" />
+        <property name="protocol" ref="protocol" />
+        <!-- Set timeout in millis -->
+        <property name="timeout" value="600000" />
+    </bean>
+
+     <bean id="uri"
+           class="com.emc.storageos.plugins.common.domainmodel.Argument">
+         <property name="_creator" ref="argscreator" />
+         <property name="_method" value="getReferenceValue" />
+         <property name="_value" value="uri" />
+     </bean>
+
+</beans>

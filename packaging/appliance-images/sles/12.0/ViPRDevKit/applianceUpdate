@@ -1,0 +1,167 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+##############################
+# Global Variables
+##############################
+if [ -f /opt/ADG/conf/ovf.properties ]; then
+  . /opt/ADG/conf/ovf.properties
+else
+  echo "Unable to determine product info. Exiting..."
+  exit 1
+fi
+repoName="tmp-update-repo"
+repoLocation="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+logFile="$repoLocation/$repoName.log"
+repoContentFile="$repoLocation/repo/content"
+slesReleaseFile="sles-release"
+pattern="$vm_vmname-update"
+targetVersion="$(grep ^VERSION $repoContentFile|cut -d" " -f8)"
+ 
+LogMessage()
+{
+  prefix=$1
+  message="$2"
+  fullTime=$(date +%T)
+  echo -e "$fullTime [$prefix]: $message" >> $logFile
+  if [ $prefix = "INFO" -o $prefix = "ERROR" ]; then
+    echo -e "$fullTime [$prefix]: $message"
+  fi
+}
+
+abortUpdate()
+{
+  retCode=$1
+  zypCmd="$2"
+
+  cleanUp
+  case $retCode in
+
+  2)  LogMessage "INFO" "Zypper issue at: $zypCmd"
+      LogMessage "ERROR" "Possible Syntax Error when executing Zypper. Aborting Update Procedure..."
+      exit $retCode
+      ;;
+  3)  LogMessage "INFO" "Zypper issue at: $zypCmd"
+      LogMessage "ERROR" "Insufficient arguments OR Bad argument value executing Zypper. Aborting Update Procedure..."
+      exit $retCode
+      ;;
+  4)  LogMessage "INFO" "Zypper issue at: $zypCmd"
+      LogMessage "ERROR" "Zypper command Malfunction. Aborting Update Procedure..."
+      exit $retCode
+      ;;
+  5)  LogMessage "INFO" "Zypper issue at: $zypCmd"
+      LogMessage "ERROR" "Privilege Issue: Please execute the script as ROOT. Aborting Update Procedure..."
+      exit $retCode
+      ;;
+  104)  LogMessage "INFO" "Zypper issue at: $zypCmd"
+        LogMessage "ERROR" "Desired pkg not Available OR operation not permitted on resolvable. Aborting update Procedure..."
+        exit $retCode
+        ;;
+  105)  LogMessage "INFO" "Zypper issue at: $zypCmd"
+        LogMessage "ERROR" "Possible user Termination. Retry update Procedure"
+        exit $retCode
+        ;;
+  *)  LogMessage "INFO" "Zypper issue at: $zypCmd"
+      LogMessage "ERROR" "Unknown Error. Aborting Update Procedure..."
+      exit $retCode
+      ;;
+  esac
+}
+
+cleanUp()
+{
+  zypper -vv rr $repoName 2>&1>>$logFile
+  ZYPP_CODE=$?
+  [ $ZYPP_CODE -ne 0 ] && abortUpdate $ZYPP_CODE "REMOVE REPO"
+}
+
+##############################
+# Logging info and prep steps here
+##############################
+LogMessage "INFO" "*****Upgrading Appliance to VERSION:: $targetVersion *****"
+LogMessage "INFO" "Preparing for update."
+# Add known zypper repo
+zypper -vv ar $repoLocation/repo $repoName 2>&1>>$logFile
+ZYPP_CODE=$?
+[ $ZYPP_CODE -ne 0 ] && abortUpdate $ZYPP_CODE "ADD REPO"
+# Refresh added zypper repo
+zypper -vv --no-gpg-checks refresh $repoName 2>&1>>$logFile
+ZYPP_CODE=$?
+[ $ZYPP_CODE -ne 0 ] && abortUpdate $ZYPP_CODE "REFRESH REPO"
+
+##############################
+# Pre-Update scripting steps here
+##############################
+LogMessage "INFO" "Update starting."
+
+##############################
+# Update/install/remove packages from repo
+##############################
+slesRepoVersion=$(zypper info --repo $repoName $slesReleaseFile | grep "Version:" | sed 's/Version: //g')
+slesInstalledVersion=$(rpm -qv $slesReleaseFile --qf '%{v}-%{r}')
+result=$(zypper versioncmp $slesInstalledVersion $slesRepoVersion)
+if [ "$(echo $result | grep newer)" != "" ]; then
+  echo "A higher version of the product is already installed. Exiting..."
+  exit 2
+elif [ "$(echo $result | grep older)" != "" ]; then
+  LogMessage "INFO" "Upgrading SLES release..."
+  echo "Repo name is :$repoName"
+  zypper -n -vv install --repo $repoName $slesReleaseFile 2>&1>>$logFile
+  ZYPP_CODE=$?
+  [ $ZYPP_CODE -ne 0 ] && abortUpdate $ZYPP_CODE "INSTALL SLES-RELEASE FILE"
+else
+  LogMessage "INFO" "Version of the product is already installed. Nothing to do..."
+fi
+LogMessage "INFO" "Upgrading the existing packages... This may take some time. Please wait..."
+zypper -n -vv dup -l --from $repoName 2>&1>>$logFile
+ZYPP_CODE=$?
+[ $ZYPP_CODE -ne 0 ] && abortUpdate $ZYPP_CODE "DISTRIBUTION UPGRADE"
+LogMessage "INFO" "Upgrade of existing packages completed..."
+LogMessage "INFO" "Installing pattern: $pattern. Please wait..."
+zypper -n -vv install -t pattern $pattern 2>&1>>$logFile
+ZYPP_CODE=$?
+[ $ZYPP_CODE -ne 0 ] && abortUpdate $ZYPP_CODE "PATTERN INSTALL"
+
+##############################
+# Post-Update scripting steps here
+##############################
+# Rename the volume group and file references if not done.
+if [ "`grep systemVG /etc/fstab`" ]; then
+  LogMessage "INFO" "Fixing Volume Group references..."
+  prodVG="DevKitVG"
+  currentVG="systemVG"
+#Rename VG only if not done already  
+  [ "`vgs|grep $currentVG`" ] && vgrename $currentVG $prodVG 2>&1>>$logFile
+  LogMessage "INFO" "Removing old mounts point from /etc/fstab"
+  sed -i "/LVRoot/d" /etc/fstab 2>&1>>$logFile
+  vgRoot="/dev/$prodVG/LVRoot / ext3 defaults 1 1"
+  LogMessage "INFO" "Adding new mount point $vgRoot to /etc/fstab"
+  echo $vgRoot >> /etc/fstab 
+  sed -i "s|/dev/$currentVG/LVRoot|/dev/$prodVG/LVRoot|g" /etc/sysconfig/bootloader 2>&1>>$logFile
+  sed -i "s|$currentVG|$prodVG|g" /boot/grub/menu.lst 2>&1>>$logFile
+  LogMessage "INFO" "Fixing Swap Configuration for Volume Group"
+  LogMessage "INFO" "Removing old mounts point from /etc/fstab"
+  sed -i "/LVswap/d" /etc/fstab 2>&1>>$logFile
+  vgVar=`ls /dev/mapper/*-LVswap|cut -d"-" -f1|cut -d"/" -f4`
+  swapVar="/dev/mapper/$vgVar-LVswap"
+  LogMessage "INFO" "Adding new mount point $swapVar to /etc/fstab"
+  echo "$swapVar none swap defaults 0 0" >> /etc/fstab
+# Swap reconfigure not necessary if VG was renamed during applianceUpdate
+  if [ "`swapon -s|grep $currentVG`"]; then
+    fuser -w /swap
+    umount -f /swap 2>&1>>$logFile
+    mkswap -f $swapVar 2>&1>>$logFile
+    swapon $swapVar 2>&1>>$logFile 
+  fi
+fi
+LogMessage "INFO" "Update complete."
+
+##############################
+# Done
+# Clean-up and Exit
+##############################
+# Remove zypper repo when done
+cleanUp
+exit 0

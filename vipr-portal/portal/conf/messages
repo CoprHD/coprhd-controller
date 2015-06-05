@@ -1,0 +1,3830 @@
+
+# SOURCE_FILE /Users/dailc/work/code/vipr-controller/vipr-portal/portal/app/controllers/auth/Certificates.java
+CERT_OPTIONS_1=options
+
+# NO_FILE
+# You can specialize this file for each language.
+# For example, for French create a messages.fr file
+#
+application.name=EMC ViPR
+# Validation messages
+#   Most of these are exact copies from the play framework and are here to make
+#   it easier to find and change validation messages for the entire application.
+validation.required=Required
+validation.minSize=Minimum size is %2$d
+validation.maxSize=Maximum size is %2$d
+validation.email=Invalid email address
+validation.range=Not in the range %2$d through %3$d
+validation.min=Cannot be lower than %2$d
+validation.max=Cannot be greater than %2$d
+validation.match=Must match %2$s
+validation.isTrue=Must be checked
+validation.equals=Must be equal to &{%2$s}
+validation.invalid=Incorrect value
+validation.future=Must be in the future
+validation.after=Must be after %2$s
+validation.past=Must be in the past
+validation.before=Must be before %2$s
+validation.object=Validation failed
+validation.notFound=Object not found for id %2$s
+validation.url=Not a valid URL
+validation.phone=Not a valid phone
+validation.ipv4=Not a valid IP address
+validation.ipv6=Not a valid IP v6 address
+validation.unique=Must be unique
+validation.hostNameOrIpAddress=Not a valid hostname or IP address
+validation.duplicateIpAddress=Duplicate IP address
+validation.noConfiguration=Both IPv4 and IPv6 networks are not configured.
+validation.notOnSameNwIpv4=Given IPv4 addresses, virtual IP and gateway are not in same network.
+validation.notOnSameNwIpv6=Given IPv6 addresses, virtual IP and gateway are not in same network.
+navigation.toggle=Toggle Navigation
+# Sample navigation labels
+nav.recent=Recently Used
+nav.orders=Orders
+nav.viewOrders=My Orders
+nav.allOrders=All Orders
+nav.pendingOrders=Scheduled Orders
+nav.user=User Mode
+nav.catalog=Service Catalog
+nav.viewCatalog=View Catalog
+nav.editCatalog=Edit Catalog
+nav.approvals=Approvals
+nav.admin=Administration Mode
+nav.preferences=Preferences
+nav.password=Change Password
+nav.logout=Logout
+nav.storage=Resources
+nav.virtualStorage=Virtual Assets
+nav.object=Object
+nav.settings=Settings
+nav.block=Block
+nav.block.volumes=Volumes
+nav.block.consistencygroups=Consistency Groups
+nav.block.exportgroups=Export Groups
+nav.block.snapshots=Block Snapshots
+nav.block.virtualPools=Block Virtual Pools
+nav.file=File
+nav.file.filesystems=File Systems
+nav.file.snapshots=File Snapshots
+nav.file.virtualPools=File Virtual Pools
+nav.computeVirtualPools=Compute Virtual Pools
+nav.system=System
+nav.tenant=Tenant
+nav.tenants=Tenants
+nav.assets=Physical Assets
+nav.security=Security
+nav.status=About
+nav.upgrade=Upgrade
+nav.config=Settings
+nav.import=Import
+nav.logs=Reports
+nav.systemHealthDashboard=Health
+nav.systemHealthLogs=Logs
+nav.systemNodeRecovery=Recovery
+nav.properties=General Configuration
+nav.clusterInfo=Network Configuration
+nav.adminDashboard=System
+nav.dbHealthDashboard=Database Consistency Check
+nav.adminDashboardPage=Dashboard
+nav.localPasswords=Local Passwords
+nav.keystores=Keystore
+nav.providers=Authentication Providers
+nav.vdcRoles=VDC Role Assignments
+nav.certificates=Trusted Certificates
+nav.help=Help
+nav.object.virtualPools=Object Virtual Pools
+nav.tenantsettings=Tenant Settings
+nav.project=Tenant Groups
+nav.consistencygroups=Consistency Groups
+nav.tasks=Tasks
+# Subnavigation
+nav.vdcs=Virtual Data Centers
+nav.projects=Projects
+nav.consistencyGroups=Consistency Groups
+nav.license=License
+nav.supportRequest=Support Request
+nav.levels=Service Levels
+nav.arrays=Storage Systems
+nav.hosts=Hosts
+nav.hostClusters=Clusters
+nav.fabricManagers=Fabric Managers
+nav.vcenters=vCenters
+nav.customConfigs=Controller Config
+nav.users=Users
+nav.groups=Groups
+nav.roleAssignments=Role Assignments
+nav.smtpSettings=SMTP Settings
+nav.accountMapping=Mapping
+nav.infra=Infrastructure
+nav.windows=Execution Windows
+nav.orderlogs=Orders
+nav.auditlogs=Audit
+nav.policy=Policy
+nav.dataProtectionSystems=Data Protection Systems
+nav.storageArrays=Storage Systems
+nav.SANSwitches=Fabric Managers
+nav.storageProviders=Storage Providers
+nav.virtualPools=Virtual Pools
+nav.virtualArrays=Virtual Arrays
+nav.networks=Networks
+nav.LDAPsources=Authentication Providers
+nav.computeSystems=Vblock Compute Systems
+nav.computeImages=Compute Images
+nav.sites=Sites
+nav.userGroup=User Group
+# Override messages in the Secure plugin
+secure.title=
+secure.username=Username:
+secure.password=Password:
+secure.remember=Remember me
+secure.signin=Sign in
+secure.error=No user found matching Username and Password provided.
+secure.logout=You have been logged out.
+secure.domain=Domain:
+
+###########################################################
+# Admin Module Messages
+###########################################################
+
+error.password.doNotMatch=Passwords do not match
+
+PhysicalAssets.introspection=Rediscovery for %s of %s selected items has been started
+PhysicalAssets.registration.success=Registration %s of %s selected items successful
+PhysicalAssets.registration.error='%s' of '%s' selected items registered: '%s'.  Please check server log for more details.
+PhysicalAssets.deregistration.success=Deregistration %s of %s selected items successful
+PhysicalAssets.deregistration.error='%s' of '%s' selected items de-registered: '%s'.  Please check server log for more details.
+PhysicalAssets.powerup.success=Power-up %s of %s selected items successful
+PhysicalAssets.powerup.error='%s' of '%s' selected items powered up: '%s'.  Please check server log for more details.
+PhysicalAssets.powerdown.success=Power-down %s of %s selected items successful
+PhysicalAssets.powerdown.error='%s' of '%s' selected items powered down: '%s'.  Please check server log for more details.
+
+discoveryDetails.discoveryStatus=Discovery Status
+discoveryDetails.discoveryDate=Last Discovery
+discoveryDetails.compatibilityStatus=Compatibility Status
+discoveryDetails.lastSuccessfulDiscovery=Last Successful Discovery
+
+DiscoveryStatus.CREATED=Pending
+DiscoveryStatus.SCHEDULED=Scheduled
+DiscoveryStatus.IN_PROGRESS=In Progress
+DiscoveryStatus.COMPLETE=Completed
+DiscoveryStatus.ERROR=Failed
+ConnectionStatus.CONNECTED=Connected
+ConnectionStatus.NOTCONNECTED=Disconnected
+CompatibilityStatus.INCOMPATIBLE=Incompatible
+CompatibilityStatus.COMPATIBLE=Compatible
+CompatibilityStatus.UNKNOWN=Unknown
+
+#
+# Default Port map for physical assets
+#
+DefaultStorageArrayPortMap.vnxblock=5988
+DefaultStorageArrayPortMap.vmax=5988
+DefaultStorageArrayPortMap.vnxblock_useSSL=5989
+DefaultStorageArrayPortMap.vmax_useSSL=5989
+DefaultStorageArrayPortMap.ibmxiv_useSSL=5989
+DefaultStorageArrayPortMap.ibmxiv=5989
+DefaultStorageArrayPortMap.isilon=8080
+DefaultStorageArrayPortMap.netapp=443
+DefaultStorageArrayPortMap.netappc=443
+DefaultStorageArrayPortMap.vplex=443
+DefaultStorageArrayPortMap.xtremio=443
+DefaultStorageArrayPortMap.vplex_useSSL=443
+DefaultStorageArrayPortMap.vnxfile=443
+DefaultStorageArrayPortMap.vnxe=443
+DefaultStorageArrayPortMap.vnxfile_smis=5988
+DefaultStorageArrayPortMap.vnxfile_smis_useSSL=5989
+DefaultStorageArrayPortMap.hds=2001
+DefaultStorageArrayPortMap.hds_useSSL=2001
+DefaultStorageArrayPortMap.openstack=22
+DefaultStorageArrayPortMap.openstack_useSSL=22
+DefaultStorageArrayPortMap.scaleio=22
+DefaultStorageArrayPortMap.scaleio_useSSL=22
+DefaultStorageArrayPortMap.datadomain=3009
+DefaultStorageArrayPortMap.datadomain_useSSL=3009
+
+DefaultStorageProviderPortMap.hicommand_useSSL=2001
+DefaultStorageProviderPortMap.hicommand=2001
+DefaultStorageProviderPortMap.smis_useSSL=5989
+DefaultStorageProviderPortMap.smis=5988
+DefaultStorageProviderPortMap.vplex_useSSL=443
+DefaultStorageProviderPortMap.vplex=443
+DefaultStorageProviderPortMap.cinder_useSSL=22
+DefaultStorageProviderPortMap.cinder=22
+DefaultStorageProviderPortMap.scaleio=22
+DefaultStorageProviderPortMap.scaleio_useSSL=22
+DefaultStorageProviderPortMap.ddmc=3009
+DefaultStorageProviderPortMap.ddmc_useSSL=3009
+DefaultStorageProviderPortMap.ibmxiv_useSSL=5989
+DefaultStorageProviderPortMap.ibmxiv=5989
+
+DefaultSanSwitchPortMap.brocade_useSSL=5989
+DefaultSanSwitchPortMap.brocade=5988
+DefaultSanSwitchPortMap.mds=22
+
+DefaultDataProtectionPortMap.rp=7225
+
+DefaultComputeSystemPortMap.port80=80
+DefaultComputeSystemPortMap.port443=443
+
+#
+# SizeUnit enums
+#
+SizeUnit.Bytes=Bytes
+SizeUnit.MB=MB
+SizeUnit.GB=GB
+SizeUnit.TB=TB
+SizeUnit.x=Multiplier
+
+#
+#Storage Enums
+#
+DriveType.NONE=None
+DriveType.SSD=Solid State Drive
+DriveType.FC=Fibre Channel
+DriveType.SAS=Serial Attached SCSI
+DriveType.NL_SAS=Near Line Serial Attached SCSI
+DriveType.SATA=Serial ATA
+
+PoolType.block=Block
+PoolType.file=File
+
+PoolAssignment.automatic=Automatic
+PoolAssignment.manual=Manual
+
+StorageSystemType.NONE=None
+StorageSystemType.vmax=EMC VMAX
+StorageSystemType.vnxblock=EMC VNX Block
+StorageSystemType.vnxfile=EMC VNX File
+StorageSystemType.isilon=EMC Isilon
+StorageSystemType.netapp=NetApp 7-mode
+StorageSystemType.netappc=NetApp Cluster-mode
+StorageSystemType.vplex=EMC VPLEX
+StorageSystemType.hds=Hitachi
+StorageSystemType.ibmxiv=IBM XIV
+StorageSystemType.openstack=Third-party block
+StorageSystemType.scaleio=Block Storage Powered by ScaleIO
+StorageSystemType.xtremio=EMC XtremIO
+StorageSystemType.vnxe=EMC VNXe
+StorageSystemType.datadomain=Data Domain
+StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
+StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
+StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for EMC VPLEX
+StorageSystemType.STORAGE_PROVIDER.cinder=Storage Provider for Third-party block storage systems
+StorageSystemType.STORAGE_PROVIDER.scaleio=Block Storage Powered by ScaleIO
+StorageSystemType.STORAGE_PROVIDER.ddmc=Storage Provider for Data Domain Management Center
+StorageSystemType.STORAGE_PROVIDER.ibmxiv=Storage Provider for IBM XIV
+
+HostType.Linux=Linux
+HostType.Windows=Windows
+HostType.HPUX=HP-UX
+HostType.AIX=AIX
+HostType.AIXVIO=AIX VIO
+HostType.SUNVCS=SUN-VCS
+HostType.Other=Other
+HostType.Esx=Esx
+HostType.No_OS=No OS
+
+AutoManualType.automatic=Automatic
+AutoManualType.manual=Manual
+
+AuthSourceType.ad=Active Directory
+AuthSourceType.ldap=LDAP
+
+SearchScope.ONELEVEL=One Level
+SearchScope.SUBTREE=Subtree
+
+TransportProtocol.FC=FC
+TransportProtocol.IP=IP
+TransportProtocol.Ethernet=Ethernet
+TransportProtocol.ScaleIO=ScaleIO
+
+StoragePoolAssignmentType.manual=Manual
+StoragePoolAssignmentType.automatic=Automatic
+
+BlockStorageProtocol.iSCSI=iSCSI
+BlockStorageProtocol.FC=FC
+BlockStorageProtocol.FCoE=FCoE
+BlockStorageProtocol.ScaleIO=ScaleIO
+
+FileStorageProtocol.NFS=NFS
+FileStorageProtocol.NFSv4=NFSv4
+FileStorageProtocol.CIFS=CIFS
+
+CoSType.block=Block
+CoSType.file=File
+CoSType.object=Object
+
+ProvisionType.NONE=None
+ProvisionType.Thin=Thin
+ProvisionType.Thick=Thick
+
+ProtectionSystemType.rp=EMC RecoverPoint
+ProtectionSystemType.srdf=VMAX SRDF
+
+HighAvailability.vplex_distributed=VPLEX Distributed
+HighAvailability.vplex_local=VPLEX Local
+HighAvailability.source=Source
+HighAvailability.ha=HA
+
+discoveryError.notReachable=Device is unreachable
+discoveryError.notConnected=Device is disconnected
+discoveryError.notCompatible=Device is not compatible
+
+# TODO: remove
+InfrastructureErrors.DISCOVERY_FAILED=Device discovery failed
+InfrastructureErrors.NOT_COMPATIBLE=Device is not compatible
+InfrastructureErrors.NOT_REACHABLE=Device is unreachable
+InfrastructureErrors.NOT_CONNECTED=Device is disconnected
+
+ConnectivityTypes.rp=EMC RecoverPoint
+ConnectivityTypes.vplex=EMC VPLEX
+ConnectivityTypes.srdf=VMAX SRDF
+ConnectivityTypes.SRDF=VMAX SRDF
+ConnectivityTypes.rpvplex=EMC RecoverPoint/EMC VPLEX
+ConnectivityTypes.unsupported=Unsupported
+
+RegistrationStatus.UNREGISTERED=Unregistered
+RegistrationStatus.REGISTERED=Registered
+
+RemoteCopyMode.ASYNCHRONOUS=Asynchronous
+RemoteCopyMode.SYNCHRONOUS=Synchronous
+
+RpoType.SECONDS=Seconds
+RpoType.MINUTES=Minutes
+RpoType.HOURS=Hours
+RpoType.WRITES=Number of writes
+RpoType.BYTES=Bytes
+RpoType.KB=Kilobytes
+RpoType.MB=Megabytes
+RpoType.GB=Gigabytes
+RpoType.TB=Terabytes
+
+##########
+
+users.confirmPassword.required.error=Confirm Password is required.
+users.confirmPassword.notMatch.error=Confirm Password does not match with the Password.
+users.detele.error=Please select check box for delete users.
+users.ldap.userid.required.error=Ldap User Id is required.
+users.ldap.domain.required.error=Ldap Domain is required.
+
+# Service Catalog Categories
+Category.create.title=Create Category
+Category.create.description=
+Category.edit.title=Edit Category
+Category.edit.description=
+category.title=Title
+category.description=Description
+category.image=Icon
+category.parentId=Parent Category
+category.enableGroupRestrictions=Enable
+category.groupIds=Groups
+category.groupIds.required=At least one Group is required.
+category.categories=Categories
+category.services=Services
+
+catalog.deleteService.confirm=Are you sure you want to delete service '%%s'?
+catalog.deleteCategory.confirm=Are you sure you want to delete the category '%%s'?
+catalog.restore.confirm=Are you sure you want to remove all entries in the service catalog and restore the factory default? This operation cannot be undone.
+catalog.update.confirm=Are you sure you want to update the service catalog?
+
+# Service Catalog Services
+Service.create.title=Create Service
+Service.create.description=
+Service.edit.title=Edit Service
+Service.edit.description=
+service.overrides.title=Locked Fields
+service.overrides.description=Lock fields with pre-defined values. These will not be shown to the user to select.
+service.options.title=Service Options
+service.title=Title
+service.description=Description
+service.roles=Roles Required:
+service.image=Icon
+service.baseService=Base Service
+service.baseService.notFound=The selected Base Service was not found.
+service.profileId=Storage Profile
+service.profileId.helpText=If specified, use this storage profile when provisioning storage.
+service.owningCategoryId=Category
+service.approvalRequired=Approval Required
+service.executionWindowRequired=Run in Execution Window
+service.defaultExecutionWindowId=Execution Window
+service.defaultExecutionWindowId.helpText=If specified, runs this service only in the specified execution window
+service.enableGroupRestrictions=Enable
+service.groupIds=Groups
+service.groupIds.required=At least one Group is required.
+service.maxSize=Maximum Size (GB)
+service.maxSize.helpText = Maximum size allowed for storage provisioning operations
+service.defaultCostCodeId=Default Cost Code
+service.field.validation=Invalid field value
+service.unknown.type=UNKNOWN TYPE
+service.unknown.type.description=Field <b>%s</b> is of type <b>%s</b> which is not supported
+
+serviceField.name=Field
+serviceField.locked=Locked
+serviceField.value=Value
+serviceField.unsupportedType=Unsupported field type: <b>%s</b>
+
+discovery.details=Discovery Details
+discovery.details.description=Displays all the data discovered by the system
+
+# Host
+host.id=ID
+host.type=Operating System
+host.name=Name
+host.cluster=Cluster
+host.hostname=Host
+host.hostName=Host
+host.hostname.help=Enter the fully qualified domain name or IP address of the host.
+host.hostname.duplicate=Host '%s' already exists with this hostname
+host.hostname.help.windows=When using domain credentials, this must be the hostname (not IP address) and resolvable through DNS
+host.port=Port
+host.port.help.windows=Windows Remote Management Port (WinRM). Default: 5985 (http) or 5986 (https)
+host.port.help.esx=VI / vSphere Client to ESXi/ESX Host management connection. Default: 443
+host.port.help.linux=SSH Connection Port. Default: 22
+host.version=Version
+host.useHttps=Protocol
+host.username=Username
+host.password=Password
+host.passwordConfirm=Confirm Password
+host.discoverable=Discoverable
+host.discoverable.help=Automatically discover information from the host about IP Interfaces and Initiators
+host.wwns=Host WWNs
+host.wwns.help=List all Host WWNs, one per line (Node WWN:Port WWN).
+host.wwns.invalidLength=Host WWNs must be 32 hex characters, optionally separated by colons [%s].
+host.wwns.invalidHex=Host WWNs must only contain hex characters, optionally separated by colons [%s].
+host.ips=Host IPs
+host.ips.help=List all Host IPs, one per line.
+host.ips.invalidIp=Invalid IP address: %2$s
+host.lastDiscoveredDate=Last Discovery
+host.discoveryStatus=Status
+host.project=Project
+host.otherHelp=This type is used for all other operating system types. This type cannot be discovered automatically.
+host.errorDetails=Error Details
+host.statusMessage=Details
+
+host.initiators=Initiators
+host.ipInterfaces=IP Interfaces
+
+host.validation.connection.failed=Failed to connect to host. Please ensure the connection details are correct. [%s]
+
+Hosts.list.title=Hosts
+Hosts.edit.title=Edit Host
+Hosts.create.title=Add Host
+Hosts.description=Enter the information needed to connect to a host.
+Hosts.saved=Host '%s' saved successfully.
+Hosts.deleted=Task initiated to delete selected hosts.
+Hosts.unknown=Unknown Host with ID '%s'
+Hosts.deleteHosts.title=Delete Hosts
+Hosts.deleteConfirm=Are you sure you want to delete the selected Hosts?
+Hosts.detachStorageModal=Detach Storage
+Hosts.detachStorageModal.help=Detach any storage from the selected host(s) before deactivating.
+Hosts.detachStorageConfirm=Are you sure you want to detach storage from the selected Hosts?
+Hosts.detachStorage=Task initiated to detach storage from selected hosts.
+
+Hosts.initiators.title=Host Initiators
+Hosts.initiators.description=
+Hosts.initiators.add.title=Add Host Initiator
+
+initiators.label=Initiators
+initiators.added=Task initiated to add Initiator '%s'.
+initiators.deleted=Task initiated to delete selected Initiators.
+initiators.notEditable=Initiators are not editable because host has discovery enabled.
+initiators.initiatorNode=Node Name
+initiators.initiatorPort=Port Name
+initiators.protocol=Protocol
+initiators.registrationStatus=Registered
+initiators.port.invalidWWN=Not a valid WWN. Must be 16 hex characters, separated by colons
+initiators.port.invalidIQN=Not a valid IQN
+initiator.node=Node
+initiator.node.help=Node WWN for Fibre-Channel ports, empty for iSCSI
+initiator.port=Port
+initiator.port.help=Port WWN for Fibre-Channel ports, IQN for iSCSI
+initiator.deleteConfirm=Are you sure you want to delete the selected Initiator(s)?
+
+cluster.name=Cluster
+cluster.discovered=Discovered
+cluster.hosts=Hosts
+hostCluster.id=ID
+hostCluster.name=Name
+
+HostClusters.list.title=Clusters
+HostClusters.edit.title=Edit Cluster
+HostClusters.create.title=Create Cluster
+HostClusters.description=Enter the Cluster information.
+HostClusters.saved=Saved '%s'
+HostClusters.deleted=Task initiated to delete selected clusters.
+HostClusters.unknown=Unknown Cluster with ID '%s'
+HostClusters.deleteConfirm=Are you sure you want to delete the selected Clusters?
+HostClusters.editHosts.title=Edit Hosts in a Cluster
+HostClusters.editHosts.shortTitle=Edit Hosts
+HostClusters.addHosts.title=Add Hosts to Cluster
+HostClusters.addedHosts=Successfully added hosts to the cluster
+HostClusters.removedHosts=Successfully removed hosts from the cluster
+HostClusters.removeHosts.warning=Removing hosts will affect all exported volumes associated with this cluster.
+HostClusters.addHosts.warning=Adding hosts will affect all exported volumes associated with this cluster.
+HostClusters.hosts=Hosts
+HostClusters.deleteClusters.title=Delete Clusters
+HostClusters.detachStorageModal=Detach Storage
+HostClusters.detachStorageModal.help=Detach any storage from the selected cluster(s) before deactivating.
+HostClusters.detachStorageConfirm=Are you sure you want to detach storage from the selected Clusters?
+HostClusters.detachStorage=Task initiated to detach storage from selected clusters.
+
+addHosts.name=Name
+addHosts.hostName=Host
+addHosts.type=Operating System
+
+#Domain
+domain.id=ID
+domain.name=Domain Name
+domain.controllerAddresses=Controller Addresses
+domain.bindUser=Username
+domain.bindPassword=Password
+domain.confPassword=Confirm Password
+domain.useridAttribute=Userid Attribute
+domain.userSearchBase=User Search Base
+domain.groupSearchBase=Group Search Base
+domain.check=Check credentials
+domain.providers.syntax = Bad URL: %2$s. Providers must start with ldap:// or ldaps://
+domain.providers.required=Provider URLs is required.
+domain.vdcName=VDC
+domain.isSecure=Is Secure (SSL)
+
+domains.confirmPassword.required.error=Confirm Password is required.
+domains.confirmPassword.notMatch.error=Passwords do not match.
+
+Domains.list.title=Windows Domains
+Domains.edit.title=Edit Windows Domain
+Domains.create.title=Add Windows Domain
+Domains.saved=Saved '%s'
+Domains.deleted=Deleted Successfully
+Domains.unknown=Unknown Windows Domain with ID '%s'
+Domains.deleteConfirm=Are you sure you want to delete the selected Windows Domains?
+
+# Scheduled Orders
+ScheduledOrders.list.title=Scheduled Orders
+ScheduledOrder.cancel.title=Cancel Scheduled Orders
+ScheduledOrder.cancel.confirm=Are you sure you want to cancel the selected Scheduled Order(s)?
+ScheduledOrder.cancel.success=Scheduled Order(s) cancelled successfully.
+scheduledOrders.selection=
+scheduledOrders.id=ID
+scheduledOrders.number=Number
+scheduledOrders.status=Status
+scheduledOrders.service=Service
+scheduledOrders.summary=Summary
+scheduledOrders.createdDate=Date Submitted
+scheduledOrders.submittedBy=Submitted By
+scheduledOrders.executionWindow=Execution Window
+scheduledOrders.nextExecutionWindow=<Next Execution Window>
+
+ScheduledOrder.nextWindow=Next Execution Window is <span style="font-weight:bold;">%s</span>, scheduled to start at <span style="font-weight:bold;">%s</span>.
+ScheduledOrder.noWindow=There are NO Execution windows currently scheduled
+
+# VCenter
+vCenter=vCenter
+vCenter.id=ID
+vCenter.name=Name
+vCenter.hostname=Host
+vCenter.hostname.help=Enter the fully qualified domain name or IP address of the host.
+vCenter.port=Port
+vCenter.username=Username
+vCenter.password=Password
+vCenter.passwordConfirm=Confirm Password
+vCenter.lastDiscoveredDate=Last Discovery
+vCenter.discoveryStatus=Status
+vCenter.version=Version
+
+vCenter.datacenter=Datacenter
+vCenter.datacenters=Datacenters
+vCenter.cluster=Cluster
+vCenter.host=Host
+vCenter.initiators=Initiators
+vCenter.ipInterfaces=IP Interfaces
+vCenter.errorDetails=Error Details
+vCenter.statusMessage=Details
+vCenter.error.notVCenter=%s is not a vCenter (Type: %s)
+
+VCenters.list.title=vCenters
+VCenters.edit.title=Edit vCenter
+VCenters.create.title=Add vCenter
+VCenters.description=Enter the information needed to connect to a vCenter.
+VCenters.saved=vCenter '%s' saved successfully.
+VCenters.deleted=Deleted Successfully
+VCenters.unknown=Unknown vCenter with ID '%s'
+VCenters.deleteVcenters.title=Delete vCenters
+VCenters.deleteConfirm=Are you sure you want to delete the selected vCenters?
+VCenters.detachStorageModal=Detach Storage
+VCenters.detachStorageModal.help=Detach any storage from the selected vCenter(s) before deactivating.
+VCenters.detachStorageConfirm=Are you sure you want to detach storage from the selected vCenter(s)?
+VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
+
+# Custom Config
+CustomConfigs.list.title=Controller Configurations
+CustomConfigs.description=Customize Controller Configurations
+CustomConfigs.scopeType=Scope Type
+CustomConfigs.scopeValue=Scope Value
+CustomConfigs.value=Value
+CustomConfigs.example=Example
+CustomConfigs.add=Add
+CustomConfigs.save=Save
+CustomConfigs.cancel=Cancel
+CustomConfigs.category.SanZone=SAN Zoning
+CustomConfigs.category.VMAX=VMAX Masking
+CustomConfigs.category.VNX=VNX Storage Groups
+CustomConfigs.category.PortAllocation=Port Allocation
+CustomConfigs.category.XtremIO=XtremIO
+CustomConfigs.category.HDS=HDS
+CustomConfigs.category.VPlex=VPLEX
+CustomConfigs.category.Other=Other
+CustomConfigs.configType.SanZoneName=Zoning
+CustomConfigs.configType.PortAllocationInitiatorCeiling=Initiator Ceiling
+CustomConfigs.configType.PortAllocationVolumeCeiling=Volume Ceiling
+CustomConfigs.configType.PortAllocationPortUtilizationCeiling=Port Utilization Ceiling
+CustomConfigs.configType.PortAllocationCpuUtilizationCeiling=CPU Utilization Ceiling
+CustomConfigs.configType.PortAllocationDaysToAverageUtilization=Days To Average Utilization
+CustomConfigs.configType.PortAllocationMetricsEnabled=Metrics Enabled
+CustomConfigs.configType.PortAllocationEmaFactor=Weight for Exponential Moving Average
+CustomConfigs.configType.VNXHostStorageGroupName=Host Storage Group Name
+CustomConfigs.configType.VNXClusterStorageGroupName=Cluster Storage Group Name
+CustomConfigs.configType.VMAXHostMaskingViewName=Host Masking View Name
+CustomConfigs.configType.VMAXClusterMaskingViewName=Cluster Masking View Name
+CustomConfigs.configType.VMAXHostStorageGroupName=Host Storage Group Name
+CustomConfigs.configType.VMAXClusterStorageGroupName=Cluster Storage Group Name
+CustomConfigs.configType.VMAXHostCascadedIGName=Host Cascaded IG Name
+CustomConfigs.configType.VMAXClusterCascadedIGName=Cluster Cascaded IG Name
+CustomConfigs.configType.VMAXHostCascadedSGName=Host Cascaded SG Name
+CustomConfigs.configType.VMAXClusterCascadedSGName=Cluster Cascaded SG Name
+CustomConfigs.configType.VMAXHostInitiatorGroupName=Host Initiator Group Name
+CustomConfigs.configType.VMAXHostInitiatorGroupNameType=Host Initiator Group Name Type
+CustomConfigs.configType.VMAXClusterInitiatorGroupName=Cluster Initiator Group Name
+CustomConfigs.configType.VMAXHostPortGroupName=Host Port Group Name
+CustomConfigs.configType.VMAXClusterPortGroupName=Cluster Port Group Name
+CustomConfigs.configType.XtremIOVolumeFolderName=Volume Folder Name
+CustomConfigs.configType.XtremIOInitiatorGroupName=Initiator Group Name
+CustomConfigs.configType.XtremIOHostInitiatorGroupFolderName=Host Initiator Group Folder Name
+CustomConfigs.configType.XtremIOClusterInitiatorGroupFolderName=Cluster Initiator Group Folder Name
+CustomConfigs.configType.HDSHostStorageDomainName=Host Group Name
+CustomConfigs.configType.HDSHostStorageDomainNickName=Host Group Nick Name
+CustomConfigs.configType.HDSHostModeOption=Host Mode Option
+CustomConfigs.configType.VPlexStorageViewName=Storage View Name
+CustomConfigs.scopeType.global=Global
+CustomConfigs.scopeType.systemType=System Type
+CustomConfigs.scopeType.hostType=Host Type
+CustomConfigs.scopeValue.default=Default
+CustomConfigs.scopeValue.brocade=Brocade
+CustomConfigs.scopeValue.mds=MDS
+CustomConfigs.scopeValue.vnxblock=VNX Block
+CustomConfigs.scopeValue.vmax=VMAX
+CustomConfigs.scopeValue.hds=HDS
+CustomConfigs.scopeValue.xtremio=XtremIO
+CustomConfigs.scopeValue.vplex=VPLEX
+CustomConfigs.scopeValue.Windows=Windows
+CustomConfigs.scopeValue.Linux=Linux
+CustomConfigs.scopeValue.AIX=AIX
+CustomConfigs.scopeValue.Esx=ESX
+CustomConfigs.scopeValue.HPUX=HPUX
+CustomConfigs.host_name.description=The DNS name of the host
+CustomConfigs.host_assigned_name.description=The host assigned name in ViPR
+CustomConfigs.hba_wwn.description=The initiator port WWN
+CustomConfigs.hba_port_wwn.description=The initiator port WWN
+CustomConfigs.hba_alias.description=The initiator port alias
+CustomConfigs.array_port_alias.description=The array port alias
+CustomConfigs.host_type.description=The host type
+CustomConfigs.array_type.description=The array type
+CustomConfigs.project_name.description=The project name
+CustomConfigs.hba_name.description=The initiator port name
+CustomConfigs.array_port_wwn.description=The array port WWN
+CustomConfigs.array_port_name.description=The array port name
+CustomConfigs.array_serial_number.description=The array serial number
+CustomConfigs.cluster_name.description=The cluster name
+CustomConfigs.export_group_name.description=The export group name
+CustomConfigs.vsan/fabric.description=vsan for Cisco and fabric for Brocade
+CustomConfigs.auto_tiering_policy_name.description=The auto tiering policy name
+CustomConfigs.hds_storage_port_number.description=The HDS storage port number
+CustomConfigs.host_IO_limit_bandwidth.description=The host IO limit bandwidth
+CustomConfigs.host_IO_limit_iops.description=The host IO limit IOPS
+CustomConfigs.variables.description=Variables that can be replaced in naming policies:
+CustomConfigs.variables.name.title=Name
+CustomConfigs.variables.sample.title=Sample
+CustomConfigs.variables.description.title=Description
+CustomConfigs.variables.hostname.description=The DNS name of the host
+CustomConfigs.variables.portWwn.description=The initiator port WWN
+CustomConfigs.variables.portName.description=The initiator port name
+CustomConfigs.variables.arrayPortWwn.description=The array port WWN
+CustomConfigs.variables.arrayPortName.description=The array port name
+CustomConfigs.variables.serial.description=The array serial number
+CustomConfigs.variables.isRecommended=Variables marked with an asterisk (*) are recommended for uniqueness.
+CustomConfigs.vplex_cluster_number.description=VPLEX cluster number
+CustomConfigs.vplex_cluster_serial_number.description=The VPlex cluster assembly id
+CustomConfigs.fieldsChanged.noErrors=You have %s controller configuration(s) changed.
+CustomConfigs.fieldsChanged.errors=You have %s controller configuration(s) changed with %d error(s).
+CustomConfigs.noVariables.error=At least one recommended variable should be used for uniqueness.
+CustomConfigs.error.create=Error encountered while creating configuration. The value "%s" is not valid for the config type "%s".
+CustomConfigs.error.update=Error encountered while updating configuration. The value "%s" is not valid for the config type "%s".
+CustomConfigs.error.delete=Error encountered while deleting configuration. The controller configuration "%s" could not be deleted.
+
+# Execution Windows
+executionWindows.title=Execution Window Calendar
+executionWindows.description=Add, Remove and edit execution windows. If execution windows are enabled, requests will be scheduled for the next window instead of executing immediately. <span style="font-weight:bold;">Note:  All times are displayed in Local Time.</span>
+executionWindows.loading=Loading...
+executionWindows.confirm=Are you sure you want to delete the %s execution window?
+
+executionWindow.edit=Edit Execution Window
+executionWindow.saved.success='%s' was saved successfully.
+executionWindow.deleted.success='%s' was deleted successfully.
+executionWindow.notfound='%s' not found.
+executionWindow.save.failed=Failed to save '%s'.
+executionWindow.deleted.failed=Failed to delete '%s'.
+executionWindow.deleted.containsScheduledOrders=Failed to delete Execution Window because it contains %s scheduled order(s).
+executionWindow.overlapping=Unable to save Execution Window because of overlapping windows.
+
+executionWindowType.daily=Daily Execution Window
+executionWindowType.weekly=Weekly Execution Window
+executionWindowType.monthly=Monthly Execution Window
+
+executionWindowForm.name=Title
+executionWindowForm.dayOfWeek=Day of Week
+executionWindowForm.dayOfMonth=Day of Month
+executionWindowForm.hourOfDay=Hour to Start
+executionWindowForm.length=Window Length
+executionWindowForm.type=Type
+execWindow.name.notUnique=Name is not unique.
+execWindow.length.max=Length can not be greater than %s.
+execWindow.length.min=Length can not be less than %s.
+execWindow.lengthType=Invalid length type
+execWindow.dayOfMonthNumeric=DayOfMonth must be a numeric value
+
+# Date Stuff
+datetime.hours.0=12am
+datetime.hours.1=1am
+datetime.hours.2=2am
+datetime.hours.3=3am
+datetime.hours.4=4am
+datetime.hours.5=5am
+datetime.hours.6=6am
+datetime.hours.7=7am
+datetime.hours.8=8am
+datetime.hours.9=9am
+datetime.hours.10=10am
+datetime.hours.11=11am
+datetime.hours.12=12pm
+datetime.hours.13=1pm
+datetime.hours.14=2pm
+datetime.hours.15=3pm
+datetime.hours.16=4pm
+datetime.hours.17=5pm
+datetime.hours.18=6pm
+datetime.hours.19=7pm
+datetime.hours.20=8pm
+datetime.hours.21=9pm
+datetime.hours.22=10pm
+datetime.hours.23=11pm
+
+datetime.daysOfWeek.1=Monday
+datetime.daysOfWeek.2=Tuesday
+datetime.daysOfWeek.3=Wednesday
+datetime.daysOfWeek.4=Thursday
+datetime.daysOfWeek.5=Friday
+datetime.daysOfWeek.6=Saturday
+datetime.daysOfWeek.7=Sunday
+
+datetime.units.h=Hours
+datetime.units.min=Minutes
+datetime.units.d=Days
+datetime.units.s=Seconds
+
+datetime.dayOfMonth.L=Last
+
+# About
+system.about.introspection.title=Discovery
+system.about.introspection.description=If changes have been made externally, discovery can be triggered manually.
+system.about.introspection.button=Discover Now
+system.about.support.title=Support
+
+# License
+system.about.license=Licenses
+
+#Database Consistency Page
+db.healthdashboard.title=Database Consistency Check
+
+# System Node Recovery
+system.noderecovery.title=Node Recovery
+systemHealth.startNodeRecovery=Start Node Recovery
+systemHealth.downloadConfigParameters=Download Config Parameters
+systemHealth.fetchingRecoveryStatus=Fetching Node Recovery Status
+
+# System Health Dashboard
+system.healthdashboard.title=System Health
+system.healthdashboard.version=Version:
+system.healthdashboard.refresh=Refresh
+system.healthdashboard.loading=loading...
+system.healthdashboard.nodeReboot=Reboot %s
+
+#Database Consistency Dashboard
+health.start=Start time of Check: 
+health.end=End time
+dbstatus.lastCompletionTime=Last Completed Database Check: 
+dbstatus.progress=Percentage completed: 
+dbstatus.startTime=Start Time of Database Repair: 
+
+system.nodes.total=Total Nodes
+system.stats.node.status=Node Status
+system.node.dataservice=Data Service
+system.node.controller=Controller
+system.node.commodity=Commodity
+system.node.stats.memory=Memory
+system.node.stats.data=Data Storage
+system.node.stats.root=Root Storage
+system.node.error=Cannot access %s's health information. Node may be unavailable or restarting
+system.node.services.error=Cannot access the services of %s. Node may be unavailable or restarting
+systemNodes.name=Name
+systemNodes.status=Status
+systemNodes.type=Type
+systemNodes.ip=IP Address
+systemNodes.actions=Actions
+nodeServices.name=Service Name
+nodeServices.status=Status
+nodeServices.threads=Active Threads
+nodeServices.uptime=Total Uptime
+nodeServices.memory=Virtual Memory
+nodeServices.files=File Descriptor
+nodeServices.pid=PID
+nodeServices.actions=Actions
+
+system.stats.disk.title=Disk Information
+system.stats.disk.name=Disk
+system.stats.disk.read=Read IOPS
+system.stats.disk.write=Write IOPS
+system.stats.disk.util=Utilization
+system.stats.disk.avgwait=Average Wait
+system.stats.reboot=Reboot
+system.stats.restart=Restart
+system.stats.cpu.loadavg= Load Average
+system.stats.services=Services
+system.stats.services.total=Total Services
+system.stats.services.title=Services for %s
+system.stats.actions=Actions
+system.stats.logs=View Logs
+
+system.stats.title=System Statistics
+system.stats.managedCapacity=Managed Capacity
+system.stats.managedCapacity.file=File:
+system.stats.managedCapacity.block=Block:
+system.stats.managedCapacity.free=Free:
+system.stats.managedCapacity.ofTotal=of total
+system.stats.objectCapacity=Object Capacity:
+system.stats.objectCapacity.note=Object is a layered service on top of file that allows access to data via the Object Data Service Only.
+system.stats.hdfsCapacity=HDFS Capacity:
+system.stats.hdfsCapacity.note=HDFS is a layered service on top of file that allows access to data via the HDFS Data Service Only.
+system.stats.objectHdfsCapacity=Object + HDFS Capacity:
+system.stats.objectHdfsCapacity.note=Object + HDFS is a layered service on top of file that allows access to data via both the Object and HDFS Data Services.
+system.stats.diagnostics=Diagnostics
+system.stats.diagnostics.name=Test Name
+system.stats.diagnostics.status=Status
+
+# System Logs
+system.logs.title=System Logs <small>All times are displayed in <span style="font-weight: bold;">local time</span>.</small>
+system.logs.node=Node
+system.logs.service=Service
+system.logs.minseverity=Level
+system.logs.minseverity.help=Return all logs with the selected level and above.
+system.logs.last=Last
+system.logs.download=Download
+system.logs.time=Time
+system.logs.thread=Thread
+system.logs.severity=Level
+system.logs.class=Class
+system.logs.line=Line
+system.logs.message=Message
+system.logs.searchmessage=Message
+system.logs.searchmessage.help=Return logs that only contain the text in the message (case-insensitive).
+system.logs.allnodes=All Nodes
+system.logs.allservices=All Services
+system.logs.changefilter=Filter
+system.logs.refresh=Auto Refresh
+system.logs.refreshOff=Off
+system.logs.update=Update
+system.logs.filter=System Logs Filter
+system.logs.downloadTitle=Download System Logs
+system.logs.from=From
+system.logs.to=To
+system.logs.messageFilter=Message Filter
+system.logs.level.4=ERROR
+system.logs.level.5=WARN
+system.logs.level.7=INFO
+system.logs.level.8=DEBUG
+system.logs.service.systemevents=System Events
+system.logs.node.control=Control Nodes
+system.logs.node.dataservice=Data Service Nodes
+system.logs.node.commodity=Commodity Nodes
+system.logs.filteredText.showing=Showing logs
+system.logs.filteredText.nodeId=on <strong>%s</strong>,
+system.logs.filteredText.from=from the
+system.logs.filteredText.and=and
+system.logs.filteredText.service=service(s),
+system.logs.filteredText.with=with a
+system.logs.filteredText.above= level and above,
+system.logs.filteredText.searchMsg=with messages containing <strong>%s</strong>,
+system.logs.filteredText.starting=starting
+system.logs.filteredText.ending=ending
+system.logs.invalid.timeRange=<div id='filterError' class='alert alert-danger'>Invalid time range.  <span style='font-weight:bold;'>From</span> time can not occur after the <span style='font-weight:bold;'>To</span> time.</div>
+system.logs.invalid.invalidDate=<div id='filterError' class='alert alert-danger'>Invalid date.  <span style='font-weight:bold;'>From and To</span> needs to be set with a valid date.</div>
+
+system.logs.last.5=5 min
+system.logs.last.15=15 min
+system.logs.last.30=30 min
+system.logs.last.60=1 hour
+system.logs.last.120=2 hours
+system.logs.last.180=3 hours
+system.logs.last.360=6 hours
+system.logs.last.720=12 hours
+system.logs.last.1440=1 day
+system.logs.last.2880=2 days
+system.logs.last.4320=3 days
+system.logs.last.10080=1 week
+system.logs.last.20160=2 weeks
+system.logs.last.30240=3 weeks
+system.logs.showLogs=Show Logs
+
+systemLogs.time_ms=Milliseconds
+systemLogs.time=Time
+systemLogs.severity=Level
+systemLogs.service=Service
+systemLogs.message=Message
+systemLogs.noLogs=No matching logs
+systemLogs.loadMore=Load More
+systemLogs.loading=Loading...
+systemLogs.filter.service=Showing logs from <span class="services">%s</span> service(s), with <span class="severity">%s</span> level and above, starting <span class="date">%s</span>
+systemLogs.filter.title=Filter System Logs
+systemLogs.download.title=Download System Logs
+
+filterDialog.nodeId=Node
+filterDialog.service=Services
+filterDialog.severity=Log Level
+filterDialog.severity.help=Return all logs with the selected level and above.
+filterDialog.startTime=Start Time
+filterDialog.endTime=End Time
+filterDialog.searchMessage=Message
+filterDialog.searchMessage.help=Return logs only containing the text in the message (case-insensitive).
+filterDialog.orderTypes=Orders
+filterDialog.orderTypes.help=The type of catalog orders to include in the download package.
+filterDialog.currentTime=Current Time
+systemLogs.orderType.NONE=None
+systemLogs.orderType.ERROR=Failed Orders
+systemLogs.orderType.ALL=All Orders
+
+# Support Request
+supportRequest.title=Submit Support Request
+supportRequest.description=Submit a support request to ConnectEMC.
+supportRequest.userLegend=Contact Information
+supportRequest.name=Name
+supportRequest.phone=Phone
+supportRequest.email=Contact E-mail
+supportRequest.email.help=Please supply an e-mail address where you can be contacted.
+supportRequest.comment=Comments
+supportRequest.comment.help=Provide any comments you would like to send along with the support request.
+supportRequest.comment.template=Problem Headline\n[Enter a brief headline for the problem you are running into, clearly Identifying whether this is file or block provisioning, security, install, upgrade, serviceability or ease-of-use related problem.]\n\nProblem Description and Impact\n[Describe the issue and the impact in detail.]\n\nConditions\n[Document the conditions which causes the problem including the steps that can be followed in order to reproduce the issue.]
+supportRequest.start=Start Time
+supportRequest.end=End Time
+supportRequest.logLegend=Logs
+supportRequest.log.description=Select relevant date and time range for the logs when the issue occurred using the options below and submit. Logs sent will be limited to 16MB compressed. Please select an accurate and precise time interval.
+supportRequest.successful=Your support request is being submitted to ConnectEMC.
+supportRequest.error=An error occurred attempting to send the support request to ConnectEMC. [%s]
+supportRequest.error.endBeforeStart=End time cannot be before start time
+
+
+validation.vcenter.message=Failed to validate vCenter (Invalid host, port, username or password)
+validation.vcenter.messageAndError=Failed to validate vCenter (%s)
+validation.messageAndErrorCode=Validation Failed.  Message: '%s' Exit Code: %s
+validation.errorCode=Validation Failed.  Exit Code: %s
+
+projects.list.title=Projects
+projects.edit.title=Edit Project
+projects.create.title=Create Project
+projects.deleteConfirm=Are you sure you want to delete these Project(s)?
+projects.id=ID
+projects.name=Name
+project.name=Name
+projects.owner=Owner
+project.owner=Owner
+project.owner.help=Enter username in the format of username@domain
+projects.tags=Tags
+projects.deleted=Project(s) deleted successfully.
+projects.saved=Project '%s' saved successfully.
+projects.updateProjectACLs.failed=Failed to update Project Access Control List [%s]
+projects.unknown=Unknown Project ID '%s'
+project.quota=Quota
+project.enableQuota=Enable Quota
+project.quota.error.required=A quota must be supplied if quotas enabled
+project.quota.error.invalid=Quota must be an integer value
+project.owner.error.invalid=Not a valid username.
+
+vdcs.list.title=Virtual Data Centers
+vdcs.edit.title=Edit Virtual Data Center
+vdcs.create.title=Create Virtual Data Center
+vdcs.deleteConfirm=Are you sure you want to delete these Virtual Data Center(s)?
+vdcs.id=ID
+vdcs.shortId=ID
+vdc.shortId=ID
+vdcs.name=Name
+vdc.name=Name
+vdcs.apiEndpoint=ViPR Virtual IP
+vdc.apiEndpoint=ViPR Virtual IP
+vdc.apiEndpoint.help=example: 10.1.1.1
+vdcs.description=Description
+vdc.description=Description
+vdcs.connectionStatus=Status
+vdc.connectionStatus=Status
+vdc.secretKey.modal=Get Secret Key
+vdc.secretKey.modal.help=Use this Secret key when you add this Virtual Data Center to a remote Virtual Data Center.
+vdcs.secretKey=Secret Key
+vdc.secretKey=Secret Key
+vdc.secretKey.help=Log into the remote ViPR instance, and copy the Secret Key from the Virtual Data Center > Get Secret Key page.
+vdcs.local=Local
+vdc.local=Local
+vdcs.tags=Tags
+vdcs.lastSeen=Last Reachable
+vdc.deleted=Virtual Data Center(s) delete initiated successfully.  All Virtual Data Centers will reboot for the change to take effect.
+vdc.deleted.errors=The Virtual Data Center(s) delete task(s) completed with errors.
+vdc.saved=Virtual Data Center '%s' update initiated successfully.
+vdc.saved.reboot=Virtual Data Center '%s' add initiated successfully.  All Virtual Data Centers will reboot for the change to take effect.
+vdc.rebootRequiredMessage=All Virtual Data Centers will reboot automatically after save.
+vdc.rebootRequiredMessageOnDelete=All Virtual Data Centers will reboot automatically after any deletes.
+vdc.rebootRoleRemoveMessage=All Tenant role assignments and Project owners for root user will be removed automatically after save.
+vdc.disconnected=Virtual Data Center disconnect initiated successfully.
+vdc.reconnected=Virtual Data Center reconnect initiated successfully.
+vdcs.unknown=Unknown Virtual Data Center ID '%s'
+vdc.validate=Validate
+vdc.dataservices=Data Services
+vdc.security=Security
+vdc.certChain=Certificate Chain
+vdc.certChain.help=Log into the remote ViPR instance, and download the Certificate Chain from the Virtual Data Center > Download Certificate Chain page.
+vdc.certKey=Private Key
+vdc.certKey.help=The Private Key will need to be acquired for this ViPR instance in order to update the Certificate Chain.
+vdc.rotate=Rotate KeyStore
+vdc.rotate.help=By checking rotate, if you do not provide a Certificate Key and Certificate Chain below, a New one will be generated.
+vdc.geoCmdEndpoint=Inter-VDC Command Endpoint(s)
+vdc.geoCmdEndpoint.help=example: 10.1.1.1, 10.1.1.2, 10.1.1.3
+vdc.geoDataEndpoint=Inter-VDC Data Endpoint(s)
+vdc.geoDataEndpoint.help=example: 10.1.1.1, 10.1.1.2, 10.1.1.3
+vdcs.geoCmdEndpoint=Inter-VDC Command Endpoint(s)
+vdcs.geoDataEndpoint=Inter-VDC Data Endpoint(s)
+VirtualDataCenters.description=Enter the information needed to connect to a virtual data center.
+VirtualDataCenters.unknown=Unknown Storage System with ID '%s'
+vdc.certChain.empty.error=Certificate Chain could not be found.
+vdc.certKey.empty.error=Private Key could not be found.
+vdc.certChain.invalid.error=Error processing Certificate Chain File.
+vdc.certKey.invalid.error=Error processing Private Key File.
+vdc.certs.both.error=When updating the Certificate Chain both the Private Key and Certificate Chain are required.
+vdc.task.description=Error Message
+vdc.task.message=Error Details
+vdc.task.code=Error Code
+vdc.geoCmdEndpoint.invalid.error=Inter-VDC Command Endpoint(s) have an invalid host or IP.
+vdc.geoDataEndpoint.invalid.error=Inter-VDC Data Endpoint(s) have an invalid host or IP.
+vdc.redirected=your gonna be redirected, yo
+
+vdc.endpoints=Inter-VDC Endpoints
+vdc.endpoints.title=Inter-VDC Communication Endpoints
+vdc.endpoints.description=Configure listening endpoints for Inter-VDC communication
+vdc.endpoints.serviceUnavailable=Service Unavailable
+vdc.endpoints.serviceUnavailable.message=Settings cannot be modified because there are no Data Stores created.
+vdc.secretKeys=Secret Key
+
+vdc.task.ADDVDC.message=Adding new vdc to
+vdc.task.UPDATEVDC.message=Updating
+vdc.task.REMOVEVDC.message=Removing
+vdc.task.DISCONNECTVDC.message=Disconnecting
+vdc.task.RECONNECTVDC.message=Reconnecting
+
+keystores.title=Update Keystore
+keystores.description=Enter the information needed to update the Keystore.
+keystore.saved=Keystore updated successfully.
+keystore.saved.reboot=Keystore updated successfully.  ViPR will reboot for the change to take effect.
+keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save.
+keystore.certChain=Certificate Chain
+keystore.certKey=Private Key
+keystore.viewChain = View Certificate Chain
+keystore.rotate=Generate self-signed certificate
+keystore.rotate.help=When generating a self-signed certificate, file uploads are disabled as a new certificate will be generated.
+keystore.certChain.empty.error=Certificate Chain could not be found.
+keystore.certKey.empty.error=Private Key could not be found.
+keystore.certChain.invalid.error=Error processing Certificate Chain File.
+keystore.certKey.invalid.error=Error processing Private Key File.
+keystore.certs.both.error=When updating the Keystore both the Private Key and Certificate Chain are required.
+keystore.task.description=Error Message
+keystore.task.message=Error Details
+keystore.task.code=Error Code
+
+disk.name=Name
+disk.status=Status
+disk.type=Type
+disk.capacity=Capacity
+disk.hardwareId=Hardware Id
+disk.softwareId=Software Id
+
+fabricnode.title=Node
+
+smtpSettings.title=SMTP Settings
+smtpSettings.smtpServer=SMTP Server
+smtpSettings.smtpServer.help=The SMTP host name and port of the mail server.
+smtpSettings.smtpUsername=Username
+smtpSettings.smtpUsername.help=The username used to connect to the mail server.
+smtpSettings.smtpPassword=Password
+smtpSettings.smtpPassword.help=The password used to connect to the mail server.
+smtpSettings.smtpChannel=Channel
+smtpSettings.smtpChannel.help=Determines the channel to use when connecting to the SMTP Server.
+smtpSettings.smtpChannel.allowedValues=Allowed values are [%s]
+smtpSettings.smtpFromAddress=From Address
+smtpSettings.smtpFromAddress.help=Sets the From email address for any outgoing emails generated by the system.
+smtpSettings.saved=SMTP Settings saved successfully.
+
+tenants.list.title=Tenants
+tenants.edit.title=Edit Tenant
+tenants.create.title=Create Tenant
+tenants.deleteConfirm=Are you sure you want to delete these Tenant(s)?
+tenants.id=ID
+tenants.name=Name
+tenant.name=Name
+tenants.description=Description
+tenant.description=Description
+tenants.deleted=Tenents(s) deleted successfully.
+tenants.delete.root=Deleting the Root Provider Tenant is not allowed.
+tenants.saved=Tenant '%s' saved successfully.
+tenants.unknown=Unknown Tenant ID '%s'
+tenants.quota=Quota
+tenants.mappedDomains=Mapped Domains
+tenant.group.help=One group per line
+tenant.attribute.help=One Value per line
+tenant.removeDomain=Remove Domain
+tenant.enableQuota=Enable Quota
+tenant.quota=Quota
+tenant.noDomains=No Authentication Providers have been configured
+tenant.userMappingRequired=A Domain Authentication User Mapping is required
+tenant.quota.error.required=A quota must be supplied if quotas enabled
+tenant.quota.error.invalid=Quota must be an integer value
+tenant.quota.error.mustBeBigger=Quota must be bigger than 0
+tenant.attributeNotValid='%s' not a valid attribute.  Attributes must be <name>=<value>
+
+tenants.roleAssignments.title=Role Assignments
+tenant.roleAssignmentsTitle=Tenant Role Assignments
+Tenants.list.title=Tenants
+Tenants.roleAssignments=Role Assignments
+Tenants.edit.roleAssignments=Edit Role Assignments
+Tenants.edit.roleAssignments.user=User
+Tenants.edit.roleAssignments.group=Group
+Tenants.edit.roleAssignments.redirect=your gonna be redirected, yo
+tenant.editRoleAssignments=Tenant Role Assignments
+
+
+tenantRoleAssignments.list.title=Tenant Role Assignments
+
+vdcRoleAssignments.list.title=VDC Role Assignments
+vdcRoleAssignments.edit.title=Edit VDC Role Assignment
+vdcRoleAssignments.create.title=Create VDC Role Assignment
+
+roleAssignments.list.title=Role Assignments
+roleAssignments.edit.title=Edit Role Assignment
+roleAssignments.create.title=Create Role Assignment
+roleAssignments.deleteConfirm=Are you sure you want to delete these Role Assignment(s)?
+roleAssignments.id=ID
+roleAssignments.name=Name
+roleAssignments.type=Type
+roleAssignments.roles=Roles
+roleAssignment.name=Name
+roleAssignment.tenant=Tenant
+roleAssignment.type=Type
+roleAssignments.localizedType=Type
+roleAssignment.roles=Roles
+roleAssignments.deleted=Role Assignment(s) deleted successfully.
+roleAssignments.saved=Role Assignment '%s' saved successfully.
+roleAssignments.unknown=Unknown Role Assignment ID
+roleAssignments.role=Role
+roleAssignments.grant=Grant
+roleAssignments.description=Description
+roleAssignments.tenantRoles=Tenant Roles
+roleAssignments.tenantRoles.description=Roles which determine what functions Users/Groups can perform within the Tenant.
+roleAssignments.vdcRoles=Virtual Data Center Roles
+roleAssignments.vdcRoles.description=Roles which determine what functions Users/Groups can perform within the Virtual Data Center.
+roleAssignments.rootNotDeleted=Role Assignments for the 'root' user were not deleted.
+roleAssignments.atLeastOneChecked=At least one Role must be selected.
+roleAssignments.USER.alreadyExists=A role assignment already exists for this user.
+roleAssignments.GROUP.alreadyExists=A role assignment already exists for this group.
+roleAssignments.groupNotValid=The name [%s] is not a valid Group.
+roleAssignments.userNotValid=The name [%s] is not a valid User.
+
+certificates.list.title=Trusted Certificates
+certificates.list.settings_title=Settings
+certificateSettings.acceptAllCertificates=Accept All Certificates
+certificateSettings.acceptAllCertificates.help=If set to 'Yes', no certificate verification will be performed within the ViPR environment.
+certificateSettings.submitted=Certificate settings have been submitted to the system.
+certificates.list.options=Yes,No
+certificates.notAfter=Until
+certificates.notBefore=From
+certificates.commonName=Common Name
+certificates.organization=Organization
+certificates.issuedBy=Issued By
+certificates.userSupplied=User Supplied
+certificates.confirm=Are you sure you want to apply the selected changes?
+certificates.certificateValid=Valid
+certificates.title=Trusted Certificates
+certificates.update=Trusted certificates updated
+certificates.nothing=Nothing to do
+certificates.info=Certificates will be used to communicate with authentication providers, and within the ViPR environment.
+
+certificateChanges.add=Add Certificates
+certificateChanges.files=Upload Certificates
+certificateChanges.files.help=Provide a PEM encoded certificate
+certificateChanges.files.invalid=%s is not a valid certificate
+certificateChanges.files.invalidAjax=Not a valid certificate
+certificateChanges.removes.help=Selected certificates will be removed on save
+certificateChanges.submittedReconfigure=Certificate changes have been submitted to the system. The system will reconfigure for the change to take effect.
+certificateChanges.remove=Remove
+certificateChanges.deleteConfirm=Are you sure you want to remove the selected certificate(s)?
+certificateChanges.rebootRequiredMessage=ViPR Nodes will be rebooted automatically after delete.
+
+Role.TENANT_ADMIN=Tenant Administrator
+Role.TENANT_ADMIN.description=<ul><li>Creates projects and has all permissions for projects in their tenant.</li><li>Sets ACL permissions for projects and the service catalog.</li><li>Assigns tenant roles.</li><li>Manages resources for all projects in their tenant.</li></ul>
+Role.SYSTEM_ADMIN=System Administrator
+Role.SYSTEM_ADMIN.description=<ul><li>Manages the Virtual Data Center physical and virtual assets.</li><li>Manages software and license updates.</li><li>Retrieves ViPR status and system health.</li><li>Configures Data Services.</li></ul>
+Role.SECURITY_ADMIN=Security Administrator
+Role.SECURITY_ADMIN.description=<ul><li>Manages the Virtual Data Center authentication providers.</li><li>Sets system configuration parameters for the Virtual Data Center.</li><li>Assigns roles for the Virtual Data Center and for tenants.</li><li>Manage Virtual Data Centers in a GEO Configuration.</li><li>Creates and manages subtenants.</li></ul>
+Role.SYSTEM_MONITOR=System Monitor
+Role.SYSTEM_MONITOR.description=<ul><li>Retrieves metering and monitoring records for the Virtual Data Center.</li></ul>
+Role.SYSTEM_AUDITOR=System Auditor
+Role.SYSTEM_AUDITOR.description=<ul><li>Retrieves audit logs for the Virtual Data Center.</li></ul>
+Role.PROJECT_ADMIN=Project Administrator
+Role.PROJECT_ADMIN.description=<ul><li>Creates projects in their tenant.</li></ul>
+Role.TENANT_APPROVER=Tenant Approver
+Role.TENANT_APPROVER.description=<ul><li>Approves orders in their tenant.</li></ul>
+
+RoleAssignmentType.USER=User
+RoleAssignmentType.USER.help=Enter username in the format of user@domain
+RoleAssignmentType.GROUP=Group
+RoleAssignmentType.GROUP.help=Enter group name in the format group@domain
+
+ACL.ANY=Any
+ACL.OWN=Owner
+ACL.ALL=All
+ACL.USE=Use
+ACL.BACKUP=Backup
+
+security.accessControlList=Access Control List
+security.accessControlList.description=Controls fine-grained access to the resource.
+security.accessControlList.aclName=Name
+security.accessControlList.type=Type
+security.accessControlList.access=Access
+security.tenantControlList=Tenant Access
+security.tenantControlList.description.varray=Controls which tenants have access to the virtual array (default all)
+security.tenantControlList.description.vpool=Controls which tenants have access to the virtual pool (default all)
+security.accessControlList.button.remove=Remove
+security.accessControlList.button.addAcl=Add ACL
+
+security.accessControlList.aclName.required=Name is required.
+security.accessControlList.access.required=Access is required.
+security.accessControlList.type.required=Type is required.
+security.accessControlList.domain.required=Domain is required.  Valid format is 'name@domain'.
+security.accessControlList.domain.notfound=Domain not found in list of authentication providers.
+security.accessControlList.group.notfound=Group not found in authentication provider's group whitelist.
+security.accessControlList.group.notvalid=Group is not valid.
+security.accessControlList.localuser.notpermitted=Local users are not permitted.
+security.accessControlList.user.notvalid=User is not valid.
+
+tenant.usermapping=User Mapping Rules
+tenant.usermapping.description=Specifies rules by which users from an Authentication Provider should be considered a member of this tenant (Only Security Admin has permission).
+tenant.usermapping.help=Controls how users are mapped to this tenant
+tenant.usermapping.removeRule=Remove Rule
+tenant.usermapping.detailedHelp=A user is considered a member of this tenant if they match ANY of the rules.  A rule matches if the user is in the specified Authentication Provider domain AND in all the groups AND has all the attributes.
+tenant.usermapping.addUserMapping=Add User Mapping Rule
+tenant.usermapping.domain=Domain
+tenant.usermapping.groups=Groups
+tenant.usermapping.attr=Attributes
+tenant.usermapping.add.mapping=Add User Mapping
+tenant.usermapping.add.attr=Add Attribute
+tenant.quota=Tenant Quota
+tenant.quota.description=Specifies Volume/FileSystem quota for this tenant (Only Security Admin has permission).
+
+nav.approvalConfig=Approval Settings
+approvalConfig.title=Approval Settings
+approvalConfig.saved=Settings saved
+approvalConfig.approverEmail=Approver Email
+approvalConfig.approverEmail.help=The email addresses for approvers (comma separated)
+approvalConfig.approvalUrl=Approval Service URL
+approvalConfig.approvalUrl.help=URL to an external service to receive approval notifications
+
+Introspection.Started=%s assets added to the discovery queue.
+
+#### Infrastructure management
+#AD/LDAP Sources
+LDAPsources.list.title=Authentication Providers
+LDAPsources.edit.title=Edit Authentication Provider
+LDAPsources.create.title=Create Authentication Provider
+LDAPsources.description=Enter the information needed to create an Authentication Provider
+LDAPsources.saved=Saved '%s'
+LDAPsources.deleted=Deleted Successfully
+LDAPsources.failed='%s' of '%s' selected Authentication Providers deleted: '%s'.  Please check server log for more details.
+LDAPsources.unknown=Unknown Authentication Provider with ID '%s'
+LDAPsources.deleteConfirm=Are you sure you want to delete the selected Authentication Providers?
+ldapSources.name=Name
+ldapSources.mode=Type
+ldapSources.description=Description
+ldapSources.disable=Disabled
+ldapSources.disable.help=Disabled providers will not have their connectivity validated or be available for processing login requests
+ldapSources.domains=Domains
+ldapSources.domains.description=List all Domains, one per line
+ldapSources.groupAttribute=Group Attribute
+ldapSources.groupAttribute.description=Please check that the given attribute uniquely identifies groups within the full scope of the search path specified.
+ldapSources.groupWhiteListValues=Group Whitelist
+ldapSources.groupWhiteListValues.description=List all Group Whitelist values, one per line
+ldapSources.managerDn=Manager DN
+ldapSources.managerPassword=Manager Password
+ldapSources.searchBase=Search Base
+ldapSources.searchFilter=Search Filter
+ldapSources.searchFilter.help=Variables: '%%u' is replaced by the full username and domain (user@domain), '%%U' is replaced by the username, and '%%d' is replaced with the domain.
+ldapSources.searchScope=Search Scope
+ldapSources.serverCert=Server Certificate
+ldapSources.serverUrls=Server URLs
+ldapSources.serverUrls.description=List all Server URLs, one per line - ex: ldap://10.1.1.1
+ldapSources.serverUrls.not.valid=All Server URLs are not valid format
+ldapSources.serverUrls.pattern=^((ldaps?|ldap)://|(ldaps|ldap)\.)[a-z0-9-]+(\.[a-z0-9-]+)+([/?].*)?$
+ldapSources.searchFilter.equalsRequired=An equals sign (=) is required.
+ldapSources.searchFilter.variableRequired=Must contain %%%%u or %%%%U after the equal sign.
+ldapSources.disabled=Enabled
+ldapSources.groupObjectClasses = Group Object Classes
+ldapSources.groupMemberAttributes = Group Member Attributes
+ldapSources.groupObjectClasses.description=Provide all the object classes that represents the group in the ldap schema. One per line. \
+                                                Leaving empty in both object classes and member attributes is allowed but groups cannot be used in ldap mode. \
+                                                Default values are provided based on the ldap core schema, modify them depending on the ldap schema in use.
+ldapSources.groupMemberAttributes.description=Provide all the attributes of group object that represents members in the ldap schema. One per line. \
+                                                        Leaving empty in both object classes and member attributes is allowed but groups cannot be used in ldap mode. \
+                                                        Default values are provided based on the ldap core schema, modify them depending on the ldap schema in use.
+ldapSources.groupObjectClasses.variableRequired = At least one group object class is required. To use groups ldap in mode, please enter both object classes and member attributes.\
+                                                        Leaving empty in both object classes and member attributes is allowed but groups cannot be used in ldap mode.
+ldapSources.groupMemberAttributes.variableRequired = At least one group member attribute is required. To use groups ldap in mode, please enter both object classes and member attributes.\
+                                                        Leaving empty in both object classes and member attributes is allowed but groups cannot be used in ldap mode.
+
+
+#Data Protection Systems
+DataProtectionSystems.list.title=Data Protection Systems
+DataProtectionSystems.edit.title=Edit Data Protection System
+DataProtectionSystems.create.title=Add Data Protection System
+DataProtectionSystems.description=Enter the information needed to connect to a data protection system.
+DataProtectionSystems.saved=Saved '%s'
+DataProtectionSystems.deleted.success=Deleted Successfully.
+DataProtectionSystems.deleted.error='%s' of '%s' selected Data Protection Systems deleted: '%s'.  Please check server log for more details.
+DataProtectionSystems.unknown=Unknown Data Protection System with ID '%s'
+DataProtectionSystems.deleteConfirm=Are you sure you want to delete the selected Data Protection Systems?
+DataProtectionSystems.connectivity.error=There is problem with getting details information for the following Data Protection Systems: '%s'.  Please check server log for more details.
+
+dataProtectionSystem.confirmPassword.not.match=Passwords do not match.
+dataProtectionSystem.port.not.numeric=Port must be numeric.
+
+dataProtectionSystem.name=Name
+dataProtectionSystem.lastDiscoveredDate=Last Discovery
+dataProtectionSystem.discoveryStatus=Status
+dataProtectionSystem.errorDetails=Error Details
+dataProtectionSystem.version=Version
+dataProtectionSystem.sitePairing=Site Pairing
+dataProtectionSystem.ipAddress=Host
+dataProtectionSystem.ipAddress.help=Enter the fully qualified domain name or IP address of the host.
+dataProtectionSystem.port=Port
+dataProtectionSystem.host=Host
+dataProtectionSystem.systemType=Type
+dataProtectionSystem.userName=User
+dataProtectionSystem.password=Password
+dataProtectionSystem.passwordConfirm=Confirm Password
+dataProtectionSystem.lastDiscoveredDate=Last Discovery
+
+# Networks
+Networks.list.title=Networks
+Networks.editIP.title=Edit IP Network
+Networks.editFC.title=Edit Fibre Channel Network
+Networks.editScaleIO.title=Edit ScaleIO Network
+Networks.edit.description=Enter the information needed to change the network
+
+Networks.save.success=Saved '%s'
+Networks.save.error=Failed to save '%s'
+Networks.delete.success=Delete/De-registration Successful.
+Networks.delete.error='%s' of '%s' selected Networks deleted/de-registered: '%s'.  Please check server log for more details.
+Networks.unknown=Unknown Network with ID '%s'
+Networks.deleteConfirm=Are you sure you want to delete/deregister the selected Network(s)?
+Networks.createIpNetwork=Create IP Network
+Networks.add=Add IP Network
+Networks.createIpNetwork.description=Enter the name of the IP network.  Once the network is created its ports may be edited.
+
+Network.endpointsIP.title=IP Ports
+Network.endpointsIP.description=Ports assigned to this network
+Network.endpointsFC.title=Fibre Channel Ports
+Network.endpointsFC.description=Ports assigned to this network
+Network.endpointsScaleIO.title=ScaleIO Ports
+Network.endpointsScaleIO.description=Ports discovered and assigned to this network
+endpoints.identifier=Identifier
+endpoints.ipAddress=IP Address
+endpoints.name=Name
+endpoints.storageSystem=Storage System
+endpoints.host=Host
+endpoints.discovered=Discovered
+endpoints.alias=Alias
+endpoints.portGroup=Group
+
+Network.addPorts.title=Add Ports
+Network.addHostPorts.title=Add Host Ports
+Network.addArrayPorts.title=Add Array Ports
+network.FCports=Fibre Channel Ports
+network.FCports.help=Enter ports to be added to this network (one per line)
+network.IPports=IP Ports
+network.IPports.help=Enter ports to be added to this network (one per line)
+network.ScaleIOports=ScaleIO Ports
+network.ScaleIOports.help=Enter ports to be added to this network (one per line)
+network.name=Name
+network.type=Type
+network.discovered=Discovered
+network.fabricId=Fabric/VSAN
+network.virtualArrays=Virtual Arrays
+network.addPorts=Add Ports
+network.addHostPorts=Add Host Ports
+network.addStorageSystemPorts=Add Array Ports
+network.vsa=Virtual Array
+network.vsaName=Virtual Array
+network.storagePorts=Storage Ports
+network.hostPorts=Host Ports
+network.hostPortID=Host Port ID
+network.ports=Ports
+network.ports.IP=IP Ports
+network.ports.FC=Fibre Channel Ports
+network.ports.ScaleIO=ScaleIO Ports
+network.ports.description=Ports assigned to this network
+network.ports.tab.hosts=Ports From Hosts
+network.ports.tab.arrays=Ports From Storage Systems
+network.ports.tab.manual=Manual
+network.ports.add.to.network=Add Ports to Network
+network.ports.add.to.network.description=For IP Networks, both Storage System and Host ports must be manually added to the network before it can be used for provisioning
+network.ports.add.error.invalid=The following ports: '%s' could not be added.  They contain commas which are invalid port characters.
+network.storageArrayPorts=Storage System Ports
+network.ports.manual.help=Enter ports to be added to this network (one per line)
+network.manualPorts=Ports
+network.host.wnn.invalid.format=Invalid WWN port format.  Please enter valid format of: 'FF:FF:FF:FF:FF:FF:FF:FF'
+network.ipv4.iqn.invalid.format=Invalid IPv4, IPv6, or IQN port format.
+
+network.ipv4.cidr.pattern=(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,3})
+network.ipv4.wildcard.pattern=(\\d{1,3})\\.(\\d{1,3}|\\*)\\.(\\d{1,3}|\\*)\\.(\\d{1,3}|\\*)
+
+assignedNetworks.name=Name
+assignedNetworks.type=Type
+assignedNetworks.discovered=Discovered
+assignedNetworks.vsa=Virtual Array
+assignedNetworks.vsaName=Virtual Array
+assignedNetworks.registrationStatus=Registered
+
+availableNetworks.name=Name
+availableNetworks.type=Type
+availableNetworks.discovered=Discovered
+availableNetworks.vsa=Virtual Array
+availableNetworks.vsaName=Virtual Array
+
+
+#Network Enums
+NetworkSystemType.brocade=Brocade
+NetworkSystemType.mds=Cisco MDS
+
+
+#Storage Ports
+networkPorts.name=Name
+networkPorts.storageArrayName=Storage System
+networkPorts.hostName=Host
+networkPorts.networkIdentifier=Identifier
+networkPorts.iqn=IQN
+
+hostsPorts.name=Name
+hostsPorts.storageArrayName=Storage System
+hostsPorts.hostName=Host
+hostsPorts.networkIdentifier=Identifier
+hostsPorts.assignedToNetork=Assigned to Network
+
+arraysPorts.name=Name
+arraysPorts.storageArrayName=Storage System
+arraysPorts.hostName=Host
+arraysPorts.networkIdentifier=Identifier
+arraysPorts.iqn=IQN
+arraysPorts.assignedToNetork=Assigned to Network
+
+# Switch
+fabricManagers.id=ID
+fabricManagers.name=Name
+fabricManagers.vsansSerial=VsansSerial
+fabricManagers.fabricManagerType=Type
+fabricManagers.fabricManagerTypeId=Type
+fabricManagers.ip=IP Address
+fabricManagers.user=User
+#fabricManagers.connection.host=Host
+#fabricManagers.connection.host.help=Enter the fully qualified domain name or IP address of the host.
+fabricManagers.connection.user=User
+fabricManagers.connection.password=Password
+fabricManagers.connection.port=Port
+fabricManagers.vdcs.id=VDCs
+#fabricManagers.connectionHost=Host
+#fabricManagers.connectionHost.help=Enter the fully qualified domain name or IP address of the host.
+fabricManagers.connectionUser=User
+fabricManagers.connectionPassword=Password
+fabricManagers.connectionPort=Port
+fabricManagers.vdcIds=VDCs
+fabricManagers.vdcs=VDCs
+fabricManagers.introspectionStatus=Discovery
+fabricManagers.tftpBackupUrl=TFTP Backup URL
+
+switches.connection=Connection
+switches.connection.id=Connection
+
+FabricManagers.list.title=Fabric Managers
+FabricManagers.edit.title=Edit Fabric Manager
+FabricManagers.create.title=Add Fabric Manager
+FabricManagers.description=Enter the information needed to connect to a Fabric Manager.
+FabricManagers.saved=Saved '%s'
+FabricManagers.deleted=Deleted Successfully
+FabricManagers.unknown=Unknown Fabric Manager with ID '%s'
+FabricManagers.deleteConfirm=Are you sure you want to delete the selected Fabric Managers?
+
+# SanSwitches
+SanSwitches.list.title=Fabric Managers
+SanSwitches.edit.title=Edit Fabric Manager
+SanSwitches.create.title=Add Fabric Manager
+SanSwitches.description=Enter the information needed to connect to a Fabric Manager.
+SanSwitches.saved=Saved '%s'
+SanSwitches.deleted.success=Deleted Successfully.
+SanSwitches.deleted.error='%s' of '%s' selected Fabric Managers deleted: '%s'.  Please check server log for more details.
+SanSwitches.unknown=Unknown Fabric Manager with ID '%s'
+SanSwitches.deleteConfirm=Are you sure you want to delete the selected Fabric Managers?
+
+sanSwitch.id=ID
+sanSwitch.serialNumber=Serial Number
+sanSwitch.host=Host
+sanSwitch.type=Type
+sanSwitch.version=Version
+sanSwitch.uptime=Uptime
+sanSwitch.name=Name
+sanSwitch.deviceType=Type
+sanSwitch.ipAddress=Host
+sanSwitch.ipAddress.help=Enter the fully qualified domain name or IP address of the host.
+sanSwitch.portNumber=Port
+sanSwitch.userName=User
+sanSwitch.discoveryStatus=Status
+sanSwitch.registrationStatus=Registered
+sanSwitch.useSSL=Use SSL
+sanSwitch.userPassword=Password
+sanSwitch.confirmPassword=Confirm Password
+
+sanSwitch.brocade=Brocade
+sanSwitch.mds=Cisco MDS
+
+#SMI-S Providers
+SMISProviders.list.title=Storage Providers
+SMISProviders.edit.title=Edit Storage Provider
+SMISProviders.create.title=Add Storage Provider
+SMISProviders.description=Enter the information needed to connect to a Storage Provider
+SMISProviders.saved=Saved '%s'
+SMISProviders.deleted.success=Deleted Successfully.
+SMISProviders.deleted.error='%s' of '%s' selected Storage Providers deleted: '%s'.  Please check server log for more details.
+SMISProviders.deleted.not.allowed=Delete not allowed. Please remove all dependent storage systems before attempting to remove an Storage Provider
+SMISProviders.unknown=Unknown Storage provider with ID '%s'
+SMISProviders.deleteConfirm=WARNING: Deletion of storage provider from ViPR is not a fully reversible operation. Are you sure you want to delete the selected storage provider?
+SMISProviders.introspection=Rediscovery for all Storage Providers has been initiated.
+SMISProviders.connectedStorageArrays.error=There is problem with getting connected storage systems of the following Storage Providers: '%s'.  Please check server log for more details.
+
+smisProvider.name=Name
+smisProvider.ipAddress=Host
+smisProvider.ipAddress.help=Enter the fully qualified domain name or IP address of the host.
+smisProvider.host=Host
+smisProvider.portNumber=Port
+smisProvider.version=Version
+smisProvider.providerId=Provider ID
+smisProvider.userName=User
+smisProvider.password=Password
+smisProvider.confirmPassword=Confirm Password
+smisProvider.confirmPassword.not.match=User Password and Confirm Password do not match.
+smisProvider.useSSL=Use SSL
+smisProvider.lastDiscoveredDate=Last Discovery
+smisProvider.discoveryStatus=Status
+smisProvider.errorDetails=Error Details
+smisProvider.storageSystems=Storage Systems
+smisProvider.interfaceType=Type
+smisProvider.manageUrl=Actions
+smisProvider.secondaryUsername=MDM User
+smisProvider.secondaryPassword=MDM Password
+smisProvider.secondaryPasswordConfirm=Confirm MDM Password
+smisProvider.secondaryPassword.confirmPassword.not.match=User MDM Password and Confirm MDM Password do not match.
+smisProvider.elementManagerURL=Element Manager URL
+
+storageProvider.interfaceType.hicommand=Hitachi HiCommand
+storageProvider.interfaceType.smis=SMI-S for EMC VMAX, VNX Block
+storageProvider.interfaceType.vplex=VPLEX
+storageProvider.interfaceType.cinder=Third-party block
+storageProvider.interfaceType.scaleio=Block Storage Powered by ScaleIO
+storageProvider.interfaceType.ddmc=Data Domain Management Center
+storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
+
+StorageSystems.list.title=Storage Systems
+StorageSystems.edit.title=Edit Storage System
+StorageSystems.create.title=Add Storage System
+StorageSystems.description=Enter the information needed to discover to the storage system.
+StorageSystems.savedArray=Saved Storage System '%s'
+StorageSystems.savedSMIS=Saved Storage Provider '%s'. You may need to refresh this view to see new storage systems as storage provider discovery progresses.
+StorageSystems.deleted.success=Deleted Successfully.
+StorageSystems.deleted.error='%s' of '%s' selected Storage Systems deleted: '%s'.  Please check server log for more details.
+StorageSystems.unknown=Unknown Storage System with ID '%s'
+StorageSystems.deleteConfirm=WARNING: Deletion of storage systems from ViPR is not a fully reversible operation. Are you sure you want to delete the selected storage systems?
+StorageSystems.nameNotAvailable=Name Not Available
+StorageSystems.onboardSmisProvider=Onboard Storage Provider
+StorageSystems.onboardSmisProvider.description=ViPR requires access to the VNX File system's Onboard Storage Provider to receive events
+StorageSystems.pools=Pools
+StorageSystems.ports=Ports
+StorageSystems.editPools=Edit Pools
+StorageSystems.editPorts=Edit Ports
+StorageSystems.connectivity.error=There is problem with getting details information for the following Storage Systems: '%s'.  Please check server log for more details.
+StorageSystems.configSettings=Settings
+StorageSystems.not.registered=Storage Array: '%s' is not registered.  It can not be edited.
+
+storageArray.id=ID
+storageArray.serialNumber=Serial Number
+storageArray.name=Name
+storageArray.lastDiscoveredDate=Last Discovery
+storageArray.discoveryStatus=Status
+storageArray.registrationStatus=Registered
+storageArray.errorDetails=Error Details
+storageArray.dataProtectionConnectivity=Data Protection
+storageArray.host=Host
+storageArray.type=Type
+storageArray.version=Version
+storageArray.ipAddress=IP Address
+storageArray.ipAddress.help=Enter the IP address of the system.
+storageArray.smisProvider=Storage Provider
+storageArray.smisProviderIpAddress=Storage Provider Host
+storageArray.smisProviderIpAddress.help=In most situations, the Storage Provider Host will match the Host used for discovery
+storageArray.vnxFileIPAddress=Control Station IP
+storageArray.vnxFileIPAddress.help=Enter the IP address of the Control Station
+storageArray.portNumber=Port
+storageArray.useSSL=Use SSL
+storageArray.alert=Alert
+storageArray.userName=User
+storageArray.userPassword=Password
+storageArray.confirmPassword=Confirm Password
+storageArray.confirmPassword.not.match=User Password and Confirm Password do not match.
+storageArray.resourceLimit=Resource Limit
+storageArray.resourceLimit.help=Specify the maximum number of resources ViPR should provision on this storage system (0 or greater)
+storageArray.fileResourceLimit=File System Limit
+storageArray.fileResourceLimit.help=Specify the maximum number of file systems ViPR should provision on this storage system (0 or greater)
+storageArray.block_fileResourceLimit=Volume / File System Limit
+storageArray.block_fileResourceLimit.help=Specify the maximum number of volumes / file systems ViPR should provision on this storage system (0 or greater)
+storageArray.blockResourceLimit=Volume Limit
+storageArray.blockResourceLimit.help=Specify the maximum number of volumes ViPR should provision on this storage system (0 or greater)
+storageArray.unlimitResource=Unlimited Resource Allocation
+storageArray.unlimitResource.help=If unchecked, please specify a limit below
+storageArray.secondaryUsername=MDM User
+storageArray.secondaryPassword=MDM Password
+storageArray.secondaryPasswordConfirm=Confirm MDM Password
+storageArray.secondaryPassword.confirmPassword.not.match=User MDM Password and Confirm MDM Password do not match.
+storageArray.elementManagerURL=Element Manager URL
+#
+# onboard SMI-S Provider
+#
+storageArray.smisProviderUseSSL=Storage Provider Use SSL
+storageArray.smisProviderPortNumber=Storage Provider Port
+storageArray.smisProviderUserName=Storage Provider User
+storageArray.smisProviderUserPassword=Storage Provider Password
+storageArray.smisProviderConfirmPassword=Storage Provider Confirm Password
+
+# Pools associated with a Storage System
+StorageSystems.pools.edit.title=Edit Storage Pool
+StorageSystems.listPools.title=Storage Pools
+StorageSystems.pools.title=Storage Pools
+storageArrayPools.name=Name
+storageArrayPools.status=Status
+storageArrayPools.driveTypes=Drive Types
+storageArrayPools.volumeTypes=Resource Types
+storageArrayPools.freeCapacity=Free
+storageArrayPools.subscribedCapacity=Subscribed
+storageArrayPools.totalCapacity=Total
+storageArrayPools.protocols=Protocols
+storageArrayPools.registrationStatus=Registered
+StorageArrayPools.not.registered=Storage Pool: '%s' is not registered.  It can not be edited.
+StorageSystems.pools.description=Enter the information needed to edit a Storage Pool.
+
+storageArrayPool.name=Name
+storageArrayPool.maxPoolUtilizationPercentage=Maximum Utilization
+storageArrayPool.maxThinPoolSubscriptionPercentage=Maximum Subscription
+storageArrayPool.resourceLimit.block=Volume Limit
+storageArrayPool.resourceLimit.block.help=Maximum number of volumes ViPR should provision on this storage pool (blank for no limit)
+storageArrayPool.resourceLimit.file=File System Limit
+storageArrayPool.resourceLimit.file.help=Maximum number of file systems ViPR should provision on this storage pool (blank for no limit)
+storageArrayPool.resourceLimit.object=Resource Limit
+storageArrayPool.resourceLimit.object.help=Maximum number of resources ViPR should provision on this storage pool (blank for no limit)
+storageArrayPool.resourceLimit.block_file=Volume / File System Limit
+storageArrayPool.resourceLimit.block_file.help=Maximum number of volumes / file systems ViPR should provision on this storage pool (blank for no limit)
+
+StorageSystems.savedPool=Saved '%s'
+# Ports associated with a Storage System
+StorageSystems.ports.create.title=Create Storage Port
+StorageSystems.ports.edit.title=Edit Storage Port
+StorageSystems.listPorts.title=Storage Ports
+StorageSystems.ports.title=Storage Ports
+StorageSystems.ports.create.description=Enter the information needed to create a Storage Port.
+StorageSystems.ports.edit.description=Enter the information needed to edit a Storage Port.
+storageArrayPorts.networkIdentifier=Identifier
+storageArrayPorts.iqn=IQN
+storageArrayPorts.operationalStatus=Status
+storageArrayPorts.registrationStatus=Registered
+storageArrayPorts.name=Name
+storageArrayPorts.portGroup=Group
+storageArrayPorts.type=Type
+storageArrayPorts.alias=Alias
+storageArrayPort.name=Name
+storageArrayPort.unknown=Unknown Storage Port with ID '%s'
+storageArrayPort.portType=Port Type
+storageArrayPort.port=Port Network ID
+storageArrayPort.port.help=Enter a valid FC or IQN port network Id.
+storageArrayPort.port.invalidWWN=Not a valid WWN. Must be 16 hex characters, separated by colons
+storageArrayPort.port.invalidIQN=Not a valid IQN
+storageArrayPorts.allocationDisqualified=Allocatable
+storageArrayPorts.portPercentBusy=Port Percent Busy
+storageArrayPorts.cpuPercentBusy=CPU Percent Busy
+storageArrayPorts.initiatorLoad=Initiator Load
+storageArrayPorts.volumeLoad=Volume Load
+storageArrayPort.portTypes.IP=IP
+storageArrayPort.portTypes.FC=Fiber Channel
+
+StorageSystems.savedPort=Saved '%s'
+
+storageType.noselection=
+storageType.file=File
+storageType.block=Block
+storageType.object=Object
+
+provisioningType.Thin=Thin
+provisioningType.Thick=Thick
+
+SupportedResourceTypes.THIN_ONLY=Thin
+SupportedResourceTypes.THICK_ONLY=Thick
+SupportedResourceTypes.THIN_AND_THICK=Thin, Thick
+
+connectivity=Connectivity
+connectivity.none=None
+connectivity.error=Failed to retrieve connectivity information
+
+protocol.iSCSI=iSCSI
+protocol.FC=Fibre Channel
+protocol.NFS=NFS
+protocol.CIFS=CIFS
+protocol.ScaleIO=ScaleIO
+
+SupportedDriveType.UNKNOWN=Unknown
+SupportedDriveType.NONE=None
+SupportedDriveType.FC=FC
+SupportedDriveType.NL_SAS=NL_SAS
+SupportedDriveType.SAS=SAS
+SupportedDriveType.SATA=SATA
+SupportedDriveType.SSD=SSD
+SupportedDriveType.HARD_DISK_DRIVE=HD
+
+systemType.noselection=Any
+systemType.vmax=EMC VMAX
+systemType.vnx=EMC VNX Block
+systemType.vnxfile=EMC VNX File
+systemType.isilon=EMC Isilon
+systemType.netapp=NetApp 7-mode
+systemType.netappc=NetApp Cluster-mode
+systemType.xtremio=EMC XtremIO
+
+storagePoolAssignment.automatic=Automatic
+storagePoolAssignment.manual=Manual
+
+# File Virtual Pools
+FileVirtualPools.list.title=File Virtual Pools
+FileVirtualPools.create.title=Create File Virtual Pool
+FileVirtualPools.create.description=Enter the information to create a new file virtual pool.
+FileVirtualPools.edit.title=Edit File Virtual Pool
+FileVirtualPools.edit.description=Edit an existing file virtual pool.
+
+# Block Virtual Pools
+BlockVirtualPools.list.title=Block Virtual Pools
+BlockVirtualPools.edit.title=Edit Block Virtual Pool
+BlockVirtualPools.edit.description=Edit an existing block virtual pool.
+BlockVirtualPools.create.title=Create Block Virtual Pool
+BlockVirtualPools.create.description=Enter the information needed to create a Block Virtual Pool.
+
+VirtualPools.locked=This virtual pool has associated resources.  Only a limited number of fields may be changed.
+VirtualPools.save.success=Saved '%s'
+VirtualPools.save.error=Failed to save '%s'
+VirtualPools.delete.success=Deleted Successfully.
+VirtualPools.delete.error='%s' of '%s' selected Virtual Pools deleted: '%s'.  Please check server log for more details.
+VirtualPools.unknown=Unknown Virtual Pool with ID '%s'
+VirtualPools.deleteConfirm=Are you sure you want to delete the selected Virtual Pools?
+virtualPools.updateVpoolACLs.failed
+virtualPools.duplicate.name=%s_copy
+
+virtualPools.name=Name
+virtualPools.description=Description
+virtualPools.storagePoolAssignment=Pool Assignment
+virtualPools.poolType=Type
+virtualPools.provisioningType=Provisioning
+virtualPools.provisionedAs=Type
+virtualPools.protocols=Protocols
+virtualPools.numPools=Pools
+virtualPools.numResources=Resources
+
+# Virtual Pool groups
+vpool.group.hardware=Hardware
+vpool.group.sanPaths=SAN Multi Path
+vpool.group.highAvailability=High Availability
+vpool.group.protection=Data Protection
+vpool.group.accessControl=Access Control
+vpool.group.storagePools=Storage Pools
+vpool.group.archive=Archive
+
+vpool.name=Name
+vpool.description=Description
+vpool.poolType=Storage Type
+vpool.driveType=Drive Type
+vpool.provisioningType=Provisioning Type
+vpool.virtualArrays=Virtual Arrays
+vpool.tenants=Tenants
+vpool.enableTenants=Grant Access to Tenants
+vpool.virtualArrays.help=A Virtual Pool must be associated with one or more Virtual Arrays before the options for other available criteria can be determined.
+vpool.heading.blockCriteria=Block Storage Criteria
+vpool.heading.fileCriteria=File Storage Criteria
+vpool.heading.dataProtection=Data Protection/High Availability
+vpool.heading.quota=Quota
+vpool.heading.poolAssociation=Storage Pool Association
+
+vpool.protocols=Protocols
+vpool.protocols.help=Matching storage pools will be limited to those that can support all selected protocols
+vpool.systemType=System Type
+vpool.poolAssignment=Pool Assignment
+vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
+
+# Block Specific
+vpool.minPaths=Minimum Paths
+vpool.minPaths.help=Minimum number of total paths from the host to storage array
+vpool.maxPaths=Maximum Paths
+vpool.maxPaths.help=Maximum number of total paths from the host to storage array
+vpool.initiatorPaths=Paths Per Initiator
+vpool.initiatorPaths.help=Number of paths per host initiator
+
+vpool.expandable=Expandable
+vpool.expandable.help=If selected, resources provisioned from this pool will support expansion.
+vpool.fastExpansion=Fast Expansion
+vpool.fastExpansion.help=If selected, expansion will be performed more quickly but potentially decreases performance.
+vpool.multiVolumeConsistency=Multi-Volume Consistency
+vpool.multiVolumeConsistency.help=If selected, resources provisioned from this pool will support the use of consistency groups
+vpool.raidLevels=RAID Level(s)
+vpool.uniqueAutoTierPolicyNames=Unique Auto-tiering Policy Names
+vpool.uniqueAutoTierPolicyNames.help=Check to show unique policy names in Auto-tiering Policy.
+vpool.autoTierPolicy=Auto-tiering Policy
+vpool.thinPreAllocationPercent=Thin Volume Preallocation
+vpool.hostIOLimitBandwidth=Host Front End Bandwidth Limit (MB/sec)
+vpool.hostIOLimitBandwidth.help=Unlimited if 0 or not specified.
+vpool.hostIOLimitIOPs= Host Front End I/O Limit (IOs/sec)
+vpool.hostIOLimitIOPs.help=Unlimited if 0 or not specified.
+
+vpool.expandable.error.continousCopies=Not supported with 'Maximum Continuous Copies' greater than 0.
+vpool.continuousCopies.error.expandable=Not supported with 'Expandable' enabled.
+
+# Data protection
+vpool.maxSnapshots=Maximum Snapshots
+vpool.maxSnapshots.help=Maximum number of local snapshots allowed for resources from this Virtual Pool
+vpool.maxContinuousCopies=Maximum Continuous Copies
+vpool.maxContinuousCopies.help=Maximum number of native continuous copies allowed for resources from this Virtual Pool. Allowed only for non-expandable Virtual Pool.
+vpool.continuousCopyVirtualPool=Continuous Copies Virtual Pool
+vpool.continuousCopyVirtualPool.help=Optionally select a different Virtual Pool to use for native continuous copies (applicable only if maximum copies > 0)
+vpool.remoteProtection=Protection System
+vpool.remoteProtection.help=Specifies storage that is protected by the selected data protection type.
+vpool.remoteProtection.error.vplex=Not valid when High Availability is set to VPLEX.
+vpool.highAvailability=High Availability
+vpool.haVirtualArray=High Availability Virtual Array
+vpool.haVirtualArray.help=Select Virtual Array as destination for distributed volume.
+vpool.haVirtualPool=High Availability Virtual Pool
+vpool.haVirtualPool.help=Optionally select a different Virtual Pool to use when creating distributed volume.
+vpool.enableAutoCrossConnExport=Automatic Cross-Connect
+vpool.enableAutoCrossConnExport.help=Exports will automatically occur from both VPLEX Clusters when possible.
+vpool.protectSourceSite=Protect Source Site
+vpool.protectSourceSite.help=RecoverPoint protection from the primary site for the source volume to the target virtual array
+vpool.protectSourceSite.error=Must select at least 1 site to protect.
+vpool.protectHASite=Protect HA Site
+vpool.protectHASite.help=RecoverPoint protection from the High Availability VPLEX site for the source volume to the target virtual array.
+vpool.protectHASite.error=Must select at least 1 site to protect.
+vpool.journalSetting=Journal Settings
+vpool.journalSetting.help=Optionally select a virtual array and a virtual pool for this RecoverPoint copy's journal volume (defaults to same Virtual array and virtual pool as the RecoverPoint copy)
+vpool.rpJournalVarray=Journal Virtual Array
+vpool.rpJournalVPool=Journal Virtual Pool
+vpool.rpVplex=VPLEX Distributed Settings for RecoverPoint
+vpool.rpAdvanceSetting=RecoverPoint Advanced settings
+vpool.rpVplex.source=Source
+vpool.rpVplex.ha=HA
+vpool.activeSite=Active Site
+vpool.activeSite.help=Specifies the VPLEX site for active protection with RecoverPoint.  The link to the other VPLEX site is configured as stand-by.
+
+# Recoverpoint
+vpool.rpJournalSize=RecoverPoint Source Journal Size
+vpool.rpJournalSize.help=Valid value is "Min", "min", or a number >= 10GB
+vpool.rpRemoteCopyMode=Replication Mode
+vpool.rpRpoValue=RPO
+vpool.rpCopies=RecoverPoint Copies
+vpool.rpCopies.help=Configure target Virtual Arrays and optional target Virtual Pools for RecoverPoint copies
+vpool.rpCopies.add=Add Copy
+vpool.rp.error.notMultiVolumeConsistent=Multi-volume consistency must be enabled if RecoverPoint protection is selected.
+rpCopy.title=RecoverPoint Copy
+rpCopy.virtualArray=Virtual Array
+rpCopy.virtualArray.help=Select the target Virtual Array for this RecoverPoint copy.
+rpCopy.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of copies
+rpCopy.virtualPool=Virtual Pool
+rpCopy.virtualPool.help=Optionally select a target Virtual Pool for this RecoverPoint copy (defaults to same Virtual Pool as the source volume)
+rpCopy.journalVArray=Journal Virtual Array
+rpCopy.journalVArray.help=Optionally select a virtual array for this RecoverPoint copy's journal volume (defaults to same Virtual array as the RecoverPoint copy)
+rpCopy.journalVPool=Journal Virtual Pool
+rpCopy.journalVPool.help=Optionally select a virtual pool for this RecoverPoint copy's journal volume (defaults to same Virtual pool as the RecoverPoint copy)
+rpCopy.journalSize=Journal Size
+rpCopy.journalSize.help=Valid value is "Min", "min", or a number >= 10GB
+
+# SRDF
+vpool.srdf.error.notSupported=Must be EMC VMAX when SRDF copy protection is used
+vpool.srdfCopies=SRDF Copies
+vpool.srdfCopyMode=SRDF Copy Mode
+vpool.srdfCopies.help=Configure target Virtual Arrays and optional target Virtual Pools for SRDF copies.
+srdfCopy.title=SRDF Copy
+srdfCopy.virtualArray=Virtual Array
+srdfCopy.virtualArray.help=Select the target Virtual Array for this SRDF copy.
+srdfCopy.virtualArray.error.duplicate=Virtual Arrays can only be used in once in the list of copies
+srdfCopy.virtualPool=Virtual Pool
+srdfCopy.virtualPool.help=Optionally select a target Virtual Pool for this SRDF copy (defaults to same Virtual Pool as the source volume)
+
+# Quota
+vpool.enableQuota=Enable Quota
+vpool.quota=Quota
+
+# Long Term Retention
+vpool.longTermRetention=Long Term Retention
+
+# Storage Pools
+vpool.storagePools=Storage Pools
+vpool.storagePools.help=Storage Pools Associated with this Virtual Pool
+storagePools.selected=
+storagePools.name=Name
+storagePools.storageSystem=Storage System
+storagePools.driveTypes=Drive Types
+storagePools.volumeTypes=Provisioning
+storagePools.freeCapacity=Free
+storagePools.subscribedCapacity=Subscribed
+storagePools.totalCapacity=Total
+storagePools.protocols=Protocols
+storagePools.assigned=Assigned
+storagePools.registrationStatus=Registered
+storagePools.noResults=No matching pools for selected Virtual Arrays. Please revise the selections or verify storage system connectivity.
+
+recoverPointCopy.vsa=RecoverPoint Virtual Array
+recoverPointCopy.vsa.help=Select the target Virtual Array for this RecoverPoint copy.
+recoverPointCopy.vsPool=RecoverPoint Virtual Pool
+recoverPointCopy.vsPool.help=Optionally select a target Virtual Pool for this RecoverPoint copy (defaults to same Virtual Pool as the source volume)
+recoverPointCopy.recoverPointJournalSize=RecoverPoint Journal Size
+recoverPointCopy.recoverPointJournalSize.help=Valid value is "Min", "min", or a number >= 0.
+
+# Virtual Arrays
+VirtualArrays.list.title=Virtual Arrays
+VirtualArrays.save.success=Saved '%s'
+VirtualArrays.save.error=Failed to save '%s'
+VirtualArrays.delete.success=Deleted Successfully.
+VirtualArrays.delete.error='%s' of '%s' selected Virtual Arrays deleted: '%s'.  Please check server log for more details.
+VirtualArrays.unknown=Unknown Virtual Array with ID '%s'
+VirtualArrays.deleteConfirm=Are you sure you want to delete the selected Virtual Array(s)?
+varrays.updateVarrayACLs.failed=Failed to update Virtual Array ACLs.
+VirtualArrays.StorageSystems.list.title=Associated Storage Systems
+VirtualArrays.VirtualPools.list.title=Associated Virtual Pools
+
+# Virtual Arrays table
+virtualArrays.name=Name
+virtualArrays.autoSanZoning=SAN Zoning
+virtualArrays.connectivity=Connectivity
+
+# Virtual Array editor
+VirtualArray.edit.title=Edit Virtual Array
+VirtualArray.edit.description=Enter the information needed to change the Virtual Array.
+VirtualArray.create.title=Create Virtual Array
+VirtualArray.create.description=Enter the name for the new Virtual Array. After the virtual array is created, connections can be made to the desired storage
+virtualArray.name=Name
+virtualArray.autoSanZoning=SAN Zoning
+virtualArray.autoSanZoning.help=Automatic: to allow ViPR to automatically create the required zones in the SAN fabric when a provisioning request is made in this virtual array. Manual: to configure the zones outside of ViPR.
+virtualArray.tenants=Tenants
+virtualArray.enableTenants=Grant Access to Tenants
+virtualArray.autoSanZoning.true=Automatic
+virtualArray.autoSanZoning.false=Manual
+virtualArray.dataProtectionConnectivity=Protection (Block)
+virtualArray.objectProtection=Protection (Object)
+virtualArray.blockFileTitle=Block and File Storage
+virtualArray.blockFileDescription=A Virtual Array aggregates the management of storage capacity (pools) and connectivity (ports). Storage Pools and Ports can be directly assigned to the Virtual Array, or implicitly assigned via Network connectivity.
+virtualArray.editNetworks=Networks
+virtualArray.editStoragePorts=Storage Ports
+virtualArray.editStoragePools=Storage Pools
+virtualArray.addStorageSystem=Add Storage System
+virtualArray.commodityTitle=Commodity Storage
+virtualArray.editNodes=Nodes
+virtualArray.driveTypes=Drive Types
+virtualArray.protocols=Protocols
+virtualArray.raidLevels=Raid Levels
+virtualArray.systemTypes=System Types
+virtualArray.storageSystems=List of Storage Systems associated with the Virtual Array through Networks, Storage Ports or Storage Pools
+virtualArray.virtualPools=List of Virtual Pools associated with the Virtual Array. This is configured on the individual Virtual Pools
+
+# Virtual Array Commodity Nodes
+VirtualArray.nodes.title=Commodity Nodes
+VirtualArray.addNodes.title=Add Commodity Nodes
+nodes.name=Name
+nodes.deleteConfirm=Area you sure you want to remove the selected Commodity Node(s) from %s?
+
+# Virtual Array Networks
+VirtualArray.networks.title=Networks
+VirtualArray.addNetworks.title=Add Networks
+VirtualArray.createIpNetwork=Add IP Network
+networks.name=Name
+networks.type=Type
+networks.assigned=Assigned
+networks.discovered=Discovered
+networks.registrationStatus=Registered
+networks.virtualArrayNames=Virtual Arrays
+networks.deleteConfirm=Are you sure you want to remove the selected Network(s) from %s?
+
+# Virtual Array Storage Ports
+VirtualArray.storagePorts.title=Storage Ports
+VirtualArray.addStoragePorts.title=Add Storage Ports
+storagePorts.name=Name
+storagePorts.portGroup=Group
+storagePorts.storageSystem=Storage System
+storagePorts.networkIdentifier=Identifier
+storagePorts.iqn=IQN
+storagePorts.type=Type
+storagePorts.assigned=Assigned
+storagePorts.operationalStatus=Status
+storagePorts.registrationStatus=Registered
+storagePorts.network=Network
+storagePorts.deleteConfirm=Are you sure you want to remove the selected Storage Port(s) from %s?
+storagePorts.alias=Alias
+storagePorts.allocationDisqualified=Allocatable
+
+# Virtual Array Storage Pools
+VirtualArray.storagePools.title=Storage Pools
+VirtualArray.addStoragePools.title=Add Storage Pools
+storagePools.name=Name
+storagePools.storageSystem=Storage System
+storagePools.registrationStatus=Registered
+storagePools.deleteConfirm=Are you sure you want to remove the selected Storage Pool(s) from %s?
+
+VSArrays.assignNetworks.title=Assign Networks to Virtual Array
+VSArrays.assignNetworks.description=Select networks to assign to the Virtual Array
+VSArrays.assignNetworks=Assign Networks
+VSArrays.addExisting=Edit Networks
+VSArrays.createIpNetwork=Add IP Network
+
+#Users Role
+Users.list.title=Users
+UserRole.userGroup=User/Group
+UserRole.type=Type
+UserRole.secAdmin=Security Admin
+UserRole.sysAdmin=System Admin
+UserRole.sysMon=System Monitor
+UserRole.tenantAdmin=Tenant Admin
+UserRole.projAdmin=Project Admin
+User.deleteConfirm=Are you sure you want to delete the selected User?
+User.description=Enter the information needed to create a  new User or Group.
+User.create.title=Create User
+User.edit.title=Edit User
+User.name=Name
+User.type=Type
+
+license.uploadButton=Upload License File
+license.browse=Browse
+license.licenseText=License Text
+newLicenseFile=License File
+system.about.licenseUpload=Upload a New License File
+system.about.licenseUpload.help=Browse and upload a new text license file.  This will overwrite any existing license file.
+license.uploadFailed=Failed to upload license file.
+license.invalidLicenseFile=Failed to read license file.
+license.licenseFileIsRequired=License File is required.
+license.licenseFileUpdated=License file updated successfully.
+license.issuer=Issuer
+license.licensed=Licensed
+license.unknown=Unknown
+license.expired=Expired
+license.opensource=Open Source
+license.overCapacity=Over Capacity
+license.serial=Serial Number
+license.storageCapacity=Capacity
+license.siteId=Site ID
+license.notice=Notice
+license.permenant.notice=Permanent license issued on %s.
+license.expires.notice=Issued on %s and expires on %s.
+license.trial.notice=Limited Use.
+license.usage=%s used of %s
+license.unknown.usage=Unknown Usage
+license.total.capacity=Total Capacity %s
+licenseFeature.name=Feature
+licenseFeature.status=Status
+licenseFeature.serial=Serial Number
+licenseFeature.expiry=Expiry
+
+consistencyGroups.list.title=Consistency Groups
+consistencyGroups.edit.title=Edit Consistency Group
+consistencyGroups.create.title=New Consistency Group
+consistencyGroup.name=Name
+consistencyGroups.saved=Consistency Group %s Saved
+consistencyGroups.name=Name
+consistencyGroups.deleteConfirm=Are you sure you want to delete the selected Consistency Groups?
+consistencyGroups.noProjects=No Projects Defined
+consistencyGroups.deleted=Consistency Groups submitted for deletion.
+consistencyGroups.viewResource=View Resource
+consistencyGroups.invalid.name.error=Must contain only letters, underscores and numbers.
+
+systemHealth.viewLogs=View Logs
+systemHealth.restart=Restart
+systemHealth.lastUpdated=Last Updated
+
+configProperties.title=General Configuration
+configProperties.save=Save
+configProperties.rebootRequired=Reboot Required
+configProperties.rebootRequiredMessage=ViPR Nodes will be rebooted automatically after save.
+configProperties.rebootRequiredConfirmation=ViPR Nodes will be rebooted automatically after save.  Are you sure you want to continue?
+configProperties.propertiesModified=properties have been modified.
+
+# Sections
+configProperties.ftps=FTPS
+configProperties.ftps.cannot.be.blank=An FTPS Hostname must be provided when FTPS transport is selected.
+configProperties.sshKeys=SSH Keys
+configProperties.smtp=SMTP
+
+configProperties.smtp.validate=Test Email Settings
+configProperties.smtp.sendEmail=Send Test Email
+configProperties.smtp.toAddress=Test Email Address
+configProperties.smtp.toAddress.help=Enter in an email address to send the test email to.
+
+configProperties.smtp.validationFailed=Failed to validate SMTP settings [%s]
+configProperties.smtp.testSuccessful=Test email has been sent successfully.
+
+configProperties.smtp.server.required=SMTP Server is required
+configProperties.smtp.server.invalid=SMTP Server is invalid
+configProperties.smtp.port.invalid=Port '%2$s' is invalid
+configProperties.smtp.fromAddress.required=From Address is required
+configProperties.smtp.fromAddress.invalid=From Address is not a valid email address
+configProperties.smtp.toAddress.required=To Address is required
+configProperties.smtp.toAddress.invalid=To Address is not a valid email address
+configProperties.smtp.username.required=Username is required
+configProperties.smtp.password.required=Password is required
+
+configProperties.clusterNotStable=Configuration cannot be changed at this time, the system is not stable.
+configProperties.saved=Configuration Properties have been updated successfully.
+configProperties.submittedReboot=Configuration Properties have been submitted to the system. The system will reboot for the properties to take effect.
+configProperties.error.clusterNotStable=System is not stable
+configProperties.error.validationError=Validation error updating configuration properties.
+configProperties.error.ipaddr=Not a valid IPv4 address.
+configProperties.error.ipv6addr=Not a valid IPv6 address.
+configProperties.error.email=Not a valid Email address.
+configProperties.error.emaillist=Not a valid list of Email addresses.
+configProperties.error.url=Not a valid URL.
+configProperties.error.uint8=Not a valid 8-bit unsigned integer.
+configProperties.error.uint16=Not a valid 16-bit unsigned integer.
+configProperties.error.uint32=Not a valid 32-bit unsigned integer.
+configProperties.error.uint64=Not a valid 64-bit unsigned integer.
+configProperties.error.percent=Not a valid percentage.
+configProperties.error.hostname=Not valid hostname.
+configProperties.error.iplist=Not a valid list of IP addresses.
+configProperties.error.pem=Not a valid certificate.
+configProperties.error.minLen=Can not be less than the minimum length of %s.
+configProperties.error.maxLen=Can not be more than the maximum length of %s.
+configProperties.error.allowedValues=Please choose a value from the list of allowed values [%s]
+
+configProperties.passwordChange.success=Password change successful for '%s'
+configProperties.passwordChange.error=Password change failed for '%s': %s
+configProperties.passwordChange.clusterNotStable=Passwords cannot be changed at this time, the system is not stable.
+configProperties.passwordChange.warning=<span style="font-weight:bold;">Warning</span>  All live sessions will be terminated after changing a user's password.
+configProperties.changePassword=Local Account Passwords
+configProperties.password.doesNotMatch=Passwords do not match
+configProperties.password.state=state
+
+
+#Upgrade
+upgrade.title=Software Upgrade
+upgrade.targetVersion=Version
+upgrade.fetchingClusterStatus=Fetching system status
+upgrade.installedImages=Software Versions
+upgrade.downloadNew=Download New Version
+upgrade.cancelDownload=Cancel Download
+upgrade.cancelDownloadConfirm=Are you sure you wish to cancel downloading?
+upgrade.noVersions=No Newer Versions Available
+upgrade.tooMany=The maximum number of versions have been downloaded to the system. A version must be removed in order to check for updates or download new versions.
+upgrade.remove=Remove
+upgrade.install=install
+upgrade.downloadImage=Download
+upgrade.newVersionAvailable=Upgrade version %s is available
+upgrade.clusterState=Virtual Appliance Status
+upgrade.repositoryVersions=Local Repository Images
+upgrade.nodeRepositories=Node Repository Versions
+upgrade.installingImage=Installing
+upgrade.downloadingImage=Downloading
+upgrade.removingImage=Removing
+upgrade.sureYouWantToInstall=Are you sure you want to install
+upgrade.sureYouWantToRemove=Are you sure you want to remove
+upgrade.setTargetVersion=Changing to version: %s
+upgrade.downloadProgress=Download Progress
+upgrade.downloadProgress.description=Image is being downloaded to all nodes
+upgrade.downloadComplete=Completed
+upgrade.downloadError=Download Error
+upgrade.downloadChecksumError=Download Checksum Error
+upgrade.error.retrieving.version=Error retrieving version
+upgrade.cluster.state=state
+upgrade.cluster.unknown=UNKNOWN
+
+adminDashboard.title=Dashboard
+adminDashboard.version=Version and License
+adminDashboard.license=License
+adminDashboard.licenses=Licenses
+adminDashboard.dbhealthstatus=DB status
+adminDashboard.health=System Health
+adminDashboard.dbhealth=Database Consistency Check
+adminDashboard.physicalAssets=Physical Assets
+adminDashboard.virtualAssets=Virtual Assets
+adminDashboard.lastUpdated=Last Updated
+adminDashboard.status=Status
+adminDashboard.nodes=Nodes
+adminDashboard.controlNodes=Controller Environment
+adminDashboard.extraNodes=Data Services Environment
+adminDashboard.upgradeAvailable=Upgrade Available
+adminDashboard.currentVersion=Controller
+adminDashboard.fabricVersion=Data Fabric
+adminDashboard.configVersion=Config Version
+adminDashboard.portalVersion=Portal
+adminDashboard.virtualStorageArrays=Virtual Arrays
+adminDashboard.blockVirtualPools=Block Virtual Pools
+adminDashboard.fileVirtualPools=File Virtual Pools
+adminDashboard.computeVirtualPools=Compute Virtual Pools
+adminDashboard.storageArrays=Storage Systems
+adminDashboard.smisProviders=Storage Providers
+adminDashboard.fabricManagers=Fabric Managers
+adminDashboard.networks=Networks
+adminDashboard.dataProtectionSystems=Data Protection Systems
+adminDashboard.authenticationProviders=Authentication Providers
+adminDashboard.computeSystems=Vblock Compute Systems
+adminDashboard.computeImages=Compute Images
+adminDashboard.hosts=Hosts
+adminDashboard.clusters=Clusters
+adminDashboard.vcenters=VMware vCenters
+adminDashboard.cluster.poweroff=Shutdown All
+adminDashboard.cluster.node.reboot=Reboot
+adminDashboard.clusterStatus=Controller Status
+adminDashboard.nodeRebooting=Rebooting %s.
+adminDashboard.clusterPoweroff.title=ViPR Virtual Application Shutdown
+adminDashboard.clusterPoweroff.description=The power off signal has been sent to the ViPR Virtual Application.
+adminDashboard.serviceRestarting=Restarting %s on %s.
+adminDashboard.confirm.restart=Are you sure you want to restart this service?
+adminDashboard.confirm.reboot=Are you sure you want to reboot?
+adminDashboard.confirm.poweroff=Are you sure you want to shutdown the ViPR Virtual Appliance?
+adminDashboard.capacity=Arrays Capacity
+adminDashboard.fileCapacity=File
+adminDashboard.blockCapacity=Block
+adminDashboard.blockFileFreeCapacity=Free Block/File
+
+license.model.ViPR_Controller=ViPR Controller
+license.model.ViPR_Object=ViPR Object
+license.model.ViPR_HDFS=ViPR HDFS
+license.model.ViPR_ObjectHDFS=ViPR Object + HDFS
+license.model.ViPR_Unstructured=ViPR Unstructured
+license.model.ViPR_CAS=ViPR CAS
+license.model.ViPR_File=ViPR File
+license.model.ViPR_Block=ViPR Block
+license.model.ViPR_Commodity=ViPR Commodity
+license.model.ViPR_ECS=ECS
+
+nav.auditLog=Audit Log
+audit.log.title=Audit Log
+auditLog._timeInMillis=Time
+auditLog._serviceType=Service Type
+auditLog._userId=User
+auditLog._operationalStatus=Result
+auditLog._description=Description
+
+discovery.status.title=Discovery:
+discovery.status.created=Pending
+discovery.status.complete=Complete
+discovery.status.error=Error
+discovery.status.unknown=Unknown
+discovery.status.inprogress=In Progress
+
+discovery.compatibility.status.title=Compatibility:
+discovery.compatibility.status.compatible=Compatible
+discovery.compatibility.status.incompatible=Incompatible
+discovery.compatibility.status.unknown=Unknown
+
+catalogImage.leavingPage=You are about to leave your current page.  Any changes you made will be lost.
+
+#Compute Systems
+ComputeSystems.list.title=Vblock Compute Systems
+ComputeSystems.edit.title=Edit Vblock Compute System
+ComputeSystems.create.title=Add Vblock Compute System
+ComputeSystems.description=Enter the information needed to add a Vblock Compute System.
+ComputeSystems.saved=Vblock Compute System '%s' saved successfully
+ComputeSystems.deleted.success=Deleted Successfully
+ComputeSystems.deleted.error='%s' of '%s' selected Vblock Compute Systems deleted: '%s'.  Please check server log for more details.
+ComputeSystems.unknown=Unknown Vblock Compute Systems with ID '%s'
+ComputeSystems.deleteConfirm=Are you sure you want to delete the selected Vblock Compute System(s)?
+computeSystems.name=Name
+computeSystems.systemType=Type
+computeSystems.ipAddress=IP Address
+computeSystems.port=Port
+computeSystems.useSSL=Use SSL
+computeSystems.portNumber=Port
+computeSystems.osInstallNetwork=OS Install Network
+computeSystems.osInstallNetwork.help=VLAN identifier of a private network used by ViPR for OS installation.
+computeSystems.osInstallNetworkDisplay=OS Install Network
+computeSystems.vlanList=OS Install Network
+computeSystems.userName=User Name
+computeSystems.password=User Password
+computeSystems.confirmPassword=Comfirm Password
+computeSystems.version=Version
+computeSystems.discoveryStatus=Status
+computeSystems.registrationStatus=Registered
+computeSystems.description=Description
+computeSystems.disable=Disabled
+computeSystems.disable.help=Disabled providers will not have their connectivity validated or be available for processing login requests
+computeSystems.domains=Domains
+computeSystems.domains.description=List all Domains, one per line
+computeSystems.groupAttribute=Group Attribute
+computeSystems.groupWhiteListValues=Group Whitelist
+computeSystems.groupWhiteListValues.description=List all Group Whitelist values, one per line
+computeSystems.managerDn=Manager DN
+computeSystems.managerPassword=Manager Password
+computeSystems.searchBase=Search Base
+computeSystems.searchFilter=Search Filter
+computeSystems.searchFilter.help=Variables: '%%u' is replaced by the full username and domain (user@domain), '%%U' is replaced by the username, and '%%d' is replaced with the domain.
+computeSystems.searchScope=Search Scope
+computeSystems.serverCert=Server Certificate
+computeSystems.serverUrls=Server URLs
+computeSystems.serverUrls.description=List all Server URLs, one per line - ex: ldap://10.1.1.1
+computeSystems.serverUrls.not.valid=All Server URLs are not valid format
+computeSystems.serverUrls.pattern=^((ldaps?|ldap)://|(ldaps|ldap)\.)[a-z0-9-]+(\.[a-z0-9-]+)+([/?].*)?$
+computeSystems.searchFilter.equalsRequired=An equals sign (=) is required.
+computeSystems.searchFilter.variableRequired=Must contain %%%%u or %%%%U after the equal sign.
+computeSystem.confirmPassword.not.match=User Password and Confirm Password do not match.
+computeSystem.invalid.ipAddress=Invalid IP Address.
+computeSystem.invalidOsInstallNetwork=%s (Invalid)
+computeSystem.invalid.osInstallNetwork=OS Install Network value must be an integer in the range 1-4093.
+ComputeSystemType.ucs=Cisco UCS
+ComputeSystemType.cseries=Cisco C-Series
+ComputeSystemType.cisco_ucsm=Cisco UCS
+ComputeSystems.elements=Blades
+ComputeSystems.elements.edit.title=Edit Compute Blade
+ComputeSystems.listElements.title=Compute Blades
+ComputeSystems.elements.title=Compute Blades
+ComputeSystems.elements.description=Enter information needed to edit Compute Blades.
+computeSystemElements.name=Name
+computeSystemElements.computeSystem=Vblock Compute System
+computeSystemElements.model=Model
+computeSystemElements.numberOfCores=Cores
+computeSystemElements.numberOfProcessors=Processors
+computeSystemElements.numberOfThreads=Threads
+computeSystemElements.processorSpeed=Processor Speed (GHz)
+computeSystemElements.ram=Memory (MB)
+computeSystemElements.ramString=Memory
+computeSystemElements.uuid=UUID
+computeSystemElements.dn=Power Status
+computeSystemElements.registrationStatus=Registered
+computeSystemElements.discoveryStatus=Status
+computeSystemElements.status=Status
+computeSystemElements.Available=Available
+computeSystemElements.Unavailable=Unavailable
+computeSystemElements.Unspecified=Unspecified
+
+#Compute Images
+ComputeImages.list.title=Compute Images
+ComputeImages.edit.title=Edit Compute Image
+ComputeImages.create.title=Add Compute Image
+ComputeImages.description=Enter the information needed to add a Compute Image that can be used to provision the Operating System on the Vblock Compute Systems.
+ComputeImages.saved=Compute Image '%s' saved successfully
+ComputeImages.deleted.success=Deleted Successfully
+ComputeImages.deleted.error='%s' of '%s' selected Compute Images deleted: '%s'.  Please check server log for more details.
+ComputeImages.unknown=Unknown Compute Images with ID '%s'
+ComputeImages.deleteConfirm=Are you sure you want to delete the selected Compute Image(s)?
+computeImages.name=Name
+computeImages.imageName=Image Name
+computeImages.imageName.help=Extracted from image data
+computeImages.imageType=Type
+computeImages.imageType.help=Extracted from image data
+computeImages.imageUrl=Image URL
+computeImages.imageUrl.help=URL can be HTTP or FTP. If credentials are required for FTP, they must be specified in the URL. Example: ftp://username:password@hostname/ESX/VMware-Installer-5.0-20.x86_64.iso
+computeImages.computeImageStatus=Status
+computeImages.discoveryStatus=Status
+computeImages.lastImportStatusMessage=Import Status Message
+computeImages.url.not.valid=Image URL is not valid format
+computeImages.urls.pattern=^((ldaps?|ldap)://|(ldaps|ldap)\.)[a-z0-9-]+(\.[a-z0-9-]+)+([/?].*)?$
+computeImages.searchFilter.equalsRequired=An equals sign (=) is required.
+computeImages.searchFilter.variableRequired=Must contain %%%%u or %%%%U after the equal sign.
+computeImages.clone=Clone Image
+computeImages.cloneName=Clone From Image Name
+computeImages.cloneExtractedName=Extracted Name
+computeImages.cloneType=Extracted Type
+computeImages.cloneUrl=Image Url
+
+ComputeImageType.esx=ESX
+ComputeImageType.linux=Linux
+computeImage.invalid.url=Invalid URL
+
+ComputeVirtualPools.list.title=Compute Virtual Pools
+ComputeVirtualPools.deleteConfirm=Are you sure you want to delete the selected Compute Virtual Pool?
+computeVirtualPools.name=Name
+computeVirtualPools.description=Description
+computeVirtualPools.type=System Type
+computeVirtualPools.matching=Element Selection
+computeVirtualPools.numAvailElements=Available/Total Elements
+computeVirtualPools.numElements=Elements
+ComputeVirtualPools.edit.title=Edit Compute Virtual Pool
+ComputeVirtualPools.create.title=Create Compute Virtual Pool
+ComputeVirtualPools.create.description=Enter the information needed to create a Compute Virtual Pool.
+ComputeVirtualPools.edit.description=Enter the information needed to update a Compute Virtual Pool.
+ComputeVirtualPools.saved=Compute Virtual Pool '%s' saved successfully
+ComputeVirtualPools.deleted=Deleted Successfully
+ComputeVirtualPools.deleted.error='%s' of '%s' selected Compute Virtual Pool(s) deleted: '%s'.  Please check server log for more details.
+ComputeVirtualPools.unknown=Unknown Compute Virtual Pool with ID '%s'
+ComputeVirtualPools.inUse=This Compute Virtual Pool has associated resources.  Only a limited number of fields may be changed.
+computeVirtualPool.group.accessControl=Access Control
+computeVirtualPool.tenants=Tenants
+computeVirtualPool.enableTenants=Grant Access to Tenants
+computeVirtualPool.name=Name
+computeVirtualPool.description=Description
+ComputeVirtualPools.elements=Elements
+ComputeVirtualPools.listElements.title=Compute Virtual Pool Elements
+ComputeVirtualPools.listElements=Pool Elements
+computeVirtualPoolElements.selected=Selected
+computeVirtualPoolElements.name=Name
+computeVirtualPoolElements.computeVirtualPool=Compute Virtual Pool
+computeVirtualPoolElements.model=Model
+computeVirtualPoolElements.numberOfCores=Cores
+computeVirtualPoolElements.numberOfProcessors=Processors
+computeVirtualPoolElements.numberOfThreads=Threads
+computeVirtualPoolElements.processorSpeed=Processor Speed (GHz)
+computeVirtualPoolElements.ram=Memory (MB)
+computeVirtualPoolElements.ramString=Memory
+computeVirtualPoolElements.uuid=UUID
+ComputeVirtualPool.addElements.title=Add Elements
+computeVirtualPool.group.processors=Processors
+computeVirtualPool.group.cores=Cores
+computeVirtualPool.group.threads=Threads
+computeVirtualPool.group.speed=CPU Speed (GHz)
+computeVirtualPool.group.memory=Memory (GB)
+computeVirtualPool.group.nics=Network Interfaces
+computeVirtualPool.group.hbas=Host Bus Adaptors
+computeVirtualPool.min.processors=Minimum Processors
+computeVirtualPool.max.processors=Maximum Processors
+computeVirtualPool.min.cores=Minimum Cores
+computeVirtualPool.max.cores=Maximum Cores
+computeVirtualPool.min.threads=Minimum Threads
+computeVirtualPool.max.threads=Maximum Threads
+computeVirtualPool.min.speed=Minimum CPU Speed (GHz)
+computeVirtualPool.max.speed=Maximum CPU Speed (GHz)
+computeVirtualPool.min.memory=Minimum Memory (GB)
+computeVirtualPool.max.memory=Maximum Memory (GB)
+computeVirtualPool.min.nics=Minimum Nics
+computeVirtualPool.max.nics=Maximum Nics
+computeVirtualPool.min.hbas=Minimum HBAs
+computeVirtualPool.max.hbas=Maximum HBAs
+computeVirtualPool.group.type=System Type
+computeVirtualPool.systemType=System Type
+computeVirtualPool.group.spts=Service Profile Templates
+computeVirtualPool.spts=Service Profile Templates
+computeVirtualPool.virtualArrays=Virtual Arrays
+ComputeVirtualPool.VirtualArrays.list.title=Virtual Array Connectivity
+computeVirtualPool.qualifiers=Qualifiers
+computeVirtualPool.group.type=Type
+computeVirtualPool.group.elements=Compute Elements
+computeVirtualPool.elementSelection=Assignment
+computeVirtualPool.elementSelection.help=Choosing manual assignment allows selection of a subset of the compute elements matching the criteria
+computeVirtualPool.computeElements=Compute Elements
+computeVirtualPool.serviceProfileTemplates=System Type Configuration
+computeVirtualPool.sptMapping.ucs=Vblock Compute System (UCS)
+computeVirtualPool.sptMapping.serviceProfileTemplate=Service Profile Template
+computeVirtualPool.serviceProfileTemplateSelection=Cisco UCS Service Profile Template Selection
+computeVirtualPool.serviceProfileTemplateSelection.description=Select the Service Profile Template for each available Cisco UCS Vblock Compute System connected to a selected Virtual Array.  (Service Profile Templates are pre-defined and contain definitions for  per-server configuration items such as vNICS, vHBAS etc.)
+computeVirtualPool.minAndmax=Minimum must be less than or equal to Maximum
+computeVirtualPool.range=Specified value must be greater than 0 and less than 65,535
+computeVirtualPool.qualifiers.description=Specify qualifiers to be used when determining selections.  Minimum specification is 1 and maximum specification is 65,535.
+computeVirtualPool.confirmSave.title=Confirm Save for Compute Virtual Pool Changes
+computeVirtualPool.confirmSave.confirmButton=Confirm Save
+computeVirtualPool.confirmSave.messageOne=You have made changes to a Compute Virtual Pool with manually selected Compute Elements and/or assigned Service Profile Templates.
+computeVirtualPool.confirmSave.messageTwo=These changes may have unintended impact to this Compute Virtual Pool.
+computeVirtualPool.confirmSave.warningMessage=Saving may have unintended impact to this Compute Virtual Pool.
+computeVirtualPool.updateComputeVirtualPoolACLs.failed=Failed to update Compute Virtual Pool ACLs.
+computeVirtualPool.noVblockSystems=Cisco UCS Service Profile Template Selection
+computeVirtualPool.noVblockSystems.description=The Virtual Array(s) selected for this Compute Virtual Pool do not provide any Vblock Compute Systems that qualify for template selection.
+
+computeElements.selected=Selected
+computeElements.name=Name
+computeElements.available=Available
+computeElements.computeVirtualPool=Compute Virtual Pool
+computeElements.model=Model
+computeElements.computeSystem=Name
+computeElements.numberOfCores=Cores
+computeElements.numberOfProcessors=Processors
+computeElements.numberOfThreads=Threads
+computeElements.processorSpeed=Processor Speed (GHz)
+computeElements.ram=Memory (MB)
+computeElements.ramString=Memory
+computeElements.uuid=UUID
+
+setup.no.proxy.password=Proxy User Password Not Set
+
+
+successfully.saved=Successfully Saved.
+
+dashboard.welcome=Welcome to EMC ViPR
+dashboard.welcomeMessage=To get started, browse the <a href="%s">Service Catalog</a> to order storage.
+dashboard.clusterState=state
+
+recentServices.title=Recently Used Services
+recentOrders.title=Recent Orders
+allOrders.title=All Orders
+
+orders.title=My Orders
+orders.status=Status
+orders.number=Number
+orders.service=Service
+orders.summary=Summary
+orders.createdDate=Date Submitted
+orders.submittedBy=Submitted By
+orders.searchEmpty=No Matching Orders
+orders.maxDays=Showing orders from the last
+orders.1days=Day
+orders.7days=Week
+orders.14days=2 Weeks
+orders.30days=30 Days
+orders.90days=90 Days
+orders.nDays=%d Days
+requestSearch.placeholder=Search for Orders...
+
+catalog.corrupted-service.title=Corrupted Service
+catalog.corrupted-service.description=Unable to find this catalog service - it may have been removed or is configured incorrectly. You can still view the order details below.
+
+execution.status=Status
+execution.executionTime=Execution Time
+execution.executionStep=Executing: %s
+
+currency.format=$%.2f
+
+order.submitSuccess=Your order has been successfully received and is being processed. You may leave this page and return at any time through your Orders.
+order.submitFailed=Your order was unable to be submitted due to an internal error.
+order.processingFailed=Error processing order
+
+OrderStatus.PENDING=Preparing Order
+OrderStatus.EXECUTING=Executing...
+OrderStatus.PARTIAL_SUCCESS=Order Partially Successful
+OrderStatus.SUCCESS=Order Successfully Fulfilled
+OrderStatus.ERROR=Error Occurred Processing Order
+OrderStatus.SCHEDULED=Order Scheduled
+OrderStatus.CANCELLED=Order Cancelled
+OrderStatus.APPROVAL=Pending Approval
+OrderStatus.APPROVED=Approval Accepted
+OrderStatus.REJECTED=Approval Rejected
+
+ApprovalStatus.PENDING=Pending Approval
+ApprovalStatus.APPROVED=Approval Accepted
+ApprovalStatus.REJECTED=Approval Rejected
+
+order.validation.notMatchRegex=Must match regular expression '%s'
+order.validation.notInteger=Must be a valid integer
+order.validation.notNumber=Must be a valid number
+
+order.title.receipt=Order %s - %s
+order.number=Order Number
+order.dateSubmitted=Date Submitted
+order.submittedBy=Submitted By
+order.status=Status
+order.executionTime=Execution Time
+order.loading=Loading...
+order.precheckTasks=Precheck Steps
+order.executeTasks=Execution Steps
+order.rollbackTasks=Rollback Steps
+order.executionWindow=Execution Window
+order.resubmit=Resubmit
+order.affectedResources=Affected Resources
+order.breadcrumbs.root=Service Catalog
+
+order.executionLogs=Logs
+order.executionLogs.date=Date
+order.executionLogs.level=Level
+order.executionLogs.message=Message
+order.executionTaskLogs.message=Summary
+order.executionTaskLogs.detail=Detail
+order.executionTaskLogs.elapsed=Elapsed
+order.viprTasks=Tasks
+
+order.host.with.cluster.decoration=%s [cluster: %s]
+
+tags=Tags
+
+affectedResources.unknown=Unknown
+affectedResources.unknown.image=hdd
+affectedResources.inactive=Deactivated
+affectedResources.id=ID
+affectedResources.notFound=%s has been deleted
+
+affectedResources.volume=Volume
+affectedResources.volume.image=assets/Volume.png
+affectedResources.volume.name=Name
+affectedResources.volume.size=Size
+affectedResources.volume.size.value=%2$s GB Provisioned / %1$s GB Requested
+affectedResources.volume.mountPoint=Mount Point
+affectedResources.volume.datastore=Datastore
+affectedResources.volume.wwn=WWN
+affectedResources.volume.lun=LUN
+
+affectedResources.host=Host
+affectedResources.host.image=assets/Host.png
+affectedResources.host.name=Name
+affectedResources.host.hostName=Host Name
+affectedResources.host.type=Operating System
+
+affectedResources.cluster=Cluster
+affectedResources.cluster.image=assets/Cluster.png
+affectedResources.cluster.name=Name
+affectedResources.cluster.hosts=Hosts
+
+affectedResources.exportGroup=Block Export
+affectedResources.exportGroup.image=assets/Export.png
+affectedResources.exportGroup.name=Name
+
+affectedResources.varray=Virtual Array
+affectedResources.cos=Virtual Pool
+affectedResources.consistencyGroup=Consistency Group
+
+affectedResources.fileSystem=File System
+affectedResources.fileSystem.image=assets/Folder.png
+affectedResources.fileSystem.name=Name
+affectedResources.fileSystem.capacity=Capacity
+affectedResources.fileSystem.datastores=Datastores
+affectedResources.fileSystem.mountPath=Mount Path
+affectedResources.fileSystem.protocols=Protocols
+
+affectedResources.blockSnapshot=Block Snapshot
+affectedResources.blockSnapshot.image=serviceCatalog/Snapshot.png
+affectedResources.blockSnapshot.name=Name
+affectedResources.blockSnapshot.creationTime=Creation Time
+affectedResources.blockSnapshot.wwn=WWN
+affectedResources.blockSnapshot.volume=Volume
+affectedResources.blockSnapshot.varray=Virtual Array
+
+affectedResources.blockConsistencyGroup=Consistency Group
+affectedResources.blockConsistencyGroup.image=serviceCatalog/Snapshot.png
+
+affectedResources.fileSnapshot=File Snapshot
+affectedResources.fileSnapshot.image=serviceCatalog/Snapshot.png
+affectedResources.fileSnapshot.name=Name
+affectedResources.fileSnapshot.creationTime=Creation Time
+affectedResources.fileSnapshot.mountPath=Mount Path
+
+affectedResources.blockContinuousCopy=Continuous Copy
+affectedResources.blockContinuousCopy.image=serviceCatalog/Continuous_Copy.png
+affectedResources.blockContinuousCopy.name=Name
+affectedResources.blockContinuousCopy.wwn=WWN
+affectedResources.blockContinuousCopy.creationTime=Creation Time
+affectedResources.blockContinuousCopy.protocols=Protocols
+affectedResources.blockContinuousCopy.syncType=Type
+affectedResources.blockContinuousCopy.syncState=State
+
+affectedResources.storageSystem.image=assets/StorageArray.png
+affectedResources.networkSystem.image=assets/Switch.png
+affectedResources.protectionSystem.image=assets/Protection.png
+affectedResources.vcenter.image=assets/VCenter.png
+
+affectedResources.computeSystem.image=assets/Host.png
+
+resources.hosts=Hosts
+resources.host=Host
+resources.host.image=serviceCatalog/icon_host.png
+resources.host.type=Host Type
+resources.host.mount=Mount Point
+resources.host.name=Name
+resources.host.hostname=Host
+resources.host.osversion=Version
+resources.host.cluster=Cluster
+
+resources.cluster=Cluster
+resources.clusters=Clusters
+
+
+resources.hostExport.initiator=Initiator
+resources.hostExport.target=Target
+resources.hostExport.sanZone=SAN Zone
+resources.hostExport.hlu=HLU
+
+resources.cifsShare=CIFS Share
+resources.cifsShare.type=CIFS (Windows)
+resources.cifsShare.type.label=Type:
+resources.cifsShare.name=Name:
+resources.cifsShare.mountPoint=Mount Point:
+resources.cifsShare.description=Description:
+resources.cifsShare.permissions=Permissions:
+resources.cifsShare.image=serviceCatalog/icon_folder_CIFS.png
+
+resources.nfsExport.type=NFS
+resources.nfsExport.type.label=Type:
+resources.nfsExport.mountPoint=Mount Point:
+resources.nfsExport.rootUser=Root User:
+resources.nfsExport.permissions=Permission:
+resources.nfsExport=NFS Export
+resources.nfsExport.image=serviceCatalog/icon_folder_NFS.png
+
+resources.noprojects=There are no projects configured.  No data will be displayed on this page until a project is added.
+
+resources.tasks=Tasks
+resources.task=Task Details
+resources.tasks.description=Description
+resources.tasks.message=Message
+resources.tasks.start=Start
+resources.tasks.end=End
+resources.tasks.state=State
+resources.tasks.pending=Pending
+resources.tasks.ready=Complete
+resources.tasks.error=Error
+resources.tasks.total=Total
+resources.tasks.unknown=Unknown
+resources.tasks.notasks=No Tasks
+resources.tags.notags=&lt;No Tags&gt;
+resources.tasks.tenant=Tenant
+resources.tasks.tenant.label=Tenant: %s
+resources.tasks.system=System
+resources.tasks.time.running=Started <strong>%s</strong> running for <strong>%s</strong>.
+resources.tasks.time.done=Started <strong>%s</strong> and ran for <strong>%s</strong>.
+resources.tasks.percent=&nbsp;%s%%
+resource.task.unknown=Unknown Task with ID '%s'
+
+
+resources.common.tags=Tags
+resources.common.id=ID
+resources.common.creationtime=Created
+resources.common.moredetails=More Details
+resources.common.lessdetails=Less Details
+resources.restapilink=View XML
+
+resources.exportgroup=Export Group
+resources.exportgroups=Export Groups
+resources.exportgroup.image=assets/Export.png
+resources.exportgroup.host=Host Export Group
+resources.exportgroup.host.image=assets/Export.png
+resources.exportgroup.cluster=Cluster Export Group
+resources.exportgroup.cluster.image=assets/Export.png
+resources.exportgroup.exclusive=Exclusive Export Group
+resources.exportgroup.exclusive.image=assets/Export.png
+resources.exportgroup.name=Export Group
+resources.exportgroup.type=Type
+resources.exportgroup.varray=Virtual Array
+resources.exportgroups.deactivate=Created %s tasks to delete export groups.
+resources.exportgroup.deactivate=Created task to delete export group.
+resources.exportgroup.notfound=Export Group Not Found
+resources.exportgroup.unknown=Unknown Export Group with ID '%s'
+resources.exportgroup.volume.removed=Task created to remove volume [%s].  Please check the task list for an updated status.
+resources.exportgroup.snapshot.removed=Task created to remove snapshot [%s]. Please check the task list for an updated status.
+resources.exportgroup.host.removed=Task created to remove host [%s].  Please check the task list for an updated status.
+resources.exportgroup.cluster.removed=Task created to remove cluster [%s].  Please check the task list for an updated status.
+resources.exportgroup.initiator.removed=Task created to remove initiator [%s].  Please check the task list for an updated status.
+resources.exportgroup.host.remove.confirm=Are you sure you want to remove this host from the export group?
+resources.exportgroup.cluster.remove.confirm=Are you sure you want to remove this cluster from the export group?
+resources.exportgroup.initiator.remove.confirm=Are you sure you want to remove this initiator from the export group?
+resources.exportgroup.volume.remove.confirm=Are you sure you want to remove this volume from the export group?
+resources.exportgroup.snapshot.remove.confirm=Are you sure you want to remove this snapshot from the export group?
+resources.exportgroup.deleteLink=Delete Export Group
+resources.exportgroup.deleteConfirm=Are you sure you want to delete this export group?
+
+resources.initiators=Initiators
+resources.initiator.node=Node
+resources.initiator.port=Port
+resources.initiator.host=Host
+resources.initiator.cluster=Cluster
+
+resources.actions=Actions
+
+resources.blocksnapshots.unknown=Unknown Snapshot with ID '%s'
+
+resources.volumes=Volumes
+resources.volumes.error=Volume Not Found
+resources.volumes.unknown=Unknown Volume with ID '%s'
+resources.volumes.deleteConfirm=Are you sure you want to delete the selected volumes?
+resources.volumes.deleteConfirm.FULL=Are you sure you want to delete the selected volumes fully?
+resources.volumes.deleteConfirm.VIPR_ONLY=Are you sure you want to delete the selected volumes from the inventory?
+resources.volumes.deactivate=Created %s tasks to delete volumes.
+resources.volume.deactivate=Created task to delete volume.
+resources.volume.snapshots=Snapshots
+resources.volume.continuouscopies=Continuous Copies
+resources.volume.fullcopies=Full Copies
+resources.volume.migrations=Migrations
+resources.volume.exports=Exports
+resources.volume.notfound=Volume Not Found
+resources.volume=Volume
+resources.volume.image=assets/Volume.png
+resources.volume.name=Name
+resources.volume.size=Size
+resources.volume.size.value=%2$s GB Provisioned / %1$s GB Requested
+resources.volume.mountPoint=Mount Point
+resources.volume.datastore=Datastore
+resources.volume.wwn=WWN
+resources.volume.lun=LUN
+resources.volume.devicelabel=Device Label
+resources.volume.nativeid=Native ID
+resources.volume.storagesystem=Storage System
+resources.volume.deleteLink=Delete Volume
+resources.volume.deleteLink.FULL=Full
+resources.volume.deleteLink.VIPR_ONLY=Inventory Only
+resources.volume.deleteConfirm=Are you sure you want to delete this volume?
+resources.volume.deleteConfirm.FULL=Are you sure you want to delete this volume fully?
+resources.volume.deleteConfirm.VIPR_ONLY=Are you sure you want to delete this volume from the inventory?
+resources.volume.disabledSRDF=SRDF target volumes have been disabled for deletion. Deleting source SRDF volume will also automatically delete the target volume.
+
+resources.continuouscopy=Continuous Copy
+resources.continuouscopy.image=assets/Continuous_Copy.png
+resources.continuouscopies.none=No Continuous Copies
+resources.continuouscopy.name=Name
+resources.continuouscopy.synctype=Type
+resources.continuouscopy.syncstate=State
+resources.continuouscopy.syncstate.unknown=Unknown
+resources.continuouscopy.syncstate.resynchronizing=Resynchronizing
+resources.continuouscopy.syncstate.synchronized=Synchronized
+resources.continuouscopy.syncstate.fractured=Fractured
+resources.continuouscopy.syncstate.copyInProgress=Copy In Progress
+resources.continuouscopy.synctype.mirror=Mirror
+resources.continuouscopy.deleteLink=Delete Continuous Copy
+resources.continuouscopy.stopLink=Stop Continuous Copy
+resources.continuouscopy.pauseLink=Pause Continuous Copy
+resources.continuouscopy.resumeLink=Resume Continuous Copy
+resources.continuouscopy.stopButton=Stop
+resources.continuouscopy.pauseButton=Pause
+resources.continuouscopy.resumeButton=Resume
+resources.continuouscopy.deleteConfirm=Are you sure you want to delete this continuous copy?
+resources.continuouscopy.stopConfirm=Are you sure you want to stop this continuous copy?
+resources.continuouscopy.deactivate=Created task to delete continuous copy.
+resources.continuouscopy.stop=Created task to stop continuous copy.
+resources.continuouscopy.pause=Created task to pause continuous copy.
+resources.continuouscopy.resume=Created task to resume continuous copy.
+
+resources.consistencygroup=Consistency Group
+resources.consistencygroup.error=Consistency Group Not Found
+resources.consistencygroup.unknown=Unknown Consistency Group with ID '%s'
+resources.consistencygroup.volume.remove.confirm=Are you sure you want to remove this volume from the consistency group?
+resources.consistencygroup.volume.removed=Task created to remove volume [%s].  Please check the task list for an updated status.
+resources.consistencygroup.deleteLink=Delete Consistency Group
+resources.consistencygroup.deleteConfirm=Are you sure you want to delete this consistency group?
+resources.consistencygroup.volume.name=Name
+resources.consistencygroup.volume.size=Size
+resources.consistencygroup.volume.varray=Virtual Array
+resources.consistencygroup.volume.vpool=Virtual Pool
+resources.consistencygroup.volume.protocol=Protocols
+resources.consistencygroup.volume.label=Volumes
+resources.consistencygroup.volume.empty=No Volumes Found
+resources.consistencygroup.snapshot.label=Snapshots
+resources.consistencygroup.snapshot.name=Name
+resources.consistencygroup.snapshot.volume=Volume
+resources.consistencygroup.snapshot.createdDate=Created Date
+resources.consistencygroup.snapshot.empty=No Snapshots Found
+
+resources.fullcopies.none=No Full Copies
+resources.fullcopy.name=Name
+resources.fullcopy.size=Size
+resources.fullcopy.status=Status
+resources.fullcopy.protocol=Protocol
+
+resources.snapshots=Block Snapshots
+resources.snapshots.none=No Snapshots
+resources.snapshot.unknown=Unknown Snapshot with ID '%s'
+resources.snapshot.exports=Exports
+resources.snapshot.deleteLink=Delete Snapshot
+resources.snapshot.name=Name
+resources.snapshot.syncactive=Sync Active
+resources.snapshot.syncactive.yes=Yes
+resources.snapshot.syncactive.no=No
+resources.snapshot.deleteConfirm=Are you sure you want to delete this snapshot?
+resources.snapshot.notFound=Snapshot Not Found
+resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. Please check the task list for an updated status.
+
+resources.filesystems=File Systems
+resources.filesystems.error=File System Not Found
+resources.filesystems.deleteconfirm=Are you sure you want to delete this file system?
+resources.filesystems.deactivate=Created %s tasks to delete file systems.
+resources.filesystems.unknown=Unknown File System with ID '%s'
+resources.filesystem.deactivate=Created task to delete file system.
+resources.filesystem.notfound=File System Not Found
+resources.filesystem=File System
+resources.filesystem.image=assets/Folder.png
+resources.filesystem.capacity_gb=Size
+resources.filesystem.varray=Virtual Array
+resources.filesystem.mount_path=Mount Path
+resources.filesystem.vpool=Virtual Pool
+resources.filesystem.protocols=Protocols
+resources.filesystem.storageport=Storage Port
+resources.filesystem.storagepool=Storage Pool
+resources.filesystem.storagesystem=Storage System
+resources.filesystem.thinly=Thinly Provisioned
+resources.filesystem.nativeid=Native ID
+resources.filesystem.exports=Exports
+resources.filesystem.exportRules=Export Rules
+resources.filesystem.shares=Shares
+resources.filesystem.snapshots=Snapshots
+resources.filesystem.deleteLink=Delete File System
+resources.filesystem.deleteConfirm=Are you sure you want to delete this file system?
+resources.filesystem.quotaDirectory=Quota Directory
+
+resources.filesystem.export.mountpoint=Mount Point
+resources.filesystem.export.exportPath=Export Path
+resources.filesystem.export.security=Security
+resources.filesystem.export.anon=Anon
+resources.filesystem.export.protocol=Protocol
+resources.filesystem.export.subdirectory=Sub Directory
+resources.filesystem.export.modify=Modify Endpoints
+resources.filesystem.export.endpoints=Endpoints
+resources.filesystem.export.permission=Permission
+resources.filesystem.export.permission.ro=Read Only
+resources.filesystem.export.permission.rw=Read Write
+resources.filesystem.export.permission.root=Root
+resources.filesystem.export.security.sys=Sys
+resources.filesystem.export.security.krb5=Krb5
+resources.filesystem.export.security.krb5p=Krb5p
+resources.filesystem.export.security.krb5i=Krb5i
+resources.filesystem.export.none=No Exports
+resources.filesystem.export.delete.confirm=Are you sure you want to delete this file system export rule?
+resources.filesystem.export.deactivate=Task created to delete file system export rule.  Please check the task list for an updated status.
+resources.filesystem.export.update=Task created to update file system export.  Please check the task list for an updated status.
+
+resources.filesystem.share.name=Name
+resources.filesystem.acl.group=Group
+resources.filesystem.acl.user=User
+resources.filesystem.acl.read=Read
+resources.filesystem.acl.change=Change
+resources.filesystem.acl.fullcontrol=FullControl
+resources.filesystem.share.add.subdir=Add Share
+resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
+resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
+resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
+resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
+resources.filesystem.share.acl.add=Add Accesss Control Entry
+resources.filesystem.share.mountpoint=Mount Point
+resources.filesystem.share.description=Description
+resources.filesystem.share.path=Native Path
+resources.filesystem.share.maxusers=Max Users
+resources.filesystem.share.permission=Permission
+resources.filesystem.share.none=No Shares
+resources.filesystem.share.delete.confirm=Are you sure you want to delete this file system share?
+resources.filesystem.share.deactivate=Task created to delete file system share.  Please check the task list for an updated status.
+resources.filesystem.subdir.add=Task created to create a share. Please check task list for an updated status.
+
+resources.filesystem.quota.name=Name
+resources.filesystem.quota.security=Security Style
+resources.filesystem.quota.lock=Read/Write Cache Enable
+resources.filesystem.quota.size=Size
+resources.filesystem.quota.none=No Quota Directories
+resources.filesystem.quota.delete.confirm=Are you sure you want to delete this quota directory?
+resources.filesystem.quota.deactivate=Task created to delete quota directory. Please check task list for an updated status.
+resources.filesystem.quota.update=Task create to update quota directroy. Please check task list for an update.
+resources.filesystem.quota.modify=Modify Quota Directory
+resources.filesystem.quota.security.ntfs=NTFS
+resources.filesystem.quota.security.mixed=Mixed
+resources.filesystem.quota.security.unix=UNIX
+quota.name=Name
+quota.size=Size (GB)
+quota.oplock=Read/Write Cache
+quota.securityStyle=Security Style
+
+resources.filesnapshots=File Snapshots
+resources.filesnapshots.deleteconfirm=Are you sure you want to delete this file snapshot?
+resources.filesnapshots.deactivate=Created %s tasks to delete file snapshots.
+resources.filesnapshot.deactivate=Created task to delete file snapshot.
+resources.filesnapshots.unknown=Unknown File Snapshot with ID '%s'
+resources.filesnapshot=File Snapshot
+resources.filesnapshot.image=assets/Snapshot.png
+resources.filesnapshot.mountpath=Mount Path
+resources.filesnapshot.native_id=Native Id
+resources.filesnapshot.parent=File System
+resources.filesnapshot.timestamp=Timestamp
+resources.filesnapshot.exports=Exports
+resources.filesnapshot.exportRules=Export Rules
+resources.filesnapshot.shares=Shares
+resources.filesnapshot.deleteLink=Delete File Snapshot
+resources.filesnapshot.deleteConfirm=Are you sure you want this file snapshot?
+
+resources.filesnapshot.export.delete.confirm=Are you sure you want to delete this file snapshot export?
+resources.filesnapshot.export.deactivate=Task created to delete file snapshot export rule.  Please check the task list for an updated status.
+
+resources.filesnapshot.share.delete.confirm=Are you sure you want to delete this file snapshot share?
+resources.filesnapshot.share.deactivate=Task created to delete file snapshot share.  Please check the task list for an updated status.
+
+resources.migrations.none=No Migrations
+resources.migration.name=Name
+
+resources.varray=Virtual Array
+resources.vpool=Virtual Pool
+
+resources.exports.none=No Exports
+resources.exportgroups.deleteConfirm=Are you sure you want to delete the selected export groups?
+resources.snapshots.deleteConfirm=Are you sure you want to delete the selected snapshots?
+resources.snapshots.deactivate=Task [%s] created to deactivate snapshots.  Please check the task list for an updated status.
+resources.consistencygroups.deactivate=Task [%s] created to deactivate consistency groups.  Please check the task list for an updated status.
+resources.consistencygroups.deleteConfirm=Are you sure you want to delete the selected consistency groups?
+
+ResourceType.VOLUME=Volume
+ResourceType.EXPORT_GROUP=Export Group
+
+tasks.task=Task
+tasks.id=ID
+tasks.opId=Operation ID
+tasks.workflowId=Workflow ID
+tasks.state=State
+tasks.description=Description
+tasks.message=Message
+tasks.start=Start
+tasks.end=End
+tasks.elapsed=Elapsed
+tasks.timeTaken=Time Taken
+tasks.notfound=Unknown Task with ID '%s'
+tasks.logs=Logs
+tasks.resourceId=Resource
+tasks.resource=Resource
+tasks.elapsed=Elapsed
+tasks.progress=Progress
+tasks.taskProgress=Progress
+tasks.name=Name
+tasks.errorCode=Error Code
+tasks.errorCodeDetails=Error Details
+tasks.actions=Actions
+tasks.orderId=Order
+tasks.viewOrder=View Order
+
+taskLogs.time=Time
+taskLogs.severity=Level
+taskLogs.service=Service
+taskLogs.message=Message
+
+approvals.title=Approvals
+approval.status=Approval Status
+approval.approve=Approve
+approval.reject=Reject
+approval.approve.message=Approved request from user: %s
+approval.reject.message=Rejected request from user: %s
+approval.orderApproved=Approved by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
+approval.orderRejected=Rejected by %s on <span class='localDateTime' style='display:none;'>%s</span>: %s
+approval.notPending.error=Order %s is not in pending approval
+approvalsTable.status=Status
+approvalsTable.orderNumber=Number
+approvalsTable.serviceTitle=Service
+approvalsTable.orderUserName=Submitted By
+approvalsTable.createdDate=Submit Date
+approvalsTable.approvedBy=Approver
+approval.message=Message
+
+service.order=Order
+service.preview=Preview
+service.cancel=Cancel
+
+service.assetError=Failed to retrieve options for field '%s': %s
+service.nextExecutionWindow=This service will be scheduled to run in the next available Execution Window.  Currently, <span style="font-weight:bold;">%s</span> is the next window scheduled to run at <span style="font-weight:bold;">%s</span>.
+service.nextExecutionWindow.currentlyActive=This service will be scheduled to run in the next available Execution Window.  There is currently an Execution Window running.
+service.defaultExecutionWindow=This service will be scheduled to run in the <span style='font-weight:bold;'>%s</span> Execution Window.  The Execution Window is scheduled to run at <span style="font-weight:bold;">%s</span>.
+service.defaultExecutionWindow.currentlyActive=This service will be scheduled to run in the <span style='font-weight:bold;'>%s</span> Execution Window, which is currently running.
+service.requiresExecutionWindow=This service will be scheduled to run in the <span style="font-weight:bold;">%s</span> Execution Window.
+service.requiresNextExecutionWindow=This service will be scheduled to run in the next available Execution Window.
+service.requiresApproval=This service requires approval.
+service.noExecutionWindows=This service requires an Execution Window to run, but there are no Execution Windows currently defined.  Please contact your administrator to fix this issue.
+service.noDomains=This service requires a Domain to be run, but there are no Domains currently defined.  Please contact your administrator to fix this issue.
+service.missingAssets=This service is missing required data.  This could be caused by:<br/><br/> <ul><li>No Options available for field: %s</li><li>Required assets (Host, Switches, Storage Arrays) are not defined or you do not have permission.</li><li>The system is busy discoverying assets (Host, Switches, Storage Arrays).</li><li>Unable to connect to a ViPR backend server.</ul>
+service.corrupted=This service is not correctly configured. Please contact your administrator to fix this issue.
+service.destructive=This service performs an operation that can result in data loss.
+
+storage.block.title=Block Storage
+storage.nas.title=NAS Storage
+storage.history.title=Provisioned Storage History
+
+nav.blockstorage=Block Storage
+nav.cifsstorage=CIFS Shares
+nav.nfsstorage=NFS Exports
+nav.historystorage=History
+
+nav.volumes=Volumes
+nav.files=File Systems
+
+snapshots.name=Name
+snapshots.volume=Volume
+snapshots.createdDate=Date Created
+snapshots.lun=Lun
+snapshots.actions=Action
+
+exportGroups.name=Export Group Name
+exportGroups.type=Type
+exportGroups.varray=Virtual Array
+
+volumes.name=Volume Name
+volumes.capacity=Size
+volumes.vpool=Virtual Pool
+volumes.varray=Virtual Array
+volumes.protocols=Protocols
+
+fileSystems.name=File System Name
+fileSystems.capacity=Size
+fileSystems.vpool=Virtual Pool
+fileSystems.varray=Virtual Array
+fileSystems.protocols=Protocols
+
+blockStorageTable.name=Name
+blockStorageTable.size=Size
+blockStorageTable.hosts=Hosts
+blockStorageTable.luns=LUNs
+blockStorageTable.lun=LUN
+blockStorageTable.storageArray=Storage Array
+blockStorageTable.storageGroup=Storage Group
+
+historyStorageTable.source=Source
+historyStorageTable.target=Target
+historyStorageTable.type=Type
+historyStorageTable.size=Size
+historyStorageTable.description=Description
+historyStorageTable.name=Name
+historyStorageTable.createdDate=Created Date
+
+nfsStorageTable.id=ID
+nfsStorageTable.nfsPath=Path
+nfsStorageTable.size=Size
+nfsStorageTable.nasSystem=NAS System
+
+cifsStorageTable.id=ID
+cifsStorageTable.name=Name
+cifsStorageTable.path=Path
+cifsStorageTable.nasSystem=NAS System
+cifsStorageTable.size=Size
+
+block.storage.luns=LUNs
+block.storage.storageGroups=Storage Groups
+block.storage.storageArrays=Storage Arrays
+
+secretKeys.title=Object Access Keys
+secretKeys.secretKey=Object Access Key
+secretKeys.creationTimestamp=Creation Timestamp
+secretKeys.saved=Object Access Key successfully created
+secretKeys.deleted=Object Access Key(s) successfully deleted
+SecretKeys.deleteConfirm=Are you sure you want to delete the selected Object Access Key(s)?
+secretKeys.maxKeysReached=You can only have up to two Object Access Keys.
+secretKeys.noNamespaceConfigured=Tenant Namespace is not configured. Please contact your Tenant Administrator to configure a Tenant Namespace before adding an Object Access Key.
+secretKeys.noNamespaceConfigured.long=Please contact your Tenant Administrator to configure a Tenant Namespace before adding an Object Access Key.
+secretKeys.noNamespaceConfigured.short=Tenant Namespace is not configured.
+
+volumes.lun=LUN
+volumes.actions=Actions
+
+
+###########################################################
+# Common Module Messages
+###########################################################
+
+# Date format
+common.date.format=yyyy-MM-dd HH:mm:ss
+
+# Common Messages
+button.add=Add
+button.addExisting=Add Existing
+button.addExportRule=Add Export Rule
+button.updateAcl=Access Control
+button.addSubDir=Add Share
+button.duplicate=Duplicate
+button.cancel=Cancel
+button.delete=Delete
+button.modify=Modify
+button.activate=Activate
+button.restore=Restore
+button.save=Save
+button.done=Done
+button.remove=Remove
+button.rediscover=Rediscover
+button.manage=Manage
+button.detachStorage=Detach Storage
+button.register=Register
+button.deregister=Deregister
+button.powerup=Power-Up
+button.powerdown=Power-Down
+button.close=Close
+button.submitSupportRequest=Send
+button.edit=Edit
+button.next=Next
+button.back=Back
+button.skip=Skip
+button.finish=Finish
+button.upload=Upload
+button.login=Login
+button.disconnect=Disconnect
+button.reconnect=Reconnect
+button.secretKey=Secret Key
+button.certificate=Download Certificate Chain
+button.certificate.view=View Certificate Chain
+button.copy=Copy To Clipboard
+button.actions=Actions
+
+selectOne.chooseOption=-- Please Choose --
+
+common.yes=Yes
+common.no=No
+common.security.title=Security
+common.none = None
+common.all = All
+common.any = Any
+
+user=User
+password=Password
+passwordConfirm=Confirm Password
+
+connection.validate=Validate Connection on Save
+
+security.access.catalogService=Your account does not have access to requested Catalog Service.
+security.access.catalogCategory=Your account does not have access to requested Catalog Category.
+
+security.noCookies=Session timed out or cookies are not enabled (your browser did not send session cookies)
+security.noVDCs=User does not have access to any Virtual Data Centers
+
+dataTable.recordsPerPage=_MENU_ records per page
+dataTable.loading=Loading ...
+dataTable.noResults=No results
+dataTable.actions=Edit
+dataTable.selectedItems=%s entries selected
+
+# Date time picker control
+dateTimePicker.currentTime=Current Time
+dateTimePicker.useCurrentTime=Use Current Time
+dateTimePicker.useSpecificTime=Enter Specific Time
+
+multiFileUpload.cancelUpload=Cancel Upload
+
+elapsed.minimum=a second
+elapsed.seconds=%d second%s
+elapsed.minutes=%d minute%s
+elapsed.hours=%d hour%s
+elapsed.days=%d day%s
+elapsed.months=%d month%s
+elapsed.years=%d year%s
+formatRelative.sameDay=h:mm:ss a
+formatRelative.sameYear=MMM d h:mm:ss a
+formatRelative.format=MMM d, yyyy h:mm:ss a
+
+validation.uniqueLabel=Name is not unique
+validation.password-policy.regex=(?=.{8,})(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).*
+validation.password-policy.message=Password must have at least: 8 characters, 1 Uppercase, 1 Lowercase and 1 Number
+validation.password.invalid=Password entered was incorrect
+
+#User Preferences
+Preferences.title=User Preferences
+user.notifyByEmail=E-mail Notification
+user.email=E-mail Address
+user.email.required=A valid e-mail address is required to enable e-mail notifications.
+user.incorrect=Unable to save user preferences. It appears that you are trying to modify another user's preferences.
+user.saved=User preferences successfully saved for user '%s'
+
+#Notifications
+notifications.title=Notifications
+notifications.none=No notifications
+notification.approvalPending=Approval Required for '%s' from user %s
+
+# Approval required notification
+notification.approvalRequired.title=[EMC ViPR] Approval Request
+notification.approvalRequired.summary=An order has been submitted that requires approval.
+notification.approvalRequired.linkSummary=To approve or deny this order, follow the link below:
+notification.approvalRequired.link=View Approval Request
+
+notification.order.orderNumber=Order
+notification.order.service=Service
+notification.order.user=Submitted By
+notification.order.submitted=Submitted
+notification.order.status=Status
+notification.approval=Approval
+notification.approval.by.APPROVED=Approved By
+notification.approval.by.REJECTED=Rejected By
+
+# Order status update notification
+notification.orderUpdated.title=[EMC ViPR] Order %s
+notification.orderUpdated.summary=The status of your order has been updated.
+notification.orderUpdated.linkSummary=To view this order, follow the link below:
+notification.orderUpdated.link=View Order
+
+# Approval status update notification
+notification.approvalUpdated.title=[EMC ViPR] Order %s
+notification.approvalUpdated.summary=The approval status of your order has been updated.
+notification.approvalUpdated.linkSummary=To view this order, follow the link below:
+notification.approvalUpdated.link=View Order
+
+setup.title=Initial Setup
+setup.description=
+setup.changePassword=Passwords
+setup.changePassword.description=Change the local user passwords (minimum 6 characters)
+setup.smtp=SMTP Settings
+setup.smtp.description=Configure the SMTP settings for sending notification emails
+setup.connectEMC=ConnectEMC
+setup.connectEMC.description=Configure the Connect EMC settings.
+setup.network=Network
+setup.network.description=Configure the network settings for the nodes.
+
+setup.nameservers=DNS Servers
+setup.nameservers.help=2-3 DNS servers (IP addresses separated by commas).
+setup.ntpservers=NTP Servers
+setup.ntpservers.help=2-3 NTP servers (IP addresses separated by commas).
+setup.extraNodes=Extra Node IP Addresses
+setup.extraNodes.help=List of IP addresses or subnets (e.g. 10.1.2.0/24) for data service or commodity nodes (comma separated).
+
+setup.rootPassword=Root Password
+setup.rootPassword.description=Enter the password for the root account
+setup.systemPasswords=System Passwords
+setup.systemPasswords.description=Enter the password for the system accounts: svcuser, sysmonitor and proxyuser
+
+setup.rootPassword.value=Password
+setup.rootPassword.confirm=Confirm
+setup.systemPasswords.value=Password
+setup.systemPasswords.confirm=Confirm
+
+setup.password.notEqual=Passwords do not match
+setup.password.notValid=Invalid encrypted password
+
+setup.connectEmcTransport=Transport
+setup.connectEmcNotifyEmail=Notify Email
+
+setup.smtpServer=SMTP Server
+setup.smtpPort=SMTP Port
+setup.smtpPort.help=If set to 0, the default SMTP port is used (25, or 465 if TLS/SSL is enabled).
+setup.smtpServer.invalid=Invalid server address
+setup.smtpAuthType=Authentication
+setup.smtpUsername=Username
+setup.smtpPassword=Password
+setup.smtpEnableTls=TLS/SSL
+setup.smtpFrom=From Address
+setup.smtpServer.invalidNameserver=Could not resolve Nameserver, check Network->DNS Servers
+setup.smtpServer.invalidSmtpServer=Could not resolve SMTP Server, check Network->DNS Servers
+setup.smtpServer.invalidEmptyNameserver=Cannot resolve SMTP fully qualified domain name without a Nameserver, check Network->DNS Servers
+
+setup.testSmtp=Test Settings
+setup.testSmtp.title=Test SMTP Settings
+setup.testSmtp.description=Sends a test email to the address specified using the current SMTP settings
+setup.smtpTo=To Address
+setup.sendEmail=Send Test Email
+setup.testEmail.success=Test email has been sent successfully.
+setup.testEmail.failure=Failed to send test email [%s]
+
+setup.license=License
+setup.license.description=Upload the license file
+setup.uploadLicense=Upload License
+setup.licenseFile=License File
+setup.licenseFile.help=
+
+setup.restarting.description=System Restarting: Waiting for the system to restart with the updated configuration. This may take a few minutes.
+setup.waitStable.description=System Starting: Waiting for the system to become stable.
+
+setup.notLicensed=Product Not Setup
+setup.notLicensed.message=Initial setup has not been completed by an Administrator.
+
+maintenance.title=System Maintenance
+maintenance.description=The system is performing maintenance and is currently unstable.
+maintenance.longTime=This operation may take a few minutes. You will be redirected automatically when the operation is complete.
+maintenance.manualStart=You will be redirected automatically once the ViPR Virtual Application has been manually started.
+maintenance.status=Virtual Appliance Status
+maintenance.label=Maintenance
+maintenance.inprogress=In Progress
+
+storageapi.error.internal = Internal Error, Please contact your administrator
+storageapi.selection.error = Error performing Selection: %s
+
+storageapi.error.404 = StorageAPI returned NOT FOUND
+storageapi.error.400 = Invalid request passed to the StorageAPI
+storageapi.error.500 = StorageAPI encountered an internal error
+storageapi.error.504 = Request timed out
+storageapi.error.unknown = Unknown StorageAPI error: %s
+storageapi.error.connect = Unable to connect to the StorageAPI
+storageapi.error.timeout = Timeout occurred retrieving options
+storageapi.error.json = Invalid JSON Returned from the StorageAPI: %s
+storageapi.error.exception = Error sending request to the StorageAPI
+
+licenseFile=License File
+licenseFile.invalid=License File is not a valid license file. It may be corrupted or has been tampered with.
+licenseFile.invalidProduct=Licensed File is not valid for this product: %s.
+licenseFile.invalidVersion=License file is not valid for product version: %s.
+licenseFile.expired=License File expired on: %s
+licenseFile.numberOfArraysExceeded=Number of '%s' Storage Arrays exceeds license restrictions
+licenseFile.numberOfNasExceeded=Number of '%s' NAS Systems exceeds license restrictions
+licenseFile.numberOfHostsExceeded=Number of Hosts exceeds license restrictions
+licenseFile.invalidIP=IP Address does not match license restrictions. Allowed: %s, Actual: %s
+licenseFile.invalidHost=Host name does not match license restrictions. Allowed: %s, Actual: %s
+licenseFile.exception=Error occurred trying to validate license file: %s
+licenseFile.errorResolveHostname=Unable to resolve local hostname in order to validate the license
+
+license.enterNewLicense=Enter New License File
+license.title=License
+license.noControllerLicense=ViPR Controller License not found.  Please contact your administrator.
+
+user.email.notUnique=Email is not unique.
+host.notUnique=Host is not unique.
+vcenter.notUnique=vCenter is not unique.
+catalogService.name.notUnique=Catalog Service name is not unique.
+catalogCategory.name.notUnique=Catalog Category name is not unique.
+
+Host.label.notUnique=Host name is not unique.
+VCenter.label.notUnique=vCenter name is not unique.
+Domain.label.notUnique=Domain name is not unique.
+
+executionwindow.usenext=<Use Next Available Execution Window>
+
+AdminMessage.InvalidLicense=License file is invalid.
+
+options.blockSnapshotType.local=Local Array Snapshot
+options.blockSnapshotType.rp=Recoverpoint Bookmark
+
+host.wnn.pattern=^([0-9A-Fa-f]{2})((:[0-9A-Fa-f]{2}){7}$)
+
+ServiceCatalog.viewCatalog=View Catalog
+ServiceCatalog.editCatalog=Edit Catalog
+ServiceCatalog.editCatalog.alert=Catalog Update Available
+ServiceCatalog.createService=Add Service
+ServiceCatalog.editService.loading=Loading Service Fields...
+ServiceCatalog.createCategory=Add Category
+ServiceCatalog.editCurrentCategory=Edit Current Category
+ServiceCatalog.restoreCatalog=Restore Default
+ServiceCatalog.updateCatalog=Update Catalog
+
+ServiceCatalog.service.edit=Edit
+ServiceCatalog.service.copy=Duplicate
+ServiceCatalog.service.delete=Delete
+
+ServiceCatalog.category.edit=Edit
+ServiceCatalog.category.delete=Delete
+
+# Custom catalog images
+CatalogImage.edit.title=Edit Catalog Image
+CatalogImage.create.title=Create Catalog Image
+CatalogImage.list.title=Catalog Images
+CatalogImage.saved=Catalog Image saved
+CatalogImage.deleted=Catalog Image(s) deleted
+CatalogImage.deleteConfirm=Delete selected images?
+
+catalogImage.link=Upload
+catalogImage.title=Upload Custom Image
+catalogImage.file=Image
+catalogImage.file.help=Maximum displayed size in the catalog is 275x100, recommended size is 120x90
+catalogImage.name=Name
+catalogImage.name.help=
+catalogImage.contentType=Type
+catalogImage.size=Size
+catalogImage.preview=Preview
+catalogImage.invalidContentType=Only images are allowed (supplied content type: %s)
+catalogImage.MB=% MB
+catalogImage.KB=% KB
+catalogImage.bytes=% bytes
+
+#
+#
+#
+acl.add.button=Add ACL
+acl.crud.title=Access Control List
+acl.edit.title=Edit Access Control Entry
+acl.crud.description=Controls fine-grained access to the resource
+acl.crud.column.name=Name
+acl.crud.column.type=Type
+acl.crud.column.access=Access
+
+logout.message=You are not currently logged in. Click the login button to authenticate.
+
+tenant=Tenant
+project=Project
+
+
+status.degraded=Degraded
+status.destarted=Restarted
+status.unavailable=Unavailable
+status.good=Good
+status.unknown=Unknown
+status.stable=Stable
+status.syncing=Syncing
+status.updating=Updating
+status.upgrading=Upgrading
+status.upgrading.failed=Upgrade Failed
+status.database.prep=Preparing Database
+status.database.upgrade=Upgrading Database
+status.powering.off=Powering Off
+status.initializing=Initializing
+
+tags.selectMany.all=All
+tags.selectMany.none=None
+
+AssetOptionsApi.serviceParameterIsRequired=Service parameter is required.
+CatalogApi.subpathNotFound=Subpath not found: %s
+ExecutionWindowsApi.windowWithId=Execution Window with ID: [%s] not found.
+OrdersApi.noPermission=Order is owned by another user.
+OrdersApi.invalidTagChangesElement=Invalid format of tag_changes element.
+OrdersApi.tag=Tag
+
+errors.404.title=Not Found
+errors.404.description=The resource you requested was not found.
+errors.404.return=Click <a href="javascript:history.back()">here</a> to return to your previous page.
+
+errors.500.title=Application Error
+errors.500.description=The application encountered an internal error processing your request.
+errors.500.play.exception=This error has been logged with id %s.
+errors.500.return=Click <a href="javascript:history.back()">here</a> to return to your previous page.
+
+errors.400.title=Bad Request
+errors.400.return=Click <a href="javascript:history.back()">here</a> to return to your previous page.
+
+errors.401.title=Unauthorized
+errors.401.return=Click <a href="javascript:history.back()">here</a> to return to your previous page.
+
+errors.403.title=Forbidden
+errors.403.description=Your account does not have the required privileges to access the page requested. If this is a page you require access to, please contact your administrator and request access.
+errors.403.return=Click <a href="javascript:history.back()">here</a> to return to your previous page.
+
+errors.503.title=Service Unavailable
+errors.503.description=The service is currently unavailable. Please contact an administrator or try again later.
+errors.503.reconnect=Auto Reconnect
+errors.503.reconnect.time=Will attempt to reconnect in <span id="seconds">30</span> seconds.
+errors.503.connecting=Connecting ...
+
+EditCatalog.restored=Default catalog restored
+EditCatalog.failed=Failed to restore catalog
+EditCatalog.copyOf=Copy Of %s
+EditCatalog.deletedService=Deleted service: %s
+EditCatalog.savedService=Saved service %s
+EditCatalog.updated=Catalog Updated
+EditCatalog.orderType=All orders must be of type %s.
+
+ExecutionWindows.tempWindowLabel=TEMP EXECUTION WINDOW
+
+OrderExecution.unableToSendOrder=Unable to send order to Order Execution queue
+OrderExecution.unableToCreateParameters=Unable to create Order Parameters
+
+HostInitiators.notSupported=Not Supported
+Hosts.defaultUsername=none
+Hosts.defaultPassword=none
+
+FabricNodes.actionNotImplemented=Action Not Implemented
+
+VirtualDataCenters.operationNotYetSupported=Operation not yet supported.
+
+BlockConsistencyGroups.notFound=Consistency Group %s
+
+BlockSnapshots.notFound=Snapshot %s
+
+StorageOSDeadboltHandler.requiredRoles=You do not have one of the required roles: %s, Your roles: %s
+
+Projects.localUsersNotPermitted=Local users are not permitted.
+
+CasPools.noCasCluster=No CAS Cluster with ID: %s
+
+Models.cannotFindObjectWithId=Cannot find %s with ID %s
+Models.cannotFindExecutionStateForOrder=Cannot find ExecutionState %s for Order %s
+Models.cannotFindOrderForApproval=Cannot find Order %s for Approval %s
+Models.noRootCategory=Root category is missing
+Models.cannotFindDefaultCatalog=Unable to find conf/default-catalog.properties file
+Models.cannotFindDescriptor=Cannot find descriptor named: %s
+
+ViprResourceController.failedToLoad=Failed to load '%s': %s
+
+Tasks.taskLabel=Task [%s, %s]
+
+SanSwitchDataTable.notApplicable=N/A
+
+StoragePoolDataTable.notApplicable=N/A
+
+StoragePortDataTable.notApplicable=N/A
+
+AssetOptions.error.noOptions=Unable to retrieve asset options for %s
+
+AssetValidator.unknownHost=Unknown Host: %s
+AssetValidator.errorConnecting=Error Connecting: %s
+
+LinuxValidator.noFCHBAs=No FibreChannel HBAs detected
+LinuxValidator.noFibreChannelSupport=Failed to determine FibreChannel support due to error: %s
+LinuxValidator.noiSCSIInitiators=No iSCSI initiators detected
+LinuxValidator.noiSCSISupport=Failed to determine iSCSI support due to error:
+
+ClusterUtils.defaultName=None
+
+MailSettings.failedToParseAddress=Failed to parse From email address [%s]
+MailSettings.testSubject=Mail Settings Test
+MailSettings.testMessage=Mail Settings Test
+MailSettings.failedToSetMessage=Failed to set email message
+
+ValidationResponse.valid=Valid
+ValidationResponse.invalid=Invalid
+
+renderFunctions.approval.status.pending=Pending
+renderFunctions.approval.status.approved=Approved
+renderFunctions.approval.status.rejected=Rejected
+
+renderFunctions.operating.system.linux=Linux
+renderFunctions.operating.system.windows=Windows
+renderFunctions.operating.unknown=other
+renderFunctions.operating.system.no.os=No OS
+
+renderFunctions.protocols.fiber=FibreChannel
+renderFunctions.protocols.iscsi=iSCSI
+
+renderFunctions.discovery.status.pending=Pending
+renderFunctions.discovery.status.scheduled=Scheduled
+renderFunctions.discovery.status.progress=In Progress
+renderFunctions.discovery.status.complete=Completed
+renderFunctions.discovery.status.failed=Failed
+renderFunctions.discovery.status.unknown=Unknown
+
+renderFunctions.vdc.status.connectPrecheckFailed=Connect Precheck Failed
+renderFunctions.vdc.status.updatePrecheckFailed=Update Precheck Failed
+renderFunctions.vdc.status.removePrecheckFailed=Remove Precheck Failed
+renderFunctions.vdc.status.isolated=Isolated
+renderFunctions.vdc.status.connecting=Connecting
+renderFunctions.vdc.status.connectingSync=Connecting Synched
+renderFunctions.vdc.status.connected=Connected
+renderFunctions.vdc.status.connectFailed=Connect Failed
+renderFunctions.vdc.status.disconnecting=Disconnecting
+renderFunctions.vdc.status.disconnected=Disconnected
+renderFunctions.vdc.status.disconnectPrecheckFailed=Disconnect Precheck Failed
+renderFunctions.vdc.status.disconnectFailed=Disconnect Failed
+renderFunctions.vdc.status.removing=Removing
+renderFunctions.vdc.status.removingSync=Removing Synched
+renderFunctions.vdc.status.removeFailed=Remove Failed
+renderFunctions.vdc.status.updating=Updating
+renderFunctions.vdc.status.updateFailed=Update Failed
+renderFunctions.vdc.status.unknown=Unknown
+renderFunctions.vdc.status.reconnecting=Reconnecting
+renderFunctions.vdc.status.reconnectPrecheckFailed=Reconnect Precheck Failed
+renderFunctions.vdc.status.reconnectFailed=Reconnect Failed
+
+renderFunctions.size.GB=%s GB
+
+renderFunctions.cluster.status.unknown=Unknown
+renderFunctions.cluster.status.stable=Stable
+renderFunctions.cluster.status.sync=Syncing
+renderFunctions.cluster.status.upgrading=Upgrading
+renderFunctions.cluster.status.prepDB=Preparing Database
+renderFunctions.cluster.status.upgraddeDB=Upgrading Database
+renderFunctions.cluster.status.upgradeFailed=Upgrade Failed
+renderFunctions.cluster.status.degraded=Degraded
+renderFunctions.cluster.status.updating=Updating
+renderFunctions.cluster.status.poweringOff=Powering Off
+renderFunctions.cluster.status.init=Initializing
+
+renderFunctions.database.status.init=Not Started
+renderFunctions.database.status.started=Started
+renderFunctions.database.status.progress=In Progress
+renderFunctions.database.status.fail=Failed
+renderFunctions.database.status.success=Success
+
+renderFunctions.recovery.status.init=Initializing
+renderFunctions.recovery.status.preparing=Preparing
+renderFunctions.recovery.status.sync=Syncing
+renderFunctions.recovery.status.repair=Repairing
+renderFunctions.recovery.status.failed=Failed
+renderFunctions.recovery.status.done=Done
+
+renderFunctions.recovery.result.done=Last node recovery was successfully completed at 
+renderFunctions.recovery.result.failed=Last node recovery failed at 
+renderFunctions.recovery.result.reason=The reason was: 
+renderFunctions.recovery.error.repair=Database repair failed
+renderFunctions.recovery.error.sync=Database rebuild failed
+renderFunctions.recovery.error.internal=Internal error
+renderFunctions.recovery.error.helpMsg=Please contact EMC support
+renderFunctions.manage=Manage
+
+templates.knob.label=%s of %s
+
+datatable.length.menu=_MENU_ records per page
+datatable.processing=Loading...
+datatable.empty=No results
+datatable.parse.error=JSON data from server could not be parsed
+datatable.placeholder.search=Search...
+datatable.placeholder.filter=Filter...
+datatable.unknown.template=Unknown template %s
+datatable.loadingRecords=&nbsp;
+datatable.info.thousands=,
+datatable.info.postFix=
+datatable.search=
+datatable.zeroRecords=No matching records found.
+datatable.info.filtered=(filtered from _MAX_ total entries)
+datatable.info.empty=Showing 0 to 0 of 0 entries
+datatable.info=Showing _START_ to _END_ of _TOTAL_ entries
+datatable.tasks.empty=Showing 0 to 0 of 0 Tasks
+datatable.task.info=Showing _START_ to _END_ of _TOTAL_ most recent Tasks
+datatable.task.filtered=(filtered from _MAX_ most recent Tasks)
+datatable.first=First
+datatable.last=Last
+datatable.next=Next
+datatable.previous=Previous
+datatable.sortAscending=: activate to sort column ascending
+datatable.sortDescending=: activate to sort column descending
+
+
+systemHealth.message.401=Http Error 401. Unauthorized. Please login again.
+systemHealth.message.404=Http Error 404. Requested page not found.
+systemHealth.message.500=Http Error 500. Internal Server Error.
+systemHealth.message.403=Http Error 403. Access Denied.
+systemHealth.message.connectFailed=The attempt to connect to the server failed
+systemHealth.message.parseError=Requested JSON parse failed.
+systemHealth.message.timeout=Operation timed out.
+systemHealth.message.abort=Ajax request aborted.
+systemHealth.message.uncaught=Uncaught Error. Status: %s. %s
+
+fileUpload.button.browse=Browse...
+
+chosen.select.multiple=Select Some Options
+chosen.select.single=Select an Option
+chosen.noResult=No results match
+
+storagePools.no-matching-pools=No
+storagePools.matching-pools=matching storage pools
+
+boolean.true=True
+boolean.false=False
+
+rule.security=Security
+rule.anon=Anon
+rule.subDir=Sub Directory
+
+shareACL.permission=Permission
+shareACL.name=Name
+shareACL.type=Type
+shareACL.domain=Domain
+accessControlList.permission=Permission
+accessControlList.name=Name
+accessControlList.type=Type
+accessControlList.domain=Domain
+
+subdir.share.name=Share Name
+subdir.subdirectory=Sub Directory
+subdir.description=Description
+
+password.verify.description=%s fields must match
+password.verify.label=Verify %s
+password.verify.noMatch=%s fields do not match
+password.verify.defaultMatchError=Fields do not match
+
+#change password form
+PasswordForm.title=Change Password
+passwordForm.oldPassword=Old Password
+passwordForm.newPassword=New Password
+passwordForm.confirmPassword=Confirm Password
+passwordForm.emptyField=empty field(s) not allowed
+passwordForm.doesNotMatch=new password does not match confirm password
+passwordForm.success=password change successful
+
+workflowstep.systemUnknown=Unknown
+
+#User Group.
+userGroup.list.title=User Groups
+userGroup.edit.title=Edit User Group
+userGroup.create.title=Create User Group
+userGroup.create.description=Enter the information needed to create a user group
+userGroup.edit.description=Enter the information needed to edit the user group
+userGroup.deleteConfirm=Are you sure you want to delete the selected user group?
+userGroup.name=Name
+userGroup.domain=Domain
+userGroup.attributes=Attributes
+userGroup.add.attr=Add Attribute
+userGroup.attribute.help=One Value per line
+userGroup.saved=User group '%s' saved successfully
+userGroup.deleted=User group(s) deleted successfully
+userGroup.failed='%s' of '%s' selected user group cannot be deleted: '%s'.  Please check server log for more details
+userGroup.unknown=Unknown user group with ID '%s'
+userGroup.attributes.key.required=Attribute key is required
+userGroup.attributes.values.required=Attribute value(s) is required
+userGroup.attributes.table.header.name=Name
+userGroup.attributes.table.header.values=Values
+userGroup.attributesList=Attribute List
+userGroup.attributesList.description=List of user's attribute values pair. If multiple attributes created with same name, all will be merged into one.
+userGroup.name.invalid=User group name cannot have character @.
+userGroup.name.description=Name cannot contain the @ character.
+#
+ipReconfigForm.title=Network Configuration
+ipReconfigForm.nodeCount=Node Count
+ipReconfigForm.ipv4.title=Settings for IPv4 network
+ipReconfigForm.ipv4.description=Please leave the values to the pre-populated defaults, if you don't want to configure Settings for IPv4 network (Default IPv4 address is 0.0.0.0).
+ipReconfigForm.network_vip=Public virtual IPv4 address
+ipReconfigForm.ipv4_network_addrs1=Server 1 IPv4 address
+ipReconfigForm.ipv4_network_addrs2=Server 2 IPv4 address
+ipReconfigForm.ipv4_network_addrs3=Server 3 IPv4 address
+ipReconfigForm.ipv4_network_addrs4=Server 4 IPv4 address
+ipReconfigForm.ipv4_network_addrs5=Server 5 IPv4 address
+ipReconfigForm.network_netmask=Netmask for IPv4 network
+ipReconfigForm.network_netmask.help=Default netmask is 255.255.255.0
+ipReconfigForm.network_gateway=IPv4 network default gateway
+
+ipReconfigForm.ipv6.title=Settings for IPv6 network
+ipReconfigForm.ipv6.description=Please leave the values to the pre-populated defaults, if you don't want to configure Settings for IPv6 network (Default IPv6 address is ::0).
+ipReconfigForm.network_vip6=Public virtual IPv6 address
+ipReconfigForm.ipv6_network_addrs1=Server 1 IPv6 address
+ipReconfigForm.ipv6_network_addrs2=Server 2 IPv6 address
+ipReconfigForm.ipv6_network_addrs3=Server 3 IPv6 address
+ipReconfigForm.ipv6_network_addrs4=Server 4 IPv6 address
+ipReconfigForm.ipv6_network_addrs5=Server 5 IPv6 address
+ipReconfigForm.network_prefix_length=Prefix Length for IPv6 network
+ipReconfigForm.network_prefix_length.help=Default prefix length is 64
+ipReconfigForm.network_gateway6=IPv6 network default gateway
+ipReconfigForm.powerOff=Power Off nodes post re-configuration
+ipReconfigForm.powerOff.help=Power Off (instead of reboot) is useful if provided network settings require change in associated network using underlying virtual machine management interface.
+ipReconfigForm.reboot.warning=Reconfigure will reboot all ViPR nodes automatically.
+ipReconfigForm.powerOff.warning=Reconfigure will power off all ViPR nodes, and nodes need to be rebooted manually within one day otherwise procedure will expire and fail.
+ipReconfigForm.button.reconfigure=Reconfigure
+ipReconfigForm.submitConfirm=Network re-configuration will power off and reboot all ViPR nodes, do you want to continue?
+
+ipreconfig.successful=Network re-configuration has been successfully initiated, please try logging in using new IPs after a while.
+ipReconfig.notSupported=Network re-configuration not supported for geo-distrubuted setup.
+ipReconfig.clusterNotStable=Network re-configuration cannot be performed at this time, the system is not stable.
+ipreconfig.error=Your network re-configuration request failed.
+ipreconfig.status.success=Your last network re-configuration request completed successfully.
+ipreconfig.status.error=Your last network re-configuration request failed. Error message: '%s'

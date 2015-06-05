@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util 
+       http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    <import resource="classpath:controller-custom-config-info.xml"/>
+
+	<bean id="matcherFramework" class="com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework" >
+	</bean>
+	
+	<util:list id="vpoolMatchers">
+		 <ref bean="vpoolTypeMatcher" />
+		 <ref bean="compatiblePoolMatcher" />
+		 <ref bean="activePoolMatcher" />
+		 <ref bean="neighborhoodsMatcher" />
+		 <ref bean="provisionTypeMatcher" />
+		 <ref bean="thinVolumePreAllocateMatcher" />
+		 <ref bean="deviceTypeMatcher"/>
+		 <ref bean="protocolsMatcher" />
+		 <ref bean="fastPolicyMatcher" />
+		 <ref bean="raidLevelMatcher" />
+         <ref bean="driveTypeMatcher"/>
+		 <ref bean="multiVolumeConsistencyMatcher" />
+		 <ref bean="numPathsMatcher" />		 
+		 <ref bean="haMatcher" />
+		 <ref bean="protectionMatcher" />
+         <ref bean="remoteMirrorProtectionMatcher"/>
+         <ref bean="longTermRetentionMatcher"/>
+         <ref bean="hdsShadowImagePairCountMatcher"/>
+	</util:list>
+	
+	<util:list id="placementMatchers">
+		<ref bean="activePoolMatcher" />
+		<ref bean="neighborhoodsMatcher" />
+        <ref bean="protectionMatcher" />
+        <ref bean="maxResourcesMatcher" />
+        <ref bean="capacityMatcher" />
+        <ref bean="vnxBlockFastPolicyMatcher" />
+        <ref bean="storageSystemMatcher" />
+        <ref bean="vmaxFASTInitialTierSelectionMatcher"/>
+        <ref bean="poolPreferenceBasedOnDriveMathcer"/>
+        
+	</util:list>
+
+    <util:list id="basicPlacementMatchers">
+        <ref bean="activePoolMatcher" />
+        <ref bean="neighborhoodsMatcher" />
+        <ref bean="storageSystemMatcher" />
+    </util:list>
+    
+    <bean id="portMetricsProcessor" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="customConfigHandler" ref="customConfigHandler" />
+    </bean>    
+	
+	<bean id="driveTypeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.DriveTypeMatcher" />
+	<bean id="vmaxFASTInitialTierSelectionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VmaxFastInitialPlacementSelectionMatcher">
+	    <property name="driveTypeMatcher" ref="driveTypeMatcher" />
+	    <property name="raidLevelMatcher" ref="raidLevelMatcher" />
+    </bean>
+	<bean id="deviceTypeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.DeviceTypeMatcher" />
+	<bean id="poolPreferenceBasedOnDriveMathcer" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.PoolPreferenceBasedOnDriveMathcer" />
+	<bean id="provisionTypeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProvisioningTypeMatcher" />
+	<bean id="raidLevelMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.RaidLevelMatcher" />
+	<bean id="fastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.AutoTieringPolicyMatcher" />
+	<bean id="thinVolumePreAllocateMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ThinVolumePreAllocationMatcher" />
+	<bean id="vnxBlockFastPolicyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VNXBlockAutoTieringPolicyMatcher" />
+	<bean id="capacityMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher"/>
+	<bean id="remoteMirrorProtectionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.RemoteMirrorProtectionMatcher"/>
+	<bean id="activePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ActivePoolMatcher" />
+	<bean id="neighborhoodsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher" />
+	<bean id="protocolsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProtocolsAttrMatcher" />
+	<bean id="vpoolTypeMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CoSTypeAttributeMatcher" />
+	<bean id="maxResourcesMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher" />
+	<bean id="protectionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.ProtectionAttrMatcher" />
+	<bean id="storageSystemMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.StorageSystemMatcher" />
+	<bean id="multiVolumeConsistencyMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MultiVolumeConsistencyMatcher" />
+	<bean id="haMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VPlexHighAvailabilityMatcher" />
+    <bean id="numPathsMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NumPathsMatcher">
+        <property name="portMetricsProcessor" ref="portMetricsProcessor" />    
+    </bean>
+    <bean id="compatiblePoolMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CompatiblePoolMatcher" />
+    <bean id="longTermRetentionMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.LongTermRetentionMatcher" />
+    <bean id="hdsShadowImagePairCountMatcher" class="com.emc.storageos.volumecontroller.impl.utils.attrmatchers.HDSShadowImagePairCountMatcher"/>
+    
+	
+	<!-- The following bean represents how to inject a bean in a util class having static methods. 
+	     Ex. matcherFramework bean in a ImplicitPoolMatcher static method. -->
+	
+	<bean name="methodInvokingFactoryBean" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+   		<property name="staticMethod"><value>com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher.setMatcherFramework</value></property>
+        <property name="arguments">
+            <list>
+                <ref bean="matcherFramework"/>
+            </list>
+       </property>
+</bean>
+
+</beans>

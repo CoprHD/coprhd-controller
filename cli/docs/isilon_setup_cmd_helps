@@ -1,0 +1,37 @@
+Commands required to setup the ISILON storage system as ViPR managed system
+===========================================================================
+viprcli vpool create -name TEST_FILE_GOLD11 -protocol NFS CIFS -t file -mp 2 -pt Thin -maxsnapshots 2
+
+viprcli vpool show -name TEST_FILE_GOLD11
+
+viprcli varray create -n TEST_varray11
+
+viprcli varray list
+
+viprcli varray show -name TEST_varray11
+
+viprcli network create -n TEST_network11 -varray TEST_varray11 -transport_type IP
+
+viprcli network list -varray TEST_varray11
+
+viprcli network endpoint add -n TEST_network11 -e 10.247.66.65 -varray TEST_varray11
+
+viprcli network show -name TEST_network11 -varray TEST_varray11
+
+viprcli storagesystem create -n lglw6116 -t isilon -deviceip 10.247.96.116 -dp 8080 -u root -sn SX200-301219-0168
+
+viprcli storagesystem show -sn f86 -t isilon
+
+viprcli storagesystem list -type isilon
+
+viprcli storagepool list -l -sn f86 -type isilon
+
+viprcli storagepool update -sn 001b21c2594a9753a650a802ee296c718f86 -type isilon -vaadd TEST_varray11
+
+viprcli vpool add_pools -name TEST_FILE_GOLD11  -pools x200_5.5tb_200gb-ssd_6gb -serialnumber f86 -devicetype isilon -type file
+
+viprcli storageport list -sn f86 -type isilon
+
+viprcli storageport update -sn f86 -type isilon -network TEST_network11 -va TEST_varray11 -tt IP
+
+viprcli storageport show -name lglw6116 -sn f86 -type isilon

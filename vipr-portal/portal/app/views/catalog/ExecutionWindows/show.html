@@ -1,0 +1,279 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.tenantsettings', 'nav.windows'] /}
+
+#{if play.mode.isDev()}
+  #{set minified: '' /}
+#{/if}
+#{else}
+  #{set minified: 'min.' /}
+#{/else}
+
+#{set 'moreScripts'}
+  
+  #{script 'fullcalendar.jquery-ui.custom.min.js'/}
+  #{script "fullcalendar.${minified}js"/}
+  #{script "fullcalendar.lang-all.js"/}
+  
+  <script type="text/javascript">
+    $(document).ready(function() {
+      function getCurrentTimezoneOffset() {
+          return new Date().getTimezoneOffset();
+      }
+      function getTime(val) {
+          return val.toDate().getTime();
+      }
+      
+      NAV.onContentAreaChanged(function() {
+          $('#calendar').fullCalendar('render');
+      });
+      function reloadCalendar() {
+          $('#calendar').fullCalendar('refetchEvents');
+      }
+      function showError(response, xhr) {
+          displayErrorMessage(xhr.status + " " + xhr.responseText);
+      }
+      function setDeleteEnabled(enabled) {
+          if (enabled) {
+              $('#eventDelete').show();
+          }
+          else {
+              $('#eventDelete').hide();
+          }
+      }
+      function showEditor() { 
+          $('#eventEditor').modal();
+      }
+      function hideEditor() {
+          $('#eventEditor').modal('hide');
+          $('#eventEditor .modal-body').html("")
+      }
+      function loadEditor(url) {
+          $('#eventEditor .modal-body').load(url, function(response, status, xhr) {
+              if (status == 'error') {
+                  showError(response, xhr);
+              }
+              else {
+                  showEditor();
+              }
+          });
+      }
+      function postUpdate(url) {
+          $.ajax({
+              type: 'POST',
+              dataType: 'json',
+              url: url,
+              success: function(response) {
+                  displayMessage(response);
+                  reloadCalendar();
+              },
+              error: function(xhr, ajaxOptions, thrownError) {
+                  // TODO handle authentication error here
+                  displayMessage(xhr.responseText, true);
+                  reloadCalendar();
+              }               
+          });
+      }
+      function postForm(url) {
+          var data = $('#executionWindowForm').serialize();
+          $.ajax({
+              type: 'POST',
+              url: url,
+              data: data,
+              success: function(response) {
+                  displayTextMessage(response, true);
+                  hideEditor();
+                  reloadCalendar();
+              },
+              error: function(xhr, ajaxOptions, thrownError) {
+                  $('#eventEditor .modal-body').html(xhr.responseText);
+              }
+          });
+      }
+      function createEvent(startDate, endDate) {
+          var params = {
+              start: getTime(startDate),
+              end: getTime(endDate),
+              timezoneOffsetInMinutes: getCurrentTimezoneOffset()
+          };
+          var url = routes.ExecutionWindows_create(params);
+          setDeleteEnabled(false);
+          loadEditor(url);
+      }
+      function editEvent(calendarEvent) {
+          var params = {
+                  id: encodeURI(calendarEvent.id),
+                  timezoneOffsetInMinutes: getCurrentTimezoneOffset()
+          };
+          var url = routes.ExecutionWindows_edit(params);
+          setDeleteEnabled(true);
+          loadEditor(url);
+      }
+      function moveEvent(calendarEvent) {
+          var params = {
+                  id: calendarEvent.id,
+                  start: getTime(calendarEvent.start),
+                  timezoneOffsetInMinutes: getCurrentTimezoneOffset()
+          };
+          var url = routes.ExecutionWindows_move(params);
+          postUpdate(url);
+      }
+      function resizeEvent(calendarEvent) {
+          var params = {
+                  id: calendarEvent.id,
+                  start: getTime(calendarEvent.start),
+                  end: getTime(calendarEvent.end),
+                  timezoneOffsetInMinutes: getCurrentTimezoneOffset()
+          };
+          var url = routes.ExecutionWindows_resize(params);
+          postUpdate(url);
+      }
+      function saveEvent() {
+          setTimezoneOffsetInForm();
+          var url = routes.ExecutionWindows_save();
+          postForm(url);
+      }
+      function deleteEvent() {
+          var name = $("input[name='executionWindowForm.name']").val();
+          if (confirm(Messages.get('executionWindows.confirm'), name)) {
+              var url = routes.ExecutionWindows_delete();
+              postForm(url);
+          }
+      }
+      
+      $('#calendar').fullCalendar({
+        lang: '${play.i18n.Lang.get()}', 
+        header: {
+          left:   '',
+          center: 'title',
+          right:  'today prev,next'
+        },
+        editable: true,
+        defaultView: 'agendaWeek',
+        contentHeight: 980,
+        firstDay: 1,
+        slotMinutes: 60,
+        allDaySlot: false,
+        selectable: true,
+        selectHelper: true,
+        editable: true,
+        timezone: "local",
+        dragRevertDuration: 0,
+        events: routes.ExecutionWindows_events({timezoneOffsetInMinutes: getCurrentTimezoneOffset()}),
+
+        loading: function(bool) {
+          if (bool) $('#loading').show();
+          else $('#loading').hide();
+        },
+
+        select: function(startDate, endDate, allDay, jsEvent, view) {
+            var event = new Object();
+            event.start = startDate;
+            event.end = endDate;
+            if (isOverlapping(event) == false) {
+            	createEvent(startDate, endDate);
+            }
+            else {
+              $('#calendar').fullCalendar( 'unselect' );
+            }
+        },
+
+        eventClick: function(calEvent, jsEvent, view) {
+            editEvent(calEvent);
+        },
+
+        eventDrop: function(event, delta, revertFunc, jsEvent, ui, view) {
+          	if (isOverlapping(event) == false) {
+            	moveEvent(event);
+          	}
+          	else {
+          	  revertFunc.call();
+          	}
+        },
+        
+        eventResize: function(event, delta, revertFunc, jsEvent, ui, view) {
+          	if (isOverlapping(event) == false) {
+            	resizeEvent(event);
+          	}
+          	else {
+          	  revertFunc.call();
+          	}
+        }
+      });
+      
+      $('#eventSave').bind('click', function (e) {
+          e.preventDefault();
+          saveEvent();	
+      });
+      $('#eventDelete').bind('click', function (e) {
+          e.preventDefault();
+          deleteEvent();
+      });
+      $('#eventCancel').bind('click', function (e) {
+          e.preventDefault();
+          hideEditor();
+      });
+      // Move the loading div into the calendar header
+      $('#loading').detach().appendTo($('#calendar .fc-header-left'));
+    });
+    
+    function setTimezoneOffsetInForm() {
+		  var offset = new Date().getTimezoneOffset();
+		  $('input[name="executionWindowForm.timezoneOffsetInMinutes"]').val(offset);	      
+    }
+    
+    function displayMessage(data) {
+      displayTextMessage(data.message, data.success);
+    }  
+    
+    function displayErrorMessage(message) {
+        displayTextMessage(message, false);
+    }
+    function displayTextMessage(message, success) { 
+      if(success) {
+        $('#calendarMessages').html('<p class="alert alert-success"><button class="close" data-dismiss="alert">&times;</button>' + message + '</p>');
+      } else {
+        $('#calendarMessages').html('<p class="alert alert-danger"><button class="close" data-dismiss="alert">&times;</button>' + message + '</p>');
+      }
+    }      
+    
+    function isOverlapping(event){
+      var array = $('#calendar').fullCalendar('clientEvents');
+      for(i in array){
+          if(array[i].id != event.id){
+              if(!(array[i].start >= event.end || array[i].end <= event.start)){
+                  return true;
+              }
+          }
+      }
+      return false;
+  }    
+    
+  </script>
+#{/set}
+
+  #{tenantSelector/}
+  <div class="clear"></div>
+  <div class="section-header">
+    <h1>&{'executionWindows.title'}</h1>
+  </div>
+  <p>&{'executionWindows.description'}</p>
+  <div id='loading' style='display:none; padding-top: 1em'>
+    <img src="@{'/public/img/loading.gif'}"> &{'executionWindows.loading'}
+  </div>
+  <div class="clear"></div>
+  <div id="calendarMessages"></div>
+  <div id='calendar'></div>
+
+#{Modal.dialog id:'eventEditor', titleKey: 'executionWindow.edit'}
+  #{Modal.body}
+      
+  #{/Modal.body}
+  #{Modal.footer}
+    <a href="#" class="btn btn-default" id="eventCancel">#{icon 'remove'/} &{'button.cancel'}</a>
+    <a href="#" class="btn btn-danger" id="eventDelete">#{icon 'trash'/} &{'button.delete'}</a>
+    <a href="#" class="btn btn-primary" id="eventSave">#{icon 'check'/} &{'button.save'}</a>
+  #{/Modal.footer}
+#{/Modal.dialog}

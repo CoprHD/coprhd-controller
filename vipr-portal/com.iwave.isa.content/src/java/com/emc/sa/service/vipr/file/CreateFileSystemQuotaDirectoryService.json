@@ -1,0 +1,44 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateFileSystemQuotaDirectory.File",
+  serviceId:"CreateFileSystemQuotaDirectory",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileFilesystem"
+    },
+    
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    },
+
+    oplock:{
+      type: "boolean",
+      initialValue: "true",
+      required: "false",
+      lockable: true
+    },
+    
+    securityStyle:{
+      type:"assetType.vipr.securityStyle",
+      initialValue: "unix",
+      required: "false",
+      lockable: true
+    },
+    
+    size:{
+      type:"number",
+      required: false,
+      lockable: true
+    }   
+  }
+}

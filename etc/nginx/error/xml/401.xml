@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<error>
+  <code>6401</code>
+  <description>Internal Server Error</description>
+  <details>An internal server error occurred.</details>
+  <retryable>false</retryable>
+</error>

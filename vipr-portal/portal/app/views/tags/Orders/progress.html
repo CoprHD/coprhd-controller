@@ -1,0 +1,11 @@
+%{
+  styleClass = _styleClass;
+  labelKey = _labelKey;
+  tasks = _tasks;
+}%
+<dt class="${styleClass}" #{if !tasks}style="display:none"#{/if}>
+  &{labelKey}:
+</dt>
+<dd class="${styleClass}" #{if !tasks}style="display:none"#{/if}>
+  #{Orders.progressBar tasks:tasks/}
+</dd>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="jmxServerWrapper" class="com.emc.storageos.services.util.JmxServerWrapper">
+        <property name="enabled" value="true" />
+        <property name="serviceUrl" value="service:jmx:rmi://localhost:%d/jndi/rmi://%s:%d/jmxrmi" />
+        <property name="host" value="${network_ipaddr_service}" />
+        <property name="port" value="7199" />
+        <property name="exportPort" value="7200" />
+    </bean>
+
+</beans>
+

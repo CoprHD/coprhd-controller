@@ -1,0 +1,31 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+/*
+ * Publishes RPM artifacts (built externally) to a Maven repository.
+ * Intended to enable the developer to publish a private build of storageos.rpm to
+ * their local Maven repository. 
+ *
+ * usage: make rpm & ./gradlew -b publish.gradle publishToMavenLocal
+ */
+ 
+// Ensure proper version of gradle is being used
+ext.GRADLE_VERSION = "1.11"
+
+// Repository configuration
+apply from: 'repositories.gradle'
+// Build environment/runtime configuration
+apply from: 'environment.gradle'
+// Maven publishing configuration
+apply plugin: 'maven-publish'
+
+// http://www.gradle.org/docs/current/userguide/publishing_maven.html            
+publishing {
+    publications {
+        storageos(MavenPublication) {
+            groupId 'com.emc.asd.vipr'
+            artifactId 'storageos'
+            version storageosVersion
+            artifact fileTree(dir:"${buildDir}/RPMS/x86_64", include:"storageos-2.2.0.0.*.rpm").getSingleFile()
+        }
+    }
+}

@@ -1,0 +1,36 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if quotas}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.filesystem.quota.name'}</th>
+      <th>&{'resources.filesystem.quota.security'}</th>
+      <th>&{'resources.filesystem.quota.lock'}</th>
+      <th>&{'resources.filesystem.quota.size'}</th>
+      <th style="text-align:right;">&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:quotas, as:'quota'}
+      <tr>
+        <td><img src="/public/img/assets/QuotaDirectory.png" style="width: 32px;"/> ${quota.name}</td>
+        <td>${quota.securityStyle}</td>  
+        <td>${quota.oplock}</td>
+        <td>${quota.quotaSize}</td>
+        <td style="text-align:right;">
+          <a class="btn btn-default btn-xs" onclick="modifyQuotaDirectory('${quota.id}')">&{'button.modify'}</a>
+          <a href="@{deleteFileSystemQuotaDirectory(params.fileSystemId, quota.id)}" 
+            class="btn btn-danger btn-xs"
+            onclick="return confirm('&{'resources.filesystem.quota.delete.confirm'}')"
+          >&{'button.delete'}</a>
+        </td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.filesystem.quota.none'}
+#{/else}

@@ -1,0 +1,22 @@
+%{
+  resourceId = _resourceId
+}%
+
+<div id="tasks">
+  <div class="section-header"><h1>&{'resources.tasks'}</h1></div>
+  <div class="content">
+   %{ 
+     options = [
+         'bFilter': false
+     ]  
+   }%  
+  
+    #{DataTable.table id:'tasks', dataTable:new models.datatable.TasksDataTable(), source:@Tasks.listJson(resourceId), cssClass:'editableRows', options:options/}
+    <script type="text/javascript">
+    table.tasks.dataTable.afterCreate(function(dataTable) {
+        var itemsJson = #{jsAction @Tasks.itemsJson(':ids')/};
+        watchTaskState(dataTable.getDataTable(), itemsJson);
+    });
+    </script>     
+  </div>
+</div>  

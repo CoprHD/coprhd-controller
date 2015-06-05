@@ -1,0 +1,4 @@
+<div data-help-trigger="${_trigger}" #{if _target}data-help-target="${_target}"#{/if}
+     data-help-text="#{if _defaultHelp}&{_defaultHelp}#{/if}"#{list items:_help, as:'help'} data-help-text-${help.key}="&{help.value}"#{/list}>
+  #{doBody/}
+</div>

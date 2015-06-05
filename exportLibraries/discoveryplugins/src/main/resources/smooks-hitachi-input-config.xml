@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<smooks-resource-list xmlns="http://www.milyn.org/xsd/smooks-1.1.xsd" xmlns:jb="http://www.milyn.org/xsd/smooks/javabean-1.2.xsd">
+	<resource-config selector="global-parameters">
+		<param name="stream.filter.type">SAX</param>
+	</resource-config>
+	<jb:bean beanId="operationList" class="java.util.ArrayList" createOnElement="hitachi" >
+		<jb:wiring beanIdRef="operation" />
+	</jb:bean>
+	
+	<jb:bean beanId="operation" class="com.emc.storageos.hds.xmlgen.beans.Operation" createOnElement="hitachi/operation">
+		<jb:value property="name" decoder="String" data="hitachi/operation/@name" />
+		<jb:value property="models" decoder="String" data="hitachi/operation/@models" />
+		<jb:value property="parent" decoder="String" data="hitachi/operation/@parent"/>
+		<jb:value property="xmlElementSequence" decoder="String" data="hitachi/operation/xmlElementSequence" />
+		<jb:value property="xmlElementsToClose" decoder="String" data="hitachi/operation/xmlElementsToClose"/>
+		<jb:wiring property="xmlElementSequenceAttributeList" beanIdRef="xmlElementSequenceAttributeList" />
+	</jb:bean>
+	
+	<jb:bean beanId="xmlElementSequenceAttributeList" class="java.util.ArrayList" createOnElement="hitachi/operation/xmlElementSequenceAttributes"> 
+	  <jb:wiring beanIdRef="xmlElementSequenceAttribute" />
+	</jb:bean>
+	
+    <jb:bean beanId="xmlElementSequenceAttribute" class="com.emc.storageos.hds.xmlgen.beans.XmlElementSequenceAttribute" createOnElement="hitachi/operation/xmlElementSequenceAttributes/xmlElementSequenceAttribute" >
+    	<jb:value property="name" decoder="String" data="hitachi/operation/xmlElementSequenceAttributes/xmlElementSequenceAttribute/name" />
+    	<jb:value property="properties" decoder="String" data="hitachi/operation/xmlElementSequenceAttributes/xmlElementSequenceAttribute/properties" />
+    	<jb:value property="model" decoder="String" data="hitachi/operation/xmlElementSequenceAttributes/xmlElementSequenceAttribute/model" />
+    	<jb:value property="type" decoder="String" data="hitachi/operation/xmlElementSequenceAttributes/xmlElementSequenceAttribute/type" />
+    	<jb:value property="childExists" decoder="Boolean" data="hitachi/operation/xmlElementSequenceAttributes/xmlElementSequenceAttribute/childExists" />
+    	<jb:value property="values" decoder="String" data="hitachi/operation/xmlElementSequenceAttributes/xmlElementSequenceAttribute/values" />
+    </jb:bean>
+</smooks-resource-list>

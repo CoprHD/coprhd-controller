@@ -1,0 +1,24 @@
+<table class="taskLogs table table-striped table-condensed" #{if !_logs}style="display:none"#{/if}>
+  <thead>
+    <tr>
+      <th class="messageColumn">&{'order.executionTaskLogs.message'}</th>
+      <th class="detailColumn">&{'order.executionTaskLogs.detail'}</th>
+      <th class="elapsedColumn">&{'order.executionTaskLogs.elapsed'}</th>
+    </tr>
+  </thead>
+  <tbody>
+    #{list items:_logs, as:'log'}
+      %{ rowClass = 'INFO' != log.level ? log.level?.toLowerCase() : '' }%
+      <tr class="${rowClass}">
+        <td class="messageColumn">${log.message}</td>
+        <td class="detailColumn">${log.detail}</td>
+        <td class="elapsedColumn">${log.elapsed?.elapsed()}</td>
+      </tr>
+      #{if log.hasProperty('stackTrace') && log.stackTrace}
+        <tr class="${rowClass}">
+          <td class="stackTraceColumn" colspan="3">${log.stackTrace}</td>
+        </tr>
+      #{/if}
+    #{/list}
+  </tbody>
+</table>

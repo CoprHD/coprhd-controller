@@ -1,0 +1,12 @@
+%{
+  if (_arg instanceof Date) {
+    timestamp = _arg.time
+  }
+  else if (_arg instanceof Calendar) {
+    timestamp = _arg.timeInMillis
+  }
+  else {
+    timestamp = _arg
+  }
+}%
+<span data-relative-time="${timestamp}">${new Date(timestamp)?.since()}</span>

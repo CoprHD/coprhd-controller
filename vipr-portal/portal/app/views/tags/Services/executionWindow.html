@@ -1,0 +1,24 @@
+%{
+  service = _arg;
+  window = service?.getExecutionWindow()
+}%
+#{if service?.executionWindowRequired}
+  #{if window}
+    #{set '_windowTime'}#{localDateTime window.getNextWindowTime(), format:'MMMM Do YYYY [at] h:mm a'/}#{/set}
+    <div class="alert alert-info">
+      <span class="badge badge-info">#{icon 'time'/}</span> 
+      #{if window?.isActive()}
+        &{"service.defaultExecutionWindow.currentlyActive", window?.label}
+      #{/if}
+      #{elseif service?.usesNextExecutionWindow()}
+        &{"service.nextExecutionWindow", window.name, _windowTime}
+      #{/elseif}
+      #{else}
+        &{"service.defaultExecutionWindow", window.name, _windowTime}
+      #{/else}
+    </div>
+  #{/if}
+  #{else}
+    <div class="alert alert-danger">&{'service.noExecutionWindows'}</div>
+  #{/else}
+#{/if}

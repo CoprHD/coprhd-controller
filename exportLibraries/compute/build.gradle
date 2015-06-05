@@ -1,0 +1,46 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(spring),
+            library(spring_security),
+            library(httpclient4),
+            library(slf4j),
+            library(log4j),
+            library(beanutils),
+            project(":dbsvc"),
+            project(":coordinatorsvc")
+    
+    // UCS schema jars built from the vipr-thirdparty repository (feature-ucs-schema branch)
+    compile "com.emc.cloud.platform:ucs-schema:3.0.1c.25.5dcde79"
+
+    testCompile "org.testng:testng:6.7"
+    testRuntime library(log4j)
+    testRuntime library(commons_logging)
+}
+
+
+test {
+    jvmArgs '-XX:MaxPermSize=256m'
+    if (project.hasProperty('debug')) {
+        debug = true
+    }
+
+    testLogging.showStandardStreams = true
+    
+    useTestNG() {
+        if (project.hasProperty('includeGroups')) {
+            includeGroups project.getProperty('includeGroups')
+        } else {
+            includeGroups 'runByDefault'
+        }
+        excludeGroups = ['broken', 'disabled']
+    }
+    
+    exclude "com/emc/cloud/ucsm/service/ComputeSessionTest.class"
+    exclude "com/emc/cloud/ucsm/service/ConfigMOMarshallingTest.class"
+    exclude "com/emc/cloud/ucsm/service/UCSMServiceTest.class"
+    exclude "com/emc/cloud/test/SpringProtoBeanConstructionTest.class"
+    exclude "com/emc/cloud/test/UcsLoginLogoutTest.class"
+}
+
+test.dependsOn cleanTest

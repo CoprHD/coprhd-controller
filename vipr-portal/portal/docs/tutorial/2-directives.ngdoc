@@ -1,0 +1,43 @@
+@ngdoc overview
+@name Directives
+@description
+
+# Built-in Angular directives
+
+* `ng-show`: shows or hides content based on the result of an expression.
+* `ng-if`: Like `ng-show`, but actually removes the content from the DOM.
+* `ng-model`: Binds a model value to a control.
+* `ng-disabled`: Disables/enables an element based on the result of an expression.
+* Full API docs at https://docs.angularjs.org
+
+## Writing A Simple Directive
+
+* Directives encapsulate view logic.
+* They operate on an HTML element.
+* They can be attributes (`ng-model`) or the element name (`<control-group />`).
+
+## Directive Options
+
+* `template` or `templateUrl`
+* `scope` (`true`, `false`, or `{}`)
+* A `link` function.
+* `restrict`: Whether it operates on an element (`E`) or an attribute (`A`)
+* a few others that we aren't going to talk about
+
+## Our Directive
+
+@example
+<example module="vipr">
+<file name="script.js">
+  angular.module("vipr").directive("kid", function() {
+    return {
+      restrict: "E",
+      template: "<label>Name:</label><b>{{kid.name}}</b><br>" +
+                "<label>Pet:</label><b>{{kid.pet}}</b>"
+    };
+  });
+</file>
+<file name="index.html">
+  <kid ng-init="kid={name:'Claire', pet:'Dog'}"></kid>
+</file>
+</example>

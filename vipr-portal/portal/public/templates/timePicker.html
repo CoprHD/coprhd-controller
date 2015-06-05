@@ -1,0 +1,20 @@
+<div class="timepicker" ng-class="{'open': open}">
+  <div class="input-group" ng-click="open = !open">
+    <span class="input-group-addon"><span class="glyphicon glyphicon-time"></span></span>
+    <input class="form-control" type="text" readonly="readonly" ng-model="model">
+  </div>
+  <div class="popup">
+    <div class="hour">
+      <a class="next" ng-click="nextHour()"><span class="glyphicon glyphicon-chevron-up"></span></a>
+      <input type="text" class="form-control" ng-model="hour" readonly="readonly">
+      <a class="previous" ng-click="previousHour()"><span class="glyphicon glyphicon-chevron-down"></span></a>
+    </div>
+    <div class="minute">
+      <a class="next" ng-click="nextMinute()"><span class="glyphicon glyphicon-chevron-up"></span></a>
+      <input type="text" class="form-control"  ng-model="minute" readonly="readonly">
+      <a class="previous" ng-click="previousMinute()"><span class="glyphicon glyphicon-chevron-down"></span></a>
+    </div>
+    <div class="clearfix"></div>
+  </div>
+  <div class="closer" ng-click="closePopup($event)"></div>
+</div>

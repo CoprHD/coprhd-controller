@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<import resource="classpath:controller-xtremio-prov.xml"/>
+
+    <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+    
+    <bean id="unManagedVolumeDiscoverer"
+        class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOUnManagedVolumeDiscoverer">
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory" />
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+    
+    <bean id="xtremio" class="com.emc.storageos.volumecontroller.impl.plugins.XtremIOCommunicationInterface">
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+        <property name="unManagedVolumeDiscoverer" ref="unManagedVolumeDiscoverer" />        
+        <property name="partitionManager" ref="partitionManager" />
+    </bean>    
+
+</beans>

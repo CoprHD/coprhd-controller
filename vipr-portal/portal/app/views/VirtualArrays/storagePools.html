@@ -1,0 +1,79 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.virtualArrays'] /}
+#{set 'title'}&{'VirtualArray.storagePools.title'}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @VirtualArrays.list()}&{'VirtualArrays.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @VirtualArrays.edit(virtualArray?.id)}${virtualArray?.name}#{/breadcrumb.item}
+  #{breadcrumb.dropdown currentPage:'VirtualArray.storagePools.title'}
+    #{breadcrumb.item @VirtualArrays.storagePorts(virtualArray?.id)}&{'VirtualArray.storagePorts.title'}#{/breadcrumb.item}
+    #{breadcrumb.item @VirtualArrays.networks(virtualArray?.id)}&{'VirtualArray.networks.title'}#{/breadcrumb.item}
+  #{/breadcrumb.dropdown}
+#{/breadcrumb.container}
+
+%{ formFields = ['virtualArrayId':virtualArray?.id] }%
+#{DataTable.formAction @addStoragePools(), id:'addForm', table:'availableStoragePools', fields:formFields /}
+#{DataTable.formAction @removeStoragePools(), id:'removeForm', table:'storagePools', fields:formFields,
+                       confirm:messages.get('storagePools.deleteConfirm', virtualArray?.name) /}
+
+#{DataTable.header titleKey:'VirtualArray.storagePools.title'/}
+#{DataTable.table id: 'storagePools',
+                  dataTable: dataTable,
+                  source: @storagePoolsJson(virtualArray?.id),
+                  expandable: false,
+                  selectable: true,
+                  options: ['iDisplayLength': '12']}
+    #{DataTable.buttonBar}
+        #{Form.button name:'button.add', class:'success', icon:'plus', action:'showAddStoragePools()'/}
+        #{Form.button name:'button.remove', class:'danger', icon:'minus', submit:'removeForm',
+                      data:['enabled':'selected', 'property':'assigned', 'value':'true']/}
+    #{/DataTable.buttonBar}
+    
+#{/DataTable.table}
+
+#{Modal.dialog id:'addDialog', cssClass:'widest'}
+    #{Modal.body}
+    %{ 
+      dataTable.alterColumn("assigned").hidden()
+      dataTable.alterColumn("registrationStatus").hidden()
+      dataTable.alterColumn("subscribedCapacity").hidden()
+    }%
+    #{DataTable.header titleKey:'VirtualArray.addStoragePools.title', hideAlerts:true/}
+    #{DataTable.table id: 'availableStoragePools',
+                      prefix: 'storagePools',
+                      dataTable: dataTable,
+                      source: @availableStoragePoolsJson(virtualArray?.id),
+                      selectable: true,
+                      delayCreate: true,
+                      options: ['iDisplayLength': '8'] /}
+  #{/Modal.body}
+  #{Modal.footer}
+    #{Form.button name:'button.add', class:'primary', icon:'plus', submit:'addForm', 
+                  data:['enabled':'selected', 'table':'availableStoragePools']/}
+    #{Form.button name:'button.cancel', icon:'remove', data:['dismiss':'modal']/}
+  #{/Modal.footer}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+function showDialog() {
+    table.availableStoragePools.dataTable.create();
+    table.availableStoragePools.dataTable.updateSelectedFooter();
+    table.availableStoragePools.dataTable.reset();
+    $('.modal').modal();
+}
+
+function hideDialog() {
+    $('.modal').modal('hide');
+}
+
+function showAddStoragePools() {
+    showDialog();
+}
+
+function renderLink(o, val) {
+    return o.aData.name;
+}
+</script>

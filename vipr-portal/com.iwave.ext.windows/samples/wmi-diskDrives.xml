@@ -1,0 +1,74 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+  <s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse</a:Action>
+    <a:MessageID>uuid:8DA81FD3-44D7-4B09-9859-5F5F54006233</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:a921d6af-5237-4ab6-af5b-27ba0ac21723</a:RelatesTo>
+  </s:Header>
+  <s:Body>
+    <n:EnumerateResponse>
+      <n:EnumerationContext/>
+      <w:Items>
+        <p:Win32_DiskDrive xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_DiskDrive" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_DiskDrive_Type">
+          <p:Availability xsi:nil="true"/>
+          <p:BytesPerSector>512</p:BytesPerSector>
+          <p:Capabilities>3</p:Capabilities>
+          <p:Capabilities>4</p:Capabilities>
+          <p:CapabilityDescriptions>Random Access</p:CapabilityDescriptions>
+          <p:CapabilityDescriptions>Supports Writing</p:CapabilityDescriptions>
+          <p:Caption>ATA Hitachi HDE72101 SCSI Disk Device</p:Caption>
+          <p:CompressionMethod xsi:nil="true"/>
+          <p:ConfigManagerErrorCode>0</p:ConfigManagerErrorCode>
+          <p:ConfigManagerUserConfig>false</p:ConfigManagerUserConfig>
+          <p:CreationClassName>Win32_DiskDrive</p:CreationClassName>
+          <p:DefaultBlockSize xsi:nil="true"/>
+          <p:Description>Disk drive</p:Description>
+          <p:DeviceID>\\.\PHYSICALDRIVE0</p:DeviceID>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FirmwareRevision>A3AA</p:FirmwareRevision>
+          <p:Index>0</p:Index>
+          <p:InstallDate xsi:nil="true"/>
+          <p:InterfaceType>SCSI</p:InterfaceType>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:Manufacturer>(Standard disk drives)</p:Manufacturer>
+          <p:MaxBlockSize xsi:nil="true"/>
+          <p:MaxMediaSize xsi:nil="true"/>
+          <p:MediaLoaded>true</p:MediaLoaded>
+          <p:MediaType>Fixed hard disk media</p:MediaType>
+          <p:MinBlockSize xsi:nil="true"/>
+          <p:Model>ATA Hitachi HDE72101 SCSI Disk Device</p:Model>
+          <p:Name>\\.\PHYSICALDRIVE0</p:Name>
+          <p:NeedsCleaning xsi:nil="true"/>
+          <p:NumberOfMediaSupported xsi:nil="true"/>
+          <p:Partitions>2</p:Partitions>
+          <p:PNPDeviceID>SCSI\DISK&amp;VEN_ATA&amp;PROD_HITACHI_HDE72101\5&amp;125ACDE&amp;0&amp;000000</p:PNPDeviceID>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:SCSIBus>0</p:SCSIBus>
+          <p:SCSILogicalUnit>0</p:SCSILogicalUnit>
+          <p:SCSIPort>2</p:SCSIPort>
+          <p:SCSITargetId>0</p:SCSITargetId>
+          <p:SectorsPerTrack>63</p:SectorsPerTrack>
+          <p:SerialNumber>      STN608MQ0AZ8HF</p:SerialNumber>
+          <p:Signature>1124813769</p:Signature>
+          <p:Size>1000202273280</p:Size>
+          <p:Status>OK</p:Status>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SystemCreationClassName>Win32_ComputerSystem</p:SystemCreationClassName>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:TotalCylinders>121601</p:TotalCylinders>
+          <p:TotalHeads>255</p:TotalHeads>
+          <p:TotalSectors>1953520065</p:TotalSectors>
+          <p:TotalTracks>31008255</p:TotalTracks>
+          <p:TracksPerCylinder>255</p:TracksPerCylinder>
+        </p:Win32_DiskDrive>
+      </w:Items>
+      <w:EndOfSequence/>
+    </n:EnumerateResponse>
+  </s:Body>
+</s:Envelope>
+

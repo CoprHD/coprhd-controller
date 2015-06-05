@@ -1,0 +1,42 @@
+POST https://192.168.0.0:4443/projects/bulk
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:Project:d13fc87f-f67d-4b60-a91d-f5bb9abc97d9:</id>
+    <id>urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_projects>
+    <project>
+        <creation_time>1380592376484</creation_time>
+        <id>urn:storageos:Project:d13fc87f-f67d-4b60-a91d-f5bb9abc97d9:</id>
+        <inactive>false</inactive>
+        <link href="/projects/urn:storageos:Project:d13fc87f-f67d-4b60-a91d-f5bb9abc97d9:" rel="self"/>
+        <name>projectabc</name>
+        <tags/>
+        <owner>root</owner>
+        <tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        </tenant>
+    </project>
+    <project>
+        <creation_time>1379169049769</creation_time>
+        <id>urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:</id>
+        <inactive>false</inactive>
+        <link href="/projects/urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:" rel="self"/>
+        <name>project2</name>
+        <tags/>
+        <owner>root</owner>
+        <tenant>
+            <id>urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:</id>
+            <link href="/tenants/urn:storageos:TenantOrg:dbeb4135-e297-40d9-a5d4-9b40c73bdb4b:" rel="self"/>
+        </tenant>
+    </project>
+</bulk_projects>

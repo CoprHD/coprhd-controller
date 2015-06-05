@@ -1,0 +1,63 @@
+GET https://192.168.0.0:443/api/services/urn:storageos:CatalogService:42692049-2716-4ad5-a22b-7fdc183d50ea:/descriptor HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "serviceId": "ExpandBlockStorage",
+  "category": "Block Services",
+  "title": "Expand Block Volume",
+  "description": "Expand storage on a Block Volume",
+  "roles": [],
+  "destructive": false,
+  "fields": {
+    "project": {
+      "name": "project",
+      "label": "Project",
+      "type": "assetType.bourne.project",
+      "required": true,
+      "select": "one",
+      "lockable": true,
+      "validation": {
+        "min": 0,
+        "max": 2147483647,
+        "regEx": "",
+        "failureMessage": ""
+      },
+      "options": {}
+    },
+    "volumes": {
+      "name": "volumes",
+      "label": "Volume",
+      "type": "assetType.bourne.sourceBlockVolume",
+      "required": true,
+      "select": "one",
+      "lockable": false,
+      "validation": {
+        "min": 0,
+        "max": 2147483647,
+        "regEx": "",
+        "failureMessage": ""
+      },
+      "options": {}
+    },
+    "size": {
+      "name": "size",
+      "label": "New Size (GB)",
+      "type": "storageSize",
+      "required": true,
+      "select": "one",
+      "lockable": false,
+      "validation": {
+        "min": 1,
+        "max": 2147483647,
+        "regEx": "",
+        "failureMessage": ""
+      },
+      "options": {}
+    }
+  }
+}

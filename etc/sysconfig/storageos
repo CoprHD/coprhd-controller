@@ -1,0 +1,44 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# /etc/sysconfig/@product_name@
+#
+# @product_brand@ configuration parameters
+#
+
+# @product_brand@ installation top directory
+#
+STORAGEOS_DIR='@product_prefix@'
+
+# @product_brand@ log directory
+#
+STORAGEOS_LOGS="${STORAGEOS_DIR}/logs"
+
+# @product_brand@ execution variant
+#
+STORAGEOS_VARIANT=""
+
+# Build Type: oss or emc
+#
+STORAGEOS_BUILD_TYPE="@build_type@"
+
+# Non-default values for the following variables are determined in boot-ovfenv service
+# STORAGEOS_BOOT_MODE
+# STORAGEOS_DEV_MODE
+# STORAGEOS_IPRECONFIG_MODE
+
+# ViPR has several boot modes, which are corresponding to grub boot menu.
+# 1. After cluster installed and configured successfully, ViPR is normally running in "normal" mode.
+# 2. While initial configuring or reconfiguring a ViPR env, it is running in "config" mode.
+# 3. While redepolying a ViPR env, it is running in "redeploy" mode 
+# 4. Switch to "config" mode automatically, if we find empty ovfenv partition within default "normal" mode.
+STORAGEOS_BOOT_MODE="normal"
+
+# ViPR has a hidden dev mode for installing 1+0 env in Hyper-V platform.
+STORAGEOS_DEV_MODE="false"
+
+# There are two modes during bootstrap for ipreconfig procedure  
+#   adopt: adopt new IPs requested via rest API
+#   rollback: rollback to latest successful IPs config
+STORAGEOS_IPRECONFIG_MODE="commit"

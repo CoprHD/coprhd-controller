@@ -1,0 +1,45 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays']/}
+#{set 'title'}&{'StorageSystems.listPorts.title'}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @arrays.StorageSystems.list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
+  #{breadcrumb.dropdown currentPage:'StorageSystems.listPorts.title'}
+    #{breadcrumb.item @arrays.StorageSystems.pools(storageSystem.id)}&{'StorageSystems.pools.title'}#{/breadcrumb.item}
+  #{/breadcrumb.dropdown}
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey:'StorageSystems.listPorts.title'/}
+#{DataTable.table id:'storageArrayPorts', 
+                  dataTable:dataTable,
+                  source:@arrayPortsJson(storageSystem.id),
+                  expandable:true,
+                  selectable:true}
+  #{DataTable.buttonBar}
+    #{if storageSystem.getSystemType() == 'openstack'}
+      #{Form.button name:'button.add', icon:'plus', href:@createPort(storageSystem.id), class:'btn btn-success'/}
+    #{/if}
+    #{Form.button name:'button.register', icon:'ok', submit:'registerForm',
+                  data:['enabled':'selected', 'property':'registrationStatus', 'value':'UNREGISTERED']/}
+    #{Form.button name:'button.deregister', icon:'remove', submit:'deregisterForm',
+                  data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/} 
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+#{DataTable.expandHtml @metricDetails(':id'), table:'storageArrayPorts'/}
+%{ formFields = ['arrayId': storageSystem.id] }%
+#{DataTable.formAction @registerPorts(), id:'registerForm', table:'storageArrayPorts', fields:formFields/}
+#{DataTable.formAction @deregisterPorts(), id:'deregisterForm', table:'storageArrayPorts', fields:formFields/}
+
+<script type="text/javascript">
+function renderStorageArrayPortEditLink(o, val) {
+    var port = o.aData;
+    var isOpenStack = "${storageSystem.getSystemType()}" === "openstack";
+    var url = #{jsAction @editPort(':id', ':portId')/}({"id": "${storageSystem.id}", "portId": port.id});
+    return isOpenStack ? "<a href='"+url+"'>" + val + "</a>" : val;
+}
+</script>

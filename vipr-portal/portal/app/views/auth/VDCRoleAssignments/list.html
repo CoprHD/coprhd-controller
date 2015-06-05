@@ -1,0 +1,15 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.security', 'nav.vdcRoles'] /}
+
+#{if flash.warningMessage}
+  <div class="clear"></div>
+  <p class="alert alert-warning">${flash.warningMessage}</p>
+#{/if}
+
+#{DataTable.header titleKey:'vdcRoleAssignments.list.title'/}
+#{DataTable.crudTable id:'roleAssignments',
+                      dataTable:dataTable,
+                      deleteConfirm:messages.get('roleAssignments.deleteConfirm')/}

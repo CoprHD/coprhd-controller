@@ -1,0 +1,82 @@
+POST https://192.168.0.0:4443/block/snapshots/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:</id>
+    <id>urn:storageos:BlockSnapshot:7fccb187-aa7e-48be-bd12-8341336c4adb:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_block_snapshots>
+    <block_snapshot>
+        <creation_time>1380600535196</creation_time>
+        <id>urn:storageos:BlockSnapshot:7fccb187-aa7e-48be-bd12-8341336c4adb:</id>
+        <inactive>false</inactive>
+        <link href="/block/snapshots/urn:storageos:BlockSnapshot:7fccb187-aa7e-48be-bd12-8341336c4adb:" rel="self"/>
+        <name>block_snapshot_10</name>
+        <tags/>
+        <consistency_group>
+            <id>urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:</id>
+            <link href="/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:" rel="self"/>
+        </consistency_group>
+        <device_label>smi00796_3FF94D11_5255F460_1</device_label>
+        <native_id>16308</native_id>
+        <protocols>
+            <protocol>FC</protocol>
+        </protocols>
+        <storage_controller>urn:storageos:StorageSystem:ed5035a8-5f72-43e8-b970-847b4d76e17c:</storage_controller>
+        <varray>
+            <id>urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:</id>
+            <link href="/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:" rel="self"/>
+        </varray>
+        <wwn>600601605D312F00D2B90225762AE311</wwn>
+        <parent>
+            <id>urn:storageos:Volume:7ab81667-500d-4e3c-b05a-f033384f05fb:</id>
+            <link href="/block/volumes/urn:storageos:Volume:7ab81667-500d-4e3c-b05a-f033384f05fb:" rel="self"/>
+        </parent>
+        <project>
+            <id>urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:</id>
+            <link href="/projects/urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:" rel="self"/>
+        </project>
+        <source_native_id>00796</source_native_id>
+        <is_sync_active>false</is_sync_active>
+    </block_snapshot>
+    <block_snapshot>
+        <creation_time>1380600535196</creation_time>
+        <id>urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:</id>
+        <inactive>false</inactive>
+        <link href="/block/snapshots/urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:" rel="self"/>
+        <name>block_snapshot_10</name>
+        <tags/>
+        <consistency_group>
+            <id>urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:</id>
+            <link href="/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:" rel="self"/>
+        </consistency_group>
+        <device_label>smi00795_51D5858D_5255F460_1</device_label>
+        <native_id>16309</native_id>
+        <protocols>
+            <protocol>FC</protocol>
+        </protocols>
+        <storage_controller>urn:storageos:StorageSystem:ed5035a8-5f72-43e8-b970-847b4d76e17c:</storage_controller>
+        <varray>
+            <id>urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:</id>
+            <link href="/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:" rel="self"/>
+        </varray>
+        <wwn>600601605D312F00D0B90225762AE311</wwn>
+        <parent>
+            <id>urn:storageos:Volume:16e26d2b-e291-4462-a10c-efe45003518c:</id>
+            <link href="/block/volumes/urn:storageos:Volume:16e26d2b-e291-4462-a10c-efe45003518c:" rel="self"/>
+        </parent>
+        <project>
+            <id>urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:</id>
+            <link href="/projects/urn:storageos:Project:3e9226a8-33eb-419f-a7ab-4669eb93485c:" rel="self"/>
+        </project>
+        <source_native_id>00795</source_native_id>
+        <is_sync_active>false</is_sync_active>
+    </block_snapshot>
+</bulk_block_snapshots>

@@ -1,0 +1,27 @@
+<div id="Order_precheckTasks" #{if !details.precheckTaskLogs}style="display:none"#{/if}>
+  <div class="master-detail">
+    <div class="header"><i class="indicator"></i>&{'order.precheckTasks'}</div>
+    <div class="content" style="display:none">
+      #{Orders.taskLogs logs:details.precheckTaskLogs/}
+    </div>
+  </div>
+  <script>initStaticMasterDetail('#Order_precheckTasks .master-detail');</script>
+</div>
+<div id="Order_executeTasks" #{if !details.executeTaskLogs}style="display:none"#{/if}>
+  <div class="master-detail">
+    <div class="header"><i class="indicator"></i>&{'order.executeTasks'}</div>
+    <div class="content" style="display:none">
+      #{Orders.taskLogs logs:details.executeTaskLogs/}
+    </div>
+  </div>
+  <script>initStaticMasterDetail('#Order_executeTasks .master-detail');</script>
+</div>
+<div id="Order_rollbackTasks" #{if !details.rollbackTaskLogs}style="display:none"#{/if}>
+  <div class="master-detail">
+    <div class="header"><i class="indicator"></i>&{'order.rollbackTasks'}</div>
+    <div class="content" style="display:none">
+      #{Orders.taskLogs logs:details.rollbackTaskLogs/}
+    </div>
+  </div>
+  <script>initStaticMasterDetail('#Order_rollbackTasks .master-detail');</script>
+</div>

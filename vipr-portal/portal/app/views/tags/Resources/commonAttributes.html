@@ -1,0 +1,39 @@
+%{
+  resource = _resource
+}%
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+	$(document).ready(function(){
+	  $(".moreDetails").hide();
+	  $("#moreDetailsLink").bind("click", function() {
+	  	$(".moreDetails").show();
+	  	$(".lessDetails").hide();
+	  });
+	  $("#lessDetailsLink").bind("click", function() {
+	  	$(".moreDetails").hide();
+	  	$(".lessDetails").show();
+	  });	  
+	});
+</script>
+#{/set}
+
+<dt class="lessDetails">&nbsp;</dt>
+<dd class="lessDetails"><a id="moreDetailsLink" href="#" onclick="return false;">&{'resources.common.moredetails'}</a></dd>
+<dt class="moreDetails">&{'resources.common.id'}:</dt>
+<dd class="moreDetails">${resource?.id}</dd>
+<dt class="moreDetails">&{'resources.common.creationtime'}:</dt>
+<dd class="moreDetails">#{localDateTime resource?.creationTime?.time?.time/}&nbsp;</dd>
+<dt class="moreDetails">&{'resources.common.tags'}:</dt>
+<dd class="moreDetails">
+  #{if resource?.tags}
+    #{list items:resource.tags, as:'tag'}
+      ${tag}<br/>
+    #{/list}
+  #{/if}
+  #{else}
+    &{'resources.tags.notags'}
+  #{/else}
+</dd>
+<dt class="moreDetails">&nbsp;</dt>
+<dd class="moreDetails"><a id="lessDetailsLink" href="#" onclick="return false;">&{'resources.common.lessdetails'}</a></dd>

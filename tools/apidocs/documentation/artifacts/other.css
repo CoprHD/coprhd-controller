@@ -1,0 +1,20 @@
+/**
+* Copyright 2015 EMC Corporation
+* All Rights Reserved
+ */
+body {
+      padding:10px
+}
+
+.table {
+    font-size: 10pt;
+}
+
+.table thead {
+    font-weight: bold
+}
+
+hr {
+    margin-bottom: 0px;
+    border-style: dashed;
+}

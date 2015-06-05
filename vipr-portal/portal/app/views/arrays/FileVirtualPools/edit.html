@@ -1,0 +1,150 @@
+%{
+  titleKey = "FileVirtualPools.${vpool?.new ? 'create' : 'edit'}.title"
+  descriptionKey = "FileVirtualPools.${vpool?.new ? 'create' : 'edit'}.description"
+  image = '/public/img/assets/VirtualPool.png'
+  
+  locked = vpool?.locked
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.file.virtualPools'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{script 'virtualPools.js'/}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+$(document).ready(function() {
+    var emptyAttributes = { ${varrayAttributeNames?.collect { "${it}: []" }?.join(", ")} };
+    virtualPools.init('#virtualPool', emptyAttributes);
+	
+	var virtualArrayChanged = function() {
+	    var url = "@{listVirtualArrayAttributesJson()}";
+	    virtualPools.updateVirtualArrayAttributes(url, "#virtualPool form");
+	}
+	$('#vpool_virtualArrays').on('change', virtualArrayChanged);
+	virtualArrayChanged();
+});
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+  .panel-group + .button-bar {
+    margin-top: 10px;
+  }
+  .panel {
+    margin-top: 5px
+  }
+  .panel-group .panel {
+    overflow: visible;
+  }
+</style>
+#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'FileVirtualPools.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div id="virtualPool" class="container">
+
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+#{alerts/}
+#{if locked}
+  <div class="alert alert-info">&{'VirtualPools.locked'}</div>
+#{/if}
+
+#{form @save(), class:'form form-horizontal', autocomplete:"off"}
+  #{field 'referrer'}
+    *{ Allow referrer from the flash only }*
+    #{if flash[field.name]}#{Form.hidden field:field/}#{/if}
+  #{/field}
+  
+  #{if !vpool.new}
+    <div class="storagePoolCriteria">
+    #{field 'vpool.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+    #{field 'vpool.numResources'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+    </div>
+  #{/if}
+  
+  #{field 'vpool.name'}
+    #{Form.inputTextControlGroup field:field, required:true, cssClass:'initialFocus' /}
+  #{/field}
+  #{field 'vpool.description'}
+    #{Form.inputTextControlGroup field:field, required:true /}
+  #{/field}
+<div class="storagePoolCriteria">
+  #{field 'vpool.virtualArrays'}
+    #{Form.selectManyControlGroup field:field, options:virtualArrayOptions, required:true /}
+  #{/field}
+</div>
+  #{field 'vpool.enableQuota'}
+    #{Form.booleanCheckBoxControlGroup field:field /}
+  #{/field}
+  
+  <div data-source="vpool_enableQuota" data-show="true">
+  #{field 'vpool.quota'}
+    #{Form.controlGroup field:field, width:3}
+      <div class="input-group">
+        #{Form.inputText field:field/}
+        <span class="input-group-addon">&{'GB'}</span>
+      </div>
+    #{/Form.controlGroup}
+  #{/field}
+  </div>
+  
+  <div class="panel-group">
+  <div class="storagePoolCriteria">
+  #{collapse 'vpool.group.hardware', icon:'align-justify'}
+      #{field 'vpool.provisioningType'}
+        #{VirtualPools.locked locked:locked, field:field /}
+        #{Form.selectOneControlGroup field:field, options:provisioningTypeOptions, required:true /}
+      #{/field}
+      #{field 'vpool.protocols'}
+        #{VirtualPools.locked locked:locked, field:field /}
+        #{Form.selectManyControlGroup field:field, options:protocolOptions, required:true /}
+      #{/field}
+      #{field 'vpool.systemType'}
+        #{VirtualPools.locked locked:locked, field:field /}
+        #{Form.selectOneControlGroup field:field, options:systemTypeOptions, cssClass:'span4' /}
+      #{/field}
+  #{/collapse}
+  
+  #{collapse 'vpool.group.protection', icon:'vipricon-protectionv8'}
+      #{field 'vpool.maxSnapshots'}
+        #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
+      #{/field}
+  #{/collapse}
+  
+  #{collapse 'vpool.group.archive', icon:'floppy-disk'}
+    #{field 'vpool.longTermRetention'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+  #{/collapse}
+  </div>
+  
+  *{ tenantOptions is only set if user has access to read tenants and write ACLs }*
+  #{if tenantOptions}
+    #{collapse 'vpool.group.accessControl', icon:'user'}
+        #{field 'vpool.enableTenants'}
+          #{Form.booleanCheckBoxControlGroup field:field /}
+        #{/field}
+      <div data-source="vpool_enableTenants" data-show="true">
+        #{field 'vpool.tenants'}
+          #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+        #{/field}
+      </div>
+    #{/collapse}
+  #{/if}
+
+  #{include 'arrays/VirtualPools/storagePools.html'/}
+  </div>
+  #{Form.saveCancel cancelHref:flash['referrer']/}
+#{/form}
+</div>

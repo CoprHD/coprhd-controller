@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<smooks-resource-list xmlns="http://www.milyn.org/xsd/smooks-1.1.xsd" xmlns:jb="http://www.milyn.org/xsd/smooks/javabean-1.2.xsd">
+	<resource-config selector="global-parameters">
+		<param name="stream.filter.type">SAX</param>
+	</resource-config>
+	<jb:bean beanId="echoCommand" class="com.emc.storageos.hds.model.EchoCommand" createOnElement="EchoCommand">
+		<jb:value property="name" decoder="String" data="Response/EchoCommand/@name" />
+		<jb:value property="status" decoder="String" data="Response/EchoCommand/@status" />
+		<jb:value property="result" decoder="Integer" data="Response/EchoCommand/@result" />
+		<jb:value property="resultSource" decoder="String" data="Response/EchoCommand/@resultSource" />
+		<jb:value property="messageID" decoder="String" data="Response/EchoCommand/@messageID"/>
+	</jb:bean>
+	
+	<jb:bean beanId="error" class="com.emc.storageos.hds.model.Error" createOnElement="Error">
+		<jb:value property="source" decoder="String" data="Response/Error/@source" />
+		<jb:value property="code" decoder="Integer" data="Response/Error/@code" />
+		<jb:value property="description" decoder="String" data="Response/Error/@description" />
+	</jb:bean>
+	
+	<jb:bean beanId="hostList" class="java.util.ArrayList" createOnElement="ResultList"> 
+	  <jb:wiring beanIdRef="host" />
+	</jb:bean>
+	
+	<jb:bean beanId="host" class="com.emc.storageos.hds.model.HDSHost" createOnElement="Host">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/Host/@objectID" />
+		<jb:value property="name" decoder="String" data="Response/ResultList/Host/@name" />
+		<jb:wiring property="snapshotGroupList" beanIdRef="snapshotGroupList" />
+	</jb:bean>
+	
+	<jb:bean beanId="snapshotGroupList" class="java.util.ArrayList" createOnElement="Host"> 
+	  <jb:wiring beanIdRef="snapshotGroup" />
+	</jb:bean>
+	
+	<jb:bean beanId="snapshotGroup" class="com.emc.storageos.hds.model.SnapshotGroup" createOnElement="SnapshotGroup">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/Host/SnapshotGroup/@objectID" />
+		<jb:value property="arrayType" decoder="String" data="Response/ResultList/Host/SnapshotGroup/@arrayType" />
+		<jb:value property="serialNumber" decoder="String" data="Response/ResultList/Host/SnapshotGroup/@serialNumber" />
+		<jb:value property="groupName" decoder="String" data="Response/ResultList/Host/SnapshotGroup/@groupName" />
+		<jb:value property="replicationFunction" decoder="String" data="Response/ResultList/Host/SnapshotGroup/@replicationFunction" />
+		<jb:wiring property="replicationInfoList" beanIdRef="replicationInfoList" />
+	</jb:bean>
+	
+	<jb:bean beanId="replicationInfoList" class="java.util.ArrayList" createOnElement="SnapshotGroup"> 
+	  <jb:wiring beanIdRef="replicationInfo" />
+	</jb:bean>
+	
+	<jb:bean beanId="replicationInfo" class="com.emc.storageos.hds.model.ReplicationInfo" createOnElement="ReplicationInfo">
+		<jb:value property="objectID" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@objectID" />
+		<jb:value property="pvolSerialNumber" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@pvolSerialNumber" />
+		<jb:value property="pvolArrayType" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@pvolArrayType" />
+		<jb:value property="pvolDevNum" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@pvolDevNum" />
+		<jb:value property="svolSerialNumber" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@svolSerialNumber" />
+		<jb:value property="svolArrayType" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@svolArrayType" />
+		<jb:value property="svolDevNum" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@svolDevNum" />
+		<jb:value property="replicationFunction" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@replicationFunction" />
+		<jb:value property="status" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@status" />
+		<jb:value property="pairName" decoder="String" data="Response/ResultList/Host/SnapshotGroup/ReplicationInfo/@pairName" />
+	</jb:bean>
+	
+</smooks-resource-list>

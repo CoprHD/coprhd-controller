@@ -1,0 +1,14 @@
+GET https://192.168.0.0:4443/vdc/protection-systems/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+	<id>urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:</id>
+	<id>urn:storageos:ProtectionSystem:201d8d6f-547f-4c4a-8a8f-d89647c238e2:</id>
+	<id>urn:storageos:ProtectionSystem:83d263f1-f59d-455b-80db-b17c627427c3:</id>
+</ids>

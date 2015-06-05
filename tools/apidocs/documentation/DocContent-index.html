@@ -1,0 +1,150 @@
+<html>
+
+<head>
+    <title>Reference Documentation</title>
+    <link href="artifacts/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+    <link href="artifacts/other.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<h2>ViPR API - Content Documentation</h2>
+<img src="artifacts/emc_vipr.jpg" style="float:right"/>
+
+<p>ViprApiDocConent holds the content parts of the ViPR REST API the </p>
+
+<h3>Structure</h3>
+<ul>
+    <li>Content</li>
+    <ul>
+        <li><a href="#examples">Examples</a> - Holds all the example files for the Reference Details Page</li>
+        <li><a href="#pages">Pages</a> - Holds the content of all the static pages for the API Guide</li>
+        <li><a href="#reference">Reference</a> - Holds configuration files for the Reference Generation</li>
+        <li><a href="#static">Static</a> - Holds any static content files for the final generation</li>
+        <li><a href="#static">Templates</a> - Holds the templates for all generated files</li>
+    </ul>
+</ul>
+
+
+<a name="examples"></a>
+<h3>Examples</h3>
+<p>Examples are text files with a request and response split by ==RESPONSE, i.e. </p>
+<pre>
+DELETE https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:/exports/NFS,sys,rw,nobody.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+"link": {
+"href": "/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:/tasks/008f5d02-689d-4953-8b3e-0bd009b0616e",
+"rel": "self"
+},
+"op_id": "008f5d02-689d-4953-8b3e-0bd009b0616e",
+"resource": {
+"id": "urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:",
+"link": {
+"href": "/file/filesystems/urn:storageos:FileShare:840d01a9-8836-4c53-a95a-c6efedc81fc3:",
+"rel": "self"
+},
+"name": "fs-cosnetappf-00:50:56:91:58:91"
+},
+"start_time": 1379958434711,
+"state": "pending"
+}
+</pre>
+<p>At runtime the file will be split at the ==RESPONSE marker and then placed into the Details section of the page.</p>
+<p>The naming of the file IS important in order for the generator to match up the example to the correct method call.  The name is devised by taking the HTTP Verb, appending it to the path, and then changing all { and . characters to _.</p>
+<p>For example, the JSON example for the method POST /vdc/filesystems/{id}/{param2}.xsd would be stored in a file called POST_vdc_filesystems_{id}_{param2}_xsd_json_example.txt</p>
+<hr/>
+<a name="pages"></a>
+<h3>Pages</h3>
+<p>The pages directory holds the content blocks for all static content in the API Guide. The structure of directories IS important as it directly reflects the structure of the TOC in the API Guide.</p>
+<p>Each directory contains .html files, which contain the content blocks, and an optional index.txt file.  The index.txt file contains the title of the folder as it should appear in the TOC along with an ordered list showing the order in with both child folders and pages should appear in this TOC category.</p>
+<p>The following shows the pages/cookbook/index.txt file.  You can see that it will be shown as "Controller API Common Workflows" in the generated TOC, and that the vdc_setup and volumes will be child folders.  If a folder does not contain an index.txt file, the name of the directory is used instead.</p>
+<pre>
+Controller API Common Workflows
+# Folders
+vdc_setup
+volumes
+files
+# Files
+</pre>
+<p>When the generator creates the final page, the name of the generated file will be EXACTLY the same as the content block, so the page ServiceCatalog.html will result in a final page of ServiceCatalog.html. The final generated content is a flat directory of all files, so it's important that no two pages are called the same thing (i.e. two Introduction.html pages)</p>
+
+<div class="alert alert-info"><b>Note:</b> If a child folder or file does not appear in the index.txt file, it does NOT mean it will be hidden.  Any folders/files not appearing in the index.txt list will simply be added to the bottom of that category.</div>
+
+<a name="artifacts"></a>
+<h5>Artifacts</h5>
+<p>Any folder within the pages directory can also contain an optional artifacts directory.  This can be used to contain any images etc that the content page needs.  At generation time, all artifacts found in the tree will be copied into the generated /artifacts directory.</p>
+
+<h5>toc_ignore</h5>
+<p>Any folder named toc_ignore will be ignored when constructing the TOC, however the pages within that folder will be generated.  This allows you to have generated pages that you can link to, without them appearing the TOC.  One such page currently in use is the AtmosApiGuidel.html page which is linked in the Data Services Reference guide.</p>
+
+<hr/>
+<a name="reference"></a>
+<h3>Reference</h3>
+<p>This directory holds several configuration files that are used during the API Reference Generation.  With all these files, any blank lines or lines beginning with # will be ignored.</p>
+<h4>MethodBlackList.txt</h4>
+<p>Holds a list of methods that should NOT be included in the final API reference.  Each line indicates a reference with the format {JavaClass}::{JavaMethod}.</p>
+<p>The following shows a sample file:</p>
+<pre>
+# Lists all Methods should be ignored
+DataStoreService::createDataStoreOnExportPoint
+DataStoreService::getNfsExportPointsDataStore
+DataStoreService::modifyExportPointsDataStore
+</pre>
+<h4>ServiceBlacklist.txt</h4>
+<p>Lists all Services that should NOT be included in the final API reference.  Each line indicates the name of the Java class representing that service.</p>
+<p>The following shows an example file</p>
+<pre>
+#Hold the classnames of Services that should NOT be included
+LoggingPage
+FIEnablerService
+AtmosDeviceService
+</pre>
+<h4>ServiceTitleChanges.txt</h4>
+<p>By default the API generator will create a name for the service from the Java classname, so for example "ConsistencyGroupService" would become "Consistency Group Service". The ServiceTitleChanges file allows you to override this default behaviour and specify any desired name.  Each line in the file has the following format {JavaClassName}={New Title}.</p>
+<p>The following shows an example file.</p>
+<pre>
+BlockService=Block Volume
+ObjectTransportZoneService=Object Network
+DataStoreService=Object Data Store
+ObjectStoreService=Object Virtual Pool
+ExportGroupService=Export
+</pre>
+<h4>ApiReferenceGrouping.txt</h4>
+<p>This file specifies how the generated API services should be grouped in the Api Reference TOC.  Lines begining with a = will be taken as a group heading, and any lines underneath that group heading will be taken as Java class names of services to appear in that group.</p>
+<p>The following shows an example:</p>
+<pre>
+=Tenant Services
+ProjectService
+TenantsService
+TenantService
+
+=Object Data Control Services
+AtmosDeviceService
+NamespaceService
+ObjectTransportZoneService
+ObjectStoreService
+DataStoreService
+ObjectBaseUrlService
+SecretKeyService
+UserSecretKeyService
+UserPasswordGroupService
+UserManagementService
+</pre>
+<p>This would produce two groups, "Tenant Services" containing three services and "Object Data Control Services" containing 10 services.</p>
+<div class="alert alert-warning"><b>Note:</b> ALL services MUST be allocated to an API Reference TOC group. If any service does not have a TOC group specified, the generator will stop with an error.<br/>  For example, if the Workflow service was not specified in the ApiReferenceGrouping.txt file, the error "WorkflowService are not assigned to any TOC category" would be thrown by the generator and the build stopped.</div>
+
+<hr/>
+<a name="static"></a>
+<h3>Static</h3>
+<p>This directory contains a set of static files that will be copied over directly to the generated /static directory.  The whole directory will be copied as is and no attempt to actually interpret any of the files is made.  This directory is really used to contain the main style sheets, Javascript libraries etc.  If you have user content for pages, this should be placed in an <a href="#artifacts">Artifacts</a> directory instead.</p>
+<hr/>
+<a name="templates"></a>
+<h3>Templates</h3>
+<p>Holds all the template files required by the generator to produce the final pages.  Templating is discussed in the dedicated <a href="Templates.html">Templates</a> section as it's slightly more complicated.</p>
+</html>

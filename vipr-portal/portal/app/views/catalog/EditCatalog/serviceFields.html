@@ -1,0 +1,109 @@
+%{
+  // Only if we have lockable fields
+  hasLockableFields = serviceDescriptor?.getAllItemsList()?.count {it.lockable} > 0
+}%
+#{if hasLockableFields}
+  <fieldset>
+    <legend>&{'service.overrides.title'}<small>&{'service.overrides.description'}</small></legend>
+
+    <table class="table" style="width:700px;">
+    <thead>
+      <th>&{'serviceField.name'}</th>
+      <th style="text-align:center;">&{'serviceField.locked'}</th>
+      <th>&{'serviceField.value'}</th>
+    </thead>
+    <tbody>
+    #{set counter:0 /}
+    #{list items:serviceDescriptor?.getAllItemsList(), as:'serviceField'}
+      %{
+        currentField = service?.serviceFields.find{it.name == serviceField.name}
+      }%
+      #{if serviceField.lockable}
+        #{field serviceField.name}
+          %{
+            field.id = "service_serviceFields${counter}_value"
+            field.name = "service.serviceFields[${counter}].value"
+            field.value = flash[field.name] ?: currentField?.value ?: serviceField.initialValue
+
+            locked = currentField?.override
+            if (flash["service.serviceFields[${counter}].override"]) {
+              locked = flash["service.serviceFields[${counter}].override"] == 'true'
+            }
+            field.disabled = !locked
+          }%
+          <tr>
+            <td>${serviceField.label}</td>
+            <td style="text-align:center;">
+              <input type="hidden"
+                     id="service_serviceFields${counter}_name"
+                     name="service.serviceFields[${counter}].name"
+                     value="${serviceField.name}"
+                  />
+              <input type="checkbox"
+                     id="service_serviceFields${counter}_override"
+                     name="service.serviceFields[${counter}].override"
+                     value="true"
+                     #{if locked}
+                       checked="checked"
+                     #{/if}
+                     onchange="overrideField(this, '#service_serviceFields${counter}_value');"
+              />
+            </td>
+            <td>
+              #{if serviceField?.isAsset()}
+                %{
+                  field.options = request.current().args.get(serviceField.type+"-options")
+                  field.error = request.current().args.get(serviceField.type+"-error")
+                  field.valueType = String.class
+                  field.valueProperty = 'key' // Key from the map
+                  field.labelProperty = 'value' // Value from the map
+                  field.addChooseOption = true
+                }%
+                #{if serviceField.select == 'one'}
+                  #{Form.selectOne field:field/}
+                #{/if}
+                #{elseif serviceField.select == 'many'}
+                  #{Form.selectMany field:field/}
+                #{/elseif}
+              #{/if}
+              #{elseif serviceField.type == 'choice'}
+                %{
+                  field.options = serviceField.options
+                  field.valueType = String.class
+                  field.valueProperty = 'key' // Key from the map
+                  field.labelProperty = 'value' // Value from the map
+                  field.addChooseOption = true
+                }%
+                #{if serviceField.select == 'one'}
+                  #{Form.selectOne field:field/}
+                #{/if}
+                #{elseif serviceField.select == 'many'}
+                  #{Form.selectMany field:field/}
+                #{/elseif}
+              #{/elseif}
+              #{elseif (['text', 'number', 'storageSize'] as java.util.Set).contains(serviceField.type)}
+                %{
+                  field.atts = [ maxlength: Math.min(serviceField?.max ?: 1024, 1024) ]
+                }%
+                #{Form.inputText field:field/}
+              #{/elseif}
+              #{elseif serviceField.type == 'boolean'}
+                #{Form.booleanCheckBox field:field/}
+              #{/elseif}
+              #{elseif serviceField.type == 'password'}
+                %{
+                  field.atts = [ maxlength: Math.min(serviceField?.max ?: 1024, 1024) ]
+                }%
+                #{Form.inputPassword field:field/}
+              #{/elseif}
+              <p class="help-inline help-error">${field.error}</p>
+            </td>
+          </tr>
+        #{/field}
+        #{set counter: counter + 1 /}
+      #{/if}
+    #{/list}
+    </tbody>
+    </table>
+  </fieldset>
+#{/if}

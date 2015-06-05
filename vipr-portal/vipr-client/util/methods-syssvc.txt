@@ -1,0 +1,96 @@
+/cli
+    GET getCli
+/logs/
+    GET getLogs
+    /logs/internal/node-logs/
+        POST getNodeLogs
+    /logs/log-levels/
+        GET getLogLevels
+        POST setLogLevels
+    /logs/internal/log-level/
+        POST processNodeLogLevel
+/
+    //login
+        GET landingPage
+    //proxytoken
+        GET getProxyToken
+/upgrade/
+    /upgrade/image/install/
+        POST installImage
+    /upgrade/target-version/
+        PUT setTargetVersion
+        GET getTargetVersion
+    /upgrade/cluster-state/
+        GET getClusterState
+    /upgrade/image/remove/
+        POST removeImage
+    /upgrade/internal/image/
+        GET getImage
+    /upgrade/internal/wakeup/
+        POST wakeupUpgradeManager
+    /upgrade/image/upload
+        POST uploadImage
+/password
+    PUT updatePassword
+    /password/reset/{user_name}
+        PUT updateUserPassword
+    /password/authorizedkey2
+        PUT updateAuthorizedkey2
+/monitor
+    /monitor/internal/node-stats
+        POST getNodeStats
+    /monitor/stats
+        GET getStats
+    /monitor/internal/node-health
+        GET getNodeHealth
+    /monitor/health
+        GET getHealth
+    /monitor/diagnostics
+        GET getDiagnostics
+    /monitor/internal/node-diagnostics
+        POST getNodeDiagnostics
+    /monitor/storage
+        GET getStorageStats
+/control/
+    /control/service/restart
+        POST restartService
+    /control/internal/service/restart
+        POST restartNodeService
+    /control/node/reboot
+        POST rebootNode
+    /control/internal/node/reboot
+        POST rebootNode
+    /control/cluster/poweroff
+        POST powerOffCluster
+/config/
+    /config/properties/
+        GET getProperties
+        PUT setProperties
+    /config/properties/metadata/
+        GET getPropMetadata
+    /config/connectemc/ftps/
+        POST configureConnectEmcFtpsParams
+    /config/connectemc/email/
+        POST configureConnectEmcEmailParams
+    /config/properties/reset/
+        POST resetProps
+    /config/datanode-config/
+        GET getVisiblePropertiesISO
+/license
+    GET getLicense
+    POST postLicense
+/callhome/
+    /callhome/registration/
+        POST sendRegistrationEvent
+    /callhome/heartbeat/
+        POST sendHeartbeatEvent
+    /callhome/internal/alert/
+        POST sendInternalAlert
+    /callhome/alert/
+        POST sendAlert
+    /callhome//alert/{id}/tasks/
+        GET getTasks
+    /callhome//alert/{id}/tasks/{op_id}/
+        GET getTask
+    /callhome/esrs-device/
+        GET getNodeDataForEsrs

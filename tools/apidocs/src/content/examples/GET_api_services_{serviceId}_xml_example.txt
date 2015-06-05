@@ -1,0 +1,21 @@
+GET https://192.168.0.0:443/api/services/urn:storageos:CatalogService:42692049-2716-4ad5-a22b-7fdc183d50ea:
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<serviceInfo>
+    <id>urn:storageos:CatalogService:42692049-2716-4ad5-a22b-7fdc183d50ea:</id>
+    <inactive>false</inactive>
+    <link href="/api/services/urn:storageos:CatalogService:42692049-2716-4ad5-a22b-7fdc183d50ea:" rel="self"/>
+    <approvalRequired>false</approvalRequired>
+    <baseService>ExpandBlockStorage</baseService>
+    <description>Expand storage on a block volume</description>
+    <executionWindowRequired>false</executionWindowRequired>
+    <image>icon_db_expand.png</image>
+    <name>ExpandBlockStorage</name>
+    <title>Expand Block Volume</title>
+</serviceInfo>

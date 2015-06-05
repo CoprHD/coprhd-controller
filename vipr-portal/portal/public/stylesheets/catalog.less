@@ -1,0 +1,118 @@
+@catalog-hover-border: darken(@panel-default-border, 10%);
+
+.catalog {
+  overflow: hidden;
+  margin-top: 1em;
+}
+
+/** Single row catalog. */
+.catalog-row {
+  height: 144px;
+  overflow: hidden;
+}
+
+/** Container for catalog items. */
+.catalog-items {
+  list-type: none;
+  margin-left: -5px;
+  margin-right: -5px;
+  padding: 0;
+}
+.catalog-items:after {
+  clear: both;
+}
+
+/** General catalog item style (category/service). */
+.catalog-item {
+  cursor: pointer;
+  position: relative;
+  float: left;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow: hidden;
+  
+  -webkit-transition: background .1s linear;
+     -moz-transition: background .1s linear;
+       -o-transition: background .1s linear;
+          transition: background .1s linear;
+}
+
+.catalog-item .panel {
+  margin-bottom: 10px;
+}
+
+.catalog-item {
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .catalog-item {
+    width: 50%;
+  }
+  /*
+  .menu-open.menu-pinned .catalog-item {
+    width: 100%;
+  }*/
+}
+
+@media (min-width: 992px) {
+  .catalog-item {
+    width: 33.33%;
+  }
+  /*
+  .menu-open.menu-pinned .catalog-item {
+    width: 50%;
+  }*/
+}
+@media (min-width: 1200px) {
+  .catalog-item {
+    width: 25%;
+  }
+  /*
+  .menu-open.menu-pinned .catalog-item {
+    width: 33.3%
+  }*/
+}
+
+.catalog-item .editButtons {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+}
+
+.catalog-item .panel-body,
+.catalog-item .panel-title {
+  font-size: 0.9em;
+}
+.catalog-item .panel-body {
+  padding: 5px;
+  height: 100px;
+}
+.catalog-item:hover .panel,
+.catalog-item:hover .panel-heading {
+  border-color: @catalog-hover-border;
+}
+.catalog-item .panel-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catalog-item  span.glyphicon-folder-open {
+  margin-right: 0.25em;
+  opacity: 0.75;
+}
+.catalog-image {
+  float: left;
+  margin-right: 0.5em;
+  height: 100%;
+}
+.catalog-image img {
+  height: 60px;
+  max-width: 80px;
+}
+
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {  
+   /* IE10+ specific styles go here */
+   .catalog-item .editButtons {
+      top: 25px;
+    } 
+}

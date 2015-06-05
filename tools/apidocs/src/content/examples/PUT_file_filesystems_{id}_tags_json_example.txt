@@ -1,0 +1,20 @@
+PUT https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:9088146a-fa8a-4e45-9834-89bb62cd505b:/tags.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    tag_changes:{
+        add:'alpha',
+        remove:'beta'
+    }
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    tags:{
+        tag:'alpha'
+    }
+}

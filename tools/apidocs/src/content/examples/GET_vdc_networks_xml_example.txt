@@ -1,0 +1,112 @@
+GET https://192.168.0.0:4443/vdc/networks HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml  
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<networks>
+  <network>
+    <id>urn:storageos:Network:3ef835dc-e77f-47b5-8ac1-3b7529c61706:</id>
+    <link href="/vdc/networks/urn:storageos:Network:3ef835dc-e77f-47b5-8ac1-3b7529c61706:" rel="self"/>
+    <name>VSAN_1337</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:aba2feda-8862-4974-b42a-606e3c973289:</id>
+    <link href="/vdc/networks/urn:storageos:Network:aba2feda-8862-4974-b42a-606e3c973289:" rel="self"/>
+    <name>VSAN_1</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:353c1b0f-ec86-428e-9486-79e6762d98a8:</id>
+    <link href="/vdc/networks/urn:storageos:Network:353c1b0f-ec86-428e-9486-79e6762d98a8:" rel="self"/>
+    <name>VSAN_5</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:f399220e-520f-4d6b-998f-c855acea8a15:</id>
+    <link href="/vdc/networks/urn:storageos:Network:f399220e-520f-4d6b-998f-c855acea8a15:" rel="self"/>
+    <name>VSAN_6</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:6cd38fda-bf81-44fc-87da-15fc5e3ce5f1:</id>
+    <link href="/vdc/networks/urn:storageos:Network:6cd38fda-bf81-44fc-87da-15fc5e3ce5f1:" rel="self"/>
+    <name>VSAN_2</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:fd084eba-d7e5-4970-9fee-06d6af1aca8f:</id>
+    <link href="/vdc/networks/urn:storageos:Network:fd084eba-d7e5-4970-9fee-06d6af1aca8f:" rel="self"/>
+    <name>default IP TZ-2</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:7636f3d4-367c-4fc5-9fe7-c30414b9445b:</id>
+    <link href="/vdc/networks/urn:storageos:Network:7636f3d4-367c-4fc5-9fe7-c30414b9445b:" rel="self"/>
+    <name>FABRIC_VPlex_LGL6221_FID_40</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:aff32a48-1e33-4ca0-8537-232a44e7d260:</id>
+    <link href="/vdc/networks/urn:storageos:Network:aff32a48-1e33-4ca0-8537-232a44e7d260:" rel="self"/>
+    <name>VSAN_3</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:4fa5dfe7-4183-4008-96c7-0c5498036512:</id>
+    <link href="/vdc/networks/urn:storageos:Network:4fa5dfe7-4183-4008-96c7-0c5498036512:" rel="self"/>
+    <name>default IP TZ</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:3d0839df-6217-47b8-ad67-88ad03830663:</id>
+    <link href="/vdc/networks/urn:storageos:Network:3d0839df-6217-47b8-ad67-88ad03830663:" rel="self"/>
+    <name>FABRIC_losam082-fabric</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:d516b80a-cec7-4978-82b4-32a1afa37db3:</id>
+    <link href="/vdc/networks/urn:storageos:Network:d516b80a-cec7-4978-82b4-32a1afa37db3:" rel="self"/>
+    <name>default No SAN zoning</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:0685ef1a-5171-4fac-91a8-a5338576bba2:</id>
+    <link href="/vdc/networks/urn:storageos:Network:0685ef1a-5171-4fac-91a8-a5338576bba2:" rel="self"/>
+    <name>VSAN_1(1)</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:e984c3ed-a344-4b27-89c4-a899a2216d84:</id>
+    <link href="/vdc/networks/urn:storageos:Network:e984c3ed-a344-4b27-89c4-a899a2216d84:" rel="self"/>
+    <name>FABRIC_VPlex_Meta_Fid_20</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:040a4c10-fdd2-476a-9ad5-1b58c14fea60:</id>
+    <link href="/vdc/networks/urn:storageos:Network:040a4c10-fdd2-476a-9ad5-1b58c14fea60:" rel="self"/>
+    <name>FABRIC_fake array fabric</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:262a2701-582c-41ad-8f0a-542cc3963d47:</id>
+    <link href="/vdc/networks/urn:storageos:Network:262a2701-582c-41ad-8f0a-542cc3963d47:" rel="self"/>
+    <name>FABRIC_lglah043_11-10:00:00:05:1e:9b:49:9a</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:1cd70833-efcd-4f43-9b52-f8ede97bf90b:</id>
+    <link href="/vdc/networks/urn:storageos:Network:1cd70833-efcd-4f43-9b52-f8ede97bf90b:" rel="self"/>
+    <name>VSAN_4</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:b5c8a44e-9795-46d6-9569-d2a56ef590a0:</id>
+    <link href="/vdc/networks/urn:storageos:Network:b5c8a44e-9795-46d6-9569-d2a56ef590a0:" rel="self"/>
+    <name>FABRIC_Vplex_WAN-10:00:00:27:f8:58:f6:bc</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:8d63efe2-382e-4993-bca8-f2e2a1430802:</id>
+    <link href="/vdc/networks/urn:storageos:Network:8d63efe2-382e-4993-bca8-f2e2a1430802:" rel="self"/>
+    <name>FABRIC_VPLEX_WAN_lglw9208/lglw9209</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:801c0ca4-6ff8-416e-976b-5afcb6e15336:</id>
+    <link href="/vdc/networks/urn:storageos:Network:801c0ca4-6ff8-416e-976b-5afcb6e15336:" rel="self"/>
+    <name>FABRIC_vplex154nbr2</name>
+  </network>
+  <network>
+    <id>urn:storageos:Network:1f9aea24-f546-468b-b1cb-4e4154a36842:</id>
+    <link href="/vdc/networks/urn:storageos:Network:1f9aea24-f546-468b-b1cb-4e4154a36842:" rel="self"/>
+    <name>FABRIC_VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1</name>
+  </network>
+</networks>

@@ -1,0 +1,36 @@
+GET https://192.168.0.0:4443/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:/protection/snapshots.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "snapshot": [
+    {
+      "name": "blockcgsnap1",
+      "id": "urn:storageos:BlockSnapshot:0aa704cf-080c-482f-84cd-378939e05c77:",
+      "link": {
+        "rel": "self",
+        "href": "\/block\/snapshots\/urn:storageos:BlockSnapshot:0aa704cf-080c-482f-84cd-378939e05c77:"
+      }
+    },
+    {
+      "name": "blockcgsnap1",
+      "id": "urn:storageos:BlockSnapshot:d883f59c-d1a7-49b9-8803-b0f4150e0b56:",
+      "link": {
+        "rel": "self",
+        "href": "\/block\/snapshots\/urn:storageos:BlockSnapshot:d883f59c-d1a7-49b9-8803-b0f4150e0b56:"
+      }
+    },
+    {
+      "name": "blockcgsnap1",
+      "id": "urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:",
+      "link": {
+        "rel": "self",
+        "href": "\/block\/snapshots\/urn:storageos:BlockSnapshot:87869cb1-33ae-4161-9964-1353fabdd006:"
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+Inquiry utility
+Copyright (C) by EMC Corporation, all rights reserved.
+For help type inq -h.
+
+
+
+----------------------------------------------------------------------------------------------
+Invista Device   Array Serial #   SP IP Address      LUN      WWN (all 32 hex digits required)
+----------------------------------------------------------------------------------------------
+/dev/emcpowerff  ABC00112233445                      0x000a   600000000000000000000000000000a1
+/dev/emcpowerl   ABC00112233446                      0x000b   600000000000000000000000000000b2
+/dev/emcpowerm   ABC00112233446                      0x000c   600000000000000000000000000000c3
+/dev/emcpowern   ABC00112233446   10.10.10.10        0x000d   600000000000000000000000000000d4

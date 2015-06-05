@@ -1,0 +1,152 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# packaging/.functions
+#
+# Common shell functions for the helper scripts
+#
+
+export PATH=/usr/local/sbin:/usr/local/bin:/bin:/sbin:/usr/bin:/usr/sbin
+
+_fatal() {
+    echo "$0: Error: $*" >&2
+    exit 1
+}
+
+_warn() {
+    echo "$0: Warning: $*" >&2
+}
+
+_bad_type() {
+    _fatal "Expected type ${1} for entry ${2}"
+}
+_err_handler() {
+    set +Ex
+    _fatal "Line ${LINENO}: $(eval echo \"${BASH_COMMAND}\")"
+}
+
+declare -a on_exit_actions
+
+_exit_handler() {
+    set +E
+    for action in "${on_exit_actions[@]}" ; do
+        eval "${action}"
+    done
+}
+
+_set_on_exit() {
+    on_exit_actions=( "${@}" "${on_exit_actions[@]}" )
+}
+
+_set_traps() {
+    trap _exit_handler EXIT
+    trap _err_handler  ERR
+    if [ -n "${*}" ] ; then set "${@}" ; fi
+}
+
+_loop() {
+    losetup --show -f "${@}"
+}
+
+_unloop() {
+    if [ -n "${1}" ] && losetup "${1}" &> /dev/null ; then
+       local retry
+       for retry in 1 2 3 4 5 ; do
+            losetup -d "${1}" && return 0
+            echo status=$? >&2
+            sync
+            sleep 1
+       done
+    fi
+}
+
+_ismounted() {
+    ( set +x ; while read dev mnt type flags dummy ; do case ${#} in
+        1) [ "${dev}" = "${1}" -o "${mnt}" = "${1}" ] &&  break ;;
+        2) [ "${dev}" = "${1}" -a "${mnt}" = "${2}" ] &&  break ;;
+    esac ; done </proc/mounts )
+}
+
+_mount() {
+    local dev=${@: -2: 1}
+    local mnt=${@: -1: 1}
+    if ! _ismounted "${dev}" "${mnt}" ; then
+        mkdir -p "${mnt}"
+        mount "${@}" && _set_on_exit "_umount ${mnt}"
+    fi
+}
+
+_umount() {
+    if _ismounted "${1}" ; then
+        umount "${1}" || return $?
+    fi
+}
+
+_xsed() {
+    local file=${1} ; shift
+    local temp="${tmpdir:-/tmp}/temp" # path to a temporaty file
+    [ -f "${file}" ] || _fatal "${file}: No such file"
+    echo "Fixing ${file}" >&2
+    sed "${@}" <"${file}" >"${temp}" && cat "${temp}" >"${file}" && rm "${temp}" || _fatal "Internal error: ${FUNCNAME[1]}"
+}
+
+_xcat() {
+    local file=${1}
+    [ -f "${file}" ] || _fatal "${file}: No such file"
+    echo "Fixing ${file}" >&2
+    echo "${2}" >"${file}"
+}
+
+_xcopy() {
+    local manifest="${1}"
+    local srcdir="${2}"
+    local dstdir="${3}"
+    
+    local mode
+    local owner
+    local file
+    local entry_type
+    while read mode owner file entry_type; do
+        local src="${srcdir}/${file}"
+        local dst="${dstdir}/${file}"
+        rm -rf "${dst}"
+        if [ "${mode}" == "del" ] ; then
+            continue
+        fi
+        case ${entry_type} in
+            'link')
+                if [ -L "${src}" ]  ; then 
+                    ln -s "$(readlink ${src})" "${dst}" 
+                else 
+                    _bad_type link ${src} 
+                fi ;;
+            'directory')
+                if [ -d "${src}" ] ; then 
+                    mkdir -m "${mode}""${dst}" 
+                else 
+                    _bad_type directory ${src} 
+                fi ;;
+            'file') 
+                if [ -f  "${src}" ] ; then
+                    cp    "${src}"  "${dst}"
+                    chmod "${mode}" "${dst}"
+                else
+                    _bad_type file ${src}
+                fi ;;
+            *) _fatal "Unexpected entry type: ${entry_type}" ;;
+        esac
+        chown -h "${owner}" "${dst}"
+    done <"${manifest}"
+}
+

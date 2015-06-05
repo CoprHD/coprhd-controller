@@ -1,0 +1,44 @@
+GET https://192.168.0.0:4443/vdc/workflows/active.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "workflow": [
+    {
+      "id": "urn:storageos:Workflow:adacac7d-0b18-4df0-abc7-1f3e997f87f5:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/workflows/urn:storageos:Workflow:adacac7d-0b18-4df0-abc7-1f3e997f87f5:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "completed": false,
+      "creation_time": 1380566293041,
+      "orchestration_task_id": "2606216c-3f3a-4a83-a1d0-42260e6c6fece75b12aa-351b-4843-bbcd-3642b1be2df7",
+      "orchestration_controller_name": "MaskingWorkflowEntryPoints",
+      "orchestration_method": "exportGroupCreate"
+    },
+    {
+      "id": "urn:storageos:Workflow:0588b55a-c47c-434b-8a9d-d867ece6433e:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/workflows/urn:storageos:Workflow:0588b55a-c47c-434b-8a9d-d867ece6433e:"
+      },
+      "inactive": false,
+      "tags": [
+        
+      ],
+      "completed": false,
+      "creation_time": 1380568558465,
+      "orchestration_task_id": "295c03dc-c3ec-4a4e-a93a-45ee8805e439",
+      "orchestration_controller_name": "BlockOrchestrationDeviceController",
+      "orchestration_method": "DELETE_VOLUMES_WORKFLOW"
+    }
+  ]
+}

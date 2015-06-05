@@ -1,0 +1,51 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    sasvc {
+        mainClass = 'com.iwave.platform.PlatformService'
+        debugPort = "8006"
+        maxMemory = "4.9m"
+        maxMemoryFactor = "0.0634"
+        maxPermMemory = "1.2m"
+        maxPermMemoryFactor = "0.0158"
+        jvmArgs += " -Dconfig.dir=\"${project.installDir}/conf\" -Dplatform.home=\"${project.installDir}\" " +
+                   '-Ddata.dir=/tmp -DbuildType=' + buildType
+    }
+}
+
+configurations {
+    idearuntime
+}
+
+dependencies {
+    compile library(jetty)
+
+    compile project(":com.iwave.isa.content"),
+            project(":StorageAPI"),
+            project(":processmonitor")
+
+    testCompile library(junit)
+
+    idearuntime files(project.file("runtime/platform/conf"))
+}
+
+idea {
+    idea {
+        module {
+            scopes.RUNTIME.plus += [configurations.idearuntime]
+        }
+    }
+}
+
+task buildWar(type: Zip) {
+    archiveName = "${PRODUCT_NAME}-sasvcapi.war"
+    destinationDir = file("${project.buildDir}/libs")
+    from "dist/lib/storageos-sasvcapi"
+}
+assemble.dependsOn buildWar
+
+artifacts {
+    archives buildWar
+}

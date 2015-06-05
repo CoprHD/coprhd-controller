@@ -1,0 +1,117 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.settings', 'nav.properties'] /}
+#{set 'title'}&{'configProperties.title'}#{/set}
+
+<div class="container" ng-controller="ClusterCtrl" v-disable-children="clusterUnstable">
+
+  #{form @saveProperties(), id:'properties', class:'form form-horizontal', autocomplete:"off"}
+
+  #{Form.header titleKey:'configProperties.title'/}
+
+  #{alerts /}
+  <div class="alert alert-info" ng-if="clusterUnstable">
+    <status type="cluster" status="{{clusterInfo.currentState}}" style="margin-right: 1em;"></status>
+  &{'configProperties.clusterNotStable'}
+  </div>
+
+  %{
+    activeIndex = 0;
+    currentIndex = 0;
+    for (page in pages) {
+        if (activeIndex == 0 && page.hasErrors()) {
+            activeIndex = currentIndex + 1;
+            break;
+        }
+        currentIndex++;
+    }
+    if (activeIndex == 0) {
+        activeIndex = 1;
+    }
+  }%
+  <div class="tabbable tabs-left">
+    <ul class="nav nav-tabs">
+      #{list items:pages, as:'page'}
+        #{ConfigProperties.tabNav page:page, active:(page_index == activeIndex)/}
+      #{/list}
+    </ul>
+    <div class="tab-content">
+      #{list items:pages, as:'page'}
+        #{ConfigProperties.tabContent page:page, active:(page_index == activeIndex)}
+          #{include "infra/ConfigProperties/${page.renderTemplate}"/}
+        #{/ConfigProperties.tabContent}
+      #{/list}
+    </div>
+  </div>
+  #{Form.buttonBar}
+  	#{Form.saveButton /}
+    <span id="propertiesModifiedMessage"><span id="modifiedCount" class="badge">0</span> &{'configProperties.propertiesModified'}</span>
+    <span id="rebootRequiredMessage" class="text-danger" style="display:none;">&{'configProperties.rebootRequiredMessage'}</span>
+  #{/Form.buttonBar}
+  #{/form}
+</div>
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+
+  $(document).ready(function() {
+    $('select').chosen({
+        disable_search_threshold: 5,
+        search_contains: true,
+        width: '100%'
+    });
+    $('.chosen-container').addClass('form-control');
+
+    $('*[data-originalvalue]').on('change keyup', function(e) {
+      checkForm();
+    });
+    checkForm();
+
+    // Select the contents of any password field on focus
+    $('input[type=password]').focus(function() {
+        $(this).one('mouseup', function(e) {
+            e.preventDefault();
+        }).select();
+    });
+    
+    $('#properties').submit(function(e) {
+      if ($("#rebootRequiredMessage").is(":hidden") == false && confirm("&{'configProperties.rebootRequiredConfirmation'}") == false) {
+      	e.preventDefault();
+      }
+    });
+  });
+    
+    function checkForm() {
+      var counter = 0;
+      var rebootRequired = false;
+      $('*[data-originalvalue]').each(function() {
+        var value = new String($(this).val());
+        var ovalue = new String($(this).data("originalvalue"));
+        var reboot = new String($(this).data("reboot"));
+        if (value.valueOf() != ovalue.valueOf()) {
+          counter = counter + 1;
+          if (reboot.valueOf() == "true") {
+            rebootRequired = true;
+          }
+        }
+      });
+      $("#modifiedCount").text(counter);
+      if (counter > 0) {
+        $('#propertiesModifiedMessage').show();
+        #{if !unstable}$("#properties .btn.btn-primary").prop("disabled", false);#{/if}
+        if (rebootRequired == true) {
+          $('#rebootRequiredMessage').show();
+        }
+      }
+      else {
+        $('#propertiesModifiedMessage').hide();
+        $('#rebootRequiredMessage').hide();
+        $("#properties .btn.btn-primary").prop("disabled", true);
+      }
+    }
+  
+</script>
+#{/set}

@@ -1,0 +1,168 @@
+<b>&{'upgrade.clusterState'}:</b>
+    <span id="clusterState" data-state="${clusterInfo.currentState}"></span>
+    #{if isWorking}
+        &nbsp;&nbsp;#{loading /}
+    #{/if}
+<div>&nbsp;</div>
+
+#{if newVersions.size() > 0}
+    <div class="alert alert-info">
+        &{'upgrade.newVersionAvailable', newVersions[0]}
+    </div>
+#{/if}
+
+
+#{if isDownloading}
+<div id="downloadProgress">
+    <form class="form" method="GET" action="@{cancelDownload()}" onsubmit="return confirmCancel()">
+        <button id="cancelButton" type="submit" class="btn btn-primary btn-sm btn-danger"  style="margin-bottom: 0px">
+            #{icon 'cancel'/} &{'upgrade.cancelDownload'}
+        </button>
+    </form>
+<br/>
+#{Form.subheader titleKey:"upgrade.downloadProgress", descriptionKey:"upgrade.downloadProgress.description"/}
+    <table class="download-progress-table">
+        #{list items:downloadStatus.entrySet(), as:'nodeEntry'}
+            <tr>
+                <td>Node ${nodeEntry.getKey()}&nbsp;</td>
+                <td width="300">
+                    %{
+                        style = "success"
+                        if (nodeEntry.getValue().isErrorStatus()) {
+                            style="danger"
+                        }
+                    }%
+
+                    #{progressBar name:nodeEntry.getKey(), percentage:nodeEntry.getValue().percent, style:style/}
+                </td>
+                <td>
+                    <span id="download-status-${nodeEntry.getKey()}">
+                        #{if nodeEntry.getValue().isErrorStatus()}
+                            #{if nodeEntry.getValue().status.equals("CHECKSUMERROR")}
+                                &{'upgrade.downloadChecksumError'}
+                            #{/if}
+                            #{elseif nodeEntry.getValue().status.equals("DOWNLOADERROR")}
+                                &{'upgrade.downloadError'}
+                            #{/elseif}
+                        #{/if}
+                    </span>
+                </td>
+            </tr>
+        #{/list}
+    </table>
+</div>
+#{/if}
+#{elseif isStable}
+<form class="form form-horizontal" method="GET" action="@{downloadImage()}" onsubmit="downloadImage(); return true" id="downloadImage" style="margin:0px">
+#{if isStable}
+  #{if repositoryVersions?.size() >= 4}
+        <div class="alert alert-warning">&{'upgrade.tooMany'}</div>
+  #{/if}
+  #{elseif newVersions.size() > 0}
+    <div class="control-group">
+      <label class="control-label">&{'upgrade.downloadNew'}:</label>
+      <div class="controls">
+        <select id="downloadImageVersion" name="version" style="margin-bottom: 0px">
+          #{list items:newVersions, as:'version'}
+            <option value="${version}">${version}</option>
+          #{/list}
+        </select>
+        <button type="submit" class="btn btn-primary btn-sm"  style="margin-bottom: 0px">
+          #{icon 'download'/} &{'upgrade.downloadImage'}
+        </button>
+      </div>
+    </div>
+  #{/elseif}
+  #{else}
+    <div class="alert alert-info">&{'upgrade.noVersions'}</div>
+  #{/else}
+  <br/>
+#{/if}
+<legend>&{'upgrade.installedImages'}</legend>
+<table class="table table-striped">
+  #{list items:repositoryVersions, as:'repositoryVersion'}
+    <tr>
+       <td width="200em">${repositoryVersion}</td>
+    <td>
+      #{if repositoryVersion.equals(clusterInfo.targetState.current)}
+        &nbsp;Current Version
+      #{/if}
+      *{ Safer to only allow operations if we're actually in a STABLE state }*
+        #{if isStable}
+
+            #{if !repositoryVersion.equals(clusterInfo.targetState.current)}
+              <button name="install" type="button" class="btn btn-info btn-sm" onclick="installImage('${repositoryVersion}');">#{icon 'off'/} &{'upgrade.install'}</button>
+              <button name="remove" type="button" class="btn btn-danger btn-sm" onclick="removeImage('${repositoryVersion}');">#{icon 'trash'/} &{'upgrade.remove'}</button>
+            #{/if}
+        #{/if}
+        #{else}
+            &nbsp;
+        #{/else}
+      </td>
+    </tr>
+  #{/list}
+</table>
+
+</form>
+#{/elseif}
+<script>
+    startStatusChecks("${clusterState}");
+
+    function confirmCancel() {
+        if (confirm("&{'upgrade.cancelDownloadConfirm'}")) {
+            $("#downloadProgress").hide();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    #{if isDownloading}
+        startDownloadStatusUpdates();
+    #{/if}
+
+    function startDownloadStatusUpdates(currentStatus) {
+        window.setInterval(function() {
+            downloadProgressUpdate(currentStatus)
+        }, 3000); // Check every 3 seconds
+    }
+
+    var downloadProgress = #{jsAction @downloadProgress() /}
+    function downloadProgressUpdate() {
+        $.ajax({
+            method: "get",
+            url: downloadProgress(),
+            dataType: "json",
+            timeout: (30 * 1000), // 30 sec timeout
+
+            success: function(percent) {
+                var downloadFinished = true;
+                $.each(percent, function(nodeName, downloadStatus) {
+                    updateProgressBar(nodeName,downloadStatus.percent);
+                    if (downloadStatus.percent != 100) {
+                        downloadFinished = false;
+                    }
+
+                    if (!(downloadStatus.status == "NORMAL" || downloadStatus.status == "COMPLETED")) {
+                        updateProgressBarStyle(nodeName, "danger")
+
+                        if (downloadStatus.status == "DOWNLOADERROR") {
+                            $("#download-status-"+nodeName).text('&{'upgrade.downloadError'}');
+                        }
+                        else if (downloadStatus.status == "CHECKSUMERROR") {
+                            $("#download-status-"+nodeName).text('&{'upgrade.downloadChecksumError'}');
+                        }
+                    }
+                });
+
+                if (downloadFinished) {
+                    $("#cancelButton").hide();
+                    window.location.href ="@{index()}"
+                }
+            },
+            error: function() {
+            }
+        });
+    }
+</script>

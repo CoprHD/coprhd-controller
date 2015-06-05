@@ -1,0 +1,28 @@
+POST https://192.168.0.0:4443/object/baseurl HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<object_base_url_create>
+   <name>TestBaseURL</name>
+   <base_url>emc.com</base_url>
+   <is_namespace_in_host>true</is_namespace_in_host>
+</object_base_url_create>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<base_url>
+   <baseurl>emc.com</baseurl>
+   <id>urn:storageos:ObjectBaseUrl:d7bf4302-403c-4308-a8d7-073cbb38fbeb:</id>
+   <inactive>false</inactive>
+   <link href="/object/baseurl/urn:storageos:ObjectBaseUrl:d7bf4302-403c-4308-a8d7-073cbb38fbeb:"
+      rel="self"/>
+   <name>TestBaseURL</name>
+   <namespace_in_host>true</namespace_in_host>
+   <tags/>
+</base_url>
+
+

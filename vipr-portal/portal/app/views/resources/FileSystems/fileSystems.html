@@ -1,0 +1,38 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.file.filesystems'] /}
+
+<script type="text/javascript">
+  var route = #{jsAction @fileSystemsJson(':id')/};
+ 
+  function reloadFileSystems() {
+    var table = $('#fileSystems table'); 
+    var xhr = table.data('previousXHR');
+    if (xhr) {
+        xhr.abort();
+    }
+    var id = $('#project option:selected').val();
+    table.dataTable().fnReloadAjax(route({id: id}));
+  }
+
+  $(document).ready(function() {
+    $('#project').on('change', reloadFileSystems);
+  });
+</script>
+
+#{Resources.projectsControl projects:projects /}
+
+#{DataTable.header titleKey:'nav.file.filesystems' /}
+#{DataTable.table id:'fileSystems',
+                  dataTable:dataTable,
+                  source:@fileSystemsJson(session.activeProjectId), 
+                  cssClass:'editableRows',
+                  selectable:true}
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', data:['enabled':'selected']/}
+    #{doBody/}
+  #{/DataTable.buttonBar}
+  #{DataTable.formAction @delete(), id:'deleteForm', table:'fileSystems', confirm:messages.get('resources.filesystems.deleteconfirm')/}                  
+#{/DataTable.table}     

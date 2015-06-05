@@ -1,0 +1,28 @@
+%{
+  name = _name;
+  percentage = _percentage
+  style = _style
+}%
+
+<div id="${name}" class="progress" style="margin-bottom:0px;width:100%">
+    <div class="progress-bar #{if style}progress-bar-${style}#{/if}" style="width: ${percentage}%">
+        <span class="progress-message">${percentage}%</span>
+    </div>
+</div>
+
+%{if (!request.args.containsKey("progressBarAdded")) {
+    request.args.put("progressBarAdded", true);
+}%
+<script>
+    function updateProgressBar(name, percentage) {
+        var progressBar =  $("div#"+name+".progress")
+        progressBar.children(".progress-bar").css("width",percentage+"%");
+        progressBar.find(".progress-bar span").text(percentage+"%");
+    }
+
+    function updateProgressBarStyle(name, style) {
+        var progressBar =  $("div#"+name+".progress")
+        progressBar.children(".progress-bar").addClass("progress-bar-"+style)
+    }
+</script>
+%{ } }%

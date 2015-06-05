@@ -1,0 +1,75 @@
+%{
+  titleKey = 'StorageSystems.pools.edit.title'
+  descriptionKey = 'StorageSystems.pools.description'
+  image = '/public/img/assets/StorageArray.png'
+  disabled = storageSystem.isUnregistered()
+}%
+#{extends 'main.html' /}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @arrays.StorageSystems.list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.pools(storageSystem.id)}&{'StorageSystems.pools.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${storagePool.poolName}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+	
+#{form @savePool(), id:'storageArrayPoolForm', class:'form form-horizontal', autocomplete:"off"}
+
+  <fieldset>
+    #{field 'storageArrayPool.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+    
+    #{field 'storageArrayPool.name'}
+      %{ field.atts = ['readonly':'readonly'] }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'storageArrayPool.maxPoolUtilizationPercentage'}
+        %{
+          field.required = true
+          field.cssClass = 'initialFocus'
+          field.disabled = disabled
+        }%
+      #{Form.controlGroup field:field, width:2}
+        <div class="input-group">
+          #{Form.inputText field:field /}
+          <span class="input-group-addon">%</span>
+        </div>
+      #{/Form.controlGroup}
+    #{/field}
+    
+    #{if storageArrayPool?.supportsThinProvisioning && (storageArrayPool.poolType == 'block' || storageArrayPool.poolType == 'block_file')}
+      #{field 'storageArrayPool.maxThinPoolSubscriptionPercentage'}
+          %{
+            field.required = false
+            field.disabled = disabled
+          }%
+        #{Form.controlGroup field:field, width:2}
+          <div class="input-group">
+            #{Form.inputText field:field /}
+            <span class="input-group-addon">%</span>
+          </div>
+      #{/Form.controlGroup}
+      #{/field}
+    #{/if}
+    #{field 'storageArrayPool.resourceLimit'}
+      %{
+        field.disabled = disabled
+        field.label = messages.get("${field.name}.${storageArrayPool.poolType}")
+        field.helpText = messages.get("${field.name}.${storageArrayPool.poolType}.help")
+      }%
+      #{Form.inputTextControlGroup field:field, width:3 /}
+    #{/field}
+  </fieldset>
+  #{Form.saveCancel cancelHref:@pools(storageSystem.id), disableSave:disabled /}
+#{/form}
+</div>

@@ -1,0 +1,23 @@
+POST https://192.168.0.0:4443/block/volumes/urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:/expand HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<volume_expand>
+     <new_size>2GB</new_size>
+</volume_expand>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml
+
+<task>
+  <description>EXPAND_BLOCK_VOLUME</description>
+  <op_id>f71bb71c-f0ff-4b3d-a3e2-8f084fb91b12</op_id>
+  <resource>
+    <id>urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:</id>
+    <link href="/block/volumes/urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:" rel="self"/>
+    <name>sfsfsfsfsf</name>
+  </resource>
+  <link href="/block/volumes/urn:storageos:Volume:4ff68a3b-2a22-48b6-96d4-724d6410118e:/tasks/f71bb71c-f0ff-4b3d-a3e2-8f084fb91b12" rel="self"/>
+  <state>pending</state>
+</task>

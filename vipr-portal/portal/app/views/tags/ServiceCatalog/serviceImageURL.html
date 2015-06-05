@@ -1,0 +1,6 @@
+%{
+  image = _image;
+  cssClass = _class;
+}%
+#{if image?.startsWith("urn:storageos")}@{catalog.CatalogImages.view(image)}#{/if}
+#{elseif image}@{'/public/img/serviceCatalog'}/${image}#{/elseif}

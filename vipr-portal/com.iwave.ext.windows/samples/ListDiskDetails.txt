@@ -1,0 +1,33 @@
+
+Microsoft DiskPart version 6.1.7600
+Copyright (C) 1999-2008 Microsoft Corporation.
+On computer: TESTAD
+
+DISKPART> 
+Disk 0 is now the selected disk.
+
+DISKPART> 
+VMware Virtual disk SCSI Disk Device
+Disk ID: 142667F1
+Type   : SAS
+Status : Online
+Path   : 0
+Target : 0
+LUN ID : 0
+Location Path : PCIROOT(0)#PCI(1500)#PCI(0000)#SAS(P00T00L00)
+Current Read-only State : No
+Read-only  : No
+Boot Disk  : Yes
+Pagefile Disk  : Yes
+Hibernation File Disk  : No
+Crashdump Disk  : Yes
+Clustered Disk  : No
+
+  Volume ###  Ltr  Label        Fs     Type        Size     Status     Info
+  ----------  ---  -----------  -----  ----------  -------  ---------  --------
+  Volume 1         System Rese  NTFS   Partition    100 MB  Healthy    System  
+  Volume 2     C                NTFS   Partition     39 GB  Healthy    Boot    
+
+DISKPART> 
+Leaving DiskPart...
+

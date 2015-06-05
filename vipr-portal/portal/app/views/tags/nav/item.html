@@ -1,0 +1,10 @@
+%{
+    title = "nav.${_arg}"
+    active = navSelected?.find { it == title }
+}%
+<li class="${active ? 'active' : ''}">
+  <a href="${_href}"#{if _onclick} onclick="${_onclick}"#{/if}>
+    #{icon _icon/}
+    &{title}
+  </a>
+</li>

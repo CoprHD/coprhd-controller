@@ -1,0 +1,35 @@
+POST https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/resume.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+    "associated_resources": [
+        {
+            "id": "urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822:", 
+            "link": {
+                "href": "/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822:", 
+                "rel": "self"
+            }, 
+            "name": "mirror"
+        }
+    ], 
+    "link": {
+        "href": "/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/tasks/df099b15-e982-4c64-aa91-9393a176f215", 
+        "rel": "self"
+    }, 
+    "op_id": "df099b15-e982-4c64-aa91-9393a176f215", 
+    "resource": {
+        "id": "urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:", 
+        "link": {
+            "href": "/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:", 
+            "rel": "self"
+        }, 
+        "name": "volume"
+    }, 
+    "start_time": 1380819414549, 
+    "state": "pending"
+}

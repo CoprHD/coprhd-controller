@@ -1,0 +1,122 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.viewCatalog'] /}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+.panel-group .panel {
+  overflow: visible;
+}
+#serviceForm table {
+  border-top: 1px solid #ddd;
+}
+#serviceForm table > tbody > tr > td,
+#serviceForm table > tfoot > tr > td {
+  border-top: 0;
+}
+#serviceForm table > tbody > tr > td:last-child,
+#serviceForm table > thead > tr > th:last-child {
+  padding-left:0;
+}
+.table.collapse.in {
+  display: table;
+}
+.form-group > .controls > table {
+  margin-bottom: 0;
+}
+</style>
+#{/set}
+
+#{ifnot service}
+  #{alerts/}
+#{/ifnot}
+
+#{if service}
+
+  #{set 'title'}${service.title}#{/set}
+
+  #{set 'customDocLink'}
+    <a href="${util.DocUtils.getCatalogDocumentationLink(service.baseService)}" target="_blank">
+      #{icon 'question-sign'/} &{'nav.help'}
+    </a>
+  #{/set}
+
+  #{set 'breadcrumbs'}
+    #{ServiceCatalog.breadcrumb items:breadcrumbs, baseUrl:@catalog.ServiceCatalog.view(), visible:true /}
+  #{/set}
+
+  <div class="container">
+    <div class="form-header">
+      <div class="image">
+        #{ServiceCatalog.serviceImage image:service?.image/}
+      </div>
+      <div class="description">
+    	<h2>{{service.title}}</h2>
+    	<p>{{service.description}}</p>
+      </div>
+      <div style="clear:both"></div>
+    </div>
+    
+    <div class="clear"></div>
+    
+    #{alerts/}
+    
+    #{if flash.rawWarning}
+      <div class="alert alert-warning">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        ${flash.rawWarning.raw()}
+      </div>
+    #{/if}
+    
+      <!-- asset error -->
+      <div class="alert alert-danger hideFast" ng-show="assetError">
+          <button type="button" class="close" ng-click="assetError = null" aria-hidden="true">&times;</button>
+          <div id="assetErrorMessage" style="white-space: pre-line;">{{assetError}}</div>
+      </div>
+    
+      <form ng-if="showForm" id="serviceForm" action="@{catalog.Orders.submitOrder()}" method="post" class="form-horizontal" ng-controller="ServiceFormCtrl">
+          #{authenticityToken /}
+          <input type="hidden" name="serviceId" value="{{service.id}}"/>
+          <input type="hidden" name="return" value="{{returnAddress}}"/>
+          <input type="hidden" name="category" value="{{category}}">
+          <input id="formAction" type="hidden" name="action" value=""/>
+
+          <div class="panel-group">
+            <div ng-repeat="item in serviceDescriptor.items | values | unlocked">
+              <span ng-switch="item.type">
+                <span ng-switch-when="group">
+                  <service-group group="item"></service-group>
+                </span>
+                <span ng-switch-when="table">
+                  <service-table table="item"></service-table>
+                </span>
+                <span ng-switch-default>
+                  <service-field field="item"></service-field>
+                </span>
+              </span>
+            </div>
+          </div>
+  
+          <div ng-show="serviceDescriptor.destructive" class="alert alert-warning">
+            <span class="label label-warning"><i v-icon='exclamation-sign'></i></span>
+            {{'service.destructive' | t}}
+          </div>
+          <div ng-show="service.approvalRequired" class="alert alert-info">
+            <span class="label label-info"><i v-icon='ok'></i></span> {{'service.requiresApproval' | t}}
+          </div>
+          #{if service.executionWindowRequired}
+            #{Services.executionWindow service /}
+          #{/if}
+          
+          <button-bar>
+            <button type="submit" class="btn btn-primary" ng-disabled="disableSubmitButton()" v-submit-form><span v-icon=shopping-cart></span> &{"service.order"}</button>
+            #{Form.button name:'service.cancel', icon:'trash', href:backUrl /}
+          </button-bar>
+
+      </form>
+      
+  </div>
+#{/if}

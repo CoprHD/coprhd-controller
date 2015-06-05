@@ -1,0 +1,19 @@
+%{
+  helpText = _field?.helpText
+  if (!helpText && _field) {
+    if (_field.helpTextKey) {
+      helpText = messages.get(_field.helpTextKey, _field.helpTextArgs)
+    }
+    else {
+      helpKey = "${_field.name}.help"
+      help = messages.get(helpKey)
+      if (help != helpKey) {
+        helpText = help
+      }
+    }
+  }
+}%
+<div class="col-sm-${_width ?: 6} col-sm-offset-${_offset ?: 0} controls">
+  #{doBody/}
+  #{if helpText}<span class="help-block">${helpText}</span>#{/if}
+</div>

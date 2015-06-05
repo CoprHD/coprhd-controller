@@ -1,0 +1,84 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.settings', 'nav.supportRequest'] /}
+
+#{set 'moreScripts'}
+  #{get 'moreScripts' /}
+  <script type="text/javascript">
+  $(document).ready(function() {
+      supportRequest_start.setTime(moment(${flash['supportRequest.start'] ?: supportRequest.start}));
+      supportRequest_end.setTime(moment(${flash['supportRequest.end'] ?: supportRequest.end}));
+      supportRequest_end.useCurrentTime(${flash['supportRequest.endIsCurrentTime'] ?: supportRequest.endIsCurrentTime});
+  });
+  
+  function updateFields() {
+      var endIsCurrentTime = $('#supportRequest_endDate').is(':hidden');
+      $('input[name="supportRequest.start"]').val(supportRequest_start.getTime().valueOf());
+      $('input[name="supportRequest.end"]').val(supportRequest_end.getTime().valueOf());
+      $('input[name="supportRequest.endIsCurrentTime"]').val(endIsCurrentTime);
+  }
+  </script>
+#{/set}
+
+#{set 'moreStyles'}
+  #{get 'moreStyles'/}
+  <style>
+  
+  #supportRequest_commentControlGroup DIV.controls {
+    margin-left: 60px;
+  } 
+  
+  </style>
+#{/set}
+
+<div class="container">
+
+#{alerts disappear:false /}
+
+#{Form.header titleKey:'supportRequest.title', descriptionKey:'supportRequest.description' /}
+
+#{form @submitSupportRequest(), id:'supportRequestForm', onsubmit:'updateFields()', class:'form form-horizontal', autocomplete:"off"}
+ 
+  <fieldset>
+  
+  #{field 'supportRequest.email'}
+    %{
+      field.required = true
+    }%        
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+  
+  #{field 'supportRequest.comment'}  
+    <div class="form-group ${field.error ? 'has-error' : ''}">
+      <div class="col-xs-10 col-xs-offset-1">
+      #{Form.textArea field:field, rows:15, width: 8/}
+      </div>
+    </div>
+  #{/field}
+  </fieldset>
+
+  <fieldset>
+    <legend>&{"supportRequest.logLegend"}<small>&{'supportRequest.log.description'}</small></legend>
+
+    #{field 'supportRequest.start'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+      #{Form.dateTimePickerControlGroup field:field /}
+    #{/field}  
+    #{field 'supportRequest.end'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+      #{Form.dateTimePickerControlGroup field:field, enableCurrentTimeControl:true, enableCurrentTime:true /}
+    #{/field}
+    #{field 'supportRequest.endIsCurrentTime'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+  </fieldset>
+  
+#{Form.buttonBar}
+  <button type="submit" class="btn btn-primary">#{icon 'upload'/} &{'button.submitSupportRequest'}</button>
+#{/Form.buttonBar}
+  
+#{/form}
+
+</div>

@@ -1,0 +1,16 @@
+GET https://192.168.0.0:4443/monitor/storage.json HTTP/1.1  
+
+Content-Type: application/json 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/json 
+
+{
+   "controller" : {
+      "file_managed_capacity_kb" : "1048576.0",
+      "free_managed_capacity_kb" : "4.156111114268E12",
+      "block_managed_capacity_kb" : "1.0498816E7"
+   }
+}

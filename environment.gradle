@@ -1,0 +1,47 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+ext {
+    // OS specific configuration
+    osName = System.getProperty("os.name").toLowerCase()
+    isWindows = osName.startsWith("win")
+    isMacOs = osName.startsWith("mac")
+    // Default to linux if not windows or macos
+    isLinux = !isWindows && !isMacOs
+
+    if (isLinux) {
+        envClassifier = 'linux'
+    }
+    else if (isWindows) {
+        envClassifier = 'windows'
+    }
+    else if (isMacOs) {
+        envClassifier = 'macos'
+    }
+    
+    // Local tools.jar on the system
+    toolsJar = findJvmJar("tools.jar")
+    if (toolsJar.isEmpty()) {
+        logger.error("*** Could not find tools.jar (Java Home=${System.properties['java.home']})")
+    }
+}
+
+// Full dump of system properties when debug is enabled
+def propertyNames = ['java.home', 'java.version', 'os.name', 'user.home', 'user.dir']
+if (logger.isDebugEnabled()) {
+    propertyNames += System.properties.keySet()
+}
+def props = propertyNames.unique().sort().collect { "  ${it}=${System.properties[it]}" }
+logger.quiet("System Properties:\n${props.join('\n')}")
+
+def findJvmJar(String name) {
+    def javaHome = System.getProperty("java.home")
+    def paths = [
+        "${javaHome}/lib/${name}",
+        "${jdkHome}/lib/${name}",
+        "${javaHome}/../lib/${name}",
+        "${javaHome}/jre/lib/${name}"
+    ]
+    def jar = paths.find { new File(it).isFile() }
+    // If the jar was found use it, otherwise return an empty file collection
+    return jar ? project.files(jar) : project.files()
+}

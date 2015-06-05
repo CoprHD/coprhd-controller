@@ -1,0 +1,38 @@
+POST https://192.168.0.0:4443/vdc/smis-providers/storage-systems.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+ 
+{
+    "ip_address": "192.168.0.0",
+    "secondary_ips": ["192.168.0.1", "192.168.0.2"],
+    "system_type": "vnxblock",
+    "password": "#1Password",
+    "port_number": "5988",
+    "user_name": "admin",
+    "providers": [ "urn:storageos:SMISProvider:ccd84f56-9dc2-4db8-9145-71bd1a4ae744:" ],
+    "serial_number": "APM0123456789"
+}
+==RESPONSE
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+{
+   "resource":
+   {
+       "id": "urn:storageos:StorageSystem:7bade78c-bcfb-4f75-bcca-397a589657e6:",
+       "link":
+       {
+           "rel": "self",
+           "href": "/vdc/storage-systems/urn:storageos:StorageSystem:7bade78c-bcfb-4f75-bcca-397a589657e6:"
+       }
+   },
+   "state": "pending",
+   "start_time": 1380199087999,
+   "op_id": "436cc6fa-688d-42c2-b230-22b4e8915a9f",
+   "link":
+   {
+       "rel": "self",
+       "href": "/vdc/storage-systems/urn:storageos:StorageSystem:7bade78c-bcfb-4f75-bcca-397a589657e6:/tasks/436cc6fa-688d-42c2-b230-22b4e8915a9f"
+   }
+}
+

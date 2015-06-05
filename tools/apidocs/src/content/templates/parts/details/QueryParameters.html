@@ -1,0 +1,11 @@
+<% if (!apiMethod.queryParameters.isEmpty()) { %>
+<hr/>
+<h4>Query Parameters</h4>
+<table class="payload table table-striped">
+    <% apiMethod.queryParameters.each { parameter -> %>
+    <tr>
+        <td>${parameter.name}</td><td>${parameter.description}</td>
+    </tr>
+    <% } %>
+</table>
+<% } %>

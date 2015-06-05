@@ -1,0 +1,7 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+dependencies {
+    compile library(apache_cassandra),
+            library(log4j),
+            library(commons_io)
+}

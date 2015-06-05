@@ -1,0 +1,102 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+  <s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse</a:Action>
+    <a:MessageID>uuid:34AEC18A-9C77-41DC-B799-CCAC9D58C7D0</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:306b5730-3ca3-40df-b484-091d6e186362</a:RelatesTo>
+  </s:Header>
+  <s:Body>
+    <n:EnumerateResponse>
+      <n:EnumerationContext/>
+      <w:Items>
+        <p:Win32_LogicalDisk xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_LogicalDisk" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_LogicalDisk_Type">
+          <p:Access>0</p:Access>
+          <p:Availability xsi:nil="true"/>
+          <p:BlockSize xsi:nil="true"/>
+          <p:Caption>C:</p:Caption>
+          <p:Compressed>false</p:Compressed>
+          <p:ConfigManagerErrorCode xsi:nil="true"/>
+          <p:ConfigManagerUserConfig xsi:nil="true"/>
+          <p:CreationClassName>Win32_LogicalDisk</p:CreationClassName>
+          <p:Description>Local Fixed Disk</p:Description>
+          <p:DeviceID>C:</p:DeviceID>
+          <p:DriveType>3</p:DriveType>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FileSystem>NTFS</p:FileSystem>
+          <p:FreeSpace>975589855232</p:FreeSpace>
+          <p:InstallDate xsi:nil="true"/>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:MaximumComponentLength>255</p:MaximumComponentLength>
+          <p:MediaType>12</p:MediaType>
+          <p:Name>C:</p:Name>
+          <p:NumberOfBlocks xsi:nil="true"/>
+          <p:PNPDeviceID xsi:nil="true"/>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:ProviderName xsi:nil="true"/>
+          <p:Purpose xsi:nil="true"/>
+          <p:QuotasDisabled>true</p:QuotasDisabled>
+          <p:QuotasIncomplete>false</p:QuotasIncomplete>
+          <p:QuotasRebuilding>false</p:QuotasRebuilding>
+          <p:Size>1000097181696</p:Size>
+          <p:Status xsi:nil="true"/>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SupportsDiskQuotas>true</p:SupportsDiskQuotas>
+          <p:SupportsFileBasedCompression>true</p:SupportsFileBasedCompression>
+          <p:SystemCreationClassName>Win32_ComputerSystem</p:SystemCreationClassName>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:VolumeDirty>false</p:VolumeDirty>
+          <p:VolumeName/>
+          <p:VolumeSerialNumber>885FAB47</p:VolumeSerialNumber>
+        </p:Win32_LogicalDisk>
+        <p:Win32_LogicalDisk xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_LogicalDisk" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_LogicalDisk_Type">
+          <p:Access xsi:nil="true"/>
+          <p:Availability xsi:nil="true"/>
+          <p:BlockSize xsi:nil="true"/>
+          <p:Caption>D:</p:Caption>
+          <p:Compressed xsi:nil="true"/>
+          <p:ConfigManagerErrorCode xsi:nil="true"/>
+          <p:ConfigManagerUserConfig xsi:nil="true"/>
+          <p:CreationClassName>Win32_LogicalDisk</p:CreationClassName>
+          <p:Description>CD-ROM Disc</p:Description>
+          <p:DeviceID>D:</p:DeviceID>
+          <p:DriveType>5</p:DriveType>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FileSystem xsi:nil="true"/>
+          <p:FreeSpace xsi:nil="true"/>
+          <p:InstallDate xsi:nil="true"/>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:MaximumComponentLength xsi:nil="true"/>
+          <p:MediaType>11</p:MediaType>
+          <p:Name>D:</p:Name>
+          <p:NumberOfBlocks xsi:nil="true"/>
+          <p:PNPDeviceID xsi:nil="true"/>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:ProviderName xsi:nil="true"/>
+          <p:Purpose xsi:nil="true"/>
+          <p:QuotasDisabled xsi:nil="true"/>
+          <p:QuotasIncomplete xsi:nil="true"/>
+          <p:QuotasRebuilding xsi:nil="true"/>
+          <p:Size xsi:nil="true"/>
+          <p:Status xsi:nil="true"/>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SupportsDiskQuotas xsi:nil="true"/>
+          <p:SupportsFileBasedCompression xsi:nil="true"/>
+          <p:SystemCreationClassName>Win32_ComputerSystem</p:SystemCreationClassName>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:VolumeDirty xsi:nil="true"/>
+          <p:VolumeName xsi:nil="true"/>
+          <p:VolumeSerialNumber xsi:nil="true"/>
+        </p:Win32_LogicalDisk>
+      </w:Items>
+      <w:EndOfSequence/>
+    </n:EnumerateResponse>
+  </s:Body>
+</s:Envelope>
+

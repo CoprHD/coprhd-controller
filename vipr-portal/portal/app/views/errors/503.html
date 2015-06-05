@@ -1,0 +1,35 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'nonav-wide-layout.html' /}
+#{set title: "&{'errors.503.title'}"/}
+<div class="well">
+  <div class="section-header">
+    <h1>&{"errors.503.title"}</h1>
+  </div>
+  #{if result}
+    <p class="text-danger">${result.message}</p>
+  #{/if}
+  #{else}
+    <p class="text-danger">${exception?.message}</p>
+  #{/else}
+  <p>&{'errors.503.description'}</p>
+  <br/>
+  <p>
+    <span class="text-info"><span class="glyphicon glyphicon-refresh"></span> &{'errors.503.reconnect'}</span> 
+    <span id="connectMessage">&{'errors.503.reconnect.time'}</span>
+  </p>
+</div>
+<script type="text/javascript">
+  var seconds = 30;
+  var countdown = setInterval(function() {
+    if (seconds <= 1) {
+      clearInterval(countdown);
+      document.getElementById('connectMessage').innerHTML = Messages.get("errors.503.connecting");
+      window.location.reload(true); 
+    }
+    else {
+      document.getElementById('seconds').innerHTML = --seconds;
+    }
+  }, 1000);
+</script>

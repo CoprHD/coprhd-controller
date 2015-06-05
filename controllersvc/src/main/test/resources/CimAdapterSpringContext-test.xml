@@ -1,0 +1,374 @@
+<!-- RCS $Id$ $URL$ Copyright 2012 by EMC Corporation ("EMC"). UNPUBLISHED 
+    CONFIDENTIAL AND PROPRIETARY PROPERTY OF EMC. The copyright notice above 
+    does not evidence any actual or intended publication of this software. Disclosure 
+    and dissemination are pursuant to separate agreements. Unauthorized use, 
+    distribution or dissemination are strictly prohibited. -->
+    
+<!-- Copy of controllersvc/src/main/conf/CimAdapterSpringContext.xml for test purpose
+    with the following changes -
+    1. added additional imports
+    2. added "classpath:" to CimAdapterCelerraContext.xml import
+    3. commented out definition of executor 
+    4. change the port of CimListenerInfo (in case the default port is used by ViPR)
+    5. added provider bean
+-->
+ 
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:task="http://www.springframework.org/schema/task"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans 
+    http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+    http://www.springframework.org/schema/context 
+    http://www.springframework.org/schema/context/spring-context-3.1.xsd
+    http://www.springframework.org/schema/task
+    http://www.springframework.org/schema/task/spring-task-3.1.xsd
+    http://www.springframework.org/schema/util 
+    http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+    
+    <import resource="classpath:dbutils-conf.xml" />
+    <import resource="classpath:controller-configinfo.xml"/>
+    <import resource="classpath:coordinatorclient-var.xml"/>
+    
+    <import resource="classpath:CimAdapterCelerraContext.xml" />
+ 
+    <bean id="provider" class="com.emc.storageos.db.client.model.StorageProvider">
+        <property name="label" value="xiv-test" />
+        <property name="userName" value="admin" />
+        <property name="password" value="adminadmin" />         
+        <property name="iPAddress" value="10.249.207.49" />
+        <property name="portNumber" value="5989" />
+        <property name="useSSL" value="true" />
+        <property name="interfaceType" value="ibmxiv" />
+        <property name="manufacturer" value="IBM" />
+        <property name="description" value="Provider added by test" />
+    </bean>
+
+    <bean id="ConnectionManager"
+        class="com.emc.storageos.cimadapter.connections.ConnectionManager">
+        <constructor-arg>
+            <ref bean="ConnectionManagerConfiguration" />
+        </constructor-arg>
+    </bean>
+
+    <bean id="ConnectionManagerConfiguration"
+        class="com.emc.storageos.cimadapter.connections.ConnectionManagerConfiguration">
+        <property name="listenerInfo" ref="CimListenerInfo" />
+        <property name="indicationFilterMap" ref="CimFilterMap" />
+        <property name="indicationConsumers" ref="CimIndicationConsumerList" />
+        <property name="celerraMessageSpecs" ref="CelerraMessageSpecList" />
+        <property name="subscriptionsIdentifier" value="BourneMonitor" />
+        <property name="deleteStaleSubscriptionsOnConnect" value="true" />
+    </bean>
+
+    <bean id="CimListenerInfo"
+        class="com.emc.storageos.cimadapter.connections.cim.CimListenerInfo">
+        <property name="protocol" value="https" />
+        <property name="port" value="7013" />
+        <property name="queueSize" value="1000" />
+        <property name="defaultSMISSSLPort" value="5989"/>
+    </bean>
+
+    <bean id="CimFilterInfo"
+        class="com.emc.storageos.cimadapter.connections.cim.CimFilterInfo"
+        abstract="true" />
+
+    <bean id="CimManagedFilterInfo"
+        class="com.emc.storageos.cimadapter.connections.cim.CimManagedFilterInfo"
+        abstract="true" />
+
+    <bean id="CimFilterMap"
+        class="com.emc.storageos.cimadapter.connections.cim.CimFilterMap">
+        <property name="filters">
+            <map>
+                <entry key="CIM_AlertIndication">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_AlertIndication" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_AlertIndication" />
+                    </bean>
+                </entry>
+                
+        <!-- CIM_InstCreation STARTS-->
+        
+                <entry key="CIM_InstCreation_StoragePool">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstCreation_StoragePool" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstCreation WHERE SourceInstance ISA CIM_StoragePool" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstCreation_StorageVolume">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstCreation_StorageVolume" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstCreation WHERE SourceInstance ISA CIM_StorageVolume" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstCreation_VolumeView">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstCreation_VolumeView" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstCreation WHERE SourceInstance ISA CIM_VolumeView" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstCreation_FileShare">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstCreation_FileShare" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstCreation WHERE SourceInstance ISA CIM_FileShare" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstCreation_LocalFileSystem">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstCreation_LocalFileSystem" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstCreation WHERE SourceInstance ISA CIM_LocalFileSystem" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstCreation_GroupSynchronized">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstCreation_GroupSynchronized" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstCreation WHERE SourceInstance ISA CIM_GroupSynchronized" />
+                    </bean>
+                </entry>
+                <entry key="CIM_InstCreation_StorageSynchronized">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstCreation_StorageSynchronized" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstCreation WHERE SourceInstance ISA CIM_StorageSynchronized" />
+                    </bean>
+                </entry>
+                
+        <!-- CIM_InstCreation ENDS-->
+        
+        <!-- CIM_InstModification STARTS-->
+                <entry key="CIM_InstModification_StoragePool">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_StoragePool" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_StoragePool" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstModification_StorageVolume">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_StorageVolume" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_StorageVolume" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstModification_VolumeView">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_VolumeView" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_VolumeView" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstModification_FileShare">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_FileShare" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_FileShare" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstModification_LocalFileSystem">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_LocalFileSystem" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_LocalFileSystem" />
+                    </bean>
+                </entry>                
+                
+                <!-- FC Port status changes -->
+                <entry key="CIM_InstModification_FCPort">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_FCPort" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_FCPort AND SourceInstance.CIM_FCPort::OperationalStatus &lt;&gt; PreviousInstance.CIM_FCPort::OperationalStatus" />
+                    </bean>
+                </entry>
+                
+                <!-- iSCSI/Ethernet Port status changes -->
+                <entry key="CIM_InstModification_iSCSIPort">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_iSCSIPort" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_iSCSIProtocolEndpoint AND SourceInstance.CIM_iSCSIProtocolEndpoint::OperationalStatus &lt;&gt; PreviousInstance.CIM_iSCSIProtocolEndpoint::OperationalStatus" />
+                    </bean>
+                </entry>
+                
+                <!-- Group Synchronized change -->
+                <entry key="CIM_InstModification_GroupSynchronized">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_GroupSynchronized" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_GroupSynchronized AND SourceInstance.CIM_GroupSynchronized::CopyState &lt;&gt; PreviousInstance.CIM_GroupSynchronized::CopyState" />
+                    </bean>
+                </entry>
+                <!-- Storage Synchronized change -->
+                <entry key="CIM_InstModification_StorageSynchronized">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstModification_StorageSynchronized" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstModification WHERE SourceInstance ISA CIM_StorageSynchronized AND SourceInstance.CIM_StorageSynchronized::CopyState &lt;&gt; PreviousInstance.CIM_StorageSynchronized::CopyState" />
+                    </bean>
+                </entry>
+                
+        <!-- CIM_InstModification ENDS-->
+        
+        <!-- CIM_InstDeletion STARTS-->
+        
+                <entry key="CIM_InstDeletion_StoragePool">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstDeletion_StoragePool" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstDeletion WHERE SourceInstance ISA CIM_StoragePool" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstDeletion_StorageVolume">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstDeletion_StorageVolume" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstDeletion WHERE SourceInstance ISA CIM_StorageVolume" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstDeletion_VolumeView">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstDeletion_VolumeView" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstDeletion WHERE SourceInstance ISA CIM_VolumeView" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstDeletion_FileShare">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstDeletion_FileShare" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstDeletion WHERE SourceInstance ISA CIM_FileShare" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstDeletion_LocalFileSystem">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstDeletion_LocalFileSystem" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstDeletion WHERE SourceInstance ISA CIM_LocalFileSystem" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstDeletion_GroupSynchronized">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstDeletion_GroupSynchronized" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstDeletion WHERE SourceInstance ISA CIM_GroupSynchronized" />
+                    </bean>
+                </entry>
+                
+                <entry key="CIM_InstDeletion_StorageSynchronized">
+                    <bean parent="CimManagedFilterInfo">
+                        <property name="key" value="CIM_InstDeletion_StorageSynchronized" />
+                        <property name="queryLanguage" value="CQL" />
+                        <property name="query" value="SELECT * FROM CIM_InstDeletion WHERE SourceInstance ISA CIM_StorageSynchronized" />
+                    </bean>
+                </entry>
+                
+        <!-- CIM_InstDeletion ENDS-->
+            </map>
+        </property>
+    </bean>
+
+    <bean id="CimIndicationConsumer"
+        class="com.emc.storageos.cimadapter.consumers.CimIndicationConsumer"
+        abstract="true" />
+
+    <bean id="CimIndicationConsumerList"
+        class="com.emc.storageos.cimadapter.consumers.CimIndicationConsumerList">
+        <constructor-arg>
+            <list>
+                <bean id="cassandraCimIndicationConsumer" parent="CimIndicationConsumer"
+                    class="com.emc.storageos.volumecontroller.impl.monitoring.cim.CassandraCimIndicationConsumer" init-method="init">
+                    <property name="useDefaultProcessor" value="true" />
+                </bean>
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <!-- BEGIN : CIM Processor Context -->
+    <util:properties id="mntrProperties" location="classpath:monitoring.properties" />
+ 
+    <context:component-scan base-package="com.emc.storageos.volumecontroller.impl.monitoring" />
+    
+    <bean id="volumeViewEventProcessor"
+        class="com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor.processor.volumeView.VolumeViewEventProcessor">
+        <constructor-arg>
+        <util:map id="volumeViewProcessors" map-class ="java.util.HashMap">
+            <!-- Describes the type of event that is of VMAX VolumeView. -->
+            <entry key="Symm_VirtualProvisioningPool" value-ref="VMAXVolumeViewEventProcessor"></entry>
+            <!-- Describes the type of event that is of VMAX VolumeView. -->
+            <entry key="Symm_DeviceStoragePool" value-ref="VMAXVolumeViewEventProcessor"></entry>
+            <!-- Describes the type of event that is of VNX VolumeView. -->
+            <entry key="Clar_UnifiedStoragePool" value-ref="VNXVolumeViewEventProcessor"></entry>
+            <!-- Describes the type of event that is of VNX VolumeView. -->
+            <entry key="Clar_DeviceStoragePool" value-ref="VNXVolumeViewEventProcessor"></entry>
+        </util:map>
+        </constructor-arg>
+    </bean>
+
+    <bean id="storageVolumeEventProcessor"
+          class="com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor.processor.StorageVolumeEventProcessor">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="eventProcessor"
+        class="com.emc.storageos.volumecontroller.impl.monitoring.cim.indicationProcessor.CIMEventProcessor">
+        <constructor-arg>
+        <util:map id="eventProcessors" map-class ="java.util.HashMap">
+            <!-- Reference to the instance type of indication that is of Storage Volume type. -->
+            <entry key="StorageVolume" value-ref="storageVolumeEventProcessor"></entry>
+            <!-- Reference to the instance type of indication that is of File Share type. -->
+            <entry key="UxfsLocalFileSystem" value-ref="FileSystemEventProcessor"></entry>
+            <!-- Reference to the instance type of indication that is of File Share type. -->
+            <entry key="NFSShare" value-ref="FileSystemEventProcessor"></entry>
+            <!-- Reference to the type of vmax indication that is of VolumeView. -->
+            <entry key="VolumeView" value-ref="volumeViewEventProcessor"></entry>
+            <!-- Reference to the type of indication that is of VNX StoragePool. -->
+            <entry key="UnifiedStoragePool" value-ref="VNXStoragePoolEventProcessor"></entry>
+            <!-- Reference to the type of indication that is of VNX Thick StoragePool. -->
+            <entry key="DeviceStoragePool " value-ref="VNXStoragePoolEventProcessor"></entry>
+            <!-- Reference to the type of vmax indication that is of StoragePool. -->
+            <entry key="VirtualProvisioningPool" value-ref="VMAXStoragePoolEventProcessor"></entry>
+            <!-- Reference to the type of vmax/vnx indication that is of FC StoragePort. -->
+            <entry key="FrontEndFCPort" value-ref="StoragePortEventProcessor"/>
+            <!-- Reference to the type of vmax/vnx indication that is of iSCSI StoragePort. -->
+            <entry key="iSCSIProtocolEndpoint" value-ref="StoragePortEventProcessor"/>
+        </util:map>
+        </constructor-arg>
+    </bean>   
+  
+    <task:scheduler id="taskScheduler" />
+    <task:executor id="taskExecutor" pool-size="1" />
+    <!-- 
+    <task:annotation-driven executor="taskExecutor"
+        scheduler="taskScheduler" />
+    -->        
+    <!-- END : CIM Processor Context -->
+
+    <bean id="recordableEventMgr" class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+</beans>
+
+

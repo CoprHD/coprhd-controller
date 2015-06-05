@@ -1,0 +1,13 @@
+GET https://192.168.0.0:4443/compute/vcenters/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+	<id>urn:storageos:Vcenter:ca83f754-6cff-4384-9458-e27783b31940:</id>
+	<id>urn:storageos:Vcenter:fc18d68e-dc2e-4325-8d0d-3db1bce12680:</id>
+</ids>

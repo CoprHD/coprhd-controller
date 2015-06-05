@@ -1,0 +1,39 @@
+Commands required to setup the NETAPP storage system as ViPR managed system
+===========================================================================
+viprcli vpool create -name FILE_VPOOL -protocol NFS CIFS -t file -mp 2 -pt Thin -maxsnapshots 2
+
+viprcli vpool show -name FILE_VPOOL
+
+viprcli varray create -n Test_Varray
+
+viprcli varray list
+
+viprcli varray show -name Test_Varray
+
+viprcli network create -n Test_Network -varray Test_Varray -transport_type IP
+
+viprcli network list -varray Test_Varray
+
+viprcli network endpoint add -n Test_Network -e 10.247.66.65 -varray Test_Varray
+
+viprcli network show -name Test_Network -varray Test_Varray
+
+viprcli storagesystem create -name netapp -type netapp -deviceip 10.247.99.1 -deviceport 443 -serialnumber 4061490321 -user root
+
+viprcli storagesystem show -name netapp -type netapp
+
+viprcli storagesystem list -type netapp
+
+viprcli storagepool list -l -sn 4061490-32-1 -type netapp
+
+viprcli storagepool update -sn 4061490-32-1 -type netapp -vaadd Test_Varray
+
+viprcli vpool add_pools -name FILE_VPOOL  -pools x200_5.5tb_200gb-ssd_6gb -serialnumber f86 -devicetype netapp -type file
+
+viprcli vpool add_pools -name FILE_VPOOL  -pools aggr_13062013_152816 -serialnumber 4061490-32-1 -devicetype netapp -type file
+
+viprcli storageport list -sn 4061490-32-1 -type netapp
+
+viprcli storageport update -sn 4061490-32-1 -type netapp -network Test_Network -va Test_Varray -tt IP
+
+viprcli storageport show -name 10.247.99.1 -sn 4061490-32-1 -type netapp

@@ -1,0 +1,18 @@
+PUT https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:9088146a-fa8a-4e45-9834-89bb62cd505b:/tags HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tag_changes>
+   <add>alpha</add>
+   <remove>beta</remove>
+</tag_changes>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tags>
+<tag>alpha</tag>
+</tags>

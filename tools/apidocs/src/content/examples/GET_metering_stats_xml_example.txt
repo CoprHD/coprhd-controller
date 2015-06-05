@@ -1,0 +1,104 @@
+GET  https://192.168.0.0:4443/metering/stats?time_bucket=2013-09-30T10 HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<stats>
+  <stat>
+    <allocated_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <bandwidth_in>225369807</bandwidth_in>
+    <bandwidth_out>6965888</bandwidth_out>
+    <idle_time_counter xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <io_time_counter xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <kbytes_transferred>232335695</kbytes_transferred>
+    <native_guid>CLARIION+APM00121500018</native_guid>
+    <object_count xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <project_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <provisioned_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <queue_length xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <read_hit_ios>451</read_hit_ios>
+    <read_ios>1694067</read_ios>
+    <real_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <resource_id>urn:storageos:StorageSystem:5b0a7e91-6359-4117-b62b-e329c2782186:</resource_id>
+    <service_type>block</service_type>
+    <system_metadata_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <snapshot_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <snapshot_count xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <tenant_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <time_collected>1380537170484</time_collected>
+    <time_measured>1380537170484</time_measured>
+    <total_ios>12934487</total_ios>
+    <user_metadata_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <user_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <user_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <virtual_pool_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <write_hit_ios>527836</write_hit_ios>
+    <write_ios>11240420</write_ios>
+  </stat>
+  <stat>
+    <allocated_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <bandwidth_in>0</bandwidth_in>
+    <bandwidth_out>26024</bandwidth_out>
+    <idle_time_counter xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <io_time_counter xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <kbytes_transferred>26024</kbytes_transferred>
+    <native_guid>SYMMETRIX+000195701505</native_guid>
+    <object_count xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <project_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <provisioned_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <queue_length xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <read_hit_ios>6290</read_hit_ios>
+    <read_ios>6720</read_ios>
+    <real_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <resource_id>urn:storageos:StorageSystem:cc047b91-3b2f-4acf-9ba0-6dbb2170c7ca:</resource_id>
+    <service_type>block</service_type>
+    <system_metadata_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <snapshot_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <snapshot_count xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <tenant_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <time_collected>1380537657487</time_collected>
+    <time_measured>1380537657487</time_measured>
+    <total_ios>95902082</total_ios>
+    <user_metadata_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <user_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <user_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <virtual_pool_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <write_hit_ios>0</write_hit_ios>
+    <write_ios>0</write_ios>
+  </stat>
+  <stat>
+    <allocated_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <bandwidth_in xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <bandwidth_out xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <idle_time_counter xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <io_time_counter xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <kbytes_transferred>2056816</kbytes_transferred>
+    <native_guid>CLARIION+APM00121500018+PORT+50:06:01:60:3E:A0:59:B0</native_guid>
+    <object_count xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <project_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <provisioned_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <queue_length xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <read_hit_ios xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <read_ios xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <real_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <resource_id>urn:storageos:StoragePort:d1c37823-aa2a-4b36-ad0b-8e7be108defb:</resource_id>
+    <service_type>block</service_type>
+    <system_metadata_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <snapshot_capacity xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <snapshot_count xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <tenant_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <time_collected>1380537170484</time_collected>
+    <time_measured>1380537170484</time_measured>
+    <total_ios>601053</total_ios>
+    <user_metadata_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <user_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <user_size xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <virtual_pool_id xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <write_hit_ios xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+    <write_ios xsi:nil="true" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"/>
+  </stat>
+</stats>

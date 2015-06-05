@@ -1,0 +1,35 @@
+<div id="capacityPanel">
+  <div class="panel panel-default">
+    <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.capacity'}</h3></div>
+    <div class="panel-body">
+      <dl>
+        #{if storageStats}
+          #{license.ifController}
+            #{if storageStats?.controllerStorageStats}
+              <dt class="text-muted">&{'adminDashboard.blockCapacity'}</dt>
+              <dd>
+                <span style="font-size: 2em;vertical-align: middle;">${storageStats.controllerStorageStats?.blockCapacityKB?.formatKBValueOnly()}</span>
+                <span style="vertical-align: middle;">${storageStats.controllerStorageStats?.blockCapacityKB?.formatKBUnits()}</span>
+              </dd>    
+              <dt class="text-muted">&{'adminDashboard.fileCapacity'}</dt>
+              <dd>
+                <span style="font-size: 2em;vertical-align: middle;">${storageStats.controllerStorageStats?.fileCapacityKB?.formatKBValueOnly()}</span>
+                <span style="vertical-align: middle;">${storageStats.controllerStorageStats?.fileCapacityKB?.formatKBUnits()}</span>
+              </dd> 
+              <dt class="text-muted">&{'adminDashboard.blockFileFreeCapacity'}</dt>
+              <dd>
+                <span style="font-size: 2em;vertical-align: middle;">${storageStats.controllerStorageStats?.freeManagedCapacityKB?.formatKBValueOnly()}</span>
+                <span style="vertical-align: middle;">${storageStats.controllerStorageStats?.freeManagedCapacityKB?.formatKBUnits()}</span>
+              </dd>                       
+            #{/if}
+          #{/license.ifController}
+        #{/if}
+      </dl>
+      #{if !storageStats}
+        <div class="loadingBox">
+           <img src="/public/img/loading-huge.gif" height="64" width="64">
+        </div>      
+      #{/if}      
+    </div>
+  </div>
+</div>

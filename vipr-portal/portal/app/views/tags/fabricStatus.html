@@ -1,0 +1,21 @@
+%{
+  good = com.emc.storageos.fabric.models.utils.HealthEnum.GOOD.equals(_arg)
+  bad = com.emc.storageos.fabric.models.utils.HealthEnum.BAD.equals(_arg)
+  suspect = com.emc.storageos.fabric.models.utils.HealthEnum.SUSPECT.equals(_arg)
+  degraded = com.emc.storageos.fabric.models.utils.HealthEnum.DEGRADED.equals(_arg)
+}%
+#{if good}
+  <span class="label label-success">#{icon 'ok'/} &{'fabric.status.GOOD'}</span>
+#{/if}
+#{elseif bad}
+  <span class="label label-danger">#{icon 'remove-circle'/} &{'fabric.status.BAD'}</span>
+#{/elseif}
+#{elseif suspect}
+  <span class="label label-warning">#{icon 'warning-sign'/} &{'fabric.status.SUSPECT'}</span>
+#{/elseif}
+#{elseif degraded}
+  <span class="label label-warning">#{icon 'warning-sign'/} &{'fabric.status.DEGRADED'}</span>
+#{/elseif}
+#{else}
+  <span class="label label-default">#{icon 'question-sign'/} &{'fabric.status.UNKNOWN'}</span>
+#{/else}

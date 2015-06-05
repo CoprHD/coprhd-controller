@@ -1,0 +1,13 @@
+GET https://192.168.0.0:4443/block/exports/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+   <id>urn:storageos:ExportGroup:491fc994-36ec-4d47-a0c7-2dd84b9df8dc:</id>
+   <id>urn:storageos:ExportGroup:491fc922-36ec-4dab-a0c7-2dd84b9df8ed:</id>
+</ids>

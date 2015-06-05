@@ -1,0 +1,49 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#
+# VASA storage event messages for English localization
+#
+
+StorageOS.Overheated = "System temperature is {status}"
+
+# Set of events for FileSystem.
+StorageOS.FileSystemExported = "Storageos::File System {resId} Exported"
+StorageOS.FileSystemUnexported = "Storageos::File System {resId} Unexported"
+StorageOS.FileSystemRestored = "Storageos::File System {resId} Restored"
+StorageOS.FileSystemAcive = "Storageos::File System {resId} Activated"
+StorageOS.FileSystemInactive = "Storageos::File System {resId} deactivated"
+StorageOS.FileSystemSnapshotExported = "Storageos::File System Snapshot {resId} Exported"
+StorageOS.FileSystemSnapshotUnexported = "Storageos::File System Snapshot {resId} Unexported"
+
+# Set of events for Volume.
+StorageOS.VolumeExported = "Storageos::ExportGroup Added Volume to  export group {resId}"
+StorageOS.VolumeUnexported = "Storageos::ExportGroup Removed Volume from export group {resId}"
+StorageOS.VolumeRestored = "Storageos::Volume {resId} Restored"
+StorageOS.VolumeAcive = "Storageos::Volume {resId} activated"
+StorageOS.VolumeInactive = "Storageos::Volume {resId} Deactivated"
+StorageOS.VolumeSnapshotExported = "Storageos::Volume snapshot {resId} Exported"
+StorageOS.VolumeSnapshotUnexported = "Storageos::Volume snapshot {resId} Unexported"
+StorageOS.VolumeSnapshotRestored = "Storageos::Volume snapshot {resId} Restored"
+
+# Storage capabilities events
+StorageOS.CosCreate = "Storageos::Cos {resId} Created"
+StorageOS.CosDelete = "Storageos::Cos {resId} Deleted"
+
+# Storage Array events
+StorageOS.StorageArrayReg = "Storageos::Storage Array Registered"
+StorageOS.StorageArrayUnreg = "Storageos::Storage Array Unregistered"
+
+
+# Storage Processor events
+StorageOS.StorageProcessorReg = "Storageos::Storage Processor Registered"
+StorageOS.StorageProcessorUnreg = "Storageos::Storage Processor Unregistered"
+
+# Storage Port events
+StorageOS.StoragePortCreated = "Storageos::Storage Port created {resId}"
+StorageOS.StoragePortDeleted = "Storageos::Storage Port deleted {resId}"
+StorageOS.StoragePortUpdated = "Storageos::Storage Port updated {resId}"
+StorageOS.StoragePortRegistered = "Storageos::Storage Port registered {resId}"
+StorageOS.StoragePortUnregistered = "Storageos::Storage Port unregistered {resId}"
+
+

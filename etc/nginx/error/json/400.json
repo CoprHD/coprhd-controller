@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 6400,
+  "description": "Bad Request.",
+  "details": "The request cannot be fulfilled due to bad syntax.",
+  "retryable": false
+}

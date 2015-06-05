@@ -1,0 +1,352 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#-%emc-cr-s-shell-v2%-
+#
+# Copyright (c) 2012-2014, EMC Corporation. All Rights Reserved.
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.
+# This software is protected, without limitation, by copyright law and
+# international treaties.
+# Use of this software and the intellectual property contained therein
+# is expressly limited to the terms and conditions of the License
+# Agreement under which it is provided by or on behalf of EMC.
+#
+#-%emc-cr-e-shell-v2%-
+#
+# Makefile.common
+#
+
+# Shell used by make to exectute commands (must be first)
+#
+                     SHELL = /bin/sh
+
+# These variables make things verbose or not
+#
+ifeq ($(VERBOSE), 1)
+                   ATECHO := @true \#
+                   ATSIGN :=
+                   TEEOUT := \#
+                MAKEFLAGS  = -r -R
+else
+                   ATECHO := @echo
+                   ATSIGN := @
+                   TEEOUT := &>
+                MAKEFLAGS  = -r -R --no-print-directory
+endif
+
+# Set the URL to use for downloading the Gradle packages depending on BUILD_TYPE
+# BUILD_TYPE must be OSS or EMC.  Otherwise Gradle build will fail.
+#
+ifeq ($(BUILD_TYPE),oss)
+    GRADLE = ./gradlew-oss --info
+
+else
+    # if BUILD_TYPE=oss not supplied on make command line we will default to EMC mode build
+    BUILD_TYPE = emc
+    GRADLE = ./gradlew --info
+endif 
+
+# Define Gradle Property to pass on Gradle command line
+# 
+      BUILD_TYPE_PROPERTY := -PbuildType=$(BUILD_TYPE)
+
+# The distributionUrl in the properties file for the gradle-wrapper 
+# needs to be set based on BUILD_TYPE.  To avoid modifying a file
+# under git control, a template file is used to generate this file
+#
+ GRADLE_WRAPPER_PROPERTIES = gradle/wrapper/gradle-wrapper.properties
+
+# Compute base directories if not set:
+#
+ifeq ($(strip $(SOURCE_BASE)),)
+               SOURCE_BASE = $(shell d=$$(/bin/pwd) && until [ -f "$${d}/Makefile.common" ] ; do d=$${d%/*}; done && echo "$${d}")
+endif
+
+ifneq ($(strip $(build_base)),)
+                BUILD_BASE = $(build_base)
+endif
+ifeq  ($(strip $(BUILD_BASE)),)
+                BUILD_BASE = $(SOURCE_BASE)/build
+endif
+ifeq  ($(strip $(THIRDPARTY)),)
+                THIRDPARTY = $(SOURCE_BASE)/thirdparty
+endif
+ifneq ($(strip $(jdk.home.1.7)),)
+                 JAVA_HOME = $(jdk.home.1.7)
+endif
+ifeq  ($(strip $(JAVA_HOME)),)
+                 JAVA_HOME = /usr/lib64/jvm/java-1.7.0-oracle
+endif
+
+                    BINDIR = $(BUILD_BASE)/bin
+                    LIBDIR = $(BUILD_BASE)/lib
+                       PWD = $(shell /bin/pwd)
+                    OBJDIR = $(subst $(SOURCE_BASE),$(BUILD_BASE)/obj,$(PWD))
+
+            PRODUCT_BRAND ?= ViPR
+             PRODUCT_NAME  = $(shell echo "$(PRODUCT_BRAND)" | tr '[A-Z]' '[a-z]')
+             PRODUCT_CAPS  = $(shell echo "$(PRODUCT_BRAND)" | tr '[a-z]' '[A-Z]')
+          PRODUCT_VERSION ?= 2.3.0.0
+           PRODUCT_PREFIX  = /opt/storageos
+          PRODUCT_ID_TUPLE = "${PRODUCT_NAME} ${PRODUCT_VERSION}"
+
+           INSTALL_PREFIX  =
+           INSTALL_ETCDIR  = $(INSTALL_PREFIX)/etc 
+           INSTALL_LIBDIR  = $(INSTALL_PREFIX)$(PRODUCT_PREFIX)/lib
+           INSTALL_BINDIR  = $(INSTALL_PREFIX)$(PRODUCT_PREFIX)/bin
+          INSTALL_CONFDIR  = $(INSTALL_PREFIX)$(PRODUCT_PREFIX)/conf
+
+# Common commands
+#
+                     ECHO := echo
+                      CAT := /bin/cat
+                     GREP := /usr/bin/grep
+                    FGREP := /usr/bin/fgrep
+                       MV := /bin/mv
+                       LN := /bin/ln -sf
+                  HARD_LN := /bin/ln
+                       LS := /bin/ls
+                       RM := /bin/rm -f
+                    MKDIR := /bin/mkdir -p
+                    RMDIR := /bin/rmdir
+                     SUDO := /usr/bin/sudo
+                    MOUNT := /bin/mount
+                   UMOUNT := /bin/umount
+                    TOUCH := /usr/bin/touch
+                      SED := /usr/bin/sed
+                      AWK := /usr/bin/awk
+                   PYTHON := /usr/bin/python
+                      CMP := /usr/bin/cmp
+                   BASE64 := /usr/bin/base64
+                       CP := /bin/cp
+                    CHMOD := /bin/chmod
+                    CHOWN := /bin/chown
+                      REV := /usr/bin/rev
+                      SEQ := /usr/bin/seq
+                    STRIP := /usr/bin/strip
+                     SORT := /usr/bin/sort
+                     GZIP := /usr/bin/gzip
+                    BZIP2 := /usr/bin/bzip2
+                      ZIP := /usr/bin/zip
+                   MD5SUM := /usr/bin/md5sum
+                  SHA1SUM := /usr/bin/sha1sum
+	      GENISOIMAGE := /usr/bin/genisoimage -quiet -r -J
+                     FIND := /usr/bin/find
+                     UNIQ := /usr/bin/uniq
+                       TR := /usr/bin/tr
+                      TAR := /bin/tar
+                      RPM := /bin/rpm
+                 RPMBUILD := /usr/bin/rpmbuild
+                  OVFTOOL := /usr/bin/ovftool
+                 QEMU_IMG := /usr/bin/qemu-img
+                       DD := /bin/dd
+                     WGET := /usr/bin/wget
+                  OPENSSL := /usr/bin/openssl
+                    APXS2 := /usr/sbin/apxs2 
+                     CPIO := /usr/bin/cpio
+              CPIO_FILTER  = $(AWK) '/not created: newer or same/ { next; } \
+                                    /No such file or directory/  { print $$0; exit(1); } \
+                                    { printf "  %s\n", $$0; }'
+                        AR = ar
+                   ARFLAGS = qv
+                    RANLIB = ranlib
+
+                      SWIG = swig
+
+                  INCLUDES += 
+                   DEFINES += 
+              EXTRA_CFLAGS +=
+            EXTRA_CXXFLAGS +=
+
+                        CC = gcc-4.8
+                 CCOPTIONS = -pthread \
+                             -m64  \
+                             -g \
+                             -D_REENTRANT \
+                             -D_POSIX_REENTRANT_FUNCTIONS \
+                             -D_PTHREADS \
+                             -O  \
+                             -fPIC  \
+                             -Wall \
+                             -Werror
+                    CFLAGS = $(DEFINES) $(INCLUDES) $(CCOPTIONS) $(EXTRA_CFLAGS)
+
+                       CXX = g++
+                CXXOPTIONS = $(CCOPTIONS)
+                  CXXFLAGS = $(DEFINES) $(INCLUDES) $(CXXOPTIONS) $(EXTRA_CXXFLAGS)
+
+                        LD = $(CXX)
+                   LDRPATH = -Wl,-rpath=$(INSTALL_LIBDIR)
+                   LDFLAGS = -pthread \
+                             -m64 \
+                             $(LDRPATH)
+
+                      JAVA = $(JAVA_HOME)/bin/java
+                     JAVAC = $(JAVA_HOME)/bin/javac
+                       JAR = $(JAVA_HOME)/bin/jar
+             JAVA_INCLUDES = -I$(JAVA_HOME)/include \
+                             -I$(JAVA_HOME)/include/linux
+                       ANT = /usr/bin/ant
+                   KEYTOOL = /etc/alternatives/jre_oracle/bin/keytool
+             KEYTOOL_FLAGS = -keystore /etc/alternatives/jre_sun/lib/security/cacerts -storepass changeit
+
+ifneq  ($(strip $(BUILDACCT)),)
+     SASVC_GIT_CREDENTIALS = ${BUILDACCT}:${BUILDACCTPASSWD}@
+endif
+
+                       GIT = git
+             GIT_REVISION := $(shell ${GIT} rev-parse --short HEAD)
+             GIT_BRANCH   := $(shell ${GIT} rev-parse --abbrev-ref HEAD)
+             GIT_REPO_FULL:= $(shell ${GIT} ls-remote --get-url)
+             GIT_REPO     := $(shell basename ${GIT_REPO_FULL} .git)
+             GIT_COUNT    := $(shell git rev-list HEAD --count)
+
+# ASD Binary Artifact Repository
+#
+         ASD_BINARYREPOURL = http://asdrepo.isus.emc.com:8081/artifactory
+  VIPR-BUILD_BINARYREPOURL = $(ASD_BINARYREPOURL)/vipr-build
+
+# Common implicit rules
+#
+.SUFFIXES:
+.SUFFIXES: .h .hpp .c .cpp .cc .o .a .java .class .jar .war
+
+vpath %.h    . $(OBJDIR)
+vpath %.hpp  . $(OBJDIR)
+vpath %.c    . $(OBJDIR)
+vpath %.cpp  . $(OBJDIR)
+vpath %.cc   . $(OBJDIR)
+vpath %.o    $(OBJDIR)
+vpath %.a    $(OBJDIR)
+
+$(OBJDIR)/%.o: %.c
+	@$(MKDIR) $(@D)
+	$(ATECHO) $(CC) $*.o
+	$(ATSIGN)$(CC) $(CFLAGS)    -MD -c -o $(@) $(<)
+
+$(OBJDIR)/%.o: $(OBJDIR)/%.c
+	@$(MKDIR) $(@D)
+	$(ATECHO) $(CC) $*.o
+	$(ATSIGN)$(CC) $(CFLAGS)    -MD -c -o $(@) $(<)
+
+$(OBJDIR)/%.o: %.cpp
+	@$(MKDIR) $(@D)
+	$(ATECHO) $(CXX) $*.o
+	$(ATSIGN)$(CXX) $(CXXFLAGS) -MD -c -o $(@) $(<)
+
+$(OBJDIR)/%.o: $(OBJDIR)/%.cpp
+	@$(MKDIR) $(@D)
+	$(ATECHO) $(CXX) $*.o
+	$(ATSIGN)$(CXX) $(CXXFLAGS) -MD -c -o $(@) $(<)
+
+$(OBJDIR)/%.o: %.cc
+	@$(MKDIR) $(@D)
+	$(ATECHO) $(CXX) $*.o
+	$(ATSIGN)$(CXX) $(CXXFLAGS) -MD -c -o $(@) $(<)
+
+$(OBJDIR)/%.o: $(OBJDIR)/%.cc
+	@$(MKDIR) $(@D)
+	$(ATECHO) $(CXX) $*.o
+	$(ATSIGN)$(CXX) $(CXXFLAGS) -MD -c -o $(@) $(<)
+
+# List of phony rules
+#
+.PHONY:
+.PHONY: all clean clobber FORCE PRODUCT_NAME PRODUCT_VERSION PRODUCT_ID_TUPLE
+
+.DEFAULT:
+
+.DEFAULT_GOAL := all
+
+# Conditional automatic rule for .a libraries
+#
+ifneq ($(strip $(LIBNAME)),)
+
+_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.c, %.o, $(filter %.c, $(SRCS))) $(patsubst %.cpp, %.o, $(filter %.cpp, $(SRCS))))
+_LIB_a := $(OBJDIR)/lib$(LIBNAME).a
+#$(error $(_OBJS))
+
+all:: $(_LIB_a)
+
+$(_LIB_a): $(_OBJS) $(OBJS)
+	$(ATECHO) $(AR) lib$(LIBNAME).a
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(AR) $(ARFLAGS) $(@) $(^) $(TEEOUT) /dev/null
+
+clean::
+	$(ATSIGN)$(RM) $(_LIB_a)
+endif
+
+# Conditional automatic rule for .so libraries
+#
+ifneq ($(strip $(SOLIBNAME)),)
+
+SOMAJOR ?= 1
+SOMINOR ?= 0
+
+_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.c, %.o, $(filter %.c, $(SRCS))) $(patsubst %.cpp, %.o, $(filter %.cpp, $(SRCS))))
+_SOLIB_so_ver  := $(LIBDIR)/lib$(SOLIBNAME).so.$(SOMAJOR).$(SOMINOR)
+_SOLIB_symlink := $(LIBDIR)/lib$(SOLIBNAME).so
+
+all:: $(_SOLIB_so_ver) $(_SOLIB_symlink)
+
+$(_SOLIB_so_ver): $(_OBJS) $(OBJS) $(DEPLIBS)
+	@echo $(SRCS) $(_OBJS)
+	$(ATECHO) $(@F)
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(LD) -o $(@) -shared -Wl,-soname,$(@F) $(^) $(LIBS) $(LDFLAGS)
+
+$(_SOLIB_symlink): $(_SOLIB_so_ver)
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(LN) $(<F) $(@)
+
+clean::
+	$(ATSIGN)$(RM) $(_SOLIB_so_ver) $(_SOLIB_symlink)
+endif
+
+# Conditional automatic rule for simple programs
+#
+ifneq ($(strip $(PROG)),)
+
+_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.c, %.o, $(filter %.c, $(SRCS))) $(patsubst %.cpp, %.o, $(filter %.cpp, $(SRCS))))
+_PROG = $(BINDIR)/$(PROG)
+
+all:: $(_PROG)
+
+$(_PROG): $(_OBJS) $(OBJS) $(DEPLIBS)
+	$(ATECHO) $(LD) -o $(PROGNAME)
+	@$(RM) $(@)
+	@$(MKDIR) $(@D)
+	$(ATSIGN)$(LD) -o $(@) $(^) $(LDFLAGS) $(LIBS)
+clean::
+	$(ATSIGN)$(RM) $(_PROG)
+endif
+
+# Simple rule for dumping product info set.
+#
+PRODUCT_ID_TUPLE PRODUCT_NAME PRODUCT_VERSION:
+	     @${ECHO} ${$@}
+
+_DEPS = $(patsubst %.o, %.d, $(OBJS) $(_OBJS)) 
+
+# Common targets and default explicit rules
+#
+
+all::
+
+clean::
+	$(ATSIGN)$(RM) $(OBJS) $(_OBJS) $(_DEPS) $(GEN)
+
+clobber::
+	$(ATSIGN)$(RM) -r $(OBJDIR)
+
+-include $(_DEPS)
+
+#
+# END $Rev: XXX $
+

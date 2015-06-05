@@ -1,0 +1,40 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"IngestExportedUnmanagedVolumes.Block",
+  serviceId:"IngestExportedUnmanagedVolumes",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+    storageType:{
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"exclusive"
+    },
+
+    host:{
+      type:"assetType.vipr.host"
+    },
+
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+
+    virtualPool:{
+      type:"assetType.vipr.unmanagedBlockVirtualPool",
+      lockable: true
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    volumes: {
+      type: "assetType.vipr.unmanagedVolume",
+      select: "many"
+    }
+  }
+}

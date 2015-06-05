@@ -1,0 +1,1427 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2013-2014 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/diagtool
+#
+
+export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
+export LANG=POSIX
+
+OVF_PROPERTY="/etc/ovfenv.properties"
+VERBOSE=false
+MEMORY_MIN_FREE_MB=100
+CPU_UTIL_THRESHOLD_PERC=80
+ROOT_FULL_FREE_MB=100 #100MB
+ROOT_LOW_FREE_MB=2052 #2GB
+DATA_FULL_USED_PERCENTAGE=99 #99 percent
+DATA_LOW_FREE_PERCENTAGE=20 #20 percent
+DATA_LOGS_MAX_PERCENTAGE=10 #10 percent
+DATA_LOGS_MIN_MB=10240 #10GB according to the design in etc/cron.hourly/cleanup_logs
+
+# We want to preserve enough snapshots and logs.  
+# The txn log size is fixed (above 64M).  And the snapshot size depends on 
+# concrete data.  It is normally small, but in some extreme case, it is 
+# quite big (maybe several hundreds of MB), so the idea is to keep the alert 
+# threshold a little higher.
+DATA_ZK_MAX_MB=2048 # 2GB for ZK logs and snapshots
+
+DATA_DB_MAX_PERCENTAGE=40 #40 percent
+DATA_GEODB_MAX_MB=5120 # 5GB for geodb
+DISKS="/ /data"
+LOGS_LOCATION="/opt/storageos/logs/"
+BIN_LOCATION="/opt/storageos/bin/"
+ZK_LOCATION="/data/zk/"
+DB_LOCATION="/data/db/"
+ZK_PORT=2181
+GEODB_LOCATION="/data/geodb/"
+BACKUP_LOCATION="/data/backup/"
+STANDALONE=false
+OUT_OFF_SYC_THRESHHOLD=1000 # The threshold to determine if a node is out of sync with the cluster
+VDC_OUT_OFF_SYC_THRESHHOLD=1000 # # The threshold is 1 second, if the offset is greater than 1 second, we should raise the flag.
+
+#Property keys
+FIREWALL_PROP="system_enable_firewall"
+NETWORK_VIP_PROP="network_vip"
+NETWORK_VIP6_PROP="network_vip6"
+STANDALONE_NODE_IP="network_standalone_ipaddr"
+NODE_COUNT_PROP="node_count"
+NODE_IP_PROP="node_id"
+NETMASK_PROP="network_netmask"
+#NTP global parameters
+NTP_VALID_SERVERS=""
+NTP_UNUSABLE_SERVERS=""  # The situations could be: no ntp server on that IP, ntp server not compatible or ntp server not functional
+NTP_UNREACHABLE_SERVERS=""  # We can not reach that IP
+DNS_VALID_SERVERS=""
+DNS_UNUSABLE_SERVERS=""
+DNS_UNREACHABLE_SERVERS=""
+NETWORK_STACK="UNCONFIGURED"
+nl='
+'
+
+#Identify NIC to use
+NIC_NAME="$(/etc/getnic)"
+
+# $* is to be printed out
+_verbose() {
+    echo -e "\t" ${*}
+}
+
+_get_prop() {
+    ( IFS="${nl}" ; for arg in ${GENCONFIG_PROPS} ; do
+          [ "${1}" = "${arg%%=*}" ] && arg="${arg#*=}" && arg="${arg//\\n/${nl}}" && echo "${arg}" && return 0
+      done
+      if [ ${#} = 2 ] ; then
+          echo "${2}"
+      else 
+          #echo "No such property: ${1}" >&2 && return 253
+          echo ""
+      fi
+   )
+}
+
+_get_prop_ip() {
+    local ip=$(_get_prop ${1})
+    if [[ ! -z ${ip} && ${ipAddr} != "::" && ${ip} != "::0" && ${ip} != "0.0.0.0" ]]; then
+        echo ${ip}
+    else
+        echo ""
+    fi    
+}
+
+_get_all_nodes() {
+    local -a ipList
+    local ipAddr
+	local nodeCount=$(_get_prop "${NODE_COUNT_PROP}")
+    local standalone_add=$(_get_prop "${STANDALONE_NODE_IP}${1}")
+    if [ -n "${standalone_add}" ]; then 
+        ipList+=(${standalone_add})
+    else
+        for (( n=1; n<=${nodeCount}; n++ )); do
+            ipAddr=$(_get_prop_ip "network_${n}_ipaddr${1}") 
+            ipList+=(${ipAddr})
+        done
+    fi
+    echo ${ipList[@]}    
+}
+_get_all_node_names() {
+    local nodeList
+	local nodeCount=$(_get_prop "${NODE_COUNT_PROP}")
+    local standalone_add=$(_get_prop_ip "${STANDALONE_NODE_IP}${1}")
+    if [ -n "${standalone_add}" ]; then 
+        nodeList+=("${STANDALONE_NODE_IP}${1}")
+    else
+        for (( n=1; n<=${nodeCount}; n++ )); do
+            nodeList+=("network_${n}_ipaddr${1}")
+        done
+    fi
+    echo ${nodeList[*]}
+}
+
+_get_network_stack() {
+    local -a ipv6_node_list=($(_get_all_nodes "6"))
+	local -a ipv4_node_list=($(_get_all_nodes ""))
+    
+    if [[ ${#ipv6_node_list[@]} > 0 && ${#ipv4_node_list[@]} > 0 ]]; then
+	    NETWORK_STACK="DUAL_STACK"
+    fi
+	if [[ ${#ipv6_node_list[@]} > 0 && ${#ipv4_node_list[@]} = 0 ]]; then
+	    NETWORK_STACK="IPV6_ONLY"
+    fi
+	if [[ ${#ipv6_node_list[@]} = 0 && ${#ipv4_node_list[@]} > 0 ]]; then
+	    NETWORK_STACK="IPV4_ONLY"
+    fi
+    
+}
+_get_subnet_ipvx(){
+    local -a outArray   
+    local -a inArray=("$@")
+    local prefixlength=$(_get_prop 'network_prefix_length')
+    local networkmask=$(_get_prop 'network_netmask')
+ 
+    for i in "${inArray[@]}" ; do
+       if grep -q ":" <<< ${i} ; then
+           outArray+=($(sipcalc "${i}/${prefixlength}" | egrep '^Subnet prefix \(masked\)' | awk '{print $5}'))
+       else
+           outArray+=($(sipcalc ${i} ${networkmask} | egrep '^Network address' | awk '{print $4}'))
+       fi
+    done
+    echo ${outArray[@]}
+}
+
+_ntp_get_servers() {
+    local ntp_conf="/etc/ntp.conf"
+    [ -f "${ntp_conf}" ] && while read server ipaddr dummy ; do
+        [ "${server}" = "server" ] && echo "${ipaddr}"
+    done <"${ntp_conf}"   
+}
+
+_dns_get_servers() {
+    while read key value dummy ; do [ "${key}" = 'nameserver' ] && echo "${value}" ; done </etc/resolv.conf
+}
+
+# A helper function to test if a string(elements are separated by space) contains a element, the first argument is the object in search the second argument is the string.
+_inList() {
+    local item=${1} ; shift
+    local x ; for x in "${@}" ; do [ "${x}" = "${item}" ] && return 0; done
+    return 1
+}
+_a_status() { 
+    local x; for x in "${@}" ; do [[ ${x} -ne 0 ]] && return 1; done
+    return 0
+}
+
+_auniq(){
+    a=("${!1}")
+    echo $(tr ' ' '\n' <<< "${a[@]}" | sort -u | tr '\n' ' ')
+}
+
+
+#get compressed form of IPV6 address
+_get_ipv6_compressed(){
+    local ipaddr
+    if [ "${1}" = "::0" ]; then
+        echo ""
+        return 0
+    fi
+    ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
+    [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
+}
+
+
+
+# print the component status like:
+# * Network interface: [OK]
+# * Network routing: [OK]
+# * DNS: [OK]
+# * NTP: [OK]
+# * Remote Repository: [UNCONFIGURED]
+# $1 - test name
+# $2 - status 
+_print_status() {
+    local param_prefix="*"
+    local expectedargs=2
+
+    if [ $# -ge "${expectedargs}" ]; then
+       local test_name=${1} ; shift
+       echo "${param_prefix}" ${test_name}: $*
+    else
+        _usage
+    fi
+}
+
+# validate that the network IP and NETMASK are configured properly
+_network_validate() {
+    local netmask_ipaddr_status 
+    local network network_status
+    _network_get_mask ${NIC_NAME} >/dev/null && _get_host_ip ${NIC_NAME} >/dev/null ; netmask_ipaddr_status=$?
+
+    network=$(_network_get_status ${NIC_NAME})
+    network_status=$?
+    
+    if (( ${netmask_ipaddr_status} == 0 )); then
+        if [ ${network_status} == 0 ]; then      
+            echo "[OK]"
+        else
+            echo "[CONFIGURED, NETWORK ERROR]"
+        fi
+    else
+        echo "[UNCONFIGURED]"
+    fi
+}
+ 
+# validate the network routing
+_routing_validate() {
+    local defaultGW=$(/bin/netstat -nr|while read dest gw dummy ; do [ "${dest}" = "0.0.0.0" ] && echo "${gw}" && break ; done)
+    if [ -n "${defaultGW}" ]; then
+        _ping_test "${defaultGW}" && echo "[OK]" || echo "[UNREACHABLE]"
+    else
+        echo "[UNCONFIGURED]"
+    fi
+}
+
+_ntp_validate() {
+    # Get the list of ntp server from the configuration file. It has a leading "server" string.
+    local serverlistArray=$(_ntp_get_servers)
+    NTP_VALID_SERVERS=""
+    NTP_UNUSABLE_SERVERS=""
+    NTP_UNREACHABLE_SERVERS=""
+    
+    local ntpq_output=$(ntpq -pn 2>&1)
+    
+    # We use ntpq -p <ntp server ip> command to check if it's valid
+    for element in ${serverlistArray} ; do
+        # UNREACHABLE means you can't even connect to that server let alone using its NTP service
+        # UNUSABLE means the server is accessible but we can't use its NTP service for some reason
+        # VALID means the server is functional
+        # At first we should test if that server is reachable        
+        if ! _ping_wrapper_test ${element}; then
+            NTP_UNREACHABLE_SERVERS+=" ${element}"
+        elif [ "`echo "${ntpq_output}" | awk -v patt=${element} '$1 ~ patt {print $5}'`" = 0 ]; then
+            NTP_UNUSABLE_SERVERS+=" ${element}"    
+            # The 5th column of the ntpq output is last time local host connect to that server, if it's 0, means it's never connected
+            # This IP is reachable, but either it's not a NTP server or its NTP service is not accessible
+        else
+            NTP_VALID_SERVERS+=" ${element}"
+        fi
+    done
+}
+
+# set up the DNS global parameters
+_dns_validate() {
+    local dnsServers=$(_dns_get_servers) # Get the string that contains the dns servers
+    
+    for i in ${dnsServers} ; do       
+        if ! _ping_wrapper_test ${i}; then
+            DNS_UNREACHABLE_SERVERS+=" ${i}" # The ping to that IP is not successful, so it's not reachable
+        else
+            # The R option specify the number of retry, the W option specify the waiting time for the reply
+            local response=$(host -R 3 -W 1 -t A 1.2.3.4 ${i})
+            if [[ "${response}" == *"timed out"* ]]; then
+                DNS_UNUSABLE_SERVERS+=" ${i}"
+            else
+                DNS_VALID_SERVERS+=" ${i}"
+            fi
+        fi
+    done
+}
+
+# Helper function to report the status of the servers: NTP and DNS
+# 4 possible output from this function:
+#    [OK] - all configured DNS servers are operational
+#    [UNCONFIGURED] - no single DNS server is configured
+#    [CONFIGURED,UNUSABLE] - there are configured DNS servers but none is usable
+#    [CONFIGURED, DEGRADED] - DNS servers are configured, but some of them are not operational
+# Invocation parameters:
+#   $1 is a list of valid serviers
+#   $2 is a list of unusable servers
+#   $3 is a list of unreachable servers
+_print_servers_status() {
+    local validSrvs="$1"
+    local unusableSrvs="$2"
+    local unreachable="$3"
+    if [ -n "${validSrvs}" ]; then
+        # If there are unusable servers or unreachable servers, we should mark the overall status as DEGRADED.
+        if [ -n "${unusableSrvs}" ] || [ -n "${unreachable}" ]; then
+            echo "[CONFIGURED, DEGRADED]"
+        else
+            echo "[OK]"
+        fi
+    else
+        # If there are no valid servers but there are servers that are unusable and servers that are unreachable, we should mark the overall status as invalid. 
+        # If all the servers are unreachable, the overall status should be UNREACHABLE. If all the servers are unusable, the overall status should be UNUSABLE.
+        if [ -n "${unusableSrvs}" ] && [ -n "${unreachable}" ]; then
+            echo "[CONFIGURED, INVALID]"
+        elif [ -n "${unreachable}" ]; then
+            echo "[CONFIGURED, UNREACHABLE]"
+        elif [ -n "${unusableSrvs}" ]; then
+            echo "[CONFIGURED, UNUSABLE]"
+        else
+            echo "[UNCONFIGURED]"
+        fi
+    fi
+}
+
+# The function is to report the status of each entry if the invocation is "verbose"
+# $1 is the property name like "network_nameserver"
+# $2 is a list of properly configured entries
+# $3 is a list on configured but unusable entries [CONFIGURED, REACHABLE, UNUSABLE]
+# $4 is a list on configured but unreachable entries [CONFIGURED, UNREACHABLE]
+_print_servers_detail_report() {
+    local prop=$1
+    local goodEntries=$2
+    local reachableButUnusableEntries=$3
+    local unreachableEntries=$4
+    
+    for srv in ${goodEntries}; do
+        _verbose "${prop}=${srv} [OK]"
+    done
+    for srv in ${reachableButUnusableEntries}; do
+        _verbose "${prop}=${srv} [CONFIGURED, REACHABLE, UNUSABLE]"  
+    done
+    for srv in ${unreachableEntries}; do
+        _verbose "${prop}=${srv} [CONFIGURED, UNREACHABLE]"  
+    done
+}
+
+# Get the host's IP Address.
+_get_host_ip() {
+    local host_ip=$(local s && s=$(ifconfig ${NIC_NAME}) && echo "${s}" | sed -rn 's/.*inet addr:([0-9.]+) .*/\1/p')
+    if [ -z ${host_ip} ]; then
+        echo "[UNCONFIGURED]"
+        return 1
+    else
+        echo "$host_ip"
+        return 0
+    fi
+}
+ 
+# Get a nodes network mask.
+_network_get_mask(){
+    local mask
+    mask=$(ifconfig -a $1 | sed -rn '2s/ .*Mask:([0-9\.]*)$/\1/p')
+    if [ -z ${mask} ]; then
+        echo "[UNCONFIGURED]"
+        return 1
+    else
+        echo "$mask"
+        return 0
+    fi
+}
+
+# Get the nodes network status.
+_network_get_status() {
+    local run_status=$(ifconfig -a $1 | sed -rn 's/ .*UP BROADCAST (RUNNING).*/\1/p')
+    if [ -z ${run_status} ]; then
+        echo "[UNCONFIGURED]"
+        return 1
+    else
+        echo "RUNNING"
+        return 0
+    fi
+}
+
+_routing_get_gw() {
+    local gateway=$(ip -4 route show | grep "default via .* dev ${NIC_NAME}" | awk 'NR==1{print $3}')
+    echo ${gateway}
+}
+_routing_get_gw6() {
+    local gateway=$(ip -6 route show | grep "default via .* dev ${NIC_NAME}" | grep -v "[Ff][eE]80" | awk 'NR==1{print $3}')
+    echo ${gateway}
+}
+
+_repository_wget() {
+    if [ -n "$1" ] ; then
+        local key=VIPR
+        local category=SOFTWARE
+        local language=EN_US
+        local environment=PRODUCTION
+        local content="<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:tns=\"${1}/ClariionWSL.DownloadCatalog.svc\" ><SOAP-ENV:Body><tns:downloadUpdates xmlns:tns=\"${1}/ClariionWSL.DownloadCatalog.svc\"><downloadUpdatesIN ><productModel xsi:type=\"xsd:string\" >${key}</productModel ><category xsi:type=\"xsd:string\" >${category}</category ><majorRevision xsi:type=\"xsd:string\" ></majorRevision ><minorRevision xsi:type=\"xsd:string\" ></minorRevision ><language xsi:type=\"xsd:string\" >${language}</language ><build xsi:type=\"xsd:string\" ></build > <environment xsi:type=\"xsd:string\" >${environment}</environment > </downloadUpdatesIN > </tns:downloadUpdates > </SOAP-ENV:Body> </SOAP-ENV:Envelope>"
+        echo "$(wget --timeout 30 --tries=2 --no-check-certificate --post-data="${content}" --spider -S $1 -O-  2>&1)"
+        # --tries option specifies wget to retry only twice, --spider option specifies the wget command to not download the pages just check that pages are there.
+        # -S option prints the headers sent by HTTP servers and responses sent by FTP servers. -O- sets the output to be written to standard output
+        # This query is used to test the ACG catalog repository used for ViPR upgrade
+    else
+        echo "No upgrade repository URL specified!"
+    fi
+}
+
+# Get the HTTP response status for the system update repository. 
+# $1 is the URL of the remote repository
+# Always do a post to try to retrieve the catalog
+# if the repository is only an apache directory 
+# the post will still validate if the remote file exists 
+_repository_validate() {
+    if [[ "$1" == *"downloadUpdatesResponse"* ]] ; then
+        if [[ "$1" =~ \s+?\<hasErrors[^\>]*\>true.+ ]] ; then
+            echo "[CONFIGURED, ERROR]"
+        else
+            echo "[OK]"
+        fi
+    elif [[ "$1" == *"Remote file exists"* ]] ; then
+        echo "[OK]"
+    else
+        echo "[CONFIGURED, UNREACHABLE]"
+    fi
+}
+
+_repository_get_catalog_error() {
+    [[ "$1" =~ \s+?\<hasErrors[^\>]*\>true.+ ]] && echo "$system_update_repo_wget" | awk '/errorString/ {gsub(/\s+?<[^>]*>/,""); print }'
+}
+
+# get the packet info from ifconfig
+_print_network_packets_info() {
+    awk '/'${NIC_NAME}'/ {printf "\t network_rx_packets=%s\n\t network_tx_packets=%s\n\t number_of_errors=%s\n", $3, $11, $12}' /proc/net/dev # The tabs will generate the same format as the _verbose function does
+}
+
+_ntp_get_peers() {
+    while read key value one two three four five six seven dummy; do [ "${key}" = 'peer' ] && [ "${seven}" = "#clusterPeer" ] && echo "${value}" ; done </etc/ntp.conf
+}
+
+_ntp_get_vdc_peers() {
+    # Get the vip of every peer vdc
+    local key
+    local value
+    local dummy
+    local threshold
+    while read key value dummy threshold; do [ "${key}" = 'fudge' ] && [ "${dummy}" = 'stratum' ] && [ "${threshold}" = '9' ]&& echo "${value}" ; done </etc/ntp.conf
+}
+
+_memory_details_report() {
+    free -m | awk '
+    { if (NR == 1)
+        for (i=1;i<=NF;i++) key[i]=$i
+      else if ($1 ~ /Mem:/)
+        for (i=2;i<=NF;i++) value[i-1]=$i
+    } END {
+        for (x = 1; x <= length(key); x++)
+            printf("%s=%sM\n", key[x],value[x])
+    }' | while read l; do
+     _verbose "$l"
+    done
+}
+
+_disk_free_space_mb_check() {
+    # If the 6th field of a line is equal to the first parameter, we get the 4th field as available space
+    while read fs blocks used available usedPercent mountLocation; do [ "${mountLocation}" = "$1" ] && local avail=${available} && break ; done <<< "${dfOutput}"
+    if [ "${avail}" -le "$2" ]; then # If the available space is less or equal than ROOT_FULL_FREE_MB, it's "FULL"
+        echo "FULL"
+    elif [ "$avail" -le "$3" ]; then
+        echo "LOW"
+    fi
+}
+
+_disk_free_space_percentage_check() {
+    # If the 6th field of a line is equal to the first parameter, we get the 4th field as available space
+    while read fs blocks used available usedPercent mountLocation; do [ "${mountLocation}" = "$1" ] && break ; done <<< "${dfOutput}"
+    #strip off the tailing percentage sign
+    usedPercent=${usedPercent%'%'} 
+    let "avail_percentage=100 - ${usedPercent}"
+    # use the second parameter as the threshold for the full status
+    if [ ${usedPercent} -ge $2 ]; then # There is no decimal part in the used percentage, so we can use integer comparison on it.
+        echo "FULL"
+    #i f the available disk percentage is less or equal the provided third parameter, print low
+    elif [ ${avail_percentage} -le $3 ]; then
+        echo "LOW"
+    fi
+}
+
+_get_data_disk_size() {
+    while read fs blocks used available usedPercent mountLocation; do [ "${mountLocation}" = "/data" ] && break ; done <<< "${dfOutput}"
+    echo $blocks
+}
+
+_disk_space_details_report() {
+    # root and data report
+    # We have to add the unit "M" before the new line
+    echo "${dfOutput}" | awk '
+    { if (NR == 2) name="root"
+      else if (NR == 3) name="data"
+      if (NR == 2 || NR == 3)
+      {
+          st=st"\n"name"_used="$3"M\n"name"_available="$4"M\n"name"_used_percent="$5
+      }
+      } END {
+          print st
+    }' | while read line; do
+        [ -n "${line}" ] && _verbose $line
+    done
+
+    _verbose ${diskReport}
+}
+
+#check ipv4 conflicts  
+_ipv4_dup_test(){
+    local local_ip=$(ifconfig ${NIC_NAME} | sed -rn 's/.*inet addr:([0-9.]+) .*/\1/p')
+    local local_vip=$(ip -4 addr show dev ${NIC_NAME} | grep "inet .* secondary ${NIC_NAME}" | awk 'NR==1{print $2}' |  cut -d"/" -f1) # If this node doesn't own the vip, local_vip would be null
+    if [[ "${1}" == "${local_ip}" || "${1}" == "${local_vip}" ]] ; then
+    	    arping -D -I ${NIC_NAME} -c 2 ${1} &> /dev/null || return 1 # Return 1 if the arping command gets response
+    else
+        local num_mac_addresses=$(arping -I ${NIC_NAME} -c 3 ${1} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq | wc -l)
+        if [ ${num_mac_addresses} -gt 1 ] ; then
+    	    return 1
+        elif [ ${num_mac_addresses} -eq 0 ] ; then
+    	    return 2
+        fi
+    fi
+}
+
+_ipv6_dup_test(){
+    local is_local
+    local compressed_ip=$(_get_ipv6_compressed ${1})
+    ifconfig -a ${NIC_NAME} | egrep -oi "inet6 addr: ${compressed_ip}/.*Scope:Global" &> /dev/null && is_local=true || is_local=false # If this node doesn't own the vip, the vip of the cluster will not apear in the ifconfig output
+    
+    local num_mac_addresses=$(ndisc6 -m -w 1000 ${compressed_ip} ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq | wc -l)
+
+    # 0 means ok, 1 means duplicate, 2 means not found 
+    # When it is local IP you should not get any response
+    [[ ${is_local} = true ]] && {
+        [[ ${num_mac_addresses} > 0 ]] && return 1 || return 0 # If the IP is local and we detect another existence of it we flag it as duplicate
+    } || {
+        [[ ${num_mac_addresses} = 0 ]] && return 2 # If IP is not local and we can't detect its existence we flag it as not found 
+        [[ ${num_mac_addresses} > 1 ]] && return 1 || return 0 # f IP is not local and we find more than one existence, we flag it as duplicate 
+    }
+}
+
+_ping_test() {
+    ping -c 1 -w 5 "$1" &> /dev/null
+}
+
+_nodes_connectivity_details_report() {
+    for node in ${reachableNodes}; do
+        _verbose "node_ip=${node} [REACHABLE]"
+    done
+    for node in ${unreachableNodes}; do
+        _verbose "node_ip=${node} [UNREACHABLE]"
+    done
+}
+
+_standalone_node_subnet_details_report() {
+    _verbose "network_standalone_ipaddr=${standalone_add}, subnet is ${subnetList[0]}"
+    _verbose "gateway=${gateway}, subnet is ${subnetList[1]}"
+    _verbose "netmask=${netmask}"
+}
+
+_multi_node_subnet_details_report() {
+    # I found out the original variable assignments here are totally unnecessary, the passed in arguments are actually not in use. And I found that the function can access the variables
+    # in the caller function. And it not very practical to pass a array to a function(You can do it but it's very complicated)
+    for ((i=0;i<${nodeCount};i++)); do
+        _verbose "network_$(($i+1))_ipaddr=${ipList[$i]}, subnet is ${subnetList[$i]}"
+    done
+    _verbose "gateway=${gateway}, subnet is ${subnetList[$nodeCount]}" # node count doesn't count the gateway IP, but the second last element of subnetList is the subnet of the gateway IP.
+    _verbose "${NETWORK_VIP_PROP}=${networkVip}, subnet is ${subnetList[(($nodeCount+1))]}"
+    _verbose "netmask=${netmask}"
+}
+
+_change_field_seperator_in_string(){
+    local originalSeperator="$1"
+    local targetSeperator="$2"
+    local passedInString="$3"
+    IFS="${originalSeperator}"
+    local tempArray=(${passedInString})
+    local outputString=""
+    for field in ${tempArray[@]};do
+        outputString+="${field}${targetSeperator}"
+    done
+    echo ${outputString}
+}
+
+# The above are helper functions, the following are the functions the script directly calls
+
+_usage() {
+    set +Ex
+    echo "Usage: $0 [-v|--verbose] regular check with detail info"     >&2
+    echo "   or: $0 [--vdctest] vdc test only"     >&2
+    echo "   or: $0 [-r|--resourcetest] resource allocation check only"     >&2
+    exit 0
+}
+
+_is_standalone() {
+    local standaloneIPv4=$(_get_prop_ip ${STANDALONE_NODE_IP})
+    local standaloneIPv6=$(_get_prop_ip "${STANDALONE_NODE_IP}6")
+    [ -n "${standaloneIPv4}" ] && [ "${standaloneIPv4}" != "0.0.0.0" ] && STANDALONE=true
+    [ -n "${standaloneIPv6}" ] && [ "${standaloneIPv6}" != "::0" ] &&  [ "${standaloneIPv6}" != "::" ] && STANDALONE=true
+}
+
+_test_ntp() {
+    # But we have to check if the NTP service is running first    
+    if [ "`ntpq -pn 2>&1`" = 'ntpq: read: Connection refused' ]  ; then
+        _print_status "NTP" "[NOT_RUNNING]"
+    else
+        _ntp_validate
+        _print_status "NTP" $(_print_servers_status "${NTP_VALID_SERVERS}" "${NTP_UNUSABLE_SERVERS}" "${NTP_UNREACHABLE_SERVERS}")
+        [ $VERBOSE = true ] && _print_servers_detail_report "network_ntpserver" "${NTP_VALID_SERVERS}" "${NTP_UNUSABLE_SERVERS}" "${NTP_UNREACHABLE_SERVERS}"
+    fi
+}
+
+_test_peer_synchronization() {
+    # Get the peers from the ntp configuration file
+    local peerListString=$(_ntp_get_peers) #$(awk '/^peer/ {printf(" %s", $2);}' /etc/ntp.conf) # The string that contains the peers separated by space
+    # If the length of the peerListString is 0
+    
+    if [ ${#peerListString} -eq 0 ]; then
+        _print_status "Peer synchronization" "[No peer exists]" # Either it's a standalone node or it's a 1 node cluster
+    else
+        # Test if the ntp service is running        
+        if [ "`ntpq -pn 2>&1`" != 'ntpq: read: Connection refused' ]; then
+            local output=$(ntpq -pn)     
+            local flag=0  # A flag to indicate if there are unsynchronized peers     
+            local verboseOutputlistString=""
+            
+            while read peer refid st t when poll reach delay offset jitter ; do
+                if _inList "${peer}" ${peerListString}; then # The second quote is very important, otherwise the peers will not be passed as a whole string.
+                    if [ ${reach} -eq 0 ]; then 
+                        verboseOutputlistString+="${peer}=Out_of_reach "
+                        flag=1
+                    else
+                        verboseOutputlistString+="${peer}=${offset} "            
+                        local temp=${offset#-} # If there is a minus sign, trim if off
+                        temp=${temp%.*} # Discard the decimal part
+                        [ ${temp} -gt ${OUT_OFF_SYC_THRESHHOLD} ] && flag=1 # The threshold is 1 second, if the offset is greater than 1 second, we should raise the flag.
+                    fi
+                fi
+            done <<<"${output}" # Because we need to modify variable, we can't use pipe which will start a subshell.
+
+            [ ${flag} -eq 0 ] && _print_status "Peer synchronization" "[IN_SYNC]" || _print_status "Peer synchronization" "[NOT_IN_SYNC]"
+            if [ ${VERBOSE} = true ]; then
+                _verbose The time offset of the peers "are(in millisecond)":
+                for entry in ${verboseOutputlistString}; do
+                    _verbose "${entry}" # Print the peers and their offset
+                done
+            fi
+        else
+            _print_status "Peer synchronization" "[NTP_NOT_RUNNING]"
+        fi
+    fi
+}
+
+_test_vdc_synchronization() {  
+    # This test will check the the time offset between the VIPs of other VDCs and this node.
+    # If the VIP of a VDC is out of reach or its time offset is greater thant 1 second, we flag it as NOT_IN_SYNC
+    # Test if the ntp service is running        
+    if [ "`ntpq -pn 2>&1`" != 'ntpq: read: Connection refused' ]; then
+        local output=$(ntpq -pn)     
+        local flag=0  # A flag to indicate if there are unsynchronized peers     
+        local verboseOutputlistString=""
+        
+        while read peer refid st t when poll reach delay offset jitter ; do
+            if _inList "${peer}" ${vdc_peers}; then 
+                if [ ${reach} -eq 0 ]; then 
+                    verboseOutputlistString+="${peer}=Out_of_reach "
+                    flag=1
+                else
+                    verboseOutputlistString+="${peer}=${offset} "            
+                    local temp=${offset#-} # If there is a minus sign, trim if off
+                    temp=${temp%.*}        # Discard the decimal part
+                    [ ${temp} -gt ${VDC_OUT_OFF_SYC_THRESHHOLD} ] && flag=1
+                fi
+            fi
+        done <<<"${output}" # Because we need to modify variable, we can't use pipe which will start a subshell.
+
+        if [ ${flag} -eq 0 ]; then
+            _print_status "VDC synchronization" "[IN_SYNC]"
+        else
+            _print_status "VDC synchronization" "[NOT_IN_SYNC]"
+        fi
+        if [ ${VERBOSE} = true ]; then
+            _verbose The time offset of the peers "are(in millisecond)":
+            for entry in ${verboseOutputlistString}; do
+                _verbose "${entry}" # Print the peers and their offset
+            done
+        fi
+    else
+        _print_status "VDC synchronization" "[NTP_NOT_RUNNING]"
+    fi
+}
+_test_repository() {
+    local system_update_repo_key="system_update_repo"
+    local system_update_repo=$(_get_prop ${system_update_repo_key})
+    local system_update_repo_status="[UNCONFIGURED]"
+    local system_update_repo_wget="";
+    local system_update_repo_catalog_error="";
+    if [ -n "${system_update_repo}" ] ; then
+        system_update_repo_wget=$(_repository_wget ${system_update_repo})
+        system_update_repo_status=$(_repository_validate "${system_update_repo_wget}")
+    fi
+    _print_status "EMC upgrade repository" ${system_update_repo_status}
+    if [ -n ${system_update_repo} ] && [ ${VERBOSE} = true ] ; then 
+        _verbose "${system_update_repo_key}=${system_update_repo}"
+        system_update_repo_catalog_error=$(_repository_get_catalog_error  "$system_update_repo_wget")
+        [ -n "${system_update_repo_catalog_error}" ] && _verbose "catalog_error=${system_update_repo_catalog_error}"
+    fi
+}
+
+_test_dns() {
+    _dns_validate
+    _print_status "DNS" $(_print_servers_status "${DNS_VALID_SERVERS}" "${DNS_UNUSABLE_SERVERS}" "${DNS_UNREACHABLE_SERVERS}")
+    [ ${VERBOSE} = true ] && _print_servers_detail_report "network_nameserver" "${DNS_VALID_SERVERS}" "${DNS_UNUSABLE_SERVERS}" "${DNS_UNREACHABLE_SERVERS}"
+}
+
+_test_routing() {
+    local ipv6_gateway=$(ip -6 route show | grep "default via .* dev ${NIC_NAME}" | grep -v "[Ff][eE]80" | awk 'NR==1{print $3}')
+    local ipv4_gateway=$(ip -4 route show | grep "default via .* dev ${NIC_NAME}" | awk 'NR==1{print $3}')
+    
+    local ipv4_configured=false
+    local ipv6_configured=false
+    local ipv4_reachable=false
+    local ipv6_reachable=false
+    local ipv6_gw_status="network_gw6=UNCONFIGURED"
+    local ipv4_gw_status="network_gw=UNCONFIGURED"
+    
+    if [[ ! -z ${ipv4_gateway} ]]; then
+        ipv4_configured=true
+        ipv4_gw_status="network_gw=${ipv4_gateway}, UNREACHABLE"   
+        _ping_test "${ipv4_gateway}" && ipv4_reachable=true && ipv4_gw_status="network_gw=${ipv4_gateway},REACHABLE" 
+    fi
+    if [[ ! -z ${ipv6_gateway} ]]; then
+        ipv6_configured=true         
+        ipv6_gw_status="network_gw6=${ipv6_gateway}, UNREACHABLE"   
+        _ping6_test "${ipv6_gateway}" && ipv6_reachable=true && ipv6_gw_status="network_gw6=${ipv6_gateway},REACHABLE" 
+    fi
+    
+    case ${NETWORK_STACK} in
+        'DUAL_STACK') 
+	    if [[ ${ipv4_reachable} = true && ${ipv6_reachable} = true ]]; then
+                _print_status "Network routing" "[OK]"
+            elif [[ ${ipv4_configured} = true && ${ipv6_configured} = true ]]; then
+                _print_status "Network routing" "[CONFIGURED, UNREACHABLE]"
+            else
+                _print_status "Network routing" "[UNCONFIGURED]"
+            fi
+            ;;
+	'IPV4_ONLY')
+	    if [[ ${ipv4_reachable} = true ]]; then
+                _print_status "Network routing" "[OK]"
+            elif [[ ${ipv4_configured} = true ]]; then
+                _print_status "Network routing" "[CONFIGURED, UNREACHABLE]"
+            else 
+                _print_status "Network routing" "[UNCONFIGURED]"
+            fi
+            ;;
+	'IPV6_ONLY')
+	    if [[ ${ipv6_reachable} = true ]]; then
+                _print_status "Network routing" "[OK]"
+            elif [[ ${ipv6_configured} = true ]]; then
+                _print_status "Network routing" "[CONFIGURED, UNREACHABLE]"
+            else
+                _print_status "Network routing" "[UNCONFIGURED]"
+            fi
+            ;;
+        *)
+            _print_status "Network routing" "[UNCONFIGURED]"       
+     esac
+    
+    [ ${VERBOSE} = true ] && _verbose ${ipv6_gw_status}
+    [ ${VERBOSE} = true ] && _verbose ${ipv4_gw_status}
+    
+}
+
+_test_network() {
+    
+    local ifconfig_str="$(ifconfig -a ${NIC_NAME})"
+    local configured=false
+    local up_and_running=false
+    
+    echo "${ifconfig_str}" | grep -q "UP BROADCAST RUNNING" && up_and_running=true 
+    case ${NETWORK_STACK} in
+        'DUAL_STACK') 
+	    echo "${ifconfig_str}" | grep -q "inet addr.*Mask" && echo "${ifconfig_str}" | grep -q "inet6 addr.*Scope:Global" && configured=true ;;
+	'IPV4_ONLY')
+	    echo "${ifconfig_str}" | grep -q "inet addr.*Mask" && configured=true ;;
+	'IPV6_ONLY')
+	    echo "${ifconfig_str}" | grep -q "inet6 addr.*Scope:Global" && configured=true ;;
+    esac
+    local status
+        
+    ${configured} && ${up_and_running} && status="[OK]"
+    ${configured} && ! ${up_and_running} && status="[CONFIGURED, NETWORK ERROR]"
+    ! ${configured} && status="[UNCONFIGURED]"
+	
+    _print_status "Network interface"  ${status}
+    if [ $VERBOSE = true ]; then
+        _verbose "network_ipaddr="$(echo "${ifconfig_str}" | sed -rn 's/.*inet addr:([0-9.]+) .*/\1/p')
+        _verbose "network_netmask="$(echo "${ifconfig_str}" | sed -rn '2s/ .*Mask:([0-9\.]*)$/\1/p')
+        _verbose "network_ipaddr6="$(echo "${ifconfig_str}" | grep 'inet6 addr:.*Scope:Global' | awk '{print $3}') 
+        _print_network_packets_info
+        _verbose "network_status="$(echo "${ifconfig_str}" | grep 'UP BROADCAST RUNNING' | awk '{print $3}')
+    fi
+}
+
+# Tests memory usage
+# Status:
+#    FULL - if memory free + chached is 0
+#    LOW - if memory free + cached is less than or equal to threshold limit (100MB)
+#    OK - otherwise
+_test_memory() {
+    local memStatus=$(free -m | awk -v freemin=${MEMORY_MIN_FREE_MB} '
+    { if ($1 ~ /Mem:/)
+      {
+        free=$4+$7
+        if (free == 0) st="[FULL]"
+        else if (free <= freemin) st="[LOW]"
+        else st="[OK]"
+      }
+    }
+      END {
+        print st
+      
+    }')
+    _print_status "Memory usage" ${memStatus}
+    [ ${VERBOSE} = true ] && _memory_details_report
+}
+
+# Tests cpu usage
+# Status:
+#    FULL - if cpu util percentage reaches 100
+#    BUSY - if cpu util percentage is more than or equal to threshold limit (80%)
+#    OK - otherwise
+_test_cpu_usage() {
+    read cpuStatus cpuUtilPerc < <(mpstat | awk -v utilthreshold="$CPU_UTIL_THRESHOLD_PERC" '
+    /%idle/ {
+        for (i=1; i<=NF; i++) {
+                if ($i == "%idle") {
+                        idx = i
+                }
+        }
+    }
+    /all/ {
+        idle = $idx
+        util = 100-idle
+        if (util == 100 ) st="[FULL]"
+        else if (util >= utilthreshold) st="[BUSY]"
+        else st="[OK]"
+    }
+    END {
+        printf("%s %s",st,util)
+    }')
+    _print_status "CPU usage" $cpuStatus
+    [ $VERBOSE = true ] && _verbose "cpu_util_percentage=${cpuUtilPerc}%"
+}
+
+# Tests the  disk usage.
+# Status:
+#    DATA_FULL,ROOT_FULL - if disk (root, data) available size is 0
+#    DATA_LOW,ROOT_LOW - if disk available size reaches threshold limit
+#    LOGS_FULL - if /opt/storageos/logs folder size is greater than LOGS_MAX_MB
+#    DB_FULL - if /data/db folder size is greater than DB_MAX_MB
+#    ZK_FULL - if /data/zk folder size is greater than ZK_MAX_MB
+#    OK - otherwise
+_test_disk_space() {
+    local diskStatus="["
+    local dfOutput=$(df -km / /data) # We should call the df only once and save it for later use
+
+    # The following function will use the dmOutput variable
+    local res=$(_disk_free_space_mb_check "/" ${ROOT_FULL_FREE_MB} ${ROOT_LOW_FREE_MB})
+    [ -n "${res}" ] && diskStatus+="ROOT_${res}, "
+
+    res=$(_disk_free_space_percentage_check "/data" ${DATA_FULL_USED_PERCENTAGE} ${DATA_LOW_FREE_PERCENTAGE})
+    [ -n "${res}" ] && diskStatus+="DATA_${res}, "
+    
+    local data_disk_size=$(_get_data_disk_size)
+    local data_logs_max_mb
+    data_logs_max_mb=$(($DATA_LOGS_MAX_PERCENTAGE*$data_disk_size/100))
+    [[ $data_logs_max_mb -lt $DATA_LOGS_MIN_MB ]] && data_logs_max_mb=$DATA_LOGS_MIN_MB
+    local data_db_max_mb=$(($DATA_DB_MAX_PERCENTAGE*$data_disk_size/100))
+    local data_backup_max_mb=$(($data_db_max_mb+$DATA_GEODB_MAX_MB+$DATA_ZK_MAX_MB))
+    
+    #Test individual components
+    # Returns data disk status and its report
+    local st=""
+    while read usedSize directory; do 
+        if [ "${directory}" = ${LOGS_LOCATION} ]; then
+            logsused=${usedSize}
+            logsused_pct=$((logsused*100/$data_logs_max_mb))
+            [ ${logsused} -ge ${data_logs_max_mb} ]&& st+="LOGS_FULL, "
+        elif [ "${directory}" = ${DB_LOCATION} ]; then
+            dbused=${usedSize}
+            [ ${dbused} -ge ${data_db_max_mb} ]&& st+="DB_FULL, "
+        elif [ "${directory}" = ${ZK_LOCATION} ]; then
+            zkused=${usedSize}
+            [ ${zkused} -ge ${DATA_ZK_MAX_MB} ]&& st+="ZK_FULL, "
+        elif [ "${directory}" = ${GEODB_LOCATION} ]; then
+            geodbused=${usedSize}
+            [ ${geodbused} -ge ${DATA_GEODB_MAX_MB} ]&& st+="GEODB_FULL, "
+        elif [ "${directory}" = ${BACKUP_LOCATION} ]; then
+            backupused=${usedSize}
+            [ ${backupused} -ge ${data_backup_max_mb} ]&& st+="BACKUP_FULL, "
+        fi
+    done < <(du -sm ${LOGS_LOCATION} ${DB_LOCATION} ${ZK_LOCATION} ${GEODB_LOCATION} ${BACKUP_LOCATION} 2>/dev/null)
+    local diskReport=" log_space_used=${logsused}M\n\t log_space_used_perc=${logsused_pct}%(Out of designated log space ${data_logs_max_mb}M)\n\t Logs will rotate if log space is full, so no action needed\n\t db_space_used=${dbused}M\n\t zookeeper_space_used=${zkused}M\n\t geodb_space_used=${geodbused}M\n\t backup_space_used=${backupused}M"
+    
+    diskStatus+=${st}
+    # If the diskStatus is still "[" after the above operations, it means the disk status is OK. 
+    # Otherwise the tailing comma and space will be trimmed
+    [ "${#diskStatus}" = 1 ] && diskStatus="[OK]" || diskStatus="${diskStatus:0:${#diskStatus}-2}]"
+    _print_status "Disk space" ${diskStatus}
+    [ ${VERBOSE} = true ] && _disk_space_details_report # This function will use the local variable diskReport
+}
+
+_ping6_test() {
+    ping6 -c 1 -w 5 "$1" &> /dev/null
+}
+_ping_wrapper_test() {
+    [[ ${1} =~ .*:.* ]] && _ping6_test ${1} || _ping_test ${1}
+}
+
+
+# Tests if all nodes in cluster are pingable. Does not apply for standalone or 1 node cluster.
+# Status:
+#    REACHABLE - if all nodes are pingable
+#    UNREACHABLE - if all nodes are not pingable
+#    DEGRADE - if some nodes are reachable and some are not reachable
+_test_nodes_connectivity() {
+
+    local nodeCount=$(_get_prop "${NODE_COUNT_PROP}")
+    #Check for multi- node case only 
+    [[ "${nodeCount}" < 2 ]] && return 0
+    
+    local ipv6_node_list=($(_get_all_nodes "6"))
+	local ipv4_node_list=($(_get_all_nodes ""))
+    local ipv6_node_names_list=($(_get_all_node_names "6"))
+	local ipv4_node_names_list=($(_get_all_node_names ""))
+    
+    local ipv6_node_status_list=()
+    local ipv4_node_status_list=()
+   
+    for (( n=0; n<${nodeCount}; n++ )); do
+        if [[ ! -z ${ipv6_node_list} ]]; then
+            _ping6_test ${ipv6_node_list[${n}]}
+            ipv6_node_status_list+=($?)
+        fi
+        if [[ ! -z ${ipv4_node_list} ]];then
+            _ping_test ${ipv4_node_list[${n}]}
+            ipv4_node_status_list+=($?)
+        fi
+    done
+    local ipv4_satus_all
+    local ipv6_satus_all
+    _a_status "${ipv6_node_status_list[@]}"
+    ipv6_satus_all=$?
+    _a_status "${ipv4_node_status_list[@]}"
+    ipv4_satus_all=$?
+    if [ ${ipv6_satus_all} = 0 ] && [ ${ipv6_satus_all} = 0 ]; then
+        _print_status "Nodes connectivity" "[REACHABLE]"
+    elif  _inList 0 "${ipv4_node_status_list[@]}"  ||  _inList 0 "${ipv6_node_status_list[@]}" ; then
+        _print_status "Nodes connectivity" "[DEGRADED]" 
+    else
+        _print_status "Nodes connectivity" "[UNREACHABLE]"
+    fi
+    
+    [ ${VERBOSE} = false ] && return 0
+    local status 
+    for (( n=0; n<${nodeCount}; n++ )); do
+        if [[ ! -z ${ipv6_node_list} ]];then
+            [ ${ipv6_node_status_list[${n}]} = 0 ] &&  status="REACHABLE" || status="UNREACHABLE"
+            _verbose "vipr$((${n}+1))=${ipv6_node_list[${n}]},${status}" 
+        fi
+        if [[ ! -z ${ipv4_node_list} ]];then
+            [ ${ipv4_node_status_list[${n}]} = 0 ] &&  status="REACHABLE" || status="UNREACHABLE"
+            _verbose "vipr$((${n}+1))=${ipv4_node_list[${n}]},${status}"
+        fi
+    done
+
+}
+
+# Tests if the network virtual IP is reachable
+# Status:
+#    UNCONFIGURED - if the property network_vip and networkvip6 is empty or null
+#    DUAL, REACHABLE/UNREACHABLE - if both network_vip and networkvip6 are set and pingable or not
+#    DUAL, DEGRADED - if both properties are set and one ip is not reachable
+#    IPV4_ONLY, REACHABLE/UNREACHABLE - network_vip is set network_vip6 is not. network_vip is pingable
+#    IPV6_ONLY, REACHABLE/UNREACHABLE - network_vip6 is set and network_vip is not. network_vip6 is pingable
+_test_vip() {
+    local vip4=$(_get_prop_ip "$NETWORK_VIP_PROP")
+    local vip6=$(_get_prop_ip "$NETWORK_VIP6_PROP")
+    case ${vip4} in
+        '0.0.0.0') vip4="" ;;
+    esac
+    case ${vip6} in
+        '::0')     vip6="" ;;
+    esac
+
+    local mode="UNCONFIGURED"
+    local v4_status=""
+    local v6_status=""
+    if [ -n "$vip4" ]; then
+        [ -n "$vip6" ] && mode="DUAL_STACK" || mode="IPV4_ONLY"
+    elif [ -n "$vip6" ]; then
+        mode="IPV6_ONLY"
+    fi
+    if [ -n "$vip4" ]; then
+        _ping_test $vip4
+        [ $? == 0 ] && v4_status="REACHABLE" || v4_status="UNREACHABLE"
+    fi
+    if [ -n "$vip6" ]; then
+        _ping6_test $vip6
+        [ $? == 0 ] && v6_status="REACHABLE" || v6_status="UNREACHABLE"
+    fi
+    local overall_status=""
+    if [ "$mode" = "DUAL_STACK" ] ; then
+        [ ${v4_status} = ${v6_status} ] && overall_status=", $v4_status" || overall_status=", DEGRADED"
+    elif [ "$mode" != "UNCONFIGURED" ] ; then
+        overall_status=", $v4_status$v6_status"
+    fi
+
+    _print_status "Network VIP" "[$mode$overall_status]"
+    [ -n "$vip4" ] && [ $VERBOSE = true ] && _verbose "ipv4_vip=$vip4" && _verbose "ipv4_vip_status=$v4_status"
+    [ -n "$vip6" ] && [ $VERBOSE = true ] && _verbose "ipv6_vip=$vip6" && _verbose "ipv6_vip_status=$v6_status"
+}
+
+# Tests if there are any identical IPs in the IP list
+# Status:
+#    OK - if there is no identical IP
+#    FAIL - if there are duplicates
+_test_ip_uniqueness() {  
+    local ipv4List=()
+    local ipv4Names=()
+    local ipv4Status=()
+    local ipv6List=()
+    local ipv6Names=()
+    local ipv6Status=()
+    local iptmp
+    if [ ${STANDALONE} = true ]; then #standalone
+        ipv4List+=(${standalone_addr_ipv4}) && ipv4Names+=(${STANDALONE_NODE_IP}) && ipv4Status+=(0)
+        ipv6List+=(${standalone_addr_ipv6}) && ipv6Names+=(${STANDALONE_NODE_IP}6) && ipv4Status+=(0)
+    else
+        local nodeCount=$(_get_prop "${NODE_COUNT_PROP}")
+        iptmp=$(_get_prop_ip "network_vip")
+        [ -n "${iptmp}" ] && ipv4List+=(${iptmp}) && ipv4Status+=(0) && ipv4Names+=("network_vip")
+        iptmp=$(_get_prop_ip "network_vip6")
+        [ -n "${iptmp}" ] && ipv6List+=(${iptmp}) && ipv6Status+=(0) && ipv6Names+=("network_vip6")
+        for (( n=1; n<=${nodeCount}; n++ )) ; do
+            iptmp=$(_get_prop_ip "network_${n}_ipaddr") 
+            [ -n "${iptmp}" ] && ipv4List+=(${iptmp}) && ipv4Status+=(0) && ipv4Names+=("network_${n}_ipaddr")
+            iptmp=$(_get_prop_ip "network_${n}_ipaddr6")
+            [ -n "${iptmp}" ] && ipv6List+=(${iptmp}) && ipv6Status+=(0) && ipv6Names+=("network_${n}_ipaddr6")
+        done
+    fi
+    
+    for idx in "${!ipv4List[@]}"; do
+        _ipv4_dup_test  ${ipv4List[${idx}]}
+        ipv4Status[${idx}]=$?
+    done
+    for idx in "${!ipv6List[@]}"; do
+        _ipv6_dup_test  ${ipv6List[${idx}]}
+        ipv6Status[${idx}]=$?
+    done
+    
+    _a_status "${ipv4Status[@]}"
+    local ipv4_status_all=$?
+    _a_status "${ipv6Status[@]}"
+    local ipv6_status_all=$? 
+    
+    [[ ${ipv4_status_all} -eq 0 ]] && [[ ${ipv6_status_all} -eq 0 ]] && _print_status "IP uniqueness" "[OK]" || _print_status "IP uniqueness" "[FAIL]"
+    
+    [ ${VERBOSE} = false ] && return 0
+    local statusStr=""
+    for idx in "${!ipv4List[@]}"; do
+        [ ${ipv4Status[${idx}]} = 0 ] && statusStr="${ipv4Names[${idx}]}=${ipv4List[${idx}]},[OK]"
+        [ ${ipv4Status[${idx}]} = 1 ] && statusStr="${ipv4Names[${idx}]}=${ipv4List[${idx}]},[DUPLICATE]"
+        [ ${ipv4Status[${idx}]} = 2 ] && statusStr="${ipv4Names[${idx}]}=${ipv4List[${idx}]},[NOT FOUND]"
+        _verbose ${statusStr}
+    done
+    for idx in "${!ipv6List[@]}"; do
+        [ ${ipv6Status[${idx}]} = 0 ] && statusStr="${ipv6Names[${idx}]}=${ipv6List[${idx}]},[OK]"
+        [ ${ipv6Status[${idx}]} = 1 ] && statusStr="${ipv6Names[${idx}]}=${ipv6List[${idx}]},[DUPLICATE]"
+        [ ${ipv6Status[${idx}]} = 2 ] && statusStr="${ipv6Names[${idx}]}=${ipv6List[${idx}]},[NOT FOUND]"
+        _verbose ${statusStr}
+    done
+    
+}
+
+# Tests if firewall is enaled
+# Status: 
+#    UNCONFIGURED - when system_enable_firewall property is null (which is not possible ideally as that property cannot be empty)
+#    OFF - when the property value is not 'yes'
+#    CONFIGURED, ACTIVE- when the property value is 'yes' and service SuSEfirewall2.service is active 
+#    CONFIGURED, INACTIVE- when the property value is 'yes' and service SuSEfirewall2.service is not active 
+_test_firewall() {
+    local firewallEnable=$(_get_prop "${FIREWALL_PROP}")
+    local fstatus
+    if [ -n "${firewallEnable}" ]; then
+        if [ "yes" == "${firewallEnable}" ]; then
+            local serviceStatus=$(systemctl is-active SuSEfirewall2.service)
+            serviceStatus=${serviceStatus##*..}
+            fstatus="[CONFIGURED, $(echo ${serviceStatus} | tr '[:lower:]' '[:upper:]')]"
+        else
+            fstatus="[OFF]"
+        fi
+    else
+        fstatus="[UNCONFIGURED]"
+    fi
+    _print_status "Firewall" ${fstatus}
+}
+
+# Tests if all node ips and vip are in same subnet
+# Status:
+#    DIFFERENT - if any one of the ip is not in the same subnet
+#    SAME - if all of them are in same subnet
+# Note: this test is not done for standalone or extranode.
+_test_subnet() {
+    
+    local ipv6_node_list=($(_get_all_nodes "6"))
+	local ipv4_node_list=($(_get_all_nodes ""))
+    local ipv6_gateway=$(_routing_get_gw6) 
+    local ipv4_gateway=$(_routing_get_gw)
+    
+    local ipv6_node_names_list=($(_get_all_node_names "6"))
+	local ipv4_node_names_list=($(_get_all_node_names ""))
+    
+    [[ ! -z ${ipv6_gateway} ]] && ipv6_node_list+=(${ipv6_gateway}) && ipv6_node_names_list+=("gateway6")
+    [[ ! -z ${ipv4_gateway} ]] && ipv4_node_list+=(${ipv4_gateway}) && ipv4_node_names_list+=("gateway")
+    
+    local ipv4_subnets=($(_get_subnet_ipvx ${ipv4_node_list[@]})) 
+    local ipv6_subnets=($(_get_subnet_ipvx ${ipv6_node_list[@]}))
+    
+    local ipv4_uniq_subnets=($(_auniq ipv4_subnets[@]))
+    local ipv6_uniq_subnets=($(_auniq ipv6_subnets[@]))
+    if [[ ${#ipv4_uniq_subnets[@]} > 1 ]] || [[ ${#ipv6_uniq_subnets[@]} > 1 ]] ; then
+        _print_status "IP subnets" "[DIFFERENT]"
+    else
+        _print_status "IP subnets" "[SAME]"
+    fi
+    
+    [ ${VERBOSE} = false ] && return 0
+    #print verbose
+    for idx in "${!ipv4_node_list[@]}"; do 
+        _verbose "${ipv4_node_names_list[${idx}]}=${ipv4_node_list[${idx}]}, subnet is ${ipv4_subnets[${idx}]}" 
+    done
+    for idx in "${!ipv6_node_list[@]}"; do 
+        _verbose "${ipv6_node_names_list[${idx}]}=${ipv6_node_list[${idx}]}, subnet is ${ipv6_subnets[${idx}]}" 
+    done
+}
+_test_vdc() {
+    local nodeCount
+    local vdcList=$(_get_prop 'vdc_ids')
+    local ipv4Addr
+    local ipv6Addr
+    local vdcOverallStatus=0
+    local vdcStatus
+    local -a verboseStr
+    local ipv4VIP
+    local ipv6VIP
+    
+    for vdcEntry in `IFS=,; for entry in ${vdcList}; do echo "$entry "; done`; do
+        nodeCount=$(_get_prop "vdc_${vdcEntry}_node_count")
+        vdcStatus=1
+        degraded=1
+        for (( n=1; n<=${nodeCount}; n++ )) ; do
+            ipv4Addr=$(_get_prop_ip "vdc_${vdcEntry}_network_${n}_ipaddr")
+            if [ ! -z "${ipv4Addr}" ] ; then
+                if  _ping_test ${ipv4Addr}  ; then
+                    vdcStatus=0
+                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr=${ipv4Addr},REACHABLE")
+                else
+                    degraded=0
+                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr=${ipv4Addr},UNREACHABLE")
+                fi        
+            fi
+            ipv6Addr=$(_get_prop_ip "vdc_${vdcEntry}_network_${n}_ipaddr6")
+            if [ ! -z  "${ipv6Addr}" ] ; then
+                if _ping6_test ${ipv6Addr} ; then
+                    vdcStatus=0
+                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr6=${ipv6Addr},REACHABLE")
+                else
+                    degraded=0
+                    verboseStr+=("vdc_${vdcEntry}_network_${n}_ipaddr6=${ipv4Addr},UNREACHABLE")
+                fi
+            fi
+        done
+        ipv4VIP=$(_get_prop_ip "vdc_${vdcEntry}_network_vip")
+        ipv6VIP=$(_get_prop_ip "vdc_${vdcEntry}_network_vip6")
+        [[ ${ipv6VIP} =~ [^\[*:*\]] ]] && ipv6VIP=${ipv6VIP:1:${#ipv6VIP}-2}
+ 
+        if [ ! -z "${ipv6VIP}" ] ; then
+             if _ping6_test ${ipv6VIP} ; then
+                    vdcStatus=0
+                    verboseStr+=("vdc_${vdcEntry}_network_vip6=${ipv6VIP},REACHABLE")
+                else
+                    degraded=0
+                    verboseStr+=("vdc_${vdcEntry}_network_vip6=${ipv6VIP},UNREACHABLE")
+                fi                 
+        fi
+        if [ ! -z "${ipv4VIP}" ] ; then
+             if _ping_test ${ipv4VIP} ; then
+                    vdcStatus=0
+                    verboseStr+=("vdc_${vdcEntry}_network_vip=${ipv4VIP},REACHABLE")
+                else
+                    degraded=0
+                    verboseStr+=("vdc_${vdcEntry}_network_vip=${ipv4VIP},UNREACHABLE")
+                fi
+        fi
+
+        [ ${vdcStatus} = 0 ] && [ ${degraded} = 1 ] && verboseStr=( "${vdcEntry}=REACHABLE" ${verboseStr[@]}) 
+        [ ${vdcStatus} = 0 ] && [ ${degraded} = 0 ] && verboseStr=( "${vdcEntry}=DEGRADED" ${verboseStr[@]}) 
+        [ ${vdcStatus} = 1 ] && verboseStr=( "${vdcEntry}=UNREACHABLE" ${verboseStr[@]})
+        # if any VDC is unreachable, mark overall status as unreachable
+        [ ${vdcStatus} = 1 ] && vdcOverallStatus=2
+        [ ${vdcOverallStatus} = 0 ] && [ ${degraded} = 0 ] && vdcOverallStatus=1
+    done
+    [ ${vdcOverallStatus} = 0 ] && _print_status "VDC Status" "[REACHABLE]"
+    [ ${vdcOverallStatus} = 1 ] && _print_status "VDC Status" "[DEGRADED]" 
+    [ ${vdcOverallStatus} = 2 ] && _print_status "VDC Status" "[UNREACHABLE]" 
+    [ ${VERBOSE} == false ] && return 0
+    local vStr
+    for vStr in "${verboseStr[@]}"; do
+        _verbose "${vStr}"
+    done
+    return ${vdcOverallStatus}
+}
+
+_test_connectemc() {
+    local transport=$(_get_prop "system_connectemc_transport")
+    local connectEMCStatus=true
+    local -a verboseStr
+    local smtpHost=$(_get_prop "system_connectemc_smtp_server") 
+    local smtpPort=$(_get_prop "system_connectemc_smtp_port")
+    local enableTLS=$(_get_prop "system_connectemc_smtp_enabletls") 
+    
+    local statusStr
+    #get the default ports
+   
+    if [ ${enableTLS} == "no" ]; then
+       [ ${smtpPort} -eq 0 ] && smtpPort=25
+    else
+       [ ${smtpPort} -eq 0 ] && smtpPort=465
+    fi
+
+    if [ ${transport} == "FTPS" ]; then
+        local ftpsHost=$(_get_prop "system_connectemc_ftps_hostname") 
+        local ftpsPort=$(_get_prop "system_connectemc_ftps_port") 
+      
+        if [ -z "${ftpsHost}" ]; then
+            verboseStr+=("FTPS server=NOT SPECIFIED")
+            statusStr="[UNCONFIGURED]"
+            connectEMCStatus=false 
+        else
+            echo "quit" | timeout 15s telnet ${ftpsHost} ${ftpsPort} 2>/dev/null | grep -q  "Connected to" && verboseStr+=("FTPS server=${ftpsHost}, REACHABLE") || verboseStr+=("FTPS server=${ftpsHost}, UNREACHABLE")
+        fi
+       
+        if [ -z "${smtpHost}" ]; then
+            #it is OK to leave SMTP server empty
+            verboseStr+=("SMTP server=NOT SPECIFIED")
+        else
+            echo "quit" | timeout 15s telnet ${smtpHost} ${smtpPort} 2>/dev/null | grep -q  "Connected to" && verboseStr+=("SMTP server=${smtpHost}, REACHABLE") || verboseStr+=("SMTP server=${smtpHost}, UNREACHABLE")
+        fi
+    elif [ ${transport} == "SMTP" ]; then
+        if [ -z "${smtpHost}" ]; then
+            verboseStr+=("SMTP server=NOT SPECIFIED")
+            statusStr="[UNCONFIGURED]"
+            connectEMCStatus=false
+        else
+            echo "quit" | timeout 15s telnet ${smtpHost} ${smtpPort} 2>/dev/null | grep -q  "Connected to" && verboseStr+=("SMTP server=${smtpHost}, REACHABLE") || verboseStr+=("SMTP server=${smtpHost}, UNREACHABLE")
+        fi
+    else
+        _print_status "connectEMC" "[UNCONFIGURED]"     
+       return 0
+    fi
+    
+    echo "${verboseStr[@]}" | grep "UNREACHABLE" >/dev/null && connectEMCStatus=false &&  statusStr="[UNREACHABLE]"  
+    
+    [ ${connectEMCStatus} == true ] &&  _print_status "connectEMC" "[OK]" ||  _print_status "connectEMC" ${statusStr}
+   
+    [ ${VERBOSE} == false ] && return 0
+    local vStr
+    for vStr in "${verboseStr[@]}"; do
+        _verbose "${vStr}"
+    done     
+
+}
+
+_test_db_connection() {
+    local status 
+    local testResult
+    testResult=`timeout 15 echo use \"StorageOS\"\; select \* from \"VirtualDataCenter\" limit 1\; quit\; | ${BIN_LOCATION}cqlsh 2>/dev/null | grep "rows"`
+    if [ ! -n "$testResult" ]; then
+        status="[UNREACHABLE]"
+    else
+        status="[OK]"
+    fi
+    _print_status "Db connection" $status
+}
+
+_test_zk_connection() {
+    local status
+    echo ruok | curl telnet://localhost:${ZK_PORT} &>/dev/null
+    if [ $? != 0 ]; then
+        status="[UNREACHABLE]"
+    else
+        status="[OK]"
+    fi
+    _print_status "ZK connection" $status
+}
+
+_test_vdc_main() {
+    VERBOSE=true
+    _test_vdc
+    exit $?
+}
+
+_get_absolute_difference() {
+    local difference=$(($1-$2))
+    local absolute_difference=${difference#-}
+    echo $absolute_difference
+}
+
+_check_resource_allocation_main() {
+    VERBOSE=true
+    _check_resource_allocation
+    exit $?
+}
+
+_check_resource_allocation() {
+    local memory_size=$(free -m | awk '/Mem/ {print $2}')
+    local disk_size=$(df | awk 'NR>1 {sum+=$2} END {print sum}')
+    local processor_count=$(awk '/^processor/ {count+=1} END {print count}' /proc/cpuinfo)
+    local total_cpu_frequency=$(awk '/MHz/ {sum+=$4} END { print sum }' /proc/cpuinfo)
+    local total_cpu_frequency_integer=${total_cpu_frequency%.*} # Bash can't handle decimal, have to ignore the decimal part
+    
+    local nodeCount=$(_get_prop "${NODE_COUNT_PROP}")
+    local nodeid=$(_get_prop "${NODE_IP_PROP}")
+    local nodeNumber=${nodeid#vipr}
+    local status="[OK]"
+    local verbose_output="Resources details for vipr${nodeNumber}(localhost) is:\n\t memory size: ${memory_size}M\n\t disk size: ${disk_size}M\n\t processor count: $processor_count\n\t total cpu frequency: ${total_cpu_frequency}MHz\n\t"
+    
+    for (( n=1; n<=${nodeCount}; n++ )) ; do
+        [ "${n}" = "${nodeNumber}" ] && continue
+        _ping_test vipr${n} || {
+            verbose_output+="\n\t vipr${n} is down\n\n\t"
+            continue
+        }
+        remote_resources=$(ssh svcuser@vipr${n} "free -m | awk '/Mem/ {print \$2}' && df | awk 'NR>1 {sum+=\$2} END {print sum}' && cat /proc/cpuinfo | awk '/^processor/ {count+=1} END {print count}' && cat /proc/cpuinfo | awk '/MHz/ {sum+=\$4} END { print sum }'" 2>/dev/null)
+        arr=($remote_resources)
+        me_size=${arr[0]}
+        di_size=${arr[1]}
+        pr_count=${arr[2]}
+        to_cpu_fre=${arr[3]}
+        verbose_output+=" Resources details for vipr${n} is:\n\t memory size: ${me_size}M\n\t disk size: ${di_size}M\n\t processor count: $pr_count\n\t total cpu frequency: ${to_cpu_fre}MHz\n\t"
+        me_diff_abu=$(_get_absolute_difference $me_size $memory_size)
+        di_diff_abu=$(_get_absolute_difference $di_size $disk_size)
+        to_cpu_fre_integer=${to_cpu_fre%.*}
+        cpu_fre_diff=$(_get_absolute_difference $to_cpu_fre_integer $total_cpu_frequency_integer)
+        
+        if [[ $pr_count != $processor_count ]]; then
+            status="[IMBALANCE]" # The processor counts are not the same
+        elif [[ $me_diff_abu != 0 ]] && [[ $(($memory_size / $me_diff_abu)) -lt 10 ]]; then
+            status="[IMBALANCE]" # The memory size between two nodes have a discrepancy greater than 10 percent
+        elif [[ $di_diff_abu != 0 ]] && [[ $(($disk_size / $di_diff_abu)) -lt 10 ]]; then
+            status="[IMBALANCE]" # The disk size between two nodes have a discrepancy greater than 10 percent
+        elif [[ $cpu_fre_diff != 0 ]] && [[ $(($total_cpu_frequency_integer / $cpu_fre_diff)) -lt 10 ]]; then
+            status="[IMBALANCE]"
+        fi
+    done
+    
+    _print_status "Resource allocation" $status
+    [ $VERBOSE = true ] && _verbose ${verbose_output}
+}
+
+GENCONFIG_PROPS=$(/etc/systool --getprops) 
+case ${#} in
+    0) ;;         
+    1) case ${1} in
+        --vdctest)            _test_vdc_main ;;
+        -v|--verbose)         VERBOSE=true ;;
+        -r|--resourcetest)    _check_resource_allocation_main ;;
+        *)                    _usage 
+       esac ;;
+    *)  _usage
+esac    
+                 
+#determine network stack
+_get_network_stack
+# Network Interface
+_test_network
+_test_ip_uniqueness
+# Network routing and connection to internet 
+_test_routing
+_test_nodes_connectivity
+_test_vip
+_test_vdc
+_test_peer_synchronization
+vdc_peers=$(_ntp_get_vdc_peers)
+[[ -n ${vdc_peers} ]] && _test_vdc_synchronization #Do the test only when it's a multi vdc situation.
+_test_subnet
+_test_db_connection
+_test_zk_connection
+_test_firewall
+# DNS Servers
+_test_dns
+# NTP Servers
+_test_ntp
+# Remote Repository status
+_test_repository
+_test_connectemc
+_test_disk_space
+_test_memory
+_test_cpu_usage
+exit 0

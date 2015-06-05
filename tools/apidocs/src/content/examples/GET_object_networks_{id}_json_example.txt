@@ -1,0 +1,28 @@
+GET https://192.168.0.0:4443:4443/object/networks/urn:storageos:ObjectTransportZone:a4922af9-df7a-3457-b3f0-428e2d6b3efb:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+	"name":"webstorage",
+	"id":"urn:storageos:ObjectTransportZone:a4922af9-df7a-3457-b3f0-428e2d6b3efb:",
+	"link":
+	{
+		"rel":"self",
+		"href":"/object/networks/urn:storageos:ObjectTransportZone:a4922af9-df7a-3457-b3f0-428e2d6b3efb:"
+	},
+	"inactive":false,
+	"tags":[],
+	"network":
+	{
+		"id":"urn:storageos:Network:a6980931-7e8f-40f4-bb20-defa715d3438:",
+		"link":
+		{
+			"rel":"self",
+			"href":"/vdc/networks/urn:storageos:Network:a6980931-7e8f-40f4-bb20-defa715d3438:"
+		}
+	}
+}

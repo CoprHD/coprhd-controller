@@ -1,0 +1,30 @@
+<div ng-controller="HealthCtrl">
+  #{addModelToScope ['healthDetails', 'nodeId'] /}
+  <div ng-if="healthDetails">
+  <div class="col-md-2 col-sm-3 col-xs-6">
+    <knob warn="value < max" danger="value < (max * 0.7)" value="statusCount.Good" max="serviceCount" title-key='system.stats.services'></knob>
+  </div>
+  <div class="col-md-2 col-sm-3 col-xs-6">
+    <knob capacity="true" warn="value > (max * 0.9)" danger="value > (max * 0.7)" value="memoryCapacity.used" max="memoryCapacity.total" title-key='system.node.stats.memory'></knob>
+  </div>
+   <div class="col-md-2 col-sm-3 col-xs-6">
+    <knob capacity="true" warn="value > (max * 0.9)" danger="value > (max * 0.7)" value="rootCapacity.used" max="rootCapacity.total" title-key='system.node.stats.root'></knob>
+  </div>
+  <div class="col-md-2 col-sm-3 col-xs-6">
+    <knob capacity="true" warn="value > (max * 0.9)" danger="value > (max * 0.7)" value="dataCapacity.used" max="dataCapacity.total" title-key='system.node.stats.data'></knob>
+  </div>
+  <div class="col-md-4">
+    <div class="loadAvgContainer">
+      <span class="loadAvgTitle">{{'system.stats.cpu.loadavg' | t}}</span>
+      <div id="loadAvg">
+        <span class="loadAvg">{{cpuLoad.loadAvgTasksPastMinute | number:2}}</span>
+        <span class="loadAvg">{{cpuLoad.loadAvgTasksPastFiveMinutes | number:2}}</span>
+        <span class="loadAvg">{{cpuLoad.loadAvgTasksPastFifteenMinutes | number:2}}</span>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div ng-if="!healthDetails">
+    {{'system.node.error' | t:nodeId}}
+  </div>
+</div>

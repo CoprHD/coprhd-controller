@@ -1,0 +1,145 @@
+
+.label {
+  font-size: 100%;
+}
+.panel-heading .label {
+  font-size: 75%;
+}
+.dataTable .label {
+  font-size: 75%;
+}
+
+.glyphicon-folder-open:empty {
+  width: 1.3em;
+}
+
+.row + .row.row-gap-sm {
+  margin-top: 4px;
+}
+.row + .row.row-gap-md {
+  margin-top: 10px;
+}
+.row + .row.row-gap-lg {
+  margin-top: 20px;
+}
+
+.row.col-gap-none {
+  margin-right: 0px;
+  margin-left: 0px;
+}
+.col-gap-none > *[class|='col'],
+.col-gap-none > *[class*=' col-'] {
+  padding-right: 0px;
+  padding-left: 0px;
+}
+
+.row.col-gap-sm {
+  margin-right: -2px;
+  margin-left: -2px;
+}
+.col-gap-sm > *[class|='col'],
+.col-gap-sm > *[class*=' col-'] {
+  padding-right: 2px;
+  padding-left: 2px;
+}
+
+.row.col-gap-md {
+  margin-right: -5px;
+  margin-left: -5px;
+}
+.col-gap-md > *[class|='col'],
+.col-gap-md > *[class*=' col-'] {
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
+.row.col-gap-lg {
+  margin-right: -10px;
+  margin-left: -10px;
+}
+.col-gap-lg > *[class|='col'],
+.col-gap-lg > *[class*=' col-'] {
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.help-block {
+  margin-bottom: 0px;
+}
+
+.breadcrumb {
+  margin-top: -15px;
+  margin-bottom: 15px;
+  border-top-right-radius: 0;
+  border-top-left-radius: 0;
+  background-color: @well-bg;
+  border: 1px solid @well-border;
+  border-top: 0;
+}
+
+/* Support for collapsable panels */
+
+.panel-collapse .panel-heading {
+  cursor: pointer;
+}
+
+.panel-collapse .panel-title {
+  height: 20px;
+}
+
+.panel-collapse .panel-heading:hover {
+  background-color: darken(@panel-default-heading-bg, 4%);
+}
+
+.wide-box {
+  padding-top: 30px;
+}
+.panel-title .glyphicon {
+  margin-right: 10px;
+}
+
+.panel-heading .indicator-expanded {
+  display: none;
+}
+
+.panel-heading.in .indicator-expanded {
+  display: inline;
+}
+
+.panel-heading.in .indicator-collapsed {
+  display: none;
+}
+
+a.list-group-item {
+  color: @link-color;
+}
+
+a.list-group-item:hover, a.list-group-item:focus {
+  color: @link-color;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 999px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: @input-bg;
+    color: @input-color;
+    cursor: inherit;
+    display: block;
+}
+.file-input > input[readonly] {
+  background: @input-bg;
+  color: @input-color;
+  cursor: text;
+}

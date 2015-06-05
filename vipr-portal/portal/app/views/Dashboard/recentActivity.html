@@ -1,0 +1,70 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set 'title'}#{Branding.applicationName/}#{/set}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.recent'] /}
+#{set 'moreStyles'}
+  #{get 'moreStyles'/}
+  <style type="text/css">
+    .well h3 {
+      margin-top: 0px;
+    }
+  </style>  
+#{/set}
+#{set 'moreScripts'}
+  #{script 'catalog.js'/}
+  <script type="text/javascript">
+  $(document).ready(function() {
+      Catalog().initStandaloneMode('.catalog-items');
+  });
+  </script>
+#{/set}
+
+
+#{alerts/}
+
+#{if services}
+  <div class="section-header">
+    <h1>&{'recentServices.title'}</h1>
+  </div>
+  
+  <ul class="catalog-items catalog-row">
+    #{list services, as:'service'}
+      #{ServiceCatalog.serviceItem service:service /}
+    #{/list}
+  </ul>
+  
+  <div class="clear"></div>
+  <div class="section-header">
+    <h1>&{'recentOrders.title'}</h1>
+  </div>
+  %{ 
+      options = [
+          "bPaginate": "false",
+          "bLengthChange": "false",
+          "bSort": "false", 
+          "sDom": "\"tplr\""
+      ]; 
+  }%
+  #{DataTable.table id:'orders', dataTable:dataTable, source: @listJson(), options:options, cssClass:'editableRows' /}
+  
+  <script type="text/javascript">
+  table.orders.dataTable.afterCreate(function(dataTable) {
+      var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
+      watchOrderStatus(dataTable.getDataTable(), itemsJson);
+  });
+  </script>  
+  
+#{/if}
+#{else}
+  <div class="row">
+    <div class="col-sm-8 col-sm-offset-2">
+      <div class="well well-lg">
+        <h3>&{'dashboard.welcome'}</h3>
+        #{set serviceCatalogUrl:@catalog.ServiceCatalog.view() /}
+        <p>&{'dashboard.welcomeMessage', serviceCatalogUrl}</p>
+      </div>
+    </div>
+  </div>
+#{/else}

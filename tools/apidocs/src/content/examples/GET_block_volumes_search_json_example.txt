@@ -1,0 +1,43 @@
+GET https://192.168.0.0:4443/block/volumes/search?project=urn:storageos:Project:0884e6a1-4392-4949-9316-5a771ec14be6:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+{
+    "resource": [
+        {
+            "id": "urn:storageos:Volume:20da03df-beac-4ab6-bd19-42c416f4a4d9:",
+            "link": {
+                "href": "/block/volumes/urn:storageos:Volume:20da03df-beac-4ab6-bd19-42c416f4a4d9:",
+                "rel": "self"
+            },
+            "match": "rpSanity-example.com-5561"
+        },
+        {
+            "id": "urn:storageos:Volume:a4e619f6-4379-4b75-a088-fdec04578fb8:",
+            "link": {
+                "href": "/block/volumes/urn:storageos:Volume:a4e619f6-4379-4b75-a088-fdec04578fb8:",
+                "rel": "self"
+            },
+            "match": "rpSanity-example.com-5561-journal-prod"
+        },
+        {
+            "id": "urn:storageos:Volume:5a08f6f8-8bfc-4dfd-8f4e-3c158398e635:",
+            "link": {
+                "href": "/block/volumes/urn:storageos:Volume:5a08f6f8-8bfc-4dfd-8f4e-3c158398e635:",
+                "rel": "self"
+            },
+            "match": "rpSanity-example.com-5561-target-journal-nh"
+        },
+        {
+            "id": "urn:storageos:Volume:e7ef8fbd-c8db-4583-bbb2-ea5f3ad98b56:",
+            "link": {
+                "href": "/block/volumes/urn:storageos:Volume:e7ef8fbd-c8db-4583-bbb2-ea5f3ad98b56:",
+                "rel": "self"
+            },
+            "match": "rpSanity-example.com-5561-target-nh"
+        }
+    ]
+}

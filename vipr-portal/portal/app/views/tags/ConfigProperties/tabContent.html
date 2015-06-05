@@ -1,0 +1,8 @@
+%{
+    active = _active ?: false;
+    page = _page;
+    name = page.name;
+}%
+<div class="property-page tab-pane#{if active} active#{/if}" id="${name.slugify()}">
+  #{doBody/}
+</div>

@@ -1,0 +1,176 @@
+%{
+  titleKey = 'Category.' + (category?.id ? 'edit' : 'create') + '.title';
+  //descriptionKey = 'Category.' + (category?.id ? 'edit' : 'create') + '.description';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.catalog', 'nav.editCatalog'] /}
+
+#{set 'moreScripts'}
+  #{get 'moreScripts'/}
+  #{script src:'jquery.dd.js'/}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      updateIconChooser();
+      loadCategories();
+      loadServices();   
+    });
+    
+    function updateIconChooser() {
+        $('#category_image').msDropDown();
+        $('#category_image').msDropDown({visibleRows:4, rowHeight:60});
+        $('#category_image').on('change', updateImage);
+        // Remove direct width on the msdd div
+        $('#category_image_msdd').css('width', '');
+        updateImage();
+    }
+    
+    function updateImage() {
+      var imageDiv = $('.form-header .image');
+      var image = $('#category_image').val();
+      var imageUrl = catalogImageURL(image);
+      
+      var img = $('img', imageDiv);
+      if (img.size() == 0) {
+        imageDiv.html("<img src=\""+imageUrl+"\">");
+      }
+      else {
+        img.attr("src", imageUrl);
+      }
+      imageDiv.show();
+    }
+    
+    function loadCategories() {
+      var url = #{jsAction @categories(':id')/}({"id": "${category?.id}"});
+      $('#categories').load(url);      
+    }
+    
+    function loadServices() {
+      var url = #{jsAction @services(':id')/}({"id": "${category?.id}"});
+      $('#services').load(url);      
+    }        
+    
+    function moveUpCategory(id) {
+      var url = #{jsAction @moveUpCategory(':id')/}({"id":id});
+      $('#categories').load(url);
+    }
+
+    function moveDownCategory(id) {
+      var url = #{jsAction @moveDownCategory(':id')/}({"id":id});
+      $('#categories').load(url);
+    }    
+    
+    function moveUpService(id) {
+      var url = #{jsAction @moveUpService(':id')/}({"id":id});
+      $('#services').load(url);
+    }
+    
+    function moveDownService(id) {
+      var url = #{jsAction @moveDownService(':id')/}({"id":id});
+      $('#services').load(url);
+    }             
+   
+    function showImageDialog() {
+      if (window.FormData) {
+        imageDialog.show();
+      }
+      else {
+        if (confirm("&{'catalogImage.leavingPage'}")) {
+          return true;
+        }
+      }
+      return false;
+    }    
+    
+  </script>
+#{/set}
+
+#{ServiceCatalog.breadcrumb items:breadcrumbs, baseUrl:@edit(), visible:true /}
+#{alerts/}
+<div class="container">
+#{Form.header titleKey:titleKey /}
+#{form @saveCategory(), method:'POST', class:'form form-horizontal', autocomplete:"off"}
+  #{field 'category.id'}
+    #{if category?.id}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/if}
+  #{/field}
+  #{field 'category.fromId'}
+    <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  
+  #{field 'category.title'}
+    %{ 
+      field.cssClass = 'span6 initialFocus';
+      field.required = true 
+    }%
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+
+  #{field 'category.description'}
+    %{
+      field.required = true
+    }%        
+    #{Form.textAreaControlGroup field:field /}
+  #{/field}
+
+  #{field 'category.image'}
+    #{Form.controlGroup field:field}
+      <div class="input-group">
+        <select id="${field.id}" name="${field.name}" class="${cssClass} iconChooser">
+          #{list items:images, as:'image'}
+          %{
+            label = image.value
+            optionValue = image.key
+            value = flash[field.name] ?: String.valueOf(field.value)
+            selected = value.equals(optionValue)
+            }%
+            <option value="${optionValue}" #{if selected}selected="selected"#{/} title="#{ServiceCatalog.serviceImageURL image:optionValue/}">${label}</option>
+          #{/}
+        </select>
+        <span class="input-group-btn">
+          <a href="@{catalog.CatalogImages.create()}" class="btn btn-default" onclick="return showImageDialog()">#{icon 'upload'/} &{'catalogImage.link'}</a>
+        </span>
+      </div>
+    #{/Form.controlGroup}
+  #{/field}
+  
+  #{field 'category.parentId'}
+    #{if !category.catalogRoot}
+      %{
+        field.options = categories;
+        field.labelProperty = "label";
+      }%
+      #{Form.selectOneControlGroup field:field /}
+    #{/if}
+    #{else}
+      <input type="hidden" name="${field.name}" value="${field.value}"/>
+    #{/else}
+  #{/field}
+  
+  <div class="form-group">
+    <label class="control-label col-sm-3" for="categories">&{'category.categories'}:</label>
+    <div id="categories" class="controls col-sm-6">
+
+    </div>
+  </div>  
+  
+  <div class="form-group">
+    <label class="control-label col-sm-3" for="services">&{'category.services'}:</label>
+    <div id="services" class="controls col-sm-6">
+            
+    </div>
+  </div>  
+  
+  #{field 'category.aclEntries'}
+    %{
+      field.aclEntries = category.aclEntries;
+      field.aclAccess = acls;
+      field.aclTypes = aclTypes;
+    }%
+    #{Acl.crud field:field /}
+  #{/field}  
+
+  #{Form.saveCancel cancelHref:backUrl/}  
+#{/form}
+</div>
+#{include 'catalog/EditCatalog/imageDialog.html'/}

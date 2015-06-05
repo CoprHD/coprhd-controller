@@ -1,0 +1,32 @@
+POST https://192.168.0.0:4443/vdc/data-stores/filesystems.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+	"data_services_vpool": "urn:storageos:ObjectStore:e6c50225-8df5-4773-8aae-9a09b1625930:", 
+	"file_data_services_vpool": "urn:storageos:VirtualPool:2a3e6f87-d091-4174-8ad7-c359acca288a:", 
+	"name": "ws-isilonobject-00:50:56:91:3C:F8-1", 
+	"size": "104857600000"
+}
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+	"resource":
+	{
+		"name":"ws-isilonobject-00:50:56:91:3C:F8-1",
+		"id":"urn:storageos:HostingDeviceInfo:b1cc43e2-5cea-4a79-8690-5228208a0e70:",
+		"link":	{
+			"rel":"self",
+			"href":"/vdc/data-stores/filesystems/urn:storageos:HostingDeviceInfo:b1cc43e2-5cea-4a79-8690-5228208a0e70:"
+		}
+	},	
+	"message":"DataStoreCreation-Begin",
+		"state":"pending","op_id":"99667e9c-3b3a-46f9-8873-630b75d3f4ad",
+		"link":	{
+			"rel":"self",
+			"href":"/vdc/data-stores/filesystems/urn:storageos:HostingDeviceInfo:b1cc43e2-5cea-4a79-8690-5228208a0e70:/tasks/99667e9c-3b3a-46f9-8873-630b75d3f4ad"
+		}
+}

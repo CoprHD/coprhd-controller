@@ -1,0 +1,34 @@
+<dl class="dl-horizontal">
+  <dt>&{'storageArray.version'}</dt>
+  <dd>${storageSystem.firmwareVersion ?: '-'}</dd>
+  
+#{if smisProvider}
+  <dt>&{'storageArray.smisProvider'}</dt>
+  <dd><a href="@{arrays.StorageProviders.edit(smisProvider.id)}">${smisProvider.name}</a></dd>
+#{/if}
+
+#{if connectivityMap}
+  <dt>&{'storageArray.dataProtectionConnectivity'}</dt>
+  <dd>
+    #{list connectivityMap.entrySet(), as:'conn'}
+      &{'ConnectivityTypes.' + conn.key} (
+        #{list conn.value, as: 'protectionSystem'}
+          <a 
+          #{if com.emc.sa.util.ResourceType.isType(com.emc.sa.util.ResourceType.STORAGE_SYSTEM, protectionSystem.id)}
+            href="@{arrays.StorageSystems.edit(protectionSystem.id)}"
+          #{/if}
+          #{else}
+            href="@{arrays.DataProtectionSystems.edit(protectionSystem.id)}"
+          #{/else}
+          >${protectionSystem.name}</a>#{if !protectionSystem_isLast},#{/if}
+        #{/list}
+      )
+    #{/list}
+    #{else}
+      &{'common.none'}
+    #{/else}
+  </dd>
+#{/if}
+
+  #{discoveryDetails storageSystem/}
+</dl>

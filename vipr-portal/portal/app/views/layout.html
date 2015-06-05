@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+
+#{if play.mode.isDev()}
+  #{set minified: '' /}
+#{/if}
+#{else}
+  #{set minified: 'min.' /}
+#{/else}
+
+<html ng-app="portalApp" ng-cloak>
+
+<head>
+  <title>#{get 'title'}#{nav.title/}#{/get}</title>
+  <meta charset="utf-8">
+  <meta content="text/html;charset=UTF-8" http-equiv="content-type">
+  <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport">
+  <meta http-equiv="X-UA-Compatible" content="IE=EDGE; IE=9; IE=8" />
+  #{Branding.favicon /}
+  
+  #{assets.css "lib/chosen/chosen.${minified}css"/}
+  #{assets.css "stylesheets/main.css"/}
+  #{get 'moreStyles' /}
+  
+  #{assets.js "lib/jquery/jquery.${minified}js" /}
+  #{assets.js "lib/datatables/media/js/jquery.dataTables.${minified}js" /}
+  #{assets.js "lib/angularjs/angular.js" /}
+  #{assets.js "lib/angularjs/angular-animate.js" /}
+  #{assets.js "lib/angularjs/angular-cookies.js" /}
+  #{assets.js "lib/bootstrap/js/bootstrap.${minified}js" /}
+  #{assets.js "javascripts/bootstrap-datatables.js" /}
+  #{assets.js "javascripts/bootstrap-form-helpers/bootstrap-formhelpers-datepicker.js" /}
+  #{assets.js "javascripts/bootstrap-form-helpers/bootstrap-formhelpers-datepicker.en_US.js" /}
+  #{assets.js "javascripts/bootstrap-form-helpers/bootstrap-formhelpers-timepicker.js" /}
+  #{assets.js "javascripts/jquery.fnSetFilteringDelay-2.2.1.js" /}
+  #{assets.js "javascripts/jquery.fnReloadAjax.js" /}
+  #{assets.js "javascripts/jquery.fnStandingRedraw.js" /}
+  #{assets.js "lib/momentjs/min/moment-with-locales.${minified}js" /}
+  #{assets.js "lib/chosen/chosen.jquery.${minified}js" /}
+  #{assets.js "lib/sprintf.js/sprintf.min.js" /}
+
+  #{jsAsset 'routes.js' /}
+  #{jsAsset 'config.js' /}
+  
+  #{assets.js 'javascripts/common.js' /}
+  #{assets.js 'javascripts/nav.js'/}
+  #{assets.js 'javascripts/datatable.js' /}
+  #{assets.js 'javascripts/datatables.js' /}
+  #{assets.js 'javascripts/renderFunctions.js' /}
+  #{assets.js 'javascripts/dynamicContent.js' /}
+  #{assets.js 'javascripts/jquery.knob.js' /}
+
+  #{assets.js 'javascripts/ng/vipr.js' /}
+  #{assets.js 'javascripts/ng/fields.js' /}
+  #{assets.js 'javascripts/ng/tags.js' /}
+  #{assets.js 'javascripts/ng/auth.js' /}
+  #{assets.js 'javascripts/ng/services.js' /}
+  #{assets.js 'javascripts/ng/portal.js' /}
+  #{assets.js 'javascripts/ng/animations.js' /}
+  #{assets.js 'javascripts/ng/controllers.js' /}
+  #{jsAsset 'templateCache.js' /}
+  #{include 'angularRenderArgs.html' /}
+
+  #{get 'moreScripts' /}
+</head>
+
+#{doLayout /}
+
+*{ Template that can create a loading icon in javascript }*
+#{jsTemplate 'loadingIcon'}
+  #{if util.BrowserUtil.supportsCSSRotate()}#{icon 'refresh rotate'/} #{/if}
+  #{else}<span class="glyphicon"><img src="@{'/public/img/loading.gif'}"></span> #{/else}
+#{/jsTemplate}
+
+</html>

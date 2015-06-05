@@ -1,0 +1,31 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateBlockSnapshot.Block",
+  serviceId:"CreateBlockSnapshot",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.snapshotBlockVolume"
+    },
+
+    type: {
+      type: "assetType.vipr.blockSnapshotType",
+      initialValue: "local",
+      required: false,
+      lockable: true
+    },
+    
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    }         
+  }
+}

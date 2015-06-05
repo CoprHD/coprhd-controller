@@ -1,0 +1,212 @@
+%{
+  titleKey = 'roleAssignments.' + (roleAssignment?.id ? 'edit' : 'create') + '.title';
+  image = '/public/img/icon_roles.png';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.tenants'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<style type="text/css">
+.table tbody tr {
+    cursor: pointer;
+}
+.table .checkbox .roleCheckbox {
+  float:none;
+}
+</style>
+%{
+   isTenantAdmin = currentUser?.roles?.find{ "TENANT_ADMIN".equals(it.roleName)} != null
+}%
+#{breadcrumb.container}
+
+    #{breadcrumb.item @list()}&{'Tenants.list.title'}#{/breadcrumb.item}
+    #{if isTenantAdmin}
+    	#{breadcrumb.item @edit(tenantId)}${currentTenantName}#{/breadcrumb.item}
+    #{/if}
+  	#{else}
+  		#{breadcrumb.item active:true}${currentTenantName}#{/breadcrumb.item}
+  	#{/else}
+    #{breadcrumb.item @listRoles(tenantId)}&{'tenants.roleAssignments.title'}#{/breadcrumb.item}
+
+  #{if roleAssignment?.id}
+    #{breadcrumb.item active:true}${roleAssignment.name} : ${roleAssignment.type}#{/breadcrumb.item}
+  #{/if}
+  #{else}
+    #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+  #{/else}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey, image: image/}
+
+#{alerts/}
+
+#{form @saveRole(), id:'roleAssignmentForm', class:'form form-horizontal', autocomplete:"off"}
+    #{field 'roleAssignment.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}"/>
+    #{/field}
+    #{field 'tenantId'}
+      <input type="hidden" name="${field.name}" value="${field.value}"/>
+    #{/field}
+    #{if roleAssignment?.id}
+        #{field 'roleAssignment.name'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+        #{field 'roleAssignment.type'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    #{/if}
+
+    #{field 'roleAssignment.type'}
+      %{
+        field.cssClass = "bla";
+        field.cssClassLabel = 'inline'
+      }%
+      #{Form.controlGroup field:field, noLabel:noLabel}
+        %{
+          field.disabled = roleAssignment?.id != null
+        }%
+        <div class="span6" style="margin-left:0px;">
+          #{Form.radio field:field, value: "GROUP", label: messages.get("Tenants.edit.roleAssignments.group")/}
+          #{Form.radio field:field, value: "USER", label: messages.get("Tenants.edit.roleAssignments.user")/}
+        </div>
+      #{/Form.controlGroup}      
+    #{/field}
+
+    #{field 'roleAssignment.name'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.required = true
+        field.fieldKey = 'roleAssignment.name'
+        field.disabled = roleAssignment?.id != null
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+  #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['TENANT_ADMIN']]}  
+    <fieldset>
+      <legend>&{'roleAssignments.tenantRoles'}<small>&{'roleAssignments.tenantRoles.description'}</small></legend>
+  
+      #{field 'roleAssignment.tenant'}
+        #{Form.controlGroup field:field}
+          <p class="form-control-static">${currentTenantName}</p>
+        #{/Form.controlGroup}
+      #{/field}  
+  
+      <div class="row">
+        <div class="col-md-8 col-md-offset-2">
+          <table id="tenantRolesTable" class="table">
+            <thead>
+              <tr>
+                <th style="text-align: center; width: 10%;">&{'roleAssignments.grant'}</th>
+                <th style="width: 20%;">&{'roleAssignments.role'}</th>
+                <th style="width: 70%;">&{'roleAssignments.description'}</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td style="text-align: center;">
+                #{field 'roleAssignment.tenantAdmin'}
+                  %{
+                    field.cssClass = "roleCheckbox"
+                  }%
+                  #{Form.booleanCheckBox field:field /}
+                #{/field}
+              </td>
+              <td>&{'Role.TENANT_ADMIN'}</td>
+              <td>&{'Role.TENANT_ADMIN.description'}</td>
+            </tr>
+      
+            <tr>
+              <td style="text-align: center;">
+                #{field 'roleAssignment.projectAdmin'}
+                  %{
+                    field.cssClass = "roleCheckbox"
+                    field.disabled = isRootUser
+                  }%
+                  #{Form.booleanCheckBox field:field /}
+                #{/field}        
+              </td>
+              <td>&{'Role.PROJECT_ADMIN'}</td>
+              <td>&{'Role.PROJECT_ADMIN.description'}</td>
+            </tr>
+            
+            <tr>
+              <td style="text-align: center;">
+                #{field 'roleAssignment.tenantApprover'}
+                  %{
+                    field.cssClass = "roleCheckbox"
+                    field.disabled = isRootUser
+                  }%
+                  #{Form.booleanCheckBox field:field /}
+                #{/field}        
+              </td>
+              <td>&{'Role.TENANT_APPROVER'}</td>
+              <td>&{'Role.TENANT_APPROVER.description'}</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </fieldset>
+  #{/deadbolt.restrict}
+  
+  #{Form.saveCancelButtonBar size:'large', cancelHref:@listRoles(tenantId)/}
+#{/form}
+
+</div>
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+    $(document).ready(function() {
+
+      $("#roleAssignmentForm").submit(function(){
+        
+        if ($('#roleAssignment_type').val() == "USER" && $('#roleAssignment_name').val() == "${currentUser?.identifier}" && $('#roleAssignment_securityAdmin').is(':checked') == false) {
+          return confirm(Messages.get('Tenants.edit.roleAssignments.redirect'));
+        }
+        
+        return true;
+      });      
+      
+      $('input[name="roleAssignment.type"]').on('change', function() {
+        updateNameLabel();
+      });
+      updateNameLabel();
+      
+      
+      $(".table input[type=checkbox]:checked").each(function() {
+          $(this).closest("tr").addClass("success");
+      });         
+
+      $(".table input[type=checkbox]:disabled").each(function() {
+        $(this).closest("tr").css('cursor', 'not-allowed');
+      });               
+      
+      $(".table tbody tr").on("click", function() {
+        if ($(':checkbox', this).is(':disabled') == false) {
+          $(this).toggleClass('success');
+          if (event.target.type !== 'checkbox') {
+            $(':checkbox', this).prop('checked', function() {
+              return !this.checked;
+            });
+            $(':checkbox', this).trigger("change");
+          }        
+        }
+      });      
+      
+    });
+
+    function updateNameLabel() {
+      if ($('input[name="roleAssignment.type"]:checked').val() == "USER") {
+        $('label[for="roleAssignment_name"]').html("&{'RoleAssignmentType.USER'}:");
+        $('.help-block', '#roleAssignment_nameControlGroup').html("&{'RoleAssignmentType.USER.help'}");
+      }
+      else {
+        $('label[for="roleAssignment_name"]').html("&{'RoleAssignmentType.GROUP'}:");
+        $('.help-block', '#roleAssignment_nameControlGroup').html("&{'RoleAssignmentType.GROUP.help'}");
+      }      
+    }
+
+   </script>
+#{/set}

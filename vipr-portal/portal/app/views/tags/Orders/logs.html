@@ -1,0 +1,37 @@
+%{
+  // log level can be specified as an arg to the tag, or as a query param  
+  level = _level ?: (params.get("level") ?: "INFO");
+  LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"] as List
+  while (!LEVELS.isEmpty()) {
+    if (LEVELS.get(0) == level) {
+      break;
+    }
+    LEVELS.remove(0);
+  }
+}%
+<table class="logs table table-condensed table-striped" #{if !_logs}style="display:none"#{/if}>
+  <thead>
+    <tr>
+      <th class="dateColumn">&{'order.executionLogs.date'}</th>
+      <th class="levelColumn">&{'order.executionLogs.level'}</th>
+      <th class="messageColumn">&{'order.executionLogs.message'}</th>
+    </tr>
+  </thead>
+  <tbody>
+  #{list _logs, as:'log'}
+    #{if LEVELS.contains(log.level)}
+    %{ rowClass = 'INFO' != log.level ? log.level?.toLowerCase() : '' }%
+    <tr class="${rowClass}">
+      <td class="dateColumn">#{localDateTime log.date/}</td>
+      <td class="levelColumn">${log.level}</td>
+      <td class="messageColumn">${log.message}</td>
+    </tr>
+    #{if log.hasProperty('stackTrace') && log.stackTrace}
+      <tr class="${rowClass}">
+        <td class="stackTraceColumn" colspan="3">${log.stackTrace}</td>
+      </tr>
+    #{/if}
+   #{/if}
+  #{/list}
+  </tbody>
+</table>

@@ -1,0 +1,30 @@
+POST https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:79600b60-eb8e-4073-802d-7ef9be620893:/clusters.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+ 
+{
+     "name":"Cluster2"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+ 
+{
+     "name":"Cluster2",
+     "id":"urn:storageos:Cluster:9815d5e8-e51c-4081-a315-617ab60efa29:", 
+     "link" : {
+         "rel":"self",
+         "href":"/compute/clusters/urn:storageos:Cluster:9815d5e8-e51c-4081-a315-617ab60efa29:"
+     }, 
+     "inactive":false,
+     "tags":[],
+     "tenant" : {
+         "id":"urn:storageos:TenantOrg:fe17c0f7-0dea-4573-aea2-ffaf776c8c04:",
+         "link" : {
+             "rel":"self",
+             "href":"/tenants/urn:storageos:TenantOrg:fe17c0f7-0dea-4573-aea2-ffaf776c8c04:"
+         }
+     },
+     "creation_time":1379968287479
+}

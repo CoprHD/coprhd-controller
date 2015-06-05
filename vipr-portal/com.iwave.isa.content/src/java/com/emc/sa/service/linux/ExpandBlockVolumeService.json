@@ -1,0 +1,23 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ExpandBlockVolume.Block.Linux",
+  serviceId:"Linux-ExpandBlockVolume",
+  fields:{
+    host:{
+      type:"assetType.vipr.linuxHost"
+    },
+
+    volume: {
+      type:"assetType.vipr.mountedBlockVolume",   
+      select:"one" 
+    },
+    
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    }
+  }
+}

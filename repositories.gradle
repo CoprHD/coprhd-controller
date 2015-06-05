@@ -1,0 +1,52 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+allprojects {
+    repositories {
+        if (project.hasProperty("withMavenLocal")) {
+            mavenLocal()
+        }
+
+        if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
+            mavenCentral()
+
+            // need a few artifacts not available from Maven Central
+
+            maven {
+                url "http://repo.spring.io/release/"
+            }
+
+            maven {
+                url "http://jcenter.bintray.com/"
+            }
+
+            maven {
+                url coprHD_aux_repo
+            }
+
+            maven {
+                url "http://sourceforge.net/projects/"
+            }
+
+            ivy {
+                //ivyPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision]-ivy.xml"
+                artifactPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision](-[classifier]).[ext]"
+            }
+
+        } else {
+
+            ivy {
+                ivyPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision]-ivy.xml"
+                artifactPattern "${rootProject.projectDir}/repo/[organisation]/[module]-[revision](-[classifier]).[ext]"
+            }
+
+            maven {
+                name "artifactory"
+                url artifactoryUrl
+            }
+        }
+
+    }
+    configurations.all {
+        resolutionStrategy.cacheDynamicVersionsFor 10, 'minutes'
+    }
+}

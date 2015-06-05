@@ -1,0 +1,21 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+  <s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/PullResponse</a:Action>
+    <a:MessageID>uuid:FC291BBC-D231-4130-B566-3FD4CFFFF4FE</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:91e409a8-1de4-4878-a917-be0963f842b0</a:RelatesTo>
+  </s:Header>
+  <s:Body>
+    <n:PullResponse>
+      <n:Items>
+        <p:MSiSCSIInitiator_MethodClass xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/wmi/MSiSCSIInitiator_MethodClass" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:MSiSCSIInitiator_MethodClass_Type">
+          <p:iSCSINodeName>iqn.1991-05.com.microsoft:iwave-lab1-windows-dev1.iwave.local</p:iSCSINodeName>
+        </p:MSiSCSIInitiator_MethodClass>
+      </n:Items>
+      <n:EndOfSequence/>
+    </n:PullResponse>
+  </s:Body>
+</s:Envelope>

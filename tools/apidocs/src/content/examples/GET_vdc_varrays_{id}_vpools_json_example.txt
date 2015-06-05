@@ -1,0 +1,22 @@
+GET https://192.168.0.0:4443/vdc/varrays/urn:storageos:VirtualArray:ff4c01e2-6288-4a8c-8ccb-b856b0cca6b4:/vpools.json 
+HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+  "virtualpool": [
+    {
+      "name": "Medium_Performance_File_Real",
+      "id": "urn:storageos:VirtualPool:0a846371-d0f8-4e1a-9fc4-7035b8ee58f0:",
+      "link": {
+        "rel": "self",
+        "href": "\/file\/vpools\/urn:storageos:VirtualPool:0a846371-d0f8-4e1a-9fc4-7035b8ee58f0:"
+      },
+      "vpool_type": "file"
+    }
+  ]
+}

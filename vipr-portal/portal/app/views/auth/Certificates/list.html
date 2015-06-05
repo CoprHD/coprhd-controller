@@ -1,0 +1,35 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.security', 'nav.certificates'] /}
+<div class="container" v-disable-children="clusterUnstable">
+  #{alerts/}
+  #{clusterStateAlert /}
+
+  <form-header title-key="certificates.list.settings_title"></form-header>
+  <div class="alert alert-info">
+    <i icon=info-sign></i> {{'certificates.info' | t}}
+  </div>
+
+  #{Form.ngForm @saveSettings(), class:'form form-horizontal', "v-scope":true }
+    <control-group v-field="certificateSettings.acceptAllCertificates">
+      <select-one options="options" type="boolean"></select-one>
+    </control-group>
+    <button-bar>
+      <button ng-disabled="!dirty" type="submit" v-submit-form class="btn btn-primary"><i v-icon=ok-sign></i> {{'button.save' | t}}</button>
+    </button-bar>
+  #{/Form.ngForm}
+
+  <form-header title-key='certificates.list.title'></form-header>
+
+  <div id="changes" v-scope ng-controller="DefaultCtrl">
+    #{DataTable.crudTable id:'certificates',
+                          dataTable:dataTable,
+                          expandable:true,
+                          deleteConfirm:messages.get('certificateChanges.deleteConfirm') }
+    #{/DataTable.crudTable}
+
+    #{DataTable.expandAction 'render.certificate', table:'certificates', target:'td[class!=selection]'/}
+  </div>
+</div>

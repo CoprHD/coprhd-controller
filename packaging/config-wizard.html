@@ -1,0 +1,259 @@
+<div class="form-header">
+	<div style="padding-left:30px" class="description">
+		<h2>Generate Settings File</h2>
+		
+	</div>
+	<div style="clear:both"></div>
+</div>	
+	<p id="alerts_info" class="alert alert-info" style="display:block">
+		<span class="message"><b>Enter all the information and click on "Generate Settings" button to generate the "deployment.settings" file. After download you can customize the file name. Run the script to deploy a vm with option "-file". The "-file" is the path of  "deployment.settings" file generated. For more details on instructions and examples on how to deploy vm using this setting file, please refer the <a href="#"><i><u> Deployment Documentation </u></i></a><br><br>
+		Note: Mandatory to use either IPv4 or IPv6 or Both. <span style="color:red"> Do not leave both with default values.</span></b></span>
+	</p>
+
+<div class="form-header">
+	<div style="padding-left:30px" class="description">
+		<h4>Deployment Settings</h4>
+	</div>
+	<div style="clear:both"></div>
+</div>	
+    <div id="node_count" class="form-group required">
+        <label class="control-label col-sm-3" for="nodeCount">Cluster Size:</label>
+		<div class="col-sm-6 controls">
+		<div class="chosen-drop">
+			<select id="nodeCount" class="form-control" onChange="showHideIpForNode();">
+				<option value="1">1</option>
+				<option value="3" selected>3</option>
+				<option value="5">5</option>
+			</select> 
+		</div>
+		<span class="help-block"><div>Node counts of the cluster.Valid value is 3 or 5.</div>
+			<div id="nodeCount1" style="display:none" class="alert alert-warning">
+				<span style="font-weight:bold;">Warning!</span> Cluster Size 1 is only for free evaluation purpose and not supported for Production environment.
+			</div>
+		</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>        
+	
+<div class="form-header">
+	<div style="padding-left:30px" class="description">
+		<h4>Settings for IPv4</h4>
+        <p>Please leave the values to the pre-populated defaults, if you don't want to configure Settings for IPv4 network (Default IPv4 address is 0.0.0.0).</p>
+		
+	</div>
+	<div style="clear:both"></div>
+</div>	
+    <div id="virtual_IPv4" class="form-group required">
+        <label class="control-label col-sm-3" for="virtualIPv4">Public virtual IPv4 address:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="virtualIPv4" value="0.0.0.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this); enableDisableIpfieldsBasedOnVIP(this);"> 
+			<span class="help-block">The IPv4 address that UI and REST clients use to access ViPR. Must be different from IPv4 addresses of ViPR Servers.(The value  0.0.0.0 disables IPv4.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>        
+    
+	<div id="server1_IPv4" class="form-group required">
+        <label class="control-label col-sm-3" for="server1IPv4">IPv4 address of node 1:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server1IPv4" value="0.0.0.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this);"> 
+			<span class="help-block">IPv4 address of ViPR Server 1.(The value  0.0.0.0 disables IPv4.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>  
+	
+	<div id="server2_IPv4" style="display:block" class="form-group required">
+        <label class="control-label col-sm-3" for="server2IPv4"> IPv4 address of node 2:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server2IPv4" value="0.0.0.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this);">
+			<span class="help-block">IPv4 address of ViPR Server 2.(The value  0.0.0.0 disables IPv4.)</span>			
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div> 
+	
+	<div id="server3_IPv4" class="form-group required">
+        <label class="control-label col-sm-3" for="server3IPv4"> IPv4 address of node 3:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server3IPv4" value="0.0.0.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this);">
+			<span class="help-block">IPv4 address of ViPR Server 3.(The value  0.0.0.0 disables IPv4.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	<div id="server4_IPv4" class="form-group required">
+        <label class="control-label col-sm-3" for="server4IPv4"> IPv4 address of node 4:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server4IPv4" value="0.0.0.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this);"> 
+			<span class="help-block">IPv4 address of ViPR Server 4.(The value  0.0.0.0 disables IPv4.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div id="server5_IPv4" class="form-group required">
+        <label class="control-label col-sm-3" for="server5IPv4"> IPv4 address of node 5:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server5IPv4" value="0.0.0.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this);"> 
+			<span class="help-block">IPv4 address of ViPR Server 5.(The value  0.0.0.0 disables IPv4.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div id="defaultGateway_IPv4" class="form-group required">
+        <label class="control-label col-sm-3" for="defaultGatewayIPv4"> IPv4 Default Gateway:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="defaultGatewayIPv4" value="0.0.0.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this);"> 
+			<span class="help-block">IP address of default IPv4 Gateway.(The value  0.0.0.0 disables IPv4.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div id="network_netmask" class="form-group required">
+        <label class="control-label col-sm-3" for="networkNetmask">Netmask for IPv4 network:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="networkNetmask" value="255.255.255.0" autocomplete="off" onkeyup="validateIpAdrrAndShowMsg(this);"> 
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+<div class="form-header">
+	<div style="padding-left:30px" class="description">
+		<h4>Settings for IPv6</h4>
+        <p>Please leave the values to the pre-populated defaults, if you don't want to configure Settings for IPv6 network (Default IPv6 address is ::0).</p>
+		
+	</div>
+	<div style="clear:both"></div>
+</div>	
+    <div id="virtual_IPv6" class="form-group required">
+        <label class="control-label col-sm-3" for="virtualIPv6">Public virtual IPv6 address:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="virtualIPv6" value="::0" autocomplete="off" onkeyup="validateIpv6AdrrAndShowMsg(this); enableDisableIpfieldsBasedOnVIP(this);">
+			<span class="help-block">The IPv6 address that UI and REST clients use to access ViPR. Must be different from IPv6 addresses of ViPR Servers.(The value  ::0 disables IPv6.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>        
+    
+	<div id="server1_IPv6" class="form-group required">
+        <label class="control-label col-sm-3" for="server1IPv4">IPv6 address of node 1:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server1IPv6" value="::0" autocomplete="off" onkeyup="validateIpv6AdrrAndShowMsg(this);"> 
+			<span class="help-block">IPv6 address of ViPR Server 1.(The value  ::0 disables IPv6.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>  
+	
+	<div id="server2_IPv6" class="form-group required">
+        <label class="control-label col-sm-3" for="server2IPv6"> IPv6 address of node 2:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server2IPv6" value="::0" autocomplete="off" > 
+			<span class="help-block">IPv6 address of ViPR Server 2.(The value  ::0 disables IPv6.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div> 
+	
+	<div id="server3_IPv6" class="form-group required">
+        <label class="control-label col-sm-3" for="server3IPv6"> IPv6 address of node 3:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server3IPv6" value="::0" autocomplete="off" >
+			<span class="help-block">IPv6 address of ViPR Server 3.(The value  ::0 disables IPv6.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div id="server4_IPv6" class="form-group required">
+        <label class="control-label col-sm-3" for="server4IPv6"> IPv6 address of node 4:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server4IPv6" value="::0" autocomplete="off" > 
+			<span class="help-block">IPv6 address of ViPR Server 4.(The value  ::0 disables IPv6.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div id="server5_IPv6" class="form-group required">
+        <label class="control-label col-sm-3" for="server5IPv6"> IPv6 address of node 5:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="server5IPv6" value="::0" autocomplete="off" > 
+			<span class="help-block">IPv6 address of ViPR Server 5.(The value  ::0 disables IPv6.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div id="defaultGateway_IPv6" class="form-group required">
+        <label class="control-label col-sm-3" for="defaultGatewayIPv6"> IPv6 Default Gateway:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="defaultGatewayIPv6" value="::0" autocomplete="off" > 
+			<span class="help-block">IP address of default IPv6 gateway.(The value  ::0 disables IPv6.)</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div id="ipv6_prefixlength" class="form-group">
+        <label class="control-label col-sm-3" for="ipv6PrefixLength"> IPv6 Prefix Length:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="ipv6PrefixLength" value="64" autocomplete="off" > 
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<div class="form-header">
+	<div style="padding-left:30px" class="description">
+		<h4>Settings for VM</h4>
+        <p>Enter the information needed for VM</p>
+		
+	</div>
+		<div style="clear:both"></div>
+	</div>	
+	<div id="network_name" class="form-group required">
+        <label class="control-label col-sm-3" for="networkName"> Network Name:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="networkName" value="" autocomplete="off" onkeyup="validateForRequired(this);" onfocus="validateForRequired(this);"> 
+			<span class="help-block">Network Name</span>	
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	<div id="vmName_prefix" class="form-group ">
+        <label class="control-label col-sm-3" for="namePrefix"> VM Name Prefix:</label>
+		<div class="col-sm-6 controls">
+			<input type="text" class="form-control span6" id="namePrefix" value="vipr" autocomplete="off" > 
+			<span class="help-block">VM Name Prefix</span>
+		</div>
+		<div class="col-sm-3">
+		<span class="help-inline"></span>
+		</div>
+	</div>
+	
+	<input type="hidden"  id="cpuCount" value="2" autocomplete="off" > 
+	<input type="hidden"  id="memory" value="8192" autocomplete="off" > 

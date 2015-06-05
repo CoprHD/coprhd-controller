@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<error>
+  <code>6411</code>
+  <description>Length Required</description>
+  <details>The request did not specify the length of its content, which is required by the requested resource.</details>
+  <retryable>false</retryable>
+</error>

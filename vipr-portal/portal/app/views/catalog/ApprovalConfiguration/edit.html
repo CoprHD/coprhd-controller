@@ -1,0 +1,35 @@
+%{
+  titleKey = 'approvalConfig.title';
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.approvalConfig'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{tenantSelector/}
+
+<div class="container">
+#{Form.header titleKey:titleKey /}
+
+#{alerts/}
+
+  #{form @save(), class:'form form-horizontal', autocomplete:"off"}
+    #{field 'approvalConfig.approverEmail'}
+      %{
+        field.cssClass = 'span6 initialFocus';
+        field.helpTextKey = field.name + '.help'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    #{field 'approvalConfig.approvalUrl'}
+      %{
+        field.cssClass = 'span6';
+        field.helpTextKey = field.name + '.help'
+      }%
+      #{Form.inputTextControlGroup field:field /}
+    #{/field}
+    
+    #{Form.buttonBar}
+      <button type="submit" class="btn btn-primary btn-large">#{icon 'ok-sign'/} &{'button.save'}</button>
+    #{/Form.buttonBar}
+  #{/form}
+</div>

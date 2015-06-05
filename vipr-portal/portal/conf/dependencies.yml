@@ -1,0 +1,11 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+# Application dependencies
+
+require:
+    - play
+    - play -> play-deadbolt 1.5.3
+    - net.sf.jtidy -> jtidy r938:
+        id: localdev    
+        transitive: false        

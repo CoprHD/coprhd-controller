@@ -1,0 +1,14 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{Orders.parameters parameters:details?.orderParameters}
+  <span id="reorderForm">
+    <dt>&{'order.resubmit'}:</dt>
+    <dd>
+      <form action="@{catalog.Orders.resubmitOrder(details.order?.id)}" method="post">
+        #{authenticityToken/}
+        <button type="submit" class="btn btn-xs btn-primary" name="action" value="execute">&{'service.order'}</button>
+      </form>
+    </dd>
+  </span>
+#{/}

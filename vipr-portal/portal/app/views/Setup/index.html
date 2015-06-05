@@ -1,0 +1,635 @@
+%{
+  titleKey = 'setup.title';
+  descriptionKey = 'setup.description';
+}%
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style>
+.heading {
+    border-bottom: 1px solid #eee;
+}
+.heading h3 {
+    font-weight: normal;
+}
+.form {
+    margin-bottom: 0;
+}
+.form-actions {
+    margin-bottom: 0;
+}
+.form-actions .btn {
+    min-width: 100px;
+}
+.form-actions a.btn {
+    min-width: 74px;
+}
+.form-actions button[type="submit"] {
+    margin-left: 20px;
+}
+.form-actions #testSmtp {
+    margin-left: 20px;
+}
+.tab-pane {
+    height: 425px;
+}
+</style>
+#{/set}
+
+#{script 'PasswordValidator.js'/}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function setRequired(name, required) {
+    setControlRequired(name, required);
+    setControlEnabled(name, required);
+    setControlVisible(name, required);
+}
+
+function setControlRequired(name, required) {
+    var controlGroup = $('#'+name+'ControlGroup');
+    if (required) {
+        controlGroup.addClass('required');
+    }
+    else {
+        controlGroup.removeClass('required');
+    }
+}
+
+function setControlEnabled(name, enabled) {
+    var control = $('#'+name);
+    if (enabled) {
+        control.removeClass('disabled');
+        control.prop('disabled', false);
+    }
+    else {
+        control.addClass('disabled');
+        control.prop('disabled', true);
+    }
+    control.trigger('chosen:updated');
+}
+
+function setControlVisible(name, visible) {
+    var controlGroup = $('#'+name+'ControlGroup');
+    if (visible) {
+        controlGroup.show();
+    }
+    else {
+        controlGroup.hide();
+    }
+}
+
+
+function isPageComplete(id) {
+    var complete = true;
+    $('#'+id+' input.form-control').each(function() {
+        if (!isComplete(this)) {
+            complete = false;
+        }
+    });
+    return complete;
+}
+
+function isComplete(control) {
+    var required = $(control).parents('.form-group').hasClass('required');
+    if (required) {
+        var value = $(control).val();
+        if (isBlank(value)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function buttonClicked(button, handler, e) {
+    if ($(button).hasClass('disabled')) {
+        e.preventDefault();
+    }
+    else {
+        handler(e);
+    }
+    return false;
+}
+
+function nextClicked() {
+    var activeIndex = getActivePageIndex();
+    validateActiveTab(function() {
+        changeActivePage(activeIndex + 1);
+    });    
+}
+
+function backClicked() {
+    var activeIndex = getActivePageIndex();
+    changeActivePage(activeIndex - 1);
+}
+
+function changeActivePage(index) {
+    setActivePageIndex(index);
+    pageChanged();    
+}
+
+function pageChanged() {
+    updateWizard();
+    $('.tab-pane.active input').first().focus();
+}
+
+function getPageCount() {
+    return $('.tab-pane').length;
+}
+
+function getActivePageIndex() {
+    var activeIndex = -1;
+    $('.tab-pane').each(function(index) {
+        if ($(this).hasClass('active')) {
+            activeIndex = index;
+        }
+    });
+    return activeIndex;
+}
+
+function setActivePageIndex(activeIndex) {
+    $('.tab-pane').each(function(index) {
+        if (index == activeIndex) {
+            $(this).addClass('active');
+        }
+        else {
+            $(this).removeClass('active');
+        }
+    });
+    $('.nav-tabs li').each(function(index) {
+        if (index == activeIndex) {
+            $(this).addClass('active');
+        }
+        else {
+            $(this).removeClass('active');
+        }
+    });
+}
+
+function highlightErrorTabs() {
+    var firstPage = -1;
+    $('.tab-pane').each(function(index) {
+        var hasError = $('.form-group.has-error', this).length > 0;
+        if (hasError) {
+            var navItem = $('ul.nav-tabs li')[index];
+            $(navItem).addClass('error');
+            if (firstPage == -1) {
+                firstPage = index;
+            }
+        }
+    });
+    if (firstPage > -1) {
+        setActivePageIndex(firstPage);
+    }
+}
+
+function sendTestEmail() {
+    var data = $('#setupForm').serialize();
+    startEmailTest();
+    hideDialog();
+    resetEmailValidation();
+    
+    $.post("@{Setup.testSmtpSettings}", data, function(result) {
+           showEmailTestResult(result);
+        endEmailTest();
+    });
+}
+
+function showDialog() {
+    $('.modal').modal();
+    $('#setup_smtpTo').val("");
+} 
+function hideDialog() {
+    $('.modal').modal('hide');
+    $('#setup_smtpTo').val("");
+}
+function startEmailTest() {
+    $('#testSmtp i').removeClass('glyphicon-envelope');
+    $('#testSmtp img').show();
+    $('#alerts_success').hide();
+    $('#alerts_error').hide();
+    setControlEnabled('testSmtp', false);
+}
+function endEmailTest() {
+    setControlEnabled('testSmtp', true);
+    $('#testSmtp img').hide();
+    $('#testSmtp i').addClass('glyphicon-envelope');
+    updateWizard();
+}
+function resetEmailValidation() {
+    // Reset the errors for the smtp page
+    $('#alerts_success .message').text('');
+    $('#alerts_success').hide();
+    $('#alerts_error .message').text('');
+    $('#alerts_error').hide();
+    
+    $('#smtp .form-group').removeClass('has-error');
+    $('#smtp .form-group .help-inline').text('');
+}
+function showEmailTestResult(results) {
+    if ($.isArray(results)) {
+        for (var i = 0; i < results.length; i++) {
+            addValidationResult(results[i]);
+        }
+    }
+    else {
+        addValidationResult(results);
+    }
+    
+    if ($('#alerts_success .message').text()) {
+        $('#alerts_success').slideDown('fast');
+    }
+    if ($('#alerts_error .message').text()) {
+        $('#alerts_error').slideDown('fast');
+    }
+}
+
+function resetPasswordValidation() {
+    $('#changePassword .form-group').removeClass('has-error');
+    $('#changePassword .form-group .help-inline').text('');
+}
+function showPasswordValidationResult(results) {
+    if ($.isArray(results)) {
+        for (var i = 0; i < results.length; i++) {
+            addValidationResult(results[i]);
+        }
+    }
+    else {
+        addValidationResult(results);
+    }
+}
+
+function addValidationResult(result) {
+    if (!result.success) {
+        var controlGroup = $('input[name="'+result.key+'"]').parents('.form-group');
+        if (controlGroup.length > 0 && controlGroup.parents('.modal').length == 0) {
+            controlGroup.addClass('has-error');
+            $('.help-inline', controlGroup).text(result.message);
+        }
+        else {
+            var currentMessage = $('#alerts_error .message').text();
+            var errorMessage = result.message;
+            
+            if (controlGroup.length > 0) {
+                var label = $('label', controlGroup).text();
+                if (label) {
+                    errorMessage = label + ' ' + errorMessage;
+                }
+            }
+            
+            if (currentMessage) {
+                $('#alerts_error .message').text(currentMessage + '\n', errorMessage);
+            }
+            else {
+                $('#alerts_error .message').text(errorMessage);
+            }
+        }
+    }
+    else {
+        $('#alerts_success .message').text(result.message);
+    }
+}
+
+function smtpServerChanged() {
+    var valueEntered = isNotBlank($('#setup_smtpServer').val());
+    var smtpRequired = $('#setup_smtpServerControlGroup').hasClass('required');
+    var isOssBuild = ${util.SetupUtils.isOssBuild()};
+    var enabled = valueEntered || smtpRequired || isOssBuild;
+    var required = valueEntered || smtpRequired;
+    
+    setControlRequired('setup_smtpEnableTls', required);
+    setControlEnabled('setup_smtpEnableTls', enabled);
+    
+    setControlRequired('setup_smtpFrom', required);
+    setControlEnabled('setup_smtpFrom', enabled);
+    
+    setControlRequired('setup_smtpAuthType', required);
+    setControlEnabled('setup_smtpAuthType', enabled);
+}
+
+function smtpAuthTypeChanged() {
+    var authRequired = $('#setup_smtpAuthType').val() != 'None';
+    
+    setRequired('setup_smtpUsername', authRequired);
+    setRequired('setup_smtpPassword', authRequired);
+}
+
+function connectEmcTransportChanged() {
+    var transport = $('#setup_connectEmcTransport').val();
+    var useFtps = transport == 'FTPS';
+    var useSmtp = transport == 'SMTP';
+    
+    setRequired('setup_connectEmcNotifyEmail', useSmtp || useFtps);
+    setControlRequired('setup_smtpServer', useSmtp);
+    smtpServerChanged();
+}
+
+function updateWizard() {
+    var activeIndex = getActivePageIndex();
+    var pageCount = getPageCount();
+    
+    var isFirstPage = activeIndex == 0;
+    var isLastPage = activeIndex == (pageCount - 1);
+    
+    var canFinish = true;
+    $('.tab-pane input.form-control').each(function() {
+        if (!isComplete(this)) {
+            canFinish = false;
+        }
+    });
+    $('.tab-pane select').each(function() {
+        if (!isComplete(this)) {
+            canFinish = false;
+        }
+    });
+    setControlEnabled('back', !isFirstPage);
+    setControlEnabled('next', !isLastPage);
+    setControlEnabled('finish', canFinish);
+    setControlEnabled('skip', true);
+    
+    var isSmtpPage = $('#smtp.active').length > 0;
+    isSmtpPage ? $('#testSmtp').show() : $('#testSmtp').hide();
+    var isValidating = $('#testSmtp img:visible').length > 0;
+    
+    var smtpComplete = isNotBlank($('#setup_smtpServer').val()) && isPageComplete("smtp");
+    setControlEnabled('testSmtp', smtpComplete && !isValidating);
+    setControlEnabled('sendEmail', isNotBlank($('#setup_smtpTo').val()));
+    
+    // Disable all buttons when the modal dialog is displayed
+    var modalShown = $('.modal.in').length > 0;
+    if (modalShown) {
+      $('.form-actions .btn').each(function() {
+              $(this).addClass('disabled');
+              $(this).prop('disabled', true);
+      });
+    }
+}
+
+function validateActiveTab(onValid) {
+    if (getActivePageIndex() === 0) {
+        validatePasswords(function (isValid) {
+            if (isValid) {
+                onValid();    
+            }
+        });
+    }
+    else {
+        onValid();
+    }    
+}
+
+function validatePasswords(onDone) {
+    var data = $('#setupForm').serialize();
+    resetPasswordValidation();
+    
+    $.post("@{Setup.validatePasswords}", data)
+        .done(function(result) {
+            showPasswordValidationResult(result);
+            if (onDone) {
+                var isValid = result != null && result.success;
+                onDone(isValid);
+            }
+        });    
+}
+
+function onTabClick(e) {
+    e.preventDefault();
+    var $this = $(this);
+    validateActiveTab(function() {
+        $this.tab('show');
+    });
+}
+
+$(document).ready(function() {
+    // Select the contents of any password field on focus
+    $('input[type=password]').focus(function() {
+        $(this).one('mouseup', function(e) {
+            e.preventDefault();
+        }).select();
+    });
+    
+    validatePasswordStrength('setup_rootPassword_value','@{Setup.validatePasswordDynamic}','${session.authenticityToken}');
+    validateConfPwField('setup_rootPassword_value','setup_rootPassword_confirm');
+    validatePasswordStrength('setup_systemPasswords_value','@{Setup.validatePasswordDynamic}','${session.authenticityToken}');
+    validateConfPwField('setup_systemPasswords_value','setup_systemPasswords_confirm');
+    
+    smtpServerChanged();
+    $('#setup_smtpServer').on('change keyup', smtpServerChanged);
+    
+    smtpAuthTypeChanged();
+    $('#setup_smtpAuthType').on('change', smtpAuthTypeChanged);
+    
+    connectEmcTransportChanged();
+    $('#setup_connectEmcTransport').on('change', connectEmcTransportChanged);
+    
+    pageChanged();
+    $('#setupTabs a').on('click', onTabClick);
+    $('a[data-toggle="tab"]').on('shown.bs.tab', pageChanged);
+    $('input').on('change keyup', updateWizard);
+    $('select').on('change keyup', updateWizard);
+    
+    highlightErrorTabs();
+    
+    $('.modal').on('shown.bs.modal', function() {
+        $('#setup_smtpTo').focus();
+        updateWizard();
+    });
+    $('.modal').on('hidden.bs.modal', function() {
+        updateWizard();
+    });
+});
+
+</script>
+#{/set}
+
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey/}
+
+#{alerts/}
+
+%{
+  fieldCssClass = 'span4'
+}%
+#{form @save(), id:'setupForm', class:'form form-horizontal', autocomplete:"off"}
+  <div class="tabbable tabs-left">
+    <ul id="setupTabs" class="nav nav-tabs">
+      <li class="active"><a href="#changePassword" >&{'setup.changePassword'}</a></li>
+      <li><a href="#network">&{'setup.network'}</a></li>
+      #{if !util.SetupUtils.isOssBuild()}
+         <li><a href="#connectEMC">&{'setup.connectEMC'}</a></li>
+      #{/if}
+      <li><a href="#smtp">&{'setup.smtp'}</a></li>
+    </ul>
+    <div class="tab-content">
+      <div id="changePassword" class="tab-pane active">
+        #{Form.header titleKey:'setup.rootPassword', descriptionKey:'setup.rootPassword.description'/}
+        #{field "setup.rootPassword.value"}
+          %{
+            field.cssClass = fieldCssClass
+            field.required = true
+          }%
+          #{Form.inputPasswordControlGroup field:field/}
+        #{/field}
+        #{field "setup.rootPassword.confirm"}
+          %{ 
+            field.cssClass = fieldCssClass
+            field.required = true
+          }%
+          #{Form.inputPasswordControlGroup field:field/}
+        #{/field}
+        
+        #{Form.header titleKey:'setup.systemPasswords', descriptionKey:'setup.systemPasswords.description'/}
+        #{field "setup.systemPasswords.value"}
+          %{
+            field.cssClass = fieldCssClass
+            field.required = true
+          }%
+          #{Form.inputPasswordControlGroup field:field/}
+        #{/field}
+        #{field "setup.systemPasswords.confirm"}
+          %{ 
+            field.cssClass = fieldCssClass
+            field.required = true
+          }%
+          #{Form.inputPasswordControlGroup field:field/}
+        #{/field}
+      </div>
+      <div id="network" class="tab-pane">
+        #{Form.header titleKey:'setup.network', descriptionKey:'setup.network.description'/}
+        #{field "setup.nameservers"}
+          %{
+            field.cssClass = fieldCssClass
+            field.required = true
+          }%
+          #{Form.inputTextControlGroup field:field/}
+        #{/field}
+        #{field "setup.ntpservers"}
+          %{
+            field.cssClass = fieldCssClass
+            field.required = true
+          }%
+          #{Form.inputTextControlGroup field:field/}
+        #{/field}
+      </div>
+      #{if !util.SetupUtils.isOssBuild()}
+          <div id="connectEMC" class="tab-pane">
+            #{Form.header titleKey:'setup.connectEMC', descriptionKey:'setup.connectEMC.description'/}
+            #{field 'setup.connectEmcTransport'}
+              %{
+                field.cssClass = fieldCssClass
+                field.required = true
+                field.options = [
+                  'None':'None',
+                  'SMTP':'SMTP',
+                  'FTPS':'FTPS'
+                ]
+                field.valueProperty = 'key'
+                field.labelProperty = 'value'
+                field.disableSearch = true
+              }%
+              #{Form.selectOneControlGroup field:field/}
+            #{/field}
+            #{field 'setup.connectEmcNotifyEmail'}
+              %{ field.cssClass = fieldCssClass }%
+              #{Form.inputTextControlGroup field:field /}
+            #{/field}
+          </div>
+      #{/if}
+      <div id="smtp" class="tab-pane">
+        #{Form.header titleKey:'setup.smtp', descriptionKey:'setup.smtp.description'/}
+        #{field 'setup.smtpServer'}
+          %{ field.cssClass = fieldCssClass }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+
+        #{field 'setup.smtpPort'}
+        %{ field.cssClass = fieldCssClass }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+        
+        #{field 'setup.smtpEnableTls'}
+          %{
+            field.cssClass = fieldCssClass
+            field.options = [
+              'yes':'Yes',
+              'no':'No'
+            ]
+            field.valueProperty = 'key'
+            field.labelProperty = 'value'
+            field.disableSearch = true
+          }%
+          #{Form.selectOneControlGroup field:field /}
+        #{/field}
+        
+        #{field 'setup.smtpFrom'}
+          %{ field.cssClass = fieldCssClass }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+        
+        #{field 'setup.smtpAuthType'}
+          %{
+            field.cssClass = fieldCssClass
+            field.options = [
+              'None':'None',
+              'login':'login',
+              'plain':'plain',
+              'cram-md5':'cram-md5'
+            ]
+            field.valueProperty = 'key'
+            field.labelProperty = 'value'
+            field.disableSearch = true
+          }%
+          #{Form.selectOneControlGroup field:field /}
+        #{/field}
+        
+        #{field 'setup.smtpUsername'}
+          %{ field.cssClass = fieldCssClass }%
+          #{Form.inputTextControlGroup field:field /}
+        #{/field}
+        
+        #{field 'setup.smtpPassword'}
+          %{ field.cssClass = fieldCssClass }%
+          #{Form.inputPasswordControlGroup field:field /}
+        #{/field}
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <a id="back"  href="#" class="btn btn-default" onclick="return buttonClicked(this, backClicked, event);">#{icon 'arrow-left'/} &{'button.back'}</a>
+      <a id="next" href="#" class="btn btn-default" onclick="return buttonClicked(this, nextClicked, event);">#{icon 'arrow-right'/} &{'button.next'}</a>
+      <button id="finish" type="submit" class="btn btn-primary">#{icon 'check'/} &{'button.finish'}</button>
+      #{if play.mode.isDev()}
+        <a id="skip" href="@{Setup.skip()}" class="btn btn-info">#{icon 'share-alt'/} &{'button.skip'}</a>
+      #{/if}
+      <a id="testSmtp" href="#" class="btn btn-info" onclick="return buttonClicked(this, showDialog, event);">
+        #{icon 'envelope'/} &{'setup.testSmtp'}
+      </a>
+    </div>
+  </div>
+
+  *{ Modal Dialog for sending a test email }*
+  #{Modal.dialog id:'testSmtpDialog'}
+    #{Modal.header}
+      #{Form.header titleKey:'setup.testSmtp.title', descriptionKey:'setup.testSmtp.description'/}
+    #{/Modal.header}
+    #{Modal.body}
+      #{field 'setup.smtpTo'}
+        %{ field.cssClass = fieldCssClass }%
+        #{Form.controlGroup field:field}
+          #{Form.inputText field:field /}
+        #{/Form.controlGroup}
+      #{/field}            
+    #{/Modal.body}
+    #{Modal.footer}
+      <button id="sendEmail" type="submit" class="btn btn-primary" onclick="sendTestEmail(); return false;">
+        #{icon 'check'/} &{'setup.sendEmail'}
+      </button>
+      <button class="btn btn-default" onclick="hideDialog(); return false;">
+        #{icon 'remove'/} &{'button.cancel'}
+      </button>
+    #{/Modal.footer}
+  #{/Modal.dialog}
+
+#{/form}

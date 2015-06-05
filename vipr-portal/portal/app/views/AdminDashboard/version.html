@@ -1,0 +1,50 @@
+<div id="versionPanel">
+  <div class="panel panel-default">
+    <div class="panel-heading"><h3 class="panel-title">&{'adminDashboard.version'}</h3></div>
+    <div class="panel-body">
+      #{if clusterInfo || fabricHealth || license}
+        <dl>
+          #{if clusterInfo?.targetState?.current}
+            <dt class="text-muted">&{'adminDashboard.currentVersion'}</dt>
+            <dd style="font-size: 1.25em;">
+              #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}<a href="@{infra.Upgrade.index()}">#{/deadbolt.restrict}${clusterInfo.targetState?.current}#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}</a>#{/deadbolt.restrict}
+            </dd>   
+          #{/if}
+          #{if fabricHealth}
+            <dt class="text-muted">&{'adminDashboard.fabricVersion'}</dt>
+            <dd style="font-size: 1.25em;">
+              <a href="@{fabric.FabricNodes.list()}">${fabricHealth?.version}</a>
+            </dd>      
+          #{/if}
+          #{if license}
+            <dt class="text-muted">&{'adminDashboard.licenses'}</dt>
+            <dd>
+              #{list items:license.licenseFeatures, as:'lf'}
+                <div class="row">
+                  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
+                    <span class="col-sm-6"><a href="@{infra.Licensing.index()}">${util.LicenseUtils.getLabel(lf)}</a></span>
+                    <span class="col-sm-6">#{licensedStatus licenseFeature: lf, storageStatsWrapper: storageStatsWrapper /}</span >
+                  #{/deadbolt.restrict}
+                  #{deadbolt.restrict roles:[['!SYSTEM_ADMIN', '!RESTRICTED_SYSTEM_ADMIN']]}
+                    <span class="col-sm-6">${util.LicenseUtils.getLabel(lf)}</span>
+                    <span class="col-sm-6">#{licensedStatus licenseFeature: lf, storageStatsWrapper: storageStatsWrapper /}</span >
+                  #{/deadbolt.restrict}
+                </div>
+              #{/list}  
+            </dd>
+          #{/if}              
+        </dl>  
+        #{if clusterInfo?.newVersions?.size > 0}
+          <div class="alert alert-info" #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}onclick="window.location.href = '@{infra.Upgrade.index()}';" style="cursor: pointer;"#{/deadbolt.restrict}>
+              &{'upgrade.newVersionAvailable',clusterInfo.newVersions.getAt(0)}
+          </div>
+        #{/if}                
+      #{/if}      
+      #{else}
+        <div class="loadingBox">
+           <img src="/public/img/loading-huge.gif" height="64" width="64">
+        </div>      
+      #{/else}      
+    </div>
+  </div>
+</div>

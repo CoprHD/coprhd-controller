@@ -1,0 +1,16 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"DiscoverUnmanagedVolumes.Block",
+  serviceId:"DiscoverUnmanagedVolumes",
+  roles: [
+    "SYSTEM_ADMIN"
+  ],
+  fields:{
+    storageSystems:{
+      type:"assetType.vipr.unmanagedBlockStorageSystem",
+      select: "many",
+      lockable: true
+    }
+  }
+}

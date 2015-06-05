@@ -1,0 +1,26 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"DeleteVmfsDatastore.Block.VMware",
+  serviceId:"VMware-DeleteVmfsDatastore",
+  fields:{
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"shared"
+    },
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+    datastoreName:{
+      type:"assetType.vipr.blockdatastore",
+      select:"many" 
+    }
+  }
+}

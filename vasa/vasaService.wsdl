@@ -1,0 +1,2056 @@
+<?xml version="1.0" encoding="UTF-8"?><wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:axis2="http://com.vmware.vim.vasa/1.0/" xmlns:ns1="http://org.apache.axis2/xsd" xmlns:ns="http://com.vmware.vim.vasa/1.0/xsd" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:ax24="http://data.vasa.vim.vmware.com/xsd" xmlns:ax21="http://fault.vasa.vim.vmware.com/xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" targetNamespace="http://com.vmware.vim.vasa/1.0/">
+    <wsdl:types>
+        <xs:schema xmlns:ax25="http://data.vasa.vim.vmware.com/xsd" xmlns:ax22="http://com.vmware.vim.vasa/1.0/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://fault.vasa.vim.vmware.com/xsd">
+            <xs:import namespace="http://com.vmware.vim.vasa/1.0/xsd"/>
+            <xs:import namespace="http://data.vasa.vim.vmware.com/xsd"/>
+            <xs:complexType name="InvalidCertificate">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="InvalidSession">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="StorageFault">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence>
+                            <xs:element minOccurs="0" name="faultMessageId" nillable="true" type="xs:string"/>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="parameterList" nillable="true" type="ax24:NameValuePair"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="InvalidArgument">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="InvalidLogin">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="NotFound">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="NotImplemented">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="LostEvent">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="LostAlarm">
+                <xs:complexContent>
+                    <xs:extension base="ax22:Exception">
+                        <xs:sequence/>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+        </xs:schema>
+        <xs:schema attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://data.vasa.vim.vmware.com/xsd">
+            <xs:simpleType name="AlarmStatusEnum"><xs:restriction base="xs:string"><xs:enumeration value="Red"/><xs:enumeration value="Green"/><xs:enumeration value="Yellow"/></xs:restriction></xs:simpleType><xs:simpleType name="AlarmTypeEnum"><xs:restriction base="xs:string"><xs:enumeration value="SpaceCapacity"/><xs:enumeration value="Capability"/><xs:enumeration value="Object"/></xs:restriction></xs:simpleType><xs:simpleType name="BlockEnum"><xs:restriction base="xs:string"><xs:enumeration value="FC"/><xs:enumeration value="ISCSI"/><xs:enumeration value="FCoE"/><xs:enumeration value="Other"/></xs:restriction></xs:simpleType><xs:simpleType name="EntityTypeEnum"><xs:restriction base="xs:string"><xs:enumeration value="StorageArray"/><xs:enumeration value="StorageProcessor"/><xs:enumeration value="StoragePort"/><xs:enumeration value="StorageLun"/><xs:enumeration value="StorageCapability"/><xs:enumeration value="StorageFileSystem"/></xs:restriction></xs:simpleType><xs:simpleType name="EventConfigTypeEnum"><xs:restriction base="xs:string"><xs:enumeration value="New"/><xs:enumeration value="Update"/><xs:enumeration value="Delete"/></xs:restriction></xs:simpleType><xs:simpleType name="eventSystemTypeEnum"><xs:restriction base="xs:string"><xs:enumeration value="RemoteMirroredVolume"/><xs:enumeration value="Unknown"/></xs:restriction></xs:simpleType><xs:simpleType name="EventTypeEnum"><xs:restriction base="xs:string"><xs:enumeration value="System"/><xs:enumeration value="Config"/></xs:restriction></xs:simpleType><xs:simpleType name="FileSystemEnum"><xs:restriction base="xs:string"><xs:enumeration value="NFS"/><xs:enumeration value="Other"/></xs:restriction></xs:simpleType><xs:simpleType name="FileSystemVersionEnum"><xs:restriction base="xs:string"><xs:enumeration value="NFSV3_0"/></xs:restriction></xs:simpleType><xs:simpleType name="ProfileEnum"><xs:restriction base="xs:string"><xs:enumeration value="BlockDeviceProfile"/><xs:enumeration value="FileSystemProfile"/><xs:enumeration value="CapabilityProfile"/></xs:restriction></xs:simpleType><xs:simpleType name="RemoteReplicationEnum"><xs:restriction base="xs:string"><xs:enumeration value="ActiveActive"/><xs:enumeration value="ActivePassive"/><xs:enumeration value="None"/></xs:restriction></xs:simpleType><xs:simpleType name="storageCatalogEnum"><xs:restriction base="xs:string"><xs:enumeration value="Alarm"/><xs:enumeration value="Event"/><xs:enumeration value="Fault"/></xs:restriction></xs:simpleType><xs:complexType name="NameValuePair">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="parameterName" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="parameterValue" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="UsageContext">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="chapUsername" nillable="true" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="hostInitiator" nillable="true" type="ax24:HostInitiatorInfo"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="iscsiInitiatorIpAddress" nillable="true" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="mountPoint" nillable="true" type="ax24:MountInfo"/>
+                    <xs:element minOccurs="0" name="sessionTimeoutInSeconds" type="xs:long"/>
+                    <xs:element minOccurs="0" name="vcGuid" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="BaseStorageEntity">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="uniqueIdentifier" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="HostInitiatorInfo">
+                <xs:complexContent>
+                    <xs:extension base="ax24:BaseStorageEntity">
+                        <xs:sequence>
+                            <xs:element minOccurs="0" name="iscsiIdentifier" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="nodeWwn" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="portWwn" nillable="true" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="MountInfo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="filePath" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="serverName" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="VasaProviderInfo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="defaultNamespace" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="defaultSessionTimeoutInSeconds" type="xs:long"/>
+                    <xs:element minOccurs="0" name="name" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="sessionId" nillable="true" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="supportedVendorModel" nillable="true" type="ax24:VendorModel"/>
+                    <xs:element minOccurs="0" name="vasaApiVersion" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="vasaProviderVersion" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="VendorModel">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="modelId" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="vendorId" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="StorageProcessor">
+                <xs:complexContent>
+                    <xs:extension base="ax24:BaseStorageEntity">
+                        <xs:sequence>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="spIdentifier" nillable="true" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="StoragePort">
+                <xs:complexContent>
+                    <xs:extension base="ax24:BaseStorageEntity">
+                        <xs:sequence>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="alternateName" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="iscsiIdentifier" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="nodeWwn" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="portType" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="portWwn" nillable="true" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="StorageLun">
+                <xs:complexContent>
+                    <xs:extension base="ax24:BaseStorageEntity">
+                        <xs:sequence>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="alternateIdentifier" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="capacityInMB" type="xs:long"/>
+                            <xs:element minOccurs="0" name="displayName" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="drsManagementPermitted" type="xs:boolean"/>
+                            <xs:element minOccurs="0" name="esxLunIdentifier" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="thinProvisioned" type="xs:boolean"/>
+                            <xs:element minOccurs="0" name="thinProvisioningStatus" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="usedSpaceInMB" type="xs:long"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="StorageFileSystem">
+                <xs:complexContent>
+                    <xs:extension base="ax24:BaseStorageEntity">
+                        <xs:sequence>
+                            <xs:element minOccurs="0" name="fileSystem" nillable="true" type="xs:string"/>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="fileSystemInfo" nillable="true" type="ax24:FileSystemInfo"/>
+                            <xs:element minOccurs="0" name="fileSystemVersion" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="nativeSnapshotSupported" type="xs:boolean"/>
+                            <xs:element minOccurs="0" name="thinProvisioningStatus" nillable="true" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="FileSystemInfo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="fileServerName" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="fileSystemPath" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="ipAddress" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="StorageCapability">
+                <xs:complexContent>
+                    <xs:extension base="ax24:BaseStorageEntity">
+                        <xs:sequence>
+                            <xs:element minOccurs="0" name="capabilityDetail" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="capabilityName" nillable="true" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="MessageCatalog">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="catalogName" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="catalogUri" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="catalogVersion" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="lastModified" nillable="true" type="xs:dateTime"/>
+                    <xs:element minOccurs="0" name="locale" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="moduleName" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="VasaAssociationObject">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="associatedId" nillable="true" type="ax24:BaseStorageEntity"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="entityId" nillable="true" type="ax24:BaseStorageEntity"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="StorageArray">
+                <xs:complexContent>
+                    <xs:extension base="ax24:BaseStorageEntity">
+                        <xs:sequence>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="alternateName" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="arrayName" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="firmware" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="modelId" nillable="true" type="xs:string"/>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="supportedBlock" nillable="true" type="xs:string"/>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="supportedFileSystem" nillable="true" type="xs:string"/>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="supportedProfile" nillable="true" type="xs:string"/>
+                            <xs:element minOccurs="0" name="vendorId" nillable="true" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="StorageEvent">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="eventConfigType" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="eventId" type="xs:long"/>
+                    <xs:element minOccurs="0" name="eventObjType" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="eventTimeStamp" nillable="true" type="xs:dateTime"/>
+                    <xs:element minOccurs="0" name="eventType" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="messageId" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="objectId" nillable="true" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="parameterList" nillable="true" type="ax24:NameValuePair"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="StorageAlarm">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="alarmId" type="xs:long"/>
+                    <xs:element minOccurs="0" name="alarmTimeStamp" nillable="true" type="xs:dateTime"/>
+                    <xs:element minOccurs="0" name="alarmType" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="messageId" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="objectId" nillable="true" type="xs:string"/>
+                    <xs:element minOccurs="0" name="objectType" nillable="true" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="parameterList" nillable="true" type="ax24:NameValuePair"/>
+                    <xs:element minOccurs="0" name="status" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+        <xs:schema xmlns:ax26="http://data.vasa.vim.vmware.com/xsd" xmlns:ax23="http://fault.vasa.vim.vmware.com/xsd" attributeFormDefault="qualified" elementFormDefault="qualified" targetNamespace="http://com.vmware.vim.vasa/1.0/xsd">
+            <xs:import namespace="http://fault.vasa.vim.vmware.com/xsd"/>
+            <xs:import namespace="http://data.vasa.vim.vmware.com/xsd"/>
+            <xs:complexType name="Exception">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="Exception" nillable="true" type="xs:anyType"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="InvalidCertificate">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="InvalidCertificate" nillable="true" type="ax21:InvalidCertificate"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="InvalidSession">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="InvalidSession" nillable="true" type="ax21:InvalidSession"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="StorageFault">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="StorageFault" nillable="true" type="ax21:StorageFault"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="unregisterVASACertificate">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="existingCertificate" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="InvalidArgument">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="InvalidArgument" nillable="true" type="ax21:InvalidArgument"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="setContext">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="usageContext" nillable="true" type="ax24:UsageContext"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="setContextResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax24:VasaProviderInfo"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="InvalidLogin">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="InvalidLogin" nillable="true" type="ax21:InvalidLogin"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="registerVASACertificate">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="userName" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="password" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="newCertificate" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="registerVASACertificateResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" nillable="true" type="ax24:VasaProviderInfo"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="NotFound">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="NotFound" nillable="true" type="ax21:NotFound"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="NotImplemented">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="NotImplemented" nillable="true" type="ax21:NotImplemented"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryUniqueIdentifiersForLuns">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="arrayUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryUniqueIdentifiersForLunsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryUniqueIdentifiersForFileSystems">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="fsUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryUniqueIdentifiersForFileSystemsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryUniqueIdentifiersForEntity">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="entityType" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryUniqueIdentifiersForEntityResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageProcessors">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="spUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageProcessorsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StorageProcessor"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStoragePorts">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="portUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStoragePortsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StoragePort"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageLuns">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="lunUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageLunsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StorageLun"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageFileSystems">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="fsUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageFileSystemsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StorageFileSystem"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageCapabilities">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="capabilityUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryStorageCapabilitiesResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StorageCapability"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryDRSMigrationCapabilityForPerformance">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="srcUniqueId" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="dstUniqueId" nillable="true" type="xs:string"/>
+                        <xs:element minOccurs="0" name="entityType" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryDRSMigrationCapabilityForPerformanceResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:boolean"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryCatalogResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:MessageCatalog"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedProcessorsForArray">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="arrayUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedProcessorsForArrayResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:VasaAssociationObject"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedPortsForProcessor">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="spUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedPortsForProcessorResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:VasaAssociationObject"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedLunsForPort">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="portUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedLunsForPortResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:VasaAssociationObject"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedCapabilityForLun">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="lunUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedCapabilityForLunResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:VasaAssociationObject"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedCapabilityForFileSystem">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="fsUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryAssociatedCapabilityForFileSystemResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:VasaAssociationObject"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryArrays">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="arrayUniqueId" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="queryArraysResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StorageArray"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getNumberOfEntities">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="entityType" nillable="true" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getNumberOfEntitiesResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="return" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="LostEvent">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="LostEvent" nillable="true" type="ax21:LostEvent"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getEvents">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="lastEventId" type="xs:long"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getEventsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StorageEvent"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="LostAlarm">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="LostAlarm" nillable="true" type="ax21:LostAlarm"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getAlarms">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element minOccurs="0" name="lastAlarmId" type="xs:long"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="getAlarmsResponse">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element maxOccurs="unbounded" minOccurs="0" name="return" nillable="true" type="ax24:StorageAlarm"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="getEventsRequest">
+        <wsdl:part name="parameters" element="ns:getEvents"/>
+    </wsdl:message>
+    <wsdl:message name="getEventsResponse">
+        <wsdl:part name="parameters" element="ns:getEventsResponse"/>
+    </wsdl:message>
+    <wsdl:message name="InvalidArgument">
+        <wsdl:part name="parameters" element="ns:InvalidArgument"/>
+    </wsdl:message>
+    <wsdl:message name="InvalidSession">
+        <wsdl:part name="parameters" element="ns:InvalidSession"/>
+    </wsdl:message>
+    <wsdl:message name="LostEvent">
+        <wsdl:part name="parameters" element="ns:LostEvent"/>
+    </wsdl:message>
+    <wsdl:message name="StorageFault">
+        <wsdl:part name="parameters" element="ns:StorageFault"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedCapabilityForLunRequest">
+        <wsdl:part name="parameters" element="ns:queryAssociatedCapabilityForLun"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedCapabilityForLunResponse">
+        <wsdl:part name="parameters" element="ns:queryAssociatedCapabilityForLunResponse"/>
+    </wsdl:message>
+    <wsdl:message name="NotImplemented">
+        <wsdl:part name="parameters" element="ns:NotImplemented"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedLunsForPortRequest">
+        <wsdl:part name="parameters" element="ns:queryAssociatedLunsForPort"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedLunsForPortResponse">
+        <wsdl:part name="parameters" element="ns:queryAssociatedLunsForPortResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedProcessorsForArrayRequest">
+        <wsdl:part name="parameters" element="ns:queryAssociatedProcessorsForArray"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedProcessorsForArrayResponse">
+        <wsdl:part name="parameters" element="ns:queryAssociatedProcessorsForArrayResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageFileSystemsRequest">
+        <wsdl:part name="parameters" element="ns:queryStorageFileSystems"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageFileSystemsResponse">
+        <wsdl:part name="parameters" element="ns:queryStorageFileSystemsResponse"/>
+    </wsdl:message>
+    <wsdl:message name="setContextRequest">
+        <wsdl:part name="parameters" element="ns:setContext"/>
+    </wsdl:message>
+    <wsdl:message name="setContextResponse">
+        <wsdl:part name="parameters" element="ns:setContextResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryStoragePortsRequest">
+        <wsdl:part name="parameters" element="ns:queryStoragePorts"/>
+    </wsdl:message>
+    <wsdl:message name="queryStoragePortsResponse">
+        <wsdl:part name="parameters" element="ns:queryStoragePortsResponse"/>
+    </wsdl:message>
+    <wsdl:message name="registerVASACertificateRequest">
+        <wsdl:part name="parameters" element="ns:registerVASACertificate"/>
+    </wsdl:message>
+    <wsdl:message name="registerVASACertificateResponse">
+        <wsdl:part name="parameters" element="ns:registerVASACertificateResponse"/>
+    </wsdl:message>
+    <wsdl:message name="InvalidCertificate">
+        <wsdl:part name="parameters" element="ns:InvalidCertificate"/>
+    </wsdl:message>
+    <wsdl:message name="InvalidLogin">
+        <wsdl:part name="parameters" element="ns:InvalidLogin"/>
+    </wsdl:message>
+    <wsdl:message name="queryUniqueIdentifiersForFileSystemsRequest">
+        <wsdl:part name="parameters" element="ns:queryUniqueIdentifiersForFileSystems"/>
+    </wsdl:message>
+    <wsdl:message name="queryUniqueIdentifiersForFileSystemsResponse">
+        <wsdl:part name="parameters" element="ns:queryUniqueIdentifiersForFileSystemsResponse"/>
+    </wsdl:message>
+    <wsdl:message name="NotFound">
+        <wsdl:part name="parameters" element="ns:NotFound"/>
+    </wsdl:message>
+    <wsdl:message name="unregisterVASACertificateRequest">
+        <wsdl:part name="parameters" element="ns:unregisterVASACertificate"/>
+    </wsdl:message>
+    <wsdl:message name="unregisterVASACertificateResponse"/>
+    <wsdl:message name="queryUniqueIdentifiersForEntityRequest">
+        <wsdl:part name="parameters" element="ns:queryUniqueIdentifiersForEntity"/>
+    </wsdl:message>
+    <wsdl:message name="queryUniqueIdentifiersForEntityResponse">
+        <wsdl:part name="parameters" element="ns:queryUniqueIdentifiersForEntityResponse"/>
+    </wsdl:message>
+    <wsdl:message name="getNumberOfEntitiesRequest">
+        <wsdl:part name="parameters" element="ns:getNumberOfEntities"/>
+    </wsdl:message>
+    <wsdl:message name="getNumberOfEntitiesResponse">
+        <wsdl:part name="parameters" element="ns:getNumberOfEntitiesResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryUniqueIdentifiersForLunsRequest">
+        <wsdl:part name="parameters" element="ns:queryUniqueIdentifiersForLuns"/>
+    </wsdl:message>
+    <wsdl:message name="queryUniqueIdentifiersForLunsResponse">
+        <wsdl:part name="parameters" element="ns:queryUniqueIdentifiersForLunsResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageCapabilitiesRequest">
+        <wsdl:part name="parameters" element="ns:queryStorageCapabilities"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageCapabilitiesResponse">
+        <wsdl:part name="parameters" element="ns:queryStorageCapabilitiesResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryArraysRequest">
+        <wsdl:part name="parameters" element="ns:queryArrays"/>
+    </wsdl:message>
+    <wsdl:message name="queryArraysResponse">
+        <wsdl:part name="parameters" element="ns:queryArraysResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageLunsRequest">
+        <wsdl:part name="parameters" element="ns:queryStorageLuns"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageLunsResponse">
+        <wsdl:part name="parameters" element="ns:queryStorageLunsResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedCapabilityForFileSystemRequest">
+        <wsdl:part name="parameters" element="ns:queryAssociatedCapabilityForFileSystem"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedCapabilityForFileSystemResponse">
+        <wsdl:part name="parameters" element="ns:queryAssociatedCapabilityForFileSystemResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryDRSMigrationCapabilityForPerformanceRequest">
+        <wsdl:part name="parameters" element="ns:queryDRSMigrationCapabilityForPerformance"/>
+    </wsdl:message>
+    <wsdl:message name="queryDRSMigrationCapabilityForPerformanceResponse">
+        <wsdl:part name="parameters" element="ns:queryDRSMigrationCapabilityForPerformanceResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedPortsForProcessorRequest">
+        <wsdl:part name="parameters" element="ns:queryAssociatedPortsForProcessor"/>
+    </wsdl:message>
+    <wsdl:message name="queryAssociatedPortsForProcessorResponse">
+        <wsdl:part name="parameters" element="ns:queryAssociatedPortsForProcessorResponse"/>
+    </wsdl:message>
+    <wsdl:message name="queryCatalogRequest"/>
+    <wsdl:message name="queryCatalogResponse">
+        <wsdl:part name="parameters" element="ns:queryCatalogResponse"/>
+    </wsdl:message>
+    <wsdl:message name="getAlarmsRequest">
+        <wsdl:part name="parameters" element="ns:getAlarms"/>
+    </wsdl:message>
+    <wsdl:message name="getAlarmsResponse">
+        <wsdl:part name="parameters" element="ns:getAlarmsResponse"/>
+    </wsdl:message>
+    <wsdl:message name="LostAlarm">
+        <wsdl:part name="parameters" element="ns:LostAlarm"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageProcessorsRequest">
+        <wsdl:part name="parameters" element="ns:queryStorageProcessors"/>
+    </wsdl:message>
+    <wsdl:message name="queryStorageProcessorsResponse">
+        <wsdl:part name="parameters" element="ns:queryStorageProcessorsResponse"/>
+    </wsdl:message>
+    <wsdl:portType name="vasaServicePortType">
+        <wsdl:operation name="getEvents">
+            <wsdl:input message="axis2:getEventsRequest" wsaw:Action="urn:getEvents"/>
+            <wsdl:output message="axis2:getEventsResponse" wsaw:Action="urn:getEventsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:getEventsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:getEventsInvalidSession"/>
+            <wsdl:fault message="axis2:LostEvent" name="LostEvent" wsaw:Action="urn:getEventsLostEvent"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:getEventsStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedCapabilityForLun">
+            <wsdl:input message="axis2:queryAssociatedCapabilityForLunRequest" wsaw:Action="urn:queryAssociatedCapabilityForLun"/>
+            <wsdl:output message="axis2:queryAssociatedCapabilityForLunResponse" wsaw:Action="urn:queryAssociatedCapabilityForLunResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryAssociatedCapabilityForLunInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryAssociatedCapabilityForLunInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryAssociatedCapabilityForLunNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryAssociatedCapabilityForLunStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedLunsForPort">
+            <wsdl:input message="axis2:queryAssociatedLunsForPortRequest" wsaw:Action="urn:queryAssociatedLunsForPort"/>
+            <wsdl:output message="axis2:queryAssociatedLunsForPortResponse" wsaw:Action="urn:queryAssociatedLunsForPortResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryAssociatedLunsForPortInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryAssociatedLunsForPortInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryAssociatedLunsForPortNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryAssociatedLunsForPortStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedProcessorsForArray">
+            <wsdl:input message="axis2:queryAssociatedProcessorsForArrayRequest" wsaw:Action="urn:queryAssociatedProcessorsForArray"/>
+            <wsdl:output message="axis2:queryAssociatedProcessorsForArrayResponse" wsaw:Action="urn:queryAssociatedProcessorsForArrayResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryAssociatedProcessorsForArrayInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryAssociatedProcessorsForArrayInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryAssociatedProcessorsForArrayNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryAssociatedProcessorsForArrayStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageFileSystems">
+            <wsdl:input message="axis2:queryStorageFileSystemsRequest" wsaw:Action="urn:queryStorageFileSystems"/>
+            <wsdl:output message="axis2:queryStorageFileSystemsResponse" wsaw:Action="urn:queryStorageFileSystemsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryStorageFileSystemsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryStorageFileSystemsInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryStorageFileSystemsNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryStorageFileSystemsStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="setContext">
+            <wsdl:input message="axis2:setContextRequest" wsaw:Action="urn:setContext"/>
+            <wsdl:output message="axis2:setContextResponse" wsaw:Action="urn:setContextResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:setContextInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:setContextInvalidSession"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:setContextStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryStoragePorts">
+            <wsdl:input message="axis2:queryStoragePortsRequest" wsaw:Action="urn:queryStoragePorts"/>
+            <wsdl:output message="axis2:queryStoragePortsResponse" wsaw:Action="urn:queryStoragePortsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryStoragePortsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryStoragePortsInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryStoragePortsNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryStoragePortsStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="registerVASACertificate">
+            <wsdl:input message="axis2:registerVASACertificateRequest" wsaw:Action="urn:registerVASACertificate"/>
+            <wsdl:output message="axis2:registerVASACertificateResponse" wsaw:Action="urn:registerVASACertificateResponse"/>
+            <wsdl:fault message="axis2:InvalidCertificate" name="InvalidCertificate" wsaw:Action="urn:registerVASACertificateInvalidCertificate"/>
+            <wsdl:fault message="axis2:InvalidLogin" name="InvalidLogin" wsaw:Action="urn:registerVASACertificateInvalidLogin"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:registerVASACertificateInvalidSession"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:registerVASACertificateStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForFileSystems">
+            <wsdl:input message="axis2:queryUniqueIdentifiersForFileSystemsRequest" wsaw:Action="urn:queryUniqueIdentifiersForFileSystems"/>
+            <wsdl:output message="axis2:queryUniqueIdentifiersForFileSystemsResponse" wsaw:Action="urn:queryUniqueIdentifiersForFileSystemsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryUniqueIdentifiersForFileSystemsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryUniqueIdentifiersForFileSystemsInvalidSession"/>
+            <wsdl:fault message="axis2:NotFound" name="NotFound" wsaw:Action="urn:queryUniqueIdentifiersForFileSystemsNotFound"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryUniqueIdentifiersForFileSystemsNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryUniqueIdentifiersForFileSystemsStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="unregisterVASACertificate">
+            <wsdl:input message="axis2:unregisterVASACertificateRequest" wsaw:Action="urn:unregisterVASACertificate"/>
+	    <wsdl:output message="axis2:unregisterVASACertificateResponse" wsaw:Action="urn:unregisterVASACertificateResponse"/>
+            <wsdl:fault message="axis2:InvalidCertificate" name="InvalidCertificate" wsaw:Action="urn:unregisterVASACertificateInvalidCertificate"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:unregisterVASACertificateInvalidSession"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:unregisterVASACertificateStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForEntity">
+            <wsdl:input message="axis2:queryUniqueIdentifiersForEntityRequest" wsaw:Action="urn:queryUniqueIdentifiersForEntity"/>
+            <wsdl:output message="axis2:queryUniqueIdentifiersForEntityResponse" wsaw:Action="urn:queryUniqueIdentifiersForEntityResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryUniqueIdentifiersForEntityInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryUniqueIdentifiersForEntityInvalidSession"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryUniqueIdentifiersForEntityStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="getNumberOfEntities">
+            <wsdl:input message="axis2:getNumberOfEntitiesRequest" wsaw:Action="urn:getNumberOfEntities"/>
+            <wsdl:output message="axis2:getNumberOfEntitiesResponse" wsaw:Action="urn:getNumberOfEntitiesResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:getNumberOfEntitiesInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:getNumberOfEntitiesInvalidSession"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:getNumberOfEntitiesStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForLuns">
+            <wsdl:input message="axis2:queryUniqueIdentifiersForLunsRequest" wsaw:Action="urn:queryUniqueIdentifiersForLuns"/>
+            <wsdl:output message="axis2:queryUniqueIdentifiersForLunsResponse" wsaw:Action="urn:queryUniqueIdentifiersForLunsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryUniqueIdentifiersForLunsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryUniqueIdentifiersForLunsInvalidSession"/>
+            <wsdl:fault message="axis2:NotFound" name="NotFound" wsaw:Action="urn:queryUniqueIdentifiersForLunsNotFound"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryUniqueIdentifiersForLunsNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryUniqueIdentifiersForLunsStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageCapabilities">
+            <wsdl:input message="axis2:queryStorageCapabilitiesRequest" wsaw:Action="urn:queryStorageCapabilities"/>
+            <wsdl:output message="axis2:queryStorageCapabilitiesResponse" wsaw:Action="urn:queryStorageCapabilitiesResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryStorageCapabilitiesInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryStorageCapabilitiesInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryStorageCapabilitiesNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryStorageCapabilitiesStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryArrays">
+            <wsdl:input message="axis2:queryArraysRequest" wsaw:Action="urn:queryArrays"/>
+            <wsdl:output message="axis2:queryArraysResponse" wsaw:Action="urn:queryArraysResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryArraysInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryArraysInvalidSession"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryArraysStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageLuns">
+            <wsdl:input message="axis2:queryStorageLunsRequest" wsaw:Action="urn:queryStorageLuns"/>
+            <wsdl:output message="axis2:queryStorageLunsResponse" wsaw:Action="urn:queryStorageLunsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryStorageLunsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryStorageLunsInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryStorageLunsNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryStorageLunsStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedCapabilityForFileSystem">
+            <wsdl:input message="axis2:queryAssociatedCapabilityForFileSystemRequest" wsaw:Action="urn:queryAssociatedCapabilityForFileSystem"/>
+            <wsdl:output message="axis2:queryAssociatedCapabilityForFileSystemResponse" wsaw:Action="urn:queryAssociatedCapabilityForFileSystemResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryAssociatedCapabilityForFileSystemInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryAssociatedCapabilityForFileSystemInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryAssociatedCapabilityForFileSystemNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryAssociatedCapabilityForFileSystemStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryDRSMigrationCapabilityForPerformance">
+            <wsdl:input message="axis2:queryDRSMigrationCapabilityForPerformanceRequest" wsaw:Action="urn:queryDRSMigrationCapabilityForPerformance"/>
+            <wsdl:output message="axis2:queryDRSMigrationCapabilityForPerformanceResponse" wsaw:Action="urn:queryDRSMigrationCapabilityForPerformanceResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryDRSMigrationCapabilityForPerformanceInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryDRSMigrationCapabilityForPerformanceInvalidSession"/>
+            <wsdl:fault message="axis2:NotFound" name="NotFound" wsaw:Action="urn:queryDRSMigrationCapabilityForPerformanceNotFound"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryDRSMigrationCapabilityForPerformanceStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedPortsForProcessor">
+            <wsdl:input message="axis2:queryAssociatedPortsForProcessorRequest" wsaw:Action="urn:queryAssociatedPortsForProcessor"/>
+            <wsdl:output message="axis2:queryAssociatedPortsForProcessorResponse" wsaw:Action="urn:queryAssociatedPortsForProcessorResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryAssociatedPortsForProcessorInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryAssociatedPortsForProcessorInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryAssociatedPortsForProcessorNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryAssociatedPortsForProcessorStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryCatalog">
+            <wsdl:input message="axis2:queryCatalogRequest" wsaw:Action="urn:queryCatalog"/>
+            <wsdl:output message="axis2:queryCatalogResponse" wsaw:Action="urn:queryCatalogResponse"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryCatalogInvalidSession"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryCatalogStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="getAlarms">
+            <wsdl:input message="axis2:getAlarmsRequest" wsaw:Action="urn:getAlarms"/>
+            <wsdl:output message="axis2:getAlarmsResponse" wsaw:Action="urn:getAlarmsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:getAlarmsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:getAlarmsInvalidSession"/>
+            <wsdl:fault message="axis2:LostAlarm" name="LostAlarm" wsaw:Action="urn:getAlarmsLostAlarm"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:getAlarmsStorageFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageProcessors">
+            <wsdl:input message="axis2:queryStorageProcessorsRequest" wsaw:Action="urn:queryStorageProcessors"/>
+            <wsdl:output message="axis2:queryStorageProcessorsResponse" wsaw:Action="urn:queryStorageProcessorsResponse"/>
+            <wsdl:fault message="axis2:InvalidArgument" name="InvalidArgument" wsaw:Action="urn:queryStorageProcessorsInvalidArgument"/>
+            <wsdl:fault message="axis2:InvalidSession" name="InvalidSession" wsaw:Action="urn:queryStorageProcessorsInvalidSession"/>
+            <wsdl:fault message="axis2:NotImplemented" name="NotImplemented" wsaw:Action="urn:queryStorageProcessorsNotImplemented"/>
+            <wsdl:fault message="axis2:StorageFault" name="StorageFault" wsaw:Action="urn:queryStorageProcessorsStorageFault"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="vasaServiceSoap11Binding" type="axis2:vasaServicePortType">
+        <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="queryAssociatedCapabilityForLun">
+            <soap:operation soapAction="urn:queryAssociatedCapabilityForLun" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="getEvents">
+            <soap:operation soapAction="urn:getEvents" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="LostEvent">
+                <soap:fault use="literal" name="LostEvent"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedLunsForPort">
+            <soap:operation soapAction="urn:queryAssociatedLunsForPort" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageFileSystems">
+            <soap:operation soapAction="urn:queryStorageFileSystems" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedProcessorsForArray">
+            <soap:operation soapAction="urn:queryAssociatedProcessorsForArray" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="setContext">
+            <soap:operation soapAction="urn:setContext" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStoragePorts">
+            <soap:operation soapAction="urn:queryStoragePorts" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="registerVASACertificate">
+            <soap:operation soapAction="urn:registerVASACertificate" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidCertificate">
+                <soap:fault use="literal" name="InvalidCertificate"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidLogin">
+                <soap:fault use="literal" name="InvalidLogin"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForFileSystems">
+            <soap:operation soapAction="urn:queryUniqueIdentifiersForFileSystems" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="NotFound">
+                <soap:fault use="literal" name="NotFound"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="unregisterVASACertificate">
+            <soap:operation soapAction="urn:unregisterVASACertificate" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:fault name="InvalidCertificate">
+                <soap:fault use="literal" name="InvalidCertificate"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForEntity">
+            <soap:operation soapAction="urn:queryUniqueIdentifiersForEntity" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForLuns">
+            <soap:operation soapAction="urn:queryUniqueIdentifiersForLuns" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="NotFound">
+                <soap:fault use="literal" name="NotFound"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="getNumberOfEntities">
+            <soap:operation soapAction="urn:getNumberOfEntities" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryArrays">
+            <soap:operation soapAction="urn:queryArrays" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageCapabilities">
+            <soap:operation soapAction="urn:queryStorageCapabilities" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageLuns">
+            <soap:operation soapAction="urn:queryStorageLuns" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedCapabilityForFileSystem">
+            <soap:operation soapAction="urn:queryAssociatedCapabilityForFileSystem" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryDRSMigrationCapabilityForPerformance">
+            <soap:operation soapAction="urn:queryDRSMigrationCapabilityForPerformance" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="NotFound">
+                <soap:fault use="literal" name="NotFound"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedPortsForProcessor">
+            <soap:operation soapAction="urn:queryAssociatedPortsForProcessor" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryCatalog">
+            <soap:operation soapAction="urn:queryCatalog" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageProcessors">
+            <soap:operation soapAction="urn:queryStorageProcessors" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="getAlarms">
+            <soap:operation soapAction="urn:getAlarms" style="document"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="LostAlarm">
+                <soap:fault use="literal" name="LostAlarm"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="vasaServiceSoap12Binding" type="axis2:vasaServicePortType">
+        <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+        <wsdl:operation name="queryAssociatedCapabilityForLun">
+            <soap12:operation soapAction="urn:queryAssociatedCapabilityForLun" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="getEvents">
+            <soap12:operation soapAction="urn:getEvents" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="LostEvent">
+                <soap12:fault use="literal" name="LostEvent"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedLunsForPort">
+            <soap12:operation soapAction="urn:queryAssociatedLunsForPort" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageFileSystems">
+            <soap12:operation soapAction="urn:queryStorageFileSystems" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedProcessorsForArray">
+            <soap12:operation soapAction="urn:queryAssociatedProcessorsForArray" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="setContext">
+            <soap12:operation soapAction="urn:setContext" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStoragePorts">
+            <soap12:operation soapAction="urn:queryStoragePorts" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="registerVASACertificate">
+            <soap12:operation soapAction="urn:registerVASACertificate" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidCertificate">
+                <soap12:fault use="literal" name="InvalidCertificate"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidLogin">
+                <soap12:fault use="literal" name="InvalidLogin"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForFileSystems">
+            <soap12:operation soapAction="urn:queryUniqueIdentifiersForFileSystems" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="NotFound">
+                <soap12:fault use="literal" name="NotFound"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="unregisterVASACertificate">
+            <soap12:operation soapAction="urn:unregisterVASACertificate" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:fault name="InvalidCertificate">
+                <soap12:fault use="literal" name="InvalidCertificate"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForEntity">
+            <soap12:operation soapAction="urn:queryUniqueIdentifiersForEntity" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForLuns">
+            <soap12:operation soapAction="urn:queryUniqueIdentifiersForLuns" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="NotFound">
+                <soap12:fault use="literal" name="NotFound"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="getNumberOfEntities">
+            <soap12:operation soapAction="urn:getNumberOfEntities" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryArrays">
+            <soap12:operation soapAction="urn:queryArrays" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageCapabilities">
+            <soap12:operation soapAction="urn:queryStorageCapabilities" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageLuns">
+            <soap12:operation soapAction="urn:queryStorageLuns" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedCapabilityForFileSystem">
+            <soap12:operation soapAction="urn:queryAssociatedCapabilityForFileSystem" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryDRSMigrationCapabilityForPerformance">
+            <soap12:operation soapAction="urn:queryDRSMigrationCapabilityForPerformance" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="NotFound">
+                <soap12:fault use="literal" name="NotFound"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedPortsForProcessor">
+            <soap12:operation soapAction="urn:queryAssociatedPortsForProcessor" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryCatalog">
+            <soap12:operation soapAction="urn:queryCatalog" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageProcessors">
+            <soap12:operation soapAction="urn:queryStorageProcessors" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="NotImplemented">
+                <soap12:fault use="literal" name="NotImplemented"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="getAlarms">
+            <soap12:operation soapAction="urn:getAlarms" style="document"/>
+            <wsdl:input>
+                <soap12:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap12:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="LostAlarm">
+                <soap12:fault use="literal" name="LostAlarm"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidArgument">
+                <soap12:fault use="literal" name="InvalidArgument"/>
+            </wsdl:fault>
+            <wsdl:fault name="InvalidSession">
+                <soap12:fault use="literal" name="InvalidSession"/>
+            </wsdl:fault>
+            <wsdl:fault name="StorageFault">
+                <soap12:fault use="literal" name="StorageFault"/>
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:binding name="vasaServiceHttpBinding" type="axis2:vasaServicePortType">
+        <http:binding verb="POST"/>
+        <wsdl:operation name="queryAssociatedCapabilityForLun">
+            <http:operation location="vasaService/queryAssociatedCapabilityForLun"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryAssociatedCapabilityForLun"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryAssociatedCapabilityForLun"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="getEvents">
+            <http:operation location="vasaService/getEvents"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="getEvents"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="getEvents"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedLunsForPort">
+            <http:operation location="vasaService/queryAssociatedLunsForPort"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryAssociatedLunsForPort"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryAssociatedLunsForPort"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageFileSystems">
+            <http:operation location="vasaService/queryStorageFileSystems"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryStorageFileSystems"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryStorageFileSystems"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedProcessorsForArray">
+            <http:operation location="vasaService/queryAssociatedProcessorsForArray"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryAssociatedProcessorsForArray"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryAssociatedProcessorsForArray"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="setContext">
+            <http:operation location="vasaService/setContext"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="setContext"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="setContext"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryStoragePorts">
+            <http:operation location="vasaService/queryStoragePorts"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryStoragePorts"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryStoragePorts"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="registerVASACertificate">
+            <http:operation location="vasaService/registerVASACertificate"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="registerVASACertificate"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="registerVASACertificate"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForFileSystems">
+            <http:operation location="vasaService/queryUniqueIdentifiersForFileSystems"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryUniqueIdentifiersForFileSystems"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryUniqueIdentifiersForFileSystems"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="unregisterVASACertificate">
+            <http:operation location="vasaService/unregisterVASACertificate"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="unregisterVASACertificate"/>
+            </wsdl:input>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForEntity">
+            <http:operation location="vasaService/queryUniqueIdentifiersForEntity"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryUniqueIdentifiersForEntity"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryUniqueIdentifiersForEntity"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryUniqueIdentifiersForLuns">
+            <http:operation location="vasaService/queryUniqueIdentifiersForLuns"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryUniqueIdentifiersForLuns"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryUniqueIdentifiersForLuns"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="getNumberOfEntities">
+            <http:operation location="vasaService/getNumberOfEntities"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="getNumberOfEntities"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="getNumberOfEntities"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryArrays">
+            <http:operation location="vasaService/queryArrays"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryArrays"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryArrays"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageCapabilities">
+            <http:operation location="vasaService/queryStorageCapabilities"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryStorageCapabilities"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryStorageCapabilities"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageLuns">
+            <http:operation location="vasaService/queryStorageLuns"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryStorageLuns"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryStorageLuns"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedCapabilityForFileSystem">
+            <http:operation location="vasaService/queryAssociatedCapabilityForFileSystem"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryAssociatedCapabilityForFileSystem"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryAssociatedCapabilityForFileSystem"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryDRSMigrationCapabilityForPerformance">
+            <http:operation location="vasaService/queryDRSMigrationCapabilityForPerformance"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryDRSMigrationCapabilityForPerformance"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryDRSMigrationCapabilityForPerformance"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryAssociatedPortsForProcessor">
+            <http:operation location="vasaService/queryAssociatedPortsForProcessor"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryAssociatedPortsForProcessor"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryAssociatedPortsForProcessor"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryCatalog">
+            <http:operation location="vasaService/queryCatalog"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryCatalog"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryCatalog"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="queryStorageProcessors">
+            <http:operation location="vasaService/queryStorageProcessors"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="queryStorageProcessors"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="queryStorageProcessors"/>
+            </wsdl:output>
+        </wsdl:operation>
+        <wsdl:operation name="getAlarms">
+            <http:operation location="vasaService/getAlarms"/>
+            <wsdl:input>
+                <mime:content type="text/xml" part="getAlarms"/>
+            </wsdl:input>
+            <wsdl:output>
+                <mime:content type="text/xml" part="getAlarms"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="vasaService">
+        <wsdl:port name="vasaServiceHttpSoap11Endpoint" binding="axis2:vasaServiceSoap11Binding">
+            <soap:address location="http://localhost:8080/axis2/services/vasaService"/>
+        </wsdl:port>
+        <wsdl:port name="vasaServiceHttpSoap12Endpoint" binding="axis2:vasaServiceSoap12Binding">
+            <soap12:address location="http://localhost:8080/axis2/services/vasaService"/>
+        </wsdl:port>
+        <wsdl:port name="vasaServiceHttpEndpoint" binding="axis2:vasaServiceHttpBinding">
+            <http:address location="http://localhost:8080/axis2/services/vasaService"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

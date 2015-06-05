@@ -1,0 +1,25 @@
+%{
+  resourceId = _resource.resourceId;
+  exportGroup = _resource.exportGroup;
+  varray = _resource.neighborhood;
+}%
+#{AffectedResources.resource img: 'export.png', classes: 'exportGroup', typeKey: 'affectedResources.exportGroup'}
+#{AffectedResources.singleColumn}
+  <dt>&{'affectedResources.exportGroup'}:</dt>
+  <dd>#{spaceForNull resourceId/}</dd>
+  #{if exportGroup}
+    <dt>&{'affectedResources.exportGroup.name'}:</dt>
+    <dd>
+      <a href="@{resources.BlockExportGroups.exportGroup(resourceId)}"
+      >#{spaceForNull exportGroup?.name/}#{if exportGroup.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+    </dd>
+
+    <dt>&{'affectedResources.varray'}:</dt>
+    <dd>#{spaceForNull varray?.name/}</dd>
+  #{/if}
+  #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.exportGroup')}</dd>
+  #{/else}
+#{/AffectedResources.singleColumn}
+#{/AffectedResources.resource}

@@ -1,0 +1,141 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+var computeElements = function() {
+    var queried = false;
+    
+    function isSelectedField(control) {
+        var type = $(control).attr('type');
+        if (type == 'radio' || type == 'checkbox') {
+            return $(control).is(':checked');
+        }
+        else {
+            return true;
+        }
+    }
+
+    function getDataTable() {
+        return $('#computeElements table').dataTable({ bRetrieve: true })
+    }
+    
+    function getRowCount() {
+        return getDataTable().fnGetData().length;
+    }
+    
+    var my = {};
+    
+    my.addParams = function(aoData) {
+        queried = true;
+
+        $('.storagePoolCriteria input[name]').each(function() {
+            // Ignore disabled fields
+            if ($(this).prop('disabled')) {
+                return;
+            }
+            var name = $(this).attr('name');
+            if (isSelectedField(this)) {
+                aoData.push({'name': name, 'value': $(this).val()});
+            }
+        });
+        $('.storagePoolCriteria select:enabled[name]').each(function() {
+            var name = $(this).attr('name');
+            $('option:selected', this).each(function() {
+                aoData.push({'name': name, 'value': $(this).val()});
+            });
+        });
+        $('#computeElements .selected input').prop('disabled', true).addClass('disabled');
+    }
+    
+    my.updateMatches = function(oSettings) {
+        var numMatchingElements = getRowCount();
+        console.log("  - Found "+numMatchingElements+" matching Elements");
+        $('#matchingElements').text(numMatchingElements);
+    }
+    
+    my.render = function(o, val) {
+        if (o.aData.id) {
+            var id = o.aData.id;
+            var available = o.aData.available;
+            var checkbox = "<input type='checkbox' name='computeVirtualPool.computeElements' ";
+            var ids = $('.computeElements[data-ids]').data('ids');
+            if (ids && ids.indexOf(id) > -1) {
+                checkbox += "checked='checked' ";
+            }
+
+            checkbox += "value='"+id+"'>";
+            
+            return checkbox;
+        }
+        else {
+            return val;
+        }
+    }
+    
+    my.reload = function() {
+        console.log("Reloading compute elements");
+        getDataTable().fnReloadAjax();
+    }
+    
+    my.poolAssignmentChanged = function() {
+
+        var manual = $('#computeVirtualPool_elementSelection').val() == '${models.PoolAssignmentTypes.MANUAL}';
+ 
+        getDataTable().fnSetColumnVis(0, manual);
+        if (!manual) {
+            $('#computeElements .selected input').prop('disabled', true).addClass('disabled');
+        }
+
+    }
+    return my;
+}();
+
+$(document).ready(function() {
+    $('#computeVirtualPool_elementSelection').on('change', computeElements.poolAssignmentChanged);
+
+    if (inUse) {
+        $('#computeVirtualPool_elementSelection').prop('disabled',true);
+    }
+
+});
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+/* Negative margin allows the search box to be visible without leaving a huge gap between row above. */
+.dataTables_wrapper {
+    margin-top: -30px;
+}
+</style>
+#{/set}
+
+#{collapse 'computeVirtualPool.group.elements', icon:'tasks', badge: 'matchingElements'}
+  #{field 'computeVirtualPool.elementSelection'}
+    #{Form.selectOneControlGroup field:field, options:poolAssignmentOptions, cssClass:'span3' /}
+  #{/field}
+  
+  #{field 'computeVirtualPool.computeElements'}
+    <div class="computeElements" data-ids="${flash[field.name] ?: field.value?.join(',')}">
+    %{
+      options = [
+        'bPaginate': 'false',
+        'fnServerParams': 'computeElements.addParams',
+        'fnInitComplete': 'computeElements.poolAssignmentChanged',
+        'fnDrawCallback': 'computeElements.updateMatches'
+      ]
+      computeVirtualPoolElementDataTable.columns.add(0, new util.datatable.RenderedColumn("selected", "computeElements.render"))
+      
+    }%
+    #{DataTable.table id:'computeElements', 
+                      dataTable:computeVirtualPoolElementDataTable,
+                      source:@listComputeElementsJson(computeVirtualPool?.id),
+                      options:options /}
+    </div>
+  #{/field}
+  
+
+#{/collapse}

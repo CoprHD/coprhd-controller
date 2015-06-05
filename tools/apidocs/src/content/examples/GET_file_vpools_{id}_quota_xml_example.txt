@@ -1,0 +1,19 @@
+GET https://192.168.0.0:4443/file/vpools/urn:storageos:VirtualPool:bb133037-1f22-4cc5-84bc-7b90049c9ad0:/quota HTTP/1.1  
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<quota_info>
+  <current_capacity>1</current_capacity>
+  <enabled>false</enabled>
+  <quota_gb>0</quota_gb>
+  <limited_resource>
+    <id>urn:storageos:VirtualPool:bb133037-1f22-4cc5-84bc-7b90049c9ad0:</id>
+    <link href="/block/vpools/urn:storageos:VirtualPool:bb133037-1f22-4cc5-84bc-7b90049c9ad0:" rel="self"/>
+    <name>cosisi</name>
+  </limited_resource>
+</quota_info>

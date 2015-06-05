@@ -1,0 +1,7 @@
+*{
+  id: the ID of the element
+  cssClass: any additional CSS classes for the element
+}*
+<div #{if _id}id="${_id}" #{/if}class="modal-footer ${_cssClass}">
+  #{doBody/}
+</div>

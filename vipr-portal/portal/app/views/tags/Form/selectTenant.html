@@ -1,0 +1,16 @@
+%{
+  fieldName = _fieldName ?: 'tenantId'
+  tenants = _tenants ?: _caller.tenants
+  selectedTenant = _selectedTenant ?: _caller.selectedTenant
+}%
+<span class="tenant-select">
+  #{field fieldName}
+    %{
+      field.options = tenants
+      field.value = selectedTenant
+      field.cssClass = 'input-sm'
+    }%
+    <label for="${field.id}">&{'tenant'}:</label>
+    #{Form.selectOne field:field /}
+  #{/field}
+</span>

@@ -1,0 +1,19 @@
+GET https://192.168.0.0:4443/vdc/network-systems/urn:storageos:NetworkSystem:bdcfc51f-b061-4035-843e-472dfc241edd:/san-fabrics HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HHTTP/1.1 200 OK
+Content-Type: application/xml
+
+<san_fabrics>
+       <fabric>VPlex_Meta_Fid_20</fabric>
+       <fabric>VPlex_LGL6220_FID_30-10:00:00:27:f8:58:f6:c1</fabric>
+       <fabric>VPLEX_WAN_lglw9208/lglw9209</fabric>
+       <fabric>lglah043_11-10:00:00:05:1e:9b:49:9a</fabric>
+       <fabric>vplex154nbr2</fabric>
+       <fabric>losam082-fabric</fabric>
+       <fabric>Vplex_WAN-10:00:00:27:f8:58:f6:bc</fabric>
+       <fabric>VPlex_LGL6221_FID_40</fabric>
+       <fabric>fake array fabric</fabric>
+</san_fabrics>

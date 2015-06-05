@@ -1,0 +1,73 @@
+POST https://192.168.0.0:4443/block/consistency-groups/urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:/protection/snapshots.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+     "name": "block_snapshot_20",
+     "create_inactive": "true"
+}
+==Response
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+{
+  "task": [
+    {
+      "resource": {
+        "name": "block_snapshot_20",
+        "id": "urn:storageos:BlockSnapshot:e43bc8f0-9fce-4fb4-9790-f057dc998d70:",
+        "link": {
+          "rel": "self",
+          "href": "/block/snapshots/urn:storageos:BlockSnapshot:e43bc8f0-9fce-4fb4-9790-f057dc998d70:"
+        }
+      },
+      "message": "Block snapshot create",
+      "state": "pending",
+      "description": "Block snapshot create",
+      "start_time": 1380601179223,
+      "op_id": "afe22cb0-249f-4cfc-817f-13016cec557b",
+      "link": {
+        "rel": "self",
+        "href": "/block/snapshots/urn:storageos:BlockSnapshot:e43bc8f0-9fce-4fb4-9790-f057dc998d70:/tasks/afe22cb0-249f-4cfc-817f-13016cec557b"
+      }
+    },
+    {
+      "resource": {
+        "name": "block_snapshot_20",
+        "id": "urn:storageos:BlockSnapshot:789f3d15-6c37-4d75-b06d-a3c7038e0493:",
+        "link": {
+          "rel": "self",
+          "href": "/block/snapshots/urn:storageos:BlockSnapshot:789f3d15-6c37-4d75-b06d-a3c7038e0493:"
+        }
+      },
+      "message": "Block snapshot create",
+      "state": "pending",
+      "description": "Block snapshot create",
+      "start_time": 1380601179223,
+      "op_id": "afe22cb0-249f-4cfc-817f-13016cec557b",
+      "link": {
+        "rel": "self",
+        "href": "/block/snapshots/urn:storageos:BlockSnapshot:789f3d15-6c37-4d75-b06d-a3c7038e0493:/tasks/afe22cb0-249f-4cfc-817f-13016cec557b"
+      }
+    },
+    {
+      "resource": {
+        "name": "block_snapshot_20",
+        "id": "urn:storageos:BlockSnapshot:764e2b2e-59ef-4841-8f22-ed0d9afc6c5a:",
+        "link": {
+          "rel": "self",
+          "href": "/block/snapshots/urn:storageos:BlockSnapshot:764e2b2e-59ef-4841-8f22-ed0d9afc6c5a:"
+        }
+      },
+      "message": "Block snapshot create",
+      "state": "pending",
+      "description": "Block snapshot create",
+      "start_time": 1380601179223,
+      "op_id": "afe22cb0-249f-4cfc-817f-13016cec557b",
+      "link": {
+        "rel": "self",
+        "href": "/block/snapshots/urn:storageos:BlockSnapshot:764e2b2e-59ef-4841-8f22-ed0d9afc6c5a:/tasks/afe22cb0-249f-4cfc-817f-13016cec557b"
+      }
+    }
+  ]
+}

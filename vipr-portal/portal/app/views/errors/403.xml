@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<error>
+  <code>403</code>
+  <description>&{'errors.403.title'}</description>
+  <details>${result?.message ?: messages.get("errors.403.title")}</details>
+  <retryable>false</retryable>
+</error>

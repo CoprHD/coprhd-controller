@@ -1,0 +1,48 @@
+POST https://192.168.0.0:4443/vdc/admin/authnproviders HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<authnprovider_create>
+  <name>ad configuration</name> 
+  <mode>ad</mode>  
+  <server_urls>
+       <server_url>ldap://192.168.0.10</server_url>
+  </server_urls> 
+  <domains>
+       <domain>mycompany.com</domain>
+  </domains>
+  <group_whitelist_values>
+       <group_whitelist_value>*Admin*</group_whitelist_value>
+  </group_whitelist_values> 
+  <search_filter>userPrincipalName=%u</search_filter> 
+  <search_attribute_key>userPrincipalName</search_attribute_key>
+  <search_base>CN=Users,DC=mycompany,DC=com</search_base> 
+  <manager_dn>CN=Administrator,CN=Users,DC=mycompany,DC=com</manager_dn>
+  <manager_password>password</manager_password>
+  <search_scope>SUBTREE</search_scope>
+  <group_attribute>CN</group_attribute>
+</authnprovider_create>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<authnprovider>
+	<name>ad configuration</name>
+	<id>urn:storageos:AuthnProvider:376238bf-dc31-43ee-850b-ef49a15f5c49:</id>
+	<link "rel" "self","href":"/vdc/admin/authnproviders/urn:storageos:AuthnProvider:376238bf-dc31-43ee-850b-ef49a15f5c49:</link>
+	<inactive>false</inactive>
+	</tags>
+	<mode>ad</mode>
+	<domains>mycompany.com</domains>
+	<disable>false</disable>
+	<creation_time>1379087030417</creation_time>
+	<search_filter>userPrincipalName=%u</search_filter>
+	<search_base>CN=Users,DC=mycompany,DC=com<s/earch_base>
+	<search_attribute_key>userPrincipalName</search_attribute_key>
+	<manager_dn>CN=Administrator,CN=Users,DC=mycompany,DC=com</manager_dn>
+	<group_attribute>CN</group_attribute>
+	<server_urls>ldap://192.168.0.10</group_attribute>
+	<group_whitelist_values>*Admin*<group_whitelist_values>
+	<search_scope>SUBTREE</search_scope>
+</authnprovider>

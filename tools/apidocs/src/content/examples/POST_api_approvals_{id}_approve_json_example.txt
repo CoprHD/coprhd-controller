@@ -1,0 +1,24 @@
+POST https://192.168.0.0:443/api/approvals/urn:storageos:ApprovalRequest:88c59702-f52b-4481-a890-8ed48d4192ba:/approve HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+  "dateActioned": "Oct 3, 2013 4:07:17 PM",
+  "status": "APPROVED",
+  "approvedBy": "bbrown@corp.sean.com",
+  "order": {
+    "id": "urn:storageos:Order:68d203fc-5d6c-4ae7-ac9b-74d450c8bedc:",
+    "href": "/api/orders/urn:storageos:Order:68d203fc-5d6c-4ae7-ac9b-74d450c8bedc:"
+  },
+  "tenant": "urn:storageos:TenantOrg:424e4742-9fea-4f0c-9b5a-b3d6e701d757:",
+  "id": "urn:storageos:ApprovalRequest:88c59702-f52b-4481-a890-8ed48d4192ba:",
+  "inactive": false,
+  "link": {
+    "rel": "self",
+    "href": "/api/approvals/urn:storageos:ApprovalRequest:88c59702-f52b-4481-a890-8ed48d4192ba:"
+  }
+}

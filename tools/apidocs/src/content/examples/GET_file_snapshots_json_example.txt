@@ -1,0 +1,139 @@
+GET https://192.168.0.0:4443/file/snapshots.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-TYpe: application/json
+
+[
+  {
+    "name": "F_9038174395956089",
+    "id": "urn:storageos:Snapshot:bcc5a260-0c4a-41c2-a04e-dfbcd00e6bc6:",
+    "link": {
+      "rel": "self",
+      "href": "/file/snapshots/urn:storageos:Snapshot:bcc5a260-0c4a-41c2-a04e-dfbcd00e6bc6:"
+    },
+    "inactive": false,
+    "tags": [     
+    ],
+    "parent": {
+      "id": "urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:",
+      "link": {
+        "rel": "self",
+        "href": "/file/filesystems/urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:"
+      }
+    },
+    "creation_time": 1379840058500,
+    "mount_path": "/ProviderTenant_F90381743959_bcc5a260-0c4a-41c2-a04e-dfbcd00e6bc6",
+    "native_id": "7239"
+  },
+  {
+    "name": "F_9030682663024643",
+    "id": "urn:storageos:Snapshot:ded17fed-eee3-4431-a404-b516820a5056:",
+    "link": {
+      "rel": "self",
+      "href": "/file/snapshots/urn:storageos:Snapshot:ded17fed-eee3-4431-a404-b516820a5056:"
+    },
+    "inactive": false,
+    "tags": [      
+    ],
+    "parent": {
+      "id": "urn:storageos:FileShare:059b105b-4178-479a-af8b-50536c41b187:",
+      "link": {
+        "rel": "self",
+        "href": "/file/filesystems/urn:storageos:FileShare:059b105b-4178-479a-af8b-50536c41b187:"
+      }
+    },
+    "creation_time": 1379832780724,
+    "mount_path": "/ProviderTenant_F90306826630_ded17fed-eee3-4431-a404-b516820a5056",
+    "native_id": "7134"
+  },
+  {
+    "name": "F_9037376331792016",
+    "id": "urn:storageos:Snapshot:222d6387-4590-4a7e-9d30-f8d10b808bc4:",
+    "link": {
+      "rel": "self",
+      "href": "/file/snapshots/urn:storageos:Snapshot:222d6387-4590-4a7e-9d30-f8d10b808bc4:"
+    },
+    "inactive": false,
+    "tags": [     
+    ],
+    "parent": {
+      "id": "urn:storageos:FileShare:df1d41b9-9b1d-4419-bb8c-5586cddb30b1:",
+      "link": {
+        "rel": "self",
+        "href": "/file/filesystems/urn:storageos:FileShare:df1d41b9-9b1d-4419-bb8c-5586cddb30b1:"
+      }
+    },
+    "creation_time": 1379839257762,
+    "mount_path": "/ProviderTenant_F90373763317_222d6387-4590-4a7e-9d30-f8d10b808bc4",
+    "native_id": "7224"
+  },
+  {
+    "name": "F_9037495356928882",
+    "id": "urn:storageos:Snapshot:7a44f46e-8cf7-4475-91d3-a69f3e8c4d62:",
+    "link": {
+      "rel": "self",
+      "href": "/file/snapshots/urn:storageos:Snapshot:7a44f46e-8cf7-4475-91d3-a69f3e8c4d62:"
+    },
+    "inactive": false,
+    "tags": [
+      
+    ],
+    "parent": {
+      "id": "urn:storageos:FileShare:c4108884-6898-441d-b799-85560282f792:",
+      "link": {
+        "rel": "self",
+        "href": "/file/filesystems/urn:storageos:FileShare:c4108884-6898-441d-b799-85560282f792:"
+      }
+    },
+    "creation_time": 1379839344149,
+    "mount_path": "/ProviderTenant_F90374953569_7a44f46e-8cf7-4475-91d3-a69f3e8c4d62",
+    "native_id": "7226"
+  },
+  {
+    "name": "F_9038233005860394",
+    "id": "urn:storageos:Snapshot:31246ed0-35ad-4552-804a-725af7778eca:",
+    "link": {
+      "rel": "self",
+      "href": "/file/snapshots/urn:storageos:Snapshot:31246ed0-35ad-4552-804a-725af7778eca:"
+    },
+    "inactive": false,
+    "tags": [
+      
+    ],
+    "parent": {
+      "id": "urn:storageos:FileShare:77e91735-598b-490a-9f9a-ea94911402ac:",
+      "link": {
+        "rel": "self",
+        "href": "/file/filesystems/urn:storageos:FileShare:77e91735-598b-490a-9f9a-ea94911402ac:"
+      }
+    },
+    "creation_time": 1379840116785,
+    "mount_path": "/ProviderTenant_F90382330058_31246ed0-35ad-4552-804a-725af7778eca",
+    "native_id": "7241"
+  },
+  {
+    "name": "F_9037555048028974",
+    "id": "urn:storageos:Snapshot:6cd40bed-649b-4786-b478-46dbeccd8fea:",
+    "link": {
+      "rel": "self",
+      "href": "/file/snapshots/urn:storageos:Snapshot:6cd40bed-649b-4786-b478-46dbeccd8fea:"
+    },
+    "inactive": false,
+    "tags": [
+      
+    ],
+    "parent": {
+      "id": "urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:",
+      "link": {
+        "rel": "self",
+        "href": "/file/filesystems/urn:storageos:FileShare:c2b7bdde-0b83-4eff-a795-eb525a86f5d5:"
+      }
+    },
+    "creation_time": 1379839439450,
+    "mount_path": "/ProviderTenant_F90375550480_6cd40bed-649b-4786-b478-46dbeccd8fea",
+    "native_id": "7228"
+  }
+]

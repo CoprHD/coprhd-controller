@@ -1,0 +1,12 @@
+%{
+  titleKey = 'setup.notLicensed';
+}%
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}&{titleKey}#{/set}
+<div class="section-header">
+  <h1>&{titleKey}</h1>
+</div>
+
+<p>&{'setup.notLicensed.message'}</p>
+
+<p><a class="btn btn-primary" href="@{security.Security.logout()}">&{'nav.logout'}</a></p>

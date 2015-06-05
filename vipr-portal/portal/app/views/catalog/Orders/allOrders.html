@@ -1,0 +1,40 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.orders', 'nav.catalog', 'nav.allOrders'] /}
+
+#{tenantSelector /}
+#{DataTable.header titleKey:'allOrders.title' /}
+<div class="max-days-selector">
+  <div class="description">&{'orders.maxDays'}</div>
+  <div class="control">
+  #{field 'maxDays'}
+    %{
+      field.cssClass = 'input-sm'
+      field.options = maxDaysOptions
+      field.disableSearch = true
+    }%
+    #{Form.selectOne field:field/}
+  #{/field}
+  </div>
+  <div class="clearfix"></div>
+</div>
+#{DataTable.table id:'orders', dataTable:dataTable, source: @allOrdersJson(), options: ['fnServerParams': 'addParams']/}
+
+<script type="text/javascript">
+function addParams(aoData) {
+    aoData.push({"name":"maxDays", "value":"${maxDays}"});
+}
+table.orders.dataTable.afterCreate(function(dataTable) {
+    var itemsJson = #{jsAction @catalog.Orders.itemsJson(':ids')/};
+    watchOrderStatus(dataTable.getDataTable(), itemsJson);
+});
+$(document).ready(function() {
+    $('#maxDays').on('change', function() {
+        var maxDays = $(this).val();
+        var url = #{jsAction @allOrders()/}()+"?maxDays="+maxDays;
+        window.location.href = url;
+    });
+});
+</script>

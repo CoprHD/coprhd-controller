@@ -1,0 +1,23 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"RemoveContinuousCopy.Block",
+  serviceId:"RemoveContinuousCopy",
+  destructive: true,
+  fields: {
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volumes:{
+      type:"assetType.vipr.volumeWithContinuousCopies",
+      select: "one"
+    },
+
+    copies:{
+      type:"assetType.vipr.continuousCopies",
+      select: "many"
+    }
+  }
+}

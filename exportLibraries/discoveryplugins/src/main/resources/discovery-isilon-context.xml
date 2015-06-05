@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
+		init-method="init" >
+	</bean>
+
+	<bean id="isilon"
+		class="com.emc.storageos.volumecontroller.impl.plugins.IsilonCommunicationInterface">
+        <property name="isilonApiFactory" ref="isilonapifactory" />
+        <property name="partitionManager" ref="partitionManager"/>
+        <property name="discPathsForUnManaged">        
+            <list>
+                <value>/ifs/sos/</value>
+                <value>/ifs/vipr/</value>
+            </list>
+        </property>
+	</bean>
+
+    <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+
+</beans>

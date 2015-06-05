@@ -1,0 +1,72 @@
+=Block Services
+block.volumes=Volume
+block.consistency-groups=Consistency Group
+block.snapshots=Snapshot
+block.exports=Export
+
+=File Services
+file.filesystems=File System
+file.snapshots=Snapshot
+
+=Compute Services
+compute.clusters=Cluster
+compute.hosts=Host
+compute.ip-interfaces=IP Interface
+compute.initiators=Initiator
+compute.vcenter-data-centers=vCenter Data Center
+compute.vcenters=vCenter
+api.hosts=Host Discovery
+api.vcenters=vCenter Discovery
+
+=Virtual Data Center Services
+vdc.admin=Authentication Provider
+vdc.auto-tier-policies=Auto Tiering
+block.vpools=Block Virtual Pool
+file.vpools=File Virtual Pool
+block.migrations=Migration
+vdc.network-systems=Fabric Manager
+vdc.networks=Network
+vdc.protection-systems=Protection System
+vdc.smis-providers=SMIS Provider
+vdc.storage-providers=Storage Provider
+vdc.storage-tiers=Storage Tier
+vdc.storage-systems=Storage System
+vdc.storage-ports=Storage Port
+vdc.storage-pools=Storage Pool
+vdc.unmanaged=Unmanaged
+vdc.varrays=Virtual Array
+vdc.capacities=Virtual Data Center Capacity
+vdc.role-assignments=Role Assignment
+vdc.user-groups=User Group
+vdc=Virtual Datacenter
+
+=Other Services
+metering.stats=Metering Statistics
+audit.logs=Audit Logs
+monitoring.events=Event Monitoring
+
+=Tenant Services
+projects=Project
+tenants=Tenants
+tenant=Tenant
+
+=Object Data Control Services
+object.namespaces=Namespace
+object.bucket=Bucket
+object.networks=Object Network
+object.data-services-vpools=Object Virtual Pool
+vdc.data-stores=Object Data Store
+object.baseurl=Object Base URL
+object.ingestion=Object Ingestion
+object.secret-keys=Secret Key
+object.user-secret-keys=User Secret Key
+object.user-password=User Password Group
+object.users=User Management
+object.atmos-importer=Atoms Importer
+zone.=Zones
+replication.groups=Replication Groups
+
+
+
+
+

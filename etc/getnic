@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+# /etc/getnic
+#
+# This script checks the effective NIC that ViPR is supposed to use.
+# Currently we simply select the first non-loopback NIC.
+#
+# TODO - we should select the first NIC with effective IP address if there 
+# is multiple ethernet cards
+#
+
+export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin
+
+for nic in $(ls /sys/class/net | sort); do
+    case ${nic} in
+        lo*) continue ;;
+        *) echo "${nic}"; exit 0 ;;
+    esac
+done
+
+exit 1

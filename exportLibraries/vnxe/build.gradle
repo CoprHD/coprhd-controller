@@ -1,0 +1,30 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(jersey),
+            library(slf4j),
+            library(httpclient3),
+	    project(":errorhandling"),
+	    project(":serviceutils")
+}
+
+test {
+    // Exclude all integration tests (all tests at the moment)
+    exclude "com/emc/storageos/vnxe/requests/ApiClientTest.class"
+    exclude "com/emc/storageos/vnxe/requests/DeleteStorageResourceRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/FileSystemActionRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/FileSystemListRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/FileSystemRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/FileSystemSnapRequestsTest.class"
+    exclude "com/emc/storageos/vnxe/requests/HostInitiatorTest.class"
+    exclude "com/emc/storageos/vnxe/requests/HostIpPortRequestsTest.class"
+    exclude "com/emc/storageos/vnxe/requests/HostListRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/HostLunRequestsTest.class"
+    exclude "com/emc/storageos/vnxe/requests/JobRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/LogoutRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/NasServerListRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/NasServerRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/NfsShareRequestsTest.class"
+    exclude "com/emc/storageos/vnxe/requests/PoolListRequestTest.class"
+    exclude "com/emc/storageos/vnxe/requests/StorageSystemRequestTest.class"
+}

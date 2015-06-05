@@ -1,0 +1,116 @@
+POST https://192.168.0.0:4443/vdc/storage-pools/bulk
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:StoragePool:00144972-bed4-4ada-9d36-fc617c74b280:</id>
+    <id>urn:storageos:StoragePool:113ed715-e28a-4730-a265-4ea0aaeb9d57:</id>
+</ids>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_storage_pools>
+    <storage_pool>
+        <creation_time>1379168936179</creation_time>
+        <id>urn:storageos:StoragePool:00144972-bed4-4ada-9d36-fc617c74b280:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/storage-systems/urn:storageos:StorageSystem:515b836d-4612-468a-ae4e-f7d4efa812ac:/storage-pools/urn:storageos:StoragePool:00144972-bed4-4ada-9d36-fc617c74b280:" rel="self"/>
+        <name>SYMMETRIX+000195700363+POOL+C+0003</name>
+        <tags/>
+        <native_guid>SYMMETRIX+000195700363+POOL+C+0003</native_guid>
+        <controller_params/>
+        <copy_types>
+            <copy_type>UNSYNC_UNASSOC</copy_type>
+            <copy_type>SYNC</copy_type>
+            <copy_type>UNSYNC_ASSOC</copy_type>
+        </copy_types>
+        <drive_types/>
+        <free_gb>8680</free_gb>
+        <max_pool_utilization_percentage>75</max_pool_utilization_percentage>
+        <max_resources>-1</max_resources>
+        <maximum_thick_volume_size_gb>240</maximum_thick_volume_size_gb>
+        <maximum_thin_volume_size_gb>0</maximum_thin_volume_size_gb>
+        <minimum_thick_volume_size_gb>0</minimum_thick_volume_size_gb>
+        <minimum_thin_volume_size_gb>0</minimum_thin_volume_size_gb>
+        <num_resources>0</num_resources>
+        <operational_status>READY</operational_status>
+        <percent_subscribed>85</percent_subscribed>
+        <percent_used>85</percent_used>
+        <pool_name>0003</pool_name>
+        <pool_service_type>block</pool_service_type>
+        <protocols>
+            <protocol>iSCSI</protocol>
+            <protocol>FC</protocol>
+        </protocols>
+        <raid_levels>
+            <raid_level>RAID6</raid_level>
+            <raid_level>RAID5</raid_level>
+            <raid_level>RAID1</raid_level>
+            <raid_level>JBOD</raid_level>
+        </raid_levels>
+        <registration_status>REGISTERED</registration_status>
+        <storage_system>
+            <id>urn:storageos:StorageSystem:515b836d-4612-468a-ae4e-f7d4efa812ac:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:515b836d-4612-468a-ae4e-f7d4efa812ac:" rel="self"/>
+        </storage_system>
+        <subscribed_gb>48307</subscribed_gb>
+        <supported_resource_types>THICK_ONLY</supported_resource_types>
+        <thin_volume_preallocation_supported>false</thin_volume_preallocation_supported>
+        <tier_utilization_percentages/>
+        <usable_gb>56986</usable_gb>
+        <used_gb>48306</used_gb>
+    </storage_pool>
+    <storage_pool>
+        <creation_time>1379168998377</creation_time>
+        <id>urn:storageos:StoragePool:113ed715-e28a-4730-a265-4ea0aaeb9d57:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/storage-systems/urn:storageos:StorageSystem:55e5b7e0-0813-48fb-ac17-e53680acd2b2:/storage-pools/urn:storageos:StoragePool:113ed715-e28a-4730-a265-4ea0aaeb9d57:" rel="self"/>
+        <name>SYMMETRIX+000198700412+POOL+TP+2M-A</name>
+        <tags/>
+        <native_guid>SYMMETRIX+000198700412+POOL+TP+2M-A</native_guid>
+        <controller_params/>
+        <copy_types>
+            <copy_type>UNSYNC_UNASSOC</copy_type>
+            <copy_type>SYNC</copy_type>
+            <copy_type>UNSYNC_ASSOC</copy_type>
+        </copy_types>
+        <drive_types>
+            <drive_type>FC</drive_type>
+        </drive_types>
+        <free_gb>1923</free_gb>
+        <max_pool_utilization_percentage>75</max_pool_utilization_percentage>
+        <max_resources>-1</max_resources>
+        <max_thin_pool_subscription_percentage>300</max_thin_pool_subscription_percentage>
+        <maximum_thick_volume_size_gb>0</maximum_thick_volume_size_gb>
+        <maximum_thin_volume_size_gb>240</maximum_thin_volume_size_gb>
+        <minimum_thick_volume_size_gb>0</minimum_thick_volume_size_gb>
+        <minimum_thin_volume_size_gb>0</minimum_thin_volume_size_gb>
+        <num_resources>0</num_resources>
+        <operational_status>READY</operational_status>
+        <percent_subscribed>132</percent_subscribed>
+        <percent_used>0</percent_used>
+        <pool_name>2M-A</pool_name>
+        <pool_service_type>block</pool_service_type>
+        <protocols>
+            <protocol>iSCSI</protocol>
+            <protocol>FC</protocol>
+        </protocols>
+        <raid_levels>
+            <raid_level>RAID1</raid_level>
+        </raid_levels>
+        <registration_status>REGISTERED</registration_status>
+        <storage_system>
+            <id>urn:storageos:StorageSystem:55e5b7e0-0813-48fb-ac17-e53680acd2b2:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:55e5b7e0-0813-48fb-ac17-e53680acd2b2:" rel="self"/>
+        </storage_system>
+        <subscribed_gb>2520</subscribed_gb>
+        <supported_resource_types>THIN_ONLY</supported_resource_types>
+        <thin_volume_preallocation_supported>true</thin_volume_preallocation_supported>
+        <tier_utilization_percentages/>
+        <usable_gb>1923</usable_gb>
+        <used_gb>0</used_gb>
+    </storage_pool>
+</bulk_storage_pools>

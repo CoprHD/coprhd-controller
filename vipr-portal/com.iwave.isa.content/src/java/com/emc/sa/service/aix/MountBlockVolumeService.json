@@ -1,0 +1,74 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"MountBlockVolume.Block.Aix",
+  serviceId:"Aix-MountBlockVolume",
+  destructive: true,
+  fields:{
+    host:{
+      type:"assetType.vipr.aixHost"
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    volume: {
+      type:"assetType.vipr.unmountedBlockResource",   
+      select:"one" 
+    }, 
+    
+    fileSystemType:{
+      type: "choice",
+      initialValue: "jfs2",
+      select: "one",
+      options: {
+        "jfs2": "jfs2"
+      },
+      lockable: true
+    },
+    
+    doFormat:{
+      type: "boolean",
+      initialValue: "true",
+      required: "false",
+      lockable: true
+    },
+    
+    blockSize:{
+        type: "choice",
+        initialValue: "DEFAULT",
+        select: "one",
+        options: {
+          "DEFAULT": "Default",
+          "1024": "1k",
+          "2048": "2k",
+          "4096": "4k",
+          "8192": "8k",
+          "16384": "16k",
+          "32768": "32k",
+          "65536": "64k"
+        },
+        required: false,
+        lockable: true
+    },
+    
+    mountPoint:{
+      type:"text",
+      validation:{
+        regEx:"/[A-Za-z0-9/_\.\-]*"
+      }
+    },
+
+    hlu: {
+      type:"number",
+      lockable: true,
+      required: false,
+      initialValue: "-1",
+      validation: {
+          min:-1
+      }
+    }
+  }
+}

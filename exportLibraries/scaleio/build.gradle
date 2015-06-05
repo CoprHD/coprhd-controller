@@ -1,0 +1,11 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile project(":errorhandling"), 
+            project(":com.iwave.ext.linux"),
+            project(":serviceutils")
+}
+
+test {
+    exclude "com/emc/storageos/scaleio/api/ScaleIOCLITests.class"
+}

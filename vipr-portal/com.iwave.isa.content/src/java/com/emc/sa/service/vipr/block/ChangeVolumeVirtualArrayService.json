@@ -1,0 +1,27 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ChangeVolumeVirtualArray.Block",
+  serviceId:"ChangeVolumeVirtualArray",
+  roles: [
+    "HOME_TENANT_ADMIN"
+  ],
+  fields:{
+  
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+           
+    targetVirtualArray:{
+      type:"assetType.vipr.targetVirtualArray"
+    },
+
+    volumes:{
+      type:"assetType.vipr.virtualArrayChangeVolume",
+      select: "many"
+    }
+    
+  }
+  
+}

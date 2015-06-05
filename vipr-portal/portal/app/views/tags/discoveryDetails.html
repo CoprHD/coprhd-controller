@@ -1,0 +1,18 @@
+%{ system = _arg }%
+<dt>&{'discoveryDetails.discoveryDate'}</dt>
+<dd>
+  #{if system.discoveryDate != null && system.discoveryDate > 0}#{relativeDate system.discoveryDate/}#{/if}
+  #{else}-#{/else}
+</dd>
+
+<dt>&{'discoveryDetails.lastSuccessfulDiscovery'}</dt>
+<dd>
+  #{if system.lastSuccessfulDiscovery != null && system.lastSuccessfulDiscovery > 0}#{relativeDate system.lastSuccessfulDiscovery/}#{/if}
+  #{else}-#{/else}
+</dd>
+
+<dt>&{'discoveryDetails.discoveryStatus'}</dt>
+<dd>${system.discoveryStatus}</dd>
+
+<dt>&{'discoveryDetails.compatibilityStatus'}</dt>
+<dd>${system.compatibilityStatus ?: '-'}</dd>

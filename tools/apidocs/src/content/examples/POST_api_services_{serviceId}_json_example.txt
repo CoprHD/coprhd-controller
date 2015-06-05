@@ -1,0 +1,33 @@
+POST  https://192.168.0.0:443/api/services/urn:storageos:CatalogService:672fa6b6-b17e-49f3-ad11-b6c43c3680cb:
+Accept: application/json
+Content-Length: 420
+Content-Type: application/x-www-form-urlencoded
+X-SDS-AUTH-TOKEN: <AUTH-TOKEN>
+
+virtualArray=urn%3Astorageos%3AVirtualArray%3A58528ef1-149e-40c4-8732-df3ddf108a22%3A&virtualPool=urn%3Astorageos%3AVirtualPool%3A7aa0c6f0-5f47-423b-9b1e-eda98c838bc7%3A&project=urn%3Astorageos%3AProject%3Ab161965b-4fb1-439e-8224-ed47840487e0%3A&name=ViPR-Test3&consistencyGroup=&numberOfVolumes=1&size=5
+size:5
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "orderNumber": "5",
+  "service": {
+    "id": "urn:storageos:CatalogService:672fa6b6-b17e-49f3-ad11-b6c43c3680cb:",
+    "href": "/api/services/urn:storageos:CatalogService:672fa6b6-b17e-49f3-ad11-b6c43c3680cb:"
+  },
+  "summary": "Create a block volume",
+  "message": "",
+  "createdDate": "Sep 10, 2013 1:26:24 PM",
+  "status": "PENDING",
+  "execution": {
+    "id": "urn:storageos:Order:34a028a8-b2b4-43e8-81af-5442ba97dc6b:",
+    "href": "/api/orders/urn:storageos:Order:34a028a8-b2b4-43e8-81af-5442ba97dc6b:/execution"
+  },
+  "id": "urn:storageos:Order:34a028a8-b2b4-43e8-81af-5442ba97dc6b:",
+  "inactive": false,
+  "link": {
+    "rel": "self",
+    "href": "/api/orders/urn:storageos:Order:34a028a8-b2b4-43e8-81af-5442ba97dc6b:"
+  }
+}

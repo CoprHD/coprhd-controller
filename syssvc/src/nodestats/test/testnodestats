@@ -1,0 +1,76 @@
+#!/bin/bash
+
+PRG_NAME="nodestats"
+BASE_DIR=/workspace
+TEST_DIR=${BASE_DIR}/integration/syssvc/src/nodestats/test
+TEST_PROC_DIR=${BASE_DIR}/integration/syssvc/src/nodestats/test/proc
+BIN_DIR=${BASE_DIR}/integration/build/bin
+REF_FILE_PREFIX="TestCase"
+
+_runCpuDiskMemoryStatsTest(){
+${BIN_DIR}/${PRG_NAME} -f ${TEST_DIR}/${PRG_NAME}_test1_output.txt -c 5 -b ${TEST_PROC_DIR}
+}
+
+_runProcessStatsTest(){
+${BIN_DIR}/${PRG_NAME} -f ${TEST_DIR}/${PRG_NAME}_test2_output.txt -c 1 -p 4 -b ${TEST_PROC_DIR}
+}
+
+#Verify that a the /proc directory used for testing exists.
+if [ ! -e ${TEST_PROC_DIR} ] ; then
+    echo "The build tree test directory ${TEST_PROC_DIR} does not exist on this system, so this test cannot be run. Exiting."
+    exit $3
+fi
+
+# Make sure all the necessary input files exist before kicking off the tests.
+if [ -f ${TEST_PROC_DIR}/stat ] && [ -f ${TEST_PROC_DIR}/cmdline ] && [ -f ${TEST_PROC_DIR}/diskstats ] &&
+   [ -f ${TEST_PROC_DIR}/loadavg ] && [ -f ${TEST_PROC_DIR}/meminfo ] && [ -f ${TEST_PROC_DIR}/vmstat ] &&
+   [ -f ${TEST_PROC_DIR}/loadavg ] && [ -f ${TEST_PROC_DIR}/meminfo ] && [ -f ${TEST_PROC_DIR}/vmstat ] &&
+   [ -f ${TEST_PROC_DIR}/loadavg ] && [ -f ${TEST_PROC_DIR}/meminfo ] && [ -f ${TEST_PROC_DIR}/vmstat ] &&
+   [ -f ${TEST_PROC_DIR}/10272/stat ] && [ -f ${TEST_PROC_DIR}/10272/cmdline ] &&
+   [ -f ${TEST_PROC_DIR}/10276/stat ] && [ -f ${TEST_PROC_DIR}/10276/cmdline ] &&
+   [ -f ${TEST_PROC_DIR}/11019/stat ] && [ -f ${TEST_PROC_DIR}/11019/cmdline ] &&
+   [ -f ${TEST_PROC_DIR}/11020/stat ] && [ -f ${TEST_PROC_DIR}/11020/cmdline ] &&
+   [ -f ${TEST_DIR}/${PRG_NAME}_test1_benchmark.txt ] && 
+   [ -f ${TEST_DIR}/${PRG_NAME}_test2_benchmark.txt ] ; then
+    # Run the test 
+    echo "Generating ${PRG_NAME} program output for comparision."
+
+    #Run the CPU, memory and disk statistics test, which will generate output that will be validated below.
+    _runCpuDiskMemoryStatsTest
+
+    if [ -f ${TEST_DIR}/${PRG_NAME}_test1_output.txt ] ; then
+        echo "Output file ${TEST_DIR}/${PRG_NAME}_test1_output.txt generated."
+        echo "Validating test 1 output results."
+        cmpresult=`diff ${TEST_DIR}/${PRG_NAME}_test1_output.txt ${TEST_DIR}/${PRG_NAME}_test1_benchmark.txt`
+        if [ $? == 0 ] ; then
+            echo "---> nodestats unit test #1 has -PASSED-. Output result check has succeeded."
+        else
+            echo "---> nodestats unit test #1 has -FAILED-. Output result check has succeeded."
+        fi
+    fi
+
+    #Run the process statistics test, which will generate output that will be validated below.
+    _runProcessStatsTest
+
+    if [ -f ${TEST_DIR}/${PRG_NAME}_test2_output.txt ] ; then
+        echo "Output file ${TEST_DIR}/${PRG_NAME}_test2_output.txt generated."
+        echo "Validating test 2 output results."
+        cmpresult=`diff ${TEST_DIR}/${PRG_NAME}_test2_output.txt ${TEST_DIR}/${PRG_NAME}_test2_benchmark.txt`
+        if [ $? == 0 ] ; then
+            echo "---> nodestats unit test #2 has -PASSED-. Output result check has succeeded."
+        else
+            echo "---> nodestats unit test #2 has -FAILED-. Output result check has succeeded."
+        fi
+    fi
+
+    #Remove the test output files.
+    if [ -e ${TEST_DIR}/${PRG_NAME}_test1_output.txt ] ; then
+        rm ${TEST_DIR}/${PRG_NAME}_test1_output.txt
+    fi
+    if [ -e ${TEST_DIR}/${PRG_NAME}_test2_output.txt ] ; then
+        rm ${TEST_DIR}/${PRG_NAME}_test2_output.txt
+    fi
+else
+    echo "One or more of the necessary input files from ${TEST_PROC_DIR} do not exist on this system. Exiting."
+    exit $3
+fi

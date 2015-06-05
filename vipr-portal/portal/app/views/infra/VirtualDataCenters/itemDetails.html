@@ -1,0 +1,12 @@
+<dl class="dl-horizontal">
+  <dt>&{'vdc.description'}</dt>
+  <dd>${vdc?.description}</dd>
+#{if latestTask?.taskResource?.serviceError}
+  <dt>&{'vdc.task.code'}</dt>
+  <dd>${latestTask.taskResource.serviceError.code}</dd>
+  <dt>&{'vdc.task.description'}</dt>
+  <dd>${latestTask.taskResource.serviceError.codeDescription}</dd>
+  <dt>&{'vdc.task.message'}</dt>
+  <dd>${latestTask.taskResource.serviceError.detailedMessage}</dd>
+#{/if}
+</dl>

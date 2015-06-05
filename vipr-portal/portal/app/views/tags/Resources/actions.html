@@ -1,0 +1,7 @@
+%{
+  hide = _hide ?: false
+}%
+<div class="pull-right" ng-hide="${hide}">
+  <span style="font-weight: bold;">&{'resources.actions'}</span><br/>
+  #{doBody /}
+</div>

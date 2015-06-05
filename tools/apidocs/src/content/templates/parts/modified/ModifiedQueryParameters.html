@@ -1,0 +1,22 @@
+<% if (methodChanges.queryParametersChanged) { %>
+<hr/>
+<h4>Query Parameter Changes</h4>
+<table class="payload table">
+    <% methodChanges.queryParameters.each { parameter ->
+       cssClass=""
+
+       switch(parameter.changeState) {
+           case com.emc.apidocs.model.ChangeState.ADDED:
+                cssClass="added";
+                break;
+           case com.emc.apidocs.model.ChangeState.REMOVED:
+                cssClass="removed";
+                break;
+       }
+    %>
+    <tr class="${cssClass}">
+        <td>${parameter.name}</td><td>${parameter.description}</td>
+    </tr>
+    <% } %>
+</table>
+<% } %>

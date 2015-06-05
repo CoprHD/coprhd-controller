@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile "javax.inject:javax.inject:1",
+            project(":com.emc.sa.common"),
+            project(":com.emc.sa.model"),
+            project(":vipr-client")
+}

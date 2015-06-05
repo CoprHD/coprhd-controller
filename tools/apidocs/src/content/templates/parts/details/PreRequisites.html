@@ -1,0 +1,10 @@
+<% if (!apiMethod.prerequisites.isEmpty()) { %>
+<hr/>
+<h4>Prerequisites</h4>
+<p>These conditions must be met before calling this operation.</p>
+<ul>
+    <% apiMethod.prerequisites.each { prereq -> %>
+    <li>${prereq}</li>
+    <% } %>
+</ul>
+<%  } %>

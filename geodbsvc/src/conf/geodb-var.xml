@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!-- On deployed system, content of this file is generated from db-var-template.xml -->
+    <import resource="classpath:dbversion-info.xml"/>
+
+    <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="geodbsvc"/>
+        <property name="id" value="geodb-standalone"/>
+        <property name="endpoint" value="thrift://localhost:9260"/>
+        <property name="version" ref="dbSchemaVersion"/>
+    </bean>
+    
+    <bean id="dbschemautil" class="com.emc.storageos.db.server.impl.SchemaUtil">
+        <property name="service" ref="serviceinfo"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="keyspaceName" value="GeoStorageOS"/>
+        <property name="clusterName" value="GeoStorageOS"/>
+        <property name="dataObjectScanner" ref="dataObjectScanner"/>
+        <property name="vdcShortId" value="vdc1"/>
+        <property name="clientContext" ref="dbclientcontext"/>
+        <property name="vdcList">
+            <list>
+                <value>vdc1</value>
+            </list>
+        </property>
+    </bean>
+    
+</beans>

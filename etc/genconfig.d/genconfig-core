@@ -1,0 +1,221 @@
+#!/bin/bash
+
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+
+export PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin
+nl="
+"
+. /etc/rc.status
+
+_genconfig_mkdir() {
+    local mode=${1}
+    local owner=${2}
+    local dir=${3}
+    [ -f "${dir}"      ] || mkdir -p "${dir}"
+    [ "${owner}" = "-" ] || chown -h "${owner}" "${dir}"
+    [ "${mode}"  = "-" ] || chmod    "${mode}"  "${dir}"
+}
+
+_genconfig_create() {
+    local mode=${1}
+    local owner=${2}
+    local file=${3}
+    [ -f "${file}"     ] || >"${file}"
+    [ "${owner}" = "-" ] || chown -h "${owner}" "${file}"
+    [ "${mode}"  = "-" ] || chmod    "${mode}"  "${file}"
+}
+
+_genconfig_write() {
+    case ${#} in
+        4)  _genconfig_create "${@}"
+            local file=${3} ; local output=${4}  ;;
+        3)  _genconfig_create "${@}"
+            local file=${3} ; local output=$(<-) ;;
+        2)  local file=${1} ; local output=${2}  ;;
+        1)  local file=${1} ; local output=$(<-) ;;
+        *)  _fatal "Invalid number of arguments"
+    esac
+    [ -f "${file}" ] && [ "${output}" = "$(<${file})" ] && return 0
+    echo "[wr] ${file}" >&2
+    [ -e "${file}" ] && rm -f "${file}~" && cp -a "${file}" "${file}~"
+    echo "${output}" >"${file}"
+}
+
+_genconfig_symlink() {
+    local l=${1}
+    local f=${2}
+    [ -L "${f}" ] && [ "${l}" = "$(readlink ${f})" ] && return 0
+    echo "[ln] ${f}" >&2
+    [ -e "${f}" ] && rm -f "${f}~" && mv "${f}" "${f}~"
+    rm -f "${f}" && ln -s "${l}" "${f}"
+}
+
+_GENCONFIG_ERROR=0
+
+_genconfig_exec() {
+    #echo "${*}" >&2
+    local output
+    local status
+    output=$( set -e ; "${@}" )
+    status=${?}
+    case ${status} in
+        0) _genconfig_write "${2}" "${output}";;
+      254) ;;
+        *) echo "${*}: Error ${status}" >&2
+           let "_GENCONFIG_ERROR += 1"
+    esac
+}
+
+# Expand templates on all nodes unconditionally
+_gen_template() {
+    case ${1##*/} in
+        *.*) local template="${1%.*}-template.${1##*.}" ;;
+        *)   local template="${1}-template"             ;;
+    esac
+
+    shift
+    IFS="${nl}" ; /etc/gentmpl ${_GENCONFIG_FOREACH} "${@}" <"${template}"
+}
+
+_genconfig_done() {
+    return 254
+}
+
+# Expand templates on cluster only
+_gen_template_cluster() {
+    case ${_GENCONFIG_node_id} in 'standalone') _genconfig_done ; esac
+    _gen_template "${@}"
+}
+
+_get_props() {
+    for prop in $@; do
+        local var="_GENCONFIG_${prop}"
+        echo "${prop}=${!var}"
+    done
+}
+
+_genconfig_exit() {
+    exit ${_GENCONFIG_ERROR}
+}
+
+_genconfig_rm() {
+    local file=${1}
+    [ -f "${file}" ] || return 0
+    echo "[rm] ${file}" >&2
+    rm -f "${file}"
+}
+
+# Convert node_index to node_id.
+_genconfig_node_id() {
+    case ${1} in
+       'standalone') echo "${1}"     ;;
+        [0-9]*)      echo "vipr${1}" ;;
+       *)            echo "Invalid node_index: ${1}" >&2 && return 253 ;;
+    esac
+}
+
+# Convert node_index to node_name
+_genconfig_node_name() {
+    case ${1} in
+       'standalone') echo "${1}"     ;;
+        [0-9]*)      echo "vipr${1}" ;;
+       *)            echo "Invalid node_index: ${1}" >&2 && return 253 ;;
+    esac
+}
+
+# Convert node_name or node_id to node_index
+_genconfig_node_index() {
+    case ${1} in
+        'standalone')    echo  "${1}"         ;;
+        *[^-][0-9]*)     echo "${1##*[^0-9]}" ;;
+        *)               echo "Invalid node_id: ${1}" >&2 && return 253 ;;
+    esac
+}
+
+# Convert node_name to node_suffix
+_genconfig_node_suffix() {
+    case ${1} in
+        standalone)     echo "${1}"          ;;
+        *[^0-9]-[0-9]*) echo "${1#*[^0-9]-}" ;;
+        *[0-9])         echo "${1##*[^0-9]}" ;;
+        *)              echo "Invalid node_name: ${1}" >&2 && return 253 ;;
+    esac
+}
+
+#get expanded form of IPV6 address
+_get_ipv6_uncompressed(){
+    local ipaddr
+    if [ "${1}" = "::0" ]; then
+        echo ""
+        return 0
+    fi
+    ipaddr=$(sipcalc ${1} | egrep '^Expanded Address' | awk '{print $4}')
+    [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
+}
+
+#check if the address is ipv6
+_is_ipv6_addr() {
+    local ipaddr=${1}
+
+    [[ ${1} =~ [^\[*:*\]] ]] && ipaddr=${ipaddr:1:${#ipaddr}-2}
+    ipaddr=$(sipcalc ${ipaddr} | egrep '^Expanded Address' | awk '{print $4}')
+    [ -z ${ipaddr} ] && return 1 || return 0
+}
+
+_is_ipv4_addr() {
+    local ipaddr=${1}
+
+    ipaddr=$(sipcalc ${ipaddr} | egrep '^Network address' | awk '{print $4}')
+    [ -z ${ipaddr} ] && return 1 || return 0
+}
+
+_get_user_ssh_dir() {
+    case "${1}" in
+        root|svcuser|storageos) echo "$(eval echo ~${1})/.ssh"  ;;
+        *)          echo "Invalid user ${1}" >&2 && return 1    ;;
+    esac
+}
+
+_get_authorized_users() {
+    case "${1}" in
+        root)       echo root           ;;
+        svcuser)    echo root svcuser   ;;
+        storageos)  echo root storageos ;;
+        *)          echo "Invalid user ${1}" >&2 && return 1    ;;
+    esac
+}
+
+# This function depends on public key files and must be run after _gen_ssh_user_key
+_gen_ssh_authkeys2() {
+    user="${1}"
+    group=$( IFS=':' ; set -- `getent passwd ${user}`  ; echo "${4}"  )
+
+    dirname=$(_get_user_ssh_dir ${user})
+    _genconfig_mkdir 700 ${user}:${group} "${dirname}"
+
+    prop_name="_GENCONFIG_system_${user}_authorizedkeys2"
+    val="${!prop_name}"
+
+    for authorized_user in $(_get_authorized_users ${user}); do
+        for algo in dsa rsa ecdsa; do
+            publkey_filename="$(_get_user_ssh_dir ${authorized_user})/id_${algo}.pub"
+            if [ -s "${publkey_filename}" ]; then
+                val+="${nl}$(<${publkey_filename})"
+            fi
+        done
+    done
+
+    authkeys_filename="${dirname}/authorized_keys2"
+    _genconfig_write 400 ${user}:${group} "${authkeys_filename}" "${val}"
+    _genconfig_done
+}

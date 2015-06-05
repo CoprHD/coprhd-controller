@@ -1,0 +1,43 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.networks'] /}
+
+#{DataTable.formAction @delete(), id:'removeForm', table:'networks'/}
+#{DataTable.formAction @register(), id:'registerForm', table:'networks'/}
+#{DataTable.formAction @deregister(), id:'deregisterForm', table:'networks'/}
+
+#{DataTable.header titleKey:'Networks.list.title' /}
+#{DataTable.table id:'networks', 
+                  dataTable:dataTable,
+                  source:@listJson(),
+                  selectable:true, 
+                  deleteData:['property':'discovered', 'value': 'false'],
+                  deleteConfirm:messages.get('Networks.deleteConfirm')}
+  #{DataTable.buttonBar}
+    #{Form.button name:'Networks.add', class:'success', icon:'plus', action:'$("#createDialog").modal("show")'/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm',
+                  data:['enabled': 'selected', 'property': 'discovered', 'value':'false']/}
+    
+    #{Form.button name:'button.register', icon:'ok', submit:'registerForm', 
+                  data:['enabled': 'selected', 'property': 'registrationStatus', 'value':'UNREGISTERED']/}
+    #{Form.button name:'button.deregister', icon:'remove', submit:'deregisterForm', 
+                  data:['enabled': 'selected', 'property': 'registrationStatus', 'value':'REGISTERED']/}
+  #{/DataTable.buttonBar}
+#{/DataTable.table}
+
+#{include 'arrays/Networks/createDialog.html'/}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction @edit(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+</script>
+#{/set}

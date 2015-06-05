@@ -1,0 +1,16 @@
+<div style="float:left;height:50px">
+    <img ng-src="/public/img/assets/{{resourceImage(task.resourceType)}}" width="50px" height="40px" class="blue-icon"/>
+</div>
+<div class="task-dialog-card-middle">
+    <div class="task-dialog-card-progress-label">{{task.description}}</div>
+    <div class="progress" style="height:15px" ng-class="task.progress < 100?'progress-striped active':''">
+        <div class="progress-bar" ng-class="task.isError?'progress-bar-danger':''"  role="progressbar" aria-valuenow="{{task.progress}}" aria-valuemin="0" aria-valuemax="100" ng-style="{width:task.progress+'%'}">
+            <span class="sr-only"></span>
+        </div>
+    </div>
+
+</div>
+<div style="float:right" class="task-dialog-card-right">
+    <div class="task-dialog-card-progress-time">{{calculateTimeElapsed(task.startDate, task.endDate)}}</div>
+    <div class="task-dialog-card-progress-percent">{{task.progress}}%</div>
+</div>

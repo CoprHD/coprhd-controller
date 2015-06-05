@@ -1,0 +1,21 @@
+Commands required to setup the VMAX storage system as ViPR managed system
+=========================================================================
+viprcli vpool create -n BLOCK_VPOOL -t block -pl FC -pt thin -maxsnapshots 2 -mp 2
+
+viprcli varray create -n Test_Varray
+viprcli varray allow -n Test_Varray
+
+viprcli network create -n FCZONE_VMAX -transport_type FC -va Test_Varray
+viprcli network endpoint add -n FCZONE_VMAX -endpoint 20:00:00:E0:8B:80:E8:4A -va Test_Varray
+viprcli network endpoint add -n FCZONE_VMAX -endpoint 21:00:00:E0:8B:80:E8:4A -va Test_Varray
+
+viprcli storagesystem create -n VMAX_ARRAY -t vmax -smisip 10.247.99.75 -sp 5988 -su admin
+
+viprcli storagepool list -l -t vmax -sn 235
+viprcli storagepool update -t vmax -sn 235 -vaadd Test_Varray -name CLI
+
+viprcli storageport list -l -t vmax -sn 235
+viprcli storageport update -network FCZONE_VMAX -t vmax -sn 235 -va Test_Varray -tt FC
+
+viprcli vpool add_pools -n BLOCK_VPOOL -t block -pools CLI -sn 235 -dt vmax
+viprcli vpool get_pools -n BLOCK_VPOOL -t block

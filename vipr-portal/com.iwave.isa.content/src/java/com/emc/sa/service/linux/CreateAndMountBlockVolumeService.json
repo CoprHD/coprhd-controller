@@ -1,0 +1,93 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"CreateAndMountBlockVolume.Block.Linux",
+  serviceId:"Linux-CreateAndMountBlockVolume",
+  fields:{
+    host:{
+      type:"assetType.vipr.linuxHost"
+    },
+
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+    
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true
+    },
+
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    },
+
+    consistencyGroup:{
+      type:"assetType.vipr.consistencyGroup",
+      required:false
+    },
+
+    size:{
+      type:"storageSize",
+      validation:{
+        min:1
+      }
+    },
+    
+    fileSystemType:{
+      type: "choice",
+      initialValue: "ext3",
+      select: "one",
+      options: {
+        "ext2": "ext2",
+        "ext3": "ext3",
+        "ext4": "ext4"
+      },
+      lockable: true
+    },
+    
+    blockSize:{
+        type: "choice",
+        initialValue: "Default",
+        select: "one",
+        options: {
+          "DEFAULT": "Default",
+          "1024": "1k",
+          "2048": "2k",
+          "4096": "4k",
+          "8192": "8k",
+          "16384": "16k",
+          "32768": "32k",
+          "65536": "64k"
+        },
+        required: false,
+        lockable: true
+    },
+    
+    mountPoint:{
+      type:"text",
+      validation:{
+        regEx:"/[A-Za-z0-9/_\.\-]*"
+      }
+    },
+
+    hlu: {
+      type:"number",
+      lockable: true,
+      required: false,
+      initialValue: "-1",
+      validation: {
+        min:-1
+      }
+    }
+  }
+}

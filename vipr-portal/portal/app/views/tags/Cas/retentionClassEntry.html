@@ -1,0 +1,36 @@
+<div class="row row-gap-sm col-gap-sm">
+  #{field "${_fieldName}[${_index}].name"}
+    %{
+      field.id = null
+      field.value = _retentionClass?.name
+      field.cssClass = 'form-control-editable'
+      field.atts = ['placeholder': messages.get(_fieldName+'.name.placeholder')]
+    }%
+    <div class="col-xs-4 ${field.error ? 'has-error' : ''}">
+      #{if _readOnly}
+        #{Form.static field:field/}
+      #{/if}
+      #{else}
+        #{Form.inputText field:field/}
+      #{/else}
+    </div>
+  #{/field}
+  #{field "${_fieldName}[${_index}].value"}
+    %{
+      field.id = null
+      field.value = _retentionClass?.value
+      field.cssClass = 'form-control-editable'
+      field.atts = ['placeholder': messages.get(_fieldName+'.value.placeholder')]
+    }%
+    <div class="col-xs-4 ${field.error ? 'has-error' : ''}">#{Form.inputText field:field/}</div>
+  #{/field}
+  #{field "${_fieldName}[${_index}].units"}
+    %{
+      field.id = null
+      field.value = _retentionClass?.units
+      field.options = _options
+    }%
+    <div class="col-xs-3 ${field.error ? 'has-error' : ''}">#{Form.selectOne field:field/}</div>
+  #{/field}
+  <div class="col-xs-1">#{if !_readOnly}<button type="button" class="close" data-remove="entry">&times;</button>#{/if}</div>
+</div>

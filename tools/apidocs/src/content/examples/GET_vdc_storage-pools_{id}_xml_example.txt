@@ -1,0 +1,64 @@
+GET https://192.168.0.0:4443/vdc/storage-pools/urn:storageos:StoragePool:06ddb367-d8fe-4e3e-b772-ec9d28c21bdd: HTTP/1.1 
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <storage_pool>
+       <creation_time>1379168887836</creation_time>
+       <id>urn:storageos:StoragePool:06ddb367-d8fe-4e3e-b772-ec9d28c21bdd:</id>
+       <inactive>false</inactive>
+       <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:/storage-pools/urn:storageos:StoragePool:06ddb367-d8fe-4e3e-b772-ec9d28c21bdd:" rel="self"/>
+       <name>CLARIION+APM00112900836+POOL+U+CapacityPool</name>
+       <tags/>
+       <native_guid>CLARIION+APM00112900836+POOL+U+CapacityPool</native_guid>
+       <connected_varrays>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</connected_varrays>
+       <controller_params/>
+       <copy_types>
+            <copy_type>SYNC</copy_type>
+            <copy_type>UNSYNC_ASSOC</copy_type>
+       </copy_types>
+       <drive_types/>
+       <free_gb>3636</free_gb>
+       <max_pool_utilization_percentage>75</max_pool_utilization_percentage>
+       <max_resources>-1</max_resources>
+       <max_thin_pool_subscription_percentage>300</max_thin_pool_subscription_percentage>
+       <maximum_thick_volume_size_gb>3561</maximum_thick_volume_size_gb>
+       <maximum_thin_volume_size_gb>16384</maximum_thin_volume_size_gb>
+       <minimum_thick_volume_size_gb>0</minimum_thick_volume_size_gb>
+       <minimum_thin_volume_size_gb>0</minimum_thin_volume_size_gb>
+       <num_resources>0</num_resources>
+       <operational_status>READY</operational_status>
+       <percent_subscribed>2</percent_subscribed>
+       <percent_used>1</percent_used>
+       <pool_name>CapacityPool</pool_name>
+       <pool_service_type>block</pool_service_type>
+       <protocols>
+             <protocol>iSCSI</protocol>
+             <protocol>FC</protocol>
+       </protocols>
+       <raid_levels>
+             <raid_level>RAID6</raid_level>
+       </raid_levels>
+       <registration_status>REGISTERED</registration_status>
+       <storage_system>
+             <id>urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:</id>
+             <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c4ca726b-d108-49b5-8d79-ba060cc8775b:" rel="self"/>
+       </storage_system>
+       <subscribed_gb>43</subscribed_gb>
+       <supported_resource_types>THIN_AND_THICK</supported_resource_types>
+       <tagged_varrays>urn:storageos:VirtualArray:ae316135-5742-4f40-b4b0-8d38d9604917:</tagged_varrays>
+       <thin_volume_preallocation_supported>false</thin_volume_preallocation_supported>
+       <tier_utilization_percentages>
+            <tier_utilization_percentage>
+                 <name>SATA</name>
+                 <value>100</value>
+            </tier_utilization_percentage>
+       </tier_utilization_percentages>
+       <usable_gb>3657</usable_gb>
+       <used_gb>21</used_gb>
+  </storage_pool>

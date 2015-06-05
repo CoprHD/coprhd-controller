@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="dataDomainFactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
+		init-method="init" >
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="needCertificateManager" value="true"/>
+    </bean>
+
+	<bean id="datadomain"
+		class="com.emc.storageos.volumecontroller.impl.plugins.DataDomainCommunicationInterface">
+        <property name="dataDomainFactory" ref="dataDomainFactory" />
+        <property name="partitionManager" ref="partitionManager"/>
+	</bean>
+
+    <bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
+
+</beans>

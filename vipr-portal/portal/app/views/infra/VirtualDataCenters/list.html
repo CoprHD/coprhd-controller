@@ -1,0 +1,118 @@
+%{
+   currentVDC = vdcs.find { it.local }  
+   isRootUser =  currentUser?.commonName == 'root';
+   isSecurityAdmin = currentUser?.roles?.find{ "SECURITY_ADMIN".equals(it.roleName)} != null
+   isRestrictedSecurityAdmin = currentUser?.roles?.find{ "RESTRICTED_SECURITY_ADMIN".equals(it.roleName)} != null
+   isSelectable = isSecurityAdmin && isRootUser == false
+}%
+#{extends 'main.html'/}
+#{set navSelected: ['nav.virtualStorage', 'nav.vdcs'] /}
+<div ng-controller="vdcTaskCtrl">
+	<div v-disable-children="task && !task.isComplete" disable-links>
+		<div class="alert " ng-class="{'alert-info':inProgress, 'alert-danger':isError, 'alert-success':isSuccess}" ng-show="task">
+			<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+			<span class="label " ng-class="{'label-info':inProgress, 'label-danger':isError, 'label-success':isSuccess}">
+				<span class="glyphicon " ng-class="{'glyphicon-refresh rotate':inProgress, 'glyphicon-remove':isError, 'glyphicon-ok':isSuccess}"></span>
+			</span>
+			<span class="vdc-task-progress">{{taskStatusMessage || task.name}}</span>
+			<span class="vdc-task-progress">[{{task.resourceName}}]</span>
+			<span ng-show="isError" class="vdc-task-progress">{{task.serviceCode_error}}:</span>
+			<span ng-show="isError" class="vdc-task-progress">{{task.serviceCode_errorDesc}}:</span>
+			<span ng-show="isError" class="vdc-task-progress">{{task.serviceCode_message}}</span>
+			<div style="clear:both;"></div>
+		</div>
+	
+	#{DataTable.header titleKey:'vdcs.list.title' /}
+	#{DataTable.table id:'vdcs', dataTable:dataTable, source:@listJson(),
+	                      selectable:isSelectable,
+	                      expandable:true}
+	
+	    #{DataTable.buttonBar}
+	        #{if isRootUser == false}
+	    	    #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+	    			#{Form.button name:'button.add', class:'success', icon:'plus', submit:'createForm'/}
+	    		    #{Form.button name:'button.delete', class:'danger', icon:'minus', submit:'deleteForm', 
+	                              data:['enabled':'selected', 'selection':'single', 'property':'canDelete', 'value':'true']/}
+	                #{Form.button name:'button.reconnect', class:'info', icon:'ok-circle', submit:'reconnectForm', 
+	                              data:['enabled':'selected', 'selection':'single', 'property':'canReconnect', 'value':'true']/}
+	                #{Form.button name:'button.disconnect', class:'warning', icon:'remove-circle', submit:'disconnectForm',
+	                              data:['enabled':'selected', 'selection':'single', 'property':'canDisconnect', 'value':'true']/}
+	    		#{/deadbolt.restrict}
+	        #{/if}
+	        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+	    	 #{Form.button name:'button.secretKey', class:'default', icon:'vipricon-secretkey', action:'showSecretKeyDialog()'/}
+	        #{/deadbolt.restrict}
+	    	<a id="cert_download" class="btn btn-default" href="@{downloadCertificateChain()}">#{icon 'download'/} &{'button.certificate'}</a>
+	    	#{if isRootUser == false}
+	    	    #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
+	    	    &nbsp;&nbsp;<span id="rebootRequiredMessage" class="text-danger">&{'vdc.rebootRequiredMessageOnDelete'}</span>
+	    	    #{/deadbolt.restrict}
+	        #{/if}
+		#{/DataTable.buttonBar}
+	  
+	#{/DataTable.table}
+	#{DataTable.expandHtml @itemDetails(':id'), table:'vdcs'/}
+	#{DataTable.formAction @create(), id:'createForm', table:'vdcs'/}
+	#{DataTable.formAction @delete(), id:'deleteForm', table:'vdcs'/}
+	#{DataTable.formAction @disconnect(), id:'disconnectForm', table:'vdcs'/}
+	#{DataTable.formAction @reconnect(), id:'reconnectForm', table:'vdcs'/}
+	#{Modal.dialog id:'secretKeyDialog', titleKey: 'vdc.secretKey.modal'}
+	  #{Modal.body cssClass:'form-horizontal'} 
+		  #{field 'vdc.secretKey.modal'}
+		      %{
+		        field.value = secretKey;
+		      }%
+		      #{Form.inputText noLabel:true, field:field/}
+		  #{/field}
+		  <div>
+		    <span class="help-block">${messages.get('vdc.secretKey.modal.help', null)}</span>
+		  </div>
+	  #{/Modal.body}
+	  #{Modal.footer}
+	    #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
+	  #{/Modal.footer}
+	#{/Modal.dialog}
+	</div>
+</div>
+<script>
+$('#vdc_secretKey_modal').focus(function(){
+    this.select();
+});
+
+$('.modal').on('shown.bs.modal', function (e) {
+	$('#vdc_secretKey_modal').focus();
+});
+
+function showSecretKeyDialog() {
+    $('#secretKeyDialog').modal();
+}
+
+function renderLink(o, val) {
+    var data = o.aData;
+    var status = data.connectionStatus;
+    var localVdc = data.local;
+    var isRootUser = ${isRootUser};
+    var isSecurityAdmin = ${isSecurityAdmin};
+    var isRestrictedSecurityAdmin = ${isRestrictedSecurityAdmin};
+    var url = #{jsAction (_edit ?: @edit(':id')) /};
+    var href = url(data);
+    if (status == 'CONNECT_PRECHECK_FAILED' || 
+    		status == 'CONNECT_FAILED' || 
+    		status == 'REMOVE_FAILED') {
+        return val;
+    }
+    else if (isRootUser && localVdc) {
+    	return "<a href='"+href+"'>" + val + "</a>";
+    }
+    else if (!isRootUser && (isSecurityAdmin || isRestrictedSecurityAdmin)) {
+    	return "<a href='"+href+"'>" + val + "</a>";
+    }
+    return val;
+}
+
+$(document).ready(function() {
+    var dataTable = table.vdcs.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+    watchVDCStatus(dataTable, itemsJson,"lastSeen");
+});
+</script>

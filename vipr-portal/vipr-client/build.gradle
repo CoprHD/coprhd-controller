@@ -1,0 +1,55 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+
+dependencies {
+
+    compile library(jersey_client)
+
+    compile project(":models")
+
+    testCompile \
+        library(log4j),
+        library(junit),
+        library(slf4j)
+}
+
+task docs(type: Javadoc, dependsOn: ":models:compileJava") {
+    source = [sourceSets.main.allJava, project(":models").sourceSets.main.allJava]
+    classpath = sourceSets.main.compileClasspath
+
+    // Exclude impl directory that only contains internal tools
+    exclude '**/impl/**'
+
+    // Only include public methods in the generated docs
+    options.memberLevel = JavadocMemberLevel.PUBLIC
+    options.quiet()
+}
+
+task docsJar(type: Jar, dependsOn: docs) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives docsJar
+}
+
+def createLabConfigTask(name, path) {
+    project.task(name, dependsOn: 'compileJava') << {
+        def config = new org.codehaus.groovy.control.CompilerConfiguration(classpath:sourceSets.main.runtimeClasspath.asPath)
+        GroovyShell shell = new GroovyShell(new Binding(), config)
+    
+        def args = []
+        if (System.properties["server"] != null) {
+            def server = System.properties["server"]
+            args << server
+        }
+    
+        shell.parse(file("src/test/com/emc/vipr/client/labsetup/License.groovy"))
+        shell.parse(file("src/test/com/emc/vipr/client/labsetup/SetupUtils.groovy"))
+        shell.run(file(path), args)
+    }
+}
+
+createLabConfigTask('loadLabConfig', 'src/test/com/emc/vipr/client/labsetup/LoadViPRLab.groovy')
+createLabConfigTask('loadAuthConfig', 'src/test/com/emc/vipr/client/labsetup/LoadViPRAuth.groovy')

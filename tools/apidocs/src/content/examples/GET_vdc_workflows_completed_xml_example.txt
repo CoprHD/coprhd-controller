@@ -1,0 +1,103 @@
+GET https://192.168.0.0:4443/vdc/workflows/completed HTTP/1.1  
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml  
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workflows>
+    <workflow>
+        <creation_time>1379169066311</creation_time>
+        <id>urn:storageos:Workflow:33374500-88b9-4bde-ae59-1b0f2ecfa886:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/workflows/urn:storageos:Workflow:33374500-88b9-4bde-ae59-1b0f2ecfa886:" rel="self"/>
+        <tags/>
+        <completed>true</completed>
+        <completion_message>Create volumes successful for: [urn:storageos:Volume:badc74e1-cc07-4d00-9229-4692ba8749b0:, urn:storageos:Volume:480bd530-3640-4bae-b5ec-9bccd53a0e76:, urn:storageos:Volume:b2eb100d-713d-4bd1-b21b-6126c0165487:]</completion_message>
+        <completion_state>SUCCESS</completion_state>
+        <orchestration_controller_name>BlockOrchestrationDeviceController</orchestration_controller_name>
+        <orchestration_method>CREATE_VOLUMES_WORKFLOW</orchestration_method>
+        <orchestration_task_id>4f1e7f04-d1d2-4543-8296-9f66d9e19380</orchestration_task_id>
+    </workflow>
+    <workflow>
+        <creation_time>1379678810212</creation_time>
+        <id>urn:storageos:Workflow:26be35cd-9a2b-450f-9c72-4038cafdf898:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/workflows/urn:storageos:Workflow:26be35cd-9a2b-450f-9c72-4038cafdf898:" rel="self"/>
+        <tags/>
+        <completed>true</completed>
+        <completion_message>Create volumes successful for: [urn:storageos:Volume:02ed86cd-d894-4ae5-b9b1-2d491d1b2f65:]</completion_message>
+        <completion_state>SUCCESS</completion_state>
+        <orchestration_controller_name>BlockOrchestrationDeviceController</orchestration_controller_name>
+        <orchestration_method>CREATE_VOLUMES_WORKFLOW</orchestration_method>
+        <orchestration_task_id>7c867b54-a641-49bc-b500-c581a38c4ecc</orchestration_task_id>
+    </workflow>
+    <workflow>
+        <creation_time>1379682637596</creation_time>
+        <id>urn:storageos:Workflow:df233250-7ca6-412a-ab6d-4ca7cb5e6d10:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/workflows/urn:storageos:Workflow:df233250-7ca6-412a-ab6d-4ca7cb5e6d10:" rel="self"/>
+        <tags/>
+        <completed>true</completed>
+        <completion_message>Exported to all devices successfully.</completion_message>
+        <completion_state>SUCCESS</completion_state>
+        <orchestration_controller_name>ExportWorkflowEntryPoints</orchestration_controller_name>
+        <orchestration_method>exportGroupCreate</orchestration_method>
+        <orchestration_task_id>6437797d-d41a-42d2-8c42-7f728493c906</orchestration_task_id>
+    </workflow>
+    <workflow>
+        <creation_time>1379169845238</creation_time>
+        <id>urn:storageos:Workflow:452df8ea-dbec-428f-8565-3336d0ecb3b6:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/workflows/urn:storageos:Workflow:452df8ea-dbec-428f-8565-3336d0ecb3b6:" rel="self"/>
+        <tags/>
+        <completed>true</completed>
+        <completion_message>Create volumes successful for: [urn:storageos:Volume:93b77fdf-5d00-4b5c-acba-06363985e1fa:, urn:storageos:Volume:c8564fac-0d71-435c-8a48-16ebd509eba7:, urn:storageos:Volume:1d7f7be7-5094-4282-8321-adfc11a75d79:]</completion_message>
+        <completion_state>SUCCESS</completion_state>
+        <orchestration_controller_name>BlockOrchestrationDeviceController</orchestration_controller_name>
+        <orchestration_method>CREATE_VOLUMES_WORKFLOW</orchestration_method>
+        <orchestration_task_id>bef50c89-de8d-4610-95f3-ec391b2aa70e</orchestration_task_id>
+    </workflow>
+    <workflow>
+        <creation_time>1379678483194</creation_time>
+        <id>urn:storageos:Workflow:0c58c509-c7ae-41a4-afa3-ea028ff4922c:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/workflows/urn:storageos:Workflow:0c58c509-c7ae-41a4-afa3-ea028ff4922c:" rel="self"/>
+        <tags/>
+        <completed>true</completed>
+        <completion_message>Create volumes successful for: [urn:storageos:Volume:16e26d2b-e291-4462-a10c-efe45003518c:, urn:storageos:Volume:7ab81667-500d-4e3c-b05a-f033384f05fb:, urn:storageos:Volume:7a9c3111-1e90-4374-a8aa-111e1e07c049:]</completion_message>
+        <completion_state>SUCCESS</completion_state>
+        <orchestration_controller_name>BlockOrchestrationDeviceController</orchestration_controller_name>
+        <orchestration_method>CREATE_VOLUMES_WORKFLOW</orchestration_method>
+        <orchestration_task_id>6b43446d-f020-4931-b502-3360209c5074</orchestration_task_id>
+    </workflow>
+    <workflow>
+        <creation_time>1379682637760</creation_time>
+        <id>urn:storageos:Workflow:8e5c4a4a-987c-4d94-a39e-b917b1180d98:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/workflows/urn:storageos:Workflow:8e5c4a4a-987c-4d94-a39e-b917b1180d98:" rel="self"/>
+        <tags/>
+        <completed>true</completed>
+        <completion_message>ExportGroup successfully applied for StorageArray SYMMETRIX+000195701185</completion_message>
+        <completion_state>SUCCESS</completion_state>
+        <orchestration_controller_name>MaskingWorkflowEntryPoints</orchestration_controller_name>
+        <orchestration_method>exportGroupCreate</orchestration_method>
+        <orchestration_task_id>523bc2b2-ac71-4129-960f-ba3bdccc342673bc3786-fe18-43d8-b07b-6a4db4d78236</orchestration_task_id>
+    </workflow>
+    <workflow>
+        <creation_time>1379170818593</creation_time>
+        <id>urn:storageos:Workflow:b6024657-4f71-48bd-b426-b83a8cf038a5:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/workflows/urn:storageos:Workflow:b6024657-4f71-48bd-b426-b83a8cf038a5:" rel="self"/>
+        <tags/>
+        <completed>true</completed>
+        <completion_message>The job has failed: string ErrorDescription = "C:ERROR_CLASS_SOFTWARE F:ERROR_FAMILY_FAILED R:1000006 An error from a sub-library call occurred : 2 : 20027 : \"The specified LUN name is already in use.\"";; Rollback error: Volume does not exist or is already deleted</completion_message>
+        <completion_state>ERROR</completion_state>
+        <orchestration_controller_name>BlockOrchestrationDeviceController</orchestration_controller_name>
+        <orchestration_method>CREATE_VOLUMES_WORKFLOW</orchestration_method>
+        <orchestration_task_id>ef079d67-8089-492d-b1e7-3078f87d5bbe</orchestration_task_id>
+    </workflow>
+</workflows>
+

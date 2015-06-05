@@ -1,0 +1,63 @@
+GET https://192.168.0.0:443/api/orders/urn:storageos:Order:fccdd7b2-1ff9-4c7e-9552-a75c9ccd9c11:/execution HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "startDate": "Sep 26, 2013 3:13:17 PM",
+  "endDate": "Sep 26, 2013 3:13:22 PM",
+  "executionStatus": "FAILED",
+  "currentTask": "",
+  "affectedResources": [
+    "urn:storageos:FileShare:a04c02d7-2a13-4321-8c58-f4e06a69b21d:"
+  ],
+  "executionLogs": [
+    {
+      "date": "Sep 26, 2013 3:13:19 PM",
+      "level": "INFO",
+      "message": "FileSystem ID: urn:storageos:FileShare:a04c02d7-2a13-4321-8c58-f4e06a69b21d:, Task ID: 6825f5bf-f695-4355-b21c-280bd31a646e",
+      "phase": "EXECUTE"
+    },
+    {
+      "date": "Sep 26, 2013 3:13:19 PM",
+      "level": "ERROR",
+      "message": "An error occurred while finding a suitable placement to handle the request (code: 1034). No IP networks found to satisfy the request. Check to ensure the virtual array has at least one IP network and all hosts and storage ports to be used are added to the network.",
+      "stackTrace": "com.iwave.ext.emc.bourne.om.ServiceErrorException: An error occurred while finding a suitable placement to handle the request (code: 1034). No IP networks found to satisfy the request. Check to ensure the virtual array has at least one IP network and all hosts and storage ports to be used are added to the network.\n\tat com.iwave.ext.emc.bourne.filters.ExceptionOnErrorFilter.handle(ExceptionOnErrorFilter.java:76)\n\tat com.iwave.ext.emc.bourne.filters.ProxyTokenFilter.handle(ProxyTokenFilter.java:29)\n\tat com.iwave.ext.emc.bourne.filters.AuthTokenFilter.handle(AuthTokenFilter.java:34)\n\tat com.iwave.ext.emc.bourne.BourneAPIClient$2.handle(BourneAPIClient.java:133)\n\tat com.sun.jersey.api.client.Client.handle(Client.java:648)\n\tat com.sun.jersey.api.client.WebResource.handle(WebResource.java:680)\n\tat com.sun.jersey.api.client.WebResource.access$200(WebResource.java:74)\n\tat com.sun.jersey.api.client.WebResource$Builder.method(WebResource.java:632)\n\tat com.emc.bourne.api.Lglw2093LssEmcCom$FileFilesystems$IdExports.postXmlAsTaskResourceRep(Lglw2093LssEmcCom.java:20426)\n\tat com.emc.sa.service.bourne.file.tasks.CreateNfsExport.doExecute(CreateNfsExport.java:41)\n\tat com.emc.sa.service.bourne.file.tasks.CreateNfsExport.doExecute(CreateNfsExport.java:10)\n\tat com.emc.sa.service.bourne.tasks.WaitForTask.executeTask(WaitForTask.java:16)\n\tat com.emc.sa.service.bourne.tasks.WaitForTask.executeTask(WaitForTask.java:11)\n\tat com.emc.sa.engine.ExecutionUtils.execute(ExecutionUtils.java:63)\n\tat com.emc.sa.engine.ExecutionUtils.execute(ExecutionUtils.java:54)\n\tat com.emc.sa.service.BourneExecutionUtils.execute(BourneExecutionUtils.java:17)\n\tat com.emc.sa.service.bourne.file.FileStorageUtils.createNfsExport(FileStorageUtils.java:115)\n\tat com.emc.sa.service.bourne.file.CreateNfsExportHelper.createNfsExport(CreateNfsExportHelper.java:70)\n\tat com.emc.sa.service.bourne.file.CreateNfsExportService.execute(CreateNfsExportService.java:31)\n\tat com.emc.sa.engine.ExecutionEngineImpl.execute(ExecutionEngineImpl.java:191)\n\tat com.emc.sa.engine.ExecutionEngineImpl.runService(ExecutionEngineImpl.java:125)\n\tat com.emc.sa.engine.ExecutionEngineImpl.executeOrder(ExecutionEngineImpl.java:68)\n\tat com.emc.sa.engine.ExecutionEngineDispatcher.processOrder(ExecutionEngineDispatcher.java:43)\n\tat com.emc.sa.engine.ExecutionEngineDispatcher$Consumer.consumeItem(ExecutionEngineDispatcher.java:63)\n\tat com.emc.sa.engine.ExecutionEngineDispatcher$Consumer.consumeItem(ExecutionEngineDispatcher.java:58)\n\tat com.emc.storageos.coordinator.client.service.impl.DistributedQueueImpl$5.call(DistributedQueueImpl.java:361)\n\tat java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)\n\tat java.util.concurrent.FutureTask.run(FutureTask.java:138)\n\tat java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:895)\n\tat java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:918)\n\tat java.lang.Thread.run(Thread.java:662)\n",
+      "phase": "EXECUTE"
+    }
+  ],
+  "executionTasks": [
+    {
+      "detail": "POST /file/filesystems(label: tc-isi-1, size:1 GB, vpoolId: urn:storageos:VirtualPool:c32d5401-883f-46e7-aef7-95e1dd15bc56:, varrayId: urn:storageos:VirtualArray:158b7b85-dece-477c-b649-39044e92e829:, projectId: urn:storageos:Project:c1a74db8-fb12-48c3-a602-409a970c2b4a:)",
+      "elapsed": 2207,
+      "date": "Sep 26, 2013 3:13:19 PM",
+      "level": "INFO",
+      "message": "Create File System",
+      "phase": "EXECUTE"
+    },
+    {
+      "detail": "POST /file/filesystems/urn:storageos:FileShare:a04c02d7-2a13-4321-8c58-f4e06a69b21d:/exports",
+      "elapsed": 75,
+      "date": "Sep 26, 2013 3:13:19 PM",
+      "level": "ERROR",
+      "message": "Create Nfs Export",
+      "stackTrace": "com.iwave.ext.emc.bourne.om.ServiceErrorException: An error occurred while finding a suitable placement to handle the request (code: 1034). No IP networks found to satisfy the request. Check to ensure the virtual array has at least one IP network and all hosts and storage ports to be used are added to the network.\n\tat com.iwave.ext.emc.bourne.filters.ExceptionOnErrorFilter.handle(ExceptionOnErrorFilter.java:76)\n\tat com.iwave.ext.emc.bourne.filters.ProxyTokenFilter.handle(ProxyTokenFilter.java:29)\n\tat com.iwave.ext.emc.bourne.filters.AuthTokenFilter.handle(AuthTokenFilter.java:34)\n\tat com.iwave.ext.emc.bourne.BourneAPIClient$2.handle(BourneAPIClient.java:133)\n\tat com.sun.jersey.api.client.Client.handle(Client.java:648)\n\tat com.sun.jersey.api.client.WebResource.handle(WebResource.java:680)\n\tat com.sun.jersey.api.client.WebResource.access$200(WebResource.java:74)\n\tat com.sun.jersey.api.client.WebResource$Builder.method(WebResource.java:632)\n\tat com.emc.bourne.api.Lglw2093LssEmcCom$FileFilesystems$IdExports.postXmlAsTaskResourceRep(Lglw2093LssEmcCom.java:20426)\n\tat com.emc.sa.service.bourne.file.tasks.CreateNfsExport.doExecute(CreateNfsExport.java:41)\n\tat com.emc.sa.service.bourne.file.tasks.CreateNfsExport.doExecute(CreateNfsExport.java:10)\n\tat com.emc.sa.service.bourne.tasks.WaitForTask.executeTask(WaitForTask.java:16)\n\tat com.emc.sa.service.bourne.tasks.WaitForTask.executeTask(WaitForTask.java:11)\n\tat com.emc.sa.engine.ExecutionUtils.execute(ExecutionUtils.java:63)\n\tat com.emc.sa.engine.ExecutionUtils.execute(ExecutionUtils.java:54)\n\tat com.emc.sa.service.BourneExecutionUtils.execute(BourneExecutionUtils.java:17)\n\tat com.emc.sa.service.bourne.file.FileStorageUtils.createNfsExport(FileStorageUtils.java:115)\n\tat com.emc.sa.service.bourne.file.CreateNfsExportHelper.createNfsExport(CreateNfsExportHelper.java:70)\n\tat com.emc.sa.service.bourne.file.CreateNfsExportService.execute(CreateNfsExportService.java:31)\n\tat com.emc.sa.engine.ExecutionEngineImpl.execute(ExecutionEngineImpl.java:191)\n\tat com.emc.sa.engine.ExecutionEngineImpl.runService(ExecutionEngineImpl.java:125)\n\tat com.emc.sa.engine.ExecutionEngineImpl.executeOrder(ExecutionEngineImpl.java:68)\n\tat com.emc.sa.engine.ExecutionEngineDispatcher.processOrder(ExecutionEngineDispatcher.java:43)\n\tat com.emc.sa.engine.ExecutionEngineDispatcher$Consumer.consumeItem(ExecutionEngineDispatcher.java:63)\n\tat com.emc.sa.engine.ExecutionEngineDispatcher$Consumer.consumeItem(ExecutionEngineDispatcher.java:58)\n\tat com.emc.storageos.coordinator.client.service.impl.DistributedQueueImpl$5.call(DistributedQueueImpl.java:361)\n\tat java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)\n\tat java.util.concurrent.FutureTask.run(FutureTask.java:138)\n\tat java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:895)\n\tat java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:918)\n\tat java.lang.Thread.run(Thread.java:662)\n",
+      "phase": "EXECUTE"
+    },
+    {
+      "detail": "POST /file/filesystems/urn:storageos:FileShare:a04c02d7-2a13-4321-8c58-f4e06a69b21d:/deactivate",
+      "elapsed": 2168,
+      "date": "Sep 26, 2013 3:13:22 PM",
+      "level": "INFO",
+      "message": "Deactivate File System",
+      "phase": "ROLLBACK"
+    }
+  ]
+}
+
+
+
+

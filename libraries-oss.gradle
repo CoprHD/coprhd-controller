@@ -1,0 +1,25 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+ext {
+    emclibrary = { deps ->
+        deps.collectNested { dep ->
+            dependencies.create(dep) {
+                transitive = false
+            }
+        }
+    }
+
+    zookeeper = [
+        slf4j,
+        log4j,
+        "jline:jline:0.9.94",
+        "org.jboss.netty:netty:3.2.8.Final",
+        "org.apache.zookeeper:zookeeper:3.4.6"
+    ]
+
+    netapp = [
+        "com.emc.vipr:com.iwave.ext.netapp:2.3.0.0.51978.052650b",
+        "com.emc.vipr:com.iwave.ext.netappc:2.3.0.0.51978.052650b"
+    ]
+
+}

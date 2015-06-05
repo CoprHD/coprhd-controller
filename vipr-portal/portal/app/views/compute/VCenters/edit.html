@@ -1,0 +1,157 @@
+%{
+  titleKey = 'VCenters.' + (vCenter?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'VCenters.description';
+  image = '/public/img/assets/VCenter.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.vcenters'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'VCenters.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+
+#{form @save(), id:'vcenterForm', class:'form form-horizontal', autocomplete:"off"}
+  #{if vCenter?.id}
+    #{field 'vCenter.id'}
+      <input type="hidden" name="${field.name}" value="${field.value}">
+    #{/field}
+  #{/if}
+  #{field 'vCenter.tenantId'}
+      <input type="hidden" name="${field.name}" value="${field.value}"/>
+  #{/field}
+
+  <fieldset>
+  
+  #{field 'vCenter.name'}
+    %{
+      field.cssClass = 'span6 initialFocus';
+      field.required = true
+    }%
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+  
+  #{field 'vCenter.hostname'}
+    %{
+      field.required = true
+    }%        
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+  
+  #{field 'vCenter.port'}
+    %{
+      field.required = true
+      field.cssClass = "span2"
+    }%        
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+  
+  #{field 'vCenter.username'}
+    %{
+      field.required = true
+    }%        
+    #{Form.inputTextControlGroup field:field /}
+  #{/field}
+    
+  #{field 'vCenter.password'}
+    %{
+      field.required = true
+    }%        
+    #{Form.inputPasswordControlGroup field:field /}
+  #{/field}
+  
+  #{field 'vCenter.passwordConfirm'}
+    %{
+      field.required = true
+    }%        
+    #{Form.inputPasswordControlGroup field:field /}
+  #{/field}
+  
+  </fieldset>
+  
+  #{Form.saveValidateCancelButtonBar size:'large'/}
+#{/}
+
+#{if play.mode.isDev() && dbVCenter}
+  <fieldset class="discovery vcenter">
+      <legend>&{'discovery.details'}<small>&{'discovery.details.description'}</small></legend>
+      
+      <ul>
+        #{list dbVCenter.datacenters(), as: 'datacenter'}
+          %{
+            clusters = datacenter.clusters();
+            hosts = datacenter.hosts();
+            noClusterHosts = hosts.find{ it.cluster == null }
+          }%
+          <li>
+            <span class="datacenter">${datacenter.name}</span> <span class="type">&{'vCenter.datacenter'}</span> 
+            <ul>
+              #{list clusters, as:'cluster'}
+                <li>
+                  <span class="cluster">${cluster.name}</span> <span class="type">&{'vCenter.cluster'}</span>
+                  <ul>
+                    #{list cluster.hosts(), as:'host'}
+                      <li>
+                        <span class="host">${host.name}</span> <span class="type">&{'vCenter.host'}</span>
+                        %{ 
+                          initiators = host.initiators().sort{ it.protocol };
+                          ipInterfaces = host.ipInterfaces().sort { it.protocol };
+                        }%
+                        #{if initiators}
+                          <span class="initiators">&{'vCenter.initiators'}</span>
+                          <ul>
+                            #{list initiators, as:'initiator'}
+                              <li>${initiator.wwn()} [${initiator.protocol}]</li>
+                            #{/list}
+                          </ul>
+                        #{/if}
+                        #{if ipInterfaces}
+                          <span class="ipInterfaces">&{'vCenter.ipInterfaces'}</span>
+                          <ul>
+                            #{list ipInterfaces, as:'ipInterface'}
+                              <li>${ipInterface.ipAddress} [${ipInterface.protocol}] </li>
+                            #{/list}
+                          </ul>
+                        #{/if}
+                      </li>
+                    #{/list}
+                  </ul>
+                </li>
+              #{/list}
+              #{list noClusterHosts, as:'host'}
+                <li>
+                  <span class="host">${host.name}</span> <span class="type">&{'vCenter.host'}</span>
+                  %{ 
+                    initiators = host.initiators().sort{ it.protocol };
+                    ipInterfaces = host.ipInterfaces().sort { it.protocol };
+                  }%
+                  #{if initiators}
+                    <span class="initiators">&{'vCenter.initiators'}</span>
+                    <ul>
+                      #{list initiators, as:'initiator'}
+                        <li>${initiator.wwn()} [${initiator.protocol}]</li>
+                      #{/list}
+                    </ul>
+                  #{/if}
+                  #{if ipInterfaces}
+                    <span class="ipInterfaces">&{'vCenter.ipInterfaces'}</span>
+                    <ul>
+                      #{list ipInterfaces, as:'ipInterface'}
+                        <li>${ipInterface.ipAddress} [${ipInterface.protocol}] </li>
+                      #{/list}
+                    </ul>
+                  #{/if}
+                </li>
+              #{/list}
+        #{/list}
+      </ul>
+  </fieldset>
+#{/if}
+
+</div>

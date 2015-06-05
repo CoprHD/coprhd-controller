@@ -1,0 +1,49 @@
+{
+  baseKey:"SampleService.Sample",
+  serviceId:"SampleService",
+  items:{
+    text:{
+      type:"text",
+      lockable: true
+    },
+    password:{
+      type:"password",
+      lockable: true
+    },
+    number:{
+      type:"number",
+      lockable: true
+    },
+    choice:{
+      type: "choice",
+      initialValue: "odd",
+      select: "one",
+      options: {
+        "odd": "Odd",
+        "even": "Even"
+      },
+      lockable: true
+    },
+    completion: {
+      type: "choice",
+      initialValue: "success",
+      select: "one",
+      options: {
+        "success": "Complete Successfully",
+        "rollback": "Fail with Rollback",
+        "partial": "Partial Success"
+      },
+      lockable: true
+    },
+    sleepTime: {
+      type: "number",
+      lockable: true,
+      required: false
+    },
+    multiply_repeat: {
+      type: "boolean",
+      lockable: true,
+      required: false
+    }
+  }
+}

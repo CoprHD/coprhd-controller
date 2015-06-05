@@ -1,0 +1,12 @@
+GET https://192.168.0.0:4443/vdc/admin/authnproviders/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ids>
+   <id>urn:storageos:AuthnProvider:72c88db9-2e7b-41f3-a1a4-1e3ff1fc2d6d:</id>
+   <id>urn:storageos:AuthnProvider:9088146a-fa8a-4e45-9834-89bb62cd505b:</id>
+</ids>

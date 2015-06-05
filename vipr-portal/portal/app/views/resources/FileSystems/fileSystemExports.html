@@ -1,0 +1,47 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{if exports}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.filesystem.export.mountpoint'}</th>
+      <th>&{'resources.filesystem.export.anon'}</th>
+      <th>&{'resources.filesystem.export.security'}</th>
+      <th style="text-align:right;">&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:exports, as:'export'}
+      <tr>
+        <td>
+          <img src="/public/img/serviceCatalog/icon_folder_NFS.png" style="width: 32px;"/> ${export.mountPoint}
+        </td>
+        <td>
+          ${export.anon}
+        </td>
+        <td>
+          ${export.secFlavor}
+        </td>        
+        <td style="text-align:right;">
+          <a class="btn btn-default btn-xs" onclick="updateRule('${export.exportPath}', '${export.secFlavor}', '${export.anon}')">&{'button.modify'}</a>
+          <a href="@{deleteFileSystemExport(export.getFsID(), export.getSecFlavor(), export.getExportPath())}" 
+            class="btn btn-danger btn-xs"
+            onclick="return confirm('&{'resources.filesystem.export.delete.confirm'}')"
+          >&{'button.delete'}</a>
+        </td>
+      </tr>
+    #{/list}
+    <tr>
+      <td colspan="4"><div class="pull-right"><button type="button" onclick="addRule()" class="btn btn-xs btn-success"><i v-icon=plus></i> &{'button.addExportRule'}</button></div></td>
+    </tr>
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.filesystem.export.none'}
+#{/else}
+
+#{if exportsParam.size() > 0 && !exports }
+  <div class="pull-right"><button type="button" onclick="addRule()" class="btn btn-xs btn-success"><i v-icon=plus></i> &{'button.addExportRule'}</button></div>
+#{/if}

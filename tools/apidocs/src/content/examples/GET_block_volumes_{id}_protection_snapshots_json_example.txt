@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/block/volumes/urn:storageos:Volume:16e26d2b-e291-4462-a10c-efe45003518c:/protection/snapshots.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1
+Content-Type: application/json
+
+{
+  "snapshot": [
+    {
+      "name": "block_snapshot_10",
+      "id": "urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:",
+      "link": {
+        "rel": "self",
+        "href": "/block/snapshots/urn:storageos:BlockSnapshot:df792922-170c-47ae-910a-e516d6f6da21:"
+      }
+    }
+  ]
+}

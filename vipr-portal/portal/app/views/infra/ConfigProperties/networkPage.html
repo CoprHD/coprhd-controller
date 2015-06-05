@@ -1,0 +1,12 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{ConfigProperties.property property:page.dnsServers, disabled:unstable/}
+#{ConfigProperties.property property:page.ntpServers, disabled:unstable/}
+#{ConfigProperties.property property:page.virtualIp, disabled:unstable/}
+
+#{if page.properties}
+  #{ConfigProperties.propertySet}
+    #{ConfigProperties.propertyList properties:page.properties, disabled:unstable/}
+  #{/ConfigProperties.propertySet}
+#{/if}

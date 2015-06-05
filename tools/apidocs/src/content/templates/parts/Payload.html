@@ -1,0 +1,107 @@
+<% def addPayloadLine(element, level, displayClassOverride) {
+
+displayClass="";
+
+if (displayClassOverride.equals("")) {
+    if (element.changeState == com.emc.apidocs.model.ChangeState.ADDED) {
+        displayClass="class=\"added\"";
+    } else if (element.changeState == com.emc.apidocs.model.ChangeState.REMOVED) {
+        displayClass="class=\"removed\"";
+    }
+}
+else {
+    displayClass = displayClassOverride
+}
+
+
+if (!element.wrapperName.equals("")) {
+%>
+<tr ${displayClass}>
+    <td><span class="level${level}">&lt;${element.wrapperName}&gt;</span></td>
+    <td>${element.description}</td>
+    <td></td>
+    <td><%addWrapperNotes(element)%></td>
+</tr>
+<%
+level = level+1;
+
+}
+
+if (!element.hasChildElements()) {
+%>
+<tr ${displayClass}>
+    <td><span class="level${level}">&lt;${element.name}<%addAttributes(element.type)%>&gt;</span></td>
+    <td>${element.wrapperName.equals("")?element.description:""}</td>
+    <td>${element.primitiveType}</td>
+    <td><%addNotes(element)%></td>
+</tr>
+<% } else { %>
+<tr ${displayClass}>
+    <td><span class="level${level}">&lt;${element.name}<%addAttributes(element.type)%>&gt;</span></td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+    <td><%addNotes(element)%></td>
+</tr>
+<%
+element.type.fields.each { field ->
+addPayloadLine(field, level+1, displayClass)
+}
+%>
+
+<tr ${displayClass}>
+    <td><span class="level${level}">&lt;/${element.name}&gt;</span></td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+    <td>&nbsp;</td>
+</tr>
+
+<%
+}
+
+if (!element.wrapperName.equals("")) {
+level = level -1;
+%>
+<tr ${displayClass}>
+    <td><span class="level${level}">&lt;/${element.wrapperName}&gt;</span></td>
+    <td></td>
+    <td></td>
+    <td></td>
+</tr>
+<%
+}
+}
+
+def addAttributes(field) {
+if (field != null) {
+field.attributes.each { attribute ->
+%>
+&nbsp;${attribute.name}=""<%
+}
+}
+}
+
+def addNotes(field) {
+%>
+${field.collection?"0-* Elements<br/>":""}
+<%
+if (!field.validValues.isEmpty()) {
+%>
+<b>Valid Values:</b>
+<ul>
+    <%
+    field.validValues.each { value ->
+%>
+    <li>&nbsp;${value}</li>
+    <%
+    }
+%>
+</ul>
+<%
+}
+}
+
+def addWrapperNotes(field) {
+%>
+<%
+}
+%>

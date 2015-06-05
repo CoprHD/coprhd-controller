@@ -1,0 +1,4 @@
+%{
+  atts = _atts;
+}%
+#{list items:atts, as: 'item'} ${item.key}="${item.value}"#{/list}

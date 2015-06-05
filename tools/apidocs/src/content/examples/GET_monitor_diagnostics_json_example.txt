@@ -1,0 +1,65 @@
+GET https://192.168.0.0:4443/monitor/diagnostics.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/json 
+
+{
+   "node_diagnostics_list" : {
+      "node_diagnostics" : {
+         "node_id" : "standalone",
+         "ip" : "localhost",
+         "tests" : {
+            "test" : [
+               {
+                  "status" : "CONFIGURED, NETWORK ERROR",
+                  "name" : "Network interface"
+               },
+               {
+                  "status" : "OK",
+                  "name" : "Network routing"
+               },
+               {
+                  "status" : "OK",
+                  "name" : "DNS"
+               },
+               {
+                  "status" : "OK",
+                  "name" : "NTP"
+               },
+               {
+                  "status" : "CONFIGURED, ERROR",
+                  "name" : "Remote repository"
+               },
+               {
+                  "status" : "OK",
+                  "name" : "Disk space"
+               },
+               {
+                  "status" : "OK",
+                  "name" : "Memory usage"
+               },
+               {
+                  "status" : "OK",
+                  "name" : "Cpu usage"
+               },
+               {
+                  "status" : "CONFIGURED, REACHABLE",
+                  "name" : "Network vip"
+               },
+               {
+                  "status" : "OK",
+                  "name" : "IP uniqueness"
+               },
+               {
+                  "status" : "CONFIGURED, RUNNING",
+                  "name" : "Firewall"
+               }
+            ]
+         }
+      }
+   }
+}

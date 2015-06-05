@@ -1,0 +1,106 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    apisvc {
+        mainClass = "com.emc.storageos.api.service.impl.Main"
+        debugPort = "8004"
+        maxMemory = "172.3m"
+        maxMemoryFactor = "0.0211"
+        jvmArgs += " -DentityExpansionLimit=-1"
+        jvmArgs += " -Dsun.rmi.transport.connectionTimeout=5000 -Dsun.rmi.transport.tcp.handshakeTimeout=5000"
+        jvmArgs += " -DbuildType=" + buildType
+        startupTimeoutSec = "180"
+    }
+}
+
+dependencies {
+
+    compile library(httpclient4),
+            library(jetty),
+            library(protobuf),
+            library(perf4j),
+            project(":controllersvc"),
+            project(":security"),
+            project(":processmonitor")
+            project(":serviceutils")
+
+    testCompile library(enunciate),
+            rootProject.toolsJar,
+            project(":coordinatorsvc"),
+            "org.testng:testng:6.7"
+    testRuntime library(log4j)
+    testRuntime library(commons_logging)
+}
+
+test {
+    exclude "com/emc/storageos/api/service/InternalApiTest.class"
+    exclude "com/emc/storageos/api/service/InternalTenantApiTest.class"
+    exclude "com/emc/storageos/api/service/InternalVirtualArrayApiTest.class"
+    exclude "com/emc/storageos/api/service/ApiTest.class"
+    exclude "com/emc/storageos/api/service/InternalVdcApiTest.class"
+    exclude "com/emc/storageos/api/service/TrustStoreTest.class"
+    exclude "com/emc/storageos/api/service/ComputeSystemServiceApiTest.class"
+    exclude "com/emc/storageos/api/service/ComputeVirtualPoolTest.class"
+    exclude "com/emc/storageos/api/service/ApiTest_AuthnProviders.class"
+    exclude "com/emc/storageos/api/service/ApiTest_Tenants.class"
+    exclude "com/emc/storageos/api/service/ApiTest_UserGroup.class"
+}
+
+// ./gradlew :apisvc:TrustStoreTest -PAPP_HOST_NAMES="lglw0061,lglw0062,lglw0061"
+task TrustStoreTest(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/api/service/TrustStoreTest.class"
+    environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "true"
+    environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
+}
+
+//NOTE: You must run isilon sanity before running this test
+task InternalApiTest(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/api/service/InternalApiTest.class"
+}
+
+//NOTE: This may fail if another test has already loaded AD config
+task InternalTenantApiTest(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/api/service/InternalTenantApiTest.class"
+}
+
+//NOTE: This may fail if another test has already loaded AD config
+task InternalVirtualArrayApiTest(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/api/service/InternalVirtualArrayApiTest.class"
+}
+
+//NOTE: this test presently requires a license to be installed first
+task InternalVdcApiTest(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/api/service/InternalVdcApiTest.class"
+}
+
+// ./gradlew :apisvc:ApiTest -PAPP_HOST_NAMES="lglw0061,lglw0062,lglw0061"
+task ApiTest(type: Test, dependsOn: compileTestJava) {
+    //include "com/emc/storageos/api/service/ApiTest.class"
+    include "com/emc/storageos/api/service/ApiTest_AuthnProviders.class"
+    include "com/emc/storageos/api/service/ApiTest_Tenants.class"
+    include "com/emc/storageos/api/service/ApiTest_UserGroup.class"
+    environment "API_TEST_VERBOSE", project.ext.has('API_TEST_VERBOSE') ? project.ext.API_TEST_VERBOSE : "true"
+    environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
+}
+
+task testng(type: Test, dependsOn: compileTestJava){
+    testLogging.showStandardStreams = true
+    reports.html.destination = file("$buildDir/reports/testng")
+    
+    useTestNG(){
+        includeGroups 'runByDefault'
+        excludeGroups = ['broken','disabled']
+    }
+}
+
+task restDocs(type: JavaExec) {
+    main = "com.emc.storageos.api.service.utils.DocGenerator"
+    args = [
+        "${project.buildDir}"
+    ]
+    maxHeapSize = '1024m'
+    classpath = sourceSets.test.runtimeClasspath
+    workingDir(rootProject.projectDir)
+}

@@ -1,0 +1,11 @@
+%{ service = _service }%
+<div class="form-header">
+  <div class="image">
+    #{ServiceCatalog.serviceImage image:service?.image/}
+  </div>
+  <div class="description">
+    <h2>${service?.title}</h2>
+    <p>${service?.description}</p>
+  </div>
+  <div style="clear:both"></div>
+</div>

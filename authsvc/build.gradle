@@ -1,0 +1,103 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'scripts'
+
+scripts {
+    authsvc {
+        mainClass = "com.emc.storageos.auth.service.impl.Main"
+        debugPort = "8008"
+        maxMemory = "86.2m"
+        maxMemoryFactor = "0.0106"
+        jvmArgs += " -DentityExpansionLimit=-1"
+        jvmArgs += " -DbuildType=" + buildType
+        startupTimeoutSec = "180"
+    }
+}
+
+dependencies {
+    compile library(guava),
+            library(jetty),
+            library(apache_cassandra),
+            library(spring),
+            library(spring_security),
+            library(zookeeper),
+            library(curator_client),
+            library(commons_logging),
+            library(slf4j),
+            library(httpclient3),
+			library(httpclient4),
+            library(jersey),
+            library(commons_codec),
+
+            project(":dbsvc"),
+            project(":security")
+            project(":serviceutils")
+
+    testCompile project(path:":apisvc", configuration:'testRuntime')
+    testCompile project(path:":geodbsvc", configuration:'testRuntime')
+    testCompile project(":vipr-client")
+}
+
+// gradlew AuthSvcTest -PAPP_HOST_NAMES="lglw0061.lss.emc.com"
+task AuthSvcTests(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/auth/AuthSvcTests.class"
+    environment "RUN_LONG_TESTS", project.ext.has('RUN_LONG_TESTS') ? project.ext.RUN_LONG_TESTS : "true"
+    environment "APP_HOST_NAMES", project.ext.has('APP_HOST_NAMES') ? project.ext.APP_HOST_NAMES : "localhost"
+    // set to true to run proxy token expiration tests(tokenMaxLifeValuesHolder property needs to be set on the deployed appliance)
+    environment "RUN_PROXY_TOKEN_EXPIRY_TESTS", project.ext.has('RUN_PROXY_TOKEN_EXPIRY_TESTS') ? project.ext.RUN_PROXY_TOKEN_EXPIRY_TESTS : "false"
+    // set to the value that was set for the maxTokenLifeTimeInMins on security-common.xml
+    environment "TIME_TO_WAIT_IN_MINUTES_SET_IN_SECURITY_MODULE_XML", project.ext.has('TIME_TO_WAIT_IN_MINUTES_SET_IN_SECURITY_MODULE_XML') ? project.ext.TIME_TO_WAIT_IN_MINUTES_SET_IN_SECURITY_MODULE_XML : "1"
+}
+
+task CustomAuthenticationManagerTest(type: Test, dependsOn: compileTestJava) {
+    include "com/emc/storageos/auth/impl/CustomAuthenticationManagerTest.class"
+    maxHeapSize = "1024m"
+}
+
+task TokenManagerTest(type:Test, dependsOn:compileTestJava) {
+    outputs.upToDateWhen { false }
+    include "com/emc/storageos/auth/TokenManagerTests.class"
+}
+
+// gradlew :authsvc:test
+test {
+    exclude "com/emc/storageos/auth/AuthSvcTests.class"
+    exclude "com/emc/storageos/auth/impl/CustomAuthenticationManagerTest.class"
+    exclude "com/emc/storageos/usermanagement/VdcApiProxyUserTest.class"
+    exclude "com/emc/storageos/auth/TokenManagerTests.class"
+
+    forkEvery = 1
+    maxHeapSize = "1024m"
+}
+
+task compileCss(type:com.emc.gradle.webjar.LessCompile, dependsOn:':portal:unpackWebjars') {
+    sourceFile file('src/main/webapp/docs/login.less')
+    destinationFile file("${buildDir}/zipContent/docs/Login_files/stylesheets/login.css")
+}
+task prepareWar(type: Copy, dependsOn:':portal:unpackWebjars') {
+    finalizedBy(compileCss)
+    into ("${buildDir}/zipContent")
+    from files("src/main/webapp") {
+        exclude "**/*.less"
+    }
+    into ("docs/Login_files") {
+        from project(":portal").fileTree("public") {
+            include "branding/favicon.ico"
+            include "fonts/*"
+        }
+        from project(":portal").fileTree("public/lib/bootstrap") {
+            include "fonts/*"
+        }
+    }
+}
+
+task buildWar(type: Zip, dependsOn: prepareWar) {
+    from ("${buildDir}/zipContent")
+    archiveName = "${PRODUCT_NAME}-${project.name}.war"
+    destinationDir = file("${project.buildDir}/libs")
+}
+assemble.dependsOn(buildWar)
+
+artifacts {
+    archives buildWar
+}

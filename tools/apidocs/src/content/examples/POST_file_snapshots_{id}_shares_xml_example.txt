@@ -1,0 +1,33 @@
+POST https://192.168.0.0:4443/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:/shares HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<filesystem_share>
+    <name>test-smbshare</name>
+    <description>test SMB Share for snapshot</description>
+    <maxUsers>unlimited</maxUsers>
+    <permission_type>allow</permission_type>
+    <permission>change</permission>
+</filesystem_share>
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+{
+    "link": {
+        "href": "/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:/tasks/aac817fa-72d1-4b8c-ae73-5b02e6553242", 
+        "rel": "self"
+    }, 
+    "op_id": "aac817fa-72d1-4b8c-ae73-5b02e6553242", 
+    "resource": {
+        "id": "urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:", 
+        "link": {
+            "href": "/file/snapshots/urn:storageos:Snapshot:24c83321-55a4-40d3-8a8f-2f6edbd18d49:", 
+            "rel": "self"
+        }, 
+        "name": "fs-cosnetappf-00:50:56:91:58:91-092313174649-2"
+    }, 
+    "start_time": 1379958442647, 
+    "state": "pending"
+}

@@ -1,0 +1,18 @@
+GET https://192.168.0.0:4443/vdc/storage-pools/urn:storageos:StoragePool:62171f79-2e6d-47db-b303-32c856062c29:/resources HTTP/1.1  
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml  
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<storage_resources>
+  <storage_resource>
+    <id>urn:storageos:FileShare:9a17f2b0-6b36-4f69-8655-2ba33199b957:</id>
+    <link href="/file/filesystems/urn:storageos:FileShare:9a17f2b0-6b36-4f69-8655-2ba33199b957:" rel="self"/>
+    <name>fs-cosisi-00:50:56:91:61:C8</name>
+    <resource_type>fileshare</resource_type>
+  </storage_resource>
+</storage_resources>

@@ -1,0 +1,141 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
+
+%{
+ final FRACTURED = '6'
+}%
+
+#{breadcrumb.container}
+  #{breadcrumb.item @volumes()}&{'resources.volumes'}#{/breadcrumb.item}
+    #{if params.continuousCopyId}
+      #{breadcrumb.item @volume(params.volumeId)}${volume?.source?.name}#{/breadcrumb.item}    
+      #{breadcrumb.item active:true}${volume?.name}#{/breadcrumb.item}
+    #{/if}
+    #{else}
+      #{breadcrumb.item active:true}${volume?.name}#{/breadcrumb.item}    
+    #{/else}  
+#{/breadcrumb.container}
+
+<div class="clear"></div>
+<div id="volumeDetails" class="container" style="margin-bottom: 2em;">
+
+  #{alerts/}
+
+  #{if volume}
+  
+    #{Resources.header resource:volume, typeKey: isContinuousCopy ? 'resources.continuouscopy' : 'resources.volume'/}
+    
+    #{Resources.actions hide:volume?.inactive }
+      #{if isBlockContinuousCopy}
+        #{if volume.syncState == FRACTURED}
+          <a href="@{pauseContinuousCopy(params.volumeId, volume.id)}"
+          >&{'resources.continuouscopy.pauseLink'}</a><br/>
+        #{/if}
+        #{if volume.syncState != FRACTURED}
+          <a href="@{resumeContinuousCopy(params.volumeId, volume.id)}"
+          >&{'resources.continuouscopy.resumeLink'}</a><br/>              
+        #{/if}
+      #{/if}      
+      #{if isContinuousCopy}              
+        <a href="@{stopContinuousCopy(params.volumeId, volume.id)}"
+          onclick="return confirm('&{'resources.continuouscopy.stopConfirm'}');"
+        >&{'resources.continuouscopy.stopLink'}</a><br/>      
+      #{/if}                        
+      #{elseif volume?.inactive == false && volume?.protection?.srdfRep?.associatedSourceVolume == null}
+        <div class="btn-group">
+          <button type="button" class="btn btn-danger dropdown-toggle" name="button.delete" data-toggle="dropdown">
+            <span class="glyphicon glyphicon-trash"></span>
+            &{'resources.volume.deleteLink'} <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" role="menu">
+            <li><a href="@{deleteVolume(volume.id, 'FULL')}" onclick="return confirm('&{'resources.volume.deleteConfirm.FULL'}');">&{'resources.volume.deleteLink.FULL'}</a></li>
+            <li><a href="@{deleteVolume(volume.id, 'VIPR_ONLY')}" onclick="return confirm('&{'resources.volume.deleteConfirm.VIPR_ONLY'}');">&{'resources.volume.deleteLink.VIPR_ONLY'}</a></li>
+          </ul>
+        </div>
+      #{/elseif}
+    #{/Resources.actions}
+    
+    <dl class="dl-horizontal pull-left">
+    
+      <dt>&{'resources.volume.wwn'}:</dt>
+      <dd>#{spaceForNull volume.wwn/}</dd>
+      
+      #{ifnot isContinuousCopy}
+        <dt>&{'resources.volume.size'}:</dt>
+        <dd>&{'resources.volume.size.value', volume?.capacity, volume?.provisionedCapacity}</dd>
+      #{/ifnot}
+  
+      #{if virtualArray}
+        <dt>&{'resources.varray'}:</dt>
+        <dd><img src="@{'/public/img/serviceCatalog/Virtual_Array.png'}" style="width: 32px;"/> #{spaceForNull virtualArray?.name/}</dd>
+      #{/if}
+  
+      #{if virtualPool}
+        <dt>&{'resources.vpool'}:</dt>
+        <dd><img src="@{'/public/img/serviceCatalog/Virtual_Pool.png'}" style="width: 32px;"/> #{spaceForNull virtualPool?.name/}</dd>
+      #{/if}
+      
+      #{if isBlockContinuousCopy}
+        <dt>&{'resources.continuouscopy.synctype'}:</dt>
+        <dd>#{Resources.continuousCopySyncType volume.syncType/}</dd>
+        
+        <dt>&{'resources.continuouscopy.syncstate'}:</dt>
+        <dd>#{Resources.continuousCopySyncState volume.syncState/}</dd>        
+      #{/if}
+    
+      #{if consistencyGroup}
+        <dt>&{'resources.consistencygroup'}:</dt>
+        <dd>
+          <a href="@{resources.BlockConsistencyGroups.consistencyGroupDetails(consistencyGroup.id)}"
+          ><img src="@{'/public/img/assets/Consistency_Group.png'}" style="width: 32px;"/> ${consistencyGroup?.name}</a>&nbsp;
+        </dd>
+      #{/if}
+  
+      #{if mountPoint}
+        <dt>&{'resources.volume.mountPoint'}:</dt>
+        <dd>#{spaceForNull mountPoint/}</dd>
+      #{/if}
+      #{if datastore}
+        <dt>&{'resources.volume.datastore'}:</dt>
+        <dd>#{spaceForNull datastore/}</dd>
+      #{/if}
+
+      #{if storageSystem}
+        <dt class="moreDetails">&{'resources.volume.storagesystem'}:</dt>
+        <dd class="moreDetails">#{spaceForNull storageSystem?.name/}</dd>
+      #{/if}
+        
+      <dt class="moreDetails">&{'resources.volume.devicelabel'}:</dt>
+      <dd class="moreDetails">#{spaceForNull volume.deviceLabel/}</dd>
+      
+      <dt class="moreDetails">&{'resources.volume.nativeid'}:</dt>
+      <dd class="moreDetails">#{spaceForNull volume.nativeId/}</dd>
+      
+      #{Resources.commonAttributes resource:volume /}
+    </dl>
+  
+    <div class="clearfix"></div>
+  
+    #{ifnot isVplexContinuousCopy}
+      #{expandPanel titleKey:'resources.volume.exports', url: @volumeExports(volume.id) /}
+    #{/ifnot}
+    #{ifnot isContinuousCopy}
+      #{expandPanel titleKey:'resources.volume.snapshots', url: @volumeSnapshots(volume.id) /}
+      #{expandPanel titleKey:'resources.volume.fullcopies', url: @volumeFullCopies(volume.id) /}
+      #{expandPanel titleKey:'resources.volume.continuouscopies', url: @volumeContinuousCopies(volume.id) /}
+      *{#{expandPanel titleKey:'resources.volume.migrations', url: @volumeMigrations(volume.id) /}}*
+    #{/ifnot}
+    
+    <br/>
+    
+    #{Resources.tasks resourceId:volume.id /}
+  
+  #{/if}
+  #{else}
+    <span class="errorMessage">&{'resources.volume.notfound'}</span>
+  #{/else}
+
+</div>

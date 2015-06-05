@@ -1,0 +1,49 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xml:lang="en-US"
+	xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+	xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.xmlsoap.org/ws/2005/06/management">
+	<s:Header>
+		<a:Action s:mustUnderstand="true">
+			http://schemas.xmlsoap.org/ws/2004/09/enumeration/PullResponse
+		</a:Action>
+		<a:MessageID s:mustUnderstand="true">
+			uuid:21E59CC8-6D5E-4072-BCA2-7C0DC2BC2504
+		</a:MessageID>
+		<a:To>
+			http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous
+		</a:To>
+		<a:RelatesTo s:mustUnderstand="true">
+			uuid:54E3FD6C-A83E-454C-A2F6-0BDABF5F14D7
+		</a:RelatesTo>
+	</s:Header>
+	<s:Body>
+		<n:PullResponse>
+			<n:EnumerationContext>
+				uuid:2504CA0D-94B9-4F91-B2F7-9F4CD9A2A96C
+			</n:EnumerationContext>
+			<n:Items>
+				<p:myclass
+					xmlns:p="http://schemas.microsoft.com/wsman/2005/06/wmi/root/mynamespace/myclass">
+					<p:Data1>Test Message</p:Data1>
+					<p:id>1</p:id>
+					<cim:Location xmlns:cim="http://schemas.dmtf.org/wsman/2005/06/base"
+						xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing"
+						xmlns:w="http://schemas.xmlsoap.org/ws/2005/06/management">
+						<a:Address>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous
+						</a:Address>
+						<a:ReferenceParameters>
+							<w:ResourceURI>
+								http://schemas.microsoft.com/wsman/2005/06/wmi/root/mynamespace/myclass
+							</w:ResourceURI>
+							<w:SelectorSet>
+								<w:Selector Name="id">1</w:Selector>
+							</w:SelectorSet>
+						</a:ReferenceParameters>
+					</cim:Location>
+				</p:myclass>
+			</n:Items>
+		</n:PullResponse>
+	</s:Body>
+</s:Envelope>

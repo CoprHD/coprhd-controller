@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id="backupManager" class="com.emc.storageos.management.backup.BackupManager" init-method="init" destroy-method="shutdown">
+        <property name="backupHandler" ref="backupHandler"/>
+        <property name="backupDir" ref="backupFolder"/>
+        <property name="nodeName" value="standalone"/>
+        <property name="vdcList">
+            <list value-type="java.lang.String">
+                <value>vdc1</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="backupFolder" class="java.io.File">
+        <constructor-arg value="build/data/backup"/>
+    </bean>
+
+    <bean id="backupType" class="com.emc.storageos.management.backup.BackupType" factory-method="valueOf">
+        <constructor-arg value="db"/>
+    </bean>
+
+    <bean id="backupHandler" class="com.emc.storageos.management.backup.DbBackupHandler" >
+        <property name="backupType" ref="backupType"/>
+        <property name="viprKeyspace" value="system"/>
+        <property name="ignoreCfList">
+            <list value-type="java.lang.String">
+                <value>Stats</value>
+                <value>Events</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="jmxServerWrapper" class="com.emc.storageos.services.util.JmxServerWrapper">
+        <property name="enabled" value="true" />
+        <property name="serviceUrl" value="service:jmx:rmi://localhost:%d/jndi/rmi://%s:%d/jmxrmi" />
+        <property name="host" value="localhost" />
+        <property name="port" value="7199" />
+        <property name="exportPort" value="7200" />
+    </bean>
+
+    <bean id="dbSimulator" class="com.emc.storageos.management.backup.DbSimulator" init-method="start" destroy-method="stop">
+        <property name="jmxServer" ref="jmxServerWrapper"/>
+        <property name="config" value="resources/backup-test-db-conf.yaml"/>
+    </bean>
+
+</beans>
+

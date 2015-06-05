@@ -1,0 +1,72 @@
+<html>
+
+<head>
+    <title>Running the Build</title>
+    <link href="artifacts/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+    <link href="artifacts/other.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<h3>Running the Build</h3>
+<p>The main build is written in <a href="http://gradle.org">Gradle</a> and requires the following external items before it can be executed:</p>
+<ol>
+    <li>A copy of the ViPR installation directory <i>(/opt/storageos)</i></li>
+    <li>A copy of the ViPR Source Code <i>(https://rmsgsvn.lss.emc.com/svn/storageos/StorageOS/main/integration)</i></li>
+    <li>A copy of the ViPR Portal Code <i>(https://asdgit.isus.emc.com/git/vipr-portal.git)</i></li>
+    <li>(Optional) Path to JDK/tools.jar</li>
+</ol>
+<div class="alert alert-info"><a href="http://www.gradle.org/docs/current/userguide/gradle_wrapper.html">Gradle Wrapper</a> is also installed in this code base so you can either use gradle or ./gradlew instead.</div>
+<p>With the above artifacts, the build can be exected as folllows (note you must be in the root vipr-rest-api directory for this to work)</p>
+<pre>
+gradle clean generateApiZip -PVIPR_SRC={PATH_TO_VIPR_SRC} -PPORTAL_SRC={PATH_TO_PORTAL_SRC} -PVIPR_INSTALL={PATH_TO_OPT_STORAGEOS}
+</pre>
+<p>for example:</p>
+<pre>
+gradle clean generateApiZip -PVIPR_SRC=/Users/maddisondavid/SourceCode/bourne/storageos -PPORTAL_SRC=/Users/maddisondavid/SourceCode/bourne/isa-release/vipr-portal/portal -PVIPR_INSTALL=/Users/maddisondavid/SourceCode/bourne/ovf/storageos
+</pre>
+<p>After the build completes, the built items (zip file and unpacked documentation) will be placed in the ViprApiDocContent/build directory.</p>
+
+<h3>Tools.Jar</h3>
+<p>The generator is built as a Doclet which requires certain classes from the JDK tools.jar file. On some systems (i.e. OSX) this file is automatically included, but on others (Linux and possibly Windows), this file isn't included, and that causes the compilation to file.  In order to get around this issue, you need to provide the build with a direct path to your tools.jar using the -PTOOLS_JAR= option.</p>
+<p>For example:</p>
+<pre>
+-PVIPR_SRC=/data/jenkins/workspace/ViPR_SRC -PVIPR_INSTALL=/data/jenkins/vipr/storageos -PBUILD=$BUILD_NUMBER -PPORTAL_SRC=/data/jenkins/workspace/ISA_RELEASE_SRC/portal <span style="color:#FF7A03">-PTOOLS_JAR=/usr/java/jdk1.6.0_45/lib/tools.jar</span>
+</pre>
+<h3>Build Number</h3>
+<p>If no build number is passed in, the generated ZIP file and the footer of each page will simply contain the revision number.  Using the -PBUILD_NUMBER option however allows a build number to be set that will appear in both the footers and the Zip file name.  For example:</p>
+<pre>-PBUILD=123</pre>
+<p>will result in a Zip file called VIPR-REST-API-Rev01-Build123.zip being generated and the following footer on each page:</p>
+<pre>EMC ViPR REST API - Rev 01 - Build 123 - Part No:302-000-286</pre>
+
+<h3>Gradle Tasks</h3>
+<p>The build has several tasks that can be used to build particular parts of the generated content.  Some of these tasks are provided by standard Gradle plugins, however they are included here for completeness.</p>
+<table class="table">
+    <thead>
+        <tr>
+            <td>Task</td>
+            <td>Description</td>
+        </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>clean</td>
+        <td>Deletes the current /build directories</td>
+    </tr>
+    <tr>
+        <td>compileJava</td>
+        <td>Compiles the Generator Doclet</td>
+    </tr>
+    <tr>
+        <td>generateApiDocs</td>
+        <td>Generates the complete API docs into the ViprApiDocContent/build/apidocs director</td>
+    </tr>
+
+    <tr>
+        <td>generateApiZip</td>
+        <td>Builds and then zips up the generated content into ViprApiDocContent/build/vipr-rest-api-rev01-XXXX.zip</td>
+    </tr>
+    </tbody>
+</table>
+
+
+</body>
+</html>

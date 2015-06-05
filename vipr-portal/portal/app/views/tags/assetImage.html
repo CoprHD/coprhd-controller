@@ -1,0 +1,12 @@
+%{
+  typeImages = [
+    (com.emc.sa.util.ResourceType.HOST.name()): "/public/img/assets/Host.png",
+    (com.emc.sa.util.ResourceType.VCENTER.name()): "/public/img/assets/VCenter.png",
+    (com.emc.sa.util.ResourceType.STORAGE_SYSTEM.name()): "/public/img/assets/StorageArray.png",
+    (com.emc.sa.util.ResourceType.NETWORK_SYSTEM.name()): "/public/img/assets/Switch.png",
+    (com.emc.sa.util.ResourceType.PROTECTION_SYSTEM.name()): "/public/img/assets/Protection.png",
+    (com.emc.sa.util.ResourceType.SMIS_PROVIDER.name()): "/public/img/assets/StorageArray.png"
+  ]
+  image = typeImages[com.emc.sa.util.ResourceType.fromResourceId(_arg.id).name()]
+}%
+<img style="width: 90px; float: left" src="${image}">

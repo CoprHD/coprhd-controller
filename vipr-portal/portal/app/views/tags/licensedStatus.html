@@ -1,0 +1,20 @@
+%{
+  lf = _licenseFeature
+  overCapacity = false
+  if (_storageStatsWrapper) {
+    overCapacity = _storageStatsWrapper.isOverCapacity(lf)
+  }
+}%
+#{if util.SetupUtils.isOssBuild()}
+  <span class="text-success">#{icon 'ok' /} &{'license.opensource'}</span>
+#{/if}
+#{elseif overCapacity}
+  <span class="text-warning">#{icon 'warning-sign'/} &{'license.overCapacity'}</span>
+#{/elseif}
+#{elseif lf.expired}
+  <span class="text-danger">#{icon 'remove'/} &{'license.expired'}</span>
+#{/elseif}
+#{elseif lf.licensed}
+  <span class="text-success">#{icon 'ok' /} &{'license.licensed'}</span>
+#{/elseif}
+

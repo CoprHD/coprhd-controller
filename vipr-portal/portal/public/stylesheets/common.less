@@ -1,0 +1,813 @@
+@section-header-color: @gray-dark;
+@resource-summary-color: @gray-dark;
+@resource-header-color: @gray-dark;
+@form-header-color: @gray-dark;
+
+body {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+a[disabled],a.disabled {
+  pointer-events: none;
+}
+
+.form-group.required .controls:after {
+  position: absolute;
+  content: '*';
+  color: @state-danger-text;
+  font-size: 18px;
+  right: 0px;
+  top: 12px;
+}
+.form-group .help-inline {
+  display: inline-block;
+  padding-top: 7px;
+}
+.form-group .help-block {
+  margin-bottom: 0;
+}
+
+.form-group .loading {
+  display: inline-block;
+  padding-top: 9px;
+  position: absolute;
+  left: 8px;
+}
+
+.page-header {
+  margin: 5px 0 10px;
+  padding-bottom: 0px;
+}
+.page-header h3 {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.main-content {
+  position: relative;
+  top: 96px;
+}
+.main-content.subnav {
+  top: 127px;
+}
+
+.form-group.has-error .help-block {
+    color: lighten(@text-color, 25%);
+}
+.form-group.has-error .help-inline {
+    color: @state-danger-text;
+}
+
+/* Common classes */
+.clear {
+  clear: both;
+}
+
+.shadow {
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+  
+  -webkit-box-shadow: 4px 4px 10px rgba(50, 50, 50, 0.75);
+     -moz-box-shadow: 4px 4px 10px rgba(50, 50, 50, 0.75);
+          box-shadow: 4px 4px 10px rgba(50, 50, 50, 0.75);
+}
+legend small {
+  display: block;
+  font-size: 12px;
+  padding-top: 3px;
+}
+dl.nomargin {
+  margin-top: 0px; margin-bottom: 0px
+}
+
+dl.wide dt {
+  width: 170px;
+}
+
+dl.wide dd {
+  margin-left: 180px;
+}
+
+.editableRows tbody tr {
+  cursor: pointer;
+}
+
+.errorMessage {
+  color: #b94a48
+}
+
+.help-error {
+  color: @state-danger-text;
+}
+
+.controls.help-block {
+  margin-top: .3em;
+}
+
+.controls > .loading {
+  position: relative;
+  bottom: 10px;
+}
+
+.inlineBlock {
+  display: inline-block;
+}
+
+/** Drop down menu that will open above the toggle */ 
+.dropdown-menu.above {
+  top: auto;
+  bottom: 100%
+}
+
+/** Section header */
+.section-header {
+  margin-top: 1em;
+  margin-bottom: 1em;
+  vertical-align: middle;
+}
+.section-header h1 {
+  display:inline;
+  padding: 0;
+  margin: 0;
+  margin-right: 5px;
+  color: @section-header-color;
+  font-size: 24px;
+  font-weight: normal; 
+  line-height: 20px;
+  word-spacing: 0.1em;
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+.section-header p {
+  margin: 0px;
+}
+.section-header h1 span {
+    font-size: 18px;
+}
+.section-header img {
+  width:60px;
+}
+
+.section-header.small h1 {
+  font-size: 20px;
+  line-height: 16px;
+}
+.section-header.small h1 span {
+  font-size: 14px;
+}
+
+/** Section header for a datatable. */
+.section-header.pull-left {
+  margin: 0;
+}
+
+/** Resource Summary */
+.resource-summary {
+  border-spacing: 0;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: table;
+  table-layout: auto;
+  width: 100%;
+}
+
+.resource-summary .image, .resource-summary .details {
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: table-cell;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.resource-summary .image {
+  width:90px;
+}
+.resource-summary .title {
+  border-bottom: 1px solid @hr-border;
+}
+.resource-summary .title h2 {
+  word-spacing: 0.1em;
+  letter-spacing: -1px;
+  margin:5px 0px;
+  line-height: 16px;
+  font-size: 16px;
+  font-weight: normal;
+  color: @resource-summary-color;
+}
+
+.resource-summary .dl-horizontal dt {
+  width: 100px;
+} 
+
+.resource-summary .dl-horizontal dd {
+  margin-left: 120px;
+} 
+
+/** Resource Header */
+.resource-header {
+  border-spacing: 0;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: table;
+  table-layout: auto;
+  width: 100%;
+
+  border-bottom: 1px solid @hr-border;
+  margin-bottom: 1em;
+}
+
+.resource-header .image, .resource-header .description, .resource-header .actions {
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  display: table-cell;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.resource-header .image {
+  float:left;
+  text-align:center; 
+}
+.resource-header .description {
+  float: left;
+  margin-top: 8px;
+}
+.resource-header .description h2 {
+  word-spacing: 0.1em;
+  letter-spacing: -1px;
+  margin:5px 0px;
+  line-height: 24px;
+  font-size: 24px;
+  font-weight: normal;
+  color: @resource-header-color;
+}
+
+.resource-header .actions {
+  padding-left: 20px;
+  text-align: right;
+  vertical-align: middle;  
+}
+
+/** Form header */
+.form-header {
+  border-bottom: 1px solid @hr-border;
+  margin-bottom: 1em;
+}
+.modal-header > .form-header {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+.form-header .image {
+  float: left;
+  width: 120px;
+}
+/* Styles for form headers with title and description */
+.form-header .description {
+  float: left;
+}
+.form-header .description h2 {
+  word-spacing: 0.1em;
+  letter-spacing: -1px;
+  line-height: 32px;
+  font-size: 24px;
+  font-weight: normal;
+  color: @form-header-color;
+}
+/* Styles for form headers with title only */
+.form-header .title {
+  float: left;
+}
+.form-header .title h2 {
+  word-spacing: 0.1em;
+  letter-spacing: -1px;
+  line-height: 32px;
+  font-size: 24px;
+  font-weight: normal;
+  color: @form-header-color;
+  white-space: nowrap;
+}
+
+.form-subheader legend{
+    margin-bottom:4px
+}
+
+.form-subheader p {
+    margin-top:0px;
+}
+
+.form-inline .form-group {
+  margin-right: 1em;
+}
+
+.selectMany.disabled {
+  opacity: 0.5 !important;
+}
+
+.selectMany {
+  display: block;
+  width: 100%;
+  min-height: 54px;
+  padding: 6px 12px;
+  font-size: 14px;
+  line-height: 1.428571429;
+  color: @input-color;
+  vertical-align: middle;
+  border: 1px solid @input-border;
+  border-radius: 4px;
+  background-color: @input-bg;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
+  -webkit-transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+          transition: border-color ease-in-out 0.15s, box-shadow ease-in-out 0.15s;
+  
+  white-space: nowrap;
+  -webkit-background-clip: padding-box;
+     -moz-background-clip: padding;
+          background-clip: padding-box;
+}
+.selectMany label {
+  margin-bottom: 0;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.selectMany .checkbox {
+  padding-top: 0px;
+  min-height: initial;
+}
+
+.selectManyContent {
+    overflow: auto;
+    max-height: 140px;
+}
+.max-height-4 .selectManyContent {
+  max-height: 80px;
+}
+.max-height-5 .selectManyContent {
+  max-height: 100px;
+}
+.max-height-6 .selectManyContent {
+  max-height: 120px;
+}
+.max-height-8 .selectManyContent {
+  max-height: 160px;
+}
+
+.selectManyButtons button {
+  width: 50%;
+}
+
+.form-group.has-error .selectMany {
+  color: @state-danger-text;
+  border-color: @state-danger-text;
+}
+.form-horizontal.form-compact .control-group,
+.form-horizontal .form-compact .control-group {
+  margin-bottom: 9px;
+}
+
+.stacked-input-group {
+  input {
+    position: relative;
+    border-radius: 0;
+    margin-bottom: -1px;
+  }
+  input:focus {
+    z-index: 2;
+  }
+  input:first-child {
+    border-top-left-radius: @input-border-radius;
+    border-top-right-radius: @input-border-radius;
+  }
+  input:last-child {
+    border-bottom-left-radius: @input-border-radius;
+    border-bottom-right-radius: @input-border-radius;
+    margin-bottom: 0;
+  }
+}
+
+.timepicker {
+  position: relative;
+  & > .popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 125px;
+    padding: @padding-base-vertical @padding-base-horizontal;
+    display: none;
+    border: 1px solid @input-border;
+    border-radius: @border-radius-base;
+    
+    .next, .previous {
+      cursor: pointer;
+    }
+    
+    & > .hour, & > .minute {
+      float:left;
+      width: 4em;
+      text-align: center;
+      input {
+        text-align:center;
+      }
+      & > a {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        
+        .glyphicon {
+          width: 100%;
+        }
+      }
+    }
+    & > div + div {
+      margin-left: @padding-base-horizontal;
+    }
+  }
+  .closer {
+    display:none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 999;
+    margin: -1000px;
+    background: transparent;
+  }
+  
+  &.open {
+    & > .popup {
+      display: block;
+      background-color: @input-bg;
+    }
+    .closer {
+      display: block;
+    }
+  }
+}
+
+.iconChooser {
+  width: 350px;
+  height: 60px;
+}
+
+/** Alternate modal dialog styles. */
+.modal-dialog.wide {
+  width: 800px;
+}
+.modal-dialog.widest {
+  width: 940px;
+}
+.modal-dialog.extra-wide {
+  width: 1250px;
+}
+
+.multi-file-upload {
+    margin-top: 9px;
+}
+
+.multi-file-upload:first-child {
+    margin-top: 0;
+}
+
+/** Master-detail table styling.  This keeps the master-detail rows the same color, alternating every 2 rows */
+.master-detail.table-striped tbody tr:nth-child(4n+1) td,
+.master-detail.table-striped tbody tr:nth-child(4n+2) td,
+.master-detail.table-striped tbody tr:nth-child(4n+1) th,
+.master-detail.table-striped tbody tr:nth-child(4n+2) th {
+  background-color: @table-bg-accent;
+}
+.master-detail.table-striped tbody tr:nth-child(4n) td,
+.master-detail.table-striped tbody tr:nth-child(4n+3) td,
+.master-detail.table-striped tbody tr:nth-child(4n) th,
+.master-detail.table-striped tbody tr:nth-child(4n+3) th {
+  background-color: transparent;
+}
+.master-detail.table tbody tr:hover td,
+.master-detail.table tbody tr:hover th {
+  background-color: @table-bg-hover;
+}
+.master-detail tbody tr.master {
+  cursor: pointer;
+}
+.master-detail.table tr.detail td {
+  border-top: none;
+}
+.master-detail.table th.state {
+  width: 1%;
+}
+.master-detail .indicator {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  vertical-align: text-top;
+  background-image: url("../img/glyphicons-halflings.png");
+  background-position: -456px -72px;
+  background-repeat: no-repeat;
+  *margin-right: .3em;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+.master-detail .expanded .indicator {
+  background-position: -313px -119px;
+}
+.master-detail .loading .indicator {
+  background-image: url("../img/loading.gif");
+  background-position: 0;
+}
+.master-detail .header {
+  font-weight: bold;
+  cursor: pointer;
+}
+.master-detail .content {
+}
+
+/** Fixes an issue with firefox border-collapse */
+table {
+  border-spacing: 0;
+  border-collapse: separate;
+}
+
+/** Expand Panel */
+.expand-panel .master-detail {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding-top: 0.5em;
+}
+.expand-panel .master-detail .content {
+  margin-left: 2em;
+}
+
+/** Order progress dots styling */
+.dot {
+  font-size: 10.998px;
+  font-weight: bold;
+  line-height: 14px;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  vertical-align: baseline;
+  display: inline-block;
+  width: 12px;
+  height: 14px;
+  padding: 0px;
+  margin: 3px 0px -3px 0px;
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
+}
+.dot-success {
+  background-color: @label-success-bg;
+}
+.dot-danger {
+  background-color: @label-danger-bg;
+}
+.dot-warning {
+  background-color: @label-warning-bg;
+}
+.dot-info {
+  background-color: @label-info-bg;
+}
+.dot-active {
+  -webkit-animation: fade 0.5s linear 0s infinite alternate;
+     -moz-animation: fade 0.5s linear 0s infinite alternate;
+      -ms-animation: fade 0.5s linear 0s infinite alternate;
+       -o-animation: fade 0.5s linear 0s infinite alternate;
+          animation: fade 0.5s linear 0s infinite alternate;
+}
+@-webkit-keyframes fade {
+  to {
+    background-color: transparent;
+  }
+}
+@-moz-keyframes fade {
+  to {
+    background-color: transparent;
+  }
+}
+@-ms-keyframes fade {
+  to {
+    background-color: transparent;
+  }
+}
+@-o-keyframes fade {
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes fade {
+  to {
+    background-color: transparent;
+  }
+}
+
+.rotate {
+  -webkit-animation: rotation 2s linear 0s infinite normal;
+     -moz-animation: rotation 2s linear 0s infinite normal;
+      -ms-animation: rotation 2s linear 0s infinite normal;
+       -o-animation: rotation 2s linear 0s infinite normal;
+          animation: rotation 2s linear 0s infinite normal;
+}
+@-webkit-keyframes rotation {
+  from { -webkit-transform: rotate(0deg); }
+  to   { -webkit-transform: rotate(360deg); }
+}
+@-moz-keyframes rotation {
+  from { -moz-transform: rotate(0deg); }
+  to   { -moz-transform: rotate(360deg); }
+}
+@-ms-keyframes rotation {
+  from { -ms-transform: rotate(0deg); }
+  to   { -ms-transform: rotate(360deg); }
+}
+@-o-keyframes rotation {
+  from { -o-transform: rotate(0deg); }
+  to   { -o-transform: rotate(360deg); }
+}
+@keyframes rotation {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Date picker styles. */
+.bfh-datepicker-calendar > table.calendar {
+  width: 284px;
+}
+.bfh-datepicker-calendar > table.calendar > thead > tr > th {
+  line-height: 12px;
+}
+.bfh-datepicker-calendar > table.calendar > thead > tr.months-header > th {
+  padding: 4px;
+}
+.bfh-datepicker-calendar > table.calendar > thead > tr.days-header > th,
+.bfh-datepicker-calendar > table.calendar > tbody > tr > td {
+  width: 36px;
+  padding: 4px;
+}
+
+div.loadingBox {
+    margin:0 auto;
+    width: 65px;
+}
+
+.tab-content {
+  padding: 10px;
+}
+
+.button-bar .extraButtons {
+  margin-left: 50px;
+}
+
+.embedded-table {
+  width: 100%;  
+}
+
+.embedded-table .form-control {
+  margin:0px;
+}
+
+.embedded-table td {
+    vertical-align: top;
+}
+
+.left-space {
+    margin-left:5px;
+}
+
+.right-space {
+    margin-right:5px;
+}
+
+.panel-title .glyphicon,
+.panel-title .vipricon {
+  margin-right: 10px;
+  text-align: center;
+  width: 16px;
+}
+.panel-heading .indicator-expanded {
+  display: none;
+}
+.panel-heading.in .indicator-expanded {
+  display: inline;
+}
+.panel-heading.in .indicator-collapsed {
+  display: none;
+}
+
+.panel .list-group + .panel-footer {
+  border-top: 0;
+}
+.panel-body + .dataTableContainer {
+  margin-top: -15px;
+}
+.panel-body + .dataTableContainer .dataTables_filter {
+  margin-right: 5px;
+}
+
+.form-control.form-control-editable {
+  -webkit-box-shadow: none;
+          box-shadow: none;
+  -webkit-transition: none;
+          transition: none;
+  border-color: transparent;
+}
+.form-control.form-control-editable:hover {
+  border-color: #ccc;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+  -webkit-transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+          transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+.form-control.form-control-editable:focus {
+  border-color: @input-border-focus;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);
+          box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);
+}
+
+.has-error .form-control.form-control-editable {
+  border-color: @state-danger-text;
+}
+.has-error .form-control.form-control-editable:focus {
+  border-color: @state-danger-border;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #ce8483;
+          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px #ce8483;
+}
+
+.knobContainer .knobSubtext {
+  white-space: nowrap;
+  margin-top:-25px;
+  font-size: 11px;
+}
+  
+.knobContainer {
+  margin-left:auto;
+  margin-right:auto;
+  width: 100px;
+  height: 120px;
+  text-align: center;
+  position: relative;
+}
+  
+.knobContainer .knobTitle{
+  font-size: 15px;
+  white-space: nowrap;
+  width: 100px;
+  color: gray; 
+}
+  
+.knobContainer input{
+  font-size: 20px !important;
+}
+
+.knobContainer .knobValue {
+  font-size: 20px;
+  position: absolute;
+  font-weight: bold;
+  width: 100px;
+  top: 56px;
+  left: 0;
+  text-align: center;
+}
+
+.subtitle {
+  height:40px;
+}
+
+.subtitle-right{
+  text-align:right;
+}
+
+/* Alert badges */
+.alert-success .badge {
+    background-color: @alert-success-text;
+    color: @alert-success-bg;
+}
+
+.alert-info .badge {
+    background-color: @alert-info-text;
+    color: @alert-info-bg;
+}
+
+.alert-warning .badge {
+    background-color: @alert-warning-text;
+    color: @alert-warning-bg;
+}
+
+.alert-danger .badge {
+    background-color: @alert-danger-text;
+    color: @alert-danger-bg;
+}
+
+A.no-decoration:link, A.no-decoration:hover, A.no-decoration:visited,  {
+  text-decoration:none
+}

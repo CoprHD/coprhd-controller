@@ -1,0 +1,42 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ExtendVmfsDatastore.Block.VMware",
+  serviceId:"VMware-ExtendVmfsDatastore",
+  fields:{
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    blockStorageType: {
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"shared"
+    },
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+    datastoreName:{
+      type:"assetType.vipr.blockdatastore"
+    },
+    volume: {
+      type:"assetType.vipr.unmountedBlockVolume",   
+      select:"one" 
+    },
+    multipathPolicy: {
+      type: "choice",
+      initialValue: "DEFAULT",
+      select: "one",
+      options: {
+        "DEFAULT": "Default",
+        "VMW_PSP_FIXED": "Fixed",
+        "VMW_PSP_MRU": "Most Recently Used",
+        "VMW_PSP_RR": "Round Robin"       
+      },
+      required: false,
+      lockable: true
+    } 
+  }
+}

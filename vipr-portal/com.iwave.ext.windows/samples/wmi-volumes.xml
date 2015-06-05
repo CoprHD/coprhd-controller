@@ -1,0 +1,155 @@
+<!-- Copyright 2012-2015 iWave Software LLC -->
+<!-- All Rights Reserved -->
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:n="http://schemas.xmlsoap.org/ws/2004/09/enumeration" xmlns:w="http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd" xml:lang="en-US">
+  <s:Header>
+    <a:Action>http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse</a:Action>
+    <a:MessageID>uuid:C2361C41-C06E-46E3-B886-0174D0642DA8</a:MessageID>
+    <a:To>http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</a:To>
+    <a:RelatesTo>uuid:70bf5326-7fcd-4673-af1a-13cb2149145c</a:RelatesTo>
+  </s:Header>
+  <s:Body>
+    <n:EnumerateResponse>
+      <n:EnumerationContext/>
+      <w:Items>
+        <p:Win32_Volume xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_Volume" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_Volume_Type">
+          <p:Access xsi:nil="true"/>
+          <p:Automount>true</p:Automount>
+          <p:Availability xsi:nil="true"/>
+          <p:BlockSize>4096</p:BlockSize>
+          <p:BootVolume>false</p:BootVolume>
+          <p:Capacity>104853504</p:Capacity>
+          <p:Caption>\\?\Volume{389d6b00-624f-11e1-b648-806e6f6e6963}\</p:Caption>
+          <p:Compressed>false</p:Compressed>
+          <p:ConfigManagerErrorCode xsi:nil="true"/>
+          <p:ConfigManagerUserConfig xsi:nil="true"/>
+          <p:CreationClassName xsi:nil="true"/>
+          <p:Description xsi:nil="true"/>
+          <p:DeviceID>\\?\Volume{389d6b00-624f-11e1-b648-806e6f6e6963}\</p:DeviceID>
+          <p:DirtyBitSet>false</p:DirtyBitSet>
+          <p:DriveLetter xsi:nil="true"/>
+          <p:DriveType>3</p:DriveType>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FileSystem>NTFS</p:FileSystem>
+          <p:FreeSpace>75362304</p:FreeSpace>
+          <p:IndexingEnabled>true</p:IndexingEnabled>
+          <p:InstallDate xsi:nil="true"/>
+          <p:Label>System Reserved</p:Label>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:MaximumFileNameLength>255</p:MaximumFileNameLength>
+          <p:Name>\\?\Volume{389d6b00-624f-11e1-b648-806e6f6e6963}\</p:Name>
+          <p:NumberOfBlocks xsi:nil="true"/>
+          <p:PageFilePresent>false</p:PageFilePresent>
+          <p:PNPDeviceID xsi:nil="true"/>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:Purpose xsi:nil="true"/>
+          <p:QuotasEnabled>false</p:QuotasEnabled>
+          <p:QuotasIncomplete>false</p:QuotasIncomplete>
+          <p:QuotasRebuilding>false</p:QuotasRebuilding>
+          <p:SerialNumber>3831008254</p:SerialNumber>
+          <p:Status xsi:nil="true"/>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SupportsDiskQuotas>true</p:SupportsDiskQuotas>
+          <p:SupportsFileBasedCompression>true</p:SupportsFileBasedCompression>
+          <p:SystemCreationClassName xsi:nil="true"/>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:SystemVolume>true</p:SystemVolume>
+        </p:Win32_Volume>
+        <p:Win32_Volume xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_Volume" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_Volume_Type">
+          <p:Access xsi:nil="true"/>
+          <p:Automount>true</p:Automount>
+          <p:Availability xsi:nil="true"/>
+          <p:BlockSize>4096</p:BlockSize>
+          <p:BootVolume>true</p:BootVolume>
+          <p:Capacity>1000097181696</p:Capacity>
+          <p:Caption>C:\</p:Caption>
+          <p:Compressed>false</p:Compressed>
+          <p:ConfigManagerErrorCode xsi:nil="true"/>
+          <p:ConfigManagerUserConfig xsi:nil="true"/>
+          <p:CreationClassName xsi:nil="true"/>
+          <p:Description xsi:nil="true"/>
+          <p:DeviceID>\\?\Volume{389d6b01-624f-11e1-b648-806e6f6e6963}\</p:DeviceID>
+          <p:DirtyBitSet>false</p:DirtyBitSet>
+          <p:DriveLetter>C:</p:DriveLetter>
+          <p:DriveType>3</p:DriveType>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FileSystem>NTFS</p:FileSystem>
+          <p:FreeSpace>975589855232</p:FreeSpace>
+          <p:IndexingEnabled>true</p:IndexingEnabled>
+          <p:InstallDate xsi:nil="true"/>
+          <p:Label xsi:nil="true"/>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:MaximumFileNameLength>255</p:MaximumFileNameLength>
+          <p:Name>C:\</p:Name>
+          <p:NumberOfBlocks xsi:nil="true"/>
+          <p:PageFilePresent>true</p:PageFilePresent>
+          <p:PNPDeviceID xsi:nil="true"/>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:Purpose xsi:nil="true"/>
+          <p:QuotasEnabled>false</p:QuotasEnabled>
+          <p:QuotasIncomplete>false</p:QuotasIncomplete>
+          <p:QuotasRebuilding>false</p:QuotasRebuilding>
+          <p:SerialNumber>2287971143</p:SerialNumber>
+          <p:Status xsi:nil="true"/>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SupportsDiskQuotas>true</p:SupportsDiskQuotas>
+          <p:SupportsFileBasedCompression>true</p:SupportsFileBasedCompression>
+          <p:SystemCreationClassName xsi:nil="true"/>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:SystemVolume>false</p:SystemVolume>
+        </p:Win32_Volume>
+        <p:Win32_Volume xmlns:cim="http://schemas.dmtf.org/wbem/wscim/1/common" xmlns:p="http://schemas.microsoft.com/wbem/wsman/1/wmi/root/cimv2/Win32_Volume" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="p:Win32_Volume_Type">
+          <p:Access xsi:nil="true"/>
+          <p:Automount>true</p:Automount>
+          <p:Availability xsi:nil="true"/>
+          <p:BlockSize xsi:nil="true"/>
+          <p:BootVolume xsi:nil="true"/>
+          <p:Capacity xsi:nil="true"/>
+          <p:Caption>D:\</p:Caption>
+          <p:Compressed xsi:nil="true"/>
+          <p:ConfigManagerErrorCode xsi:nil="true"/>
+          <p:ConfigManagerUserConfig xsi:nil="true"/>
+          <p:CreationClassName xsi:nil="true"/>
+          <p:Description xsi:nil="true"/>
+          <p:DeviceID>\\?\Volume{389d6b04-624f-11e1-b648-806e6f6e6963}\</p:DeviceID>
+          <p:DirtyBitSet xsi:nil="true"/>
+          <p:DriveLetter>D:</p:DriveLetter>
+          <p:DriveType>5</p:DriveType>
+          <p:ErrorCleared xsi:nil="true"/>
+          <p:ErrorDescription xsi:nil="true"/>
+          <p:ErrorMethodology xsi:nil="true"/>
+          <p:FileSystem xsi:nil="true"/>
+          <p:FreeSpace xsi:nil="true"/>
+          <p:IndexingEnabled xsi:nil="true"/>
+          <p:InstallDate xsi:nil="true"/>
+          <p:Label xsi:nil="true"/>
+          <p:LastErrorCode xsi:nil="true"/>
+          <p:MaximumFileNameLength xsi:nil="true"/>
+          <p:Name>D:\</p:Name>
+          <p:NumberOfBlocks xsi:nil="true"/>
+          <p:PageFilePresent xsi:nil="true"/>
+          <p:PNPDeviceID xsi:nil="true"/>
+          <p:PowerManagementSupported xsi:nil="true"/>
+          <p:Purpose xsi:nil="true"/>
+          <p:QuotasEnabled xsi:nil="true"/>
+          <p:QuotasIncomplete xsi:nil="true"/>
+          <p:QuotasRebuilding xsi:nil="true"/>
+          <p:SerialNumber xsi:nil="true"/>
+          <p:Status xsi:nil="true"/>
+          <p:StatusInfo xsi:nil="true"/>
+          <p:SupportsDiskQuotas xsi:nil="true"/>
+          <p:SupportsFileBasedCompression xsi:nil="true"/>
+          <p:SystemCreationClassName xsi:nil="true"/>
+          <p:SystemName>IW-WIN2008-01P</p:SystemName>
+          <p:SystemVolume xsi:nil="true"/>
+        </p:Win32_Volume>
+      </w:Items>
+      <w:EndOfSequence/>
+    </n:EnumerateResponse>
+  </s:Body>
+</s:Envelope>
+

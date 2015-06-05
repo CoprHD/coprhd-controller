@@ -1,0 +1,430 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+ext {
+    library = { deps ->
+        deps.collectNested { dep ->
+            dependencies.create(dep) {
+                transitive = false
+            }
+        }
+    }
+
+    slf4j = [
+        "org.slf4j:slf4j-api:1.6.4",
+        "org.slf4j:slf4j-log4j12:1.6.4",
+        "org.slf4j:jul-to-slf4j:1.6.4",
+
+    ]
+    log4j = [
+        "log4j:log4j:1.2.16",
+        "log4j:apache-log4j-extras:1.1",
+
+    ]
+
+    blitz4j = [
+            "com.netflix.blitz4j:blitz4j:1.34",
+            "com.netflix.archaius:archaius-core:0.6.0",
+            "com.netflix.servo:servo-core:0.7.2",
+            "commons-configuration:commons-configuration:1.9",
+
+    ]
+
+   joda_time = [
+        "joda-time:joda-time:2.1",
+    ]
+    
+   netty_4 = [
+        "io.netty:netty-all:4.0.19.Final", // (official) repo/netty-all-4.0.17.Final.jar
+    ]
+
+   dom4j = [
+        "dom4j:dom4j:1.6.1",//(official) ${thirdparty}/java/dom4j-1.6.1/dom4j-1.6.1.jar
+
+    ]
+    
+    apache_cassandra = [
+        slf4j,
+        log4j,
+        joda_time,
+        "net.sf.supercsv:super-csv:2.1.0", 
+        "org.antlr:antlr-runtime:3.2", 
+        "com.eaio.uuid:uuid:3.2",
+        "org.apache.cassandra:cassandra-clientutil:2.0.10", 
+        "org.apache.cassandra:cassandra-thrift:2.0.10", 
+        "org.apache.cassandra:cassandra-all:2.0.10", 
+        "org.apache.commons:commons-lang3:3.1", 
+        "com.google.guava:guava:15.0", 
+        "com.ning:compress-lzf:0.8.4",
+        "com.github.stephenc.high-scale-lib:high-scale-lib:1.1.2",
+        "org.codehaus.jackson:jackson-mapper-asl:1.9.2", 
+        "org.codehaus.jackson:jackson-core-asl:1.9.2", 
+        "com.github.stephenc:jamm:0.2.5", 
+        "org.mindrot:jbcrypt:0.3m", 
+        "jline:jline:1.0", 
+        "com.googlecode.json-simple:json-simple:1.1", 
+        "net.jpountz.lz4:lz4:1.2.0",
+        "io.netty:netty:3.6.6.Final", 
+        "com.yammer.metrics:metrics-core:2.2.0", 
+        "javax.servlet:servlet-api:2.5", 
+        "org.yaml:snakeyaml:1.11", 
+        "edu.stanford.ppl:snaptree:0.1", 
+        "org.antlr:antlr:3.2", 
+        "com.github.stephenc.high-scale-lib:high-scale-lib:1.1.2",
+        "org.xerial.snappy:snappy-java:1.0.5", 
+        "com.googlecode.concurrentlinkedhashmap:concurrentlinkedhashmap-lru:1.3", 
+        "commons-cli:commons-cli:1.1", 
+        "commons-codec:commons-codec:1.7", 
+        "org.apache.thrift:libthrift:0.9.1", 
+        "com.netflix.astyanax:astyanax-queue:1.56.49",
+        "com.netflix.astyanax:astyanax-recipes:1.56.49", 
+        "com.netflix.astyanax:astyanax-cassandra:1.56.49", 
+        "com.netflix.astyanax:astyanax-core:1.56.49", 
+        "com.netflix.astyanax:astyanax-entity-mapper:1.56.49", 
+        "com.netflix.astyanax:astyanax-thrift:1.56.49",
+        "commons-lang:commons-lang:2.6",
+    ]
+
+    spring_loaded = [
+        "org.springsource.springloaded:springloaded-core:1.1.4",
+
+    ]
+    xmlapi = [
+        "com.emc.vnxfile:vnxfile-xmlapi:0",
+
+    ]
+    commons_io = [
+        "commons-io:commons-io:2.4",
+
+    ]
+    commons_lang = [
+        "commons-lang:commons-lang:2.6",
+
+    ]
+    javassist = [
+        "org.javassist:javassist:3.18.0-GA",
+
+    ]
+    commons_compress = [
+        "org.apache.commons:commons-compress:1.4.1",
+        "org.tukaani:xz:1.0",
+
+    ]
+    commons_logging = [
+        "commons-logging:commons-logging:1.1.1",
+        "commons-logging:commons-logging-adapters:1.1",
+        "commons-logging:commons-logging-api:1.1",
+
+    ]
+    commons_pool2 = [
+        "org.apache.commons:commons-pool2:2.2",
+    ]
+    commons_pool = [
+        "commons-pool:commons-pool:1.3",
+
+    ]
+    commons_dbcp = [
+        "commons-dbcp:commons-dbcp:1.2.2",
+
+    ]
+    mysql_connector_java = [
+        "mysql:mysql-connector-java:5.1.20",
+
+    ]
+    curator_client = [
+        "org.apache.curator:curator-client:2.7.0",
+        "org.apache.curator:curator-framework:2.7.0",
+        "org.apache.curator:curator-recipes:2.7.0",
+        "org.apache.curator:curator-test:2.7.0",
+        "org.apache.curator:curator-x-discovery:2.7.0",
+        "org.apache.curator:curator-x-discovery-server:2.7.0",
+    ]
+    google_gson = [
+        "com.google.code.gson:gson:2.1",
+
+    ]
+    guava = [
+        "com.google.guava:guava:15.0",
+
+    ]
+    jersey = [
+        "asm:asm:3.1",
+        "org.codehaus.jackson:jackson-core-asl:1.9.2",
+        "org.codehaus.jackson:jackson-jaxrs:1.9.2",
+        "org.codehaus.jackson:jackson-mapper-asl:1.9.2", 
+        "org.codehaus.jackson:jackson-xc:1.9.2",
+        "com.sun.jersey:jersey-client:1.12",
+        "com.sun.jersey:jersey-core:1.12",
+        "com.sun.jersey:jersey-json:1.12",
+        "com.sun.jersey:jersey-server:1.12",
+        "com.sun.jersey:jersey-servlet:1.12",
+        "org.codehaus.jettison:jettison:1.1",
+        "javax.ws.rs:jsr311-api:1.1.1",
+        "com.sun.jersey.contribs:jersey-apache-client:1.12",
+        "com.sun.jersey.contribs:jersey-apache-client4:1.12",
+        "com.sun.jersey.contribs:jersey-multipart:1.12",
+
+    ]
+    jersey_client = [
+        "com.sun.jersey:jersey-client:1.12",
+        "com.sun.jersey:jersey-core:1.12",
+        "com.sun.jersey:jersey-json:1.12",
+        "javax.ws.rs:jsr311-api:1.1.1",
+        "org.codehaus.jackson:jackson-core-asl:1.9.2",
+        "org.codehaus.jackson:jackson-jaxrs:1.9.2",
+        "org.codehaus.jackson:jackson-mapper-asl:1.9.2",
+        "org.codehaus.jackson:jackson-xc:1.9.2",
+
+    ]
+    httpclient3 = [
+        "commons-httpclient:commons-httpclient:3.1", // (official) ${thirdparty}/java/commons-httpclient-3.1/commons-httpclient-3.1.jar
+        "commons-codec:commons-codec:1.7", // (official) ${thirdparty}/java/apache-cassandra-2.0.7/lib/commons-codec-1.2.jar
+
+    ]
+    httpclient4 = [
+        "org.apache.httpcomponents:httpcore:4.3.2",
+        "org.apache.httpcomponents:httpclient:4.3.3",
+        "commons-codec:commons-codec:1.7",
+
+    ]
+    jetty = [
+        "javax.servlet:servlet-api:2.5",
+        "org.eclipse.jetty:jetty-server:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-util:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-servlet:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-servlets:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-http:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-security:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-io:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-continuation:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-deploy:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-webapp:7.6.4.v20120524",
+        "org.eclipse.jetty:jetty-xml:7.6.4.v20120524",
+        
+    ]
+    // From JSP directory in jetty-distribution
+    jetty_jsp = [
+        "org.eclipse.jetty.orbit:com.sun.el:1.0.0.v201105211818",
+        "org.eclipse.jetty.orbit:javax.el:2.1.0.v201105211819",
+        "org.eclipse.jetty.orbit:javax.servlet.jsp:2.1.0.v201105211820",
+        "org.eclipse.jetty.orbit:javax.servlet.jsp.jstl:1.2.0.v201105211821",
+        "org.eclipse.jetty.orbit:org.apache.jasper.glassfish:2.1.0.v201110031002",
+        "org.eclipse.jetty.orbit:org.apache.taglibs.standard.glassfish:1.2.0.v201112081803",
+        "org.eclipse.jetty.orbit:org.eclipse.jdt.core:3.7.1",
+        
+    ]
+    junit = [
+        "junit:junit:4.11",
+        "org.hamcrest:hamcrest-core:1.3"
+
+    ]
+    sblim_cim_client2 = [
+        "net.sourceforge.sblim:sblim-cim-client:2.2.3",
+
+    ]
+    spring = [
+        "aopalliance:aopalliance:1.0",
+        "org.springframework:spring-aop:3.1.0.RELEASE",
+        "org.springframework:spring-asm:3.1.0.RELEASE",
+        "org.springframework:spring-aspects:3.1.0.RELEASE",
+        "org.springframework:spring-beans:3.1.0.RELEASE",
+        "org.springframework:spring-context:3.1.0.RELEASE",
+        "org.springframework:spring-context-support:3.1.0.RELEASE",
+        "org.springframework:spring-core:3.1.0.RELEASE",
+        "org.springframework:spring-expression:3.1.0.RELEASE",
+        "org.springframework:spring-instrument:3.1.0.RELEASE",
+        "org.springframework:spring-instrument-tomcat:3.1.0.RELEASE",
+        "org.springframework:spring-jdbc:3.1.0.RELEASE",
+        "org.springframework:spring-jms:3.1.0.RELEASE",
+        "org.springframework:spring-orm:3.1.0.RELEASE",
+        "org.springframework:spring-oxm:3.1.0.RELEASE",
+        "org.springframework:spring-test:3.1.0.RELEASE",
+        "org.springframework:spring-tx:3.1.0.RELEASE",
+        "org.springframework:spring-web:3.1.0.RELEASE",
+        "org.springframework:spring-webmvc-portlet:3.1.0.RELEASE",
+        "org.springframework:spring-webmvc:3.1.0.RELEASE",
+        "org.springframework:spring-struts:3.1.0.RELEASE",
+
+    ]
+    spring_security = [
+        "org.springframework.security:spring-security-aspects:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-config:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-core:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-crypto:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-ldap:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-openid:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-remoting:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-taglibs:3.1.0.RELEASE",
+        "org.springframework.security:spring-security-web:3.1.0.RELEASE",
+        "org.springframework.ldap:spring-ldap-core:1.3.1.RELEASE",
+
+    ]
+    jema_api = [
+        "com.emc.connectemc:jema-api:0",
+        "xerces:xercesImpl:2.9.1",
+
+    ]
+    enunciate = [
+        "net.sf.apt-jelly:apt-jelly-core:2.15",
+        "net.sf.apt-jelly:apt-jelly-freemarker:2.15",
+        "commons-digester:commons-digester:2.1",
+        "org.codehaus.enunciate:enunciate-core:1.25",
+        "org.codehaus.enunciate:enunciate-core-annotations:1.25",
+        "org.codehaus.enunciate:enunciate-core-rt:1.25",
+        "org.codehaus.enunciate:enunciate-docs:1.25",
+        "org.codehaus.enunciate:enunciate-xml:1.25",
+        "org.freemarker:freemarker:2.3.14",
+        "org.jdom:jdom:1.1.2",
+
+    ]
+    protobuf = [
+        "com.google.protobuf:protobuf-java:2.5.0",
+    ]
+    commons_codec = [
+        "commons-codec:commons-codec:1.7",
+
+    ]
+    logback = [
+        "ch.qos.logback:logback-core:0.9.28",
+        "ch.qos.logback:logback-classic:0.9.28",
+
+    ]
+    perf4j = [
+        "org.perf4j:perf4j:0.9.16",
+
+    ]
+    aspectj = [
+        "org.aspectj:aspectjweaver:1.7.0",
+        "org.aspectj:aspectjrt:1.7.0",
+
+    ]
+    commons_jexl = [
+        "commons-jexl:commons-jexl:1.1",
+
+    ]
+    cglib = [
+        "cglib:cglib-nodep:2.2.2",
+
+    ]
+    jna = [
+        "net.java.dev.jna:jna:3.5.1",
+        "net.java.dev.jna:platform:3.5.1",
+
+    ]
+    jsch = [
+        "com.jcraft:jsch:0.1.51",
+
+    ]
+    vasa_api = [
+        "com.vmware.vasa:vasa-api-common:1.0",
+        "com.vmware.vasa:vasa-api-jwinauth:1.0",
+        "com.vmware.vasa:vasa-api:1.0",
+
+    ]
+    axis2_war = [
+        "org.apache.axis2:axis2-webapp:1.5.2@war",
+
+    ]
+    axis2 = [
+        "org.apache.ws.schema:XmlSchema:1.4.3",
+        "javax.activation:activation:1.1",
+        "antlr:antlr:2.7.7",
+        "org.apache.ws.commons.axiom:axiom-api:1.2.9",
+        "org.apache.ws.commons.axiom:axiom-dom:1.2.9",
+        "org.apache.ws.commons.axiom:axiom-impl:1.2.9",
+        "org.apache.axis2:axis2-adb:1.5.2",
+        "org.apache.axis2:axis2-adb-codegen:1.5.2",
+        "org.apache.axis2:axis2-codegen:1.5.2",
+        "org.apache.axis2:axis2-corba:1.5.2",
+        "org.apache.axis2:axis2-fastinfoset:1.5.2",
+        "org.apache.axis2:axis2-java2wsdl:1.5.2",
+        "org.apache.axis2:axis2-jaxbri:1.5.2",
+        "org.apache.axis2:axis2-jaxws:1.5.2",
+        "org.apache.axis2:axis2-jibx:1.5.2",
+        "org.apache.axis2:axis2-json:1.5.2",
+        "org.apache.axis2:axis2-kernel:1.5.2",
+        "org.apache.axis2:axis2-metadata:1.5.2",
+        "org.apache.axis2:axis2-mtompolicy:1.5.2",
+        "org.apache.axis2:axis2-saaj:1.5.2",
+        "org.apache.axis2:axis2-soapmonitor-servlet:1.5.2",
+        "org.apache.axis2:axis2-spring:1.5.2",
+        "org.apache.axis2:axis2-transport-http:1.5.2",
+        "org.apache.axis2:axis2-transport-local:1.5.2",
+        "org.apache.axis2:axis2-xmlbeans:1.5.2",
+        "bcel:bcel:5.1",
+        "commons-codec:commons-codec:1.7",
+        "commons-fileupload:commons-fileupload:1.2",
+        "commons-httpclient:commons-httpclient:3.1",
+        "commons-io:commons-io:1.4",
+        "commons-logging:commons-logging:1.1.1",
+        "org.apache.geronimo.specs:geronimo-annotation_1.0_spec:1.1",
+        "org.apache.geronimo.specs:geronimo-jaxws_2.1_spec:1.0",
+        "org.apache.geronimo.specs:geronimo-jta_1.1_spec:1.1",
+        "org.apache.geronimo.specs:geronimo-saaj_1.3_spec:1.0.1",
+        "org.apache.geronimo.specs:geronimo-stax-api_1.0_spec:1.0.1",
+        "org.apache.geronimo.specs:geronimo-ws-metadata_2.0_spec:1.1.2",
+        "org.apache.httpcomponents:httpcore:4.0",
+        "javax.xml.bind:jaxb-api:2.1",
+        "com.sun.xml.bind:jaxb-impl:2.1.7",
+        "jaxen:jaxen:1.1.1",
+        "org.codehaus.jettison:jettison:1.0-RC2",
+        "org.jibx:jibx-bind:1.2.1",
+        "org.jibx:jibx-run:1.2.1",
+        "log4j:log4j:1.2.15",
+        "javax.mail:mail:1.4",
+        "org.apache.axis2:mex:1.5.2",
+        "org.apache.neethi:neethi:2.0.4",
+        "org.apache.woden:woden-api:1.0M8",
+        "org.apache.woden:woden-impl-dom:1.0M8",
+        "wsdl4j:wsdl4j:1.6.2",
+        "org.codehaus.woodstox:wstx-asl:3.2.9",
+        "xalan:xalan:2.7.0",
+        "xml-resolver:xml-resolver:1.2",
+        "org.apache.xmlbeans:xmlbeans:2.3.0",
+
+    ]
+    clp = [
+        "com.certicom.ecc:eccpresso-all:2.8", 
+        "com.emc.elm:elmjava:3.3.0", 
+        "com.macrovision.flexlm:flexlm:11.11.1", 
+
+    ]
+    easymock = [
+        "org.easymock:easymock:3.1",
+
+    ]
+    jdom2 = [
+        "org.jdom:jdom2:2.0.5",
+
+    ]
+    smooks = [
+        "org.milyn:milyn-smooks-all:1.5.1",
+        "jaxen:jaxen:1.1.1",
+    ]
+
+    CasNaming = [
+        "com.emc.asd.vipr:casnaming:1.0.0.0-620"
+    ]
+
+    beanutils = [
+	"commons-beanutils:commons-beanutils:1.8.3"
+    ]
+    
+    bouncycastle = [
+        "org.bouncycastle:bcprov-jdk15on:1.50",
+        "org.bouncycastle:bcpkix-jdk15on:1.50"
+    ]	
+
+    commons_cli = [
+        "commons-cli:commons-cli:1.1"
+    ]
+
+    jmdns = [
+        "javax.jmdns:jmdns:3.4.1"
+    ]
+
+    charva = [
+        "charvax:charva:1.1.4",
+        "charvax:libTerminal:1.1.4:@so"
+    ]
+
+}

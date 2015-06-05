@@ -1,0 +1,10 @@
+%{
+  field =_field;
+  noLabel = _noLabel;
+  hasLoading = _hasLoading ?: false
+  enableCurrentTimeControl = _enableCurrentTimeControl
+  enableCurrentTime = _enableCurrentTime
+}%
+#{Form.controlGroup field:field, noLabel:noLabel, hasLoading: hasLoading, width: _width}
+  #{Form.dateTimePicker field:field, enableCurrentTimeControl:enableCurrentTimeControl, enableCurrentTime:enableCurrentTime  /}
+#{/Form.controlGroup}

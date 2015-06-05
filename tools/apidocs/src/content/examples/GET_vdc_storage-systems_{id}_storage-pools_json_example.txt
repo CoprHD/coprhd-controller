@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/vdc/storage-systems/urn:storageos:StorageSystem:a1895790-5977-4115-a9f5-b70d033da537:/storage-pools.json HTTP/1.1  
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+   "storage_pool" : [
+      {
+         "link" : {
+            "rel" : "self",
+            "href" : "/vdc/storage-systems/urn:storageos:StorageSystem:a1895790-5977-4115-a9f5-b70d033da537:/storage-pools/urn:storageos:StoragePool:62171f79-2e6d-47db-b303-32c856062c29:"
+         },
+         "name" : "ISILON+6805ca00ad4426b77a51381b1ff2f2af5a41+POOL+x200_5.5tb_200gb-ssd_6gb",
+         "id" : "urn:storageos:StoragePool:62171f79-2e6d-47db-b303-32c856062c29:"
+      }
+   ]
+}

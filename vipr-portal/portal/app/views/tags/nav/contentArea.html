@@ -1,0 +1,9 @@
+%{
+  pinned = request.current().cookies.get('isMenuPinned')?.value == 'true'
+}%
+<div id="contentArea" class="${pinned ? 'menu-pinned' : ''} ${menuOpen ? 'menu-open' : ''}">
+  <div class="mainContent">
+    #{doBody/}
+  </div>
+  <div id="menuCloser"></div>
+</div>

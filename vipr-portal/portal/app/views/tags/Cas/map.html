@@ -1,0 +1,46 @@
+%{
+  field = _field
+  fieldName = field.name
+  nameField = "${fieldName}_name"
+  valueField = "${fieldName}_value"
+  
+  names = flash[nameField]?.split(",")
+  values = flash[valueField]?.split(",")
+  if (!field.value) {
+    field.value = [:]
+  }
+  names?.eachWithIndex { name, i ->
+    field.value[name] = (i < values?.length) ? values[i] : ""
+  }
+  flash.remove(nameField)
+  flash.remove(valueField)
+}%
+#{Form.controlGroup field:field}
+  #{list field.value, as:'entry'}
+    #{Cas.mapEntry fieldName:fieldName, name:entry.key, value:entry.value/}
+  #{/list}
+  <div class="footer">
+    <div class="form-control-static">
+      #{Form.button 'button.add', id:'addEntry', size:'sm', class:'success', icon:'plus'/}
+    </div>
+  </div>
+#{/Form.controlGroup}
+#{jsTemplate 'row'}
+  #{Cas.mapEntry fieldName:fieldName, name:'', value:''/}
+#{/jsTemplate}
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+#{script 'editable.js'/}
+<script type="text/javascript">
+$(document).ready(function() {
+    $('#addEntry').on('click', function() {
+        var row = $(templates.row.apply());
+        $(this).parents('.footer').before(row);
+        row.find('input').first().focus();
+    });
+    $(document).on('click', 'button[data-remove="entry"]', function() {
+        $(this).parents('.row').remove();
+    });
+});
+</script>
+#{/set}

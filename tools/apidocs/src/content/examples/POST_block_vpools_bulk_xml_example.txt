@@ -1,0 +1,115 @@
+POST https://192.168.0.0:4443/block/vpools/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:VirtualPool:48a74fce-c654-4272-b407-2aa14c2b1095:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_block_vpools>
+    <block_vpool>
+        <creation_time>1379678422602</creation_time>
+        <id>urn:storageos:VirtualPool:48a74fce-c654-4272-b407-2aa14c2b1095:</id>
+        <inactive>false</inactive>
+        <link href="/block/vpools/urn:storageos:VirtualPool:48a74fce-c654-4272-b407-2aa14c2b1095:" rel="self"/>
+        <name>Basic VPool with Consistency Group</name>
+        <tags/>
+        <assigned_storage_pools/>
+        <description>Consistency Group Feature</description>
+        <invalid_matched_pools>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:6d6956c6-8bd8-4507-adc5-62c4d2ec8ce7:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:033e2902-7fa6-4a89-b38e-1825bd801434:/storage-pools/urn:storageos:StoragePool:6d6956c6-8bd8-4507-adc5-62c4d2ec8ce7:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:049c6907-ed6c-4d79-816b-bb5b7324a659:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c532fa10-1ff4-4527-b628-50372cf609af:/storage-pools/urn:storageos:StoragePool:049c6907-ed6c-4d79-816b-bb5b7324a659:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:88442061-23be-409c-bb99-8f011c5fa30a:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:3d7afbb5-1c41-4cd4-a571-f61ba34f39e4:/storage-pools/urn:storageos:StoragePool:88442061-23be-409c-bb99-8f011c5fa30a:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:d4c6dd87-348f-422f-b3c4-2a6239734cb2:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:dc56440b-296c-4b7a-bd77-bf222cba45e2:/storage-pools/urn:storageos:StoragePool:d4c6dd87-348f-422f-b3c4-2a6239734cb2:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:86936add-c946-4285-aff8-28d074bf932b:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:c532fa10-1ff4-4527-b628-50372cf609af:/storage-pools/urn:storageos:StoragePool:86936add-c946-4285-aff8-28d074bf932b:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:6b161dc8-a5c3-4c0b-9434-5a7f5508e8a2:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:3d7afbb5-1c41-4cd4-a571-f61ba34f39e4:/storage-pools/urn:storageos:StoragePool:6b161dc8-a5c3-4c0b-9434-5a7f5508e8a2:" rel="self"/>
+            </storage_pool>
+        </invalid_matched_pools>
+        <matched_storage_pools>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:bf22aabb-cccf-46b8-9c91-d31c82e4e72f:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:b03f9168-a7c8-49e1-a395-9d23a9999617:/storage-pools/urn:storageos:StoragePool:bf22aabb-cccf-46b8-9c91-d31c82e4e72f:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:51546a26-5603-4a73-8036-b6dc2cadc3d1:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:/storage-pools/urn:storageos:StoragePool:51546a26-5603-4a73-8036-b6dc2cadc3d1:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:ca831272-167a-4876-9e46-c2a0099ecb51:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:/storage-pools/urn:storageos:StoragePool:ca831272-167a-4876-9e46-c2a0099ecb51:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:c41fe8fc-cb22-49be-ac0f-6663b81dafe3:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:b03f9168-a7c8-49e1-a395-9d23a9999617:/storage-pools/urn:storageos:StoragePool:c41fe8fc-cb22-49be-ac0f-6663b81dafe3:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:cf5e9648-b560-47f2-9ecc-958da193fe53:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:/storage-pools/urn:storageos:StoragePool:cf5e9648-b560-47f2-9ecc-958da193fe53:" rel="self"/>
+            </storage_pool>
+            <storage_pool>
+                <id>urn:storageos:StoragePool:53e905a7-9b4c-4e57-9a77-f98ddb67b66e:</id>
+                <link href="/vdc/storage-systems/urn:storageos:StorageSystem:b03f9168-a7c8-49e1-a395-9d23a9999617:/storage-pools/urn:storageos:StoragePool:53e905a7-9b4c-4e57-9a77-f98ddb67b66e:" rel="self"/>
+            </storage_pool>
+        </matched_storage_pools>
+        <num_paths>1</num_paths>
+        <num_resources>3</num_resources>
+        <protocols>
+            <protocol>FC</protocol>
+        </protocols>
+        <provisioning_type>Thin</provisioning_type>
+        <system_type>NONE</system_type>
+        <type>block</type>
+        <use_matched_pools>true</use_matched_pools>
+        <varrays>
+            <varray>
+                <id>urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:</id>
+                <link href="/vdc/varrays/urn:storageos:VirtualArray:110acf4a-2459-4025-adff-ce429fc4c5c3:" rel="self"/>
+            </varray>
+        </varrays>
+        <drive_type>NONE</drive_type>
+        <expandable>true</expandable>
+        <multi_volume_consistency>true</multi_volume_consistency>
+        <protection>
+            <snapshots>
+                <max_native_snapshots>10</max_native_snapshots>
+            </snapshots>
+            <continuous_copies>
+                <max_native_continuous_copies>0</max_native_continuous_copies>
+            </continuous_copies>
+        </protection>
+        <raid_levels/>
+        <unique_auto_tier_policy_names>false</unique_auto_tier_policy_names>
+    </block_vpool>
+</bulk_block_vpools>
+
+
+
+
+
+
+
+
+
+

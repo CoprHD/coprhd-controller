@@ -1,0 +1,16 @@
+GET https://192.168.0.0:4443/vdc/storage-pools/urn:storageos:StoragePool:00144972-bed4-4ada-9d36-fc617c74b280:/storage-tiers
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  <storage_tiers>
+       <storage_tier>
+           <id>urn:storageos:StorageTier:646f5cb4-4f88-44f9-af0c-d0ffc5f0a8b0:</id>
+           <link href="/vdc/storage-tiers/urn:storageos:StorageTier:646f5cb4-4f88-44f9-af0c-d0ffc5f0a8b0:" rel="self"/>
+           <name>SYMMETRIX+000195700363+TIER+DPSATAR5Tier</name>
+       </storage_tier>
+  </storage_tiers>

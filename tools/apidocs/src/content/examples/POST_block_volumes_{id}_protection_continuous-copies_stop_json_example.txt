@@ -1,0 +1,65 @@
+POST https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/stop.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/json
+
+{
+    "task": [
+        {
+            "associated_resources": [
+                {
+                    "id": "urn:storageos:BlockMirror:50172a4a-b0bb-4672-9c5a-ebe999d6b36d:", 
+                    "link": {
+                        "href": "/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:50172a4a-b0bb-4672-9c5a-ebe999d6b36d:", 
+                        "rel": "self"
+                    }, 
+                    "name": "mirror"
+                }
+            ], 
+            "link": {
+                "href": "/block/volumes/urn:storageos:Volume:9f3f68cd-789b-484a-a3fc-a2058210ebd4:/tasks/260cee70-4d24-465a-866f-6f1dc2ecde44", 
+                "rel": "self"
+            }, 
+            "op_id": "260cee70-4d24-465a-866f-6f1dc2ecde44", 
+            "resource": {
+                "id": "urn:storageos:Volume:9f3f68cd-789b-484a-a3fc-a2058210ebd4:", 
+                "link": {
+                    "href": "/block/volumes/urn:storageos:Volume:9f3f68cd-789b-484a-a3fc-a2058210ebd4:", 
+                    "rel": "self"
+                }
+            }, 
+            "start_time": 1380812792763, 
+            "state": "pending"
+        }, 
+        {
+            "associated_resources": [
+                {
+                    "id": "urn:storageos:BlockMirror:50172a4a-b0bb-4672-9c5a-ebe999d6b36d:", 
+                    "link": {
+                        "href": "/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:50172a4a-b0bb-4672-9c5a-ebe999d6b36d:", 
+                        "rel": "self"
+                    }, 
+                    "name": "mirror"
+                }
+            ], 
+            "link": {
+                "href": "/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/tasks/260cee70-4d24-465a-866f-6f1dc2ecde44", 
+                "rel": "self"
+            }, 
+            "op_id": "260cee70-4d24-465a-866f-6f1dc2ecde44", 
+            "resource": {
+                "id": "urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:", 
+                "link": {
+                    "href": "/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:", 
+                    "rel": "self"
+                }, 
+                "name": "volume"
+            }, 
+            "start_time": 1380812792758, 
+            "state": "pending"
+        }
+    ]
+}

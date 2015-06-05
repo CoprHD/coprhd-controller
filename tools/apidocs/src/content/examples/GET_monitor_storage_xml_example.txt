@@ -1,0 +1,17 @@
+GET https://192.168.0.0:4443/monitor/storage HTTP/1.1
+
+Content-Type: application/xml 
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==Response
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<storage_stats>
+  <controller>
+    <block_managed_capacity_kb>1.0498816E7</block_managed_capacity_kb>
+    <file_managed_capacity_kb>1048576.0</file_managed_capacity_kb>
+    <free_managed_capacity_kb>4.156111114268E12</free_managed_capacity_kb>
+  </controller>
+</storage_stats>

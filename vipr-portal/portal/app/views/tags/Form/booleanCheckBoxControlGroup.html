@@ -1,0 +1,18 @@
+%{
+  field =_field;
+  noLabel = _noLabel;
+  
+  field.cssClass = _cssClass ?: "span0"
+  if (_required) {
+    field.required = _required
+  }
+  if (_disabled) {
+    field.disabled = _disabled
+  }
+  if (_attr) {
+    field.atts = _attr
+  }
+}%
+#{Form.controlGroup field:field, noLabel:noLabel, width: _width}
+  #{Form.booleanCheckBox field:field /}
+#{/Form.controlGroup}

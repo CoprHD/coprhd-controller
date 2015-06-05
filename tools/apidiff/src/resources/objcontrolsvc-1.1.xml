@@ -1,0 +1,3864 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<api-docs title="Bourne Object Services API">
+  <data>
+    <schema namespace="" namespaceId="ns0" file="ns0.xsd">
+      <types>
+        <type name="bulkIdParam" id="com.emc.storageos.model.BulkIdParam" package="com.emc.storageos.model">
+          <groups>
+            <group>BulkIdParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="id">
+              <choice name="id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="bulkRestRep" id="com.emc.storageos.model.BulkRestRep" package="com.emc.storageos.model">
+          <groups>
+            <group>BulkRestRep</group>
+          </groups>
+        </type>
+        <type name="dataObjectRestRep" id="com.emc.storageos.model.DataObjectRestRep" package="com.emc.storageos.model">
+          <groups>
+            <group>DataObjectRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="inactive">
+              <choice name="inactive" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="boolean"/>
+            </element>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="tags">
+              <choice name="tags/tag" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="creation_time">
+              <choice name="creation_time" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="link">
+              <choice name="link" namespace="" typeNamespace="" typeName="restLinkRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="id">
+              <choice name="id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="namedRelatedResourceRep" id="com.emc.storageos.model.NamedRelatedResourceRep" package="com.emc.storageos.model" extendsType="com.emc.storageos.model.RelatedResourceRep">
+          <groups>
+            <group>NamedRelatedResourceRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="relatedResourceRep" id="com.emc.storageos.model.RelatedResourceRep" package="com.emc.storageos.model">
+          <groups>
+            <group>RelatedResourceRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="id">
+              <choice name="id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="link">
+              <choice name="link" namespace="" typeNamespace="" typeName="restLinkRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="restLinkRep" id="com.emc.storageos.model.RestLinkRep" package="com.emc.storageos.model">
+          <groups>
+            <group>RestLinkRep</group>
+          </groups>
+          <attributes>
+            <attribute name="href" jsonName="href" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string">
+              <![CDATA[(no documentation provided)]]>
+            </attribute>
+            <attribute name="rel" jsonName="rel" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string">
+              <![CDATA[(no documentation provided)]]>
+            </attribute>
+          </attributes>
+        </type>
+        <type name="tagAssignment" id="com.emc.storageos.model.TagAssignment" package="com.emc.storageos.model">
+          <groups>
+            <group>TagAssignment</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="remove">
+              <choice name="remove" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="add">
+              <choice name="add" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="taskList" id="com.emc.storageos.model.TaskList" package="com.emc.storageos.model">
+          <groups>
+            <group>TaskList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="task">
+              <choice name="task" namespace="" typeNamespace="" typeName="taskResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="taskResourceRep" id="com.emc.storageos.model.TaskResourceRep" package="com.emc.storageos.model">
+          <groups>
+            <group>TaskResourceRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="associated_resources">
+              <choice name="associated_resources/associated_resource" namespace="" typeNamespace="" typeName="namedRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="resource">
+              <choice name="resource" namespace="" typeNamespace="" typeName="namedRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="message">
+              <choice name="message" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="state">
+              <choice name="state" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="service_error">
+              <choice name="service_error" namespace="" typeNamespace="" typeName="serviceErrorRestRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="op_id">
+              <choice name="op_id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="start_time">
+              <choice name="start_time" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="link">
+              <choice name="link" namespace="" typeNamespace="" typeName="restLinkRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="end_time">
+              <choice name="end_time" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+          </elements>
+        </type>
+        <type name="serviceErrorRestRep" id="com.emc.storageos.model.errorhandling.ServiceErrorRestRep" package="com.emc.storageos.model.errorhandling">
+          <groups>
+            <group>ServiceErrorRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="code">
+              <choice name="code" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="int"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="retryable">
+              <choice name="retryable" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="boolean"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="details">
+              <choice name="details" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="searchResultResourceRep" id="com.emc.storageos.model.search.SearchResultResourceRep" package="com.emc.storageos.model.search" extendsType="com.emc.storageos.model.RelatedResourceRep">
+          <groups>
+            <group>SearchResultResourceRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="match">
+              <choice name="match" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="searchResults" id="com.emc.storageos.model.search.SearchResults" package="com.emc.storageos.model.search">
+          <groups>
+            <group>SearchResults</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="resource">
+              <choice name="resource" namespace="" typeNamespace="" typeName="searchResultResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="tags" id="com.emc.storageos.model.search.Tags" package="com.emc.storageos.model.search">
+          <groups>
+            <group>Tags</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="tag">
+              <choice name="tag" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="atmosEntry" id="com.emc.storageos.objcontrol.object.impl.atmos.AtmosEntry" package="com.emc.storageos.objcontrol.object.impl.atmos">
+          <documentation>
+            <![CDATA[object to represent a single atmos DNS entry]]>
+          </documentation>
+          <groups>
+            <group>AtmosEntry</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="host">
+              <documentation>
+                <![CDATA[ip/host of the target node]]>
+              </documentation>
+              <tag name="return"><![CDATA[]]></tag>
+              <choice name="host" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="port">
+              <documentation>
+                <![CDATA[get port to use for non-ssl requests to this node]]>
+              </documentation>
+              <tag name="return"><![CDATA[]]></tag>
+              <choice name="port" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="int"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="SSLPort">
+              <documentation>
+                <![CDATA[port to use for ssl requests to this node]]>
+              </documentation>
+              <tag name="return"><![CDATA[]]></tag>
+              <choice name="SSLPort" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="int"/>
+            </element>
+          </elements>
+        </type>
+        <type name="atmosSubtenantListResp" id="com.emc.storageos.objcontrol.object.impl.atmos.AtmosSubtenantListResp" package="com.emc.storageos.objcontrol.object.impl.atmos">
+          <documentation>
+            <![CDATA[The class that represents the response of
+the /sysmgmt/tenants/$TENANT/subtenants request
+In the response, we are only interested in <subtenant>
+and its child <name>]]>
+          </documentation>
+          <groups>
+            <group>AtmosSubtenantListResp</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="subtenant">
+              <choice name="subtenant" namespace="" typeNamespace="" typeName="subtenantInfo" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="subtenantInfo" id="com.emc.storageos.objcontrol.object.impl.atmos.AtmosSubtenantListResp.SubtenantInfo" package="com.emc.storageos.objcontrol.object.impl.atmos">
+          <groups>
+            <group>SubtenantInfo</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="id">
+              <choice name="id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="keyPoolFileAccessModeParam" id="com.emc.storageos.objcontrol.object.params.KeyPoolFileAccessModeParam" package="com.emc.storageos.objcontrol.object.params">
+          <groups>
+            <group>KeyPoolFileAccessModeParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="targetAccessMode">
+              <choice name="targetAccessMode" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="hostList">
+              <choice name="hostList" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="userUid">
+              <choice name="userUid" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="duration">
+              <choice name="duration" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="token">
+              <choice name="token" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="preserveDirectoryStructure">
+              <choice name="preserveDirectoryStructure" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="boolean"/>
+            </element>
+          </elements>
+        </type>
+        <type name="additionalInfoForAtmos" id="com.emc.storageos.objcontrol.object.shared.AdditionalInfoForAtmos" package="com.emc.storageos.objcontrol.object.shared">
+          <groups>
+            <group>AdditionalInfoForAtmos</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenantName">
+              <choice name="tenantName" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenantID">
+              <choice name="tenantID" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenantAdmin">
+              <choice name="tenantAdmin" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="atmosEntry">
+              <choice name="atmosEntry" namespace="" typeNamespace="" typeName="atmosEntry" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="project">
+              <choice name="project" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="cosId">
+              <choice name="cosId" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="additionalInfoForFile" id="com.emc.storageos.objcontrol.object.shared.AdditionalInfoForFile" package="com.emc.storageos.objcontrol.object.shared">
+          <groups>
+            <group>AdditionalInfoForFile</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="exportUserMapping">
+              <choice name="exportUserMapping" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="storageDeviceId">
+              <choice name="storageDeviceId" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="storageDeviceType">
+              <choice name="storageDeviceType" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="hostName">
+              <choice name="hostName" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="mountPoint">
+              <choice name="mountPoint" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="keyPoolCreateParam" id="com.emc.storageos.objcontrol.object.shared.keypool.KeyPoolProvisioningHelper.KeyPoolCreateParam" package="com.emc.storageos.objcontrol.object.shared.keypool">
+          <documentation>
+            <![CDATA[Parameter used for keypool creation request]]>
+          </documentation>
+          <groups>
+            <group>KeyPoolCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="object_namespace">
+              <documentation>
+                <![CDATA[Namespace to which this keypool belongs]]>
+              </documentation>
+              <choice name="object_namespace" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="keypool_name">
+              <documentation>
+                <![CDATA[name of the keypool]]>
+              </documentation>
+              <choice name="keypool_name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="owner">
+              <documentation>
+                <![CDATA[owner of the keypool]]>
+              </documentation>
+              <choice name="owner" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="project">
+              <documentation>
+                <![CDATA[Project associated with the keypool]]>
+              </documentation>
+              <choice name="project" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="api_type">
+              <documentation>
+                <![CDATA[API which will be used to access this keypool. Currently supported options are: S3, Atmos, Swift]]>
+              </documentation>
+              <choice name="api_type" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="object_cos">
+              <documentation>
+                <![CDATA[Id of the CoS which needs to be satisfied by the data store on which this keypool will be hosted]]>
+              </documentation>
+              <choice name="object_cos" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="keyPools" id="com.emc.storageos.objcontrol.object.shared.keypool.KeyPoolProvisioningHelper.KeyPools" package="com.emc.storageos.objcontrol.object.shared.keypool">
+          <documentation>
+            <![CDATA[Response parameter for GET keypools request.]]>
+          </documentation>
+          <groups>
+            <group>KeyPools</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="keypool">
+              <choice name="keypool" namespace="" typeNamespace="" typeName="keyPoolRestRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="keypoolExpirationPolicy" id="com.emc.storageos.objcontrol.object.shared.policy.KeypoolExpirationPolicy" package="com.emc.storageos.objcontrol.object.shared.policy">
+          <groups>
+            <group>KeypoolExpirationPolicy</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="objectPrefix">
+              <choice name="objectPrefix" namespace="" typeNamespace="" typeName="objectExpirationPolicy" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectExpirationPolicy" id="com.emc.storageos.objcontrol.object.shared.policy.ObjectExpirationPolicy" package="com.emc.storageos.objcontrol.object.shared.policy">
+          <groups>
+            <group>ObjectExpirationPolicy</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="objectPrefix">
+              <choice name="objectPrefix" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="expiryDate">
+              <choice name="expiryDate" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="expiryDays">
+              <choice name="expiryDays" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="id">
+              <choice name="id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="status">
+              <choice name="status" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="baseUrlList" id="com.emc.vipr.model.object.BaseUrlList" package="com.emc.vipr.model.object">
+          <groups>
+            <group>BaseUrlList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="base_url">
+              <choice name="base_url" namespace="" typeNamespace="" typeName="objectNamedRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="keyPoolRestRep" id="com.emc.vipr.model.object.KeyPoolRestRep" package="com.emc.vipr.model.object">
+          <groups>
+            <group>KeyPoolRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="project">
+              <choice name="project" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="object_cos">
+              <choice name="object_cos" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="api_type">
+              <choice name="api_type" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectBaseUrlRestRep" id="com.emc.vipr.model.object.ObjectBaseUrlRestRep" package="com.emc.vipr.model.object" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>ObjectBaseUrlRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="namespace_in_host">
+              <choice name="namespace_in_host" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="boolean"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="baseurl">
+              <choice name="baseurl" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectNamedRelatedResourceRep" id="com.emc.vipr.model.object.ObjectNamedRelatedResourceRep" package="com.emc.vipr.model.object" extendsType="com.emc.vipr.model.object.ObjectRelatedResourceRep">
+          <groups>
+            <group>ObjectNamedRelatedResourceRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectRelatedResourceRep" id="com.emc.vipr.model.object.ObjectRelatedResourceRep" package="com.emc.vipr.model.object">
+          <groups>
+            <group>ObjectRelatedResourceRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="link">
+              <choice name="link" namespace="" typeNamespace="" typeName="restLinkRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="id">
+              <choice name="id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="atmosDeviceList" id="com.emc.vipr.model.object.atmos.AtmosDeviceList" package="com.emc.vipr.model.object.atmos">
+          <groups>
+            <group>AtmosDeviceList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="atmos_device">
+              <choice name="atmos_device" namespace="" typeNamespace="" typeName="objectNamedRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="atmosDeviceParam" id="com.emc.vipr.model.object.atmos.AtmosDeviceParam" package="com.emc.vipr.model.object.atmos">
+          <groups>
+            <group>AtmosDeviceParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="ip">
+              <choice name="ip" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="tenant_admin">
+              <choice name="tenant_admin" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="tenant_admin_password">
+              <choice name="tenant_admin_password" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="project">
+              <choice name="project" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="tenant_name">
+              <choice name="tenant_name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="namespace">
+              <choice name="namespace" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="tenant_id">
+              <choice name="tenant_id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="atmosDeviceRestRep" id="com.emc.vipr.model.object.atmos.AtmosDeviceRestRep" package="com.emc.vipr.model.object.atmos" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>AtmosDeviceRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="device_state">
+              <choice name="device_state" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenant_admin">
+              <choice name="tenant_admin" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="ip">
+              <choice name="ip" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenant_id">
+              <choice name="tenant_id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenant_name">
+              <choice name="tenant_name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="atmosUpdateParameters" id="com.emc.vipr.model.object.atmos.AtmosUpdateParameters" package="com.emc.vipr.model.object.atmos">
+          <groups>
+            <group>AtmosUpdateParameters</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="ip">
+              <choice name="ip" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenant_name">
+              <choice name="tenant_name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenant_admin">
+              <choice name="tenant_admin" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenant_admin_password">
+              <choice name="tenant_admin_password" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectBucketParam" id="com.emc.vipr.model.object.bucket.ObjectBucketParam" package="com.emc.vipr.model.object.bucket">
+          <groups>
+            <group>ObjectBucketParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="project">
+              <choice name="project" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="filesystem_enabled">
+              <choice name="filesystem_enabled" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="boolean"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="vpool">
+              <choice name="vpool" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectBucketRestRep" id="com.emc.vipr.model.object.bucket.ObjectBucketRestRep" package="com.emc.vipr.model.object.bucket" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>ObjectBucketRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="error_message">
+              <choice name="error_message" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataStoreBulkRep" id="com.emc.vipr.model.object.datastore.DataStoreBulkRep" package="com.emc.vipr.model.object.datastore" extendsType="com.emc.storageos.model.BulkRestRep">
+          <groups>
+            <group>DataStoreBulkRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="data_store">
+              <choice name="data_store" namespace="" typeNamespace="" typeName="dataStoreRestRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataStoreList" id="com.emc.vipr.model.object.datastore.DataStoreList" package="com.emc.vipr.model.object.datastore">
+          <groups>
+            <group>DataStoreList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="data_store">
+              <choice name="data_store" namespace="" typeNamespace="" typeName="dataStoreNamedRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataStoreNamedRelatedResourceRep" id="com.emc.vipr.model.object.datastore.DataStoreNamedRelatedResourceRep" package="com.emc.vipr.model.object.datastore" extendsType="com.emc.vipr.model.object.ObjectNamedRelatedResourceRep">
+          <groups>
+            <group>DataStoreNamedRelatedResourceRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="resource_type">
+              <choice name="resource_type" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataStoreParam" id="com.emc.vipr.model.object.datastore.DataStoreParam" package="com.emc.vipr.model.object.datastore">
+          <groups>
+            <group>DataStoreParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="data_services_vpool">
+              <choice name="data_services_vpool" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataStoreRestRep" id="com.emc.vipr.model.object.datastore.DataStoreRestRep" package="com.emc.vipr.model.object.datastore" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>DataStoreRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="device_info">
+              <choice name="device_info" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="usable_gb">
+              <choice name="usable_gb" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="used_gb">
+              <choice name="used_gb" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="free_gb">
+              <choice name="free_gb" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="device_state">
+              <choice name="device_state" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="data_services_vpool">
+              <choice name="data_services_vpool" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="fileSystemsDataStoreParam" id="com.emc.vipr.model.object.datastore.FileSystemsDataStoreParam" package="com.emc.vipr.model.object.datastore" extendsType="com.emc.vipr.model.object.datastore.DataStoreParam">
+          <groups>
+            <group>FileSystemsDataStoreParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="varray">
+              <choice name="varray" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="file_data_services_vpool">
+              <choice name="file_data_services_vpool" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="size">
+              <choice name="size" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+          </elements>
+        </type>
+        <type name="fileSystemsDataStoreRestRep" id="com.emc.vipr.model.object.datastore.FileSystemsDataStoreRestRep" package="com.emc.vipr.model.object.datastore" extendsType="com.emc.vipr.model.object.datastore.DataStoreRestRep">
+          <groups>
+            <group>FileSystemsDataStoreRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="file_system">
+              <choice name="file_system" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="modifyDataStoreParam" id="com.emc.vipr.model.object.datastore.ModifyDataStoreParam" package="com.emc.vipr.model.object.datastore">
+          <groups>
+            <group>ModifyDataStoreParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="nfsExportPointsDataStoreParam" id="com.emc.vipr.model.object.datastore.NfsExportPointsDataStoreParam" package="com.emc.vipr.model.object.datastore" extendsType="com.emc.vipr.model.object.datastore.DataStoreParam">
+          <groups>
+            <group>NfsExportPointsDataStoreParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="mount_point">
+              <choice name="mount_point" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="size">
+              <choice name="size" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="long"/>
+            </element>
+          </elements>
+        </type>
+        <type name="nfsExportPointsDataStoreRestRep" id="com.emc.vipr.model.object.datastore.NfsExportPointsDataStoreRestRep" package="com.emc.vipr.model.object.datastore" extendsType="com.emc.vipr.model.object.datastore.DataStoreRestRep">
+          <groups>
+            <group>NfsExportPointsDataStoreRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="mount_point">
+              <choice name="mount_point" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectBaseUrlCreate" id="com.emc.vipr.model.object.datastore.ObjectBaseUrlCreate" package="com.emc.vipr.model.object.datastore">
+          <groups>
+            <group>ObjectBaseUrlCreate</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="base_url">
+              <choice name="base_url" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="is_namespace_in_host">
+              <choice name="is_namespace_in_host" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="boolean"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectBaseUrlUpdate" id="com.emc.vipr.model.object.datastore.ObjectBaseUrlUpdate" package="com.emc.vipr.model.object.datastore">
+          <groups>
+            <group>ObjectBaseUrlUpdate</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="is_namespace_in_host">
+              <choice name="is_namespace_in_host" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="boolean"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="base_url">
+              <choice name="base_url" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="fileSystemDeviceInfo" id="com.emc.vipr.model.object.ingestion.FileSystemDeviceInfo" package="com.emc.vipr.model.object.ingestion">
+          <groups>
+            <group>FileSystemDeviceInfo</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="fileshare_id">
+              <choice name="fileshare_id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectIngestionCreateParam" id="com.emc.vipr.model.object.ingestion.ObjectIngestionCreateParam" package="com.emc.vipr.model.object.ingestion">
+          <groups>
+            <group>ObjectIngestionCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="datastore_name">
+              <choice name="datastore_name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="filesystem_device_info">
+              <choice name="filesystem_device_info" namespace="" typeNamespace="" typeName="fileSystemDeviceInfo" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="datastore_description">
+              <choice name="datastore_description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="keypool_name">
+              <choice name="keypool_name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectIngestionList" id="com.emc.vipr.model.object.ingestion.ObjectIngestionList" package="com.emc.vipr.model.object.ingestion">
+          <groups>
+            <group>ObjectIngestionList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="object_ingestion">
+              <choice name="object_ingestion" namespace="" typeNamespace="" typeName="objectRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectIngestionRestRep" id="com.emc.vipr.model.object.ingestion.ObjectIngestionRestRep" package="com.emc.vipr.model.object.ingestion" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>ObjectIngestionRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="failed_file">
+              <choice name="failed_file" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="task_error">
+              <choice name="task_error" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="task_state">
+              <choice name="task_state" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="namespaceCreateParam" id="com.emc.vipr.model.object.namespace.NamespaceCreateParam" package="com.emc.vipr.model.object.namespace">
+          <groups>
+            <group>NamespaceCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="vdcs">
+              <choice name="vdcs" namespace="" typeNamespace="" typeName="namespaceVDCParam" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="namespace">
+              <choice name="namespace" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="namespaceList" id="com.emc.vipr.model.object.namespace.NamespaceList" package="com.emc.vipr.model.object.namespace">
+          <groups>
+            <group>NamespaceList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="namespace">
+              <choice name="namespace" namespace="" typeNamespace="" typeName="objectNamedRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="namespaceRestRep" id="com.emc.vipr.model.object.namespace.NamespaceRestRep" package="com.emc.vipr.model.object.namespace" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>NamespaceRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="vdcs">
+              <choice name="vdcs" namespace="" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="namespaceUpdateParam" id="com.emc.vipr.model.object.namespace.NamespaceUpdateParam" package="com.emc.vipr.model.object.namespace">
+          <groups>
+            <group>NamespaceUpdateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="vdc_update">
+              <choice name="vdc_update" namespace="" typeNamespace="" typeName="namespaceVDCParam" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="namespaceVDCParam" id="com.emc.vipr.model.object.namespace.NamespaceVDCParam" package="com.emc.vipr.model.object.namespace">
+          <groups>
+            <group>NamespaceVDCParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="default_object_project">
+              <choice name="default_object_project" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="tenant">
+              <choice name="tenant" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="vdc_id">
+              <choice name="vdc_id" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="default_data_services_vpool">
+              <choice name="default_data_services_vpool" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="namespaceVDCRestRep" id="com.emc.vipr.model.object.namespace.NamespaceVDCRestRep" package="com.emc.vipr.model.object.namespace">
+          <groups>
+            <group>NamespaceVDCRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="tenant">
+              <choice name="tenant" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="tenantNamespaceRestRep" id="com.emc.vipr.model.object.namespace.TenantNamespaceRestRep" package="com.emc.vipr.model.object.namespace" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>TenantNamespaceRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="default_object_project">
+              <choice name="default_object_project" namespace="" typeNamespace="" typeName="relatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="namespace">
+              <choice name="namespace" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="default_data_services_vpool">
+              <choice name="default_data_services_vpool" namespace="" typeNamespace="" typeName="objectRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectNetworkCreateParam" id="com.emc.vipr.model.object.network.ObjectNetworkCreateParam" package="com.emc.vipr.model.object.network">
+          <groups>
+            <group>ObjectNetworkCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="network">
+              <choice name="network" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectNetworkList" id="com.emc.vipr.model.object.network.ObjectNetworkList" package="com.emc.vipr.model.object.network">
+          <groups>
+            <group>ObjectNetworkList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="object_network">
+              <choice name="object_network" namespace="" typeNamespace="" typeName="objectNamedRelatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectNetworkRestRep" id="com.emc.vipr.model.object.network.ObjectNetworkRestRep" package="com.emc.vipr.model.object.network" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>ObjectNetworkRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="network">
+              <choice name="network" namespace="" typeNamespace="" typeName="relatedResourceRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="objectNetworkUpdateParam" id="com.emc.vipr.model.object.network.ObjectNetworkUpdateParam" package="com.emc.vipr.model.object.network">
+          <groups>
+            <group>ObjectNetworkUpdateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="network">
+              <choice name="network" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="secretKeyCreateParam" id="com.emc.vipr.model.object.user.SecretKeyCreateParam" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>SecretKeyCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="existing_key_expiry_time_mins">
+              <choice name="existing_key_expiry_time_mins" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="secretKeyDeleteParam" id="com.emc.vipr.model.object.user.SecretKeyDeleteParam" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>SecretKeyDeleteParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="secret_key">
+              <choice name="secret_key" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="secretKeyInfoRep" id="com.emc.vipr.model.object.user.SecretKeyInfoRep" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>SecretKeyInfoRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="link">
+              <choice name="link" namespace="" typeNamespace="" typeName="restLinkRep" typeSchemaId="ns0"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="secret_key">
+              <choice name="secret_key" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="key_timestamp">
+              <choice name="key_timestamp" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="secretKeyRestRep" id="com.emc.vipr.model.object.user.SecretKeyRestRep" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>SecretKeyRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="key_timestamp_2">
+              <choice name="key_timestamp_2" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="key_timestamp_1">
+              <choice name="key_timestamp_1" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="secret_key_2">
+              <choice name="secret_key_2" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="secret_key_1">
+              <choice name="secret_key_1" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="link">
+              <choice name="link" namespace="" typeNamespace="" typeName="restLinkRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="userCreateParam" id="com.emc.vipr.model.object.user.UserCreateParam" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>UserCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="user">
+              <choice name="user" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="namespace">
+              <choice name="namespace" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="userDeleteParam" id="com.emc.vipr.model.object.user.UserDeleteParam" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>UserDeleteParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="user">
+              <choice name="user" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="userGroupRestRep" id="com.emc.vipr.model.object.user.UserGroupRestRep" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>UserGroupRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="groups">
+              <choice name="groups" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="groups_list">
+              <choice name="groups_list" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="userPasswordGroupCreateParam" id="com.emc.vipr.model.object.user.UserPasswordGroupCreateParam" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>UserPasswordGroupCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="groups_list">
+              <choice name="groups_list" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="password">
+              <choice name="password" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="namespace">
+              <choice name="namespace" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="userPasswordGroupUpdateParam" id="com.emc.vipr.model.object.user.UserPasswordGroupUpdateParam" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>UserPasswordGroupUpdateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="password">
+              <choice name="password" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="groups_list">
+              <choice name="groups_list" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="userSecretKeyCreateParam" id="com.emc.vipr.model.object.user.UserSecretKeyCreateParam" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>UserSecretKeyCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="existing_key_expiry_time_mins">
+              <choice name="existing_key_expiry_time_mins" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="usersList" id="com.emc.vipr.model.object.user.UsersList" package="com.emc.vipr.model.object.user">
+          <groups>
+            <group>UsersList</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="unbounded" jsonName="users_list">
+              <choice name="users_list" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataServicesVirtualPoolCreateParam" id="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolCreateParam" package="com.emc.vipr.model.object.vpool">
+          <groups>
+            <group>DataServicesVirtualPoolCreateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="type">
+              <choice name="type" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataServicesVirtualPoolListResponse" id="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolListResponse" package="com.emc.vipr.model.object.vpool">
+          <groups>
+            <group>DataServicesVirtualPoolListResponse</group>
+          </groups>
+          <elements>
+            <element minOccurs="1" maxOccurs="unbounded" jsonName="data_services_vpool">
+              <choice name="data_services_vpool" namespace="" typeNamespace="" typeName="dataServicesVirtualPoolRestRep" typeSchemaId="ns0"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataServicesVirtualPoolRestRep" id="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolRestRep" package="com.emc.vipr.model.object.vpool" extendsType="com.emc.storageos.model.DataObjectRestRep">
+          <groups>
+            <group>DataServicesVirtualPoolRestRep</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="type">
+              <choice name="type" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="0" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+        <type name="dataServicesVirtualPoolUpdateParam" id="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolUpdateParam" package="com.emc.vipr.model.object.vpool">
+          <groups>
+            <group>DataServicesVirtualPoolUpdateParam</group>
+          </groups>
+          <elements>
+            <element minOccurs="0" maxOccurs="1" jsonName="description">
+              <choice name="description" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+            <element minOccurs="1" maxOccurs="1" jsonName="name">
+              <choice name="name" namespace="" typeNamespace="http://www.w3.org/2001/XMLSchema" typeName="string"/>
+            </element>
+          </elements>
+        </type>
+      </types>
+      <elements>
+        <element name="ids" type="com.emc.storageos.model.BulkIdParam" typeName="bulkIdParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>BulkIdParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<ids>
+  <id>...</id>
+  <id>...</id>
+  <!--...more "id" elements...-->
+</ids>]]></examplexml>
+        </element>
+        <element name="bulkRestRep" type="com.emc.storageos.model.BulkRestRep" typeName="bulkRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>BulkRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<bulkRestRep />]]></examplexml>
+        </element>
+        <element name="tag_changes" type="com.emc.storageos.model.TagAssignment" typeName="tagAssignment" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>TagAssignment</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<tag_changes>
+  <remove>...</remove>
+  <remove>...</remove>
+  <!--...more "remove" elements...-->
+  <add>...</add>
+  <add>...</add>
+  <!--...more "add" elements...-->
+</tag_changes>]]></examplexml>
+        </element>
+        <element name="tasks" type="com.emc.storageos.model.TaskList" typeName="taskList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>TaskList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<tasks>
+  <task>
+    <description>...</description>
+    <associated_resources>
+      <associated_resource>
+        <name>...</name>
+        <id>...</id>
+        <link href="..." rel="..." />
+      </associated_resource>
+      <associated_resource>
+        <!--...-->
+      </associated_resource>
+      <!--...more "associated_resource" elements...-->
+    </associated_resources>
+    <resource>
+      <name>...</name>
+      <id>...</id>
+      <link href="..." rel="..." />
+    </resource>
+    <message>...</message>
+    <state>...</state>
+    <service_error>
+      <code>...</code>
+      <retryable>...</retryable>
+      <details>...</details>
+      <description>...</description>
+    </service_error>
+    <op_id>...</op_id>
+    <start_time>...</start_time>
+    <link href="..." rel="..." />
+    <end_time>...</end_time>
+  </task>
+  <task>
+    <!--...-->
+  </task>
+  <!--...more "task" elements...-->
+</tasks>]]></examplexml>
+        </element>
+        <element name="task" type="com.emc.storageos.model.TaskResourceRep" typeName="taskResourceRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>TaskResourceRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<task>
+  <description>...</description>
+  <associated_resources>
+    <associated_resource>
+      <name>...</name>
+      <id>...</id>
+      <link href="..." rel="..." />
+    </associated_resource>
+    <associated_resource>
+      <!--...-->
+    </associated_resource>
+    <!--...more "associated_resource" elements...-->
+  </associated_resources>
+  <resource>
+    <name>...</name>
+    <id>...</id>
+    <link href="..." rel="..." />
+  </resource>
+  <message>...</message>
+  <state>...</state>
+  <service_error>
+    <code>...</code>
+    <retryable>...</retryable>
+    <details>...</details>
+    <description>...</description>
+  </service_error>
+  <op_id>...</op_id>
+  <start_time>...</start_time>
+  <link href="..." rel="..." />
+  <end_time>...</end_time>
+</task>]]></examplexml>
+        </element>
+        <element name="error" type="com.emc.storageos.model.errorhandling.ServiceErrorRestRep" typeName="serviceErrorRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ServiceErrorRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<error>
+  <code>...</code>
+  <retryable>...</retryable>
+  <details>...</details>
+  <description>...</description>
+</error>]]></examplexml>
+        </element>
+        <element name="results" type="com.emc.storageos.model.search.SearchResults" typeName="searchResults" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>SearchResults</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<results>
+  <resource>
+    <match>...</match>
+    <id>...</id>
+    <link href="..." rel="..." />
+  </resource>
+  <resource>
+    <!--...-->
+  </resource>
+  <!--...more "resource" elements...-->
+</results>]]></examplexml>
+        </element>
+        <element name="tags" type="com.emc.storageos.model.search.Tags" typeName="tags" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>Tags</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<tags>
+  <tag>...</tag>
+  <tag>...</tag>
+  <!--...more "tag" elements...-->
+</tags>]]></examplexml>
+        </element>
+        <element name="subtenantList" type="com.emc.storageos.objcontrol.object.impl.atmos.AtmosSubtenantListResp" typeName="atmosSubtenantListResp" typeNamespace="" typeSchemaId="ns0">
+          <documentation>
+            <![CDATA[The class that represents the response of
+the /sysmgmt/tenants/$TENANT/subtenants request
+In the response, we are only interested in <subtenant>
+and its child <name>]]>
+          </documentation>
+          <groups>
+            <group>AtmosSubtenantListResp</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<subtenantList>
+  <subtenant>
+    <name>...</name>
+    <id>...</id>
+  </subtenant>
+  <subtenant>
+    <!--...-->
+  </subtenant>
+  <!--...more "subtenant" elements...-->
+</subtenantList>]]></examplexml>
+        </element>
+        <element name="subtenant" type="com.emc.storageos.objcontrol.object.impl.atmos.AtmosSubtenantListResp.SubtenantInfo" typeName="subtenantInfo" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>SubtenantInfo</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<subtenant>
+  <name>...</name>
+  <id>...</id>
+</subtenant>]]></examplexml>
+        </element>
+        <element name="fileaccess_param" type="com.emc.storageos.objcontrol.object.params.KeyPoolFileAccessModeParam" typeName="keyPoolFileAccessModeParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>KeyPoolFileAccessModeParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<fileaccess_param>
+  <targetAccessMode>...</targetAccessMode>
+  <hostList>...</hostList>
+  <userUid>...</userUid>
+  <duration>...</duration>
+  <token>...</token>
+  <preserveDirectoryStructure>...</preserveDirectoryStructure>
+</fileaccess_param>]]></examplexml>
+        </element>
+        <element name="additionalInfoForAtmos" type="com.emc.storageos.objcontrol.object.shared.AdditionalInfoForAtmos" typeName="additionalInfoForAtmos" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>AdditionalInfoForAtmos</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<additionalInfoForAtmos>
+  <tenantName>...</tenantName>
+  <tenantID>...</tenantID>
+  <tenantAdmin>...</tenantAdmin>
+  <atmosEntry>
+    <host>...</host>
+    <port>...</port>
+    <SSLPort>...</SSLPort>
+  </atmosEntry>
+  <project>...</project>
+  <cosId>...</cosId>
+</additionalInfoForAtmos>]]></examplexml>
+        </element>
+        <element name="additionalInfoForFile" type="com.emc.storageos.objcontrol.object.shared.AdditionalInfoForFile" typeName="additionalInfoForFile" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>AdditionalInfoForFile</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<additionalInfoForFile>
+  <exportUserMapping>...</exportUserMapping>
+  <storageDeviceId>...</storageDeviceId>
+  <storageDeviceType>...</storageDeviceType>
+  <hostName>...</hostName>
+  <mountPoint>...</mountPoint>
+</additionalInfoForFile>]]></examplexml>
+        </element>
+        <element name="keypool_create" type="com.emc.storageos.objcontrol.object.shared.keypool.KeyPoolProvisioningHelper.KeyPoolCreateParam" typeName="keyPoolCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <documentation>
+            <![CDATA[Parameter used for keypool creation request]]>
+          </documentation>
+          <groups>
+            <group>KeyPoolCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<keypool_create>
+  <object_namespace>...</object_namespace>
+  <keypool_name>...</keypool_name>
+  <owner>...</owner>
+  <project>...</project>
+  <api_type>...</api_type>
+  <object_cos>...</object_cos>
+</keypool_create>]]></examplexml>
+        </element>
+        <element name="keypools" type="com.emc.storageos.objcontrol.object.shared.keypool.KeyPoolProvisioningHelper.KeyPools" typeName="keyPools" typeNamespace="" typeSchemaId="ns0">
+          <documentation>
+            <![CDATA[Response parameter for GET keypools request.]]>
+          </documentation>
+          <groups>
+            <group>KeyPools</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<keypools>
+  <keypool>
+    <project>...</project>
+    <object_cos>...</object_cos>
+    <api_type>...</api_type>
+  </keypool>
+  <keypool>
+    <!--...-->
+  </keypool>
+  <!--...more "keypool" elements...-->
+</keypools>]]></examplexml>
+        </element>
+        <element name="keypoolExpirationPolicy" type="com.emc.storageos.objcontrol.object.shared.policy.KeypoolExpirationPolicy" typeName="keypoolExpirationPolicy" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>KeypoolExpirationPolicy</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<keypoolExpirationPolicy>
+  <objectPrefix>
+    <objectPrefix>...</objectPrefix>
+    <expiryDate>...</expiryDate>
+    <expiryDays>...</expiryDays>
+    <id>...</id>
+    <status>...</status>
+  </objectPrefix>
+  <objectPrefix>
+    <!--...-->
+  </objectPrefix>
+  <!--...more "objectPrefix" elements...-->
+</keypoolExpirationPolicy>]]></examplexml>
+        </element>
+        <element name="objectExpirationPolicy" type="com.emc.storageos.objcontrol.object.shared.policy.ObjectExpirationPolicy" typeName="objectExpirationPolicy" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectExpirationPolicy</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<objectExpirationPolicy>
+  <objectPrefix>...</objectPrefix>
+  <expiryDate>...</expiryDate>
+  <expiryDays>...</expiryDays>
+  <id>...</id>
+  <status>...</status>
+</objectExpirationPolicy>]]></examplexml>
+        </element>
+        <element name="base_urls" type="com.emc.vipr.model.object.BaseUrlList" typeName="baseUrlList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>BaseUrlList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<base_urls>
+  <base_url>
+    <name>...</name>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </base_url>
+  <base_url>
+    <!--...-->
+  </base_url>
+  <!--...more "base_url" elements...-->
+</base_urls>]]></examplexml>
+        </element>
+        <element name="keypool" type="com.emc.vipr.model.object.KeyPoolRestRep" typeName="keyPoolRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>KeyPoolRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<keypool>
+  <project>...</project>
+  <object_cos>...</object_cos>
+  <api_type>...</api_type>
+</keypool>]]></examplexml>
+        </element>
+        <element name="base_url" type="com.emc.vipr.model.object.ObjectBaseUrlRestRep" typeName="objectBaseUrlRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectBaseUrlRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<base_url>
+  <namespace_in_host>...</namespace_in_host>
+  <baseurl>...</baseurl>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</base_url>]]></examplexml>
+        </element>
+        <element name="atmos_devices" type="com.emc.vipr.model.object.atmos.AtmosDeviceList" typeName="atmosDeviceList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>AtmosDeviceList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<atmos_devices>
+  <atmos_device>
+    <name>...</name>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </atmos_device>
+  <atmos_device>
+    <!--...-->
+  </atmos_device>
+  <!--...more "atmos_device" elements...-->
+</atmos_devices>]]></examplexml>
+        </element>
+        <element name="atmos_device_import" type="com.emc.vipr.model.object.atmos.AtmosDeviceParam" typeName="atmosDeviceParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>AtmosDeviceParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<atmos_device_import>
+  <ip>...</ip>
+  <tenant_admin>...</tenant_admin>
+  <tenant_admin_password>...</tenant_admin_password>
+  <project>...</project>
+  <tenant_name>...</tenant_name>
+  <name>...</name>
+  <namespace>...</namespace>
+  <tenant_id>...</tenant_id>
+</atmos_device_import>]]></examplexml>
+        </element>
+        <element name="atmos_device" type="com.emc.vipr.model.object.atmos.AtmosDeviceRestRep" typeName="atmosDeviceRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>AtmosDeviceRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<atmos_device>
+  <device_state>...</device_state>
+  <tenant_admin>...</tenant_admin>
+  <ip>...</ip>
+  <tenant_id>...</tenant_id>
+  <tenant_name>...</tenant_name>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</atmos_device>]]></examplexml>
+        </element>
+        <element name="atmos_device_update" type="com.emc.vipr.model.object.atmos.AtmosUpdateParameters" typeName="atmosUpdateParameters" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>AtmosUpdateParameters</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<atmos_device_update>
+  <ip>...</ip>
+  <tenant_name>...</tenant_name>
+  <tenant_admin>...</tenant_admin>
+  <tenant_admin_password>...</tenant_admin_password>
+</atmos_device_update>]]></examplexml>
+        </element>
+        <element name="object_bucket_create" type="com.emc.vipr.model.object.bucket.ObjectBucketParam" typeName="objectBucketParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectBucketParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_bucket_create>
+  <name>...</name>
+  <project>...</project>
+  <filesystem_enabled>...</filesystem_enabled>
+  <vpool>...</vpool>
+</object_bucket_create>]]></examplexml>
+        </element>
+        <element name="object_bucket" type="com.emc.vipr.model.object.bucket.ObjectBucketRestRep" typeName="objectBucketRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectBucketRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_bucket>
+  <error_message>...</error_message>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</object_bucket>]]></examplexml>
+        </element>
+        <element name="bulk_data_stores" type="com.emc.vipr.model.object.datastore.DataStoreBulkRep" typeName="dataStoreBulkRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataStoreBulkRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<bulk_data_stores>
+  <data_store>
+    <device_info>...</device_info>
+    <description>...</description>
+    <usable_gb>...</usable_gb>
+    <used_gb>...</used_gb>
+    <free_gb>...</free_gb>
+    <device_state>...</device_state>
+    <data_services_vpool>...</data_services_vpool>
+    <inactive>...</inactive>
+    <tags>
+      <tag>...</tag>
+      <tag>...</tag>
+      <!--...more "tag" elements...-->
+    </tags>
+    <creation_time>...</creation_time>
+    <name>...</name>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </data_store>
+  <data_store>
+    <!--...-->
+  </data_store>
+  <!--...more "data_store" elements...-->
+</bulk_data_stores>]]></examplexml>
+        </element>
+        <element name="data_stores" type="com.emc.vipr.model.object.datastore.DataStoreList" typeName="dataStoreList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataStoreList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_stores>
+  <data_store>
+    <resource_type>...</resource_type>
+    <name>...</name>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </data_store>
+  <data_store>
+    <!--...-->
+  </data_store>
+  <!--...more "data_store" elements...-->
+</data_stores>]]></examplexml>
+        </element>
+        <element name="data_store_named_related_resource_rep" type="com.emc.vipr.model.object.datastore.DataStoreNamedRelatedResourceRep" typeName="dataStoreNamedRelatedResourceRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataStoreNamedRelatedResourceRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_store_named_related_resource_rep>
+  <resource_type>...</resource_type>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</data_store_named_related_resource_rep>]]></examplexml>
+        </element>
+        <element name="data_store_create" type="com.emc.vipr.model.object.datastore.DataStoreParam" typeName="dataStoreParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataStoreParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_store_create>
+  <description>...</description>
+  <name>...</name>
+  <data_services_vpool>...</data_services_vpool>
+</data_store_create>]]></examplexml>
+        </element>
+        <element name="data_store" type="com.emc.vipr.model.object.datastore.DataStoreRestRep" typeName="dataStoreRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataStoreRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_store>
+  <device_info>...</device_info>
+  <description>...</description>
+  <usable_gb>...</usable_gb>
+  <used_gb>...</used_gb>
+  <free_gb>...</free_gb>
+  <device_state>...</device_state>
+  <data_services_vpool>...</data_services_vpool>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</data_store>]]></examplexml>
+        </element>
+        <element name="filesystems_data_store_create" type="com.emc.vipr.model.object.datastore.FileSystemsDataStoreParam" typeName="fileSystemsDataStoreParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>FileSystemsDataStoreParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<filesystems_data_store_create>
+  <varray>...</varray>
+  <file_data_services_vpool>...</file_data_services_vpool>
+  <size>...</size>
+  <description>...</description>
+  <name>...</name>
+  <data_services_vpool>...</data_services_vpool>
+</filesystems_data_store_create>]]></examplexml>
+        </element>
+        <element name="file_systems_data_store" type="com.emc.vipr.model.object.datastore.FileSystemsDataStoreRestRep" typeName="fileSystemsDataStoreRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>FileSystemsDataStoreRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<file_systems_data_store>
+  <file_system>...</file_system>
+  <device_info>...</device_info>
+  <description>...</description>
+  <usable_gb>...</usable_gb>
+  <used_gb>...</used_gb>
+  <free_gb>...</free_gb>
+  <device_state>...</device_state>
+  <data_services_vpool>...</data_services_vpool>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</file_systems_data_store>]]></examplexml>
+        </element>
+        <element name="data_store_update" type="com.emc.vipr.model.object.datastore.ModifyDataStoreParam" typeName="modifyDataStoreParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ModifyDataStoreParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_store_update>
+  <name>...</name>
+  <description>...</description>
+</data_store_update>]]></examplexml>
+        </element>
+        <element name="nfs_exportpoints_data_store_create" type="com.emc.vipr.model.object.datastore.NfsExportPointsDataStoreParam" typeName="nfsExportPointsDataStoreParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NfsExportPointsDataStoreParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<nfs_exportpoints_data_store_create>
+  <mount_point>...</mount_point>
+  <size>...</size>
+  <description>...</description>
+  <name>...</name>
+  <data_services_vpool>...</data_services_vpool>
+</nfs_exportpoints_data_store_create>]]></examplexml>
+        </element>
+        <element name="nfs_export_points_data_store" type="com.emc.vipr.model.object.datastore.NfsExportPointsDataStoreRestRep" typeName="nfsExportPointsDataStoreRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NfsExportPointsDataStoreRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<nfs_export_points_data_store>
+  <mount_point>...</mount_point>
+  <device_info>...</device_info>
+  <description>...</description>
+  <usable_gb>...</usable_gb>
+  <used_gb>...</used_gb>
+  <free_gb>...</free_gb>
+  <device_state>...</device_state>
+  <data_services_vpool>...</data_services_vpool>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</nfs_export_points_data_store>]]></examplexml>
+        </element>
+        <element name="object_base_url_create" type="com.emc.vipr.model.object.datastore.ObjectBaseUrlCreate" typeName="objectBaseUrlCreate" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectBaseUrlCreate</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_base_url_create>
+  <base_url>...</base_url>
+  <is_namespace_in_host>...</is_namespace_in_host>
+  <name>...</name>
+</object_base_url_create>]]></examplexml>
+        </element>
+        <element name="object_base_url_update" type="com.emc.vipr.model.object.datastore.ObjectBaseUrlUpdate" typeName="objectBaseUrlUpdate" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectBaseUrlUpdate</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_base_url_update>
+  <is_namespace_in_host>...</is_namespace_in_host>
+  <name>...</name>
+  <base_url>...</base_url>
+</object_base_url_update>]]></examplexml>
+        </element>
+        <element name="filesystem_device_info" type="com.emc.vipr.model.object.ingestion.FileSystemDeviceInfo" typeName="fileSystemDeviceInfo" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>FileSystemDeviceInfo</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<filesystem_device_info>
+  <fileshare_id>...</fileshare_id>
+</filesystem_device_info>]]></examplexml>
+        </element>
+        <element name="object_ingestion_create" type="com.emc.vipr.model.object.ingestion.ObjectIngestionCreateParam" typeName="objectIngestionCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectIngestionCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_ingestion_create>
+  <datastore_name>...</datastore_name>
+  <filesystem_device_info>
+    <fileshare_id>...</fileshare_id>
+  </filesystem_device_info>
+  <datastore_description>...</datastore_description>
+  <keypool_name>...</keypool_name>
+</object_ingestion_create>]]></examplexml>
+        </element>
+        <element name="object_ingestions" type="com.emc.vipr.model.object.ingestion.ObjectIngestionList" typeName="objectIngestionList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectIngestionList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_ingestions>
+  <object_ingestion>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </object_ingestion>
+  <object_ingestion>
+    <!--...-->
+  </object_ingestion>
+  <!--...more "object_ingestion" elements...-->
+</object_ingestions>]]></examplexml>
+        </element>
+        <element name="object_ingestion" type="com.emc.vipr.model.object.ingestion.ObjectIngestionRestRep" typeName="objectIngestionRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectIngestionRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_ingestion>
+  <failed_file>...</failed_file>
+  <task_error>...</task_error>
+  <task_state>...</task_state>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</object_ingestion>]]></examplexml>
+        </element>
+        <element name="namespace_create" type="com.emc.vipr.model.object.namespace.NamespaceCreateParam" typeName="namespaceCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NamespaceCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<namespace_create>
+  <vdcs>
+    <default_object_project>...</default_object_project>
+    <tenant>...</tenant>
+    <vdc_id>...</vdc_id>
+    <default_data_services_vpool>...</default_data_services_vpool>
+  </vdcs>
+  <vdcs>
+    <!--...-->
+  </vdcs>
+  <!--...more "vdcs" elements...-->
+  <namespace>...</namespace>
+</namespace_create>]]></examplexml>
+        </element>
+        <element name="namespaces" type="com.emc.vipr.model.object.namespace.NamespaceList" typeName="namespaceList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NamespaceList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<namespaces>
+  <namespace>
+    <name>...</name>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </namespace>
+  <namespace>
+    <!--...-->
+  </namespace>
+  <!--...more "namespace" elements...-->
+</namespaces>]]></examplexml>
+        </element>
+        <element name="namespace" type="com.emc.vipr.model.object.namespace.NamespaceRestRep" typeName="namespaceRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NamespaceRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<namespace>
+  <vdcs>
+    <entry>
+      <key>...</key>
+      <value>
+        <tenant>...</tenant>
+      </value>
+    </entry>
+    <entry>
+      <key>
+        <!--(another 'string' type)-->
+      </key>
+      <value>
+        <!--(another 'namespaceVDCRestRep' type)-->
+      </value>
+    </entry>
+    <!--...more entries...-->
+  </vdcs>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</namespace>]]></examplexml>
+        </element>
+        <element name="namespace_update" type="com.emc.vipr.model.object.namespace.NamespaceUpdateParam" typeName="namespaceUpdateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NamespaceUpdateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<namespace_update>
+  <vdc_update>
+    <default_object_project>...</default_object_project>
+    <tenant>...</tenant>
+    <vdc_id>...</vdc_id>
+    <default_data_services_vpool>...</default_data_services_vpool>
+  </vdc_update>
+  <vdc_update>
+    <!--...-->
+  </vdc_update>
+  <!--...more "vdc_update" elements...-->
+</namespace_update>]]></examplexml>
+        </element>
+        <element name="vdc_namespace" type="com.emc.vipr.model.object.namespace.NamespaceVDCParam" typeName="namespaceVDCParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NamespaceVDCParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<vdc_namespace>
+  <default_object_project>...</default_object_project>
+  <tenant>...</tenant>
+  <vdc_id>...</vdc_id>
+  <default_data_services_vpool>...</default_data_services_vpool>
+</vdc_namespace>]]></examplexml>
+        </element>
+        <element name="namespace_zone" type="com.emc.vipr.model.object.namespace.NamespaceVDCRestRep" typeName="namespaceVDCRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>NamespaceVDCRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<namespace_zone>
+  <tenant>...</tenant>
+</namespace_zone>]]></examplexml>
+        </element>
+        <element name="tenant_namespace_response" type="com.emc.vipr.model.object.namespace.TenantNamespaceRestRep" typeName="tenantNamespaceRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>TenantNamespaceRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<tenant_namespace_response>
+  <default_object_project>
+    <id>...</id>
+    <link href="..." rel="..." />
+  </default_object_project>
+  <namespace>...</namespace>
+  <default_data_services_vpool>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </default_data_services_vpool>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</tenant_namespace_response>]]></examplexml>
+        </element>
+        <element name="object_network_create" type="com.emc.vipr.model.object.network.ObjectNetworkCreateParam" typeName="objectNetworkCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectNetworkCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_network_create>
+  <name>...</name>
+  <network>...</network>
+</object_network_create>]]></examplexml>
+        </element>
+        <element name="object_networks" type="com.emc.vipr.model.object.network.ObjectNetworkList" typeName="objectNetworkList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectNetworkList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_networks>
+  <object_network>
+    <name>...</name>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </object_network>
+  <object_network>
+    <!--...-->
+  </object_network>
+  <!--...more "object_network" elements...-->
+</object_networks>]]></examplexml>
+        </element>
+        <element name="object_network" type="com.emc.vipr.model.object.network.ObjectNetworkRestRep" typeName="objectNetworkRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectNetworkRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_network>
+  <network>
+    <id>...</id>
+    <link href="..." rel="..." />
+  </network>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</object_network>]]></examplexml>
+        </element>
+        <element name="object_network_update" type="com.emc.vipr.model.object.network.ObjectNetworkUpdateParam" typeName="objectNetworkUpdateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>ObjectNetworkUpdateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<object_network_update>
+  <network>...</network>
+</object_network_update>]]></examplexml>
+        </element>
+        <element name="secret_key_create_param" type="com.emc.vipr.model.object.user.SecretKeyCreateParam" typeName="secretKeyCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>SecretKeyCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<secret_key_create_param>
+  <existing_key_expiry_time_mins>...</existing_key_expiry_time_mins>
+</secret_key_create_param>]]></examplexml>
+        </element>
+        <element name="secret_key_delete_param" type="com.emc.vipr.model.object.user.SecretKeyDeleteParam" typeName="secretKeyDeleteParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>SecretKeyDeleteParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<secret_key_delete_param>
+  <secret_key>...</secret_key>
+</secret_key_delete_param>]]></examplexml>
+        </element>
+        <element name="user_secret_key" type="com.emc.vipr.model.object.user.SecretKeyInfoRep" typeName="secretKeyInfoRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>SecretKeyInfoRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_secret_key>
+  <link href="..." rel="..." />
+  <secret_key>...</secret_key>
+  <key_timestamp>...</key_timestamp>
+</user_secret_key>]]></examplexml>
+        </element>
+        <element name="user_secret_keys" type="com.emc.vipr.model.object.user.SecretKeyRestRep" typeName="secretKeyRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>SecretKeyRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_secret_keys>
+  <key_timestamp_2>...</key_timestamp_2>
+  <key_timestamp_1>...</key_timestamp_1>
+  <secret_key_2>...</secret_key_2>
+  <secret_key_1>...</secret_key_1>
+  <link href="..." rel="..." />
+</user_secret_keys>]]></examplexml>
+        </element>
+        <element name="user_create_param" type="com.emc.vipr.model.object.user.UserCreateParam" typeName="userCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>UserCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_create_param>
+  <user>...</user>
+  <namespace>...</namespace>
+</user_create_param>]]></examplexml>
+        </element>
+        <element name="user_delete_param" type="com.emc.vipr.model.object.user.UserDeleteParam" typeName="userDeleteParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>UserDeleteParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_delete_param>
+  <user>...</user>
+</user_delete_param>]]></examplexml>
+        </element>
+        <element name="user_groups" type="com.emc.vipr.model.object.user.UserGroupRestRep" typeName="userGroupRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>UserGroupRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_groups>
+  <groups>...</groups>
+  <groups>...</groups>
+  <!--...more "groups" elements...-->
+  <groups_list>...</groups_list>
+  <groups_list>...</groups_list>
+  <!--...more "groups_list" elements...-->
+</user_groups>]]></examplexml>
+        </element>
+        <element name="user_password_create" type="com.emc.vipr.model.object.user.UserPasswordGroupCreateParam" typeName="userPasswordGroupCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>UserPasswordGroupCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_password_create>
+  <groups_list>...</groups_list>
+  <groups_list>...</groups_list>
+  <!--...more "groups_list" elements...-->
+  <password>...</password>
+  <namespace>...</namespace>
+</user_password_create>]]></examplexml>
+        </element>
+        <element name="user_password_update" type="com.emc.vipr.model.object.user.UserPasswordGroupUpdateParam" typeName="userPasswordGroupUpdateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>UserPasswordGroupUpdateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_password_update>
+  <password>...</password>
+  <groups_list>...</groups_list>
+  <groups_list>...</groups_list>
+  <!--...more "groups_list" elements...-->
+</user_password_update>]]></examplexml>
+        </element>
+        <element name="user_secret_key_create" type="com.emc.vipr.model.object.user.UserSecretKeyCreateParam" typeName="userSecretKeyCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>UserSecretKeyCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<user_secret_key_create>
+  <existing_key_expiry_time_mins>...</existing_key_expiry_time_mins>
+</user_secret_key_create>]]></examplexml>
+        </element>
+        <element name="users" type="com.emc.vipr.model.object.user.UsersList" typeName="usersList" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>UsersList</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<users>
+  <users_list>...</users_list>
+  <users_list>...</users_list>
+  <!--...more "users_list" elements...-->
+</users>]]></examplexml>
+        </element>
+        <element name="data_services_vpool_create" type="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolCreateParam" typeName="dataServicesVirtualPoolCreateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataServicesVirtualPoolCreateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_services_vpool_create>
+  <name>...</name>
+  <type>...</type>
+  <description>...</description>
+</data_services_vpool_create>]]></examplexml>
+        </element>
+        <element name="data_services_vpools" type="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolListResponse" typeName="dataServicesVirtualPoolListResponse" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataServicesVirtualPoolListResponse</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_services_vpools>
+  <data_services_vpool>
+    <type>...</type>
+    <description>...</description>
+    <inactive>...</inactive>
+    <tags>
+      <tag>...</tag>
+      <tag>...</tag>
+      <!--...more "tag" elements...-->
+    </tags>
+    <creation_time>...</creation_time>
+    <name>...</name>
+    <link href="..." rel="..." />
+    <id>...</id>
+  </data_services_vpool>
+  <data_services_vpool>
+    <!--...-->
+  </data_services_vpool>
+  <!--...more "data_services_vpool" elements...-->
+</data_services_vpools>]]></examplexml>
+        </element>
+        <element name="data_services_vpool" type="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolRestRep" typeName="dataServicesVirtualPoolRestRep" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataServicesVirtualPoolRestRep</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_services_vpool>
+  <type>...</type>
+  <description>...</description>
+  <inactive>...</inactive>
+  <tags>
+    <tag>...</tag>
+    <tag>...</tag>
+    <!--...more "tag" elements...-->
+  </tags>
+  <creation_time>...</creation_time>
+  <name>...</name>
+  <link href="..." rel="..." />
+  <id>...</id>
+</data_services_vpool>]]></examplexml>
+        </element>
+        <element name="data_services_vpool_update" type="com.emc.vipr.model.object.vpool.DataServicesVirtualPoolUpdateParam" typeName="dataServicesVirtualPoolUpdateParam" typeNamespace="" typeSchemaId="ns0">
+          <groups>
+            <group>DataServicesVirtualPoolUpdateParam</group>
+          </groups>
+          <examplexml><![CDATA[<?xml version="1.0" encoding="UTF-8"?>
+<data_services_vpool_update>
+  <description>...</description>
+  <name>...</name>
+</data_services_vpool_update>]]></examplexml>
+        </element>
+      </elements>
+      <groups>
+        <group>AdditionalInfoForAtmos</group>
+        <group>AdditionalInfoForFile</group>
+        <group>AtmosDeviceList</group>
+        <group>AtmosDeviceParam</group>
+        <group>AtmosDeviceRestRep</group>
+        <group>AtmosEntry</group>
+        <group>AtmosSubtenantListResp</group>
+        <group>AtmosUpdateParameters</group>
+        <group>BaseUrlList</group>
+        <group>BulkIdParam</group>
+        <group>BulkRestRep</group>
+        <group>DataObjectRestRep</group>
+        <group>DataServicesVirtualPoolCreateParam</group>
+        <group>DataServicesVirtualPoolListResponse</group>
+        <group>DataServicesVirtualPoolRestRep</group>
+        <group>DataServicesVirtualPoolUpdateParam</group>
+        <group>DataStoreBulkRep</group>
+        <group>DataStoreList</group>
+        <group>DataStoreNamedRelatedResourceRep</group>
+        <group>DataStoreParam</group>
+        <group>DataStoreRestRep</group>
+        <group>FileSystemDeviceInfo</group>
+        <group>FileSystemsDataStoreParam</group>
+        <group>FileSystemsDataStoreRestRep</group>
+        <group>KeyPoolCreateParam</group>
+        <group>KeyPoolFileAccessModeParam</group>
+        <group>KeyPoolRestRep</group>
+        <group>KeyPools</group>
+        <group>KeypoolExpirationPolicy</group>
+        <group>ModifyDataStoreParam</group>
+        <group>NamedRelatedResourceRep</group>
+        <group>NamespaceCreateParam</group>
+        <group>NamespaceList</group>
+        <group>NamespaceRestRep</group>
+        <group>NamespaceUpdateParam</group>
+        <group>NamespaceVDCParam</group>
+        <group>NamespaceVDCRestRep</group>
+        <group>NfsExportPointsDataStoreParam</group>
+        <group>NfsExportPointsDataStoreRestRep</group>
+        <group>ObjectBaseUrlCreate</group>
+        <group>ObjectBaseUrlRestRep</group>
+        <group>ObjectBaseUrlUpdate</group>
+        <group>ObjectBucketParam</group>
+        <group>ObjectBucketRestRep</group>
+        <group>ObjectExpirationPolicy</group>
+        <group>ObjectIngestionCreateParam</group>
+        <group>ObjectIngestionList</group>
+        <group>ObjectIngestionRestRep</group>
+        <group>ObjectNamedRelatedResourceRep</group>
+        <group>ObjectNetworkCreateParam</group>
+        <group>ObjectNetworkList</group>
+        <group>ObjectNetworkRestRep</group>
+        <group>ObjectNetworkUpdateParam</group>
+        <group>ObjectRelatedResourceRep</group>
+        <group>RelatedResourceRep</group>
+        <group>RestLinkRep</group>
+        <group>SearchResultResourceRep</group>
+        <group>SearchResults</group>
+        <group>SecretKeyCreateParam</group>
+        <group>SecretKeyDeleteParam</group>
+        <group>SecretKeyInfoRep</group>
+        <group>SecretKeyRestRep</group>
+        <group>ServiceErrorRestRep</group>
+        <group>SubtenantInfo</group>
+        <group>TagAssignment</group>
+        <group>Tags</group>
+        <group>TaskList</group>
+        <group>TaskResourceRep</group>
+        <group>TenantNamespaceRestRep</group>
+        <group>UserCreateParam</group>
+        <group>UserDeleteParam</group>
+        <group>UserGroupRestRep</group>
+        <group>UserPasswordGroupCreateParam</group>
+        <group>UserPasswordGroupUpdateParam</group>
+        <group>UserSecretKeyCreateParam</group>
+        <group>UsersList</group>
+      </groups>
+    </schema>
+  </data>
+  <soap>
+    <wsdls>
+    </wsdls>
+  </soap>
+  <rest baseAddress="http://localhost:8080/enunciate" wadl="application.wadl">
+    <resources>
+      <resource name="/object/atmos-importer" subcontext="/rest">
+        <groups>
+          <group>AtmosDeviceService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Creates a new device that represents an existing atmos tenant
+Starts import from atmos]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[vPool should be created]]></tag>
+          <tag name="brief"><![CDATA[Create new atmos device]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="atmos_device_import" />
+            
+            <documentation><![CDATA[Parameters for the new device]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[Task resource response]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Lists all atmos devices]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[List all atmos devices]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="atmos_devices" />
+            
+            <documentation><![CDATA[List of atmos devices]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/baseurl" subcontext="/rest">
+        <groups>
+          <group>ObjectBaseUrlService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Set the base URL for object services]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[none]]></tag>
+          <tag name="brief"><![CDATA[Set base URL for object services]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_base_url_create" />
+            
+            <documentation><![CDATA[Base URL to be used]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="base_url" />
+            
+            <documentation><![CDATA[Representation of the base URL]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Gets all the base urls]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get all base urls]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="base_urls" />
+            
+            <documentation><![CDATA[List of base urls currently active]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/bucket" subcontext="/rest">
+        <groups>
+          <group>BucketService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Create bucket]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[A qualifying data-store must exist corresponding to the vPool for bucket]]></tag>
+          <tag name="brief"><![CDATA[Creates a bucket which could be used by users to create objects]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_bucket_create" />
+            
+            <documentation><![CDATA[parameter holding the information needed to create a bucket]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_bucket" />
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/data-services-vpools" subcontext="/rest">
+        <groups>
+          <group>ObjectStoreService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Creates an data services virtual pool which is used to group various data stores together]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Create a data services virtual pool]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_services_vpool_create" />
+            
+            <documentation><![CDATA[The name and description for this data services virtual pool]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_services_vpool" />
+            
+            <documentation><![CDATA[Resulting data services virtual pool resource details and identifier]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[List all the provisioned data services virtual pools]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[List all data services virtual pools]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_services_vpools" />
+            
+            <documentation><![CDATA[Details of the data services virtual pools the user is authorized to manage]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/ingestion" subcontext="/rest">
+        <groups>
+          <group>ObjectIngestionService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Create new ingestion task. This is an asynchronous operation and a successful response
+doesn't mean the ingestion task has been completed.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[keypool must be created and it must be empty]]></tag>
+          <tag name="brief"><![CDATA[Initiate Ingestion]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_ingestion_create" />
+            
+            <documentation><![CDATA[parameters needed to initiate ingestion]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[ingestion creation response]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get list of all ingestion tasks]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get all ingestion tasks]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_ingestions" />
+            
+            <documentation><![CDATA[List of all ingestion tasks]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/namespaces" subcontext="/rest">
+        <groups>
+          <group>NamespaceService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Returns the identifiers for all of the configured namespaces]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get namespaces]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="namespaces" />
+            
+            <documentation><![CDATA[Response will be a list of namespaces]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/networks" subcontext="/rest">
+        <groups>
+          <group>ObjectTransportZoneService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Used to list all the object services networks.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[List all the networks]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_networks" />
+            
+            <documentation><![CDATA[Response containing the object network.]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Creates an object services network.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Creates a network]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_network_create" />
+            
+            <documentation><![CDATA[The identifier and name of the network to create.]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_network" />
+            
+            <documentation><![CDATA[Response containing the object network.]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/secret-keys" subcontext="/rest">
+        <groups>
+          <group>SecretKeyService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get all secret keys for the current user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get secret keys]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_secret_keys" />
+            
+            <documentation><![CDATA[Representation of secret keys for the user including the timestamps of their creation]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Create new key for the current user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Create new key]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="secret_key_create_param" />
+            
+            <documentation><![CDATA[parameter for the creation of new secret key]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_secret_key" />
+            
+            <documentation><![CDATA[Representation of the secret keys that is created including the timestamps of its creation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/users" subcontext="/rest">
+        <groups>
+          <group>UserManagementService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Add a user, which can subsequently be used to create its secret key]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Add user]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_create_param" />
+            
+            <documentation><![CDATA[Parameter for creating new user]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_secret_key" />
+            
+            <documentation><![CDATA[Response indicating whether the operation was successful]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the list of users provisioned for object storage]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get all users]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="users" />
+            
+            <documentation><![CDATA[List of users]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the list of all configured data stores]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[none]]></tag>
+          <tag name="brief"><![CDATA[Get all data stores]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_stores" />
+            
+            <documentation><![CDATA[List of data stores]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/internal/object/managed-hdfsCapacity" subcontext="/rest">
+        <groups>
+          <group>ObjCtrlCapacityService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the object managed capacity for HDFS only.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get object capacity]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="false"/>
+          <contentType type="text/plain" consumable="false" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="false"/>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Total managed capacity]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/internal/object/managed-objCapacity" subcontext="/rest">
+        <groups>
+          <group>ObjCtrlCapacityService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the object managed capacity for OBJ only.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get object capacity]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="false"/>
+          <contentType type="text/plain" consumable="false" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="false"/>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Total managed capacity]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/internal/object/managed-objHdfsCapacity" subcontext="/rest">
+        <groups>
+          <group>ObjCtrlCapacityService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the object managed capacity for OBJ and HDFS.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get object capacity]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="false"/>
+          <contentType type="text/plain" consumable="false" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="false"/>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Total managed capacity]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/atmos-importer/{id}" subcontext="/rest">
+        <groups>
+          <group>AtmosDeviceService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Gets the details for the atmos device.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get details for atmos device]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of atmos device to return]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="atmos_device" />
+            
+            <documentation><![CDATA[Representation of atmos device]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Updates the attributes for an atmos device
+</p>
+Accepts a list of key/value pairs to update -
+this is not a complete overwrite]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Update info for atmos device]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[The atmos device to update]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="atmos_device_update" />
+            
+            <documentation><![CDATA[List of key/value pairs to update]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="atmos_device" />
+            
+            <documentation><![CDATA[Latest/updated atmos device details]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/baseurl/{id}" subcontext="/rest">
+        <groups>
+          <group>ObjectBaseUrlService</group>
+        </groups>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Modify the base URL]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Modify base URL]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the base url to be modified]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_base_url_update" />
+            
+            <documentation><![CDATA[Updates to the base url]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating the status of the update operation]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the base URL for a specific identifier]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get base URL for an ID]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the base url to be read]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="base_url" />
+            
+            <documentation><![CDATA[Representation of the base URL]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/data-services-vpools/{id}" subcontext="/rest">
+        <groups>
+          <group>ObjectStoreService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the details for a data services virtual pool]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get data services virtual pool details]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Data services virtual pool identifier]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_services_vpool" />
+            
+            <documentation><![CDATA[Data services virtual pool resource details and identifier]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Updates the name and description for a data services virtual pool]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Update data services virtual pool details]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Data services virtual pool identifier]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_services_vpool_update" />
+            
+            <documentation><![CDATA[Data services virtual pool parameters which contains the name and the description.]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Result of the update operation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/ingestion/{id}" subcontext="/rest">
+        <groups>
+          <group>ObjectIngestionService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the details of ingestion task]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Query Ingestion state]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[identifier of the ingestion task]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_ingestion" />
+            
+            <documentation><![CDATA[ingestion information]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/namespaces/namespace" subcontext="/rest">
+        <groups>
+          <group>NamespaceService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Create the namespace associated with the tenant]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Create namespace]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="namespace_create" />
+            
+            <documentation><![CDATA[Parameters for the create request: namespace identifier, zone to tenant mapping]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="namespace" />
+            
+            <documentation><![CDATA[Response indicating the result of the create operation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/networks/{id}" subcontext="/rest">
+        <groups>
+          <group>ObjectTransportZoneService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Gets the object services network identified by the user.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[The requested network should exist]]></tag>
+          <tag name="brief"><![CDATA[Show network details]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[The identifier of the object network.]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_network" />
+            
+            <documentation><![CDATA[Response containing the object transport zone.]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Change the object services network.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Change object service network]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[The identifier of the object network.]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="object_network_update" />
+            
+            <documentation><![CDATA[The identifier of the transport to set as the object network.]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response with the status.]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/secret-keys/deactivate" subcontext="/rest">
+        <groups>
+          <group>SecretKeyService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Delete all keys for current user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Delete all keys]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="secret_key_delete_param" />
+            
+            <documentation><![CDATA[parameter for delting all keys for the current user]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Result with status of the operation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/user-password/{uid}" subcontext="/rest">
+        <groups>
+          <group>UserPasswordGroupService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get all groups for specific user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get all groups]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="uid" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Valid user identifier to get the groups from]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_groups" />
+            
+            <documentation><![CDATA[Representation of groups for the user]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Create user, password, group info for a specific user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Create user credentials]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="uid" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Valid user identifier to create a key for]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_password_create" />
+            
+            <documentation><![CDATA[Parameters for creating password]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Result with status of operation]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Update user, password, group info for a specific user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Update info]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="uid" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Valid user identifier to create a key for]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_password_update" />
+            
+            <documentation><![CDATA[Parameters to update password]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Result with status of operation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/user-secret-keys/{uid}" subcontext="/rest">
+        <groups>
+          <group>UserSecretKeyService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get all secret keys for specific user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get all secret keys]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="uid" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Valid user identifier to get the keys from]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_secret_keys" />
+            
+            <documentation><![CDATA[Representation of secret keys for the user including the timestamps of their creation]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Create new key for a specific user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Create new key]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="uid" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Valid user identifier to create a key for]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_secret_key_create" />
+            
+            <documentation><![CDATA[Parameters for creation of new key]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_secret_key" />
+            
+            <documentation><![CDATA[Representation of the secret keys that is created including the timestamps of its creation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/users/deactivate" subcontext="/rest">
+        <groups>
+          <group>UserManagementService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Delete a user and all associated secret keys]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Delete user]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="user_delete_param" />
+            
+            <documentation><![CDATA[Contains the user identifier to delete]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating whether the operation was successful]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/bulk" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[List data of the data store resources
+Retrieve resource representations based on input ids.]]>
+          </documentation>
+          <tag name="brief"><![CDATA[List all Data Store data]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="ids" />
+            
+            <documentation><![CDATA[POST data containing the id list.]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="bulk_data_stores" />
+            
+            <documentation><![CDATA[List of representations.]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="ids" />
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/filesystems" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Creates a new data store on file-share.  A data store represents a hosting device providing storage
+for object services.
+The file share CoS included in the request determines the class of file-device used to create the file-share for this
+data store creation request.</p>
+Note that the data store creation is an asynchronous operation,
+so a successful invocation of this request does not necessarily mean that the creation has completed.</p>]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[Virtual pool has to be created]]></tag>
+          <tag name="brief"><![CDATA[Create data store on file-share]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="filesystems_data_store_create" />
+            
+            <documentation><![CDATA[Parameters necessary for the data store creation, such as size and file share CoS.]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[data store creation task response]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/nfsexportpoints" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Creates a new data store on NFS-Server.  A data store represents a hosting device providing storage
+for object services.
+In case of NFS-Server creation, the hosting device CoS is determined by the NFS export provided.</p>
+Note that the data store creation is an asynchronous operation,
+so a successful invocation of this request does not necessarily mean that the creation has completed.</p>]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[Virtual pool has to be created]]></tag>
+          <tag name="brief"><![CDATA[Create data store on NFS-server]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="nfs_exportpoints_data_store_create" />
+            
+            <documentation><![CDATA[Parameters necessary for the data store creation, such as size and mount point.]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[data store creation task response]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/search" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="GET">
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="results" />
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/atmos-importer/{id}/deactivate" subcontext="/rest">
+        <groups>
+          <group>AtmosDeviceService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Removes the atmos device]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[Associated vpool should be empty]]></tag>
+          <tag name="brief"><![CDATA[Remove atmos device]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the atmos device to remove]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[Task response used to track the asynchronous removal]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/atmos-importer/{id}/tasks" subcontext="/rest">
+        <groups>
+          <group>AtmosDeviceService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Returns a list of tasks for this atmos device]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[List tasks]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier for atmos device]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="tasks" />
+            
+            <documentation><![CDATA[List of tasks]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/baseurl/{id}/deactivate" subcontext="/rest">
+        <groups>
+          <group>ObjectBaseUrlService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Delete the base URL use for object services]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Delete base URL]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the base URL to be deleted]]>
+          </parameter>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating the status of the delete operation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/bucket/{bucketName}/deactivate" subcontext="/rest">
+        <groups>
+          <group>BucketService</group>
+        </groups>
+        <operation name="POST">
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="bucketName" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[(no documentation provided)]]>
+          </parameter>
+          <outValue>
+            
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/data-services-vpools/{id}/data-stores" subcontext="/rest">
+        <groups>
+          <group>ObjectStoreService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get the list of all configured data stores associated with this data services virtual pool]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get data stores]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the data services virtual pool for which corresponding data stores are to be returned]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_stores" />
+            
+            <documentation><![CDATA[List of data stores associated with the given data services virtual pool]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/data-services-vpools/{id}/deactivate" subcontext="/rest">
+        <groups>
+          <group>ObjectStoreService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Delete Data Services Virtual Pool, this will move the Data Services Virtual Pool to a "marked-for-deletion" state and no more data stores may be
+created using it.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[Data services virtual pool should be empty]]></tag>
+          <tag name="brief"><![CDATA[Delete data services virtual pool]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Data Services Virtual Pool identifier]]>
+          </parameter>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating whether the deletion was successful]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/ingestion/{id}/deactivate" subcontext="/rest">
+        <groups>
+          <group>ObjectIngestionService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Deactivates ingestion task. This is an asynchronous operation and a successful
+response doesn't mean that the ingestion task has been completely deactivated.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Deactivate Ingestion Task]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[identifier of the object ingestion task to deactivate]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[object ingestion deletion response]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/namespaces/namespace/{id}" subcontext="/rest">
+        <groups>
+          <group>NamespaceService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Returns detailed info for a specific namespace]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Return namespace info]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Namespace identifier]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="namespace" />
+            
+            <documentation><![CDATA[NamespaceRestRep Namespace details]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/namespaces/namespace/{namespace}" subcontext="/rest">
+        <groups>
+          <group>NamespaceService</group>
+        </groups>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Replace the namespace zone to tenant mapping]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Update namespace zone]]></tag>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="true" produceable="true"/>
+          <parameter name="namespace" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Namespace identifier]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="namespace_update" />
+            
+            <documentation><![CDATA[Updated list of the zone to tenant mapping associated with this namespace]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating success or failure to update the namespace]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/namespaces/tenant/{id}" subcontext="/rest">
+        <groups>
+          <group>NamespaceService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Returns the tenant's configured namespace]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get tenant's namespace information]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Tenant identifier]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="tenant_namespace_response" />
+            
+            <documentation><![CDATA[Tenant namespace information]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/networks/{id}/deactivate" subcontext="/rest">
+        <groups>
+          <group>ObjectTransportZoneService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Deactivate and delete the object services network.]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Delete object service network]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[The identifier of the object network.]]>
+          </parameter>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response with the status.]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/user-password/{uid}/deactivate" subcontext="/rest">
+        <groups>
+          <group>UserPasswordGroupService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Delete password, group info according to uid]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Delete record]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="uid" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Valid user identifier to create a key for]]>
+          </parameter>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Result with status of the operation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/user-secret-keys/{uid}/deactivate" subcontext="/rest">
+        <groups>
+          <group>UserSecretKeyService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Delete all secret keys for a specific user]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Delete all secret keys]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="uid" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Valid user identifier to get delete the keys from]]>
+          </parameter>
+          <inValue>
+            
+            
+            <documentation><![CDATA[Parameters required for deletion of keys]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Representation of the secret keys that is created including the timestamps of its creation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/filesystems/{id}" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Modify the details (name/description) of a file system data store]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Modify details of file system data store]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the data store]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_store_update" />
+            
+            <documentation><![CDATA[Modification parameters for the data store]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating the status of the update operation]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Gets the details for a file system data store]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get file system data store details]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the data store]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="file_systems_data_store" />
+            
+            <documentation><![CDATA[Data store hosting device information]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/nfsexportpoints/{id}" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="PUT">
+          <documentation>
+            <![CDATA[Modify the details (name/description) of a nfs export point data store]]>
+          </documentation>
+          <tag name="brief"><![CDATA[Modify details of nfs export point data store]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the data store]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="data_store_update" />
+            
+            <documentation><![CDATA[Modification parameters for the data store]]></documentation>
+          </inValue>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating the status of the update operation]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Gets the details for a nfs export point data store]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get nfs export point data store details]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of the data store]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="nfs_export_points_data_store" />
+            
+            <documentation><![CDATA[data store hosting device information]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/{id}/deactivate" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[<p>Deactivates the hosting device and data store</p>
+<p><b>Note:</b> Storage will be deleted if it was allocated with the data store.</p>
+Data store deletion is an asynchronous operation,
+so a successful invocation of this request does not necessarily mean that the deletion has completed.</p>]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[vPool associated with this data store should be empty]]></tag>
+          <tag name="brief"><![CDATA[Deactivate data store]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier of data store to delete]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[data store deletion task response]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/{id}/tags" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="PUT">
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[(no documentation provided)]]>
+          </parameter>
+          <inValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="tag_changes" />
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </inValue>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="tags" />
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </outValue>
+        </operation>
+        <operation name="GET">
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[(no documentation provided)]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="tags" />
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/{id}/tasks" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get all recent tasks for a specific volume]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get all recent tasks]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier for the data store to query]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="tasks" />
+            
+            <documentation><![CDATA[All tasks for the object]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/atmos-importer/{id}/tasks/{op_id}" subcontext="/rest">
+        <groups>
+          <group>AtmosDeviceService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get a specific task for a specific object]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Get specific task]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier for the object to query]]>
+          </parameter>
+          <parameter name="op_id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier for the task operation of the object]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[Task representation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/ingestion/{id}/tasks/{op_id}" subcontext="/rest">
+        <groups>
+          <group>ObjectIngestionService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Used to poll the status of an operation associated with an ingestion task. When polling the status
+of a deactivate operation if you suddenly get an error that says that the entity is not found then
+it means that the deactivate got over.]]>
+          </documentation>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Ingestion task id]]>
+          </parameter>
+          <parameter name="op_id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Operation id]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[(no documentation provided)]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/object/namespaces/namespace/{namespace}/deactivate" subcontext="/rest">
+        <groups>
+          <group>NamespaceService</group>
+        </groups>
+        <operation name="POST">
+          <documentation>
+            <![CDATA[Deactivates a namespace and all associated tenant to zone mappings]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[Deactivate namespace]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="namespace" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[An active namespace identifier]]>
+          </parameter>
+          <outValue>
+            
+            
+            <documentation><![CDATA[Response indicating the result of delete operation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+      <resource name="/vdc/data-stores/{id}/tasks/{op_id}" subcontext="/rest">
+        <groups>
+          <group>DataStoreService</group>
+        </groups>
+        <operation name="GET">
+          <documentation>
+            <![CDATA[Get a specific task for a specific data store]]>
+          </documentation>
+          <tag name="prereq"><![CDATA[None]]></tag>
+          <tag name="brief"><![CDATA[List specific task]]></tag>
+          <contentType type="*/*" consumable="true" produceable="false"/>
+          <contentType type="application/xml" consumable="true" produceable="true"/>
+          <contentType type="application/json" consumable="false" produceable="true"/>
+          <parameter name="id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier for the data store to query]]>
+          </parameter>
+          <parameter name="op_id" type="path" xmlTypeName="string" xmlTypeNamespace="http://www.w3.org/2001/XMLSchema">
+            <![CDATA[Identifier for the task operation of the data store]]>
+          </parameter>
+          <outValue>
+            <xmlElement elementSchemaId="ns0" elementNamespace="" elementName="task" />
+            
+            <documentation><![CDATA[Task representation]]></documentation>
+          </outValue>
+        </operation>
+      </resource>
+    </resources>
+    <groups>
+      <group>AtmosDeviceService</group>
+      <group>BucketService</group>
+      <group>NamespaceService</group>
+      <group>ObjCtrlCapacityService</group>
+      <group>ObjectBaseUrlService</group>
+      <group>ObjectIngestionService</group>
+      <group>DataStoreService</group>
+      <group>ObjectStoreService</group>
+      <group>ObjectTransportZoneService</group>
+      <group>SecretKeyService</group>
+      <group>UserManagementService</group>
+      <group>UserPasswordGroupService</group>
+      <group>UserSecretKeyService</group>
+    </groups>
+  </rest>
+  <packages>
+    <package id="com.emc.storageos.objcontrol.service.impl.security">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.shared.HeadMetaData">
+    </package>
+    <package id="com.emc.storageos.objcontrol.service.impl.response">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.shared.keypool">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.device.impl">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.params">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.provisioning.impl">
+    </package>
+    <package id="com.emc.storageos.objcontrol.service.impl.resource">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.shared">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.impl.atmos">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.device">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.ingestion">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.exception">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.enums">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.shared.acl">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.shared.policy">
+    </package>
+    <package id="com.emc.storageos.objcontrol.service.impl">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.provisioning">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.impl.atmostask">
+    </package>
+    <package id="com.emc.storageos.objcontrol.object.utils">
+    </package>
+  </packages>
+</api-docs>

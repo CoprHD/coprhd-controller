@@ -1,0 +1,16 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'nonav-wide-layout.html' /}
+#{set title: "&{'errors.401.title'}"/}
+
+<div class="well">
+  <div class="section-header">
+    <h1>&{'errors.401.title'}</h1>
+  </div>
+  #{if result}
+    <p class="text-danger">${result?.message}</p>
+  #{/if}
+  
+  <p>&{'errors.401.return'}</p>
+</div>

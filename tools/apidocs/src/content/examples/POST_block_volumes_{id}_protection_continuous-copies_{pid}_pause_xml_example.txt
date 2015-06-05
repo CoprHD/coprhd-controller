@@ -1,0 +1,35 @@
+POST https://localhost:4443/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822:/pause HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 202 Accepted
+Content-Type: application/xml
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+   <associated_resources>
+      <element>
+         <id>urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822:</id>
+         <link>
+            <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/protection/continuous-copies/urn:storageos:BlockMirror:11c7bae2-60d5-469a-a9d1-e2358d6e6822:</href>
+            <rel>self</rel>
+         </link>
+         <name>mirror</name>
+      </element>
+   </associated_resources>
+   <link>
+      <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:/tasks/2889394e-451b-4221-94fa-7b72d603af7c</href>
+      <rel>self</rel>
+   </link>
+   <op_id>2889394e-451b-4221-94fa-7b72d603af7c</op_id>
+   <resource>
+      <id>urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</id>
+      <link>
+         <href>/block/volumes/urn:storageos:Volume:f85fb21a-ffc2-4fb4-9868-3b7fcc8c0bcf:</href>
+         <rel>self</rel>
+      </link>
+      <name>volume</name>
+   </resource>
+   <start_time>1380819532691</start_time>
+   <state>pending</state>
+</task>

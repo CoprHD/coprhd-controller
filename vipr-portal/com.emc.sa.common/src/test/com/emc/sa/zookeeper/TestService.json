@@ -1,0 +1,19 @@
+{
+  baseKey:"TestService",
+  serviceId:"TestService",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    name:{
+      type:text,
+      lockable:true
+    },
+    value:{
+      type:number,
+      lockable: true
+    }
+  }
+  
+}

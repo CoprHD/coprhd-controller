@@ -1,0 +1,106 @@
+%{
+  titleKey = 'keystores.title';
+  descriptionKey = 'keystores.description';
+}%
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+  <script type="text/javascript">
+    $(document).ready(function() {
+      
+		$('#keystore_rotate').on('change', disableFileUploads);
+	    
+    });
+    
+    function disableFileUploads() {
+    	
+        var checked =   $('#keystore_rotate').is(':checked');
+
+        if ( checked ) {
+            $('#fileUploads').hide();
+            $('#fileUploads').find('input').prop('disabled', true);
+        } else {
+        	$('#fileUploads').show();
+            $('#fileUploads').find('input').prop('disabled', false);
+        }
+    }
+    
+    function showCertificateDialog() {
+    	$('#certificateDialog').modal();
+    }
+    
+   </script>
+#{/set}
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+  .panel-group + .button-bar {
+    margin-top: 10px;
+  }
+  .panel {
+    margin-top: 5px
+  }
+  .panel-group .panel {
+    overflow: visible;
+  }
+  
+  textArea {
+  	resize: vertical;
+  }
+  
+</style>
+#{/set}
+#{extends 'main.html'/}
+#{set navSelected: ['nav.keystores', 'nav.keystores'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+<div class="container">
+#{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+
+#{alerts/}
+
+#{form @save(), id:'keystoreForm', class:'form form-horizontal', autocomplete:"off", enctype:'multipart/form-data'}
+  #{field 'keystore.referrerUrl'}
+     <input type="hidden" name="${field.name}" value="${field.value}">
+  #{/field}
+  
+  <fieldset>
+  	#{field 'keystore.rotate'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    <div id="fileUploads">
+	    #{field 'keystore.certKey'}
+	      %{
+	        field.fieldKey = 'keystore.certKey'
+	      }%
+	      #{Form.fileUploadControlGroup field:field/}
+	    #{/field}
+	    #{field 'keystore.certChain'}
+	      %{
+	        field.fieldKey = 'keystore.certChain'
+	      }%
+	      #{Form.fileUploadControlGroup field:field/}
+	    #{/field}
+    </div>
+  </fieldset>  
+   #{Modal.dialog id:'certificateDialog', titleKey: 'keystore.viewChain'}
+	  #{Modal.body cssClass:'form-horizontal'} 
+		  #{field 'keystore.viewChain'}
+		      %{
+		        field.value= viewChain;
+		       }%
+		      #{Form.textArea noLabel:true, field:field/}
+		  #{/field}
+      #{/Modal.body}
+	  #{Modal.footer}
+	    #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
+	  #{/Modal.footer}
+	#{/Modal.dialog}
+	
+  #{Form.buttonBar}
+      #{Form.button name:'button.certificate.view', class:'primary',action:'showCertificateDialog()'/}
+  	  <button type="submit" class="btn btn-primary btn-large">#{icon 'ok-sign'/} &{'button.save'}</button>
+  	  &nbsp;&nbsp;&nbsp;<span id="rebootRequiredMessage" class="text-danger">&{'keystore.rebootRequiredMessage'}</span>
+  #{/Form.buttonBar}
+#{/form}
+</div>

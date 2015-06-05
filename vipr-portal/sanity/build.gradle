@@ -1,0 +1,29 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+apply plugin: 'groovy'
+
+ext {
+    internalLibrary = true
+}
+
+dependencies {
+    testCompile project(":vipr-client"),
+        "org.codehaus.groovy:groovy-all:2.3.2",
+        "commons-configuration:commons-configuration:1.9",
+        "commons-collections:commons-collections:3.2.1",
+        library(log4j),
+        library(slf4j),
+        library(google_gson)
+}
+
+test {
+    exclude "com/emc/vipr/sanity/**/*"
+}
+
+task catalog(type: JavaExec) {
+    main "org.junit.runner.JUnitCore"
+    args "com.emc.vipr.sanity.CatalogSanity"
+    classpath = sourceSets.test.runtimeClasspath
+    systemProperties System.properties
+    environment System.getenv()
+}

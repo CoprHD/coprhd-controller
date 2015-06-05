@@ -1,0 +1,14 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+dependencies {
+    compile library(netapp)
+    compile "com.google.guava:guava:11.0.2",
+            "commons-lang:commons-lang:2.6",
+            "log4j:log4j:1.2.16",
+            "commons-beanutils:commons-beanutils:1.8.3"     
+}
+test {
+    exclude 'com/iwave/ext/netapp/LunTest.class' 
+    exclude 'com/iwave/ext/netapp/MiscTests.class'
+    exclude 'com/iwave/ext/netapp/VolumeTest.class'
+}

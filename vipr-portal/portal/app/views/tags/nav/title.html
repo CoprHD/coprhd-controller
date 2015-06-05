@@ -1,0 +1,11 @@
+*{
+  Title generated based on selected navigation
+}*
+#{if (navSelected instanceof Collection)}
+  #{list items:navSelected, as:'key'}
+    #{if !key_isFirst}|#{/if} &{key}
+  #{/list}
+#{/if}
+#{elseif navSelected}
+  &{navSelected}
+#{/elseif}

@@ -1,0 +1,145 @@
+%{
+  titleKey = 'ComputeImages.' + (computeImages?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'ComputeImages.' + (computeImages?.imageId ? 'cloneDescription' : 'description');
+  image = '/public/img/assets/Host.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.computeImages'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:computeImages?.id ? true : false/}
+#{set cloneMode:computeImages?.imageId ? true : false/}
+
+#{breadcrumb.container}
+#{breadcrumb.item @list()}&{'ComputeImages.list.title'}#{/breadcrumb.item}
+#{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+
+  var editMode = #{get 'editMode'/};
+  var cloneMode = #{get 'cloneMode'/};
+  var isAvailable = true;
+
+  var errors = #{get 'errors'/};
+  
+    $(document).ready(function() {
+     
+        var editMode = #{get 'editMode'/};
+
+        if (!editMode && !errors) {
+            setDefaults();
+        }
+        // when in edit mode disable the system type input
+        if (editMode) {
+        	$('#computeImages_imageType').prop('disabled', true);
+            $('#computeImages_imageName').prop('disabled', true); 
+            $('#imageStatus').find('input').each(function() {
+                if (this.value != "NOT_AVAILABLE") {
+                	isAvailable = true;
+                    $('#computeImages_imageUrl').prop('disabled', true);
+                } else {
+                	isAvailable = false;
+                }
+            });
+        } else {
+            $('#imageNameType').hide();
+        }
+        if (cloneMode) {
+            $('#computeImageCloneFields').show();
+            $('#computeImageUrlField').hide();
+        } else {
+            $('#computeImageCloneFields').hide();
+        }
+
+    });
+
+
+
+    function setDefaults() {
+        
+    }
+
+  
+    
+  </script>
+#{/set}
+
+
+<div class="container">
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    
+    #{alerts/}
+    
+#{form @save(), id:'computeImageForm', class:'form form-horizontal', autocomplete:"off"}
+#{field 'referrer'}
+<input type="hidden" name="${field.name}" value="${referrer}">
+#{/field}
+   
+
+  <fieldset>
+    #{field 'computeImages.name'}
+      #{Form.inputTextControlGroup field:field, required:true, cssClass:'initialFocus' /}
+    #{/field} 
+   
+    <div id='imageNameType'>
+      #{field 'computeImages.imageType'}
+        #{Form.staticControlGroup field:field /}
+      #{/field}    
+      #{field 'computeImages.imageName'}
+        #{Form.staticControlGroup field:field /}
+      #{/field}
+    </div>
+
+    <div id='computeImageCloneFields'>
+      #{field 'computeImages.cloneName'}
+        #{Form.staticControlGroup field:field /}
+      #{/field}    
+      #{field 'computeImages.cloneType'}
+        #{Form.staticControlGroup field:field /}
+      #{/field}    
+      #{field 'computeImages.cloneExtractedName'}
+        #{Form.staticControlGroup field:field /}
+      #{/field}    
+      #{field 'computeImages.cloneUrl'}
+        #{Form.staticControlGroup field:field /}
+      #{/field}
+    </div>
+    
+    <div id='computeImageUrlField'>    
+      #{field 'computeImages.imageUrl'}
+        %{
+          field.required = !editMode && !cloneMode
+        }%
+        #{if !editMode || !isAvailable}
+            #{Form.textAreaControlGroup field:field /}
+        #{/if}
+        #{else}
+            #{Form.staticControlGroup field:field /}
+        #{/else}
+      #{/field}
+    </div>
+  
+    #{if computeImages?.id}
+      #{field 'computeImages.id'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+      #{/field}
+      <div id='imageStatus'>
+      #{field 'computeImages.computeImageStatus'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+       #{/field}    
+    #{/if} 
+  </fieldset>
+
+    #{Form.saveCancel cancelHref:referrer/}
+#{/form}
+</div>

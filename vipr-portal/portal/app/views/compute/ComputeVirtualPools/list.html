@@ -1,0 +1,12 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.virtualStorage', 'nav.computeVirtualPools'] /}
+
+#{DataTable.header titleKey:'ComputeVirtualPools.list.title'/}
+#{DataTable.crudTable id:'computeVirtualPools', 
+                      dataTable:dataTable,
+                      expandable: true,
+                      deleteConfirm:messages.get('ComputeVirtualPools.deleteConfirm')/}
+#{DataTable.expandHtml @computeVirtualPoolDetails(':id'), table:'computeVirtualPools' /}

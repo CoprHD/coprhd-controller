@@ -1,0 +1,12 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+dependencies {
+    compile library(spring),
+            library(apache_cassandra),
+            library(google_gson),
+            library(httpclient3),
+            library(jersey),
+            library(slf4j),
+            project(":models")
+}
+

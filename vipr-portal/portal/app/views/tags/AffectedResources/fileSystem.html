@@ -1,0 +1,61 @@
+%{
+  resourceId = _resource.resourceId
+  fileShare = _resource.fileShare
+  varray = _resource.neighborhood
+  exports = _resource.exports
+  smbShares = _resource.smbShares
+
+  cos = _resource.cos
+}%
+#{AffectedResources.resource img: 'file.png', classes: 'fileSystem', typeKey: 'affectedResources.fileSystem'}
+#{AffectedResources.singleColumn }
+  <dt>&{'affectedResources.fileSystem'}:</dt>
+  <dd>
+    ${resourceId}</a>
+  </dd>
+  #{if fileShare}
+    <dt>&{'affectedResources.fileSystem.name'}:</dt>
+    <dd>
+      <a href="@{resources.FileSystems.fileSystem(resourceId)}"
+      >#{spaceForNull fileShare?.name/}#{if fileShare.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+    </dd>
+
+    <dt>&{'affectedResources.fileSystem.capacity'}:</dt>
+    <dd>#{spaceForNull "${fileShare?.capacity} GB"/}</dd>
+
+    <dt>&{'affectedResources.fileSystem.mountPath'}:</dt>
+    <dd>#{spaceForNull fileShare?.mountPath/}</dd>
+
+    <dt>&{'affectedResources.varray'}:</dt>
+    <dd>#{spaceForNull varray?.name/}</dd>
+
+    <dt>&{'affectedResources.cos'}:</dt>
+    <dd>#{spaceForNull cos?.name/}</dd>
+    
+    #{if datastores}
+      <dt>&{'affectedResources.fileSystem.datastores'}:</dt>
+      <dd>#{spaceForNull datastores.join(', ')/}</dd>
+    #{/if}
+  #{/if}
+  #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.fileSystem')}</dd>
+  #{/else}
+#{/AffectedResources.singleColumn }
+#{/AffectedResources.resource}
+
+*{
+  File NFS Exports and CIFS Shares do not have special Bourne IDs so they will not have their own card types.
+  Fake it here by adding all shares/exports from a filesystem.
+}*
+#{if exports}
+  #{list items:exports, as:'export'}
+    #{AffectedResources.nfsExport resource:export/}
+  #{/list}
+#{/if}
+
+#{if smbShares}
+  #{list items:smbShares, as:'cifsShare'}
+    #{AffectedResources.cifsShare resource:cifsShare/}
+  #{/list}
+#{/if}

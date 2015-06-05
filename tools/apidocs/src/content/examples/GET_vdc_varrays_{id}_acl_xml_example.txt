@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/vdc/varrays/urn:storageos:VirtualArray:05b2ed06-064a-4869-835e-5d2e002868fe:/acl HTTP/1.1  
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==Response
+
+HTTP/1.1 200 OK 
+Content-Type: application/xml 
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<acl_assignments>
+  <acl_assignment>
+    <privilege>USE</privilege>
+    <tenant>urn:storageos:TenantOrg:4e39adf3-4b93-4c64-bfe8-b3e5f7ea4f74:</tenant>
+  </acl_assignment>
+  <acl_assignment>
+    <privilege>USE</privilege>
+    <tenant>urn:storageos:TenantOrg:f9011af3-48a3-462b-96c7-44e9a98205dc:</tenant>
+  </acl_assignment>
+</acl_assignments>

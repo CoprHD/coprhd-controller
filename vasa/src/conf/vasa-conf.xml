@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!--
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+          http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+          http://www.springframework.org/schema/util
+          http://www.springframework.org/schema/util/spring-util-3.0.xsd
+          http://www.springframework.org/schema/context
+          http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+    <context:annotation-config />
+    <import resource="classpath:vasa-var.xml" />
+	<import resource="classpath:security-ciphers.xml" />    
+	<import resource="classpath:coordinatorclient-var.xml" />    
+
+    <bean id="vasaserver" class="com.emc.storageos.vasa.service.impl.VasaServer">
+        <property name="disableSSL" value="false"/>
+        <property name="securePort" value="9093"/>
+        <property name="serviceInfo" ref="serviceinfo"/>
+        <!-- Must not be configured for less than the number of expected connections. -->
+        <property name="lowResourcesConnections" value="1000"/>
+        <property name="lowResourcesMaxIdleTime" value="3000"/>
+        <property name="minQueueThreads" value="10"/>
+        <property name="maxQueueThreads" value="200"/>
+        <property name="maxQueued" value="200"/>
+        <property name="webAppContext" ref="webAppContext" />
+        <property name="ciphersToInclude" ref="strongCiphers"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="webAppContext" class="org.eclipse.jetty.webapp.WebAppContext">
+        <property name="war" value="${product.home:/opt/storageos}/lib/storageos-vasasvc" />
+        <property name="contextPath" value="/storageos-vasasvc" />
+        <property name="descriptor" value="${product.home:/opt/storageos}/lib/storageos-vasasvc/WEB-INF/web.xml" />
+        <property name="resourceBase" value="${product.home:/opt/storageos}/lib/storageos-vasasvc" />
+    </bean>
+</beans>

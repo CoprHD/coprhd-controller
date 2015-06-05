@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="zkconn" class="com.emc.storageos.coordinator.common.impl.ZkConnection"
+            init-method="build">
+        <property name="server">
+            <list>
+                <value>coordinator://localhost:2181</value>
+            </list>
+        </property>
+        <property name="timeoutMs" value="5000"/>
+    </bean>
+
+    <bean id="zkconn2" class="com.emc.storageos.coordinator.common.impl.ZkConnection"
+          init-method="build">
+        <property name="server">
+            <list>
+                <value>coordinator://localhost:2181</value>
+            </list>
+        </property>
+        <property name="timeoutMs" value="5000"/>
+    </bean>
+
+    <bean id="info1" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="test"/>
+        <property name="id" value="ABC-DEF-1"/>
+        <property name="endpoint" value="rmi://localhost:10099/testsvc"/>
+        <property name="version" value="1"/>
+        <property name="tags">
+            <set>
+                <value>isilon-1</value>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="info2" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
+        <property name="name" value="test"/>
+        <property name="id" value="ABC-DEF-2"/>
+        <property name="endpoint" value="rmi://localhost:10099/testsvc"/>
+        <property name="version" value="1"/>
+        <property name="tags">
+            <set>
+                <value>isilon-1</value>
+            </set>
+        </property>
+    </bean>
+    
+    <bean id="beacon1" class="com.emc.storageos.coordinator.client.beacon.impl.ControllerServiceBeaconImpl">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="info1"/>
+    </bean>
+    
+    <bean id="beacon2" class="com.emc.storageos.coordinator.client.beacon.impl.ControllerServiceBeaconImpl">
+        <property name="zkConnection" ref="zkconn2"/>
+        <property name="service" ref="info2"/>
+    </bean>
+</beans>

@@ -1,0 +1,88 @@
+<html>
+
+<head>
+    <title>Templating</title>
+    <link href="artifacts/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+    <link href="artifacts/other.css" rel="stylesheet" type="text/css"/>
+</head>
+
+<body>
+<h2>Templating</h2>
+<p>All generated content within the API Reference is derived from templates stored in the content/templates folder, which provides a more flexible way of specifying the style and layout of the final pages.</p>
+<p>The current template files are:</p>
+<table class="table">
+    <thead>
+    <tr>
+        <td width="20%">File</td>
+        <td>Usage</td>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td>TableOfContents.html</td>
+        <td>The TOC as seen on all pages</td>
+    </tr>
+    <tr>
+        <td>Footer.html</td>
+        <td>The footer for all pages</td>
+    </tr>
+    <tr>
+        <td>Details.html</td>
+        <td>Used to create the method detail pages</td>
+    </tr>
+    <tr>
+        <td>Overview.html</td>
+        <td>Used to create the service overview pages</td>
+    </tr>
+    <tr>
+        <td>Page.html</td>
+        <td>Used to create all static pages (i.e. pages in content/pages)</td>
+    </tr>
+    <tr>
+        <td>Search.html</td>
+        <td>Used to create the search page</td>
+    </tr>
+    </tbody>
+</table>
+
+<hr/>
+<h3>Groovy Based</h3>
+<p>All templates are based on the <a href="http://groovy.codehaus.org/Groovy+Templates">Groovy Template</a> engine and are a mixture of HTML and Groovy code.  All Groovy code is contain with the &lt;% and %&gt; script markers, anything not in a script marker is output to the final page.  The special ${} marker can be used to evaluate an expression into a string to be placed into the final page.</p>
+<p>The following example shows a piece of a page that would create an HTML list of the names of all items in the myItems collection:</p>
+<pre>
+&lt;ul&gt;
+    <% myItems.each{ item -> %>
+        &lt;li&gt;${item.name}&lt;/li&gt;
+    <% } %>
+&lt;/ul&gt;
+</pre>
+<h3>@include</h3>
+<p>The API generator has an extension to the base Groovy template engine, in the form of an additional tag.  The &lt;@include "FILE"&gt; has been added which specifies a file that should be included into the content of the page before the template engine is executed.  This allows you to re-use code blocks, or split a complex page into more manageable chunks.</p>
+
+<p>All files to be included MUST be placed within the templates/parts directory, or a sub-directory of templates/parts.  The filename specified in the @include tag is a directory path within templates/parts to the file to include.  For example, the following would include the file /content/template/parts/examples.html into the page.<p>
+<pre>
+&lt;@include "examples.html"&gt;
+</pre>
+<div class="alert alert-info"><b>NOTE:</b> @include tags are resolved BEFORE the final page is handed to the template engine for execution. This means that the template engine will only ever see the final page as if it were written as one long file. </div>
+
+<h4>Common Parts</h4>
+<p>Withing the current API Reference, all pages include common parts that provides a consistent structure and styling to all pages.</p>
+<p>The following shows the Page.html that templates all static page files:</p>
+<pre>
+&lt;@include "StartHead.html">
+<script>
+    \$(document).ready(function() {
+        addSearchKeyBinding();
+        setupTOC("${pageFile}");
+    });
+</script>
+&lt;@include "EndHead.html">
+&lt;@include "StartBody.html">
+${content}
+&lt;@include "EndBody.html">
+</pre>
+<h4>Detail parts</h4>
+<p>The Method detail page is complex due to the amount of information that needs to be displayed.  For this reason the template is broken down into parts all stored in the templates/parts/details directory.</p>
+</body>
+
+</html>

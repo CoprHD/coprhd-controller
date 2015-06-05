@@ -1,0 +1,39 @@
+// Copyright 2012-2015 iWave Software LLC
+// All Rights Reserved
+{
+  baseKey:"ChangeVirtualPool.Block",
+  serviceId:"ChangeVirtualPool",
+  roles: [
+    "HOME_TENANT_ADMIN"
+  ],
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },  
+
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool"
+    },
+    
+    virtualPoolChangeOperation:{
+      type:"assetType.vipr.virtualPoolChangeOperation",
+      lockable: true
+    },
+        
+    targetVirtualPool:{
+      type:"assetType.vipr.targetVirtualPool"
+    },
+    
+    consistencyGroup: {
+      type:"assetType.vipr.consistencyGroupWithVirtualPoolChangeOperation",
+      required: false
+    },
+    
+    volume:{
+      type:"assetType.vipr.virtualPoolChangeVolumeWithSource",
+      select: "many"
+    }
+  }
+  
+}

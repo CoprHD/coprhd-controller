@@ -1,0 +1,68 @@
+install 
+text 
+url --url  http://${http.ip}:${http.files.port}/${os_path}
+repo --name=HighAvailability --baseurl=http://${http.ip}:${http.files.port}/${os_path}/HighAvailability
+repo --name=LoadBalancer --baseurl=http://${http.ip}:${http.files.port}/${os_path}/LoadBalancer
+repo --name=ResilientStorage --baseurl=http://${http.ip}:${http.files.port}/${os_path}/ResilientStorage
+repo --name=ScalableFileSystem --baseurl=http://${http.ip}:${http.files.port}/${os_path}/ScalableFileSystem
+network --bootproto=dhcp
+authconfig --enableshadow  --enablemd5  
+bootloader --location=mbr 
+lang en_US 
+keyboard us 
+zerombr yes
+${ignore.disk} 
+clearpart --all --initlabel
+part /boot --size=250 --fstype=ext3 ${boot.device.uuid}
+part swap --size=4000 ${boot.device.uuid}
+part /home --size=5000 --fstype ext4 ${boot.device.uuid}
+part / --size=5000 --grow --fstype ext4 ${boot.device.uuid}
+rootpw --iscrypted  ${root.password}
+selinux --enforcing  
+firewall --enabled  --ssh  
+#key bb57b3a2bf13fdb3 
+key --skip 
+timezone --utc  Etc/UTC 
+reboot 
+
+%packages --ignoremissing
+@ console-internet
+@ debugging
+@ directory-client
+@ hardware-monitoring
+@ large-systems
+@ network-file-system-client
+@ performance
+@ server-platform
+@ server-policy
+@ java-platform
+@ perl-runtime
+pax
+python-dmidecode
+oddjob
+sgpio
+certmonger
+pam_krb5
+krb5-workstation
+perl-DBD-SQLite
+libXp
+@ virtualization
+@ virtualization-client
+@ virtualization-platform
+@ virtualization-tools
+compat-libstdc++-33
+openmotif
+
+%pre --interpreter=/bin/sh
+
+%post
+exec < /dev/tty3 > /dev/tty3
+chvt 3
+echo ; echo ##### Running Post Configuration ##### ; echo
+(
+curl http://${http.ip}:${http.port}/osagent/script/${session.id}/FIRST_BOOT --retry 5 --retry-delay 5 > /tmp/rhel-firstboot.sh
+chmod u+x /tmp/rhel-firstboot.sh
+curl http://${http.ip}:${http.port}/osagent/log/${session.id}/post --retry 5 --retry-delay 5 
+bash /tmp/rhel-firstboot.sh
+) 2>&1 | /usr/bin/tee /var/log/osagent.log
+chvt 1

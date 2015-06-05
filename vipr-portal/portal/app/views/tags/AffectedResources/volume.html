@@ -1,0 +1,65 @@
+%{
+  resourceId = _resource.resourceId;
+  volume = _resource.volume;
+  varray = _resource.neighborhood;
+  cos = _resource.cos;
+  consistencyGroup = _resource.consistencyGroup;
+
+  mountPoint = _resource.mountPoint;
+  datastore = _resource.datastore;
+  luns = _otherResources?.find{ it?.type == com.emc.sa.util.ResourceType.EXPORT_GROUP }.collect{ volume?.getLun(it.exportGroup) }
+}%
+#{AffectedResources.resource img: 'volume.png', classes: 'blockVolume', typeKey: 'affectedResources.volume'}
+  #{AffectedResources.singleColumn }
+  #{if volume}
+      <dt>&{'affectedResources.volume'}:</dt>
+      <dd>#{spaceForNull resourceId ?: volume?.id /}</dd>
+      
+      <dt>&{'affectedResources.volume.name'}:</dt>
+      <dd>
+        <a href="@{resources.BlockVolumes.volume(volume?.id)}"
+        >#{spaceForNull volume?.name/}#{if volume.inactive} (&{'affectedResources.inactive'})#{/if}</a>
+      </dd>
+
+      <dt>&{'affectedResources.volume.wwn'}:</dt>
+      <dd>#{spaceForNull volume.wwn/}</dd>
+	 
+      #{if luns}
+      <dt>&{'affectedResources.volume.lun'}:</dt>
+      <dd>
+        #{list luns, as:'lun'}
+          #{if !lun_isFirst},#{/if} ${lun}
+        #{/list}
+        &nbsp;
+      </dd>
+      #{/if}
+      
+      <dt>&{'affectedResources.volume.size'}:</dt>
+      <dd>&{'affectedResources.volume.size.value', volume?.capacity, volume?.provisionedCapacity}</dd>
+
+      <dt>&{'affectedResources.varray'}:</dt>
+      <dd>#{spaceForNull varray?.name/}</dd>
+
+      <dt>&{'affectedResources.cos'}:</dt>
+      <dd>#{spaceForNull cos?.name/}</dd>
+
+    #{if consistencyGroup}
+      <dt>&{'affectedResources.consistencyGroup'}:</dt>
+      <dd>#{spaceForNull consistencyGroup?.name/}</dd>
+    #{/if}
+
+    #{if mountPoint}
+      <dt>&{'affectedResources.volume.mountPoint'}:</dt>
+      <dd>#{spaceForNull mountPoint/}</dd>
+    #{/if}
+    #{if datastore}
+      <dt>&{'affectedResources.volume.datastore'}:</dt>
+      <dd>#{spaceForNull datastore/}</dd>
+    #{/if}
+   #{/if}
+   #{else}
+    <dt></dt>
+    <dd>&{'affectedResources.notFound', messages.get('affectedResources.volume')}</dd>
+   #{/else}
+   #{/AffectedResources.singleColumn}
+#{/AffectedResources.resource}

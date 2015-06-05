@@ -1,0 +1,65 @@
+POST https://192.168.0.0:4443/vdc/protection-systems/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:ProtectionSystem:83d263f1-f59d-455b-80db-b17c627427c3:</id>
+    <id>urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_protection_systems>
+    <protection_system>
+        <creation_time>1379170788402</creation_time>
+        <id>urn:storageos:ProtectionSystem:83d263f1-f59d-455b-80db-b17c627427c3:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/protection-systems/urn:storageos:ProtectionSystem:83d263f1-f59d-455b-80db-b17c627427c3:" rel="self"/>
+        <name>rp_protection_system</name>
+        <tags/>
+        <native_guid>RP+6b93babb3bc882b3a1695247e2d9b78f13ebddc0</native_guid>
+        <compatibility_status>COMPATIBLE</compatibility_status>
+        <job_discovery_status>COMPLETE</job_discovery_status>
+        <last_discovery_run_time>1380763701235</last_discovery_run_time>
+        <last_discovery_status_message>Discovery completed successfully for Protection System: urn:storageos:ProtectionSystem:83d263f1-f59d-455b-80db-b17c627427c3:</last_discovery_status_message>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>1380767286369</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <system_type>rp</system_type>
+        <installation_id>6b93babb3bc882b3a1695247e2d9b78f13ebddc0</installation_id>
+        <ip_address>192.168.0.10</ip_address>
+        <major_version>3.5.SP2(p.74)</major_version>
+        <port_number>7225</port_number>
+        <secondary_ip>192.168.0.20</secondary_ip>
+        <user_name>admin</user_name>
+    </protection_system>
+    <protection_system>
+        <creation_time>1379550864912</creation_time>
+        <id>urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/protection-systems/urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:" rel="self"/>
+        <name>vRPA</name>
+        <tags/>
+        <native_guid>RP+ouija-rp</native_guid>
+        <compatibility_status>COMPATIBLE</compatibility_status>
+        <job_discovery_status>ERROR</job_discovery_status>
+        <last_discovery_run_time>1380763687099</last_discovery_run_time>
+        <last_discovery_status_message>Discovery failed for Protection System urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa: because Discover RecoverPoint site/cluster failed. Protection system: urn:storageos:ProtectionSystem:1334de80-8efc-4c5b-951e-cf018c9e3efa:The operation: getAvailableSiteTargets is not supported on this RecoverPoint Appliance.</last_discovery_status_message>
+        <last_metering_run_time>0</last_metering_run_time>
+        <job_metering_status>CREATED</job_metering_status>
+        <next_discovery_run_time>1380767286072</next_discovery_run_time>
+        <next_metering_run_time>0</next_metering_run_time>
+        <registration_status>REGISTERED</registration_status>
+        <system_type>rp</system_type>
+        <installation_id>ouija-rp</installation_id>
+        <ip_address>192.168.0.30</ip_address>
+        <major_version>4.0.SP1(k.143)</major_version>
+        <port_number>7225</port_number>
+        <user_name>admin</user_name>
+    </protection_system>
+</bulk_protection_systems>

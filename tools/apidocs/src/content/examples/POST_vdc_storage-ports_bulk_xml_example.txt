@@ -1,0 +1,65 @@
+POST https://192.168.0.0:4443/vdc/storage-ports/bulk HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<ids>
+    <id>urn:storageos:StoragePort:00668013-f11e-41e6-91b8-e9be0778238a:</id>
+    <id>urn:storageos:StoragePort:07b614d9-75b3-4b78-b32b-e35606e71431:</id>
+</ids>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<bulk_storage_ports>
+    <storage_port>
+        <creation_time>1380046794809</creation_time>
+        <id>urn:storageos:StoragePort:00668013-f11e-41e6-91b8-e9be0778238a:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/storage-systems/urn:storageos:StorageSystem:1a73cca5-d5a6-4998-b1d1-d7c1638293ed:/storage-ports/urn:storageos:StoragePort:00668013-f11e-41e6-91b8-e9be0778238a:" rel="self"/>
+        <name>SYMMETRIX+000195701573+PORT+50:00:09:73:00:18:95:1C</name>
+        <tags/>
+        <native_guid>SYMMETRIX+000195701573+PORT+50:00:09:73:00:18:95:1C</native_guid>
+        <network>
+            <id>urn:storageos:Network:f1784da9-d32c-4988-9645-05e8afa043fd:</id>
+            <link href="/vdc/networks/urn:storageos:Network:f1784da9-d32c-4988-9645-05e8afa043fd:" rel="self"/>
+        </network>
+        <operational_status>OK</operational_status>
+        <port_group>FA-8E</port_group>
+        <port_name>FA-8E:0</port_name>
+        <port_network_id>50:00:09:73:00:18:95:1C</port_network_id>
+        <port_speed_gbps>8</port_speed_gbps>
+        <port_type>frontend</port_type>
+        <registration_status>REGISTERED</registration_status>
+        <storage_system>
+            <id>urn:storageos:StorageSystem:1a73cca5-d5a6-4998-b1d1-d7c1638293ed:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:1a73cca5-d5a6-4998-b1d1-d7c1638293ed:" rel="self"/>
+        </storage_system>
+        <transport_type>FC</transport_type>
+    </storage_port>
+    <storage_port>
+        <creation_time>1379168997845</creation_time>
+        <id>urn:storageos:StoragePort:07b614d9-75b3-4b78-b32b-e35606e71431:</id>
+        <inactive>false</inactive>
+        <link href="/vdc/storage-systems/urn:storageos:StorageSystem:55e5b7e0-0813-48fb-ac17-e53680acd2b2:/storage-ports/urn:storageos:StoragePort:07b614d9-75b3-4b78-b32b-e35606e71431:" rel="self"/>
+        <name>SYMMETRIX+000198700412+PORT+iqn.1992-04.com.emc:50000973f0067184</name>
+        <tags/>
+        <native_guid>SYMMETRIX+000198700412+PORT+iqn.1992-04.com.emc:50000973f0067184</native_guid>
+        <ip_address>10.247.97.103</ip_address>
+        <operational_status>OK</operational_status>
+        <port_endpoint_id>iqn.1992-04.com.emc:50000973f0067184,t,0x0001</port_endpoint_id>
+        <port_group>SE-2G</port_group>
+        <port_name>SE-2G:0</port_name>
+        <port_network_id>iqn.1992-04.com.emc:50000973f0067184</port_network_id>
+        <port_speed_gbps>1</port_speed_gbps>
+        <port_type>frontend</port_type>
+        <registration_status>REGISTERED</registration_status>
+        <storage_system>
+            <id>urn:storageos:StorageSystem:55e5b7e0-0813-48fb-ac17-e53680acd2b2:</id>
+            <link href="/vdc/storage-systems/urn:storageos:StorageSystem:55e5b7e0-0813-48fb-ac17-e53680acd2b2:" rel="self"/>
+        </storage_system>
+        <tcp_port_number>3260</tcp_port_number>
+        <transport_type>IP</transport_type>
+    </storage_port>
+</bulk_storage_ports>

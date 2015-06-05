@@ -1,0 +1,6 @@
+# Lists all Methods should be ignored
+CallHomeService::sendHeartbeatEvent
+CallHomeService::sendRegistrationEvent
+com.emc.storageos.systemservices.impl.resource.PasswordService::getUserPasswordExpireTime
+com.emc.storageos.systemservices.impl.resource.PasswordService::setUserPasswordExpireTime
+com.emc.storageos.systemservices.impl.resource.PasswordService::runMailNotifier

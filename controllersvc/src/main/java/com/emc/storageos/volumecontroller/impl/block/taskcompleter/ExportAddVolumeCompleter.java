@@ -1,0 +1,93 @@
+/**
+* Copyright 2015 EMC Corporation
+* All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2008-2011 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
+
+package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.services.OperationTypeEnum;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@SuppressWarnings("serial")
+public class ExportAddVolumeCompleter extends ExportTaskCompleter {
+    private static final org.slf4j.Logger _log = LoggerFactory.getLogger(ExportAddVolumeCompleter.class);
+    private List<URI> _volumes;
+    private Map<URI, Integer> _volumeMap;
+    private static final String EXPORT_ADD_VOLUME_MSG = "Volume %s added to ExportGroup %s";
+    private static final String EXPORT_ADD_VOLUME_MSG_FAILED_MSG = "Failed to add volume %s to ExportGroup %s";
+
+    public ExportAddVolumeCompleter(URI egUri, Map<URI, Integer> volumes,
+                                    String task) {
+        super(ExportGroup.class, egUri, task);
+        _volumes = new ArrayList<URI>();
+        _volumes.addAll(volumes.keySet());
+        _volumeMap = new HashMap<URI, Integer>();
+        _volumeMap.putAll(volumes);
+    }
+
+    @Override
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
+        try {
+            super.complete(dbClient, status, coded);
+            ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
+            for (URI volumeURI : _volumes) {
+                BlockObject volume = BlockObject.fetch(dbClient, volumeURI);
+
+                _log.info("export_volume_add: completed");
+                _log.info(String.format("Done ExportMaskAddVolume - Id: %s, OpId: %s, status: %s",
+                        getId().toString(), getOpId(), status.name()));
+
+                recordBlockExportOperation(dbClient, OperationTypeEnum.ADD_EXPORT_VOLUME, status, eventMessage(status, volume, exportGroup), exportGroup, volume);
+
+                if (status.name().equals(Operation.Status.error.name())) {
+                    exportGroup.removeVolume(volumeURI);
+                }
+            }
+
+            Operation operation = new Operation();
+            switch (status) {
+            case error:
+                operation.error(coded);
+                break;
+            case ready:
+                operation.ready();
+                break;
+            default:
+                break;
+            }
+            exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
+            dbClient.persistObject(exportGroup);
+        } catch (Exception e) {
+            _log.error(String.format("Failed updating status for ExportMaskAddVolume - Id: %s, OpId: %s",
+                    getId().toString(), getOpId()), e);
+        }
+    }
+
+    private String eventMessage(Operation.Status status, BlockObject volume, ExportGroup exportGroup) {
+        return (status == Operation.Status.ready) ?
+                String.format(EXPORT_ADD_VOLUME_MSG, volume.getLabel(), exportGroup.getLabel()) :
+                String.format(EXPORT_ADD_VOLUME_MSG_FAILED_MSG, volume.getLabel(), exportGroup.getLabel());
+    }
+}

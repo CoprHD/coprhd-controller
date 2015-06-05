@@ -1,0 +1,8 @@
+// Copyright 2015 EMC Corporation
+// All Rights Reserved
+{
+  "code": 400,
+  "description": "&{'errors.400.title'}",
+  "details": "${result?.message ?: messages.get("errors.400.title")}",
+  "retryable": false
+}

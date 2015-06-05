@@ -1,0 +1,53 @@
+GET https://192.168.0.0:4443/vdc/smis-providers/urn:storageos:SMISProvider:e22526e3-3f81-4e5c-b94c-d8517447f5af:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "name": "samplesmis",
+  "id": "urn:storageos:SMISProvider:e22526e3-3f81-4e5c-b94c-d8517447f5af:",
+  "link": {
+    "rel": "self",
+    "href": "/vdc/smis-providers/urn:storageos:SMISProvider:e22526e3-3f81-4e5c-b94c-d8517447f5af:"
+  },
+  "inactive": false,
+  "tags": [
+    
+  ],
+  "description": "Linux samplesmis 2.6.32-279.5.2.el6.x86_64 #1 SMP Tue Aug 14 11:36:39 EDT 2012 x86_64 VM Guest OS (64bit Libraries)",
+  "manufacturer": "EMC Corp",
+  "creation_time": 1379168782578,
+  "port_number": 5988,
+  "storage_systems": [
+    {
+      "id": "urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:2b020f96-5ad1-48fb-a071-eb158b4f711d:"
+      }
+    },
+    {
+      "id": "urn:storageos:StorageSystem:b03f9168-a7c8-49e1-a395-9d23a9999617:",
+      "link": {
+        "rel": "self",
+        "href": "/vdc/storage-systems/urn:storageos:StorageSystem:b03f9168-a7c8-49e1-a395-9d23a9999617:"
+      }
+    }
+  ],
+  "version_string": "V4.6.1.1",
+  "provider_id": "samplesmis.com-5988",
+  "connection_status": "CONNECTED",
+  "user_name": "admin",
+  "use_ssl": false,
+  "job_scan_status": "COMPLETE",
+  "last_scan_status_message": "Scan job completed successfully for SMISProvider: urn:storageos:SMISProvider:e22526e3-3f81-4e5c-b94c-d8517447f5af:",
+  "last_scan_time": 1380546843531,
+  "next_scan_time": 1380547438004,
+  "compatibility_status": "COMPATIBLE",
+  "registration_status": "REGISTERED",
+  "ip_address": "samplesmis.com"
+}

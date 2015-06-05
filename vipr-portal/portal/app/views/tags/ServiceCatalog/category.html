@@ -1,0 +1,15 @@
+%{
+  category = _category
+  editable = _editable == true
+  visible = _visible == true
+}%
+<ul class="catalog-items" data-id="${category.id}" data-path="${category.path}" data-parent="${category.parentId}"#{if !visible} style="display:none"#{/if}>
+  #{list items:category.categories, as:'subcategory'}
+    #{ServiceCatalog.categoryItem category:subcategory, editable:editable /}
+  #{/list}
+  #{list items:category.services, as:'service'}
+    #{if controllers.security.Security.hasOneOfRoles(service.roles)}
+      #{ServiceCatalog.serviceItem service:service, editable:editable /}
+    #{/if}
+  #{/list}
+</ul>

@@ -1,0 +1,109 @@
+<@include "StartHead.html">
+<script type="text/javascript" src="static/detailPage.js"></script>
+<script>
+    function showExample() {
+    \$("#xmlExample").hide();
+        \$("#jsonExample").hide();
+        var toShow = \$("#example").val();
+        \$("#"+toShow).show();
+    }
+
+    \$(document).ready(function() {
+        addSearchKeyBinding();
+        setupTOC("${apiService.getModifiedMethodsFileName()}");
+    });
+</script>
+<@include "EndHead.html">
+<@include "StartBody.html">
+<ul class="breadcrumb">
+    <li><a href="${apiService.getModifiedMethodsFileName()}">${apiMethod.apiService.title} Changes</a></li>
+</ul>
+<h3>Changes to ${apiMethod.title}</h3>
+<div class="resource"><a href="${apiMethod.getDetailFileName()}">${apiMethod.httpMethod} ${apiMethod.path}</a></div>
+<p>${apiMethod.description}</p>
+
+<% if (apiMethod.alert != null) { %>
+<div class="alert alert-info">${apiMethod.alert}</div>
+<% } %>
+
+<@include "modified/ModifiedPathParameters.html">
+<@include "modified/ModifiedQueryParameters.html">
+<@include "modified/ModifiedRequestHeaders.html">
+<@include "modified/ModifiedResponseHeaders.html">
+
+<% if (methodChanges.requestPayloadChanged) { %>
+<hr/>
+<h4>Request Payload Changes</h4>
+<div id="responseTable">
+    <table class="payload table">
+        <thead>
+        <tr>
+            <td width="300">Field</td>
+            <td width="40%">Description</td>
+            <td width="30">Type</td>
+            <td width="20%">Notes</td>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>&lt;${methodChanges.input.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <% methodChanges.input.fields.each { field ->
+        addPayloadLine(field, 1,"")
+        } %>
+        <tr>
+            <td>&lt;/${methodChanges.input.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<% } %>
+
+<% if (methodChanges.responsePayloadChanged) { %>
+<hr/>
+<h4>Response Payload Changes</h4>
+<div id="responseTable">
+    <table class="payload table">
+        <thead>
+        <tr>
+            <td width="300">Field</td>
+            <td width="40%">Description</td>
+            <td width="30">Type</td>
+            <td width="20%">Notes</td>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>&lt;${methodChanges.output.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <% methodChanges.output.fields.each { field ->
+            addPayloadLine(field, 1,"")
+        } %>
+        <tr>
+            <td>&lt;/${methodChanges.output.name}&gt;</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<% } %>
+
+
+<@include "Payload.html">
+
+
+
+
+
+

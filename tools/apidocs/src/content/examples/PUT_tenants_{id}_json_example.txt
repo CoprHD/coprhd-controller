@@ -1,0 +1,25 @@
+PUT https://192.168.0.0:4443/tenants/urn:storageos:TenantOrg:d082a5b2-3201-4faf-9e62-ae1c989f1995:.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+ "user_mapping_changes": 
+    {"add": [ {"domain": "mycompany.com", "groups": ["AdminUsers", “TestUsers”] } ]
+   }
+}
+==RESPONSE  
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "name":"Provider Tenant","id":"urn:storageos:TenantOrg:d082a5b2-3201-4faf-9e62-ae1c989f1995:",
+ "link":{"rel":"self","href":"/tenants/urn:storageos:TenantOrg:d082a5b2-3201-4faf-9e62-ae1c989f1995:"},
+ "inactive":false,
+ "tags":[],
+ "description":"Root Provider Tenant",
+ "creation_time":1379083836354,
+ "user_mappings":[
+    {"attributes":[],"groups":["AdminUsers",”TestUsers”],"domain":"mycompany.com"}
+ ]
+}

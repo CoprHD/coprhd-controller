@@ -1,0 +1,12 @@
+CONTENTSTYLE  11
+BASEARCHS     x86_64 noarch i386 i586 i686
+DATADIR       suse
+DESCRDIR      suse/setup/descr
+DISTRIBUTION  EMC
+LABEL         __LABEL__
+LINGUAS       en en_GB en_US
+NAME          __NAME__
+SHORTLABEL    __SHORTLABEL__
+SP_VERSION    3
+VERSION       __VERSION__
+RELEASE       __RELEASE__

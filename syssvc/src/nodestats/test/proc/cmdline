@@ -1,0 +1,1 @@
+root=/dev/sda1 append   resume=/dev/sda2 splash=silent crashkernel= quiet

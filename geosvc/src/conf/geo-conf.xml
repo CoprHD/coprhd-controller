@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<!--
+ * Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:util="http://www.springframework.org/schema/util"
+     xsi:schemaLocation="http://www.springframework.org/schema/beans
+     http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+    http://www.springframework.org/schema/util
+    http://www.springframework.org/schema/util/spring-util-3.0.xsd
+     http://www.springframework.org/schema/context
+     http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+
+    <context:annotation-config />
+    <import resource="classpath:geo-var.xml"/>
+    <import resource="classpath:local-security-conf.xml" />
+    <import resource="classpath:security-common.xml" />
+    <import resource="classpath:attr-matcher.xml"/>
+    <import resource="classpath:jmx-conf.xml"/>
+    <import resource="classpath:dbversion-info.xml"/>
+    <import resource="classpath:geoclient-conf.xml"/>
+    
+    <bean id ="requestedTokenMapHelper" class="com.emc.storageos.security.geo.RequestedTokenHelper" />
+    <bean id="internalLogoutClient" class="com.emc.storageos.security.authentication.InternalLogoutClient" />
+    
+    
+    <bean id ="processMonitor" class="com.emc.storageos.processmonitor.ScheduledProcessMonitor" init-method="schedule">
+        <property name="interval" value="300"/>
+        <property name="serviceName" value="GEOService"/>
+    </bean>
+    
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
+    <bean id="recordableEventManager"
+        class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
+      <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="auditLogManager"
+        class="com.emc.storageos.security.audit.AuditLogManager">
+      <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
+        <property name="packages">
+            <array>
+                <value>com.emc.storageos.db.client.model</value>
+            </array>
+        </property>
+    </bean>
+
+    <bean id="dependencyChecker" class="com.emc.storageos.db.common.DependencyChecker">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+        <constructor-arg name="dataObjectScanner" ref="dbModelObjectScanner"/>
+    </bean>
+
+    <bean id="dbDependencyPurger" class="com.emc.storageos.db.common.DbDependencyPurger">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+        <constructor-arg name="dataObjectScanner" ref="dbModelObjectScanner"/>
+    </bean>
+
+    <bean id="tokenService" class="com.emc.storageos.geo.service.impl.resource.TokenService"/>
+    <bean id="queryService" class="com.emc.storageos.geo.service.impl.resource.QueryService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="dependencyChecker" ref="dependencyChecker"/>
+    </bean>
+
+    <bean id="vdcConfService" class="com.emc.storageos.geo.service.impl.resource.VdcConfigService">
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
+    <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper"/>
+
+    <bean id="vdcConfigUtil" class="com.emc.storageos.db.client.util.VdcConfigUtil"/>
+    <bean id="vdcLockHelper" class="com.emc.storageos.geo.vdccontroller.impl.VdcOperationLockHelper">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
+    <bean id="versionService" class="com.emc.storageos.geo.service.impl.resource.VersionService"/>
+
+    <bean id="application" class="com.emc.storageos.api.service.impl.resource.StorageApplication">
+        <property name="resource">
+            <set>
+                <ref bean="tokenService"/>
+                <ref bean="queryService"/>               
+                <ref bean="vdcConfService"/>
+                <ref bean="versionService"/>
+                <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
+                <bean class="com.emc.storageos.api.service.impl.resource.ContextProvider"/>
+                <bean class="com.emc.storageos.api.service.impl.resource.ValidatingJacksonJsonProvider"/>
+                <!-- 
+                <bean class="com.emc.storageos.security.resource.UserInfoPage" />
+                 -->
+                <bean class="com.emc.storageos.security.resource.LoggingPage" />
+                <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="eventRetriever"  class="com.emc.storageos.api.service.impl.resource.utils.DbEventRetriever">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="queryThreadCount" value="10"/>
+    </bean>
+    <bean id="statRetriever"  class="com.emc.storageos.api.service.impl.resource.utils.DbStatRetriever">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    <bean id="auditLogRetriever"  class="com.emc.storageos.api.service.impl.resource.utils.DbAuditLogRetriever">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="queryThreadCount" value="10"/>
+    </bean>
+
+
+    <!-- Authentication, validation and servlet wrapping filters -->
+    <!-- uncomment the below for disabling security checks- everyone gets a pass as sysadmin -->
+    <!--   
+    <bean id="securityDisabler" class="com.emc.storageos.security.SecurityDisabler"/>
+    -->
+
+    <bean id="disablingFilters" class="com.emc.storageos.security.authentication.SecurityDisablerFilter"/>
+    <bean id="internalAccessFilter" class="com.emc.storageos.geo.service.authentication.InterVDCHMACAuthFilter">                                           
+        <property name="keyGenerator">
+            <ref bean="keyGenerator" />
+        </property>
+    </bean>
+
+    <bean id="keyGenerator" class="com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="secFilters" class="org.springframework.web.filter.CompositeFilter">
+      <property name="filters">
+      <list>
+          <ref bean="requestAuditFilter" />
+          <ref bean="bypassHttpFilter" />
+          <ref bean="internalAccessFilter" />
+      </list>
+      </property>
+    </bean>
+
+    <bean name="bypassHttpFilter" class="com.emc.storageos.security.authentication.NoAuthHeaderUserFilter"/>
+
+    <bean id="permissionsHelper" class="com.emc.storageos.api.service.authorization.PermissionsHelper">
+        <constructor-arg name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="userFromRequestHelper" class="com.emc.storageos.security.authentication.UserFromRequestHelper" >
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+    </bean>
+
+    <bean id="userRepository" class="com.emc.storageos.security.authentication.StorageOSUserRepository">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="localUsers" ref="localUserMap"/>
+    </bean>
+
+    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
+        <property name="permissionsHelper" ref="permissionsHelper"/>
+    </bean>
+
+    <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>
+
+    <bean id="dbclient" class="com.emc.storageos.geo.vdccontroller.impl.InternalDbClient" init-method="start">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="bypassMigrationLock" value="true"/>
+        <property name="localContext" ref="dbclientcontext"/>
+        <property name="geoContext" ref="geodbclientcontext"/>
+    </bean>
+
+    <bean id="vdcController" class="com.emc.storageos.geo.vdccontroller.impl.VdcControllerImpl">
+        <property name="serviceInfo" ref="serviceinfo"/>
+    </bean>
+
+    <bean id="geoServiceJobQueue" class="com.emc.storageos.geo.vdccontroller.impl.GeoServiceJobQueue">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vdcController" ref="vdcController"/>
+    </bean>
+
+    <bean id="geoBackgroundTasks" class="com.emc.storageos.geo.service.impl.GeoBackgroundTasks">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vdcStatusInterval" value="10"/>
+        <property name="nodeCount" ref="nodeCount"/>
+        <property name="geodbDir" value="/data/geodb"/>
+    </bean>
+
+    <bean id="geoservice" class="com.emc.storageos.geo.service.impl.GeoServiceImpl">
+        <property name="application" ref="application"/>
+        <property name="disableSSL" value="false"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="securePort" value="8543"/>
+        <property name="resourceFilterFactory" ref="permissionsFilterFactory" />
+        <property name="secFilters" ref="secFilters"/>
+        <property name="securityDisablingFilter" ref="disablingFilters"/>
+        <property name="containerResponseFilter" ref="responseFilter"/>
+        <property name="serviceInfo" ref="serviceinfo"/>
+        <property name="ciphersToInclude" ref="strongCiphers"/>
+        <property name="coordinator" ref="coordinator"/>  
+    </bean>
+
+    <!--
+    <bean id="restLinkFactory" class="com.emc.storageos.api.service.impl.response.RestLinkFactory">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="asynchExecutor" class="com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorService" init-method="start" destroy-method="stop">
+        <property name="asynchJobThreads" value="5"/>
+    </bean>
+    -->
+</beans>
+

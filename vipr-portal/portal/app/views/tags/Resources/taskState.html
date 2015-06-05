@@ -1,0 +1,16 @@
+%{
+  state = _state 
+}%
+
+#{if state == 'pending'}
+  #{icon 'refresh', class:"rotate"/} &{'resources.tasks.pending'}
+#{/if}
+#{elseif state == 'ready'}
+  #{icon 'ok'/} &{'resources.tasks.ready'}
+#{/elseif}
+#{elseif state == 'error'}
+  #{icon 'remove'/} &{'resources.tasks.error'}
+#{/elseif}              
+#{else}
+  ${task?.taskResource?.state}  
+#{/else}

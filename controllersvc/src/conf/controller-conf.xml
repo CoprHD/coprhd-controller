@@ -1,0 +1,1306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2015 EMC Corporation -->
+<!-- All Rights Reserved -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+    <!-- Import the CIM adapter Spring config file so that the ConnnectionManager bean -->
+    <!-- can be referenced.                                                            -->
+    <import resource="classpath:controller-configinfo.xml"/>
+    <import resource="CimAdapterSpringContext.xml"/>
+    <import resource="classpath:dbclient-conf.xml"/>
+    <import resource="classpath:dbcommon-var.xml"/>
+    <import resource="classpath:controller-var.xml"/>
+    <import resource="classpath:jmx-conf.xml"/>
+    <import resource="classpath:attr-matcher.xml"/>
+    <import resource="classpath:controller-compute-prov.xml"/>
+    <import resource="classpath:controller-hds-prov.xml"/>
+    <import resource="classpath:controller-scaleio-prov.xml"/>
+    <import resource="classpath:controller-xtremio-prov.xml"/>
+    <import resource="classpath:controller-custom-config-info.xml"/>
+
+    <bean id="blockscheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+    </bean>
+
+    <bean id="vmaxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VmaxMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+
+    <bean id="vnxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VnxMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+     </bean>
+     
+     <bean id="vnxeMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+     </bean>
+
+    <bean id="xivMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.XIVMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+    
+    <bean id="xivSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="smisStorageDevicePostProcessor" ref="xivStoragedevicePostProcessor"/>        
+    </bean>
+    
+    <bean id="xivCloneOperations" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVCloneOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="smisStorageDevicePostProcessor" ref="xivStoragedevicePostProcessor"/>
+    </bean>
+    
+    <bean id="xivSmisDevice" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="exportMaskOperationsHelper" ref="xivExportMaskOperationsHelper"/>
+        <property name="snapshotOperations" ref="xivSnapshotOperations"/>
+        <property name="cloneOperations" ref="xivCloneOperations"/>
+        <property name="smisStorageDevicePreProcessor" ref="xivStoragedevicePreProcessor"/>
+        <property name="smisStorageDevicePostProcessor" ref="xivStoragedevicePostProcessor"/>
+        <property name="isForceSnapshotGroupRemoval" value="false"/>
+    </bean>
+
+    <bean id="xivSmisCommandHelper" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisCommandHelper">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="ibmCIMObjectPathFactory" class="com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory">
+        <property name="systemNamePrefix" value="IBM."/>
+        <property name="paramNamePrefix" value="IBMTSDS"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+    </bean>
+    
+    <bean id="xivExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVExportOperations">
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+    </bean>
+    
+    <bean id="xivStoragedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevicePreProcessor">
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+    </bean>
+
+    <bean id="xivStoragedevicePostProcessor" class="com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisStorageDevicePostProcessor">
+        <property name="smisCommandHelper" ref="xivSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="ibmCIMObjectPathFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+	<bean id="cinderMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.CinderMaskingOrchestrator">
+		<property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+	</bean>
+        
+    <bean id="scaleioMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.ScaleIOMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+    
+    <bean id="xtremioMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.XtremIOMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+
+    <bean id="blockDeviceController" class="com.emc.storageos.volumecontroller.impl.block.BlockDeviceController">
+        <property name="devices">
+            <map>
+                <entry key="vmax" value-ref="vmaxSmisDevice"/>
+                <entry key="vnxblock" value-ref="vnxSmisDevice"/>
+                <entry key="hds" value-ref="hdsStorageDevice"/>
+                <entry key="ibmxiv" value-ref="xivSmisDevice"/>
+                <entry key="openstack" value-ref="cinderStorageDevice"/>
+                <entry key="scaleio" value-ref="scaleioStorageDevice"/>
+                <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="xtremio" value-ref="xtremioStorageDevice"/>
+            </map>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="eventManager" ref="recordableEventMgr"/>
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="workflowService" ref="workflowService"/>
+    </bean>
+
+    <bean id="blockDeviceExportController"
+          class="com.emc.storageos.volumecontroller.impl.block.BlockDeviceExportController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils"/>
+    </bean>
+
+    <bean id="exportWorkflowUtils"
+          class="com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="exportWorkflowEntryPoints" ref="exportWorkflowEntryPoints"/>
+    </bean>
+
+    <bean id="locker" class="com.emc.storageos.volumecontroller.impl.ControllerLockingServiceImpl">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="capacityCompute" class="com.emc.storageos.volumecontroller.impl.ManagedCapacityImpl">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="defaultNameGenerator" class="com.emc.storageos.db.client.util.ResourceOnlyNameGenerator"/>
+
+    <bean id="exportMaskNameGenerator" class="com.emc.storageos.db.client.util.ExportMaskNameGenerator"/>
+
+    <bean id="vmaxSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
+    </bean>
+
+    <bean id="vnxSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
+    </bean>
+    
+    <bean id="vnxeSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeSnapshotOperation">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+    </bean>
+
+    <bean id="vmaxMirrorOperations" class="com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxMirrorOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
+    <bean id="vnxMirrorOperations" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxMirrorOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
+    <bean id="vmaxCloneOperations" class="com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxCloneOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+
+    <bean id="vnxCloneOperations" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxCloneOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+    
+    
+    <bean id="cinderCloneOperations" class="com.emc.storageos.volumecontroller.impl.cinder.CinderCloneOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cinderApiFactory" ref="cinderapifactory" />
+    </bean>
+
+    <bean id="vmaxMetaVolumeOperations" class="com.emc.storageos.volumecontroller.impl.smis.SmisMetaVolumeOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="locker" ref="locker"/>
+        <property name="smisStorageDevicePreProcessor" ref="storagedevicePreProcessor"/>
+    </bean>
+
+    <bean id="vmaxSrdfUtils" class="com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="helper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <bean id="vmaxSrdfOperations" class="com.emc.storageos.volumecontroller.impl.smis.SRDFOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="helper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="utils" ref="vmaxSrdfUtils"/>
+    </bean>
+    
+    <bean id="storagedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.SmisStorageDevicePreProcessor">
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+    </bean>
+
+    <bean id="vmaxSmisDevice" class="com.emc.storageos.volumecontroller.impl.smis.SmisStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="exportMaskOperationsHelper" ref="vmaxExportMaskOperationsHelper"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="snapshotOperations" ref="vmaxSnapshotOperations"/>
+        <property name="mirrorOperations" ref="vmaxMirrorOperations"/>
+        <property name="cloneOperations" ref="vmaxCloneOperations"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="metaVolumeOperations" ref="vmaxMetaVolumeOperations"/>
+        <property name="srdfOperations" ref="vmaxSrdfOperations" />
+        <property name="smisStorageDevicePreProcessor" ref="storagedevicePreProcessor"/>
+        <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="vnxMetaVolumeOperations" class="com.emc.storageos.volumecontroller.impl.smis.SmisMetaVolumeOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="locker" ref="locker"/>
+        <property name="smisStorageDevicePreProcessor" ref="storagedevicePreProcessor"/>
+    </bean>
+
+    <bean id="vnxSmisDevice" class="com.emc.storageos.volumecontroller.impl.smis.SmisStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="exportMaskOperationsHelper" ref="vnxExportMaskOperationsHelper"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="snapshotOperations" ref="vnxSnapshotOperations"/>
+        <property name="mirrorOperations" ref="vnxMirrorOperations"/>
+        <property name="cloneOperations" ref="vnxCloneOperations"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="metaVolumeOperations" ref="vnxMetaVolumeOperations"/>
+        <property name="findProviderFactory" ref="vnxFindProviderFactory"/>
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="cinderStorageDevice" class="com.emc.storageos.volumecontroller.impl.cinder.CinderStorageDevice">
+        <property name="cinderApiFactory" ref="cinderapifactory" />
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="exportMaskOperationsHelper" ref="cinderExportMaskOperationsHelper"/>
+        <property name="cloneOperations" ref="cinderCloneOperations"/>
+    </bean>
+ 
+    <bean id="cinderapifactory" class="com.emc.storageos.cinder.api.CinderApiFactory"
+          init-method="init" />
+
+    <bean id="scaleioSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="scaleIOCLIFactory" ref="scaleIOCLIFactory"/>
+    </bean>
+
+    <bean id="scaleioCloneOperations" class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOCloneOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="scaleIOCLIFactory" ref="scaleIOCLIFactory"/>
+    </bean>
+
+    <bean id="scaleioStorageDevice" class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="scaleIOCLIFactory" ref="scaleIOCLIFactory"/>
+        <property name="snapshotOperations" ref="scaleioSnapshotOperations"/>
+        <property name="cloneOperations" ref="scaleioCloneOperations"/>
+    </bean>
+    
+    <bean id="xtremioStorageDevice" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+        <property name="xtremioExportOperationHelper" ref="xtremioExportOperationHelper"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+    </bean>
+    
+    <bean id="xtremioExportOperationHelper" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+    </bean>
+
+    <bean id="vmaxFindProviderFactory" class="com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory">
+        <constructor-arg ref="dbclient" />
+        <constructor-arg ref="vmaxSmisCommandHelper" />
+        <constructor-arg ref="vmaxCIMObjectPathFactoryAdapter" />
+    </bean>
+
+    <bean id="vnxFindProviderFactory" class="com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory">
+        <constructor-arg ref="dbclient" />
+        <constructor-arg ref="vnxSmisCommandHelper" />
+        <constructor-arg ref="vnxCIMObjectPathFactory" />
+    </bean>
+
+    <bean id="CIMArgumentFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMArgumentFactory"/>
+    <bean id="CIMPropertyFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory"/>
+
+    <bean id="CIMConnectionFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory">
+        <property name="connectionManager" ref="ConnectionManager"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <!--
+        Creator-style CIMObjectPathFactory bean
+    -->
+    <bean id="vmaxCIMObjectPathCreatorFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathCreatorFactory">
+        <property name="systemNamePrefix" value="SYMMETRIX+"/>
+        <property name="paramNamePrefix" value="Symm"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimAdapter" ref="vmaxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <!--
+        Query-style CIMObjectPathFactory bean
+    -->
+    <bean id="vmaxCIMObjectPathQueryFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathQueryFactory">
+        <property name="systemNamePrefix" value="SYMMETRIX+"/>
+        <property name="paramNamePrefix" value="Symm"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimAdapter" ref="vmaxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <!--
+        A CIMObjectPathFactory invocation handler bean.
+
+        Properties:
+        queryMethods (Set):         Methods listed here are delegated to the query-style factory.
+        creatorMethods (Set):       Methods listed here are delegated to the creator-style factory.
+        defaultFactory (String):    All other methods will be delegated to the specified default. "query" or "creator"
+    -->
+    <bean id="vmaxCIMObjectPathFactoryInvocationHandler"
+          class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactoryInvocationHandler">
+        <property name="creatorFactory" ref="vmaxCIMObjectPathCreatorFactory"></property>
+        <property name="queryFactory" ref="vmaxCIMObjectPathQueryFactory"></property>
+        <property name="defaultFactory" value="creator"></property> <!-- or "query" -->
+        <property name="queryMethods"> <!-- or "creatorMethods" -->
+            <set>
+                <value>getControllerReplicationSvcPath</value>
+                <value>getReplicationGroupPath</value>
+            </set>
+        </property>
+    </bean>
+
+    <!--
+        Setup a CIMObjectPathFactoryAdapter bean to use a configured invocation handler.
+    -->
+    <bean id="vmaxCIMObjectPathFactoryAdapter" class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactoryAdapter"
+            init-method="init">
+        <property name="handler" ref="vmaxCIMObjectPathFactoryInvocationHandler"></property>
+    </bean>
+
+    <bean id="vnxCIMObjectPathFactoryInvocationHandler"
+          class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactoryInvocationHandler">
+        <property name="creatorFactory" ref="vnxCIMObjectPathFactory"></property>
+        <property name="queryFactory" ref="vnxCIMObjectPathQueryFactory"></property>
+        <property name="defaultFactory" value="creator"></property> <!-- or "query" -->
+        <!-- No query methods for VNX -->
+    </bean>
+
+    <!--
+        Setup a CIMObjectPathFactoryAdapter bean to use a configured invocation handler.
+    -->
+    <bean id="vnxCIMObjectPathFactoryAdapter" class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactoryAdapter"
+            init-method="init">
+        <property name="handler" ref="vnxCIMObjectPathFactoryInvocationHandler"></property>
+    </bean>
+
+    <bean id="vnxCIMObjectPathFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathCreatorFactory">
+        <property name="systemNamePrefix" value="CLARiiON+"/>
+        <property name="paramNamePrefix" value="Clar"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimAdapter" ref="vnxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <bean id="vnxCIMObjectPathQueryFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathQueryFactory">
+        <property name="systemNamePrefix" value="CLARiiON+"/>
+        <property name="paramNamePrefix" value="Clar"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimAdapter" ref="vnxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <bean id="vmaxSmisCommandHelper" class="com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+        <property name="nameGenerator" ref="exportMaskNameGenerator"/>
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="vnxSmisCommandHelper" class="com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimArgumentFactory" ref="CIMArgumentFactory"/>
+        <property name="cimPropertyFactory" ref="CIMPropertyFactory"/>
+        <property name="cimConnectionFactory" ref="CIMConnectionFactory"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+        <property name="nameGenerator" ref="exportMaskNameGenerator"/>
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="vmaxExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxExportOperations">
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
+    </bean>
+
+    <bean id="vnxExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.smis.vnx.VnxExportOperations">
+        <property name="smisCommandHelper" ref="vnxSmisCommandHelper"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cimObjectPathFactory" ref="vnxCIMObjectPathFactory"/>
+    </bean>
+    
+    
+    <bean id="cinderExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.cinder.CinderExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cinderApiFactory" ref="cinderapifactory" />
+    </bean>
+    
+    <bean id="vnxeExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+    </bean>
+
+    <bean id="blockcontroller" class="com.emc.storageos.volumecontroller.impl.BlockControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="blockDeviceController"/>
+            </set>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="util" ref="dataCollectionJobUtil" />
+    </bean>
+
+    <bean id="vplexStorageMonitor" class="com.emc.storageos.volumecontroller.impl.monitoring.vplex.VPlexStorageMonitor">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="vPlexApiFactory" ref="vplexapifactory"/>
+        <property name="recordableEventManager" ref="recordableEventMgr"/>
+        <property name="intervalSeconds" value="120"/>
+    </bean>
+
+    <bean id="auditLogManager" class="com.emc.storageos.security.audit.AuditLogManager">
+      <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
+          factory-method="getInstance"/>
+
+    <bean id="blockExportController"
+          class="com.emc.storageos.volumecontroller.impl.BlockExportControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="blockDeviceExportController"/>
+            </set>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <!-- The CIM storage monitor manages connections to storage devices for purposes of event -->
+    <!-- monitoring. It uses the CIM connection manager to establish connections to SMI-S     -->
+    <!-- providers for storage devices that support CIM.                                      -->
+    <bean id="cimStorageMonitor" class="com.emc.storageos.volumecontroller.impl.monitoring.cim.CimStorageMonitor">
+        <property name="cimConnectionManager" ref="ConnectionManager"/>
+    </bean>
+
+
+    <bean id="recordableEventMgr" class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+
+    <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
+          init-method="init" destroy-method="shutdown"/>
+          
+    <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
+        <property name="isilonApiFactory" ref="isilonapifactory"/>
+    	<property name="configinfo">
+    		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
+        		<entry key="thresholdsIncludeOverhead" value="true" />
+        		<entry key="includeSnapshots" value="true" />
+		</util:map>
+	</property>  
+	<property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
+          init-method="init" destroy-method="shutdown">
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="needCertificateManager" value="true"/>
+    </bean>
+
+    <bean id="datadomainDevice" class="com.emc.storageos.volumecontroller.impl.datadomain.DataDomainFileStorageDevice">
+        <property name="dataDomainFactory" ref="datadomainfactory"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="rphelper" class="com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper">
+      	<property name="dbClient" ref="dbclient"/>
+    </bean>
+
+	<bean id="rpStatsHelper"
+		class="com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper">
+	</bean>
+
+    <bean id="rpProtection" class="com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController">
+        <property name="devices">
+            <map>
+                <entry key="vmax" value-ref="vmaxSmisDevice"/>
+                <entry key="vnxblock" value-ref="vnxSmisDevice"/>
+            </map>
+        </property>
+        <property name="locker" ref="locker"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="eventManager" ref="recordableEventMgr"/>
+        <property name="rpHelper" ref="rphelper"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
+		<property name="coordinator" ref="coordinator"/>
+      	<property name="workflowService" ref="workflowService" />
+      	<property name="rpStatsHelper" ref="rpStatsHelper" />
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
+    </bean>
+
+    <bean id="rpcontroller" class="com.emc.storageos.protectioncontroller.impl.RPControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="rpProtection"/>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="vplexDeviceController" class="com.emc.storageos.vplexcontroller.VPlexDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+        <property name="blockOrchestrationDeviceController" ref="blockOrchestrationDeviceController" />
+        <property name="vplexApiFactory" ref="vplexapifactory" />
+        <property name="networkDeviceController" ref="networkDeviceController" />
+        <property name="networkScheduler" ref="networkScheduler"/>
+        <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
+        <property name="vplexApiLockManager" ref="vplexlockmgr" />
+	    <property name="blockStorageScheduler" ref="blockscheduler"/>
+	    <property name="consistencyGroupManagers">
+            <map>
+                <entry key="vplex" value-ref="vplexConsistencyGroupManager"/>
+                <entry key="rp" value-ref="rpVplexConsistencyGroupManager"/>
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="vplexlockmgr" class="com.emc.storageos.vplexcontroller.VPlexApiLockManager">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="vplexConsistencyGroupManager" class="com.emc.storageos.vplexcontroller.VPlexConsistencyGroupManager">
+        <property name="dbClient" ref="dbclient" />
+        <property name="vplexApiFactory" ref="vplexapifactory" />
+        <property name="workflowService" ref="workflowService" />
+    </bean>
+
+    <bean id="rpVplexConsistencyGroupManager" class="com.emc.storageos.vplexcontroller.RPVplexConsistencyGroupManager">
+        <property name="dbClient" ref="dbclient" />
+        <property name="vplexApiFactory" ref="vplexapifactory" />
+        <property name="workflowService" ref="workflowService" />
+    </bean>
+
+    <bean id="vplexcontroller" class="com.emc.storageos.vplexcontroller.VPlexControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="vplexDeviceController"/>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="vplexVmaxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
+    
+     <bean id="vplexXtremIOMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
+
+    <bean id="vplexVnxMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
+
+    <bean id="srdfDeviceController" class="com.emc.storageos.srdfcontroller.SRDFDeviceController">
+        <property name="dbClient" ref="dbclient" />
+        <property name="workflowService" ref="workflowService" />
+        <property name="devices">
+            <map>
+                <entry key="vmax" value-ref="vmaxSmisDevice"/>
+            </map>
+        </property>
+        <property name="utils" ref="vmaxSrdfUtils"/>
+    </bean>
+
+    <bean id="srdfController" class="com.emc.storageos.srdfcontroller.SRDFControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="srdfDeviceController"/>
+            </set>
+        </property>
+    </bean>
+
+    <bean id="fileDeviceController" class="com.emc.storageos.volumecontroller.impl.FileDeviceController">
+        <property name="devices">
+            <map>
+                <entry key="isilon" value-ref="isilonDevice"/>
+                <entry key="vnxfile" value-ref="vnxFileDevice"/>
+                <entry key="netapp" value-ref="netappFileDevice"/>
+                <entry key="netappc" value-ref="netappcFileDevice"/>
+                <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="datadomain" value-ref="datadomainDevice"/>
+            </map>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="eventManager" ref="recordableEventMgr"/>
+        <property name="auditLogManager" ref="auditLogManager"/>
+    </bean>
+
+    <bean id="computeSystemController" class="com.emc.storageos.computesystemcontroller.impl.ComputeSystemControllerImpl">
+        <property name="workflowService" ref="workflowService" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="computeDeviceController" ref="computeDeviceController"/>
+        <property name="blockScheduler" ref="blockscheduler"/>
+    </bean>
+
+    <bean id="vnxFileDevice" class="com.emc.storageos.volumecontroller.impl.vnx.VNXFileStorageDeviceXML">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="vnxeDevice" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeStorageDevice">
+            <property name="dbClient" ref="dbclient"/>
+            <property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+            <property name="nameGenerator" ref="defaultNameGenerator"/>
+            <property name="exportMaskOperationsHelper" ref="vnxeExportMaskOperationsHelper"/>
+            <property name="snapshotOperations" ref="vnxeSnapshotOperations"/>
+    </bean>
+
+    <bean id="netappFileDevice" class="com.emc.storageos.volumecontroller.impl.netapp.NetAppFileStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+   <bean id="netappcFileDevice" class="com.emc.storageos.volumecontroller.impl.netappc.NetAppClusterModeDevice">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="vnxeApiClientFactory" class="com.emc.storageos.vnxe.VNXeApiClientFactory"
+          init-method="init"/>
+
+    <bean id="maskingWorkflowEntryPoints" class="com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints">
+        <property name="name" value="maskingWorkflowEntryPoints"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="devices">
+            <map>
+                <entry key="vmax" value-ref="vmaxSmisDevice"/>
+                <entry key="vnxblock" value-ref="vnxSmisDevice"/>
+                <entry key="hds" value-ref="hdsStorageDevice"/>
+                <entry key="openstack" value-ref="cinderStorageDevice"/>
+                <entry key="scaleio" value-ref="scaleioStorageDevice"/>
+                <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="xtremio" value-ref="xtremioStorageDevice"/>
+                <entry key="ibmxiv" value-ref="xivSmisDevice"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="snapshotWorkflowEntryPoints" class=
+            "com.emc.storageos.volumecontroller.impl.block.taskcompleter.SnapshotWorkflowEntryPoints">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="devices">
+            <map>
+                <entry key="vmax" value-ref="vmaxSmisDevice"/>
+                <entry key="vnxblock" value-ref="vnxSmisDevice"/>
+                <entry key="vnxe" value-ref="vnxeDevice"/>
+                <entry key="ibmxiv" value-ref="xivSmisDevice"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="exportWorkflowEntryPoints" class="com.emc.storageos.volumecontroller.impl.block.ExportWorkflowEntryPoints">
+        <property name="name" value="exportWorkflowEntryPoints"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="orchestratorMap">
+            <map>
+                <entry key="vmax" value-ref="vmaxMaskingOrchestrator"/>
+                <entry key="vnxblock" value-ref="vnxMaskingOrchestrator"/>
+                <entry key="vnxe" value-ref="vnxeMaskingOrchestrator"/>
+                <entry key="vplex" value-ref="vplexDeviceController"/>
+                <entry key="hds" value-ref="hdsMaskingOrchestrator"/>
+                <entry key="openstack" value-ref="cinderMaskingOrchestrator"/>
+                <entry key="ibmxiv" value-ref="xivMaskingOrchestrator"/>
+                <entry key="rp" value-ref="rpProtection"/>
+                <entry key="scaleio" value-ref="scaleioMaskingOrchestrator"/>
+                <entry key="xtremio" value-ref="xtremioMaskingOrchestrator"/>
+            </map>
+        </property>
+    </bean>
+
+    <bean id="dispatcher" class="com.emc.storageos.volumecontroller.impl.Dispatcher"
+          init-method="build">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="controller">
+            <set>
+                <ref bean="fileDeviceController"/>
+                <ref bean="blockDeviceController"/>
+                <ref bean="networkDeviceController"/>
+                <ref bean="rpProtection"/>
+                <ref bean="vplexDeviceController"/>
+                <ref bean="maskingWorkflowEntryPoints"/>
+                <ref bean="blockDeviceExportController"/>
+                <ref bean="exportWorkflowEntryPoints"/>
+                <ref bean="blockOrchestrationDeviceController"/>
+                <ref bean="srdfDeviceController" />
+                <ref bean="snapshotWorkflowEntryPoints"/>
+                <ref bean="vplexConsistencyGroupManager"/>
+                <ref bean="rpVplexConsistencyGroupManager"/>
+                <ref bean="vplexXtremIOMaskingOrchestrator"/> 
+                <ref bean="vplexHDSMaskingOrchestrator"/>
+		        <ref bean="vplexVmaxMaskingOrchestrator"/>
+		        <ref bean="vplexVnxMaskingOrchestrator"/>
+                <ref bean="computeSystemController"/>
+                <ref bean="computeDeviceController"/>
+                <ref bean="imageservercontroller"/>
+                <ref bean="ucsDevice"/>
+                <ref bean="vcenterController"/>
+            </set>
+        </property>
+        <property name="deviceMaxConnectionMap">
+            <map>
+                <entry key="vnxfile" value="4"/>
+                <entry key="netapp" value="4"/>
+                <entry key="netappc" value="4"/>
+                <entry key="vnxblock" value="10"/>
+                <entry key="vmax" value="4"/>
+                <entry key="isilon" value="15"/>
+                <entry key="datadomain" value="32"/>
+                <entry key="vplex" value="4"/>
+                <entry key="mds" value="4"/>
+                <entry key="brocade" value="4"/>
+                <entry key="rp" value="5"/>
+                <entry key="host" value="4"/>
+                <entry key="vcenter" value="4"/>
+                <entry key="xtremio" value="4"/>
+                <entry key="ibmxiv" value="4"/>
+            </map>
+        </property>
+    </bean>
+    
+    <bean id="versionChecker" class="com.emc.storageos.util.VersionChecker">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>    
+
+    <bean id="workflowScrubber" class="com.emc.storageos.workflow.WorkflowScrubberExecutor">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="workflowService" class="com.emc.storageos.workflow.WorkflowService">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="locker" ref="locker"/>
+        <property name="ownerLocker" ref="distributedOwnerLockService" />
+        <property name="scrubber" ref="workflowScrubber"/>
+    </bean>
+
+    <bean id="distributedOwnerLockService" class="com.emc.storageos.locking.DistributedOwnerLockServiceImpl">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="jobTracker" class="com.emc.storageos.volumecontroller.impl.job.QueueJobTracker">
+        <property name="trackingPeriodInMillis" value="15000"/>
+    </bean>
+
+    <bean id="filecontroller" class="com.emc.storageos.volumecontroller.impl.FileControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="fileDeviceController"/>
+            </set>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="mdsNetworkDevice" class="com.emc.storageos.networkcontroller.impl.mds.MdsNetworkSystemDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator" />
+    </bean>
+
+    <bean id="brocadeNetworkDevice" class="com.emc.storageos.networkcontroller.impl.brocade.BrocadeNetworkSystemDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator" />
+    </bean>
+
+    <bean id="networkScheduler" class="com.emc.storageos.networkcontroller.impl.NetworkScheduler">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="networkDeviceController" class="com.emc.storageos.networkcontroller.impl.NetworkDeviceController">
+        <property name="devices">
+            <map>
+                <entry key="mds" value-ref="mdsNetworkDevice"/>
+                <entry key="brocade" value-ref="brocadeNetworkDevice"/>
+            </map>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator" />
+        <property name="eventManager" ref="recordableEventMgr"/>
+        <property name="networkScheduler" ref="networkScheduler"/>
+    </bean>
+
+    <bean id="networkcontroller" class="com.emc.storageos.networkcontroller.impl.NetworkControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="networkDeviceController"/>
+            </set>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean id="computecontroller" class="com.emc.storageos.computecontroller.impl.ComputeControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="deviceImpl">
+            <set>
+                <ref bean="computeDeviceController"/>
+            </set>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
+    <bean id="computeDeviceController" class="com.emc.storageos.computecontroller.impl.ComputeDeviceControllerImpl">
+        <property name="devices">
+            <map>
+                <entry key="ucs" value-ref="ucsDevice"/> 
+            </map>
+        </property>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="blockOrchestrationController" ref="blockOrchestrationController"/>
+        <property name="vcenterController" ref="vcenterController"/>
+    </bean>
+
+    <bean id="ucsDevice" class="com.emc.storageos.computecontroller.impl.ucs.UcsComputeDevice">
+    	<property name="dbClient" ref="dbclient"/>
+    	<!-- Device Operation TimeOut in Seconds -->
+    	<property name="deviceOperationTimeOut" value="600"/>
+    	<!-- Device Operation Pooling Frequency in Seconds -->
+    	<property name="deviceOperationPollFrequency" value="15"/>
+    	<property name="workflowService" ref="workflowService"/>
+    	<property name="coordinator" ref="coordinator" />
+    	<property name="blockExportController" ref="blockExportController"></property>
+    </bean>
+
+	<bean id="imageServerConf" class="com.emc.storageos.imageservercontroller.ImageServerConf" init-method="init">
+		<property name="coordinator" ref="coordinator"/>
+		<property name="encryptionProvider" ref="encryptionProvider"/>
+	</bean>
+	
+    <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">
+        <property name="imageServerConf" ref="imageServerConf" />
+    </bean>
+
+    <bean id="osInstallStatusPoller" class="com.emc.storageos.imageservercontroller.impl.OsInstallStatusPoller" init-method="startPolling">
+        <property name="imageServerConf" ref="imageServerConf" />
+    </bean>
+
+    <bean id="imageservercontroller" class="com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl" init-method="init">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="computeDeviceController" ref="computeDeviceController" />
+        <property name="pxeIntegrationService" ref="pxeIntegrationService" />
+        <property name="osInstallStatusPoller" ref="osInstallStatusPoller" />
+        <property name="imageServerConf" ref="imageServerConf" />
+    </bean>
+
+    <bean id="vcenterController" class="com.emc.storageos.vcentercontroller.impl.VcenterControllerImpl">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop" depends-on="controllersvc">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
+    <bean id="locklistener" class="com.emc.storageos.volumecontroller.impl.LockStateListener">
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="FileController"/>
+        <property name="service" ref="filecontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.volumecontroller.FileController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="RPController"/>
+        <property name="service" ref="rpcontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.protectioncontroller.RPController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="BlockController"/>
+        <property name="service" ref="blockcontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.volumecontroller.BlockController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="BlockExportController"/>
+        <property name="service" ref="blockExportController"/>
+        <property name="serviceInterface"
+                  value="com.emc.storageos.volumecontroller.BlockExportController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="NetworkController"/>
+        <property name="service" ref="networkcontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.networkcontroller.NetworkController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ComputeController"/>
+        <property name="service" ref="computecontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.computecontroller.ComputeController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ImageServerController"/>
+        <property name="service" ref="imageservercontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.imageservercontroller.ImageServerController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="VcenterController"/>
+        <property name="service" ref="vcenterController"/>
+        <property name="serviceInterface" value="com.emc.storageos.vcentercontroller.VcenterController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="VPlexController"/>
+        <property name="service" ref="vplexcontroller"/>
+        <property name="serviceInterface" value="com.emc.storageos.vplexcontroller.VPlexController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ComputeSystemController"/>
+        <property name="service" ref="computeSystemController"/>
+        <property name="serviceInterface" value="com.emc.storageos.computesystemcontroller.ComputeSystemController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="SRDFController"/>
+        <property name="service" ref="srdfController"/>
+        <property name="serviceInterface" value="com.emc.storageos.srdfcontroller.SRDFController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="storagedeviceinfo" class="com.emc.storageos.volumecontroller.impl.monitoring.StorageDeviceInfo"/>
+
+    <bean id="scanJobConsumer"
+    class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+       <property name="dbClient" ref="dbclient" />
+       <property name="coordinator" ref="coordinator" />
+       <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+    </bean>
+
+    <bean id="discoverJobConsumer"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+
+    <bean id="computeDiscoverJobConsumer"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+    </bean>
+
+    <bean id="meteringJobConsumer"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobConsumer">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="util" ref="dataCollectionJobUtil" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+        <property name="locker" ref="locker" />
+    </bean>
+
+  <bean id="dataCollectionJobUtil"
+	class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobUtil">
+	<property name="dbClient" ref="dbclient" />
+	<property name="configInfo" ref="configinfo" />
+         <property name="eventManager" ref="recordableEventMgr" />
+    </bean>
+
+    <bean id="dataCollectionJobScheduler"
+          class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJobScheduler">
+        <property name="dbClient" ref="dbclient" />
+        <property name="coordinator" ref="coordinator" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="connectionFactory" ref="CIMConnectionFactory" />
+        <property name="hdsApiFactory" ref="hdsApiFactory"/>
+        <property name="dataDomainFactory" ref="datadomainfactory"/>
+        <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+    </bean>
+
+
+    <!-- tbd block controller rmi exporter -->
+
+	<bean id="controllersvc"
+		class="com.emc.storageos.volumecontroller.impl.ControllerServiceImpl" destroy-method="stop">
+		<property name="dispatcher" ref="dispatcher" />
+        <property name="dbClient" ref="dbclient" />
+		<property name="coordinator" ref="coordinator" />
+		<property name="jobTracker" ref="jobTracker" />
+		<property name="scanJobConsumer" ref="scanJobConsumer" />
+        <property name="discoverJobConsumer" ref="discoverJobConsumer" />
+        <property name="computeDiscoverJobConsumer" ref="computeDiscoverJobConsumer" />
+        <property name="meteringJobConsumer" ref="meteringJobConsumer" />
+        <property name="jobScheduler" ref="dataCollectionJobScheduler" />
+		<property name="cimConnectionFactory" ref="CIMConnectionFactory" />
+		<property name="vplexApiFactory" ref="vplexapifactory"/>
+		<property name="hdsApiFactory" ref="hdsApiFactory"/>
+        <property name="cinderApiFactory" ref="cinderapifactory"/>
+		<property name="vnxeApiClientFactory" ref="vnxeApiClientFactory"/>
+		<property name="workflowService" ref="workflowService" />
+                <property name="distributedOwnerLockService" ref="distributedOwnerLockService"/>
+        <property name="smisCommandHelper" ref="vmaxSmisCommandHelper"/>
+		<property name="xivSmisCommandHelper" ref="xivSmisCommandHelper"/>
+		<property name="monitoringJobConsumer" ref="monitoringJobConsumer" />
+		<property name="zkConnectionStateListenerForMonitoring" ref="zkConnectionStateListenerForMonitoring"/>
+        <property name="capacityCompute" ref="capacityCompute" />
+        <property name="configInfo" ref="configinfo" />
+        <property name="dataObjectScanner" ref="dataObjectScanner"/>
+    </bean>
+
+	<bean id="monitoringJobConsumer"
+		class="com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJobConsumer">
+		<property name="monitoringImplMap" ref="monitoringImplMap"/>
+		<property name="enableMonitoring" ref="enablemonitoring"/>
+	</bean>
+
+	<bean id="blockMonitoringImpl"
+		class="com.emc.storageos.volumecontroller.impl.monitoring.BlockMonitoringImpl">
+		<property name="dbClient" ref="dbclient" />
+		<property name="connectionFactory" ref="CIMConnectionFactory" />
+	</bean>
+
+	<bean id="vnxFileMonitoringImpl"
+		class="com.emc.storageos.volumecontroller.impl.monitoring.VNXFileMonitoringImpl">
+		<property name="dbClient" ref="dbclient" />
+		<property name="connectionFactory" ref="CIMConnectionFactory" />
+	</bean>
+
+	<bean id="isilonMonitoringImpl"
+		class="com.emc.storageos.volumecontroller.impl.monitoring.IsilonMonitoringImpl">
+		<property name="dbClient" ref="dbclient" />
+		<property name="isilonApiFactory" ref="isilonapifactory" />
+		<property name="recordableEventManager" ref="recordableEventMgr" />
+	</bean>
+	
+	<bean id="cinderMonitoringImpl"
+		class="com.emc.storageos.volumecontroller.impl.monitoring.CinderMonitoringImpl">
+		<property name="dbClient" ref="dbclient" />
+	</bean>
+	
+        <bean id="xivMonitoringImpl"
+                class="com.emc.storageos.volumecontroller.impl.monitoring.XIVMonitoringImpl">
+                <property name="dbClient" ref="dbclient" />
+        </bean>
+
+
+	<util:properties id="networkdeviceprops"
+		location="classpath:networkdevice.properties" />
+
+	<util:map id="monitoringImplMap" map-class="java.util.HashMap">
+		<entry>
+			<key>
+				<util:constant
+					static-field="com.emc.storageos.db.client.model.DiscoveredDataObject.Type.isilon" />
+			</key>
+			<ref bean="isilonMonitoringImpl" />
+		</entry>
+		<entry>
+			<key>
+				<util:constant
+					static-field="com.emc.storageos.db.client.model.DiscoveredDataObject.Type.vnxfile" />
+			</key>
+			<ref bean="vnxFileMonitoringImpl" />
+		</entry>
+		<entry>
+			<key>
+				<util:constant
+					static-field="com.emc.storageos.db.client.model.DiscoveredDataObject.Type.vnxblock" />
+			</key>
+			<ref bean="blockMonitoringImpl" />
+		</entry>
+		<entry>
+			<key>
+				<util:constant
+					static-field="com.emc.storageos.db.client.model.DiscoveredDataObject.Type.hds" />
+			</key>
+			<ref bean="hdsMonitoringImpl" />
+		</entry>
+		<entry>
+			<key>
+				<util:constant
+					static-field="com.emc.storageos.db.client.model.DiscoveredDataObject.Type.openstack" />
+			</key>
+			<ref bean="cinderMonitoringImpl" />
+		</entry>
+                <entry>
+                        <key>
+                                <util:constant
+                                        static-field="com.emc.storageos.db.client.model.DiscoveredDataObject.Type.ibmxiv" />
+                        </key>
+                        <ref bean="xivMonitoringImpl" />
+                </entry>
+	</util:map>
+
+	<bean id="zkConnectionStateListenerForMonitoring" class = "com.emc.storageos.volumecontroller.impl.monitoring.ZkConnectionStateListenerForMonitoring">
+		<property name="monitoringImplMap" ref="monitoringImplMap"/>
+	</bean>
+
+     <bean id ="processMonitor" class="com.emc.storageos.processmonitor.ScheduledProcessMonitor" init-method="schedule">
+        <property name="interval" value="300"/>
+	    <property name="serviceName" value="Controller"/>
+	</bean>
+
+    <bean id="blockOrchestrationDeviceController" class="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="blockDeviceController" ref="blockDeviceController" />
+        <property name="vplexDeviceController" ref="vplexDeviceController" />
+        <property name="rpDeviceController" ref="rpProtection" />
+        <property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="locker" ref="locker"/>
+    </bean>
+
+    <bean id="blockOrchestrationController" class="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationControllerImpl">
+        <property name="dispatcher" ref="dispatcher"/>
+        <property name="controller" ref="blockOrchestrationDeviceController" />
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="BlockOrchestrationController"/>
+        <property name="service" ref="blockOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="dataObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
+        <property name="packages">
+            <array>
+                <value>com.emc.storageos.db.client.model</value>
+            </array>
+        </property>
+        <property name="dbCommonInfo" ref="dbcommoninfo"/>
+        <property name="dualDbSvcMode" value="true"/>
+    </bean>
+    <bean id="lockTimeoutValue" class="com.emc.storageos.locking.LockTimeoutValue">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
+</beans>

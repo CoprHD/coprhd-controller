@@ -1,0 +1,51 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'main.html'/}
+#{set navSelected: ['nav.tenantsettings', 'nav.tenants'] /}
+#{set 'title'}&{'tenants.roleAssignments.title'}#{/set}
+%{
+   isTenantAdmin = currentUser?.roles?.find{ "TENANT_ADMIN".equals(it.roleName)} != null
+}%
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'Tenants.list.title'}#{/breadcrumb.item}
+  #{if isTenantAdmin}
+  	#{breadcrumb.item @edit(tenant?.id)}${tenant?.name}#{/breadcrumb.item}
+  #{/if}
+  #{else}
+  	#{breadcrumb.item active:true}${tenant?.name}#{/breadcrumb.item}
+  #{/else}
+  #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{if flash.warningMessage}
+  <div class="clear"></div>
+  <p class="alert alert-warning">${flash.warningMessage}</p>
+#{/if}
+
+#{DataTable.header titleKey:'tenants.roleAssignments.title'/}
+
+#{DataTable.table id:'roleAssignments',
+                  dataTable: dataTable,
+                  selectable: true,
+                  source: @listRolesJson(tenant?.id)}
+
+  #{DataTable.buttonBar}
+    #{Form.button name:'button.add', class:'success', icon:'plus', href:(_create ?: @createRole(tenant?.id))/}
+    #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm', data:['enabled':'selected']/}
+  #{/DataTable.buttonBar}
+   
+#{/DataTable.table}
+
+%{ formFields = ['tenantId': tenant?.id] }%
+#{DataTable.formAction @removeRoleAssignments(), id:'removeForm', table:'roleAssignments', fields:formFields,
+                       confirm:messages.get('roleAssignments.deleteConfirm', tenant?.name)/}
+
+<script type="text/javascript">
+function renderLink(o, val) {
+    var data = o.aData;
+    var url = #{jsAction @editRole(':id')/};
+    var href = url(data);
+    return "<a href='"+href+"?tenantId=${tenant?.id}'>" + val + "</a>";
+}
+</script>

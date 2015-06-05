@@ -1,0 +1,17 @@
+{
+  baseKey:"SampleTableService.Sample",
+  serviceId:"SampleTableService",
+  items:{
+    text:{
+      type:"text"
+    },
+    table:{
+      type:"table",
+      items:{
+        name:{ type:"text" },
+        virtualArray:{ type:"assetType.vipr.virtualArray" },
+        virtualPool:{ type:"assetType.vipr.blockVirtualPool" }
+      }
+    }
+  }
+}

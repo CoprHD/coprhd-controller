@@ -1,0 +1,30 @@
+POST https://192.168.0.0:4443/vdc/data-stores/nfsexportpoints HTTP/1.1
+
+Content-Type: application/xml
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+<?xml version="1.0" encoding="UTF-8"?>
+<nfs_exportpoints_data_store_create>
+   <data_services_vpool>urn:storageos:ObjectStore:6c2cea53-e448-4a7e-9b84-69a0e038f1f6:</data_services_vpool>
+   <mount_point>lglw9162.lss.emc.com:/object/sanity/6635179a-27b0-11e3-947b-005056913cf8</mount_point>
+   <name>lglw9162.lss.emc.com:/object/sanity/6635179a-27b0-11e3-947b-005056913cf8</name>
+   <size>10240000</size>
+</nfs_exportpoints_data_store_create>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<task>
+   <link href="/vdc/data-stores/nfsexportpoints/urn:storageos:HostingDeviceInfo:fd280c62-a13d-42e8-a891-d711cc2cb9e1:/tasks/d909269d-553e-41be-9528-93d0f6b29b02"
+      rel="self">
+   <message>DataStoreCreation-OK</message>
+   <op_id>d909269d-553e-41be-9528-93d0f6b29b02</op_id>
+   <resource>
+      <id>urn:storageos:HostingDeviceInfo:fd280c62-a13d-42e8-a891-d711cc2cb9e1:</id>
+      <link href="/vdc/data-stores/nfsexportpoints/urn:storageos:HostingDeviceInfo:fd280c62-a13d-42e8-a891-d711cc2cb9e1:"
+         rel="self">
+      <name>lglw9162.lss.emc.com:/object/sanity/6635179a-27b0-11e3-947b-005056913cf8</name>
+   </resource>
+   <state>pending</state>
+</task>

@@ -1,0 +1,24 @@
+ %{
+  // Because tasks are either 0 or 100, for now make sure minimum percentage is 10 to be inline with rest of UI
+  MINIMUM_PROGRESS = 10
+
+  progress = _progress ? _progress : _arg
+  state = _state ? _state : "PENDING"
+  stateCssClass = "progress-bar-info"
+  if ("READY".equalsIgnoreCase(state)) {
+    stateCssClass = "progress-bar-success"
+  }
+  else if ("ERROR".equalsIgnoreCase(state)) {
+    stateCssClass = "progress-bar-danger"
+    progress = 100
+  }
+  progress = progress < 0 ? 0 : progress
+  progress = progress > 100 ? 100 : progress
+
+  progress = Math.max(MINIMUM_PROGRESS, progress)
+ }% 
+<div class="progress">
+  <div class="progress-bar ${stateCssClass}" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: ${progress}%;">
+    <span>&{'resources.tasks.percent', progress}</span>
+  </div>
+</div>

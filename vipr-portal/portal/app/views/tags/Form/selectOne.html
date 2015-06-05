@@ -1,0 +1,121 @@
+*{
+  @param field - the field map
+         field.id - the ID of the field
+         field.name - the name of the field
+         field.value - the current field value
+         field.options - the possible options for the field.
+         field.valueProperty - the property name of each option value (defaults to 'id')
+         field.labelProperty - the property name of each option label (defaults to 'name')
+         field.cssClass - the CSS class for the control (defaults to 'span4')
+         field.categorized - the flag to categorize dropdown with category label.  The expected options would be a "hashmap<category, List<name,id>>" 
+         
+  This is a common layout for a select one control.  The control should be wrapped in a #{field} tag, and the options
+  must be specified within the tag.  Each option has a value and label, which default to 'id' and 'name' respectively.
+  The value and label properties may be overriden using the 'valueProperty' and 'labelProperty' properties on the field.
+  The value type defaults to Long, but may be overridden using the 'valueType' property. 
+  
+  #{field 'fromModels'}
+    %{ field.options = someReferenceData; }%
+    #{Form.selectOne field:field/}
+  #{/field}
+  
+  #{field 'fromMap'}
+    %{
+      field.options = [
+        1:'Value 1',
+        2:'Value 2'
+      ]
+      field.valueProperty = 'key'; // Key from the map
+      field.labelProperty = 'value'; // Value from the map
+    }%
+    #{Form.selectOne field:field/}
+  #{/}
+  
+  #{field 'fromStringMap'}
+    %{
+      field.options = [
+        'value1':'Value 1',
+        'value2':'Value 2'
+      ]
+      field.valueType = String.class;
+      field.valueProperty = 'key'; // Key from the map
+      field.labelProperty = 'value'; // Value from the map
+    }%
+    #{Form.selectOne field:field/}
+  #{/}
+}*
+%{
+  field = _field;
+  options = field.options;
+  valueProperty = field.valueProperty ?: "id";
+  labelProperty = field.labelProperty ?: "name";
+  value = flash[field.name] ?: String.valueOf(field.value);
+  cssClass = field.cssClass ?: "span6";
+  addChooseOption = field.addChooseOption ?: false;
+  disabled = field.disabled ?: false;
+  
+  addEmptyOption = field.addEmptyOption ?: false;
+  emptyOptionLabel = field.emptyOptionLabel?: messages.get("common.none")
+  
+  // indicated that dropdown is categorized in group label
+  // if categorized is set, expected options is a hashmap of 
+  // categories
+  categorized=field.categorized;  
+  
+  // Allow disabling the search field for small dropdowns
+  disableSearch = field.disableSearch;
+  disableSearchThreshold = field.disableSearchThreshold ?: 4
+  if (addEmptyOption) {
+    disableSearchThreshold += 1
+  }
+}%
+<script type="text/javascript">
+  $(document).ready(function() {
+    $("#${field.id}").chosen({
+        disable_search_threshold: ${disableSearchThreshold},
+        search_contains: true
+        #{if disableSearch}, disable_search: true#{/if}
+    });
+    $("#${field.id}_chosen").css('width', '').addClass("form-control ${cssClass}");
+  });
+</script>
+<select id="${field.id}" name="${field.name}" class="form-control ${cssClass}" #{if disabled}disabled="true"#{/if}#{Form.extraAtts atts:field.atts/}>
+#{if addChooseOption}
+  <option value="">&{'selectOne.chooseOption'}</option>
+#{/if}
+#{if addEmptyOption}
+  <option value=""> ${emptyOptionLabel}</option>
+#{/if}
+
+#{if categorized}
+    #{list items:field.options.entrySet(), as:'category'}
+        %{
+            options = category.getValue();
+        }%
+        <optgroup label="${category.getKey()}">
+        #{list items:options, as:'option'}
+            %{
+              optionValue = String.valueOf(option[valueProperty]);
+              if (field.ignoreCase != null && field.ignoreCase.equals(true)) 
+                 selected = value.equalsIgnoreCase(optionValue);
+              else 
+                 selected = value.equals(optionValue);
+             }%
+            <option value="${option[valueProperty]}" #{if selected}selected="selected"#{/}>${option[labelProperty]}</option>
+        #{/list}
+        <optgroup/>
+    #{/list}    
+#{/if}
+#{else}
+    #{list items:options, as:'option'}
+        %{
+          optionValue = String.valueOf(option[valueProperty]);
+          if (field.ignoreCase != null && field.ignoreCase.equals(true)) 
+             selected = value.equalsIgnoreCase(optionValue);
+          else 
+             selected = value.equals(optionValue);
+         }%
+        <option value="${option[valueProperty]}" #{if selected}selected="selected"#{/}>${option[labelProperty]}</option>
+    #{/list}
+#{/else}    
+</select>

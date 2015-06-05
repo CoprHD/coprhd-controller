@@ -1,0 +1,20 @@
+GET https://192.168.0.0:4443/vdc/storage-pools/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:StoragePool:00144972-bed4-4ada-9d36-fc617c74b280:',
+            'urn:storageos:StoragePool:0136ac27-b89a-4fe5-93ea-71436b66e78c:',
+            'urn:storageos:StoragePool:02dc8bda-fc54-4aa9-aab9-1f2495fd9ae2:',
+            'urn:storageos:StoragePool:040e706d-fe61-414b-8787-bd37d6f6074e:',
+            'urn:storageos:StoragePool:049c6907-ed6c-4d79-816b-bb5b7324a659:',
+            'urn:storageos:StoragePool:06ddb367-d8fe-4e3e-b772-ec9d28c21bdd:'
+        ]
+    }
+}

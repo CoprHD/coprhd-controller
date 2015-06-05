@@ -1,0 +1,220 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+    var imageDialog = function () {
+        var iconChooser;
+        var dialog;
+        var nameInput;
+        var fileInput;
+        var saveButton;
+        var nameValue;
+        
+        $(document).ready(function() {
+            iconChooser = $('.iconChooser');
+            dialog = $('#customImageDialog');
+            nameInput = $('input[name="name"]', dialog);
+            fileInput = $('input[name="file"]', dialog);
+            saveButton = $('button.btn-primary', dialog);
+            
+            // Update the name field with the filename when the file changes
+            fileInput.on('change', function() {
+                var currentName = nameInput.val();
+                if (currentName == "" || currentName == nameValue) {
+                    var name = fileInput.val().split(/\\|\//g).pop();
+                    var index = name.lastIndexOf(".");
+                    if (index > -1) {
+                        name = name.substring(0, index);
+                    }
+                    nameInput.val(name);
+                    nameValue = name;
+                }
+            });
+        });
+        
+        var show = function() {
+            nameInput.val("");
+            fileInput.val("");
+            clearError();
+            dialog.modal();
+        };
+        var hide = function() {
+            dialog.modal('hide');
+        };
+        var clearError = function() {
+            $('#alerts_error .message', dialog).text('');
+            $('#alerts_error', dialog).hide();
+        };
+        var showError = function(message) {
+            $('#alerts_error .message', dialog).text(message);
+            $('#alerts_error', dialog).slideDown('fast');
+        };
+        
+        var submit = function() {
+            var data = new FormData($('FORM', dialog)[0]);
+            startSubmit();
+            
+            $.ajax({
+                url: "@{catalog.CatalogImages.saveJson()}",
+                data: data,
+                cache: false,
+                contentType: false,
+                processData: false,
+                type: 'POST',
+                success: function(results) {
+                	var success = true
+                    if ($.isArray(results)) {
+                        for (var i = 0; i < results.length; i++) {
+                            if (processValidationResult(results[i]) == false) {
+                            	success = false
+                            }
+                        }
+                    }
+                    else {
+                        success = processValidationResult(results);
+                    }                	
+
+                    if ($('#alerts_success .message').text()) {
+                        $('#alerts_success').slideDown('fast');
+                    }
+                    if ($('#alerts_error .message').text()) {
+                        $('#alerts_error').slideDown('fast');
+                    }                	
+                	
+                    endSubmit();
+                    
+                    if (success) {
+	                    clearError();
+	                    hide();
+	                    var id = results.message;
+	                    reloadImages(id);
+                    }
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    endSubmit();
+                    showError(xhr.responseText);
+                }
+            });
+        };
+        
+
+        var processValidationResult = function(result) {
+            if (!result.success) {
+                var controlGroup = $('input[name="'+result.key+'"]').parents('.form-group');
+                if (controlGroup.length > 0 && controlGroup.parents('.modal').length == 0) {
+                    controlGroup.addClass('error');
+                    $('.help-inline', controlGroup).text(result.message);
+                }
+                else {
+                	
+                    var currentMessage = $('#alerts_error .message').text();
+                    var errorMessage = result.message;
+                    
+                    if (controlGroup.length > 0) {
+                        var label = $('label', controlGroup).text();
+                        if (label) {
+                            errorMessage = label + ' ' + errorMessage;
+                        }
+                    }
+                    
+                    if (currentMessage) {
+                        $('#alerts_error .message').text(currentMessage + '\n', errorMessage);
+                    }
+                    else {
+                        $('#alerts_error .message').text(errorMessage);
+                    }
+                }
+            }
+
+            return result.success;
+        }        
+        
+        var startSubmit = function() {
+            saveButton.prop('disabled', true);
+            saveButton.addClass('disabled');
+            $('span', saveButton).removeClass('glyphicon-ok-circle');
+            $('img', saveButton).show();
+        };
+        
+        var endSubmit = function() {
+            saveButton.prop('disabled', false);
+            saveButton.removeClass('disabled');
+            $('img', saveButton).hide();
+            $('span', saveButton).addClass('glyphicon-ok-circle');
+        };
+
+        var reloadImages = function(selected) {
+            if (!selected) {
+                selected = iconChooser.val();
+            }
+            
+            $.get(routes.EditCatalog_images(), function(data) {
+                if (Array.isArray(data)) {
+                    iconChooser.empty();
+                    
+                    for (var i  = 0; i < data.length; i++) {
+                        var value = data[i].key;
+                        var label = data[i].value;
+                        var image = catalogImageURL(value);
+                        var isSelected = (value == selected);
+                        
+                        var html = "<option value=\""+value+"\" title=\""+image+"\"";
+                        if (isSelected) {
+                            html += " selected=\"selected\"";
+                        }
+                        html += ">"+label+"</option>";
+                        iconChooser.append(html);
+                    }
+                    // Must be implemented in calling template
+                    updateIconChooser();
+                }
+            });
+        }
+        
+        var my = {};
+        my.show = show;
+        my.hide = hide;
+        my.submit = submit;
+        return my;
+    }();
+  </script>
+#{/set}
+
+#{Modal.dialog id:'customImageDialog', titleKey:'catalogImage.title'}
+  #{Modal.body}
+    #{alerts/}
+    #{form @catalog.CatalogImages.saveJson(), method:'POST', enctype:'multipart/form-data', class:'form form-horizontal form-compact', autocomplete:"off"}
+      #{field 'file'}
+        %{
+          field.required = true
+          field.label = messages.get('catalogImage.file')
+          field.helpTextKey = 'catalogImage.file.help'
+        }%
+        #{Form.controlGroup field:field}
+          <input type="file" name="${field.name}" value="${field.value}">
+        #{/Form.controlGroup}
+      #{/field}
+      #{field 'name'}
+        %{
+          field.cssClass = 'span5';
+          field.label = messages.get('catalogImage.name')
+          field.helpTextKey = 'catalogImage.name.help'
+        }%
+        #{Form.inputTextControlGroup field:field/}
+      #{/field}
+    #{/form}
+  #{/Modal.body}
+  #{Modal.footer}
+    <button class="btn btn-primary" onclick="imageDialog.submit(); return false">
+      #{icon 'upload'}<img style="display:none" src="/public/img/btn-info-loading.gif">#{/icon}
+      &{'button.upload'}
+    </button>
+    <button class="btn btn-default" onclick="imageDialog.hide(); return false">
+      #{icon 'remove'/}
+      &{'button.cancel'}
+    </button>
+  #{/Modal.footer}
+#{/Modal.dialog}
+

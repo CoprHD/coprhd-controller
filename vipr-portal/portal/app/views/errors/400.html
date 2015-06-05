@@ -1,0 +1,16 @@
+# Copyright 2015 EMC Corporation
+# All Rights Reserved
+
+#{extends 'nonav-wide-layout.html' /}
+#{set title: "&{'errors.400.title'}"/}
+
+<div class="well">
+  <div class="section-header">
+    <h1>&{'errors.400.title'}</h1>
+  </div>
+  #{if result}
+    <p class="text-danger">${result?.message}</p>
+  #{/if}
+  
+  <p>&{'errors.400.return'}</p>
+</div>

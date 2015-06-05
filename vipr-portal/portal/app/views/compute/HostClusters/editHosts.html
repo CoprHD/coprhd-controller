@@ -1,0 +1,108 @@
+%{
+  titleKey = 'HostClusters.editHosts.title';
+  descriptionKey = 'HostClusters.editHosts.description';
+  image = '/public/img/assets/Cluster.png';
+  isESX = cluster?.vcenterDataCenter != null; 
+  editable = !isESX;
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.hostClusters'] /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @list()}&{'HostClusters.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @edit(cluster.id)}${cluster.name}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}&{'HostClusters.editHosts.shortTitle'}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{if editable}
+  %{ formFields = ['clusterId': cluster.id] }%
+  #{DataTable.formAction @removeHosts(), id:'removeForm', table:'host', fields:formFields, confirm:messages.get('HostClusters.removeHosts.warning')/}
+  #{DataTable.formAction @addHosts(), id:'addForm', table:'addHosts', fields:formFields, confirm:messages.get('HostClusters.addHosts.warning')/}
+#{/if}
+
+#{DataTable.header titleKey:'HostClusters.editHosts.title'/}
+#{DataTable.table id:'host',
+                  dataTable:dataTable,
+                  source:@hostJson(cluster.id),
+                  selectable:editable}
+  #{if editable}
+    #{DataTable.buttonBar}
+      #{Form.button 'button.add', class:'success', icon:'plus', action:'showDialog()'/}
+      #{Form.button 'button.remove', class:'danger', icon:'minus', submit:'removeForm', data:['enabled':'selected']/}
+    #{/DataTable.buttonBar}
+  #{/if}
+#{/DataTable.table}
+
+#{if editable}
+  #{Modal.dialog id:'addHostsDialog', cssClass:'wide'}
+    #{Modal.body}
+      #{DataTable.header titleKey:'HostClusters.addHosts.title'/}
+      #{DataTable.table id:'addHosts',
+                        dataTable:dataTable,
+                        source:@availableHostJson(cluster.id),
+                        selectable:true,
+                        delayCreate: true /}
+    #{/Modal.body}
+    #{Modal.footer}
+      #{Form.button 'button.add', class:'primary', icon:'plus', submit:'addForm',
+                    data:['enabled':'selected', 'table':'addHosts']/}
+      #{Form.button 'button.cancel', icon:'trash', data:['dismiss':'modal']/}
+    #{/Modal.footer}
+  #{/Modal.dialog}
+
+<script>
+function showDialog() {
+	// disable select all if no host exist in cluster
+	if ($('#host .table').dataTable().data().length === 0) {
+	    $("#addHosts input[name=selectAll]").attr("disabled", true);
+	}
+	table.addHosts.dataTable.create();
+	table.addHosts.dataTable.updateSelectedFooter();
+    table.addHosts.dataTable.reset();
+    $('.modal').modal();
+}
+
+function filterBy(value, index) {
+	var oTable = $('#addHosts .table').dataTable();
+	oTable.fnFilter(value, index); 
+}
+
+function findColumnIndex(row, value) {
+	var cIndex = null;
+	$.each(row.cells, function(index, column) {
+		if (column.firstChild.nodeValue == value) {
+			cIndex = index;
+		}
+	});
+	return cIndex;
+}
+
+$(document).on('change', '#addHosts input[name=selected]', function() {
+	// only apply filter if no host exist in cluster
+	if ($('#host .table').dataTable().fnSettings().aoData.length === 0) {
+		var count = $("#addHosts input[name=selected]:checked").length;
+	    var selectAll = $("#addHosts input[name=selectAll]");
+	    // on first selection apply filter
+	    if ($(this).is(":checked") && count === 1) {
+	    	var value = table.addHosts.dataTable.getRowData(this).type;
+	    	var row = table.addHosts.dataTable.getRow(this);
+	    	var index = findColumnIndex(row, value);
+	        filterBy(value, index);
+	        selectAll.removeAttr("disabled");
+	    // reset filter if no hosts are selected
+	    } else if (count === 0) {
+	        selectAll.prop("checked", false).attr("disabled", true);
+	        var datatable = $('#addHosts .table').dataTable();
+	        var oSettings = datatable.fnSettings();
+	        for(iCol = 0; iCol < oSettings.aoPreSearchCols.length; iCol++) {
+	            oSettings.aoPreSearchCols[ iCol ].sSearch = '';
+	        }
+	        oSettings.oPreviousSearch.sSearch = '';
+	        datatable.fnDraw();
+	    }
+	}
+});
+
+</script>
+#{/if}

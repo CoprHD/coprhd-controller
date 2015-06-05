@@ -1,0 +1,91 @@
+POST https://192.168.0.0:4443/block/vpools.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+    "description": "Basic Virtual Pool for Block Provisioning",
+    "name": "basic_vpool",
+    "num_paths": "1",
+    "protection": {
+        "snapshots": {
+            "max_native_snapshots": "10"
+        }
+    },
+    "protocols": [
+        "FC"
+    ],
+    "provisioning_type": "Thin",
+    "use_matched_pools": "true",
+    "varrays": [
+        "urn:storageos:VirtualArray:dc09417d-9028-40de-8bff-74574996f2d5:"
+    ]
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+    "assigned_storage_pools": [],
+    "creation_time": 1379202604198,
+    "description": "Basic Virtual Pool for Block Provisioning",
+    "expandable": true,
+    "id": "urn:storageos:VirtualPool:6cd9f843-1b41-4b9f-8eb1-a26797d0a268:",
+    "inactive": false,
+    "invalid_matched_pools": [],
+    "link": {
+        "href": "/block/vpools/urn:storageos:VirtualPool:6cd9f843-1b41-4b9f-8eb1-a26797d0a268:",
+        "rel": "self"
+    },
+    "matched_storage_pools": [
+        {
+            "id": "urn:storageos:StoragePool:78caaf4a-673e-4580-ae41-a545a45e5e28:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:56d8aa7e-45fe-4383-b49a-fec72e9927d3:/storage-pools/urn:storageos:StoragePool:78caaf4a-673e-4580-ae41-a545a45e5e28:",
+                "rel": "self"
+            }
+        },
+        {
+            "id": "urn:storageos:StoragePool:ad0dae57-d318-409c-a859-6c9e59a28251:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:56d8aa7e-45fe-4383-b49a-fec72e9927d3:/storage-pools/urn:storageos:StoragePool:ad0dae57-d318-409c-a859-6c9e59a28251:",
+                "rel": "self"
+            }
+        },
+        {
+            "id": "urn:storageos:StoragePool:62d2e40d-ced0-4114-8bb7-8d333e7ef878:",
+            "link": {
+                "href": "/vdc/storage-systems/urn:storageos:StorageSystem:56d8aa7e-45fe-4383-b49a-fec72e9927d3:/storage-pools/urn:storageos:StoragePool:62d2e40d-ced0-4114-8bb7-8d333e7ef878:",
+                "rel": "self"
+            }
+        }
+    ],
+    "name": "basic_vpool",
+    "num_paths": 1,
+    "protection": {
+        "continuous_copies": {
+            "max_native_continuous_copies": 0
+        },
+        "snapshots": {
+            "max_native_snapshots": 10
+        }
+    },
+    "protocols": [
+        "FC"
+    ],
+    "provisioning_type": "Thin",
+    "raid_levels": [],
+    "tags": [],
+    "type": "block",
+    "unique_auto_tier_policy_names": false,
+    "use_matched_pools": true,
+    "varrays": [
+        {
+            "id": "urn:storageos:VirtualArray:dc09417d-9028-40de-8bff-74574996f2d5:",
+            "link": {
+                "href": "/vdc/varrays/urn:storageos:VirtualArray:dc09417d-9028-40de-8bff-74574996f2d5:",
+                "rel": "self"
+            }
+        }
+    ]
+}

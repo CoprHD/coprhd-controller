@@ -1,0 +1,17 @@
+%{
+    onSubmit = ""
+    if (_confirm) {
+        confirmMsg = _confirm.escapeJavaScript();
+        confirmMsg = org.apache.commons.lang.StringEscapeUtils.escapeHtml(confirmMsg);
+        onSubmit += "if (!confirm('${confirmMsg.raw()}')) { return false; } "
+    }
+    onSubmit += "\$(this.ids).val(table.${_table}.dataTable.getSelectedValues()); "
+    onSubmit += "util.onFormSubmitted('#${_id}'); return true;"
+}%
+#{form _arg, id:_id, class:_class ?: 'hide', onsubmit:onSubmit}
+#{list items:_fields, as:'field'}
+  <input type="hidden" name="${field.key}" value="${field.value}">
+#{/list}
+  <input type="hidden" name="ids">
+  #{doBody/}
+#{/form}

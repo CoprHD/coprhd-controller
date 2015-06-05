@@ -1,0 +1,56 @@
+GET https://192.168.0.0:4443/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:/tasks.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    "task": [
+        {
+            "description": "create export",
+            "end_time": 1380722443759,
+            "link": {
+                "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:/tasks/234a0c2f-9ada-4a1e-a9a1-687242ebd1e9",
+                "rel": "self"
+            },
+            "message": "Operation completed successfully",
+            "op_id": "234a0c2f-9ada-4a1e-a9a1-687242ebd1e9",
+            "resource": {
+                "id": "urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+                "link": {
+                    "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+                    "rel": "self"
+                },
+                "name": "rpSanity-lglw1039.lss.emc.com-13564"
+            },
+            "start_time": 1380722367013,
+            "state": "ready"
+        }
+    ]
+}
+{
+    "task": [
+        {
+            "description": "create export",
+            "end_time": 1380722443759,
+            "link": {
+                "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:/tasks/234a0c2f-9ada-4a1e-a9a1-687242ebd1e9",
+                "rel": "self"
+            },
+            "message": "Operation completed successfully",
+            "op_id": "234a0c2f-9ada-4a1e-a9a1-687242ebd1e9",
+            "resource": {
+                "id": "urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+                "link": {
+                    "href": "/block/exports/urn:storageos:ExportGroup:ca33f0b6-68c6-458a-8fa4-f1cb5fc231c3:",
+                    "rel": "self"
+                },
+                "name": "rpSanity-lglw1039.lss.emc.com-13564"
+            },
+            "start_time": 1380722367013,
+            "state": "ready"
+        }
+    ]
+}

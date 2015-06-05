@@ -1,0 +1,37 @@
+POST https://192.168.0.0:4443/file/filesystems/urn:storageos:FileShare:b33b93d7-f767-4699-ba18-b83bc1faf94a:/exports.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+
+{
+     "endpoints":[
+       "www.ford.com",
+       "www.gmc.com",
+       "www.pontiac.com"
+ ],
+ "permission":"rw",
+ "protocol":"NFS",
+ "root_user":"nobody",
+ "type":"sys"
+}
+==RESPONSE
+HTTP/1.1 200 OK
+Content-Type: application/json 
+
+{
+     " op_id ":"23567cc1-5d0f-462a-bf76-f5e72251dfeb ",
+    "resource” :  {
+       "id":" urn:storageos:FileShare:b33b93d7-f767-4699-ba18-b83bc1faf94a:", 
+       "link" : { 
+                       href="/file/filesystems/urn:storageos:FileShare: b33b93d7-f767-4699-ba18-b83bc1faf94a:
+                       "rel":"self"
+                       }
+       "name" : “fs-sarav-test-json-1”
+  }
+       "link" : { 
+                       href="/file/filesystems/urn:storageos:FileShare: b33b93d7-f767-4699-ba18-b83bc1faf94a:
+                       "rel":"self"
+                        }
+        "start_time" : “1380046556673,”
+          "state": "pending"
+}

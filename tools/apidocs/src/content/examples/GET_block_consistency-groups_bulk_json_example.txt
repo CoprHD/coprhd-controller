@@ -1,0 +1,17 @@
+GET https://192.168.0.0:4443/block/consistency-groups/bulk.json HTTP/1.1
+
+Content-Type: application/json
+X-SDS-AUTH-TOKEN: <AUTH_TOKEN>
+==RESPONSE 
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+    ids:{
+        id:[
+            'urn:storageos:BlockConsistencyGroup:76aacfbf-1fe9-4eee-9d84-586db5ae3a02:',
+            'urn:storageos:BlockConsistencyGroup:bd022276-00c9-4bc2-8e14-1b42df815dd2:',
+            'urn:storageos:BlockConsistencyGroup:beecb228-5560-412d-8716-ad871b8a174a:'
+        ]
+    }
+}

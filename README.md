@@ -9,7 +9,7 @@ CoprHD is out in "preview mode" right now for anyone to download and play with. 
 
 Main Home Page
 ----------
-[Coprhd.org] (http://coprHD.github.io)
+[CoprHD Project Page] (http://coprHD.github.io)
 
 
 Support

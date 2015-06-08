@@ -20,3 +20,8 @@ Support
 Documentation
 --------------
 Please see [wiki] (https://coprhd.atlassian.net/wiki) for detailed documentation.
+
+
+How to build
+--------------
+Please see this [page] (https://coprhd.atlassian.net/wiki/display/COP/How+to+download+and+build+CoprHD)

@@ -1,6 +1,4 @@
 <?xml version="1.0" ?>
-<!-- Copyright 2015 EMC Corporation -->
-<!-- All Rights Reserved -->
 <!-- Ant Script to create a Jar file and restart the StorageOS services.
      These scripts are used exclusively by certain team members to rapidly (a few seconds) build and deploy jar files to their devkit.
      It is not meant to replace the gradle scripts, and is not expressedly supported by the release engineers.

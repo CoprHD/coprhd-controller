@@ -1,6 +1,6 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
  */
 package com.emc.storageos.coordinator.mapper;
 

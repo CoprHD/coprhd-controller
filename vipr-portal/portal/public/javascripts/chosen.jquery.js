@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 // Chosen, a Select Box Enhancer for jQuery and Prototype
 // by Patrick Filler for Harvest, http://getharvest.com
 //

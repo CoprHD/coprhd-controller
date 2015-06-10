@@ -1,6 +1,6 @@
-/**
-* Copyright 2012-2015 iWave Software LLC
-* All Rights Reserved
+/*
+ * Copyright 2012-2015 iWave Software LLC
+ * All Rights Reserved
  */
 /**
  *  Copyright (c) 2008-2014 EMC Corporation

@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 jQuery.fn.dataTableExt.oApi.fnReloadAjax = function ( oSettings, sNewSource, fnCallback, bStandingRedraw )
 {
     if ( typeof sNewSource != 'undefined' && sNewSource != null ) {

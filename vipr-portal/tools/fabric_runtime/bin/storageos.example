@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # Remote Server to clone
 OVF_SERVER=lglw2092.lss.emc.com
 

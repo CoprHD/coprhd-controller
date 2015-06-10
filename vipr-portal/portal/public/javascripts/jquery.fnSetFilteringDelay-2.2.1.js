@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 jQuery.fn.dataTableExt.oApi.fnSetFilteringDelay = function ( oSettings, iDelay ) {
     /*
      * Type:        Plugin for DataTables (www.datatables.net) JQuery plugin.

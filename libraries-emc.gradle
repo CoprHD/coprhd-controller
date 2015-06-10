@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 ext {
     emclibrary = { deps ->
         deps.collectNested { dep ->

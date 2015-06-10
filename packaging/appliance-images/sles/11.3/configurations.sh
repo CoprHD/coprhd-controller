@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 #======================================
 # Load KIWI functions.
 #--------------------------------------

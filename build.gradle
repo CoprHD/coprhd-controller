@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 import org.apache.tools.ant.taskdefs.condition.Os
 // Trace the buildType in which currently building.
 if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {

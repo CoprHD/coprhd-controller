@@ -1,5 +1,3 @@
-// Copyright 2012-2015 iWave Software LLC
-// All Rights Reserved
 {
   baseKey:"CreateAndMountBlockVolume.Block.Aix",
   serviceId:"Aix-CreateAndMountBlockVolume",

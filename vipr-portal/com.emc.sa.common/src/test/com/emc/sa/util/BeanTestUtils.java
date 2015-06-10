@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.sa.util;
 
 import java.beans.BeanInfo;

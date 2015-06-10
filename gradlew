@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 ##############################################################################
 ##
 ##  Gradle start up script for UN*X

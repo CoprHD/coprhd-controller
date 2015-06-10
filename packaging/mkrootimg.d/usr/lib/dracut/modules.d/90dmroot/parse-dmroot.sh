@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 ## Dracut cmdline hook to parse kernel command line. It set rootok=1
 ## if kernel cmdline is legal
 

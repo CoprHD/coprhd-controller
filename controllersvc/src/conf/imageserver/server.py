@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # This is python web server that serves OS install related files and intercepts
 # calls to /success/* and /failure/* URLs.
 # To run, type the following: python server.py

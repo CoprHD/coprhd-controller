@@ -1,7 +1,4 @@
 #!/bin/bash
-
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
 #
 #%stage: filesystem
 #%provides: dmroot

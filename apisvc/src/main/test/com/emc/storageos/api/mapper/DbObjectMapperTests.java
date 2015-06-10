@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.db.client.model.NamedURI;

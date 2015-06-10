@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 dependencies {
     compile library(guava),
             library(sblim_cim_client2),

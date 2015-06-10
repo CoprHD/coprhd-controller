@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.systemservices.impl.logsvc.parse;
 
 import static org.junit.Assert.*;

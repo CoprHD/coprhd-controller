@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.utils;
 
 import java.util.ArrayList;

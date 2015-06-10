@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 // Copyright 2012 by EMC Corporation ("EMC").
 //
 // UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright

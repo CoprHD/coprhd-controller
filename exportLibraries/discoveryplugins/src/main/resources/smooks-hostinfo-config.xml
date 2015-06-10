@@ -1,6 +1,4 @@
 <?xml version="1.0"?>
-<!-- Copyright 2015 EMC Corporation -->
-<!-- All Rights Reserved -->
 <smooks-resource-list xmlns="http://www.milyn.org/xsd/smooks-1.1.xsd" xmlns:jb="http://www.milyn.org/xsd/smooks/javabean-1.2.xsd">
 	<resource-config selector="global-parameters">
 		<param name="stream.filter.type">SAX</param>

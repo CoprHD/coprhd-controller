@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 var routes = {
   Security_authenticated: #{jsAction @security.Security.authenticated() /},
   Notifications_notifications: #{jsAction @Notifications.notifications(':lastUpdated', ':count') /},

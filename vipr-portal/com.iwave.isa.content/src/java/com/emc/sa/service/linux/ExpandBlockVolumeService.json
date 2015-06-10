@@ -1,5 +1,3 @@
-// Copyright 2012-2015 iWave Software LLC
-// All Rights Reserved
 {
   baseKey:"ExpandBlockVolume.Block.Linux",
   serviceId:"Linux-ExpandBlockVolume",

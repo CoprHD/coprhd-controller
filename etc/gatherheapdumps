@@ -1,7 +1,4 @@
 #!/bin/bash
-
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
 LOG_DIR=/var/log
 HEAPDUMPS_PATTERN=*.hprof.*
 HEAPDUMP_ARCHIVE=vipr_hprofs.tar.gz

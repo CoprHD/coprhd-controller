@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 /*!
  * FullCalendar v2.1.0
  * Docs & License: http://arshaw.com/fullcalendar/

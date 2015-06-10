@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;

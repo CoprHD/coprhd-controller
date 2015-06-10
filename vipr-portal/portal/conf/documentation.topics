@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # Mapping file linking Controllers/actions names to documentation topics
 # The left side may contain either 'controller' alone or 'controller.method'.
 # The link to the right is the documentation link topic

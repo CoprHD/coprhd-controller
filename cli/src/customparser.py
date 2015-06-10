@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 import xml.dom.minidom
 from xml.dom.minidom import Node
 from tokenize import generate_tokens

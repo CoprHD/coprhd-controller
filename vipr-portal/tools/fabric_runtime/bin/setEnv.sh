@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # This replaces /var and means runtime files are better contained
 RUNTIME_ROOT=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)/..
 

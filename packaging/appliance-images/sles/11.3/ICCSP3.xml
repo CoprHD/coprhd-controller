@@ -1,6 +1,4 @@
 <?xml version="1.0"?>
-<!-- Copyright 2015 EMC Corporation -->
-<!-- All Rights Reserved -->
 
 <project name="ICCSP3" default="main" basedir=".">
 

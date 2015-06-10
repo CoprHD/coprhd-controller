@@ -1,3 +1,7 @@
+/*
+ * Copyright 2012-2015 iWave Software LLC
+ * All Rights Reserved
+ */
 // commented out due to project dependency issues. We would prefer not to have to depend on apisvc to get DummyDBClient.
 
 //package com.emc.sa.asset.providers;

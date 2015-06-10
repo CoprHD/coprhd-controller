@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 HOSTNAME="__HOSTNAME_MARKER__"
 HOSTIP="__HOSTIP_MARKER__"
 NETMASK="__NETMASK_MARKER__"

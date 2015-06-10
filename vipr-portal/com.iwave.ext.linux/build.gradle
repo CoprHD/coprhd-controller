@@ -1,5 +1,3 @@
-// Copyright 2012-2015 iWave Software LLC
-// All Rights Reserved
 dependencies {
     compile library(commons_io),
             project(":com.iwave.ext.ssh"),

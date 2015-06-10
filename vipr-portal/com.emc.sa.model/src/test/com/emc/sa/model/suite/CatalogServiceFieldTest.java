@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.sa.model.suite;
 
 import org.apache.log4j.Logger;

@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 /*	
  *	jQuery dotdotdot 1.5.1
  *	

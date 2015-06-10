@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 #
 # A script which replaces the OVF systool command so that the syssvc UpgradeManager works correctly
 #

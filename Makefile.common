@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 #-%emc-cr-s-shell-v2%-
 #
 # Copyright (c) 2012-2014, EMC Corporation. All Rights Reserved.

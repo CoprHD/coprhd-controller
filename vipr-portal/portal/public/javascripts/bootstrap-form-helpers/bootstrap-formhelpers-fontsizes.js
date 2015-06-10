@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 /* ==========================================================
  * bootstrap-formhelpers-fontsizes.js
  * https://github.com/vlamanna/BootstrapFormHelpers

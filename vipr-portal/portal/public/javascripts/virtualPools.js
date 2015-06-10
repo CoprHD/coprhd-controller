@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 var virtualPools = (function() {
     var has = function($control, name) {
         if ($control.data(name)) {

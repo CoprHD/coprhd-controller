@@ -1,8 +1,5 @@
 #!/usr/bin/python
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 import sys
 import os
 import os.path

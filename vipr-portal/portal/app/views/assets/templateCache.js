@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 *{
     Prefill the template cache. This ensures all parts of a page will appear at the same time,
     and should prevent bugs due to differing cached/uncached behavior.

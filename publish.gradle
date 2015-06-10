@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 /*
  * Publishes RPM artifacts (built externally) to a Maven repository.
  * Intended to enable the developer to publish a private build of storageos.rpm to

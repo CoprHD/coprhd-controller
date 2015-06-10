@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 jQuery.fn.dataTableExt.oApi.fnStandingRedraw = function(oSettings) {
     if(oSettings.oFeatures.bServerSide === false){
         var before = oSettings._iDisplayStart;

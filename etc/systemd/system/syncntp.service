@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 [Unit]
 Description=StorageOS initial time synchronization
 Wants=network.service ipchecktool.service

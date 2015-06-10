@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 // top-level namespace
 var SystemHealth = SystemHealth || {};
 

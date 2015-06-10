@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 // dummy console for browsers that do not have one
 if (!window.console) { window.console = { log: function(){} }; } 
 

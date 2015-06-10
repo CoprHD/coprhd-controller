@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 [Unit]
 Description=Duplicate IP Checker
 Wants=network.service SuSEfirewall2.service

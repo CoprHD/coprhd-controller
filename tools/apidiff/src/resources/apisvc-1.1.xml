@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2015 EMC Corporation -->
-<!-- All Rights Reserved -->
 <api-docs title="Bourne API">
   <data>
     <schema namespace="" namespaceId="ns0" file="ns0.xsd">

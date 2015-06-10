@@ -1,6 +1,6 @@
-/**
-* Copyright 2012-2015 iWave Software LLC
-* All Rights Reserved
+/*
+ * Copyright 2012-2015 iWave Software LLC
+ * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block.tasks;
 

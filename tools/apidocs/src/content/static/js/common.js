@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 function setupTOC(filename) {
     $(".toc a[href='"+filename+"']").css("color","red");
     $(".toc a[href='"+filename+"']").parents().show();

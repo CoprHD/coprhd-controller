@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.cloud.ucsm.service;
 
 import java.lang.reflect.InvocationTargetException;

@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 $(document).ready(function() {
     $(document).on('keyup', '.form-control-editable', function(e) {
         if (e.keyCode == 27) {

@@ -1,8 +1,4 @@
 /**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
-/**
  * Wraps the jQuery dataTables functionality into a more manageable object.
  * <p>
  * This will prepare to create a dataTable for the given selector. The dataTable

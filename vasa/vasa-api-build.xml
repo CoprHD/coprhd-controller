@@ -1,6 +1,3 @@
-<!-- Copyright 2015 EMC Corporation -->
-<!-- All Rights Reserved -->
-
 <project name="vasa" basedir="." default="run">
 
 	<description>Bourne Vendor Provider VASA API build file</description>

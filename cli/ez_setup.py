@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
 """Bootstrap setuptools installation
 
 To use setuptools in your package's setup.py, include this

@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 // MSDropDown - jquery.dd.js
 // author: Marghoob Suleman - Search me on google
 // Date: 12th Aug, 2009

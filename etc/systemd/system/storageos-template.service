@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 [Unit]
 Description=StorageOS @svcname@ service
 Wants=network.service storageos-installer.service ipchecktool.service

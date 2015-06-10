@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # Source /etc/sysconfig/storageos and make the basic checks
 #
 STORAGEOS_DIR=${STORAGEOS_DIR:-'/opt/storageos'}

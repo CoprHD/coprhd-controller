@@ -1,8 +1,5 @@
 #!/usr/bin/sh
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 
 # Installation directory of VIPR CLI
 VIPR_CLI_INSTALL_DIR=/opt/storageos/cli

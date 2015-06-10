@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # Create an RSA key:
 openssl genrsa -aes128 -out vp.key 1024
 # Remove the passphrase from the key:

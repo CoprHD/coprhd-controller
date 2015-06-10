@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 ## Path:           Network/NTP
 ## Description:    Network Time Protocol (NTP) server settings
 ## Type:           string

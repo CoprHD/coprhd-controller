@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 {
   "code": 503,
   "description": "${result?.message ?: messages.get("errors.503.title")}",

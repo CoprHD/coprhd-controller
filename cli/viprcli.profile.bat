@@ -1,5 +1,3 @@
-@rem Copyright 2015 EMC Corporation
-@rem All Rights Reserved
 @echo off
 :: Installation directory of VIPR CLI
 set VIPR_CLI_INSTALL_DIR=C:\opt\storageos\cli

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.difftests;
 
 import com.emc.apidocs.model.ApiMethod;

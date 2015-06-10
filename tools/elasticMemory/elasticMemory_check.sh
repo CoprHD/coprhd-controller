@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 _usage() {
     echo "Usage: $0 {hostname|ip_address}" >&2
     exit 2

@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 /** Scripts included using apply from: '' do not share buildscript classpath. */
 buildscript {
     repositories {

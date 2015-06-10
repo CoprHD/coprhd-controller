@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 UNAME=/bin/uname
 PRINTF=/usr/bin/printf
 MKDIR=/bin/mkdir

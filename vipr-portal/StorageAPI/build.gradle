@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 dependencies {
     compile project(":com.emc.sa.engine")
     compile project(":com.emc.sa.common")

@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 '''
 This class defines all the URIs used in the CLI module
 Use the getter method to get the particular URI based on the component type

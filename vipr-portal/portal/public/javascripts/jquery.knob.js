@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 /*!jQuery Knob*/
 /**
  * Downward compatible, touchable dial

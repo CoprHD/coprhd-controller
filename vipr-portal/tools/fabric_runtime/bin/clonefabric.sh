@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 #
 # Updates the local instance to the copy of a remote one
 #

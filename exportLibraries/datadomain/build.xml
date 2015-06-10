@@ -1,6 +1,4 @@
 <?xml version="1.0" ?>
-<!-- Copyright 2015 EMC Corporation -->
-<!-- All Rights Reserved -->
 <!-- Ant Script to create a Jar file and restart the StorageOS services 
      @author Boris Zeldin
 -->

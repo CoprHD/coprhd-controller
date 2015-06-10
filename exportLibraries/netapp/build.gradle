@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 dependencies {
     if (project.hasProperty("buildType") && project.getProperty("buildType") == "emc") {
         compile project(":com.iwave.ext.netapp"),

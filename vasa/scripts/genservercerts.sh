@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 KEYTOOL=$JAVA_HOME/bin/keytool
 echo Generating the Server KeyStore in file server.keystore
 $KEYTOOL -genkey -alias tomcat-sv -dname "CN=localhost, OU=X, O=Y, L=Z, S=XY, C=YZ" -keyalg RSA -keypass changeit -storepass changeit -keystore server.keystore

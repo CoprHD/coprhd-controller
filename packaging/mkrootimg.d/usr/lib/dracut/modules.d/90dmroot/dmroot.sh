@@ -1,7 +1,4 @@
 #!/bin/bash
-
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
 #
 #
 #%programs: /sbin/losetup /sbin/blockdev /sbin/dumpe2fs /sbin/dmsetup /bin/dd /sbin/vgscan /sbin/vgchange /sbin/lvcreate /sbin/lvm /sbin/lvs /sbin/lvremove

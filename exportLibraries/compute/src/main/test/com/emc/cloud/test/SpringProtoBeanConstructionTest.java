@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.cloud.test;
 
 import org.springframework.beans.factory.annotation.Autowired;

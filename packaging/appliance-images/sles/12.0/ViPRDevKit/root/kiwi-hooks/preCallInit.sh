@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # ===
 # FILE: /kiwi-hooks/preCallInit.sh
 # ===

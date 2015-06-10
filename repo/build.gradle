@@ -1,5 +1,3 @@
-// Copyright 2015 EMC Corporation
-// All Rights Reserved
 //
 // For OSS mode build we need to download the SBLIM zip file and extract out 
 // the sblim client jar file.  The jar file needs to be renamed and placed under 

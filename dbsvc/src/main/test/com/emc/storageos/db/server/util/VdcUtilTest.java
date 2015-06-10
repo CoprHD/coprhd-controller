@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 /**
  * This computer code is copyright 2014 EMC Corporation. All rights reserved.
  */

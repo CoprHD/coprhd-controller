@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 ## Dracut module installation descriptor. Executed at build time.
 
 # called by dracut

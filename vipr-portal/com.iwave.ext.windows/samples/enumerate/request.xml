@@ -1,6 +1,3 @@
-<!-- Copyright 2012-2015 iWave Software LLC -->
-<!-- All Rights Reserved -->
-
 <Pull xmlns="http://schemas.xmlsoap.org/ws/2004/09/enumeration">
 	<EnumerationContext>${enumerationContext}</EnumerationContext>
 	<MaxElements>10</MaxElements>

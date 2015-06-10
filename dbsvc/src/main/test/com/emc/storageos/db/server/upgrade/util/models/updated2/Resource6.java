@@ -1,3 +1,7 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
 /**
  *  Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved

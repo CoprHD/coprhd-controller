@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # exit immediately if there is another instance running
 if checkproc /usr/sbin/logrotate; then
         /bin/logger -t logrotate "ALERT another instance of logrotate is running - exiting"

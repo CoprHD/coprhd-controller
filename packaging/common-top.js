@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
  function showConfirm() {
 		if (confirm("Do you want to generate the setting file?") == true) {
 			generateSettingsFile();

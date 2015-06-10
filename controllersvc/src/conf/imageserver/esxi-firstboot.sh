@@ -1,7 +1,4 @@
 #!/bin/sh
-
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
 # UIM ESXi First Boot Configuration Script
 
 # define variables to be used by the first boot script

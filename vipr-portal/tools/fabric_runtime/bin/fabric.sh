@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 #
 # Control script which replaces init.d script when running locally
 #

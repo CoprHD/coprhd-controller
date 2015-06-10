@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 %{
     healthStatus = com.emc.storageos.systemservices.impl.healthmonitor.models.Status;
     clusterState = com.emc.vipr.model.sys.ClusterInfo.ClusterState;

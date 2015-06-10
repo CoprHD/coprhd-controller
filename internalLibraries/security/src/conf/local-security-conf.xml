@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Copyright 2015 EMC Corporation -->
-<!-- All Rights Reserved -->
 <!-- uncomment the below for disabling security checks- everyone gets a pass as sysadmin -->
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"

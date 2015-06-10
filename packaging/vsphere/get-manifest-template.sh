@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 Usage() {
     echo "Usage: $0 vmdk-disk1 vmdk-disk2 ..." &>2
 }

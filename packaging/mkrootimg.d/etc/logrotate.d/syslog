@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 #
 # Please note, that changing of log file permissions in this
 # file is not sufficient if syslog-ng is used as log daemon.

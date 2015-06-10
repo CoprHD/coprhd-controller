@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
 import sys
 import platform
 import os

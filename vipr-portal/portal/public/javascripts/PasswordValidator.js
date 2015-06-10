@@ -1,7 +1,3 @@
-/**
-* Copyright 2015 EMC Corporation
-* All Rights Reserved
- */
 function getValidatePasswordRes(data,controlGroup,url){
 		$.post(url, data)
 		.done(function(result) {

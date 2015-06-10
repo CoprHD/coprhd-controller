@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 MODELS_DIR=../../../internalLibraries/models
 CLIENT_DIR=..
 TARGET=../../../../controller-client-java

@@ -1,6 +1,3 @@
-# Copyright 2015 EMC Corporation
-# All Rights Reserved
-
 # Check params
 if [ $# -gt 2 -o $# -lt 1 ]
 then

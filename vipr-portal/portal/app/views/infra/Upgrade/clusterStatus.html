@@ -125,7 +125,7 @@
     function startDownloadStatusUpdates(currentStatus) {
         window.setInterval(function() {
             downloadProgressUpdate(currentStatus)
-        }, 3000); // Check every 3 seconds
+        }, 6000); // Check every 6 seconds
     }
 
     var downloadProgress = #{jsAction @downloadProgress() /}
@@ -158,11 +158,15 @@
 
                 if (downloadFinished) {
                     $("#cancelButton").hide();
-                    window.location.href ="@{index()}"
+                    setTimeout(goToIndex, 1000);
                 }
             },
             error: function() {
             }
         });
     }
+    function goToIndex(){
+    	window.location.href ="@{index()}";
+    }
+
 </script>

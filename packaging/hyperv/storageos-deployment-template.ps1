@@ -122,6 +122,7 @@ $scriptName=$MyInvocation.MyCommand.Name
 $Script:acceptAllEulas=$false
 $Script:isCPUCountGiven=$false
 $Script:isMemoryGiven=$false
+$Script:isNetmaskGiven=$false
 
 function CleanUp() {
 	Get-ChildItem -path $scriptPath | Where{$_.Name.Contains("header")} | Remove-Item
@@ -151,17 +152,17 @@ function Usage() {
 	Write-Host "    -ipaddr6_4:         IPv6 address of node 4"
 	Write-Host "    -ipaddr6_5:         IPv6 address of node 5"	
     Write-Host "    -gateway6:          IPv6 default gateway"
-    Write-Host "    -ipv6prefixlength:  IPv6 network prefix length"
+    Write-Host "    -ipv6prefixlength:  (Optional)IPv6 network prefix length"
     Write-Host "    "
     Write-Host "    -nodeid:            Specific node to be deployed, please input a number (start from 1)"
 	Write-Host "    -nodecount          Node counts of the cluster (valid value is 1 or 3 or 5), please note 1+0 cluster is a evaluation variant with no production support"
 	Write-Host "    -net:               Network name"
 	Write-Host "    -vswitch:           Virtual switch name"
 	Write-Host "    -librarypath:       Library path shared in SCVMM"
-	Write-Host "    -vmhostname:        VM host machine"
-	Write-Host "    -vmpath:            VM Path in host machine"
+	Write-Host "    -vmhostname:        Destination Hyper-V sever for VM deployment"
+	Write-Host "    -vmpath:            Target file path location on Hyper-V server, for deployment of VM"
 	Write-Host "    -disktype:          (Optional) Type of the virtual hard disk (dynamic or fixed)"
-	Write-Host "    -vlanid:            (Optional) Vlan id"
+	Write-Host "    -vlanid:            (Optional) A numerical identifier to a virtual network adapter on a virtual machine, by default the value is -1 which means vlanid is not set."
     Write-Host "    -vmprefix:          (Optional) Prefix of virtual machine name"
 	Write-Host "    -vmname             (Optional) Virtual machine name"
 	Write-Host "    -cpucount:          (Optional) Number of virtual CPUs for each VM (default is 2)"
@@ -178,10 +179,10 @@ function Usage() {
 	Write-Host "    -net:               Network name"
 	Write-Host "    -vswitch:           Virtual switch name"
 	Write-Host "    -librarypath:       Library path shared in SCVMM"
-	Write-Host "    -vmhostname:        VM host machine"
-	Write-Host "    -vmpath:            VM Path in host machine"
+	Write-Host "    -vmhostname:        Destination Hyper-V sever for VM deployment"
+	Write-Host "    -vmpath:            Target file path location on Hyper-V server, for deployment of VM"
 	Write-Host "    -disktype:          (Optional) Type of the virtual hard disk (dynamic or fixed)"
-	Write-Host "    -vlanid:            (Optional) Vlan id"
+	Write-Host "    -vlanid:            (Optional) A numerical identifier to a virtual network adapter on a virtual machine, by default the value is -1 which means vlanid is not set."
     Write-Host "    -vmprefix:          (Optional) Prefix of virtual machine name"
 	Write-Host "    -vmname             (Optional) Virtual machine name"
 	Write-Host "    -cpucount:          (Optional) Number of virtual CPUs for each VM (default is 2)"
@@ -484,9 +485,12 @@ function CheckParamsIsEmpty() {
 		}	
 	}
 	
+	if (-not [String]::IsNullOrEmpty($Script:netmask)) {
+			$Script:isNetmaskGiven=$true
+	}
+	
 	if (-not [String]::IsNullOrEmpty($Script:vip6)) {
-		if ([String]::IsNullOrEmpty($Script:ipaddr6_1) -or [String]::IsNullOrEmpty($Script:gateway6) -or 
-			[String]::IsNullOrEmpty($Script:ipv6prefixlength)) {
+		if ([String]::IsNullOrEmpty($Script:ipaddr6_1) -or [String]::IsNullOrEmpty($Script:gateway6)) {
 				$Script:interactive=$true
 		}
 		if (($Script:nodeCount -ne "1") -and ([String]::IsNullOrEmpty($Script:ipaddr6_2) -or [String]::IsNullOrEmpty($Script:ipaddr6_3))) {
@@ -682,7 +686,7 @@ function DisplaySummary() {
 
 function InteractiveMode () {
 	while ($true) {
-		if (-not (AskUserDecisionRecurr "those settings")) {
+		if (-not (AskUserDecisionRecurr "these settings")) {
 			while ($true) {
 				if (-not (AskUserDecisionRecurr "Network properties")) {
 					CheckNetWorkProperties $true
@@ -807,7 +811,7 @@ function CreateSubfolderAndMoveFiles($currentNodeId) {
 
 function DisplayLicense() {
 	try {
-		[string]$license='${include="storageos-license.txt"}' | out-host -paging
+		[string]$license="${include="storageos-license-ps.txt"}" | out-host -paging
 	} 
 	catch {
 		# Do nothing

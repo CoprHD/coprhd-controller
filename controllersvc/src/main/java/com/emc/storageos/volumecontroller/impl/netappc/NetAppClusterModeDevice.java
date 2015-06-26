@@ -1269,7 +1269,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 				//delete the export if no export rule left.
 				//If we delete filesystem without deleting export policy. Export policy will not get cleared on Array.
 				if(exportsToRemove.isEmpty() && exportsRemove.size() >= 1){					
-					ncApi.deleteNFSExport(exportPath);
+					ncApi.deleteNFSExport(qtreePath);
 				}
 			}
 		} catch (NetAppCException e) {

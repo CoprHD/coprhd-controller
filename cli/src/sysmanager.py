@@ -702,7 +702,6 @@ class Monitoring(object):
             return None
 
         o = common.json_decode(s)
-
         return o
     
     def get_dbrepair_status(self):
@@ -1970,7 +1969,13 @@ def get_cluster_recovery_parser(subcommand_parsers, common_parser):
 def get_cluster_recovery(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_cluster_recovery())
+        res = obj.get_cluster_recovery()
+        if(res):
+            res = common.format_json_object(res)
+            return res
+        else:
+            res = "There is no recovery status"
+            return res
     except SOSError as e:
         common.format_err_msg_and_raise(
             "cluster",
@@ -2285,7 +2290,12 @@ def cluster_ipreconfig_status_parser(subcommand_parsers,common_parser):
 def cluster_ipreconfig_status(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_cluster_ipreconfig_status())
+        x =obj.get_cluster_ipreconfig_status()
+        if(x==None):
+            print "No IP Reconfigure Status"
+            return
+        else:
+         return common.format_json_object(obj.get_cluster_ipreconfig_status())
     except SOSError as e:
         common.format_err_msg_and_raise(
             "cluster",

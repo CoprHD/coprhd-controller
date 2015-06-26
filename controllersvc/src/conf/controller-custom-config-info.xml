@@ -813,7 +813,7 @@
         </property>
         <property name="constraints">
             <list>
-                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="illegalCharsConstraint"/>
                 <ref bean="maxLengthConstraint"/>
             </list>
         </property>
@@ -842,7 +842,7 @@
         </property>
         <property name="constraints">
             <list>
-                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="illegalCharsConstraint"/>
                 <ref bean="maxLengthConstraint"/>
             </list>
         </property>
@@ -872,7 +872,7 @@
         </property>
         <property name="constraints">
             <list>
-                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="illegalCharsConstraint"/>
                 <ref bean="maxLengthConstraint"/>
             </list>
         </property>
@@ -900,7 +900,7 @@
         </property>
         <property name="constraints">
             <list>
-                <ref bean="xtremioIllegalCharsConstraint"/>
+                <ref bean="illegalCharsConstraint"/>
                 <ref bean="maxLengthConstraint"/>
             </list>
         </property>
@@ -1042,6 +1042,7 @@
             <map>
                 <entry key="default" value="\\s+|[^a-zA-Z0-9_#@+-]"/>
                 <entry key="hds" value="[^]a-zA-Z0-9_#@!$='`~&#37;&amp;+\[^.-]"/>
+                <entry key="xtremio" value="[^a-zA-Z0-9_#@!$~+&#37;^.*:?|-]"/>
             </map>
         </property>
         <property name="description" value="Valid characters are letters, numbers and _ # @ + -"/>
@@ -1060,22 +1061,6 @@
             </map>
         </property>
         <property name="description" value="Valid characters are numbers and ;"/>
-        <property name="replacementMap">
-            <map>
-                <entry key="default" value=""/>
-            </map>
-        </property>   
-        <property name="name" value="IllegalCharsConstraint"/> 
-    </bean>
-    
-    <bean id="xtremioIllegalCharsConstraint" class="com.emc.storageos.customconfigcontroller.IllegalCharsConstraint">
-        <property name="illegalCharsRegexMap">
-            <map>
-                <entry key="default" value="[^A-Za-z0-9]"/>
-                <entry key="xtremio" value="[^A-Za-z0-9]"/>
-            </map>
-        </property>
-        <property name="description" value="Valid characters are letters, and numbers"/>
         <property name="replacementMap">
             <map>
                 <entry key="default" value=""/>

@@ -183,15 +183,13 @@ public class NumPathsMatcher extends AttributeMatcher {
             ContainmentConstraint.Factory.getStorageDeviceStoragePortConstraint(
                     storageDeviceURI),
             storagePortURIs);
+        List<StoragePort> storagePorts = _objectCache.queryObject(StoragePort.class,
+                storagePortURIs);
 
         // CTRL-10769. If ports part of selected vArrays are of RDF type only, skip that system's pools.
-        Iterator<URI> storagePortsItr = storagePortURIs.iterator();
         boolean nonFrontendPortFound = false;
         boolean atLeastOneFrontEndPortFound = false;
-        while (storagePortsItr.hasNext()) {
-            URI storagePortURI = storagePortsItr.next();
-            StoragePort storagePort = _objectCache.queryObject(StoragePort.class,
-                storagePortURI);
+        for(StoragePort storagePort : storagePorts) {
             if (transportType.name().equals(storagePort.getTransportType())
                     && vArrays != null && storagePort.getTaggedVirtualArrays() != null
                     && !Sets.intersection(vArrays, storagePort.getTaggedVirtualArrays()).isEmpty()) {
@@ -199,16 +197,18 @@ public class NumPathsMatcher extends AttributeMatcher {
                     nonFrontendPortFound = true;
                 } else {
                     atLeastOneFrontEndPortFound = true;
+                    break;
                 }
             }
-            
-            if (nonFrontendPortFound && !atLeastOneFrontEndPortFound) {
-                cachedUsablePorts.put(storageDeviceURI, new Integer(0));
-                cachedUsableHADomains.put(storageDeviceURI, new Integer(0));
-                return 0;
-            }
-    
-            
+        }
+        
+        if (nonFrontendPortFound && !atLeastOneFrontEndPortFound) {
+            cachedUsablePorts.put(storageDeviceURI, new Integer(0));
+            cachedUsableHADomains.put(storageDeviceURI, new Integer(0));
+            return 0;
+        }
+
+        for(StoragePort storagePort : storagePorts) {
             // must not be null or incompatible or inactive
             _logger.debug("Checking port: " + storagePort.getNativeGuid());
             if (transportType.name().equals(storagePort.getTransportType()) && 

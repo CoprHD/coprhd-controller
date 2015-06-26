@@ -64,6 +64,10 @@ public class PasswordExpireRuleHandler implements UpdateHandler {
             oldValue = "0";
         }
 
+        if (oldValue.equals(newValue)) {
+            return;
+        }
+
         int graceDays = Constants.GRACE_DAYS;
         int intNewValue = Integer.parseInt(newValue);
         if (intNewValue != 0 &&

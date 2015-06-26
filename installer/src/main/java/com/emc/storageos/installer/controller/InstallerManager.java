@@ -22,14 +22,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.services.data.Configuration;
 import com.emc.storageos.installer.util.ClusterType;
-import com.emc.storageos.services.util.InstallerOperation;
-import com.emc.storageos.services.util.InstallerConstants;
-import com.emc.storageos.services.util.InstallerUtil;
+import com.emc.storageos.installer.util.InstallerOperation;
+import com.emc.storageos.installer.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerUtil;
+import com.emc.storageos.services.util.Configuration;
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.ServerProbe;
 import com.emc.storageos.installer.widget.BasePanel;
 import com.emc.storageos.installer.widget.DisplayPanel;
@@ -76,11 +78,11 @@ public class InstallerManager {
 	 * Set config type based on boot mode user entered and whether there is local config. 
 	 */
 	private void setConfigType() {
-		if (bootMode.equals(InstallerConstants.INSTALL_MODE)) {
+		if (bootMode.equals(PropertyConstants.INSTALL_MODE)) {
 			configType = ConfigType.INSTALL;
-		} else if (bootMode.equals(InstallerConstants.REDEPLOY_MODE)) {
+		} else if (bootMode.equals(PropertyConstants.REDEPLOY_MODE)) {
 			configType = ConfigType.REDEPLOY;
-		} else if (bootMode.equals(InstallerConstants.CONFIG_MODE)) {
+		} else if (bootMode.equals(PropertyConstants.CONFIG_MODE)) {
 			Configuration local = getLocalConfiguration();
 			if (local != null) {
 				configType = ConfigType.RE_CONFIG;
@@ -107,7 +109,7 @@ public class InstallerManager {
 		// if only one netif available, skip user config, save the data to Configuration directly
 		String[] ifs = ServerProbe.getInstance().getNetworkInterfaces();
 		if (ifs.length == 1) {
-			config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_NETIF, ifs[0]);
+			config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_NETIF, ifs[0]);
 			return true;
 		} else {
 			return false;
@@ -133,8 +135,8 @@ public class InstallerManager {
                 // And we only check "data" disk size (meet minimum requirement and same etc.)
                 String diskName = "/dev/sdc";
                 if (checkDiskCapacityForMinimumRequirement(diskName)) {
-                    config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_DISK, diskName);
-                    config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_DISK_CAPACITY,
+                    config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK, diskName);
+                    config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK_CAPACITY,
                             ServerProbe.getInstance().getDiskCapacity(diskName));
                     return true;
                 }
@@ -148,8 +150,8 @@ public class InstallerManager {
 			String diskStr = list[0];
 			String diskName = InstallerOperation.parseDiskString(diskStr);
 			if (checkDiskCapacityForMinimumRequirement(diskName) && !diskHasPartition(diskName)) {
-				config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_DISK, diskName);
-				config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_DISK_CAPACITY,
+				config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK, diskName);
+				config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK_CAPACITY,
 						ServerProbe.getInstance().getDiskCapacity(diskName));
 				return true;
 			}
@@ -486,11 +488,11 @@ public class InstallerManager {
 	private String getScenarioDisplay() {
 		String scenario = config.getScenario();
 		String displayScenario = null;
-		if (scenario.equals(InstallerConstants.INSTALL_MODE)) {
+		if (scenario.equals(PropertyConstants.INSTALL_MODE)) {
 			displayScenario = "Install";
-		} else if (scenario.equals(InstallerConstants.CONFIG_MODE)) {
+		} else if (scenario.equals(PropertyConstants.CONFIG_MODE)) {
 			displayScenario = "Configuration";
-		} else if (scenario.equals(InstallerConstants.REDEPLOY_MODE)) {
+		} else if (scenario.equals(PropertyConstants.REDEPLOY_MODE)) {
 			displayScenario = "Re-deployment";
 		}
 		return displayScenario == null ? "" : " (" + displayScenario + ")";
@@ -542,7 +544,7 @@ public class InstallerManager {
 		}
 		// if never checked before do scan and get local if applicable
 		availableClusters = InstallerUtil.scanClusters(config.getHwConfig()
-				.get(InstallerConstants.PROPERTY_KEY_NETIF), releaseVersion, config.getScenario());
+				.get(PropertyConstants.PROPERTY_KEY_NETIF), releaseVersion, config.getScenario());
 		// if config mode, add configuration from local disk
 		if (config.isConfigMode()) {
 			Configuration localConfig = getLocalConfiguration();
@@ -580,7 +582,7 @@ public class InstallerManager {
             }
 
             // 2. Collect local configuration
-            localConfig = InstallerOperation.getLocalConfiguration();
+            localConfig = PlatformUtils.getLocalConfiguration();
 			log.info("Local found config: {}/{}", localConfig.getNetworkVip(), localConfig.getNodeId());
 		} catch (Exception e) {
 			log.error("Failed to get local configuration with exception {}", e.getMessage());
@@ -724,14 +726,14 @@ public class InstallerManager {
 		nodeCountConfigured = nodecount;
 		LinkedHashMap<String, String> map = new LinkedHashMap<String, String>();
 		if (configType.equals(ConfigType.RE_CONFIG)) {
-			map.putAll(config.getIpv4DisplayMap());
+			map.putAll(InstallerUtil.getIpv4DisplayMap(config.getNetworkIpv4Config()));
 		} else {
 			for (int i = 0; i <nodecount; i++) {
-				map.put(String.format(InstallerConstants.DISPLAY_LABEL_IPV4_NODE_ADDR,  i+1), InstallerConstants.IPV4_ADDR_DEFAULT);
+				map.put(String.format(InstallerConstants.DISPLAY_LABEL_IPV4_NODE_ADDR,  i+1), PropertyConstants.IPV4_ADDR_DEFAULT);
 			}
-			map.put(InstallerConstants.DISPLAY_LABEL_IPV4_VIP, InstallerConstants.IPV4_ADDR_DEFAULT);
-			map.put(InstallerConstants.DISPLAY_LABEL_IPV4_NETMASK, InstallerConstants.NETMASK_DEFAULT);
-			map.put(InstallerConstants.DISPLAY_LABEL_IPV4_GATEWAY, InstallerConstants.IPV4_ADDR_DEFAULT);
+			map.put(InstallerConstants.DISPLAY_LABEL_IPV4_VIP, PropertyConstants.IPV4_ADDR_DEFAULT);
+			map.put(InstallerConstants.DISPLAY_LABEL_IPV4_NETMASK, PropertyConstants.NETMASK_DEFAULT);
+			map.put(InstallerConstants.DISPLAY_LABEL_IPV4_GATEWAY, PropertyConstants.IPV4_ADDR_DEFAULT);
 		}
 		return map;
 	}
@@ -740,14 +742,14 @@ public class InstallerManager {
 		int nodecount = config.getNodeCount();
 		LinkedHashMap<String, String> map = new LinkedHashMap<String, String>(nodecount);
 		if (configType.equals(ConfigType.RE_CONFIG)) {
-			map.putAll(config.getIpv6DisplayMap());
+			map.putAll(InstallerUtil.getIpv6DisplayMap(config.getNetworkIpv6Config()));
 		} else {
 			for (int i = 0; i <nodecount; i++) {
-				map.put(String.format(InstallerConstants.DISPLAY_LABEL_IPV6_NODE_ADDR, i+1), InstallerConstants.IPV6_ADDR_DEFAULT);
+				map.put(String.format(InstallerConstants.DISPLAY_LABEL_IPV6_NODE_ADDR, i+1), PropertyConstants.IPV6_ADDR_DEFAULT);
 			}
-			map.put(InstallerConstants.DISPLAY_LABEL_IPV6_VIP, InstallerConstants.IPV6_ADDR_DEFAULT);
-			map.put(InstallerConstants.DISPLAY_LABEL_IPV6_PREFIX, InstallerConstants.IPV6_PREFIX_LEN_DEFAULT);
-			map.put(InstallerConstants.DISPLAY_LABEL_IPV6_GATEWAY, InstallerConstants.IPV6_ADDR_DEFAULT);
+			map.put(InstallerConstants.DISPLAY_LABEL_IPV6_VIP, PropertyConstants.IPV6_ADDR_DEFAULT);
+			map.put(InstallerConstants.DISPLAY_LABEL_IPV6_PREFIX, PropertyConstants.IPV6_PREFIX_LEN_DEFAULT);
+			map.put(InstallerConstants.DISPLAY_LABEL_IPV6_GATEWAY, PropertyConstants.IPV6_ADDR_DEFAULT);
 		}
 		return map;
 	}
@@ -823,25 +825,25 @@ public class InstallerManager {
 		
 		ServerProbe serverProbe = ServerProbe.getInstance();
 		// check on memory
-		if (hwMap.get(InstallerConstants.PROPERTY_KEY_MEMORY_SIZE) == null) {
+		if (hwMap.get(PropertyConstants.PROPERTY_KEY_MEMORY_SIZE) == null) {
 			String memStr = serverProbe.getMemorySize();
 			log.debug("Setting mem {}", memStr);
-			hwMap.put(InstallerConstants.PROPERTY_KEY_MEMORY_SIZE, memStr);
+			hwMap.put(PropertyConstants.PROPERTY_KEY_MEMORY_SIZE, memStr);
 		}
 		// check on cpu core
-		if (hwMap.get(InstallerConstants.PROPERTY_KEY_CPU_CORE) == null) {
+		if (hwMap.get(PropertyConstants.PROPERTY_KEY_CPU_CORE) == null) {
 			String cpuCore = serverProbe.getCpuCoreNum();
 			log.debug("Setting cpu core {}", cpuCore);
-			hwMap.put(InstallerConstants.PROPERTY_KEY_CPU_CORE, cpuCore);
+			hwMap.put(PropertyConstants.PROPERTY_KEY_CPU_CORE, cpuCore);
 		}		
 		
 		// check on disk size
-		if (hwMap.get(InstallerConstants.PROPERTY_KEY_DISK) != null && hwMap.get(InstallerConstants.PROPERTY_KEY_DISK_CAPACITY) == null) {
+		if (hwMap.get(PropertyConstants.PROPERTY_KEY_DISK) != null && hwMap.get(PropertyConstants.PROPERTY_KEY_DISK_CAPACITY) == null) {
 			Map<String, String> disks = serverProbe.getDiskCapacity();
-			String diskSize = disks.get(hwMap.get(InstallerConstants.PROPERTY_KEY_DISK));
+			String diskSize = disks.get(hwMap.get(PropertyConstants.PROPERTY_KEY_DISK));
 			log.debug("Setting disk size {} for {}", diskSize, 
-					hwMap.get(InstallerConstants.PROPERTY_KEY_DISK));
-			hwMap.put(InstallerConstants.PROPERTY_KEY_DISK_CAPACITY, diskSize);
+					hwMap.get(PropertyConstants.PROPERTY_KEY_DISK));
+			hwMap.put(PropertyConstants.PROPERTY_KEY_DISK_CAPACITY, diskSize);
 		}
 		log.debug("Hardware map {}/{}", hwMap.size(), hwMap);
 	}
@@ -861,17 +863,17 @@ public class InstallerManager {
 		}
 		String noValue = "NO_VALUE";
 		LinkedHashMap<String, String> map = new LinkedHashMap<String, String>();
-		map.put(InstallerConstants.DISPLAY_LABEL_NETIF, config.getHwConfig().get(InstallerConstants.PROPERTY_KEY_NETIF) == null ? 
-				noValue : config.getHwConfig().get(InstallerConstants.PROPERTY_KEY_NETIF));
-		String disk = config.getHwConfig().get(InstallerConstants.PROPERTY_KEY_DISK);
+		map.put(InstallerConstants.DISPLAY_LABEL_NETIF, config.getHwConfig().get(PropertyConstants.PROPERTY_KEY_NETIF) == null ?
+				noValue : config.getHwConfig().get(PropertyConstants.PROPERTY_KEY_NETIF));
+		String disk = config.getHwConfig().get(PropertyConstants.PROPERTY_KEY_DISK);
 		if (disk != null) map.put(InstallerConstants.DISPLAY_LABEL_DISK, disk);
 		map.put(InstallerConstants.DISPLAY_LABEL_NODE_COUNT, String.valueOf(config.getNodeCount()));
 		map.put(InstallerConstants.DISPLAY_LABEL_NODE_ID, config.getNodeId() == null ? noValue : config.getNodeId());
-		Map<String, String> ipv4map = config.getIpv4DisplayMap();
+		Map<String, String> ipv4map = InstallerUtil.getIpv4DisplayMap(config.getNetworkIpv4Config());
 		for (String key : ipv4map.keySet()) {
 			map.put("IPv4 " + key, (ipv4map.get(key) == null) ? noValue : ipv4map.get(key));
 		}
-		Map<String, String> ipv6map = config.getIpv6DisplayMap();
+		Map<String, String> ipv6map = InstallerUtil.getIpv6DisplayMap(config.getNetworkIpv6Config());
 		for (String key : ipv6map.keySet()) {
 			map.put("IPv6 " + key, (ipv6map.get(key) == null) ? noValue : ipv6map.get(key));
 		}

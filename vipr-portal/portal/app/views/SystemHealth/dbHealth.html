@@ -3,6 +3,7 @@
 <div class="page-header">
   <h3>{{'db.healthdashboard.title' | t}}</h3>
 </div>
+
 <div class="row">
   <div class="col-md-12">
   <table class="table">
@@ -17,23 +18,35 @@
 <div class="col-md-1 ">
     <knob warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100" ></knob>
  </div>
- 
+
  <div class="row">
   <div class="col-md-12">
     <div class="dbstats">
       <table class="table table-condensed table-striped">
         <tbody>
         #{if dbstatus.status.toString()!='NOT_STARTED'}
-          <tr >
-            <td class="name">{{'health.start' | t}} </td>            
-            <td class="time">{{startTime}}</td>
+        #{if startTime} 
+          <tr>                  
+            <td class="name">{{'health.start' | t}} </td>
+            <td id="start" class="time"></td>
           </tr>
+           	<script>
+        		var starttime = '${startTime}';
+   				$('#start').append(formatDate(Date.parse(starttime), 'YYYY-MM-DD HH:mm:ss'));
+ 			</script>
+          #{/if}
           #{/if}
           #{if dbstatus.status.toString()=='SUCCESS'}
-          <tr>
+          #{if endTime}
+          <tr>         
            	<td class="end">{{'health.end' |t}}</td>
-          	<td class="endTime">{{endTime}}</td>
+          	<td id="end" class="endTime"></td>
           </tr>
+          	<script>
+        		var endtime = '${endTime}';
+   				$('#end').append(formatDate(Date.parse(endtime), 'YYYY-MM-DD HH:mm:ss'));
+ 		  </script>
+          #{/if}
           #{/if}
         </tbody>
       </table>

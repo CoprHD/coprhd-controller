@@ -52,9 +52,8 @@ public abstract class DbConfigConstants {
     // The setting to override the num_tokens in .yaml file. The number in .yaml file is updated first, while this
     // value in ZK keeps unchanged to allow dbsvc to start without token number change. This value is set to same
     // as .yaml file after node is decommissioned.
-    public static final String NUM_TOKENS = "num_tokens";
-
-    // This is the target DB schema version that we have adjusted num_tokens for. This is for quick checking if we
-    // need to adjust num_tokens, considering not every service can read .yaml file.
-    public final static String DB_NUM_TOKEN_VERSION = "num_token_ver";
+    public static final String NUM_TOKENS_KEY = "num_tokens";
+    
+    // we change the token number from 256 to 16 in jedi, this will reduce db repair time.
+    public static final Integer DEFUALT_NUM_TOKENS = 16;
 }

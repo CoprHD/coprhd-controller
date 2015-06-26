@@ -11,8 +11,11 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,10 +28,96 @@ public class PlatformUtils {
     private static final String IS_APPLIANCE  = "--test";
     private static final String IS_APPLIANCE_OUTPUT = "Ok";
     private static final long CMD_TIMEOUT = 120 * 1000;
+    private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
+    
+    private static Boolean isVMwareVapp;
+    private static Boolean isAppliance;
+
+    /* Get local configuration by reading ovfenv partition and detecting real h/w
+     * @return local configuration
+     */
+    public static Configuration getLocalConfiguration() {
+        Configuration conf = new Configuration();
+
+        // read ovfenv properties from ovfenv partition
+        String[] props = getOvfenvPropertyStrings();
+        Map<String, String> propMap = new HashMap<String, String>();
+        for (String s : props) {
+            propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
+        }
+
+        // load major properties (network info etc.)
+        conf.loadFromPropertyMap(propMap);
+
+        // Update local conf to reflect the current memory size, CPU count, disk(data) size and network interface
+        conf.getHwConfig().put(PropertyConstants.PROPERTY_KEY_MEMORY_SIZE, ServerProbe.getInstance().getMemorySize());
+        conf.getHwConfig().put(PropertyConstants.PROPERTY_KEY_CPU_CORE, ServerProbe.getInstance().getCpuCoreNum());
+
+        String diskName = propMap.get(PropertyConstants.PROPERTY_KEY_DISK);
+        if (diskName == null) {
+            diskName = PropertyConstants.DATA_DISK_DEFAULT;
+        }
+        conf.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK, diskName);
+        conf.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK_CAPACITY, ServerProbe.getInstance().getDiskCapacity(diskName));
+
+        String netif = propMap.get(PropertyConstants.PROPERTY_KEY_NETIF);
+        if (netif == null) {
+            netif = PropertyConstants.NETIF_DEFAULT;
+        }
+        conf.getHwConfig().put(PropertyConstants.PROPERTY_KEY_NETIF, netif);
+
+        log.info("Local found config: {}", conf.toString());
+        return conf;
+    }
+
+    public static int diskHasViprPartitions(String disk) {
+        final String[] cmds = {"/etc/mkdisk.sh", "check", disk};
+        Exec.Result result = Exec.sudo(CMD_PARTITION_TIMEOUT, cmds);
+        if (!result.exitedNormally() || result.getExitValue() != 0) {
+            log.warn("Check disk {} for vipr partition failed with exit value is: {}",
+                    disk, result.getExitValue());
+        }
+        return result.getExitValue();
+    }
+
+    public static String[] executeCommand(String [] commands) {
+        StringBuffer output = new StringBuffer();
+        ArrayList<String> out = new ArrayList<String>();
+        Process p;
+        try {
+            p = Runtime.getRuntime().exec(commands);
+            p.waitFor();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    p.getInputStream()));
+            String line = "";
+            while ((line = reader.readLine()) != null) {
+                output.append(line + "\t");
+                out.add(line);
+            }
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return out.toArray(new String[out.size()]);
+    }
 
     /*
      * Get ovfenv properties
-     * @return key/value property pairs
+     * @return strings of key/value property pairs
+     */
+    public static String[] getOvfenvPropertyStrings() {
+        final String[] cmds = {"/etc/getovfproperties", "--readCDROM"};
+        Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmds);
+        if (!result.exitedNormally() || result.getExitValue() != 0) {
+            log.error("Failed to get ovfenv properties with errcode: {}, error: {}",
+                    result.getExitValue(), result.getStdError());
+        }
+        return result.getStdOutput().split("\n");
+    }
+
+    /*
+     * Get ovfenv properties
+     * @return map of key/value property pairs
      */
     public static Map<String, String> getOvfenvProperties() {
         final String[] cmds = {GET_OVF_PROPERTY_CMD, "--readCDROM"};
@@ -46,6 +135,7 @@ public class PlatformUtils {
         }
         return propMap;
     }
+
 
     /**
      * Generate key/value pairs string for ovfenv properties
@@ -74,7 +164,7 @@ public class PlatformUtils {
         String propFilePath = "/tmp/ovf-env.properties";
         File propFile = new File(propFilePath);
         try {
-            FileUtils.writePlainFile(propFilePath, bOvfenvPropKVStr, 0);
+            FileUtils.writePlainFile(propFilePath, bOvfenvPropKVStr);
         } catch (Exception e1) {
             propFile.delete();
             log.error("Write to prop file failed with exception: {}",
@@ -121,6 +211,11 @@ public class PlatformUtils {
      * @return true if it is VMWare vapp, otherwise false
      */
     public static boolean isVMwareVapp() {
+    	if (isVMwareVapp != null) {
+    		log.info("Return value {} from cached result", isVMwareVapp.booleanValue());
+    		return isVMwareVapp.booleanValue();
+    	}
+    	
         final String[] cmd = { GET_OVF_PROPERTY_CMD, IS_VAPP };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmd);
         if (!result.exitedNormally()) {
@@ -129,10 +224,12 @@ public class PlatformUtils {
         }
         if (result.getExitValue() == 0) {
             log.info("Current platform is VMware vApp");
-            return true;
+            isVMwareVapp = Boolean.TRUE;
+            return isVMwareVapp.booleanValue();
         }
         log.info("The exit value of platform check: {}", result.getExitValue());
-        return false;
+        isVMwareVapp = Boolean.FALSE;
+        return isVMwareVapp.booleanValue();
     }
 
     /**
@@ -141,6 +238,11 @@ public class PlatformUtils {
      * @return true if it is an appliance, otherwise false(e.g.: devkit)
      */
     public static boolean isAppliance() {
+    	if (isAppliance != null) {
+    		log.info("Return value {} from cached result", isAppliance.booleanValue());
+    		return isAppliance.booleanValue();
+    	}
+    	
         final String[] cmd = { SYSTOOL_CMD, IS_APPLIANCE };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmd);
         if (!result.exitedNormally()) {
@@ -150,10 +252,12 @@ public class PlatformUtils {
         log.debug("result={}", result.toString());
         if (IS_APPLIANCE_OUTPUT.equals(result.getStdError().trim())) {
             log.info("It's an appliance");
-            return true;
+            isAppliance = Boolean.TRUE;
+            return isAppliance.booleanValue();
         }
         log.info("The output of appliance check: {}", result.getStdError());
-        return false;
+        isAppliance = Boolean.FALSE;
+        return isAppliance.booleanValue();
     }
 
     /**

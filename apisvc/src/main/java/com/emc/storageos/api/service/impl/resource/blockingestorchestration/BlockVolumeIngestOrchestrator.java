@@ -76,7 +76,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, system, vPool);
             validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
             
-            volume = createVolume(system, volumeNativeGuid, pool, virtualArray, vPool, unManagedVolume, project, autoTierPolicyId);
+            volume = createVolume(system, volumeNativeGuid, pool, virtualArray, vPool, unManagedVolume, project, tenant, autoTierPolicyId);
         } 
         
         if(volume != null) {

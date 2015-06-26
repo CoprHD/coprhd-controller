@@ -52,6 +52,7 @@ import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAd
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.management.backup.exceptions.BackupException;
 import com.emc.storageos.management.backup.exceptions.RetryableBackupException;
+import com.emc.storageos.services.util.FileUtils;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
 import com.google.common.base.Preconditions;
@@ -64,6 +65,7 @@ public class BackupOps {
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
+    private static final String BACKUP_FILE_PERMISSION = "644";
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts; 
@@ -450,6 +452,9 @@ public class BackupOps {
             properties.setProperty(BackupConstants.BACKUP_INFO_VERSION, getCurrentVersion());
             properties.setProperty(BackupConstants.BACKUP_INFO_HOSTS, getHostsWithDualInetAddrs().values().toString());
             properties.store(fos, null);
+            // Guarantee ower/group owner/permissions of infoFile is consistent with other backup files
+            FileUtils.chown(infoFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+            FileUtils.chmod(infoFile, BACKUP_FILE_PERMISSION);
         } catch (Exception ex) {
             log.error("Failed to record backup info", ex);
         }

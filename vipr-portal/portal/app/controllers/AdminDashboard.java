@@ -9,6 +9,7 @@ import static util.BourneUtil.getSysClient;
 import java.util.Date;
 import java.util.Map;
 
+import org.joda.time.DateTime;
 import jobs.PoweroffJob;
 import jobs.RebootNodeJob;
 import play.Logger;
@@ -60,6 +61,14 @@ public class AdminDashboard extends Controller {
     @Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
     public static void dbStatus() {
     	DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
+    	if(dbstatus.getLastCompletionTime() != null){
+    		DateTime endTime = new DateTime(dbstatus.getLastCompletionTime().getTime());
+    		renderArgs.put("endTime",endTime);
+    	}
+    	if(dbstatus.getStartTime()!=null){
+    		DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
+    		renderArgs.put("startTime", startTime);
+    	}
     	render(dbstatus);
     }
 

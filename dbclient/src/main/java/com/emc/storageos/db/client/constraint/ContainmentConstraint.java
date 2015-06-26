@@ -590,5 +590,10 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("snapshotId");
             return new ContainmentConstraintImpl(snapshotURI, CifsShareACL.class, field);
 		}
+        public static ContainmentConstraint getAssociatedSourceVolumeConstraint(URI sourceURI) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            ColumnField field = doType.getColumnField("associatedSourceVolume");
+            return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
+        }
     }
 }

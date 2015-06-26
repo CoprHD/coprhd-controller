@@ -4,14 +4,23 @@
  */
 package com.emc.sa.machinetags.vmware;
 
+import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.MachineTag;
+import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.machinetags.MachineTagsCollection;
+import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import org.apache.commons.lang.StringUtils;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static com.emc.sa.machinetags.vmware.DatastoreMachineTag.*;
 
 public class VMwareDatastoreTagger {
@@ -121,6 +130,25 @@ public class VMwareDatastoreTagger {
 			}
 		}
 		throw new IllegalStateException("Attempt to find a valid index to use for this datastore tag failed. All values from 1 up to Integer.MAX_VALUE are being used.");
+	}
+	
+	public static Map<String, String> getDatastoreTags(BlockObjectRestRep blockObject) {
+        Map<String, String> datastoreTags = Maps.newHashMap();
+        Set<String> volumeTags = blockObject.getTags();
+        Map<String, String> parsedTags = MachineTagUtils.parseMachineTags(volumeTags);
+                
+        for(String tag : parsedTags.keySet()) {
+            String tagValue = parsedTags.get(tag);
+            if (tag != null 
+                    && tag.startsWith(KnownMachineTags.getVmfsDatastoreTagName())) {
+                datastoreTags.put(tag, tagValue);
+            }
+        }
+        return datastoreTags;
+    }
+	
+	public static Set<String> getDatastoreNames(BlockObjectRestRep blockObject) {
+	    return Sets.newHashSet(getDatastoreTags(blockObject).values());
 	}
 	
 	private void addDatastoreTagsToFilesystem(URI filesystemId, DatastoreMachineTag tag) {

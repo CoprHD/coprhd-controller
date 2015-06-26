@@ -37,6 +37,9 @@ _get_geodbconf_props() {
             local var="_GENCONFIG_vdc_${vdc}_node_count"
             # we don't support standalone in multiple vdc
             var="_GENCONFIG_vdc_${vdc}_network_1_ipaddr"
+            if [ -z "${!var}" ]; then
+                var="_GENCONFIG_vdc_${vdc}_network_1_ipaddr6"
+            fi
             list+=" ${!var}"
         done
         IFS="${OLD_IFS}"

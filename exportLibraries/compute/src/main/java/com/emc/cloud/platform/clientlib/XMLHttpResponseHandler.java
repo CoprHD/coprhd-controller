@@ -4,15 +4,16 @@
  */
 package com.emc.cloud.platform.clientlib;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -22,6 +23,8 @@ import org.apache.http.client.ResponseHandler;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 public class XMLHttpResponseHandler<T> implements ResponseHandler<T> {
 
@@ -73,18 +76,24 @@ public class XMLHttpResponseHandler<T> implements ResponseHandler<T> {
             ins = entity.getContent();
             if (ins == null) return null;
         } else return null; 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(ins));
         try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setExpandEntityReferences(false);
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            Document document = db.parse(ins);
             Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            JAXBElement<T> jaxbElement = (JAXBElement<T>)unmarshaller.unmarshal(reader);
+            JAXBElement<T> jaxbElement = (JAXBElement<T>)unmarshaller.unmarshal(document);
             
             if(jaxbElement !=null){
-            	return jaxbElement.getValue();
+                return jaxbElement.getValue();
             }
         }catch (JAXBException e) {
-        	LOGGER.debug(e.getLocalizedMessage(),e);
-        	return null;
-		}
+            LOGGER.debug(e.getLocalizedMessage(),e);
+            return null;
+        }catch(ParserConfigurationException | SAXException ex)
+        {
+            LOGGER.error("Unable to parse XML content - {}", ex.getMessage());
+        }
         return null;
 	}
 	

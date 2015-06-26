@@ -355,26 +355,33 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             	volumesBySizeMap.put(key, currentVolumes);
 			}
             
-            targetDeviceIds = new ArrayList<String>();
-            CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, snapVolume, null);
-            for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
-            	final List<Volume> volumes = entry.getValue();
-            	final Volume volume = volumes.get(0);
-            	final URI poolId = volume.getPool();
-            	
-            	// Create target devices based on the array model
-                final List<String> newDeviceIds = kickOffTargetDevicesCreation(storage, volumeGroupPath,
-                        sourceGroupName, snapLabelToUse, createInactive, thinProvisioning, volumes.size(), poolId,
-                		volume.getCapacity(), taskCompleter);
-                
-                targetDeviceIds.addAll(newDeviceIds);
-			}
-            
-            // Create target device group
-            targetGroupPath = ReplicationUtils.createTargetDeviceGroup(storage, sourceGroupName, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath,
-                                                            SYNC_TYPE.SNAPSHOT);
-            
+            // For 8.0 providers, no need to create target devices and
+            // target group separately for volumes in CG.
+            // They will be created as part of 'CreateGroupReplica' call.
+            // For 4.6 providers, target devices and target group will be
+            // created separately before 'CreateGroupReplica' call.
+            if (!storage.getUsingSmis80()) {
+	            targetDeviceIds = new ArrayList<String>();
+	            CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, snapVolume, null);
+	            for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
+	            	final List<Volume> volumes = entry.getValue();
+	            	final Volume volume = volumes.get(0);
+	            	final URI poolId = volume.getPool();
+	            	
+	            	// Create target devices based on the array model
+	                final List<String> newDeviceIds = kickOffTargetDevicesCreation(storage, volumeGroupPath,
+	                        sourceGroupName, snapLabelToUse, createInactive, thinProvisioning, volumes.size(), poolId,
+	                		volume.getCapacity(), taskCompleter);
+	                
+	                targetDeviceIds.addAll(newDeviceIds);
+				}
+	            
+	            // Create target device group
+	            targetGroupPath = ReplicationUtils.createTargetDeviceGroup(storage, sourceGroupName, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath,
+	                                                            SYNC_TYPE.SNAPSHOT);
+            }
             // Create CG snapshot
+            
             CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName,
                     snapLabelToUse, targetGroupPath, createInactive, thinProvisioning,
                     taskCompleter, SYNC_TYPE.SNAPSHOT, _dbClient, _helper, _cimPath);
@@ -427,9 +434,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
 
             String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
-            //quick fix for correcting 000198700406+EMC_SMI_RG1430326858108 snapshotGroupName in 803+VMAX
-            if (storage.getUsingSmis80() && !storage.checkIfVmax3() && snapshotGroupName.contains("+")) {
-                snapshotGroupName = snapshotGroupName.substring(snapshotGroupName.indexOf("+")+1);            	
+            if (snapshotGroupName.contains("+")) {
+                //quick fix for correcting 000198700406+EMC_SMI_RG1430326858108 snapshotGroupName in 803+VMAX
+                if (storage.getUsingSmis80() && !storage.checkIfVmax3()) {
+                    snapshotGroupName = snapshotGroupName.substring(snapshotGroupName.indexOf("+") + 1);
+                } else { // array is not managed by SMI-S 8.0 (It can't be VMAX3 because only SMI-S 8.0 managed VMAX3 arrays)
+                    snapshotGroupName = snapshotGroupName.substring(0, snapshotGroupName.indexOf("+"));
+                }
             }
             List<BlockSnapshot> snapshotList = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
@@ -932,12 +943,26 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         _helper.getEMCResumeInputArguments(syncObject),
                         result, job);
             }
-            else {
+            else if(storage.getUsingSmis80()){
+            	/**
+            	 * VMAX2 managed by 8.* SMIS
+            	 * We need to pass Operation = 16
+            	 */
                 _helper.invokeMethodSynchronously(storage,
                         _cimPath.getControllerReplicationSvcPath(storage),
                         SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
-                        _helper.getResumeSynchronizationInputArguments(syncObject),
+                        _helper.getResumeSnapshotSynchronizationInputArguments(syncObject),
                         result, job);
+            } else{
+            	/**
+            	 * VMAX2 managed by 4.6.2 SMI provider
+            	 * We need to pass Operation = 14 
+            	 */
+            	 _helper.invokeMethodSynchronously(storage,
+                         _cimPath.getControllerReplicationSvcPath(storage),
+                         SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
+                         _helper.getResumeSynchronizationInputArguments(syncObject),
+                         result, job);
             }
         } catch (Exception e) {
             /*

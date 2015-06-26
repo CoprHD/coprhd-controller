@@ -951,9 +951,240 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorString = "Cannot have multiple user groups matching with their domain and attributes. " +
-                "Existing user group with same domain and attributes is %s";
-        partialErrorString = String.format(partialErrorString, oldName);
+        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
+
+        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+    }
+
+    @Test
+    public void testUserGroupCreationToTestNewSubGroup() {
+        final String testName = "testUserGroupCreationToTestNewSubGroup - ";
+        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+
+        UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
+
+        ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+        validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
+
+        createParam = getDefaultUserGroupCreateParam();
+        String oldName = createParam.getLabel();
+
+        //Change the name something different,
+        //so that other properties (domain and attributes) will be same.
+        //And this should give error back, saying existing user group
+        //with same domain and attributes.
+        createParam.setLabel("NewName");
+
+        createParam.getAttributes().clear();
+
+        //Attribute key 0 and value 0 is already part of the
+        //another group.
+        UserAttributeParam attributeParam = new UserAttributeParam();
+        attributeParam.setKey(getAttributeKey(0));
+        attributeParam.getValues().add(getAttributeDepartmentValue(0));
+
+        createParam.getAttributes().add(attributeParam);
+
+        clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+
+        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
+
+        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+    }
+
+    @Test
+    public void testUserGroupCreationToTestExistingSubGroup() {
+        final String testName = "testUserGroupCreationToTestExistingSubGroup - ";
+        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+
+        UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
+
+        ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+        validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
+
+        createParam = getDefaultUserGroupCreateParam();
+        String oldName = createParam.getLabel();
+
+        //Change the name something different,
+        //so that other properties (domain and attributes) will be same.
+        //And this should give error back, saying existing user group
+        //with same domain and attributes.
+        createParam.setLabel("NewName");
+
+        createParam.getAttributes().clear();
+
+        //Attribute key 0 and value 0 is already part of the
+        //another group.
+        UserAttributeParam attributeParam = new UserAttributeParam();
+        attributeParam.setKey(getAttributeKey(0));
+        attributeParam.getValues().add(getAttributeDepartmentValue(0));
+        attributeParam.getValues().add(getAttributeDepartmentValue(1));
+        attributeParam.getValues().add(getAttributeDepartmentValue(2));
+
+        createParam.getAttributes().add(attributeParam);
+
+        clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+
+        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
+
+        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+    }
+
+    @Test
+     public void testUserGroupOverlapCombinationTests1() {
+        final String testName = "testUserGroupOverlapCombinationTests1 - ";
+        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+
+        UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
+
+        ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+        validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
+
+        createParam = getDefaultUserGroupCreateParam();
+        String oldName = createParam.getLabel();
+
+        //Change the name something different,
+        //so that other properties (domain and attributes) will be same.
+        //And this should give error back, saying existing user group
+        //with same domain and attributes.
+        createParam.setLabel("NewName");
+
+        createParam.getAttributes().clear();
+
+        //Attribute key 0 and value 0 is already part of the
+        //another group.
+        UserAttributeParam attributeParam = new UserAttributeParam();
+
+        attributeParam.setKey(getAttributeKey(0));
+        attributeParam.getValues().add(getAttributeDepartmentValue(0));
+        attributeParam.getValues().add(getAttributeDepartmentValue(1));
+        attributeParam.getValues().add(getAttributeDepartmentValue(2));
+
+        createParam.getAttributes().add(attributeParam);
+
+        //Now add some random attributes that are not part of existing
+        //group. This should make the edit successful.
+        UserAttributeParam attributeParam1 = new UserAttributeParam();
+        attributeParam1.setKey("RandomKey");
+        attributeParam1.getValues().clear();
+        attributeParam1.getValues().add("RandomValue1");
+        attributeParam1.getValues().add("RandomValue2");
+
+        createParam.getAttributes().add(attributeParam1);
+
+        clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+        validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
+    }
+
+    @Test
+    public void testUserGroupOverlapCombinationTests2() {
+        final String testName = "testUserGroupOverlapCombinationTests2 - ";
+        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+
+        UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
+
+        ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+        validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
+
+        createParam = getDefaultUserGroupCreateParam();
+        String oldName = createParam.getLabel();
+
+        //Change the name something different,
+        //so that other properties (domain and attributes) will be same.
+        //And this should give error back, saying existing user group
+        //with same domain and attributes.
+        createParam.setLabel("NewName");
+
+        //Now add some random attributes that are not part of existing
+        //group. Since, we kept all the existing attributes as it is
+        //and adding this new RandomKey attribute, the existing
+        //group will be overlapping with this NewName group.
+        UserAttributeParam attributeParam1 = new UserAttributeParam();
+        attributeParam1.setKey("RandomKey");
+        attributeParam1.getValues().add("RandomValue1");
+        attributeParam1.getValues().add("RandomValue2");
+
+        createParam.getAttributes().add(attributeParam1);
+
+        clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+
+        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
+
+        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+    }
+
+    @Test
+    public void testUserGroupOverlapCombinationTests3() {
+        final String testName = "testUserGroupOverlapCombinationTests3 - ";
+        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+
+        UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
+
+        ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+        validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
+
+        createParam = getDefaultUserGroupCreateParam();
+        String oldName = createParam.getLabel();
+
+        //Change the name something different,
+        //so that other properties (domain and attributes) will be same.
+        //And this should give error back, saying existing user group
+        //with same domain and attributes.
+        createParam.setLabel("NewName");
+
+        createParam.getAttributes().clear();
+
+        //Attribute key 0 and value 0 is already part of the
+        //another group.
+        UserAttributeParam attributeParam = new UserAttributeParam();
+
+        attributeParam.setKey(getAttributeKey(0));
+        attributeParam.getValues().add(getAttributeDepartmentValue(0));
+        attributeParam.getValues().add(getAttributeDepartmentValue(1));
+        attributeParam.getValues().add(getAttributeDepartmentValue(2));
+
+        createParam.getAttributes().add(attributeParam);
+
+        //Now add some random attributes that are not part of existing
+        //group. This should make the edit successful.
+        UserAttributeParam attributeParam1 = new UserAttributeParam();
+        attributeParam1.setKey("RandomKey");
+        attributeParam1.getValues().clear();
+        attributeParam1.getValues().add("RandomValue1");
+        attributeParam1.getValues().add("RandomValue2");
+
+        createParam.getAttributes().add(attributeParam1);
+
+        clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
+        validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
+
+        //Now create a user group that will overlap with both the existing groups.
+        UserGroupCreateParam newCreateParam = getDefaultUserGroupCreateParam();
+        newCreateParam.setLabel("RandomGroup");
+
+        //Remove all the attributes.
+        newCreateParam.getAttributes().clear();
+
+        //Now add the attribute that matches with the first group.
+        UserAttributeParam firstAttribute = new UserAttributeParam();
+        firstAttribute.setKey(getAttributeKey(0));
+        firstAttribute.getValues().add(getAttributeDepartmentValue(0));
+        newCreateParam.getAttributes().add(firstAttribute);
+
+        //Now add the second attribute that matches with the second group.
+        UserAttributeParam secondAttribute = new UserAttributeParam();
+        secondAttribute.setKey("RandomKey");
+        secondAttribute.getValues().add("RandomValue1");
+        newCreateParam.getAttributes().add(secondAttribute);
+
+        clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, newCreateParam);
+
+        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s";
+        partialErrorString = String.format(partialErrorString, newCreateParam.getLabel());
 
         validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
     }
@@ -985,9 +1216,8 @@ public class ApiTest_UserGroup extends ApiTestBase {
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorString = "Cannot have multiple user groups matching with their domain and attributes. " +
-                "Existing user group with same domain and attributes is %s";
-        partialErrorString = String.format(partialErrorString, oldName);
+        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
 
         validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
     }

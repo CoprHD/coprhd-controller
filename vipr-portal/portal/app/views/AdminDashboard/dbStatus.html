@@ -9,13 +9,25 @@
             <span id="dbState" data-state=${dbstatus.status}></span>
             </dd>
           	</div>
-          	#{if dbstatus.status.toString() == 'SUCCESS'}          	
-          		<dd style="font-size: 1em;">&{'dbstatus.lastCompletionTime'} ${dbstatus?.lastCompletionTime}</dd>               	              		
+          	#{if dbstatus.status.toString() == 'SUCCESS'}
+          	#{if endTime}          	 
+    	 		<script>
+        	 		var endtime = '${endTime}';
+        	 		$('#end').append(formatDate(Date.parse(endtime), 'YYYY-MM-DD HH:mm:ss'));        	 		
+            	</script>           		
+          			<span id="end" style="font-size: 1em;">&{'dbstatus.lastCompletionTime'}</span> 
+          	#{/if}		         		              	              		
           	#{/if}
           	#{else}
           		<dd style="font-size: 1em;">${dbstatus?.progress}%</dd>
-          		#{if dbstatus.status.toString() != 'NOT_STARTED'}
-          			<dd style="font-size: 1em;">&{'dbstatus.startTime'} ${dbstatus?.startTime}</dd>
+          		#{if dbstatus.status.toString() != 'NOT_STARTED'}          		
+             		#{if startTime}
+          		<script>
+        	 		var starttime = '${startTime}';
+               		$('#start').append(formatDate(Date.parse(starttime), 'YYYY-MM-DD HH:mm:ss'));
+             	</script>
+          			<span id="start" style="font-size: 1em;">&{'dbstatus.startTime'}</span>
+          			#{/if}	
           		#{/if}
           	#{/else}
         #{/if}
@@ -26,4 +38,4 @@
       #{/else}
      </div>
      </div>
-     </div>     
+</div>

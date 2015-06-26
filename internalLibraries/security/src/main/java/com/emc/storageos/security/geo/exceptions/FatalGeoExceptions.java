@@ -188,7 +188,7 @@ public interface FatalGeoExceptions {
     public FatalGeoException remoteVDCIncompatibleVersion();
     
     @DeclareServiceCode(ServiceCode.GEOSVC_VDC_VERSION_INCOMPATIBLE)
-    public FatalGeoException remoteVDCInSmallerVersion();
+    public FatalGeoException remoteVDCInLowerVersion();
     
     @DeclareServiceCode(ServiceCode.GEOSVC_VDC_VERSION_INCOMPATIBLE)
     public FatalGeoException hasTripleVDCVersionsInFederation();

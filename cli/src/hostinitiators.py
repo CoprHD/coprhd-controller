@@ -548,6 +548,9 @@ def initiator_list(args):
                 return common.format_json_object(initiatorListDetails)
             else:
                 if(args.largetable):
+                    for item in initiatorListDetails:
+                        if(not ('initiator_node' in item) or item['initiator_node']==""):
+                            item['initiator_node']=' '
                     TableGenerator(
                         initiatorListDetails,
                         ['initiator_node',

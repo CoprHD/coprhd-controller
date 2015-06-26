@@ -42,7 +42,6 @@ public class VNXeBlockSnapshotCreateJob extends VNXeJob {
 	private static final Logger _logger = LoggerFactory.getLogger(VNXeBlockSnapshotCreateJob.class);
 	private boolean createInactive;
 	
-
 	public VNXeBlockSnapshotCreateJob(String jobId, URI storageSystemUri,
 			Boolean createInactive, TaskCompleter taskCompleter) {
 		super(jobId, storageSystemUri, taskCompleter, "createBlockSnapshot");
@@ -99,7 +98,4 @@ public class VNXeBlockSnapshotCreateJob extends VNXeJob {
             super.updateStatus(jobContext);            
         }
 	}
-	
-	
-
 }

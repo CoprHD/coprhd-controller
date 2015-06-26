@@ -265,6 +265,8 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
             else {
             	protectSourceSite = true;
             }
+        }else {
+        	protectSourceSite = true;
         }
 
         BlockVirtualPoolProtectionParam protection = virtualPool.getProtection();

@@ -66,6 +66,10 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                                 existingPortsMap, allocatedReference);
         allocated = allocatedReference[0];
         
+        for (Map.Entry<URI, Integer> entry : net2NumPortsMap.entrySet()) {
+            _log.info(String.format("Existing network %s allocated %d", entry.getKey().toString(), entry.getValue()));
+        }
+        
         // Collect all the existing initiators by network.
         Map<URI, Set<Initiator>> allInitiatorsMap = new HashMap<URI, Set<Initiator>>();
         allInitiatorsMap.putAll(existingInitiatorsMap);
@@ -425,6 +429,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                 max = (thisHost > max) ? thisHost : max;
             }
             net2MaxHostInitiators.put(net, max);
+            _log.info(String.format("Network %s max initiators per host %d", net.toString(), max));
         }
         return net2MaxHostInitiators;
     }

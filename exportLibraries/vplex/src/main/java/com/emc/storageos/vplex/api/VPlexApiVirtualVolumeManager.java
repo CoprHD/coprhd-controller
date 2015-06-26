@@ -953,13 +953,6 @@ public class VPlexApiVirtualVolumeManager {
                     VPlexApiConstants.DEVICE_PREFIX.length()));
             }
             
-            // vplex does not allow the name of the volume to be greater than 63 chars.
-    		// In the case of a distributed xtremio volume, the volume name comes 
-    		// back longer than permitted, so it needs to be truncated.
-    		if (nameBuilder.length() >= 60) {
-    			nameBuilder.setLength(55);
-    		} 
-            
             String rulesetName = VPlexApiConstants.CLUSTER_1_DETACHES;
             if (winningClusterId.equals(VPlexApiConstants.CLUSTER_2_ID)) {
                 rulesetName = VPlexApiConstants.CLUSTER_2_DETACHES;

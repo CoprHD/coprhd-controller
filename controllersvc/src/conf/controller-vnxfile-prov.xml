@@ -7,7 +7,7 @@
     <bean id="vnxcommapi" class="com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi" >
         <property name="provExecutor" ref="vnxfileprovexecutor" />
         <property name="provNamespaces" ref="provisioningnamespaces" />
-        
+        <property name="thinFsAllocPercentage" value="10" />
     </bean>
 
     <bean id="vnxfileprovexecutor"
@@ -1037,6 +1037,7 @@
     
     <bean id="vnxFileRequest" class="com.emc.storageos.plugins.metering.vnxfile.VNXFileInputRequestBuilder">
         <property name="marshaller" ref="marshaller"/>
+        <property name="timeout" value="5000" />
     </bean>
 
     <bean id="marshaller" factory-bean="jaxbContext" factory-method="createMarshaller" />

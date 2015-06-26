@@ -119,7 +119,7 @@ class VirtualPool(object):
         and displays the details of given vpool name.
         parameters
             name : Name of the VPOOL.
-            vpooltype : Type of the VPOOL { 'file', 'block' or 'object'}
+            vpooltype : Type of the VPOOL { 'file', 'block' }
         return
             returns with object contain all details of VPOOL.
         '''
@@ -474,13 +474,13 @@ class VirtualPool(object):
                      multivolconsistency, autotierpolicynames,
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
-                     thinpreallocper, frontendbandwidth, iospersec):
+                     thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport):
         '''
         This is the function will create the VPOOL with given name and type.
         It will send REST API request to ViPR instance.
         parameters:
             name : Name of the VPOOL.
-            vpooltype : Type of the VPOOL { 'file', 'block' or 'object'}
+            vpooltype : Type of the VPOOL { 'file', 'block' }
             max_snapshots: max number of native snapshots
             max_mirrors: max number of native continuous copies
         return
@@ -612,6 +612,10 @@ class VirtualPool(object):
             if(ha):
                 parms['high_availability'] = \
                     self.get_protection_entries("ha", ha)
+                    
+                if(autoCrossConnectExport is not None):
+                    parms['high_availability']['autoCrossConnectExport'] = autoCrossConnectExport
+                         
             # protection
             if(max_mirrors or rp or
                max_snapshots or srdf):
@@ -691,14 +695,14 @@ class VirtualPool(object):
             expandable, autotierpolicynames, ha, fastpolicy, minpaths,
             maxpaths, pathsperinitiator, srdfadd, srdfremove, rp_policy,
             add_rp, remove_rp, quota_enable, quota_capacity, fastexpansion,
-            thinpreallocper, frontendbandwidth, iospersec):
+            thinpreallocper, frontendbandwidth, iospersec,autoCrossConnectExport):
         '''
         This is the function will update the VPOOL.
         It will send REST API request to ViPR instance.
         parameters:
             name : Name of the VPOOL.
             label: new name of VPOOL
-            vpooltype : Type of the VPOOL { 'file', 'block' or 'object'}
+            vpooltype : Type of the VPOOL { 'file', 'block' }
             desc : Description of VPOOL
             protocol_add : Protocols to be added
             protocol_remove : Protocols to be removed
@@ -870,6 +874,8 @@ class VirtualPool(object):
         if(ha):
             parms['high_availability'] = \
                 self.get_protection_entries("ha", ha)
+            if(autoCrossConnectExport is not None):
+                parms['high_availability']['autoCrossConnectExport'] = autoCrossConnectExport    
 
         if(fastpolicy):
             if(fastpolicy.lower() == "none"):
@@ -927,7 +933,7 @@ class VirtualPool(object):
         as input and get uri of the first occurance of given VPOOL.
         paramters:
              name : Name of the VPOOL.
-             vpooltype : Type of the VPOOL { 'file', 'block' or 'object'}
+             vpooltype : Type of the VPOOL { 'file', 'block' }
         return
             return with uri of the given vpool.
         '''
@@ -1060,6 +1066,11 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='expandable',
                                metavar='<expandable>',
                                choices=VirtualPool.BOOL_TYPE_LIST)
+    create_parser.add_argument('-autoCrossConnectExport', '-acc',
+                               help='AutocrossconnectExport Enable/Disable',
+                               dest='autoCrossConnectExport',
+                               metavar='<autoCrossConnectExport>',
+                               choices=VirtualPool.BOOL_TYPE_LIST)
     create_parser.add_argument('-fastexpansion', '-fe',
                                help='Indicates that vpool volumes should ' +
                                'use concatenated meta volumes not striped',
@@ -1124,6 +1135,10 @@ def vpool_create(args):
         if (args.rp and not args.rp_policy):
             raise SOSError(SOSError.SOS_FAILURE_ERR,
                            "Please mention -rp_policy for RP")
+        
+        if (args.autoCrossConnectExport is not None and not args.ha):
+            raise SOSError(SOSError.SOS_FAILURE_ERR,
+                           "Autocrossconnection needs HA option")         
 
         obj = VirtualPool(args.ip, args.port)
         res = obj.vpool_create(args.name,
@@ -1153,7 +1168,8 @@ def vpool_create(args):
                                args.fastexpansion,
                                args.thinpreallocper,
                                args.frontendbandwidth,
-                               args.iopersec)
+                               args.iopersec,
+                               args.autoCrossConnectExport)
     except SOSError as e:
         if (e.err_code == SOSError.VALUE_ERR):
             raise SOSError(SOSError.VALUE_ERR, "VPool " + args.name +
@@ -1260,6 +1276,11 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='expandable',
                                metavar='<expandable>',
                                choices=VirtualPool.BOOL_TYPE_LIST)
+    update_parser.add_argument('-autoCrossConnectExport','-acc',
+                               help='AutocrossconnectExport Enable/Disable',
+                               metavar='<autoCrossConnectExport>',
+                               dest='autoCrossConnectExport',
+                               choices=VirtualPool.BOOL_TYPE_LIST)
     update_parser.add_argument('-fastexpansion', '-fe',
                                help='Indicates that vpool volumes should ' +
                                'use concatenated meta volumes not striped',
@@ -1343,6 +1364,9 @@ def update_parser(subcommand_parsers, common_parser):
 
 def vpool_update(args):
     try:
+        if (args.autoCrossConnectExport is not None and not args.ha):
+            raise SOSError(SOSError.SOS_FAILURE_ERR,
+                           "AutoCrossConnectExport needs HA option")
 
         if(args.label is not None or args.description is not None or
            args.protocol_add is not None or args.protocol_remove is not None or
@@ -1360,6 +1384,7 @@ def vpool_update(args):
            args.rp_policy is not None or
            args.fastexpansion is not None or
            args.thinpreallocper is not None or
+           args.autoCrossConnectExport is not None or
            args.rpadd is not None or args.rpremove is not None or
            args.quota_enable is not None or args.quota_capacity is not None or
            args.systemtype is not None or args.drivetype is not None):
@@ -1395,7 +1420,8 @@ def vpool_update(args):
                              args.fastexpansion,
                              args.thinpreallocper,
                              args.frontendbandwidth,
-                             args.iopersec)
+                             args.iopersec,
+                             args.autoCrossConnectExport)
         else:
             raise SOSError(SOSError.CMD_LINE_ERR,
                            "Please provide atleast one of parameters")

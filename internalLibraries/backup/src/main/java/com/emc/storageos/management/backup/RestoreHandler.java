@@ -17,7 +17,6 @@ package com.emc.storageos.management.backup;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.management.backup.util.ZipUtil;
-import com.emc.storageos.services.util.Exec;
 import com.google.common.base.Preconditions;
 import org.apache.commons.io.FileUtils;
 
@@ -33,11 +32,11 @@ import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.emc.storageos.services.util.FileUtils.chown;
+
 public class RestoreHandler {
 
     private static final Logger log = LoggerFactory.getLogger(RestoreHandler.class);
-    public static final String VIPR_USER = "storageos";
-    public static final String VIPR_GROUP = "storageos";
 
     private File rootDir;
     private File viprDataDir;
@@ -127,12 +126,7 @@ public class RestoreHandler {
         try {
             ZipUtil.unpack(backupArchive, viprDataDir.getParentFile());
             tmpDir.renameTo(viprDataDir);
-            String[] cmdArray = {"/bin/chown", "-R", 
-                    VIPR_USER+":"+VIPR_GROUP, viprDataDir.getAbsolutePath()};
-            Exec.Result result = Exec.sudo(BackupConstants.CMD_TIMEOUT, cmdArray);
-            if (result.execFailed() || result.getExitValue() != 0)
-                throw new IllegalStateException(String.format(
-                       "Execute command failed: %s", result));
+            chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         } finally {
             if (tmpDir.exists())
                 FileUtils.deleteQuietly(tmpDir);
@@ -174,10 +168,7 @@ public class RestoreHandler {
         if (!bootModeFile.exists()) {
             setDbStartupModeAsRestoreReinit(rootDir);
         }
-        String[] cmdArray = {"/bin/chown", VIPR_USER+":"+VIPR_USER, bootModeFile.getAbsolutePath()};
-        Exec.Result result = Exec.sudo(BackupConstants.CMD_TIMEOUT, cmdArray);
-        if (result.execFailed() || result.getExitValue() != 0)
-            throw new IllegalStateException(String.format("Execute command failed: %s", result));
+        chown(bootModeFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         log.info("Startup mode file({}) has been created", bootModeFile.getAbsolutePath());
     }
 

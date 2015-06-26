@@ -86,6 +86,27 @@ public class BackupExecutor {
         Calendar now = this.cfg.now();
         ScheduleTimeRange curTimeRange = new ScheduleTimeRange(this.cfg.interval, this.cfg.intervalMultiple, now);
         Date expected = curTimeRange.minuteOffset(this.cfg.startOffsetMinutes);
+        Date nowDate = now.getTime();
+        
+        log.info("Now is {} and expected run time is {}", 
+    			ScheduledBackupTag.toTimestamp(nowDate), 
+    			ScheduledBackupTag.toTimestamp(expected));
+        
+    	//if now is before target time && this is NOT first backup 
+        if (nowDate.before(expected) && !this.cfg.retainedBackups.isEmpty()) {
+            return false;
+        }
+        
+        Date lastBackupDateTime = this.cfg.retainedBackups.size() == 0 ? null :
+            ScheduledBackupTag.parseBackupTag(this.cfg.retainedBackups.last());
+
+        log.info("Last backup is {}, expected is {}", lastBackupDateTime == null ? "N/A" :
+            ScheduledBackupTag.toTimestamp(lastBackupDateTime),
+            ScheduledBackupTag.toTimestamp(expected));
+
+        if ( lastBackupDateTime != null && curTimeRange.contains(lastBackupDateTime) ){
+        	return false;
+        }
         
         while (!this.cfg.isAllowBackup()) {
             log.warn("Wait {} ms for the cluster is not allowed to do backup now.",
@@ -93,18 +114,7 @@ public class BackupExecutor {
             Thread.sleep(BackupConstants.SCHEDULER_SLEEP_TIME_FOR_UPGRADING);
         }
 
-        if (now.before(expected)) {
-            return false;
-        }
-
-        Date lastBackupDateTime = this.cfg.retainedBackups.size() == 0 ? null :
-                ScheduledBackupTag.parseBackupTag(this.cfg.retainedBackups.last());
-
-        log.info("Last backup is {}, expected is {}", lastBackupDateTime == null ? "N/A" :
-                ScheduledBackupTag.toTimestamp(lastBackupDateTime),
-                ScheduledBackupTag.toTimestamp(expected));
-
-        return lastBackupDateTime == null || !curTimeRange.contains(lastBackupDateTime);
+        return true;
     }
 
     private void doBackup() throws Exception {

@@ -16,6 +16,7 @@
 package com.emc.storageos.systemservices.impl.ipreconfig;
 
 import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.model.property.PropertyConstants;
@@ -29,6 +30,9 @@ import com.emc.storageos.db.common.VdcUtil;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ipreconfig.*;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +68,8 @@ public class IpReconfigManager implements Runnable {
 
     private ThreadPoolExecutor _pollExecutor;
 
+    private IpReconfigListener ipReconfigListener = null;
+
     private static Properties ovfProperties;    // local ovfenv properties
     public static void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
@@ -71,6 +77,19 @@ public class IpReconfigManager implements Runnable {
     public static Map<String, String> getOvfProperties() {
         return (Map)ovfProperties;
     }
+
+    /**
+     * Responds to connection drops / reconnects.
+     */
+    private final ConnectionStateListener _connectionListener = new ConnectionStateListener() {
+        @Override
+        public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
+            log.info("Entering stateChanged method : {}",newState);
+            if (newState == ConnectionState.CONNECTED || newState == ConnectionState.RECONNECTED) {
+                addIpreconfigListener();
+            }
+        }
+    };
 
     public IpReconfigManager() {
     }
@@ -83,6 +102,8 @@ public class IpReconfigManager implements Runnable {
     public void init() {
         loadLocalOvfProps();
         addIpreconfigListener();
+
+        _coordinator.getZkConnection().curator().getConnectionStateListenable().addListener(_connectionListener);
     }
 
     /*
@@ -104,11 +125,16 @@ public class IpReconfigManager implements Runnable {
      */
     private void addIpreconfigListener() {
         try {
-            _coordinator.getCoordinatorClient().addNodeListener(new IpReconfigListener());
+            if (ipReconfigListener != null) {
+                _coordinator.getCoordinatorClient().removeNodeListener(ipReconfigListener);
+            }
+            ipReconfigListener = new IpReconfigListener();
+            _coordinator.getCoordinatorClient().addNodeListener(ipReconfigListener);
         } catch (Exception e) {
             log.error("Fail to add node listener for ip reconfig config znode", e);
             throw APIException.internalServerErrors.addListenerFailed();
         }
+        log.info("Succeed to add node listener for ip reconfig config znode");
     }
 
     /**
@@ -158,8 +184,6 @@ public class IpReconfigManager implements Runnable {
             return;
         }
 
-
-
         expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
         if(System.currentTimeMillis() >= expiration_time) {
             // set procedure failed when it is expired
@@ -168,7 +192,7 @@ public class IpReconfigManager implements Runnable {
         }
 
         // start polling executor
-        startPollExecutor();
+        startPollExecutor();        
 
         // drive ip reconfiguration status machine
         driveIpReconfigStateMachine();
@@ -212,7 +236,7 @@ public class IpReconfigManager implements Runnable {
                     IpReconfigUtil.writeIpinfoFile(newIpinfo, IpReconfigConstants.NEWIP_PATH);
 
                     String strExpirationTime = config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY);
-                    FileUtils.writeObjectToFile(IpReconfigConstants.NEWIP_EXPIRATION, strExpirationTime);
+                    FileUtils.writeObjectToFile(strExpirationTime, IpReconfigConstants.NEWIP_EXPIRATION);
 
                     target_nodestatus = IpReconfigConstants.NodeStatus.LOCALAWARE_LOCALPERSISTENT;
                     setNodeStatus(target_nodestatus.toString());
@@ -244,7 +268,9 @@ public class IpReconfigManager implements Runnable {
                     }
                     break;
                 default:
-                    log.error("unsupported node status.");
+                    log.error("unexpected node status before reboot: {}", localnode_status);
+                    // if installer is used before the procedure finished, we will get unexpected node status
+                    setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
                     break;
             }
         } else {
@@ -270,11 +296,14 @@ public class IpReconfigManager implements Runnable {
                     }
                     break;
                 default:
-                    log.error("unsupported node status.");
+                    log.error("unexpected node status after reboot: {}", localnode_status);
+                    // if installer is used before the procedure finished, we will get unexpected node status
+                    setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
                     break;
             }
         }
     }
+
     /**
      * check the current node is read to go to next status
      * @param currNodeStatus
@@ -327,6 +356,7 @@ public class IpReconfigManager implements Runnable {
     private void setSucceed() throws Exception{
         log.info("Succeed to reconfig cluster ip!");
         setStatus(ClusterNetworkReconfigStatus.Status.SUCCEED);
+        FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
     }
 
     /**
@@ -426,6 +456,7 @@ public class IpReconfigManager implements Runnable {
          */
         @Override
         public void connectionStateChanged(State state) {
+            log.info("ipreconfig connection state changed to {}",state);
             if (state.equals(State.CONNECTED)) {
                 log.info("Curator (re)connected. Waking up the ip reconfig procedure...");
                 wakeup();
@@ -445,7 +476,7 @@ public class IpReconfigManager implements Runnable {
      * Poweroff/Reboot the node
      */
     public void halt_node(String postOperation) throws Exception {
-        Thread.sleep(3*1000);
+        Thread.sleep(6*1000);
         if (postOperation.equals("poweroff")) {
             localRepository.poweroff();
         } else {

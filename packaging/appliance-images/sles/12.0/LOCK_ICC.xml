@@ -39,7 +39,7 @@
 <target name="adg-security"                        depends="adg-security-10-8_1"/>
 <target name="adg-tools"                           depends="adg-tools-4-3_1"/>
 <target name="adg-vami25"                          depends="adg-vami25-1-2"/>
-<target name="adg_platform"                        depends="adg_platform_12_0_2_0"/>
+<target name="adg_platform"                        depends="adg_platform_12_0_3_0"/>
 <target name="adg_web-demo-conf"                   depends="adg_web-demo-conf-2-1_1"/>
 <target name="adobe-flex-dev-rt"                   depends="adobe-flex-dev-rt-3.5.0.12683-1"/>
 <target name="ant"                                 depends="ant-1.9.4-1.31_1"/>
@@ -438,6 +438,8 @@
 <target name="libsndfile1"                         depends="libsndfile1-1.0.25-21.1_2"/>
 <target name="libspeex1"                           depends="libspeex1-1.1.999_1.2rc1-22.64_1"/>
 <target name="libsqlite3-0"                        depends="libsqlite3-0-3.8.3.1-1.14_1"/>
+<target name="libtasn1"                            depends="libtasn1-3.7-4.1_1"/>
+<target name="libtasn1-6"                          depends="libtasn1-6-3.7-4.1_1"/>
 <target name="libssh2-1"                           depends="libssh2-1-1.4.3-11.1_1"/>
 <target name="libstdc++-devel"                     depends="libstdc++-devel-4.8-6.189_1"/>
 <target name="libstdc++48-devel"                   depends="libstdc++48-devel-4.8.3+r212056-6.3_1"/>
@@ -496,7 +498,7 @@
 <target name="nodejs"                              depends="nodejs-0.10.35"/>
 <target name="nodejs-0.10.35"                      depends="nodejs-0.10.35-1.1_1"/>
 <target name="nodejs-devel"                        depends="nodejs-devel-0.10.35-1.1_1"/>
-<target name="ntp"                                 depends="ntp-4.2.6p5-37.2_1"/>
+<target name="ntp"                                 depends="ntp-4.2.6p5-44.1_1"/>
 <target name="open-vm-tools"                       depends="open-vm-tools-9.4.0-9.24_1"/>
 <target name="opencsv"                             depends="opencsv-1.8-1"/>
 <target name="openrdf-sesame"                      depends="openrdf-sesame-2.6.3"/>
@@ -585,7 +587,7 @@
 <target name="python"                              depends="python-2.7"/>
 <target name="python-2.7"                          depends="python-2.7.7"/>
 <target name="python-2.7.7"                        depends="python-2.7.7-9.1_1"/>
-<target name="python-PyYAML"                       depends="python-PyYAML-3.10-12.17_1"/>
+<target name="python-PyYAML"                       depends="python-PyYAML-3.10-15.1_1"/>
 <target name="python-argparse"                     depends="python-argparse-1.2.1-15.8_1"/>
 <target name="python-base"                         depends="python-base-2.7"/>
 <target name="python-base-2.7"                     depends="python-base-2.7.7-9.3"/>

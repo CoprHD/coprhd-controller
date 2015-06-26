@@ -194,21 +194,28 @@
   #{deadbolt.restrict roles:[['SECURITY_ADMIN'],['RESTRICTED_SECURITY_ADMIN'], ['TENANT_ADMIN']]}
     #{nav.menu 'security', icon:'vipricon-security'}
       #{nav.menuSection 'nav.security'}
+
+        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
         #{nav.item 'vdcRoles', href: @auth.VDCRoleAssignments.list()/}
+        #{/deadbolt.restrict}
+
         #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
         #{nav.item 'providers', href: @auth.LDAPsources.list()/}
         #{/deadbolt.restrict}
+
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
         #{if util.VCenterUtils.checkCompatibleVDCVersion(controllers.auth.UserGroup.EXPECTED_GEO_VERSION)}
-            #{nav.item 'userGroup', href: @auth.UserGroup.list()/}
+            #{nav.item 'userGroups', href: @auth.UserGroup.list()/}
         #{/if}	
         #{/deadbolt.restrict}
+
         #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
         #{nav.item 'localPasswords', href: @infra.ConfigProperties.passwords()/}
         #{nav.item 'keystores', href: @auth.Keystores.updateCertificate()/}
         #{nav.item 'certificates', href: @auth.Certificates.list() /}
         #{/deadbolt.restrict}
-      #{/nav.menuSection} 
+
+      #{/nav.menuSection}
     #{/nav.menu}
   #{/deadbolt.restrict}
   

@@ -768,8 +768,9 @@ class Authentication(object):
         existingvalues = self.find_attribute_from_user_group(key, usergroup)
         if len(existingvalues) != 0:
             raise SOSError(SOSError.NOT_FOUND_ERR,
-                       "User Group '" +
-                       name + "' already contains attribute with key '" + key + "'.")
+                       "User Group '" + name + "' already contains attribute with key '" + key +
+                           "'. Use user-group-add-values or user-group-remove-values CLIs " +
+                           "respectively to add or remove values from an existing attribute of an User Group.")
 
         attribute = {'key' : key,
                      'values' : values.split(',')}

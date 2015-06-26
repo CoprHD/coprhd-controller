@@ -57,7 +57,7 @@ public class SoftwareUpdate {
             "</tns:downloadUpdates > " +
             "</SOAP-ENV:Body> " +
             "</SOAP-ENV:Envelope>";
-    private static final String EMC_DOWNLOAD_LOGIN_POST_CONTENT    = "auth_mode=BASIC&orig_url=&user={0}&password={1}&Submit=LOGIN";
+    private static final String EMC_SSO_AUTH_SERVICE_LOGIN_POST_CONTENT = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><user><password>{0}</password><username>{1}</username></user>";
     
     protected SoftwareUpdate() {
         
@@ -106,6 +106,6 @@ public class SoftwareUpdate {
     }
     
     public static String getDownloadLoginContent(final String username, final String encryptedPassword) throws UnsupportedEncodingException {
-        return MessageFormat.format(EMC_DOWNLOAD_LOGIN_POST_CONTENT, username, _encryptionProvider.decrypt(Base64.decodeBase64(encryptedPassword.getBytes("UTF-8"))));
+        return MessageFormat.format(EMC_SSO_AUTH_SERVICE_LOGIN_POST_CONTENT, _encryptionProvider.decrypt(Base64.decodeBase64(encryptedPassword.getBytes("UTF-8"))), username);
     }
 }

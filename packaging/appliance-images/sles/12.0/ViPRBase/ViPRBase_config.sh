@@ -87,6 +87,7 @@ fix_ifcfg
 #fix_initd_network
 fix_kiwi_storage_network
 fix_network_config
+fix_base_network_config
 fix_patches
 fix_permission
 fix_rootdir

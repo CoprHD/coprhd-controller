@@ -29,6 +29,13 @@ public class ShareFileSnapshotService extends ViPRService {
     protected FileStorageUtils.FileSystemACLs[] fileSnapshotShareACLs;
 
     @Override
+    public void precheck() throws Exception{
+        if (fileSnapshotShareACLs != null && fileSnapshotShareACLs.length > 0) {
+            fileSnapshotShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSnapshotShareACLs);
+        }
+    }
+    
+    @Override
     public void execute() {
         FileStorageUtils.shareFileSnapshot(uri(snapshotId), shareName, shareComment);
         if (fileSnapshotShareACLs != null && fileSnapshotShareACLs.length > 0) {

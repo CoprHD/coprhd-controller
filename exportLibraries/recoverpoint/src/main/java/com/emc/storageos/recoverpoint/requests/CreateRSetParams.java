@@ -49,6 +49,7 @@ public class CreateRSetParams implements Serializable {
             sb.append("\nVolumes: " + name);
             for (CreateVolumeParams volume : volumes) {
                 sb.append(volume.toString());
+                sb.append("\n");
             }
         }
         return sb.toString();

@@ -67,7 +67,6 @@ public class StoragePoolProcessor extends PoolProcessor {
     private static Logger _logger = LoggerFactory.getLogger(StoragePoolProcessor.class);
     private static final String OPERATIONAL_STATUS = "OperationalStatus";
     private static final String DEVICE_STORAGE_POOL = "DeviceStoragePool";
-    private static final String EMC_POOL_ID = "EMCPoolID";
     private static final String EMC_DRIVE_TYPE = "EMCDiskDriveType";
     private static final String MIXED_DRIVE_TYPE = "Mixed";
     private static final String SPACE_STR_DELIM = " ";
@@ -133,6 +132,10 @@ public class StoragePoolProcessor extends PoolProcessor {
                         if(DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(device.getSystemType())) {
                             addPath(keyMap, Constants.VMAXPOOLS,
                                     poolInstance.getObjectPath());
+                            if (!device.checkIfVmax3()) {
+                                addPath(keyMap, Constants.VMAX2POOLS,
+                                        poolInstance.getObjectPath());
+                            }
                         }
                         // This approach deviates from the existing built plugin framework for plugin
                         // Discovery

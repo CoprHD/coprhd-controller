@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -46,6 +44,8 @@ public class ClusterInfo extends Controller {
 	public static final int DEFAULT_PREFIX_LEN = 64;
 	
     private static String SUCCESS_KEY = "ipreconfig.successful";
+    private static String ERROR_KEY = "ipreconfig.error";
+    private static String EXCEPTION_KEY ="ipreconfig.exception";
     private static String UNSUPPORTED_KEY = "ipReconfig.notSupported";
     private static String UNSTABLE_KEY = "ipReconfig.clusterNotStable";
     private static String RECONFIGURATION_STATUS_SUCCESS = "ipreconfig.status.success";
@@ -128,18 +128,18 @@ public class ClusterInfo extends Controller {
     	final ViPRSystemClient client = BourneUtil.getSysClient();
     	final ClusterIpInfo clusterIpInfo = ipReconfigForm.getClusterIpInfo();
     	
-    	final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
-    	executor.schedule(new Runnable() {
-    	  @Override
-    	  public void run() {
-	    	try {
-	    		client.control().reconfigClusterIps(clusterIpInfo, ipReconfigForm.powerOff);
-	    	} catch (Exception e) {
-	             Logger.error(e, e.getMessage());
-	    	}
-    	  }
-    	}, 30, TimeUnit.SECONDS);
-    	flash.put("info", MessagesUtils.get(SUCCESS_KEY));
+    	try {
+    		boolean isAccepted = client.control().reconfigClusterIps(clusterIpInfo, ipReconfigForm.powerOff);
+    		if (isAccepted) {
+    			flash.put("info", MessagesUtils.get(SUCCESS_KEY));
+    		} else {
+    			flash.error(MessagesUtils.get(ERROR_KEY));
+    		}
+    	} catch (Exception e) {
+    		
+    		flash.error(MessagesUtils.get(EXCEPTION_KEY, e.getMessage()));
+			Logger.error(e, e.getMessage());
+    	}
     	clusterIpInfo(ipReconfigForm);
     }
     

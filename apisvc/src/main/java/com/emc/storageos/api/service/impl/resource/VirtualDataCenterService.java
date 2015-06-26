@@ -26,15 +26,7 @@ import java.security.KeyStoreException;
 import java.security.Principal;
 import java.security.cert.*;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
-import java.util.Properties;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Collection;
+import java.util.*;
 
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
@@ -49,6 +41,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.helpers.SecurityUtil;
 import org.apache.commons.codec.binary.Base64;
@@ -65,10 +58,6 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -112,6 +101,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.model.keystore.CertificateChain;
 import com.emc.vipr.model.keystore.KeyAndCertificateChain;
 import com.emc.vipr.model.keystore.RotateKeyAndCertParam;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Resource for VirtualDataCenter manipulation
@@ -127,6 +117,13 @@ public class VirtualDataCenterService extends TaskResourceService {
 
     @Autowired
     private Service service;
+
+    private Map<String, StorageOSUser> _localUsers;
+
+    public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
+        _localUsers = localUsers;
+    }
+
 
     private static final String EVENT_SERVICE_TYPE = "vdc";
     private static final String ROOT = "root";
@@ -433,6 +430,7 @@ public class VirtualDataCenterService extends TaskResourceService {
         _permissionsHelper.updateRoleAssignments(localVdc, changes,
                 new ZoneRoleInputFilter(rootTenant));
 
+        validateVdcRoleAssignmentChange(localVdc);
         _dbClient.updateAndReindexObject(localVdc);
 
         _auditMgr.recordAuditLog(localVdc.getId(),
@@ -442,6 +440,34 @@ public class VirtualDataCenterService extends TaskResourceService {
                 null, localVdc.getId().toString(), localVdc.getLabel(), changes);
 
         return getRoleAssignmentsResponse(localVdc);
+    }
+
+    /**
+     * restrict SecurityAdmin from dropping his own SECURITY_ADMIN role.
+     *
+     * @param vdc vdc to be persisted with the new role change
+     */
+    private void validateVdcRoleAssignmentChange(VirtualDataCenter vdc) {
+        StorageOSUser user = (StorageOSUser) sc.getUserPrincipal();
+
+        // return if user is a local user
+        if (_localUsers.keySet().contains(user.getName())) {
+            return;
+        }
+
+        if (!user.getRoles().contains(Role.SECURITY_ADMIN.name())) {
+            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+        }
+
+        // populate vdc roles to the cloned user after vdc role-assignment change.
+        // then do the check
+        StorageOSUser tempUser = user.clone();
+        tempUser.setRoles(new StringSet());
+        _permissionsHelper.populateZoneRoles(tempUser, vdc);
+        _log.info(tempUser.toString());
+        if (!tempUser.getRoles().contains(Role.SECURITY_ADMIN.name())) {
+            throw APIException.forbidden.securityAdminCantDropHisOwnSecurityAdminRole(user.getName());
+        }
     }
 
     /**

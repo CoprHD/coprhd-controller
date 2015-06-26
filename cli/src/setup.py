@@ -32,6 +32,8 @@ distutils.core.setup(
                       'volume.py',
                       'key.py',
                       'keypool.py',
+                      'keystore.py',
+                      'truststore.py',
                       'sysmanager.py',
                       'viprcli.bat',
                       'protectionsystem.py',

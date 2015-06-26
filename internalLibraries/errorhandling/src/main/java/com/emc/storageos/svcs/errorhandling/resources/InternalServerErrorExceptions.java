@@ -209,7 +209,7 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException authTimeout();
 
     @DeclareServiceCode(ServiceCode.SYS_RECOVERY_TRIGGER_FAILED)
-    public InternalServerErrorException triggerRecoveryFailed();
+    public InternalServerErrorException triggerRecoveryFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_RECOVERY_REPAIR_FAILED)
     public InternalServerErrorException nodeRepairFailed();
@@ -222,6 +222,9 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_RECOVERY_GET_LOCK_FAILED)
     public InternalServerErrorException getLockFailed();
+
+    @DeclareServiceCode(ServiceCode.SYS_RECOVERY_NEW_NODE_FAILURE)
+    public InternalServerErrorException newNodeFailureInNodeRecovery(final String nodes);
 
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);

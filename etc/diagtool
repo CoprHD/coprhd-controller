@@ -283,8 +283,8 @@ _dns_validate() {
             DNS_UNREACHABLE_SERVERS+=" ${i}" # The ping to that IP is not successful, so it's not reachable
         else
             # The R option specify the number of retry, the W option specify the waiting time for the reply
-            local response=$(host -R 3 -W 1 -t A 1.2.3.4 ${i})
-            if [[ "${response}" == *"timed out"* ]]; then
+            local response=$(host -R 3 -W 1 1.2.3.4 ${i})
+            if [[ "${response}" != *"Using domain server"* ]]; then
                 DNS_UNUSABLE_SERVERS+=" ${i}"
             else
                 DNS_VALID_SERVERS+=" ${i}"
@@ -628,6 +628,8 @@ _test_peer_synchronization() {
     
     if [ ${#peerListString} -eq 0 ]; then
         _print_status "Peer synchronization" "[No peer exists]" # Either it's a standalone node or it's a 1 node cluster
+    elif [ $NETWORK_STACK == 'IPV6_ONLY' ]; then # IPv6 requires proper fix that is dependent on ntp package upgrade
+        _print_status "Peer synchronization" "[NOT_RUN_FOR_IPV6]"
     else
         # Test if the ntp service is running        
         if [ "`ntpq -pn 2>&1`" != 'ntpq: read: Connection refused' ]; then
@@ -636,6 +638,7 @@ _test_peer_synchronization() {
             local verboseOutputlistString=""
             
             while read peer refid st t when poll reach delay offset jitter ; do
+                peer=$(echo $peer|sed 's/[^0-9]*//') # removes ntpq tally codes
                 if _inList "${peer}" ${peerListString}; then # The second quote is very important, otherwise the peers will not be passed as a whole string.
                     if [ ${reach} -eq 0 ]; then 
                         verboseOutputlistString+="${peer}=Out_of_reach "
@@ -1107,9 +1110,12 @@ _test_firewall() {
     local fstatus
     if [ -n "${firewallEnable}" ]; then
         if [ "yes" == "${firewallEnable}" ]; then
-            local serviceStatus=$(systemctl is-active SuSEfirewall2.service)
-            serviceStatus=${serviceStatus##*..}
-            fstatus="[CONFIGURED, $(echo ${serviceStatus} | tr '[:lower:]' '[:upper:]')]"
+            if $(/sbin/SuSEfirewall2 status &>/dev/null); then
+                statusStr="ACTIVE"
+            else
+                statusStr="INACTIVE"
+            fi
+            fstatus="[CONFIGURED, $(echo ${statusStr} | tr '[:lower:]' '[:upper:]')]"
         else
             fstatus="[OFF]"
         fi

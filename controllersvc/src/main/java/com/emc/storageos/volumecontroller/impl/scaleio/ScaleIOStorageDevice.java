@@ -21,6 +21,7 @@ import static java.util.Arrays.asList;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -276,12 +277,13 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         ScaleIOModifyVolumeCapacityResult result = scaleIOCLI.modifyVolumeCapacity(volume.getNativeId(), volumeSize.toString());
         if (result.isSuccess()) {
             long newSize = Long.parseLong(result.getNewCapacity());
+            volume.setProvisionedCapacity(size);
             volume.setAllocatedCapacity(newSize);
             volume.setCapacity(size);
 
             dbClient.persistObject(volume);
             ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOCLI, pool, storage);
-
+            pool.removeReservedCapacityForVolumes(Arrays.asList(volume.getId().toString()));
             taskCompleter.ready(dbClient);
         } else {
             ServiceCoded code =

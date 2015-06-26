@@ -108,6 +108,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 			newAssetOption("4096", "4k"),
 			newAssetOption("8192", "8k") );
     
+    private static List<AssetOption> ALL_BLOCKSIZE_OPTIONS = Lists.newArrayList(NTFS_OPTIONS);
+
     private static List<AssetOption> WINDOWS_FILESYSTEM_TYPES = Lists.newArrayList(
     		newAssetOption("ntfs", "ntfs"),
     		newAssetOption("fat32", "fat32") );
@@ -617,6 +619,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 	@Asset("fileSystemType")
 	public List<AssetOption> getWindowsFilesystemTypes(AssetOptionsContext context) {
 		return WINDOWS_FILESYSTEM_TYPES;
+	}
+	
+	@Asset("blockSize")
+	public List<AssetOption> getAllWindowsBlockSize(AssetOptionsContext context) {
+	    return ALL_BLOCKSIZE_OPTIONS;
 	}
 
 	@Asset("blockSize")

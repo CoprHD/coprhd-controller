@@ -108,6 +108,7 @@ public class VdcControllerImpl implements VdcController {
         // the new system properity, we shall not redo the finished steps
         ConnectVdcTaskOp vdcOp = new ConnectVdcTaskOp(dbClient, geoClientCache, helper,
                 serviceInfo, localVdc, task, (Properties)taskParams.get(0), apiSignatureGenerator, _keyStore);
+        log.info("Initialize ConnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.setBasePermissionHelper(permissionsHelper);
         vdcOp.handle();
@@ -120,6 +121,7 @@ public class VdcControllerImpl implements VdcController {
 
         RemoveVdcTaskOp vdcOp = new RemoveVdcTaskOp(dbClient, geoClientCache, helper,
                 serviceInfo, vdc, task, _keyStore);
+        log.info("Initialize RemoveVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
     }
@@ -130,6 +132,7 @@ public class VdcControllerImpl implements VdcController {
         // TODO: during update, vip change needs reboot?
         UpdateVdcTaskOp vdcOp = new UpdateVdcTaskOp(dbClient, geoClientCache, helper,
                 serviceInfo, vdcToBeUpdated, task, params, apiSignatureGenerator, _keyStore);
+        log.info("Initialize UpdateVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
     }
@@ -139,6 +142,7 @@ public class VdcControllerImpl implements VdcController {
         log.info("Starting to disconnect vdc {} info in the system, task id {}", vdcToBeDisconnected.getShortId(), task);
 
         DisconnectVdcTaskOp vdcOp = new DisconnectVdcTaskOp(dbClient, geoClientCache, helper, serviceInfo, vdcToBeDisconnected, task,_keyStore);
+        log.info("Initialize DisconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
     }
@@ -149,6 +153,7 @@ public class VdcControllerImpl implements VdcController {
 
         ReconnectVdcTaskOp vdcOp = new ReconnectVdcTaskOp(dbClient, geoClientCache, helper,
                 serviceInfo, vdcToBeReconnected, task,  _keyStore);
+        log.info("Initialize ReconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
     }

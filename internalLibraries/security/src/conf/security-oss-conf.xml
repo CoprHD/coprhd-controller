@@ -3,6 +3,8 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans  http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
+    <import resource="classpath:security-ciphers.xml" />
+
     <bean id="signAlgo" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
         <property name="targetClass"
                   value="com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHolder"/>
@@ -17,7 +19,9 @@
         <property name="arguments" value="SHA1PRNG"/>
     </bean>
 
-    <bean id="securityService" class="com.emc.storageos.security.helpers.DefaultSecurityService"/>
+    <bean id="securityService" class="com.emc.storageos.security.helpers.DefaultSecurityService" >
+        <property name="ciphers" ref="strongCiphers"/>
+    </bean>
 
     <bean id="securityUtil" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
         <property name="targetClass" value="com.emc.storageos.security.helpers.SecurityUtil"/>

@@ -42,6 +42,7 @@
           type: "choice",
           initialValue: "USER",
           select: "one",
+          required: false,
           options: {
             "USER": "User",
             "GROUP": "Group"
@@ -49,7 +50,8 @@
         },
         
         aclName:{
-          type:"text"
+          type:"text",
+          required: false
         },
                 
         aclPermission:{

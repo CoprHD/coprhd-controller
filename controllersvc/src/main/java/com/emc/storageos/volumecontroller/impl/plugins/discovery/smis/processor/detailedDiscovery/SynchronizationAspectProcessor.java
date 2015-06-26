@@ -49,7 +49,7 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
         _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
         _syncAspectMap = new HashMap<String, String>();
 
-        processResultbyChunk(operation, resultObj, keyMap);
+        processResultbyChunk(resultObj, keyMap);
         keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP,
                 _syncAspectMap);
     }

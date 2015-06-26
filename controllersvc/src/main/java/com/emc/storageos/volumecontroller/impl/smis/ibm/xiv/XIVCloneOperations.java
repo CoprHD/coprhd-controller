@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NameGenerator;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.volumecontroller.CloneOperations;
@@ -81,6 +82,9 @@ public class XIVCloneOperations implements CloneOperations {
             URI sourceVolume, URI cloneVolume, Boolean createInactive,
             TaskCompleter taskCompleter) {
         _log.info("START createSingleClone operation");
+        SmisException serviceCode = null;
+        CIMArgument[] outArgs = new CIMArgument[5];
+
         try {
             BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceVolume);
             URI tenantUri = null;
@@ -109,20 +113,34 @@ public class XIVCloneOperations implements CloneOperations {
             CIMArgument[] inArgs = _helper
                     .getCloneInputArguments(cloneLabel, sourceVolumePath,
                             storageSystem, targetPool, createInactive);
-            CIMArgument[] outArgs = new CIMArgument[5];
             _helper.callReplicationSvc(storageSystem,
                     SmisConstants.CREATE_ELEMENT_REPLICA, inArgs, outArgs);
-            _smisStorageDevicePostProcessor.processCloneCreation(storageSystem,
-                    cloneVolume, outArgs,
-                    (CloneCreateCompleter) taskCompleter);
         } catch (Exception e) {
             String errorMsg = String.format(CREATE_ERROR_MSG_FORMAT,
                     sourceVolume, cloneVolume);
             _log.error(errorMsg, e);
-            SmisException serviceCode = DeviceControllerExceptions.smis
+            serviceCode = DeviceControllerExceptions.smis
                     .createFullCopyFailure(errorMsg, e);
-            taskCompleter.error(_dbClient, serviceCode);
-            throw serviceCode;
+        } finally {
+            try {
+                // update clone and pool
+                // clone will be set to inactive if no return from provider
+                _smisStorageDevicePostProcessor.processCloneCreation(storageSystem,
+                        cloneVolume, outArgs,
+                        (CloneCreateCompleter) taskCompleter);
+            } catch (Exception e) {
+                String errorMsg = "Exception on creating clone of " + sourceVolume;
+                _log.error(errorMsg, e);
+                // set serviceCode only if no previous exception
+                if (serviceCode == null) {
+                    serviceCode = DeviceControllerExceptions.smis.createFullCopyFailure(errorMsg, e);
+                }
+            }
+
+            if (serviceCode != null) {
+                taskCompleter.error(_dbClient, serviceCode);
+                throw serviceCode;
+            }
         }
     }
 
@@ -141,6 +159,7 @@ public class XIVCloneOperations implements CloneOperations {
         // no operation, set to ready
         Volume clone = _dbClient.queryObject(Volume.class, cloneVolume);
         clone.setReplicaState(ReplicationState.DETACHED.name());
+        clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         _dbClient.persistObject(clone);
         taskCompleter.ready(_dbClient);
     }

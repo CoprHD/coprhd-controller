@@ -575,17 +575,18 @@ public class XIVSmisStorageDevicePostProcessor {
                             .format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s.",
                                     cloneVolumePath.toString(), cloneVolume
                                             .getId().toString(), deviceID));
-
+            _dbClient.persistObject(cloneVolume);
             taskCompleter.ready(_dbClient);
         } else {
             cloneVolume.setInactive(true);
+            _dbClient.persistObject(cloneVolume);
             ServiceError error = DeviceControllerErrors.smis
-                    .unableToFindSynchPath("");
-            logMsgBuilder.append("Failed due to no target element path");
-            taskCompleter.error(_dbClient, error);
+                    .unableToFindSynchPath(volumeURI.toString());
+            logMsgBuilder.append(error.getMessage());
+            _log.error(logMsgBuilder.toString());
+            throw new Exception(error.getMessage());
         }
 
-        _dbClient.persistObject(cloneVolume);
         _log.info(logMsgBuilder.toString());
     }
 

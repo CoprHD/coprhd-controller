@@ -170,8 +170,8 @@ public class RPVPlexScheduler implements Scheduler {
         	// Get the candidate source pools for the distributed cluster.  The 2 null params are ignored in the pool matching
         	// because they are used to build the HA recommendations, which will not be done if MetroPoint is enabled.
             List<StoragePool> haCandidateStoragePools = getSourceCandidatePools(haVarray, haVpool, 
-                    null, null, project, srcVpoolCapabilities);
-        	
+                    null, null, project, srcVpoolCapabilities);            
+                        
         	// MetroPoint has been enabled so we need to obtain recommendations for the primary (active) and secondary (HA/Stand-by) 
             // VPlex clusters.
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), haVarray, 
@@ -189,7 +189,7 @@ public class RPVPlexScheduler implements Scheduler {
         		_log.info(protectionRec.toString(dbClient));
         	}
         }
-        
+
         return recommendations;
     }
     
@@ -256,7 +256,7 @@ public class RPVPlexScheduler implements Scheduler {
         } 
         else {                       
             srcCandidateStoragePools = 
-                    blockScheduler.getMatchingPools(srcVarray, srcVpool, srcVpoolCapabilities);
+                    blockScheduler.getMatchingPools(srcVarray, srcVpool, srcVpoolCapabilities);            
         } 
                         
         if (srcCandidateStoragePools == null || srcCandidateStoragePools.isEmpty()) {
@@ -266,6 +266,10 @@ public class RPVPlexScheduler implements Scheduler {
                     "hold at least one resource of the requested size.",srcVarray.getLabel());
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(srcVpool.getId(), srcVarray.getId());            
         }
+        
+        // Verify that any storage pool(s) requiring a VPLEX front end for data protection have
+        // HA enabled on the vpool, if not remove the storage pool(s) from consideration.
+        srcCandidateStoragePools = recoverPointScheduler.removePoolsRequiringHaIfNotEnabled(srcCandidateStoragePools, srcVpool, RPHelper.SOURCE);
         
         return srcCandidateStoragePools;
     }
@@ -679,7 +683,7 @@ public class RPVPlexScheduler implements Scheduler {
             
             recommendations.add(primaryVPlexProtectionRec);
         }   
-         
+        
         return recommendations;
     }    
     
@@ -739,27 +743,27 @@ public class RPVPlexScheduler implements Scheduler {
     /**
      * Scheduler for a Vpool change from an unprotected VPLEX Virtual volume to a RP+VPLEX protected Virtual volume.
      *
-     * @param volume volume that is being changed to a protected vpool
+     * @param changeVpoolVolume volume that is being changed to a protected vpool
      * @param newVpool vpool requested to change to (must be protected)
      * @param protectionVarrays Varrays to protect this volume to.
      * @return list of Recommendation objects to satisfy the request
      */
-    public List<Recommendation> scheduleStorageForVpoolChangeUnprotected(Volume volume, VirtualPool newVpool,
+    public List<Recommendation> scheduleStorageForVpoolChangeUnprotected(Volume changeVpoolVolume, VirtualPool newVpool,
         List<VirtualArray> protectionVarrays, VirtualPoolChangeParam param) {
         _log.info("Schedule storage for vpool change to vpool {} for volume {}.", 
                     newVpool.getLabel() + "[" + String.valueOf(newVpool.getId()) + "]", 
-                    volume.getLabel() + "[" + String.valueOf(volume.getId()) + "]");                         
+                    changeVpoolVolume.getLabel() + "[" + String.valueOf(changeVpoolVolume.getId()) + "]");                         
         this.initResources();
         
-        VirtualArray varray = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
+        VirtualArray varray = dbClient.queryObject(VirtualArray.class, changeVpoolVolume.getVirtualArray());
 
         // Swap src and ha if the flag has been set on the vpool
         RPVPlexVarrayVpool container = this.swapSrcAndHAIfNeeded(varray, newVpool);
                 
         CapacityMatcher capacityMatcher = new CapacityMatcher();
-        Project project = dbClient.queryObject(Project.class, volume.getProject());        
+        Project project = dbClient.queryObject(Project.class, changeVpoolVolume.getProject());        
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, changeVpoolVolume.getCapacity());
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, param.getConsistencyGroup());
         
@@ -770,14 +774,14 @@ public class RPVPlexScheduler implements Scheduler {
         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
         
         // Find out how much space we'll need to fit the Journals for the source
-        long journalSize = RPHelper.getJournalSizeGivenPolicy(String.valueOf(volume.getCapacity()), container.getSrcVpool().getJournalSize(), capabilities.getResourceCount());
+        long journalSize = RPHelper.getJournalSizeGivenPolicy(String.valueOf(changeVpoolVolume.getCapacity()), container.getSrcVpool().getJournalSize(), capabilities.getResourceCount());
 
         // Make sure our pool is in this list; this is a check to ensure the pool is in our existing varray and new Vpool
         // and can fit the new sizes needed.  If it can not, send down pools that can.
         Iterator<StoragePool> iter = allMatchingPools.iterator();
         while (iter.hasNext()) {
             StoragePool pool = (StoragePool)iter.next();
-            if (pool.getId().equals(volume.getPool())) {
+            if (pool.getId().equals(changeVpoolVolume.getPool())) {
                 // Make sure there's enough space for this journal volume in the current pool; it's preferred to use it.
                 if (capacityMatcher.poolMatchesCapacity(pool, journalSize, journalSize, false, false, null)) {
                     sourcePools.add(pool);
@@ -801,16 +805,16 @@ public class RPVPlexScheduler implements Scheduler {
                 throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(container.getSrcVpool().getId(), container.getSrcVarray().getId());              
             }
         }
-        
+
         // Schedule storage based on the determined storage pools.
         List<Recommendation> recommendations = scheduleStorageSourcePoolConstraint(container.getSrcVarray(), protectionVarrays, container.getSrcVpool(), project, 
-                                                    capabilities, sourcePools, volume, param);
+                                                    capabilities, sourcePools, changeVpoolVolume, param);
         
         if (recommendations != null && !recommendations.isEmpty()) {
         	_log.info("Created VPlex Protection recommendations:\n");
         	for (Recommendation rec : recommendations) {
         		VPlexProtectionRecommendation protectionRec = (VPlexProtectionRecommendation) rec;
-        		_log.info(protectionRec.toString(dbClient));
+        		_log.info(protectionRec.toString(dbClient));        		
         	}
         }
         return recommendations;
@@ -867,6 +871,10 @@ public class RPVPlexScheduler implements Scheduler {
             }         
             
             tgtVarrayMatchingPools = blockScheduler.getMatchingPools(tgtVarray, tgtVpool, srcVpoolCapabilities);
+            
+            // Verify that any storage pool(s) requiring a VPLEX front end for data protection have
+            // HA enabled on the target vpool, if not remove the storage pool(s) from consideration.
+            tgtVarrayMatchingPools = recoverPointScheduler.removePoolsRequiringHaIfNotEnabled(tgtVarrayMatchingPools, tgtVpool, RPHelper.TARGET);             
             
             _log.info("Matched pools for target virtual array {} and target virtual pool {}:\n", 
                     tgtVarray.getLabel(), tgtVpool.getLabel());
@@ -1025,7 +1033,7 @@ public class RPVPlexScheduler implements Scheduler {
                 
         // Check to see if the user has selected that the HA Varray should be used
         // as the RP Source.               
-        if (!VirtualPool.vPoolSpecifiesMetroPoint(srcVpool) && isProtectHaSite(srcVpool)) {                                  
+        if (VirtualPool.isRPVPlexProtectHASide(srcVpool)) {                                  
             
             haVarray = dbClient.queryObject(VirtualArray.class, 
                                 URI.create(srcVpool.getHaVarrayConnectedToRp()));
@@ -1084,17 +1092,6 @@ public class RPVPlexScheduler implements Scheduler {
         
         return varrayVpool;
     }
-
-	/**
-	 * Helper method to determine if the source or ha site is specified in protection
-	 * @param srcVpool
-	 * @return
-	 */
-	public static boolean isProtectHaSite(VirtualPool srcVpool) {
-		return NullColumnValueGetter.isNotNullValue(srcVpool.getHaVarrayConnectedToRp())
-                && VirtualPool.HighAvailabilityType.vplex_distributed.name()
-                    .equals(srcVpool.getHighAvailability());
-	}
     
     public List<Recommendation> getSrcVPlexHaRecommendations() {
         return srcVPlexHaRecommendations;

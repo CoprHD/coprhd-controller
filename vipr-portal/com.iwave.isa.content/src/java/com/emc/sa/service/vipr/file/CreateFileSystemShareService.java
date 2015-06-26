@@ -36,6 +36,13 @@ public class CreateFileSystemShareService extends ViPRService {
     protected FileStorageUtils.FileSystemACLs[] fileSystemShareACLs;
 
     @Override
+    public void precheck() throws Exception{
+        if (fileSystemShareACLs != null && fileSystemShareACLs.length > 0) {
+            fileSystemShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSystemShareACLs);
+        }
+    }
+    
+    @Override
     public void execute() throws Exception {
         FileStorageUtils.createCifsShare(fileSystemId, shareName, shareComment, subDirectory);
         clearRollback();

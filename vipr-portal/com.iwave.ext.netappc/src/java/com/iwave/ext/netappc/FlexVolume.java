@@ -66,10 +66,11 @@ public class FlexVolume {
 	 * 		in conjunction with containingAggrName.
 	 * @param spaceReserve - Optional. Type of volume guarantee new volume will use. Valid
 	 * 		values are "none", "file", "volume".
+	 * @param permission - Optional. Unix permission bits in octal string format.
 	 * @return
 	 */
 	public boolean createFlexibleVolume(String containingAggrName,
-			String path, String size, String spaceReserve)
+			String path, String size, String spaceReserve, String permission)
 	{
 		NaElement elem = new NaElement("volume-create");
 		elem.addNewChild("volume", name);
@@ -87,6 +88,11 @@ public class FlexVolume {
 		if( spaceReserve != null && !spaceReserve.isEmpty()) {
 			elem.addNewChild("space-reserve", spaceReserve);
 		}
+		if( permission != null && !permission.isEmpty()) {
+			elem.addNewChild("unix-permissions", permission);
+		}
+		
+	
 		
 		try {
 			server.invokeElem(elem);

@@ -62,7 +62,7 @@ public class DriveTypeMatcher extends ConditionalAttributeMatcher {
             if (pool.getSupportedDriveTypes().contains(desiredInitialDriveType)) {
                 filteredPools.add(pool);
             } else {
-                _logger.info("Ignoring pool {} as it does not support Drive types.", pool.getId());
+                _logger.info("Ignoring pool {} as it does not support Drive types.", pool.getNativeGuid());
             }
         }
         _logger.info("Drive Type Matcher Ended : {}, {}", desiredInitialDriveType,

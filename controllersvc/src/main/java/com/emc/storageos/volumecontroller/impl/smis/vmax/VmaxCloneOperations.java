@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -108,22 +109,28 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             
             List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
             
-            targetDeviceIds = new ArrayList<String>();
-            for (Volume clone : clones) {
-                
-                final URI poolId = clone.getPool();
-                Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-                // Create target devices
-                final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(), createInactive, 
-                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper, _cimPath);
-                
-                targetDeviceIds.addAll(newDeviceIds);
+            // For 8.0 providers, no need to create target devices and
+            // target group separately for volumes in CG.
+            // They will be created as part of 'CreateGroupReplica' call.
+            // For 4.6 providers, target devices and target group will be
+            // created separately before 'CreateGroupReplica' call.
+            if (!storage.getUsingSmis80()) {
+	            targetDeviceIds = new ArrayList<String>();
+	            for (Volume clone : clones) {
+	                
+	                final URI poolId = clone.getPool();
+	                Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
+	                // Create target devices
+	                final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(), createInactive, 
+	                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper, _cimPath);
+	                
+	                targetDeviceIds.addAll(newDeviceIds);
+	            }
+	            
+	            // Create target device group
+	            targetGroupPath = ReplicationUtils.createTargetDeviceGroup(storage, sourceGroupName, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath,
+	                                                                            SYNC_TYPE.CLONE);
             }
-            
-            // Create target device group
-            targetGroupPath = ReplicationUtils.createTargetDeviceGroup(storage, sourceGroupName, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath,
-                                                                            SYNC_TYPE.CLONE);
-            
             // Create CG clone
             CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName, targetGroupLabel, targetGroupPath, createInactive, taskCompleter,
                                             SYNC_TYPE.CLONE, _dbClient, _helper, _cimPath);
@@ -212,7 +219,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 CIMObjectPath cimJob = null;
-                CIMArgument[] restoreCGSnapInput = _helper.getRestoreFromReplicaInputArgumentsWithoutForce(groupSynchronized);
+                CIMArgument[] restoreCGSnapInput = _helper.getRestoreFromReplicaInputArgumentsWithForce(groupSynchronized);
                 cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
                 
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneRestoreJob(cimJob, storage.getId(), taskCompleter)));
@@ -313,6 +320,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 _helper.callModifyReplica(storage, detachCGCloneInput);
                 List<Volume> cloneVolumes = _dbClient.queryObject(Volume.class, clones);
                 for (Volume theClone : cloneVolumes) {
+                    theClone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                     theClone.setReplicaState(ReplicationState.DETACHED.name());
                 }
                 _dbClient.persistObject(cloneVolumes);

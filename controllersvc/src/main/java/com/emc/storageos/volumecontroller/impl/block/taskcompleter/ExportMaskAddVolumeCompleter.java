@@ -65,6 +65,13 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
             if (exportMask != null && status == Operation.Status.ready) {
                 exportMask.addVolumes(_volumeMap);
                 exportGroup.addExportMask(exportMask.getId());
+                //CTRL-11544: Set the hlu in the export group too
+                for (URI boURI : _volumeMap.keySet()) {
+                    if(exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
+                        String hlu = exportMask.getVolumes().get(boURI.toString());
+                        exportGroup.addVolume(boURI, Integer.parseInt(hlu));
+                    }
+                }
                 dbClient.updateAndReindexObject(exportMask);
                 dbClient.updateAndReindexObject(exportGroup);
             }

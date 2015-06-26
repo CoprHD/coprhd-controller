@@ -42,6 +42,8 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -243,7 +245,7 @@ public class NetworkScheduler {
 					initiatorPort, storagePortWwn));
 			return null; 
 		}
-		List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet, false);
+		List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
 				
 		if (networkSystems.isEmpty()) {
 			_log.info(String.format(
@@ -253,24 +255,7 @@ public class NetworkScheduler {
 		}
 
 		// 2. Select the network system to use
-		Collections.shuffle(networkSystems);
 		NetworkSystem networkSystem = networkSystems.get(0);
-		if (networkSystems.size() > 1) {
-		    for (NetworkSystem sys : networkSystems) {
-		        List<FCEndpoint> connections = null;
-	            connections = getFCEndpointsForNetworkSystem(
-	                    sys, initiatorPort, storagePort.getPortNetworkId());
-	            for (int i= 0; i< connections.size(); i++) {
-	                if (connections.get(i).getSwitchName().contains(sys.getIpAddress())) {
-	                    //this is a direct connection, this is the switch to use
-	                    networkSystem= sys;
-	                    _log.debug("Network system {} is found to be directly connected to the storage port " +
-	                    		"and was selected.", networkSystem.getNativeGuid());
-	                    break;
-	                }
-	            }
-		    }
-		}
 		
 		// 3. identify an alternate network device, if any
         _log.debug("Network system {} was selected to be the primary network system. " +
@@ -454,13 +439,14 @@ public class NetworkScheduler {
 	 * networks.
 	 * @param iniNetwork the initiator network
 	 * @param portNetwork the storage port network 
-	 * @param remove a boolean to indicate if the operation is remove zone
 	 * @return the network systems that can be used to managed the port and initiator
 	 *         networks.
 	 */
-	private List<NetworkSystem> getZoningNetworkSystems (NetworkLite iniNetwork, 
-	        NetworkLite portNetwork, boolean remove) {
-	    List<NetworkSystem> networkSystems = new ArrayList<NetworkSystem>();
+	List<NetworkSystem> getZoningNetworkSystems (NetworkLite iniNetwork, 
+	        NetworkLite portNetwork) {
+	    List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
+	    List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
+	    List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
 	    List<URI> iniNetSys =  (iniNetwork == null ) ? 
 	        new ArrayList<URI>() : StringSetUtil.stringSetToUriList(new StringSet(iniNetwork.getNetworkSystems()));
         List<URI> portNetSys =  (portNetwork == null ) ? 
@@ -471,12 +457,31 @@ public class NetworkScheduler {
         if (iniNetSys != null) allSys.addAll(iniNetSys);
         if (portNetSys != null) allSys.addAll(portNetSys);
         if (!allSys.isEmpty()) {
-            networkSystems = _dbClient.queryObject(NetworkSystem.class, allSys);
+        	orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, allSys, true);
+        	if(!orderedNetworkSystems.isEmpty()) {
+        		for(NetworkSystem networkSystem : orderedNetworkSystems) {
+        			if(networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
+        				_log.info("Network System {} is not used as it is not registered.", networkSystem.getLabel());
+        				deRegisteredNetworkSystems.add(networkSystem);
+        			} else if(networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) || 
+        					networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString())) {
+        				_log.info("Network System {} is moved to the end of Network System list as its discovery is not successful.", networkSystem.getLabel());
+        				idleNetworkSystems.add(networkSystem);
+        			}
+        		}
+        		orderedNetworkSystems.removeAll(deRegisteredNetworkSystems);
+        		orderedNetworkSystems.removeAll(idleNetworkSystems);
+        		Collections.shuffle(orderedNetworkSystems);
+        		Collections.shuffle(idleNetworkSystems);
+        		orderedNetworkSystems.addAll(idleNetworkSystems);
+        	} else {
+        		_log.warn("Could not find any active network systems that can be used to zone.");
+        	}
         } else {
-            _log.warn("Could not find any network systems that can be used to zone.");
-            
+        	_log.warn("Could not find any network systems that can be used to zone.");
+
         }
-	    return networkSystems;
+	    return orderedNetworkSystems;
 	}
 	
 	/**
@@ -1098,7 +1103,7 @@ public class NetworkScheduler {
 	                NetworkLite portNet = getStoragePortNetwork(port);
 	                NetworkLite iniNet = BlockStorageScheduler.lookupNetworkLite(_dbClient, 
 	                        StorageProtocol.block2Transport("FC"), initiatorPort);
-	                List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet, true);
+	                List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
 	                    for (NetworkSystem ns : networkSystems) {
 	                    if (!ns.getId().equals(fabricInfo.getNetworkDeviceId())) {
 	                        fabricInfo.setAltNetworkDeviceId(ns.getId());

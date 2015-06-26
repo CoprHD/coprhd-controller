@@ -50,9 +50,9 @@ public class DbManager implements DbManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(DbManager.class);
 
     private static final int REPAIR_INITIAL_WAIT_FOR_DBSTART_MINUTES = 5;
-    // repair every 24*7 hours by default, given we do a proactive repair on start
-    // once in a week on demand should suffice
-    private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 7;
+    // repair every 24*5 hours by default, given we do a proactive repair on start
+    // once per five days on demand should suffice
+    private static final int DEFAULT_DB_REPAIR_FREQ_MIN = 60 * 24 * 5;
     private int repairFreqMin = DEFAULT_DB_REPAIR_FREQ_MIN;
 
     @Autowired
@@ -89,7 +89,8 @@ public class DbManager implements DbManagerMBean {
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
         DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
                 this.schemaUtil.isGeoDbsvc(), maxRetryTimes, crossVdc, noNewReapir);
-
+        //call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
+        runnable.preConfig();
         synchronized (runnable) {
             this.executor.submit(runnable);
             runnable.wait();
@@ -220,10 +221,11 @@ public class DbManager implements DbManagerMBean {
             DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(), this.schemaUtil.isGeoDbsvc());
 
             DbRepairStatus retState = getLastRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null, this.repairRetryTimes);
+            
 
             if (retState != null && retState.getStatus() == DbRepairStatus.Status.IN_PROGRESS) {
                 // See if current state holder is still active, if not, we need to resume it
-                String lockName = DbRepairRunnable.getLockName(this.schemaUtil.isGeoDbsvc(),  schemaUtil.getKeyspaceName());
+                String lockName = DbRepairRunnable.getLockName();
                 InterProcessLock lock = coordinator.getLock(lockName);
 
                 String currentHolder = DbRepairRunnable.getSelfLockNodeName(lock);
@@ -292,12 +294,8 @@ public class DbManager implements DbManagerMBean {
 
             log.info("Successfully decommissioned db, enable auto bootstrap and set num_token override in ZK for this node");
             DbServiceImpl.instance.setConfigValue(DbConfigConstants.AUTOBOOT, Boolean.TRUE.toString());
-            DbServiceImpl.instance.setConfigValue(DbConfigConstants.NUM_TOKENS, numTokensExpected.toString());
+            DbServiceImpl.instance.setConfigValue(DbConfigConstants.NUM_TOKENS_KEY, numTokensExpected.toString());
         }
-
-        // Whether we need to decommission or not, we should update num_token_ver to reflect we're done with num_tokens related tasks.
-        String curVer = this.coordinator.getTargetDbSchemaVersion();
-        DbServiceImpl.instance.setConfigValue(DbConfigConstants.DB_NUM_TOKEN_VERSION, curVer);
 
         return numTokensExpected != null;
     }

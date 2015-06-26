@@ -177,10 +177,32 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
+        // Verify CG volume requested count and CG snapshot
+        if (!fcSourceObjList.isEmpty()) {
+            BlockObject fcSourceObj = fcSourceObjList.get(0);
+            URI cgURI = fcSourceObj.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                URI fcSourceURI = fcSourceObj.getId();
+                if (URIUtil.isType(fcSourceURI, Volume.class)) {
+                    verifyCGVolumeRequestCount(count);
+                } else {
+                    verifyCGSnapshotRequest();
+                }
+            }
+        }
+
         // Verify full copy is supported for each full copy source object's storage pool.
         for (BlockObject fcSourceObj : fcSourceObjList) {
+            // Verify full copy is supported for each full copy 
+            // source object's storage pool. The pool could be 
+            // null when called by the VPLEX implementation.
             StoragePool storagePool = BlockFullCopyUtils.queryFullCopySourceStoragePool(fcSourceObj, _dbClient);
-            verifyFullCopySupportedForStoragePool(storagePool);
+            if (storagePool != null) {
+                verifyFullCopySupportedForStoragePool(storagePool);
+            }
+
+            // Verify the requested copy count.
+            verifyFullCopyRequestCount(fcSourceObj, count);
         }
     }
     
@@ -510,5 +532,38 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             sortedSourceObjects.add(fcSourcObjectsMap.get(fcSourceLabel));
         }
         return sortedSourceObjects;
+    }
+    
+    /**
+     * Verify the requested full copy count is valid.
+     *  
+     * @param fcSourceObj A reference to the full copy source.
+     * @param count The requested full copy count.
+     */
+    protected void verifyFullCopyRequestCount(BlockObject fcSourceObj, int count) {
+        BlockFullCopyUtils.validateActiveFullCopyCount(fcSourceObj, count, _dbClient);
+    }
+
+    /**
+     * Verify the requested full copy count for volume in CG is valid.
+     * For array where group clone is not supported, override this method in platform specific impl.
+     *
+     * @param count The requested full copy count.
+     */
+    protected void verifyCGVolumeRequestCount(int count) {
+        // We only allow you to create a single full copy at a time
+        // for volumes in a consistency group if group clone is supported.
+        if (count > 1) {
+            throw APIException.badRequests.invalidFullCopyCountForVolumesInConsistencyGroup();
+        }
+    }
+
+    /**
+     * Verify the requested full copy for snapshot of volume in CG.
+     * For array where group clone is not supported, override this method in platform specific impl.
+     */
+    protected void verifyCGSnapshotRequest() {
+        // We don't support creating full copies of snapshots in consistency groups.
+        throw APIException.badRequests.fullCopyNotSupportedForConsistencyGroup();
     }
 }

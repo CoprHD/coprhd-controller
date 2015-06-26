@@ -48,7 +48,7 @@ public class NetAppClusterApi {
     
     private static final String VOL_ATTR_NAME = "Name";
     private static final String VOL_ATTR_RESULT_NAME = "name";
-    
+    private static final String VOL_PERMISSION = "0777";
     private static final String VOL_ROOT       = "/vol/";
     public String NetBIOSName;
     
@@ -126,7 +126,7 @@ public class NetAppClusterApi {
 	    if(isThin)
 	    	spaceReserve = "none";
 		Boolean status = netAppClusterFacade.createFlexibleVolume(volName, aggregate,
-				path, size, spaceReserve);
+				path, size, spaceReserve, VOL_PERMISSION);
 		if (status) {
 			Collection<String> attrs = new ArrayList<String>();
 			attrs.add(VOL_ATTR_NAME);
@@ -789,7 +789,7 @@ public class NetAppClusterApi {
             
             // Modify the quota
             if (size > 0) {
-            	netAppClusterFacade.modifyDiskLimitTreeQuota(volumeName, qtreePath, size/SIZE_KB, 0);
+            	netAppClusterFacade.setDiskLimitTreeQuota(volumeName, qtreePath, size/SIZE_KB, 0);
             	try {
                 	QuotaStatus quotaStatus = netAppClusterFacade.getQuotaStatus(volumeName);
                 	if(quotaStatus.OFF ==quotaStatus ){

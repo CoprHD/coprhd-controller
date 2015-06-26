@@ -25,8 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import charvax.swing.JTextField;
 
-import com.emc.storageos.services.data.Configuration;
-import com.emc.storageos.services.util.InstallerUtil;
+import com.emc.storageos.installer.util.InstallerUtil;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.installer.widget.TextInputPanel;
 
 /**
@@ -116,10 +116,9 @@ public class NetworkConfigController implements IConfigPanelController {
 		if (totalErrList != null && !totalErrList.isEmpty()) {
 		    log.warn("Invalid network parameter entered: {}", totalErrList);
 			err = totalErrList.toArray(new String[totalErrList.size()]);
-		} else { 
-			config.setIpv4NetworkConfig(ipv4Map);
-			config.setIpv6NetworkConfig(ipv6Map);
-			log.info("saving network settings ipv4: {}, ipv6: {}", ipv4Map, ipv6Map);
+		} else {
+			config.setIpv4NetworkConfig(InstallerUtil.convertIpv4DisplayNameToPropertyKey(ipv4Map));
+			config.setIpv6NetworkConfig(InstallerUtil.convertIpv6DisplayNameToPropertyKey(ipv6Map));
 		}
 		return err;
 	}

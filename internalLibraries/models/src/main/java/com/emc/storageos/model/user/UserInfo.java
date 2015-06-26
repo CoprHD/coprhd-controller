@@ -16,6 +16,7 @@ public class UserInfo {
     private String commonName;
     private String distinguishedName;
     private String tenant;
+    private String tenantName;
     private List<String> vdcRoles;
     private List<String> homeTenantRoles;
     private List<SubTenantRoles> subTenantRoles;
@@ -46,6 +47,14 @@ public class UserInfo {
 
     public void setTenant(String tenant) {
         this.tenant = tenant;
+    }
+
+    public String getTenantName() {
+        return tenantName;
+    }
+
+    public void setTenantName(String tenantName) {
+        this.tenantName = tenantName;
     }
 
     @XmlElementWrapper(name = "vdc_roles")

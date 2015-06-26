@@ -169,6 +169,14 @@ public class ReplicationUtils {
         ReplicationSettingBuilder builder = new ReplicationSettingBuilder(storage, helper, cimPath);
 
         builder.addConsistentPointInTime();
+        
+        // For 4.6 provider, we are creating target devices and target group before 
+        // calling 'CreateGroupReplica'. We need to create new target devices while
+        // creating group replica only for 8.0 provider.
+        if (storage.getUsingSmis80()) {
+        	builder.addCreateNewTarget();
+        }
+        
         if (thinProvisioning) {
             builder.addVPSnap();
         }

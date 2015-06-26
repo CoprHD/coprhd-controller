@@ -118,9 +118,19 @@ public class PropertiesConfigurationValidator {
     private String validateProperty(String propertyName, String propertyValue,
                                     PropertyMetadata metaData, boolean bReset) {
 
-    	// Remove leading and trailing spaces and newlines
-    	propertyValue = propertyValue.trim();
-    	
+        //If the property is not the encrypted string, trip the leading
+        //and trailing whitespaces. That is because, the propertyValue
+        //(type encryptedstring or encryptedtext) contains the plain text
+        //at this point, so trimming it will remove the whitespaces from
+        //what actually user entered. Where that should not be removed
+        //until they are encrypted. The base64.encrypt() will take care
+        //that.
+        if (!(ENCRYPTEDSTRING.equalsIgnoreCase(metaData.getType()) ||
+                ENCRYPTEDTEXT.equalsIgnoreCase(metaData.getType()))) {
+            // Remove leading and trailing spaces and newlines
+            propertyValue = propertyValue.trim();
+        }
+
         // Minimum Length Check
         if (metaData.getMinLen() != null) {
             if (!validateLength(propertyValue, metaData.getMinLen(), PROP_LENGTH.MIN)) {

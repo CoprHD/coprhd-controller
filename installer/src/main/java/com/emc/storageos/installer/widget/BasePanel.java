@@ -16,7 +16,7 @@ package com.emc.storageos.installer.widget;
 
 import java.util.Map;
 
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerConstants;
 
 import charva.awt.BorderLayout;
 import charvax.swing.JLabel;

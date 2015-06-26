@@ -14,6 +14,17 @@
  */
 package com.emc.storageos.dbutils;
 
+import java.io.File;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.attribute.GroupPrincipal;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.UserPrincipal;
+import java.nio.file.attribute.UserPrincipalLookupService;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +68,12 @@ public class Main {
     
     private static DBClient _client = null;
 
+    private static final String LOG_FILE_PATH = "/opt/storageos/logs/dbutils.log";
+    private static final String PID_FILE_PATH = "/var/run/storageos/dbutils.pid";
+    private static final String STORAGEOS_USER = "storageos";
+    private static final String STORAGEOS_GROUP = "storageos";
+    private static final String SKIP_MIGRATION_CHECK = "-bypassMigrationCheck";
+
     /**
      * Dump usage
      */
@@ -99,7 +116,10 @@ public class Main {
                 Command.CHECK_DB.name().toLowerCase());
         System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]\n",
                 Command.REPAIR_DB.name().toLowerCase());
-
+        System.out.printf("\t\tNote: %s option can only be executed as %s user\n",
+                Command.REPAIR_DB.name().toLowerCase(), STORAGEOS_USER);
+        System.out.printf("\t -bypassMigrationCheck\n");
+        System.out.printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option");
     }
 
     /**
@@ -112,12 +132,48 @@ public class Main {
         System.exit(0);
     }
 
+    private static void deleteDbutilsPidFile() {
+        File dbutilsPidFile = new File(PID_FILE_PATH);
+        boolean delStatus = false;
+        try {
+            if (dbutilsPidFile.exists()) {
+                delStatus = dbutilsPidFile.delete();
+            }
+        } catch (SecurityException e) {
+            if(delStatus == false) {
+                log.warn("Failed to delete dbutils pid file: {}", dbutilsPidFile.getPath());
+            }
+        }
+    }
+
+    private static void changeLogFileOwner() throws Exception {
+        File f = new File(LOG_FILE_PATH);
+        if(f.exists()) {
+            PosixFileAttributeView dbutilsLogFile = Files.getFileAttributeView(f.toPath(),
+                    PosixFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
+            UserPrincipalLookupService lookupService = FileSystems.getDefault().getUserPrincipalLookupService();
+            UserPrincipal storageosUser = lookupService.lookupPrincipalByName(STORAGEOS_USER);
+            GroupPrincipal storageosGroup = lookupService.lookupPrincipalByGroupName(STORAGEOS_GROUP);
+            dbutilsLogFile.setOwner(storageosUser);
+            dbutilsLogFile.setGroup(storageosGroup);
+        }
+    }
+
     public static void main(String[] args) throws Exception {
+        deleteDbutilsPidFile();
+        changeLogFileOwner();
         if (args.length == 0 ) {
             usage();
             return;
         }
 
+        boolean skipMigrationCheck = skipMigrationCheck(args); 
+        //it's a hack of passed arg since we already hard-coded 
+        //parameter position in args array.
+        if (skipMigrationCheck){
+        	args = removeMigrationCheckArg(args);
+        }
+        
         Command cmd;
         try {
             cmd = Command.valueOf(args[0].trim().toUpperCase());
@@ -128,11 +184,15 @@ public class Main {
         }
 
         if (cmd == Command.REPAIR_DB) {
+            if(!System.getProperty("user.name").equals(STORAGEOS_USER)) {
+                System.err.println("Please su to storageos user to do \"db repair\" operation");
+                System.exit(1);
+            }
             System.exit(CommandHandler.repairDb(args));
         }
 
         try {
-            _client = new DBClient();
+            _client = new DBClient(skipMigrationCheck);
 
             CommandHandler handler = null;
             boolean result = false;
@@ -198,4 +258,24 @@ public class Main {
             stop();
         }
     }
+
+	private static String[] removeMigrationCheckArg(String[] args) {
+		List<String> tmpArgs = new ArrayList<String>();
+		for (String arg : args) {
+			if (arg!=null && arg.equals(SKIP_MIGRATION_CHECK)) {
+				continue;
+			}
+			tmpArgs.add(arg);
+		}
+		return tmpArgs.toArray(new String[tmpArgs.size()]);
+	}
+
+	private static boolean skipMigrationCheck(String[] args) {
+		for (String arg : args){
+			if (arg!=null && arg.equals(SKIP_MIGRATION_CHECK)) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

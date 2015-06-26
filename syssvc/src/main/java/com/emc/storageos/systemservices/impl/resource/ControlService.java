@@ -320,10 +320,10 @@ public class ControlService {
     @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public Response powerOffCluster(@QueryParam("force") String forceSet) throws Exception {
-        _log.info("Poweroff cluster");
+        _log.debug("Poweroff cluster");
 
         PowerOffState.State targetPoweroffState = _coordinator.getTargetInfo(PowerOffState.class).getPowerOffState();
-        _log.error("Current target poweroff state is: " + targetPoweroffState.toString());
+        _log.info("Current target poweroff state is: {}", targetPoweroffState.toString());
         if (targetPoweroffState.equals(PowerOffState.State.FORCESTART) || targetPoweroffState.equals(PowerOffState.State.START)) {
             return Response.status(Response.Status.CONFLICT).entity("A poweroff proccess is in progress, cannot accept another poweroff request.").build();
         }
@@ -390,7 +390,7 @@ public class ControlService {
             auditControl(OperationTypeEnum.RECOVER_NODES, AuditLogManager.AUDITLOG_SUCCESS, null);
         } catch (Exception e) {
             auditControl(OperationTypeEnum.RECOVER_NODES, AuditLogManager.AUDITLOG_FAILURE, null);
-            throw APIException.internalServerErrors.triggerRecoveryFailed();
+            throw APIException.internalServerErrors.triggerRecoveryFailed(e.getMessage());
         }
          _log.info("Accepted the cluster recovery request");
         return Response.status(Response.Status.ACCEPTED).build();

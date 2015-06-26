@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshot;
@@ -485,6 +486,21 @@ public class FileStorageUtils {
     
     public static List<ExportRule> getFileSnapshotExportRules(URI fileSnapshotId, Boolean allDir, String subDir) {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
+    }
+    
+    public static FileSystemACLs[] clearEmptyFileACLs(FileSystemACLs[] fileACLs) {
+        List<FileStorageUtils.FileSystemACLs> toRemove = new ArrayList<FileStorageUtils.FileSystemACLs>();
+        for (FileStorageUtils.FileSystemACLs acl : fileACLs) {
+            if (acl.aclName != null && acl.aclName.isEmpty()) {
+                toRemove.add(acl);
+            }
+        }
+        
+        for (FileStorageUtils.FileSystemACLs element : toRemove) {
+            fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
+        }
+        
+        return fileACLs;
     }
     
     public static class FileSystemACLs {

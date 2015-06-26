@@ -56,6 +56,8 @@ public class VPlexApiConstants {
     // Constants defining HTTP resource paths.
     public static final String WILDCARD = "*";
     public static final String SLASH = "/";
+    public static final String EQUALS = "=";
+    public static final String QUESTION_MARK = "?";
     public static final String VPLEX_PATH = "/vplex";
     public static final URI URI_MANAGEMENT_SERVER = URI.create("/vplex/management-server/");
     public static final URI URI_ENGINES = URI.create("/vplex/engines/");
@@ -113,6 +115,7 @@ public class VPlexApiConstants {
     public static final URI URI_ADD_VOLUMES_TO_CG = URI.create("/vplex/consistency-group+add-virtual-volumes");
     public static final URI URI_REMOVE_VOLUMES_FROM_CG = URI.create("/vplex/consistency-group+remove-virtual-volumes");
     public static final URI URI_CGS = URI.create("/consistency-groups/");
+    public static final URI URI_CGS_ADVANCED = URI.create("/advanced");
     public static final URI URI_DELETE_CG = URI.create("/vplex/consistency-group+destroy");
     public static final URI URI_LOGICAL_UNITS = URI.create("/logical-units/");
     public static final URI URI_FORGET_LOG_UNIT = URI.create("/vplex/logical-unit+forget");
@@ -137,6 +140,7 @@ public class VPlexApiConstants {
     public static final String REBUILD_STATUS_DONE = "done";
     public static final String REBUILD_STATUS_ERROR = "error";
     public static final String ATTRIBUTE_CG_RP_ENABLED="recoverpoint-enabled";
+    public static final String ATTRIBUTE_CG_AUTO_RESUME="auto-resume-at-loser";
     public static final String EXCEPTION_MSG_JSON_KEY = "exception";
     
     // Constant defines the JSON key for arguments passed as POST data in
@@ -169,8 +173,13 @@ public class VPlexApiConstants {
     public static final String ARG_APPC = "--appc";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
     
-    // Prefix prepended to claimed storage volume.
+    // Constants related to claimed storage volumes.
     public static final String VOLUME_NAME_PREFIX = "V";
+    public static final int MAX_VOL_NAME_LENGTH = 27;
+    public static final String DOT_OPERATOR = ".";
+    public static final String UNDERSCORE_OPERATOR = "_";
+    public static final String PLUS_OPERATOR = "+";
+    public static final String HYPHEN_OPERATOR = "-";
     
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";

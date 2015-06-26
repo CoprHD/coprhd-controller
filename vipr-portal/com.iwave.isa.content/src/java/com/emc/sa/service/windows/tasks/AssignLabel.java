@@ -18,7 +18,7 @@ public class AssignLabel extends WindowsExecutionTask<Void> {
     public AssignLabel(String disk, String fsType, String label) {
         this.disk = disk;
         this.label = WindowsUtils.normalizeDriveLabel(fsType, label);
-        provideDetailArgs(disk, label);
+        provideDetailArgs(this.disk, this.label);
     }
 
     @Override

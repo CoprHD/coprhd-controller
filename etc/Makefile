@@ -59,7 +59,6 @@ ETCFILES_COMMON = \
     $(ETCDIR)/ovf-env.README \
     ${ETCDIR}/getnic \
     $(ETCDIR)/cron.hourly/cleanup_logs \
-    $(ETCDIR)/cron.hourly/vipr_backup_zk \
     $(ETCDIR)/storageos/storageos \
     $(ETCDIR)/storageos/syncntp \
     $(ETCDIR)/storageos/installer \

@@ -50,13 +50,12 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.google.common.base.Splitter;
 
 public abstract class StorageProcessor extends PoolProcessor {
     private Logger _logger = LoggerFactory.getLogger(StorageProcessor.class);
-    private List<Object> _args;
+    protected List<Object> _args;
     protected static final String EMC_IS_MAPPED = "EMCSVIsMapped";
     protected static final String EMC_RAID_LEVEL = "SSElementName";
     protected static final String EMC_RECOVERPOINT_ENABLED = "EMCSVRecoverPointEnabled";
@@ -66,6 +65,8 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected static final String POLICYRULENAME = "PolicyRuleName";
     protected static final String EMC_DISK_TECHNOLOGY = "DiskTechnology";
     protected static final String EMC_SYSTEM_TYPE = "SystemType";
+    protected static final String EMC_SPACE_CONSUMED = "EMCSpaceConsumed";
+    protected static final String SPACE_CONSUMED = "SpaceConsumed";
     protected static final String EMC_ALLOCATED_CAPACITY = "AFSPSpaceConsumed";
     protected static final String EMC_PROVISIONEDCAPACITY = "ProvisionedCapacity";
     protected static final String EMC_TOTAL_CAPACITY = "TotalCapacity";
@@ -97,6 +98,17 @@ public abstract class StorageProcessor extends PoolProcessor {
     protected static final String SYNC_TYPE_MIRROR = "6";
     protected static final String SYNC_TYPE_SNAPSHOT = "7";
     protected static final String SYNC_TYPE_CLONE = "8";
+
+    protected static final String SYMM_CLASS_PREFIX = "Symm_";
+
+    protected static final String VOLUME = "Volume";
+    protected static final String BLOCK_SNAPSHOT = "BlockSnapshot";
+    protected static final String BLOCK_MIRROR = "BlockMirror";
+
+    protected static final String TWELVE = "12";
+    protected static final String EIGHT = "8";
+
+    protected static final String DEPENDENT = "Dependent";
 
     /**
      * get UnManaged Volume Object path
@@ -609,11 +621,8 @@ public abstract class StorageProcessor extends PoolProcessor {
         }
     }
 
-    
-
     @SuppressWarnings("unchecked")
-    protected void processResultbyChunk(Operation operation, Object resultObj,
-            Map<String, Object> keyMap) {
+    protected void processResultbyChunk(Object resultObj, Map<String, Object> keyMap) {
         CloseableIterator<CIMInstance> instances = null;
         EnumerateResponse<CIMInstance> instChunks = null;
         CIMObjectPath objPath = null;
@@ -658,6 +667,24 @@ public abstract class StorageProcessor extends PoolProcessor {
 
     protected String getSyncAspectMapKey(String srcObjPath, String elementName) {
         return srcObjPath + Constants.COLON + elementName;
+    }
+
+    protected String getAllocatedCapacity(CIMInstance volumeInstance,
+            Map<String, String> volumeToSpaceConsumedMap, boolean isVMAX3) {
+        String spaceConsumed = null;
+
+        if (isVMAX3) {
+            spaceConsumed = getCIMPropertyValue(volumeInstance,
+                    EMC_SPACE_CONSUMED);
+        } else {
+            String volPath = volumeInstance.getObjectPath().toString();
+            spaceConsumed = volumeToSpaceConsumedMap.get(volPath);
+            if (spaceConsumed == null) {
+                _logger.warn("Fail to get SpaceConsumed for {}", volPath);
+            }
+        }
+
+        return spaceConsumed;
     }
 
     @Override

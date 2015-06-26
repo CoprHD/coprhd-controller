@@ -31,6 +31,8 @@ public class ViPRProxyUser {
             throw new IllegalArgumentException("Proxy user password is not set");
         }
         String password = encryptionProvider.decrypt(Base64.decodeBase64(encryptedPassword));
+        client.getClient().setUsername(PROXY_USER);
+        client.getClient().setPassword(password);
         return client.login(PROXY_USER, password);
     }
 

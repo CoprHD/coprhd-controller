@@ -4,7 +4,22 @@
   #{set 'moreScripts'}
     #{get 'moreScripts'/}
     <script type="text/javascript">
+    	function showPwValidRules(){
+    		if($('#clusterInfo').length > 0){
+    			$('#alerts_info').hide();
+    		}else{
+    			$('#alerts_info').show();
+    	 		if($('#alerts_info .message').html() == ''){
+    	 			$.post("@{getPasswordValidPromptRule}",function(result) {
+       	 				$('#alerts_info .message').append(result);
+       	 			}).fail(function() {
+           	 			$('#alerts_info').hide();
+        	 		 });
+    	 		}
+    		}
+     	}
         $(document).ready(function() {
+        	showPwValidRules();
         	validatePasswordStrength('passwordForm_newPassword','@{validatePasswords}','${session.authenticityToken}');
             validateConfPwField('passwordForm_newPassword','passwordForm_confirmPassword');
         });
@@ -28,7 +43,7 @@
   #{alerts/}
   %{ unstable = clusterInfo?.isNotStable() }%
   #{if unstable}
-    <div class="alert alert-info">
+    <div id="clusterInfo" class="alert alert-info">
       <span id="clusterState" data-state="${clusterInfo.currentState}" style="margin-right: 1em;"></span>
       &{'configProperties.passwordChange.clusterNotStable'}
     </div>

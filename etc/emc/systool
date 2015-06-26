@@ -164,10 +164,10 @@ _bootfs_mount_rw() {
     elif ! _ismounted    "${bootfs_dev}" "${bootfs_mntp}" ; then
        mkdir -p "${bootfs_mntp}"
        mount -n -t ext3 -o rw,noatime,barrier=1 "${bootfs_dev}" "${bootfs_mntp}"
-       if [ "${1}" != "no" ] ; then _set_on_exit _bootfs_mount_ro ; fi
+       if [ "${1}" != "no" ] ; then _set_on_exit _bootfs_mount_ro ; umask 022 ; fi
     elif ! _ismounted_rw "${bootfs_dev}" "${bootfs_mntp}" ; then
        mount -n -o remount,rw,noatime,barrier=1 "${bootfs_dev}" "${bootfs_mntp}"
-       if [ "${1}" != "no" ] ; then _set_on_exit _bootfs_mount_ro ; fi
+       if [ "${1}" != "no" ] ; then _set_on_exit _bootfs_mount_ro ; umask 022 ; fi
     fi
 }
 
@@ -286,8 +286,8 @@ _install() {
     [ ! -e "${bootfs_dir}"   ] || _fatal "${bootfs_dir}: File exists"
 
     # Install
-    mkdir -p -m 755 "${bootfs_dir}"
-    cp -p "${rootimg_file}" "${bootfs_dir}/${bootfs_rootimg}"
+    mkdir -p "${bootfs_dir}"
+    cp -p --no-preserve=mode "${rootimg_file}" "${bootfs_dir}/${bootfs_rootimg}"
     echo ${title}
 }
 

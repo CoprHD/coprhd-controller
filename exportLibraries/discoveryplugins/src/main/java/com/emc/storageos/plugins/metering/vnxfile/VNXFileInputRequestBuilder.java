@@ -43,6 +43,16 @@ public class VNXFileInputRequestBuilder {
             .getLogger(VNXFileInputRequestBuilder.class);
 
 	private Marshaller _marshaller = null;
+	
+	private String _timeout;
+	
+	public void setTimeout(final String timeoutStr){
+		_timeout = timeoutStr;
+	}
+	
+	public String getTimeout(){
+		return _timeout;
+	}
 
 	/**
 	 * Marshal the RequestPacket java object for the given QueryStats
@@ -180,7 +190,14 @@ public class VNXFileInputRequestBuilder {
 
         try {
             Task task = (Task)taskParam;
-            task.setTimeout(3000L);
+            Long timeout = 3000L;
+            String timeoutStr = getTimeout();
+            _logger.info("Time out value " + timeoutStr);
+            if(timeoutStr != null && !timeoutStr.isEmpty()){
+            	timeout = Long.parseLong(timeoutStr);
+            }
+            task.setTimeout(timeout);
+            
 
             Request request = new Request();
             request.setStartTask(task);

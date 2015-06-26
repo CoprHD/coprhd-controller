@@ -19,7 +19,6 @@ import play.mvc.Util;
 import util.BourneUtil;
 import util.MessagesUtils;
 
-import javax.inject.Inject;
 import java.net.URLEncoder;
 import java.util.List;
 
@@ -184,8 +183,8 @@ public class Security extends Controller {
     @Util
     public static void clearAuthToken() {
         clearUserInfo();
-        response.removeCookie(AUTH_PORTAL_TOKEN_KEY);
-        response.removeCookie(AUTH_TOKEN_KEY);
+        removeResponseCookie(AUTH_PORTAL_TOKEN_KEY);
+        removeResponseCookie(AUTH_TOKEN_KEY);
     }
 
     @Util static void clearSession() {
@@ -303,5 +302,21 @@ public class Security extends Controller {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    /***
+     * Removes the session cookie from the response by
+     * setting the cookie value with "" and path with "/".
+     * We could have used play framework's Http.Response.removeCookie()
+     * only but the reason for not using that is,
+     * Http.Response.removeCookie() sets the HttpOnly and secure
+     * attributes of the cookie to false and that could lead to
+     * XSS.
+     *
+     * @param name of the cookie to be removed from the response.
+     */
+    @Util
+    private static void removeResponseCookie(String name) {
+        response.setCookie(name, "", null, "/", 0, true, true);
     }
 }

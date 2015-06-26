@@ -51,7 +51,9 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
 
     @Override
     protected void process() {
+        log.info("Start disconnect vdc");
         loadVdcInfo();
+        log.info("Load vdc info is done");
         preCheck();
         disconnectVdc();
         log.info("Disconnect vdc done");

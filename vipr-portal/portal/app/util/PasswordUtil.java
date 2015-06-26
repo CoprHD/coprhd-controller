@@ -5,12 +5,18 @@
 package util;
 
 import java.security.SecureRandom;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.Crypt;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 
 import com.emc.storageos.db.client.model.EncryptionProvider;
+import com.emc.storageos.security.password.Constants;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.util.concurrent.ExecutionError;
@@ -175,6 +181,28 @@ public class PasswordUtil {
         return value;
     }
 
+    
+    public static String getPasswordValidPromptRules(String[][] PASSWORD_VALID_PROMPT) {
+    	ViPRSystemClient client = BourneUtil.getSysClient();
+        List<String> promptRules = new ArrayList<String>();
+        StringBuilder promptString = new StringBuilder();
+        Map<String, String> properties = client.config().getProperties().getProperties();
+        for (int i=0; i< PASSWORD_VALID_PROMPT.length; i++) {
+            String key = PASSWORD_VALID_PROMPT[i][0];
+            String value = properties.get(key);
+            if (NumberUtils.toInt(value) != 0) {
+                promptRules.add(MessageFormat.format(PASSWORD_VALID_PROMPT[i][1],value));
+            }
+        }
+        promptString.append("<p>Password Validation Rules:</p>");
+        promptString.append("<ul>");
+        for (String item : promptRules) {
+            promptString.append("<li>").append(item).append("</li>");
+        }
+        promptString.append("</ul>");
+        return promptString.toString();
+    }
+    
     /**
      * Generate a random salt
      */

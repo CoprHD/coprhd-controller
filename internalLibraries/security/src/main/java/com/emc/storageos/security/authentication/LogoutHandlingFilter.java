@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.security.exceptions.SecurityException;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.net.InetAddresses;
 
@@ -69,7 +70,7 @@ public class LogoutHandlingFilter extends AbstractRequestWrapperFilter {
                 redirectURL = RequestProcessingUtils.getOnNodeAuthsvcRedirectURL(req, endpoint);
             }
             redirectURL.append("/logout");
-            String queryString = req.getQueryString();
+            String queryString = SecurityUtils.stripXSS(req.getQueryString());
             if (queryString != null && !queryString.isEmpty()) {
                 redirectURL.append("?" + queryString);
             }

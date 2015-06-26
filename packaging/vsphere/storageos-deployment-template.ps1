@@ -123,6 +123,9 @@ $Script:acceptAllEulas=$false
 $Script:savedUri=""
 $Script:isCPUCountGiven=$false
 $Script:isMemoryGiven=$false
+$Script:isNetmaskGiven=$false
+$Script:isUsernameGiven=$false
+$Script:isPasswordGiven=$false
 
 # Usability
 function Usage() {
@@ -148,7 +151,7 @@ function Usage() {
 	Write-Host "    -ipaddr6_4:         IPv6 address of node 4"
 	Write-Host "    -ipaddr6_5:         IPv6 address of node 5"	
     Write-Host "    -gateway6:          IPv6 default gateway"
-    Write-Host "    -ipv6prefixlength:  IPv6 network prefix length"
+    Write-Host "    -ipv6prefixlength:  (Optional)IPv6 network prefix length"
     Write-Host "    "
     Write-Host "    -nodeid:            Specific node to be deployed, please input a number (start from 1)"
 	Write-Host "    -nodecount          Node counts of the cluster (valid value is 1 or 3 or 5), please note 1+0 cluster is a evaluation variant with no production support"
@@ -168,7 +171,7 @@ function Usage() {
 	Write-Host "    -password           (Optional) Password of vSphere client"
     Write-Host "    -interactive:       (Optional) Interactive way to deploy"
 	Write-Host "	"
-	Write-Host "    example: .\$scriptName -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeId 1 -nodecount 3 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
+	Write-Host "    example: .\$scriptName -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeid 1 -nodecount 3 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
     Write-Host "Redeploy mode options: "
 	Write-Host "    -file:              (Optional) The settings file"
@@ -187,7 +190,7 @@ function Usage() {
 	Write-Host "    -password           (Optional) Password of vSphere client"
 	Write-Host "    -interactive        (Optional) Interactive way to deploy"
 	Write-Host ""
-	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeId 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
+	Write-Host "    example: .\$scriptName -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
 	Write-Host ""
 }
 
@@ -209,11 +212,43 @@ function CheckPrerequisetes() {
 
 ${include="common-functions.ps1"}
 
-function CheckRequiredParams($isInteractive) {
-	$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
+function CheckUsernameAndPasswordExistence() {
+	$uid=""
+	$pwd=""
+	$startIdx=$Script:targetUri.IndexOf("://")
+	$endIdx=$Script:targetUri.IndexOf("@")
+	if ($endIdx -ne -1) {
+		[String]$restContent=$Script:targetUri.SubString($startIdx+3, $endIdx-$startIdx-3)
+		if ($restContent.length -gt 0) {
+			$pwdStartIdx=$restContent.IndexOf(":")
+			if ($pwdStartIdx -ne -1) {
+                $uid=$restContent.Substring(0,$pwdStartIdx)
+                $pwd=$restContent.Substring($pwdStartIdx+1)
+            }
+            else {
+                $uid=$restContent
+            }
+		}
+	} 
+
+    $Script:isUsernameGiven=(-not ([String]::IsNullOrEmpty($Script:username) -and [String]::IsNullOrEmpty($uid)))
+
+    $Script:isPasswordGiven=(-not ([String]::IsNullOrEmpty($Script:password) -and [String]::IsNullOrEmpty($pwd)))   
+}
+
+function CheckRequiredParams($isInteractive) {		
+	$Script:nodeId=CheckParam $Script:nodeId "Node ID" $isInteractive $false IsValidNodeId
 	$Script:ds=CheckParam $Script:ds "Datastore" $isInteractive $false IsValidNotNullParam
 	$Script:net=CheckParam $Script:net "Network name" $isInteractive $false IsValidNotNullParam
-	$Script:nodeId=CheckParam $Script:nodeId "Node ID" $isInteractive $false IsValidNodeId
+	
+	$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
+	CheckUsernameAndPasswordExistence
+    if ($Script:isUsernameGiven -eq $false) {
+        $Script:username=CheckParam $Script:username "User name" $isInteractive $false IsValidNotNullParam	
+    }
+	if ($Script:isPasswordGiven -eq $false) {
+		$Script:password=CheckParam $Script:password "Password" $isInteractive $true IsValidNotNullParam
+	}
 }
 
 function CheckOtherParams($isInteractive) {
@@ -244,11 +279,11 @@ function CheckFreshInstallParams() {
 
 function CheckVMSettingsInteractively($isInteractive) {
 	$Script:nodeId=CheckParam $Script:nodeId "Node ID" $isInteractive $false IsValidNodeId
-	$Script:dm=CheckParam $Script:dm "Disk provisioning" $isInteractive $false IsValidDm
 	$Script:ds=CheckParam $Script:ds "Datastore cluster" $isInteractive $false IsValidNotNullParam
-	$Script:vmFolder=CheckParam $Script:vmFolder "Folder" $isInteractive $false IsValidNotNullParam
-	$Script:vmName=CheckParam $Script:vmName "VM name" $isInteractive $false IsValidNotNullParam
 	$Script:net=CheckParam $Script:net "Network name" $isInteractive $false IsValidNotNullParam
+	$Script:dm=CheckParam $Script:dm "Disk provisioning" $isInteractive $false IsValidDm
+	$Script:vmFolder=CheckParam $Script:vmFolder "Folder" $isInteractive $false IsValidNotNullParam
+	$Script:vmName=CheckParam $Script:vmName "VM name" $isInteractive $false IsValidNotNullParam	
 	$Script:cpuCount=CheckParam $Script:cpuCount "CPU" $isInteractive $false IsValidCPUCount
 	$Script:memory=CheckParam $Script:memory "Memory" $isInteractive $false IsValidMemory
 	[string]$poweronValue="no" 
@@ -259,10 +294,10 @@ function CheckVMSettingsInteractively($isInteractive) {
 	$Script:powerOn=$false
 	if ($poweronValue -eq "yes") {
 		$Script:powerOn=$true
-	}
+	}	
+	$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
 	$Script:username=CheckParam $Script:username "User name" $isInteractive $false IsValidNullParam
 	$Script:password=CheckParam $Script:password "Password" $isInteractive $true IsValidNullParam
-	$Script:targetUri=CheckParam $Script:targetUri "Target URI" $isInteractive $false IsValidNotNullParam
 }
 
 function ReadParamsFromFile($file, $isDotSettingsFile) {
@@ -320,6 +355,7 @@ function ReadParamsFromFile($file, $isDotSettingsFile) {
 						"-netmask" {
 							if ([String]::IsNullOrEmpty($Script:netmask)) {
 								$Script:netmask=$value
+								$Script:isNetmaskGiven=$true
 							}
 						}
 						"-vip6" {
@@ -479,7 +515,7 @@ function CheckParamsIsEmpty() {
 		if ([String]::IsNullOrEmpty($Script:ipaddr_1) -or [String]::IsNullOrEmpty($Script:netmask) -or 
 			[String]::IsNullOrEmpty($Script:gateway)) {
 				$Script:interactive=$true
-		}
+		}	
 		if (($Script:nodeCount -ne "1") -and ([String]::IsNullOrEmpty($Script:ipaddr_2) -or [String]::IsNullOrEmpty($Script:ipaddr_3))) {
 			$Script:interactive=$true
 		}	
@@ -489,9 +525,12 @@ function CheckParamsIsEmpty() {
 		}	
 	}
 	
+	if (-not [String]::IsNullOrEmpty($Script:netmask)) {
+			$Script:isNetmaskGiven=$true
+	}
+	
 	if (-not [String]::IsNullOrEmpty($Script:vip6)) {
-		if ([String]::IsNullOrEmpty($Script:ipaddr6_1) -or [String]::IsNullOrEmpty($Script:gateway6) -or 
-			[String]::IsNullOrEmpty($Script:ipv6prefixlength)) {
+		if ([String]::IsNullOrEmpty($Script:ipaddr6_1) -or [String]::IsNullOrEmpty($Script:gateway6)) {
 				$Script:interactive=$true
 		}
 		if (($Script:nodeCount -ne "1") -and ([String]::IsNullOrEmpty($Script:ipaddr6_2) -or [String]::IsNullOrEmpty($Script:ipaddr6_3))) {
@@ -660,11 +699,12 @@ function DisplayVMSettings() {
 	Write-Host "VM Settings"
 	Write-Host "	Mode [ install | redeploy ]: $Script:mode"
 	Write-Host "	Node ID: $Script:nodeId"
-	Write-Host "	Disk provisioning [ thin | lazyzeroedthick | zeroedthick]: $Script:dm"
 	Write-Host "	Datastore: $Script:ds"
+	Write-Host "	Network name: $Script:net"
+	Write-Host "	Disk provisioning [ thin | lazyzeroedthick | zeroedthick]: $Script:dm"
 	Write-Host "	Folder: $Script:vmFolder"
 	Write-Host "	Virtual machine name: $Script:vmName"
-	Write-Host "	Network name: $Script:net"
+
 	Write-Host "	CPUs: $Script:cpuCount"
 	Write-Host "	Memory: $Script:memory"
 	$displayValueOfPowerOn="no"
@@ -672,8 +712,8 @@ function DisplayVMSettings() {
 		$displayValueOfPowerOn="yes"
 	}
 	Write-Host "	Power on: $displayValueOfPowerOn"
-	Write-Host "	Username: $Script:username"
 	Write-Host "	Target URI: $Script:targetUri"
+	Write-Host "	Username: $Script:username"
 }
 
 function DisplaySummary() {
@@ -684,7 +724,7 @@ function DisplaySummary() {
 
 function InteractiveMode () {
 	while ($true) {
-		if (-not (AskUserDecisionRecurr "those settings")) {
+		if (-not (AskUserDecisionRecurr "these settings")) {
 			while ($true) {
 				if (-not (AskUserDecisionRecurr "Network properties")) {
 					CheckNetWorkProperties $true
@@ -828,7 +868,7 @@ function CreateSubfolderAndMoveFiles($currentNodeId) {
 
 function DisplayLicense() {
 	try {
-		[string]$license='${include="storageos-license.txt"}' | out-host -paging
+		[string]$license="${include="storageos-license-ps.txt"}" | out-host -paging
 	} 
 	catch {
 		# Do nothing

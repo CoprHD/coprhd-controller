@@ -99,13 +99,13 @@ public class SmisReplicaCreationJobs extends SmisJob {
      */
     protected void processCGClones(CloseableIterator<CIMObjectPath> syncVolumeIter, WBEMClient client, 
                                  DbClient dbClient, List<Volume> clones, String replicationGroupId, boolean isSyncActive) throws Exception {
-        Map<String, Volume> labelToCloneMap = new HashMap<String, Volume>();
         Map<String, URI> deviceIdToVolumeMap = new HashMap<String, URI>();
+        Map<URI, Volume> sourceToCloneMap = new HashMap<URI, Volume>();
         Set<URI> pools = new HashSet<URI>();
         for ( Volume clone : clones) {
             Volume volume = dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
             deviceIdToVolumeMap.put(volume.getNativeId(), volume.getId());
-            labelToCloneMap.put(clone.getLabel(), clone);
+            sourceToCloneMap.put(volume.getId(), clone);
             pools.add(clone.getPool());
         }
         
@@ -139,30 +139,9 @@ public class SmisReplicaCreationJobs extends SmisJob {
                     CIMPropertyFactory.getPropertyValue(syncVolume,
                             SmisConstants.CP_NAME);
             // Lookup the associated clone based on the elemenat name, and set the associated volumes.
-            Volume theClone = labelToCloneMap.get(elementName);
             URI sourceVolume = deviceIdToVolumeMap.get(volumeDeviceID);
-            URI oldSource = theClone.getAssociatedSourceVolume();
-            if (!NullColumnValueGetter.isNullURI(oldSource) && !oldSource.toString().equals(sourceVolume.toString())) {
-                _log.info("updating the source volume full copy list {}", oldSource.toString());
-                //update the volume full copies list
-                Volume oldSourceVol = dbClient.queryObject(Volume.class, oldSource);
-                StringSet oldFullCopies = oldSourceVol.getFullCopies();
-                if (oldFullCopies != null) {
-                    oldFullCopies.remove(theClone.getId().toString());
-                }
-                Volume newSourceVol = dbClient.queryObject(Volume.class, sourceVolume);
-                StringSet newFullCopies = newSourceVol.getFullCopies();
-                if (newFullCopies != null) {
-                    newFullCopies.add(theClone.getId().toString());
-                } else {
-                    newFullCopies = new StringSet();
-                    newFullCopies.add(theClone.getId().toString());
-                    newSourceVol.setFullCopies(newFullCopies);
-                }
-                dbClient.persistObject(oldSourceVol);
-                dbClient.persistObject(newSourceVol);
-            }
-            theClone.setAssociatedSourceVolume(sourceVolume);
+            Volume theClone = sourceToCloneMap.get(sourceVolume);
+
             theClone.setNativeId(syncDeviceID);
             theClone.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, theClone));
             theClone.setReplicationGroupInstance(replicationGroupId);

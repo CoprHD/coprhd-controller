@@ -90,6 +90,11 @@ public class ExportMaskCreateCompleter extends ExportMaskInitiatorCompleter {
                 for (URI boURI : _volumeMap.keySet()) {
                     BlockObject blockObject = BlockObject.fetch(dbClient, boURI);
                     exportMask.addToUserCreatedVolumes(blockObject);
+                    //CTRL-11544: Set the hlu in the export group too
+                    if(exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
+                        String hlu = exportMask.getVolumes().get(boURI.toString());
+                        exportGroup.addVolume(boURI, Integer.parseInt(hlu));
+                    }
                 }
                 dbClient.updateAndReindexObject(exportMask);
                 exportGroup.addExportMask(exportMask.getId());

@@ -9,7 +9,6 @@ import static com.emc.sa.service.ServiceParams.VOLUMES;
 
 import java.util.List;
 
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -25,9 +24,6 @@ public class RemoveBlockStorageService extends ViPRService {
 
     @Override
     public void precheck() {
-    	if(!deletionType.equals(VolumeDeleteTypeEnum.FULL)){
-        	throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.deletionTypeNotSupported", deletionType ));
-        }
         BlockStorageUtils.getBlockResources(uris(volumeIds));
     }
 

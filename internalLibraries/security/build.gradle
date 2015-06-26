@@ -2,18 +2,21 @@ dependencies {
     compile library(spring_security),
             library(jetty),
             library(commons_codec),
+            library(owasp_esapi),
+            library(jsoup),
             project(":geomodels"),
             project(":coordinatorsvc"),
             project(":dbclient"),
             "javax.mail:mail:1.4.3"
 
-	if (project.hasProperty("buildType") && project.getProperty("buildType") == "emc") {
-		compile emclibrary(rsa_bsafe)
-	}
+    if (project.hasProperty("buildType") && project.getProperty("buildType") == "emc") {
+        compile emclibrary(rsa_bsafe)
+    }
 
     testCompile library(junit),
             project(":vipr-client")
 }
+
 
 test {
     exclude "com/emc/storageos/security/helpers/UserInfoHelperTest.class"

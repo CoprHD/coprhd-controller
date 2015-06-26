@@ -28,12 +28,14 @@ public class RecoveryStatus {
      * The status of Node recovery
      */
     public enum Status {
-        INIT,      // triggering recovery
-        PREPARING, // preparing recovery
-        REPAIRING, // repairing db inconsistency
-        SYNCING,   // new node is syncing data
-        FAILED,    // failed
-        DONE       // success
+        NOT_STARTED,  // have not started yet
+        INIT,         // triggering recovery
+        PREPARING,    // preparing recovery
+        REPAIRING,    // repairing db inconsistency
+        SYNCING,      // new node is syncing data
+        FAILED,       // failed
+        DONE,         // success
+        CANCELLED     // node recovery was cancelled
     }
 
     /**
@@ -42,10 +44,11 @@ public class RecoveryStatus {
     public enum ErrorCode {
         REPAIR_FAILED, // Db repair failed
         SYNC_FAILED,   // Db rebuild failed
+        NEW_NODE_FAILURE, // Alive nodes get unavailable during node recovery
         INTERNAL_ERROR // Internal error
     }
 
-    private Status status;
+    private Status status = Status.NOT_STARTED;
     private Date startTime;
     private Date endTime;
     private ErrorCode errorCode;

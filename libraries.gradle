@@ -420,9 +420,15 @@ ext {
         "javax.jmdns:jmdns:3.4.1"
     ]
 
-    charva = [
-        "charvax:charva:1.1.4",
-        "charvax:libTerminal:1.1.4:@so"
+    jsoup = [
+        "org.jsoup:jsoup:1.8.2"
     ]
 
+    owasp_esapi = [
+        "org.owasp.esapi:esapi:2.1.0"
+    ]
+
+    json_simple = [
+        "com.googlecode.json-simple:json-simple:1.1"
+    ]
 }

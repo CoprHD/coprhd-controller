@@ -15,7 +15,14 @@
 package com.emc.storageos.vplex.api.clientdata;
 
 import java.io.Serializable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.vplex.api.VPlexApiBackendSystemType;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
+import com.emc.storageos.vplex.api.VPlexApiException;
+import com.emc.storageos.vplex.api.clientdata.formatter.*;
 
 /**
  * Bean specifying native volume information. Is passed from the client to
@@ -24,13 +31,15 @@ import com.emc.storageos.vplex.api.VPlexApiConstants;
 public class VolumeInfo implements Serializable {
     private static final long serialVersionUID = 8156741332010435117L;
     
-    private static final String DOT_OPERATOR = ".";
-    
-    private static final String UNDERSCORE_OPERATOR = "_";
+    // A logger reference.
+    protected static Logger s_logger = LoggerFactory.getLogger(VolumeInfo.class);
 
     // The native Guid for the storage system that owns the volume.
     private String _storageSystemNativeGuid;
     
+    // The device type of the storage system that owns the volume.
+    private VPlexApiBackendSystemType _systemType;
+
     // The WWN for the volume. 
     private String _volumeWWN;
     
@@ -42,18 +51,20 @@ public class VolumeInfo implements Serializable {
     
     // Whether or not the volume is thin provisioned.
     private boolean _isThin = false;
-    
+
     /**
      * Constructor.
      * 
      * @param storageSystemNativeGuid The native guid for the storage system.
+     * @param storageSystemType The device type of the storage system.
      * @param volumeWWN The WWN of the volume in all caps and no colons.
      * @param volumeNativeId The naive id of the backend volume.
      * @param true if the volume is thin provisioned, false otherwise
      */
-    public VolumeInfo(String storageSystemNativeGuid, String volumeWWN,
-        String volumeNativeId, boolean isThin) {
+    public VolumeInfo(String storageSystemNativeGuid, String storageSystemType, 
+            String volumeWWN, String volumeNativeId, boolean isThin) {
         _storageSystemNativeGuid = storageSystemNativeGuid;
+        setSystemType(storageSystemType);
         _volumeWWN = volumeWWN;
         _volumeNativeId = volumeNativeId;
         _isThin = isThin;
@@ -77,6 +88,29 @@ public class VolumeInfo implements Serializable {
         _storageSystemNativeGuid = storageSystemNativeGuid;
     }
     
+    /**
+     * Getter for the storage system device type.
+     * 
+     * @return the storage system device type.
+     */
+    public VPlexApiBackendSystemType getSystemType() {
+        return _systemType;
+    }
+
+    /**
+     * Setter for the storage system device type.
+     * 
+     * @param _systemType the storage system device type.
+     */
+    public void setSystemType(String systemType) {
+        this._systemType = VPlexApiBackendSystemType.valueOfType(systemType);
+        
+        if (null == this._systemType) {
+            s_logger.error("system type {} is not currently supported", systemType);
+            throw VPlexApiException.exceptions.systemTypeNotSupported(systemType);
+        }
+    }
+
     /**
      * Getter for the volume WWN.
      * 
@@ -122,32 +156,34 @@ public class VolumeInfo implements Serializable {
      * @return The volume name.
      */
     public String getVolumeName() {
-        // Note that we need to prepend the prefix because the VPlex does not 
-        // like the claimed storage volume name to start with a number, which 
-        // can  be the case for Symmetrix volumes, whose serial numbers start 
-        // with a number.
-    	if ((_volumeName == null) || (_volumeName.length() == 0)) {
-    		StringBuilder nameBuilder = new StringBuilder();
-    		nameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
-    		if (this._storageSystemNativeGuid.contains(DOT_OPERATOR)) {
-    			this._storageSystemNativeGuid = this._storageSystemNativeGuid.replace(
-    					DOT_OPERATOR, UNDERSCORE_OPERATOR);
-    		}
-    		nameBuilder.append(_storageSystemNativeGuid.substring(_storageSystemNativeGuid.indexOf("+") + 1));
-    		nameBuilder.append("-");
-    		nameBuilder.append(_volumeNativeId);    		   		
-    		return nameBuilder.toString();
-    	} else {
-    		return _volumeName;
-    	}
+        if ((_volumeName == null) || (_volumeName.length() == 0)) {
+            switch( getSystemType() ) {
+                case XTREMIO:
+                    _volumeName = new XtremioVplexVolumeNameFormatter(this).format();
+                    break;
+                default:
+                    _volumeName = new DefaultVplexVolumeNameFormatter(this).format();
+                    break;
+            }
+        }
+        
+        s_logger.info("claimed volume name is " + _volumeName);
+        return _volumeName;
     }
     
     /**
      * Setter for the volume name.
      * 
      * @param volumeName The name to give the volume when claimed.
+     * @throws VPlexApiException when the volumeName argument is too long.
      */    
-    public void setVolumeName(String volumeName) {
+    public void setVolumeName(String volumeName) throws VPlexApiException {
+        
+        if (volumeName.length() > VPlexApiConstants.MAX_VOL_NAME_LENGTH) {
+            throw VPlexApiException.exceptions.claimedVolumeNameIsTooLong(volumeName, 
+                    String.valueOf(VPlexApiConstants.MAX_VOL_NAME_LENGTH));
+        }
+        
         _volumeName = volumeName;
     }
     
@@ -168,5 +204,5 @@ public class VolumeInfo implements Serializable {
     public void setIsThinProvisioned(boolean isThin) {
         _isThin = isThin;
     }
-	
+
 }

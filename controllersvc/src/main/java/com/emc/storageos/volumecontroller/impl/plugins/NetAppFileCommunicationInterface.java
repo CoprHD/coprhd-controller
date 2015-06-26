@@ -212,13 +212,24 @@ public class NetAppFileCommunicationInterface extends
                          * the list consists of multiple elements, all but one 
                          * element will get overwritten.
                          */
-                        metrics.put(Constants.SIZE_TOTAL, Long.valueOf(map.get(Constants.SIZE_TOTAL)));
-                        metrics.put(Constants.SIZE_USED, Long.valueOf(map.get(Constants.SIZE_USED)));
+
+                    	metrics.put(Constants.SIZE_TOTAL, 0);
+                    	if(map.get(Constants.SIZE_TOTAL) != null){
+                    		metrics.put(Constants.SIZE_TOTAL, Long.valueOf(map.get(Constants.SIZE_TOTAL)));
+                    	}
+                    	
+                    	metrics.put(Constants.SIZE_USED, 0);
+                    	if(map.get(Constants.SIZE_USED) != null){
+                    		metrics.put(Constants.SIZE_USED, Long.valueOf(map.get(Constants.SIZE_USED)));
+                    	}
                         /* TODO: Bytes per block on NTAP is hard coded for now.  If 
                          * possible, we should to get this from the array. 
                          */
-                        Long snapshotBytesReserved = Long.valueOf(map.get(Constants.SNAPSHOT_BLOCKS_RESERVED)) 
-                                * Constants.NETAPP_BYTES_PER_BLOCK;
+                    	Long snapshotBytesReserved = 0L;
+                    	if(map.get(Constants.SNAPSHOT_BLOCKS_RESERVED) != null){
+                    		snapshotBytesReserved = Long.valueOf(map.get(Constants.SNAPSHOT_BLOCKS_RESERVED)) 
+                    				* Constants.NETAPP_BYTES_PER_BLOCK;
+                    	}
                         metrics.put(Constants.SNAPSHOT_BYTES_RESERVED, snapshotBytesReserved);
                         Integer snapshotCount = _dbClient.countObjects(Snapshot.class, Constants.PARENT, fsObj.getId());
                         metrics.put(Constants.SNAPSHOT_COUNT, snapshotCount);

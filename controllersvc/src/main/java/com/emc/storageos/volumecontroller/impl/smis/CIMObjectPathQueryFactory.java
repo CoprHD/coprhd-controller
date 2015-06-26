@@ -337,8 +337,8 @@ public class CIMObjectPathQueryFactory extends AbstractCIMObjectPathFactory {
 
     @Override
     public CIMObjectPath getReplicationGroupPath(StorageSystem activeProviderStorageProxy, String serialNumber, String groupName) {
-        String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND InstanceID like '%s'",
-                SE_REPLICATION_GROUP, groupName, serialNumber);
+        String wql = format("SELECT * FROM %s WHERE InstanceID like '%s' AND ElementName = '%s'",
+                SE_REPLICATION_GROUP, serialNumber, groupName);
         CIMObjectPath queryClass = getQueryClass(SE_REPLICATION_GROUP);
 
         CIMObjectPath[] paths = execQuery(activeProviderStorageProxy, queryClass, wql);

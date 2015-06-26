@@ -97,17 +97,13 @@ public class CustomAuthenticationManager implements AuthenticationManager {
 
             if (authenticationHandler.authenticate(credentials)) {
                 _log.info("{} successfully authenticated {}", handlerName, logFormat(credentials));
-                ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
-                final StorageOSUserDAO user = attributeRepository.getStorageOSUser(
-                        credentials, failureReason);
-                if(user == null) {
-                    _log.error("Failed to retrieve attributes for successfully authenticated user.  Check search_scope and search_base parameters for this provider");
-                    return null;
-                }
+
+                final StorageOSUserDAO user = attributeRepository.getStorageOSUser(credentials);
                 _log.info("Authenticated {}.", user);
                 _log.debug("Attribute map for {}: {}", user, user.getAttributes());
                 return user;
             }
+
             _log.info("{} failed to authenticate {}", handlerName, logFormat(credentials));
         }
 
@@ -158,8 +154,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
     }
 
     @Override
-    public boolean isUserValid(final String userId, final String tenantId,
-            final String altTenantId, ValidationFailureReason[] failureReason) {
+    public void validateUser(final String userId, final String tenantId, final String altTenantId) {
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(userId, "");
         boolean providerFound = false;
         for (AuthenticationProvider provider : getAuthenticationProviders() ) {
@@ -167,23 +162,16 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                 continue;
             }
             providerFound = true;
-            try {
-                if (provider.getAttributeRepository().isUserValid(userId, tenantId,
-                        altTenantId, failureReason)) {
-                    return true;
-                }
-            } catch( Exception e ) {
-                _log.error("Exception validating user {}", userId, e);
-                failureReason[0] = ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT;
-            }
+            provider.getAttributeRepository().validateUser(userId, tenantId, altTenantId);
         }
         if (!providerFound) {
             _log.error(
                     "Could not find an authentication provider that supports the user {}",
                     userId);
+            throw APIException.badRequests.NoAuthnProviderFound(userId);
         }
-        return false;
     }
+
 
     @Override
     public UserDetails getUserDetails(final String username) {
@@ -288,6 +276,21 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             }
             return provider.getAttributeRepository().getUserTenants(username);
 
+        }
+        return null;
+    }
+
+
+    @Override
+    public Map<URI, UserMapping> peekUserTenants(String username,
+                                                 URI tenantUri,
+                                                 List<UserMapping> userMappings) {
+        UsernamePasswordCredentials creds = new UsernamePasswordCredentials(username, "");
+        for (AuthenticationProvider provider : getAuthenticationProviders() ) {
+            if (!provider.getHandler().supports(creds)) {
+                continue;
+            }
+            return provider.getAttributeRepository().peekUserTenants(username, tenantUri, userMappings);
         }
         return null;
     }

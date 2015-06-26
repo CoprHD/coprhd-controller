@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Responsible for sending VNX CLI commands to the VNX File System using SSH.
@@ -967,8 +968,49 @@ public class VNXFileSshApi {
 
         return fsSize;
     }
+    
+    // Retry executeSsh Command
+    public XMLApiResult executeSshRetry(String command, String request) {
 
+        XMLApiResult reTryResult = new XMLApiResult();
+        try {
+            int maxRetry = 3;
+            while (maxRetry > 0) {
 
+                // Execute command
+                reTryResult = this.executeSsh(command, request);
+                String message = reTryResult.getMessage();
+                if (reTryResult.isCommandSuccess()) {
+                    // reTryResult successful
+                    break;
+                } else if (message != null
+                        && !message.isEmpty()
+                        && (message.contains("unable to acquire lock(s)") ||
+                        message.contains("NAS_DB locked object is stale") ||
+                        message.contains("Temporarily no Data Mover is available"))) {
+                    try {
+                        // Delaying execution since NAS_DB object is locked till
+                        // current execution complete
+                        TimeUnit.SECONDS.sleep(10);
+                    } catch (InterruptedException e) {
+                        _log.error(
+                                "Exception occurred while delaying file system creation command due to {}",
+                                e);
+                    }
+                    maxRetry--;
+                } else {
+                    // reTryResult failed
+                    break;
+                }
+            }
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNX File executeSshReTry failed for create file system");
+            message.append(", due to {}");
+            _log.error(message.toString(), ex);
+        }
+        return reTryResult;
+    }
 
 }
 

@@ -473,7 +473,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override 
     public void deleteVolumes(final URI systemURI, final List<URI> volumeURIs,
         final String deletionType, final String task) throws InternalException {
-    s_logger.info("Request to delete {} volume(s) with VPLEX high availability", volumeURIs.size());
+        s_logger.info("Request to delete {} volume(s) with VPLEX high availability", volumeURIs.size());
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
     }
     

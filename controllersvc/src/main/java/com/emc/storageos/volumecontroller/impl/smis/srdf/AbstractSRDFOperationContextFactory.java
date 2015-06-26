@@ -23,8 +23,8 @@ public abstract class AbstractSRDFOperationContextFactory {
 
     public enum SRDFOperation {
         SUSPEND, SUSPEND_CONS_EXEMPT,
-        SPLIT, ESTABLISH, FAIL_OVER, FAIL_BACK, RESTORE, SWAP,
-        DELETE_PAIR, DELETE_GROUP_PAIRS
+        SPLIT, ESTABLISH, FAIL_OVER, RESTORE, SWAP, FAIL_BACK,
+        DELETE_PAIR, DELETE_GROUP_PAIRS, FAIL_MECHANISM
     }
 
     public void setDbClient(DbClient dbClient) {

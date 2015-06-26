@@ -21,6 +21,7 @@ import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import com.emc.vipr.model.sys.ipreconfig.ClusterNetworkReconfigStatus;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
 import org.slf4j.Logger;
@@ -150,19 +151,21 @@ public class Control {
 	}
 
 	/**
-	 * Triggers IP reconfiguration with provided IPs
+	 * Triggers IP reconfiguration with provided IPs. Returns true is request accepted, false otherwise
 	 * <p>
 	 * API Call: POST /cluster/ipreconfig
 	 *
 	 * @param ClusterIpInfo
-	 * @return ClusterIpInfo
+	 * @return boolean
 	 */
-	public ClusterIpInfo reconfigClusterIps(ClusterIpInfo clusterIpInfo, boolean powerOff) {
+	public boolean reconfigClusterIps(ClusterIpInfo clusterIpInfo, boolean powerOff) {
         UriBuilder builder = client.uriBuilder(CLUSER_IP_RECONFIG_URL);
 		if(powerOff) {
 			addQueryParam(builder, RECONFIG_POWEROFF_PARAM, RECONFIG_POWEROFF_VALUE);
 		}
-		return client.postURI(ClusterIpInfo.class, clusterIpInfo,	builder.build());
+		ClientResponse response = client.postURI(ClientResponse.class, clusterIpInfo,	builder.build());
+
+		return (response.getClientResponseStatus() == ClientResponse.Status.ACCEPTED);
 	}
 
 	/**

@@ -56,7 +56,7 @@
 
     function loadClusterStatus(tries) {
         tries = tries || 0;
-        var uri = "@{clusterStatus}"
+        var uri = "@{clusterStatus()}";
         window.console && console.log("Requesting Cluster Status: " + uri);
 
         $.ajax({ // Define AJAX call properties

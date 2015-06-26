@@ -70,6 +70,7 @@ import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -441,6 +442,8 @@ public class BlockService extends TaskResourceService {
         // Verify that the copy IDs are either all specified or none are specified
         // for a particular protection type.  Combinations are not allowed
         verifyCopyIDs(param);
+        //Validate for SRDF Stop operation
+        validateSRDFStopOperation(id,param);
                 
         // Process the list of copies       
         for (Copy copy : param.getCopies()) {
@@ -477,8 +480,55 @@ public class BlockService extends TaskResourceService {
         
         return taskList;
     }
-
     /**
+     * Cant Perform SRDF STOP operation Sync/Async with CG if it has active snap or clone.
+     * @param id
+     * @param param
+     */
+    private void validateSRDFStopOperation(URI id, CopiesParam param) {
+    	List<URI> srdfVolumeURIList = new ArrayList<URI>();
+    	Volume srdfSourceVolume = _dbClient.queryObject(Volume.class, id);
+    	if(srdfSourceVolume.checkForSRDF() && srdfSourceVolume.hasConsistencyGroup()){
+    		srdfVolumeURIList.add(id);
+    		for (Copy copy : param.getCopies()) {
+    			URI copyID = copy.getCopyID();          
+    			if (URIUtil.isValid(copyID)) {
+    				srdfVolumeURIList.add(copyID);
+    				break;
+    			}
+    		}
+    		for(URI srdfVolURI:srdfVolumeURIList){
+    			Volume volume = _dbClient.queryObject(Volume.class, srdfVolURI);
+    	        
+    	        URIQueryResultList list = new URIQueryResultList();
+                Constraint constraint = ContainmentConstraint.Factory
+                        .getVolumeSnapshotConstraint(srdfVolURI);
+                _dbClient.queryByConstraint(constraint, list);
+                Iterator<URI> it = list.iterator();
+                while (it.hasNext()) {
+                    URI snapshotID = it.next();
+                    BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                    if (snapshot != null && !snapshot.getInactive()) {
+                    	throw APIException.badRequests.cannotStopSRDFBlockSnapShotExists(volume
+            	                .getLabel());
+                    }
+                }
+                
+    			// For a volume that is a full copy or is the source volume for
+    	        // full copies deleting the volume may not be allowed.
+    	        if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
+    	            throw APIException.badRequests.cantStopSRDFFullCopyNotDetached(volume
+    	                .getLabel());
+    	        }
+    		}
+    	}
+    }
+    	
+    	
+    	
+            
+
+	/**
      * Create a full copy of the specified volume.
      *     
      *
@@ -983,8 +1033,9 @@ public class BlockService extends TaskResourceService {
      */
     public static BlockServiceApi getBlockServiceImpl(Volume volume, DbClient dbClient) {
         // RP volumes may not be in an RP CoS (like after failover), so look to the volume properties
-        if (volume.getProtectionController() != null) {
-        	if (volume.getAssociatedVolumes() != null) {
+        if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())
+                && volume.checkForRp()) {
+            if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
         		return getBlockServiceImpl(DiscoveredDataObject.Type.rpvplex.name());
         	}
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
@@ -1685,8 +1736,11 @@ public class BlockService extends TaskResourceService {
             volume.getOpStatus().createTaskStatus(task, op);
             _dbClient.persistObject(volume);
         } else {
-            URI systemURI = volume.getProtectionController();
-            if (systemURI == null) {
+            URI systemURI = null;            
+            if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {                
+                systemURI = volume.getProtectionController();
+            }
+            else {
                 systemURI = volume.getStorageController();
             }
     
@@ -1704,9 +1758,10 @@ public class BlockService extends TaskResourceService {
                 
                 volume = _dbClient.queryObject(Volume.class, volume.getId());
 
-                op = volume.getOpStatus().get(task);
+                Volume vol = _dbClient.queryObject(Volume.class, volume.getId());
+                op = vol.getOpStatus().get(task);
                 op.error(e);
-                volume.getOpStatus().updateTaskStatus(task, op);
+                vol.getOpStatus().updateTaskStatus(task, op);
                 _dbClient.persistObject(volume);
                 throw e;
             } 
@@ -1829,8 +1884,11 @@ public class BlockService extends TaskResourceService {
                         
             if (forceDeactivate || (!Strings.isNullOrEmpty(volume.getNativeId()) && !volume.getInactive())) {
 
-                URI systemURI = volume.getProtectionController();
-                if (systemURI == null) {
+                URI systemURI = null;            
+                if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {                
+                    systemURI = volume.getProtectionController();
+                }
+                else {
                     systemURI = volume.getStorageController();
                 }
 
@@ -2015,8 +2073,10 @@ public class BlockService extends TaskResourceService {
         // initialize the task list.
         String taskId = UUID.randomUUID().toString();
         List<URI> snapshotURIs = new ArrayList<URI>();
+        
         List<BlockSnapshot> snapshots = blockServiceApiImpl.prepareSnapshots(
             volumesToSnap, snapshotType, snapshotName, snapshotURIs, taskId);
+        
         TaskList response = new TaskList();
         for (BlockSnapshot snapshot : snapshots) {
             response.getTaskList().add(toTask(snapshot, taskId));
@@ -2038,8 +2098,6 @@ public class BlockService extends TaskResourceService {
         return response;
     }
     
-    
-
 	/**
      * List volume snapshots
      *     
@@ -2533,7 +2591,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(volume, id, true);
         ArgValidator.checkEntity(copyVolume, copyID, true);
         
-        if (volume.getProtectionController() == null) {
+        if (NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Attempt to do protection link management on unprotected volume: {0}",
                     new Object[] { volume.getWWN() });
@@ -2736,13 +2794,7 @@ public class BlockService extends TaskResourceService {
         // make the desired VirtualPool change on this volume. This
         // essentially determines the controller that will be used
         // execute the VirtualPool update on the volume.
-        try {
-            // Get the volume's system.
-            URI systemURI = volume.getProtectionController();
-            if (systemURI == null) {
-                systemURI = volume.getStorageController();
-            }
-
+        try {            
             BlockServiceApi blockServiceAPI = getBlockServiceImplForVirtualPoolChange(volume, vpool);
             _log.info("Got block service implementation for VirtualPool change request");
             blockServiceAPI.changeVolumeVirtualPool(Arrays.asList(volume), vpool, param, taskId);
@@ -3658,7 +3710,8 @@ public class BlockService extends TaskResourceService {
             if (VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 // VNX/VMAX import to VPLEX cases
                 notSuppReasonBuff.setLength(0);
-                if (!VirtualPoolChangeAnalyzer.isVPlexImport(currentVpool, newVpool, notSuppReasonBuff)) {
+                if (!VirtualPoolChangeAnalyzer.isVPlexImport(currentVpool, newVpool, notSuppReasonBuff)
+                    || (!VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVpool, notSuppReasonBuff))) {
                     _log.info("VNX/VMAX cos change for volume is not supported: {}",
                             notSuppReasonBuff.toString());
                     throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
@@ -3776,7 +3829,7 @@ public class BlockService extends TaskResourceService {
      *         the VirtualPool change for the volume.
      */
     private BlockServiceApi getBlockServiceImplForVirtualPoolChange(Volume volume, VirtualPool vpool) {
-        URI protectionSystemURI = volume.getProtectionController();
+        URI protectionSystemURI = NullColumnValueGetter.isNullURI(volume.getProtectionController()) ? null : volume.getProtectionController();
         URI storageSystemURI = volume.getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
         String systemType = storageSystem.getSystemType();

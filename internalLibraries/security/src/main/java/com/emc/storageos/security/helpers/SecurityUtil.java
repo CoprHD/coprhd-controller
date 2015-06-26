@@ -60,4 +60,8 @@ public class SecurityUtil {
     public static void initSecurityProvider() {
         securityService.initSecurityProvider();
     }
+
+    public static String[] getCipherSuite() {
+        return securityService.getCipherSuite();
+    }
 }

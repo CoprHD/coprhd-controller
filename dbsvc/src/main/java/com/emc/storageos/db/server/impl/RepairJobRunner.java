@@ -214,14 +214,15 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             _log.error("Recorded last working range \"{}\" is not found, starting from beginning", this._lastToken);
             this._completedRepairSessions = 0;
         } else {
-            _log.info("Last token is {}, starting repair from token #{}", this._lastToken, this._completedRepairSessions);
+            _log.info("Last token is {}, progress is {}%, starting repair from token #{}",
+                    new Object[] { this._lastToken, getProgress(), this._completedRepairSessions });
         }
 
         ScheduledFuture<?> jobMonitorHandle = startMonitor(svcProxy);
         try {
             _aborted = false;
             _success = true;
-            for (; this._completedRepairSessions < localRanges.size(); this._completedRepairSessions++) {
+            while(_completedRepairSessions < _totalRepairSessions) {
 
                 String currentDigest = DbRepairRunnable.getClusterStateDigest();
                 if (!this.clusterStateDigest.equals(currentDigest)) {
@@ -231,10 +232,6 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 }
 
                 StringTokenRange range = localRanges.get(this._completedRepairSessions);
-
-                _log.info(
-                        "{} repair sessions finished. Current progress {}%",
-                        _completedRepairSessions, getProgress());
 
                 this.listener.onStartToken(range.end, getProgress());
 
@@ -248,6 +245,8 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 }
 
                 _lastToken = range.end;
+                _completedRepairSessions ++;
+                _log.info("{} repair sessions finished. Current progress {}%", _completedRepairSessions, getProgress());
             }
         } finally {
             jobMonitorHandle.cancel(false);

@@ -122,22 +122,6 @@ public class ClusterIpv4Setting implements Serializable{
         }
     }
 
-    public Map<String, String> toMap() {
-        Map<String, String> map= new HashMap();
-        map.put(PropertyConstants.IPV4_VIP_KEY, network_vip);
-        map.put(PropertyConstants.IPV4_GATEWAY_KEY, network_gateway);
-        map.put(PropertyConstants.IPV4_NETMASK_KEY, network_netmask);
-        map.put(PropertyConstants.NODE_COUNT_KEY, Integer.toString(network_addrs.size()));
-
-        int nodeid=1;
-        for (String addr: network_addrs) {
-            map.put(String.format(PropertyConstants.IPV4_ADDR_KEY, nodeid), addr);
-            nodeid++;
-        }
-
-        return map;
-    }
-
     public boolean isDefault() {
         if (network_vip.equals(PropertyConstants.IPV4_ADDR_DEFAULT))
             return true;

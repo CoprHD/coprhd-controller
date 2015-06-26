@@ -38,6 +38,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
+import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.db.common.DbConfigConstants;
 
 import org.slf4j.Logger;
@@ -96,6 +98,10 @@ public class CoordinatorClientExt {
     
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
+    }
+
+    public ZkConnection getZkConnection() {
+        return ((CoordinatorClientImpl)_coordinator).getZkConnection();
     }
     
     public void setServiceBeacon(SysSvcBeaconImpl beacon) {
@@ -1038,19 +1044,21 @@ public class CoordinatorClientExt {
      * @return
      */
     public boolean isLocalNodeTokenAdjusted() {
+    	if (this.getNodeCount() == 1){
+    		_log.info("single node cluster, skip adjust token");
+    		return true;
+    	}
         String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
 
         Configuration config = this._coordinator.queryConfiguration(Constants.DB_CONFIG, dbSvcId);
 
-        String numTokenVer = config.getConfig(DbConfigConstants.DB_NUM_TOKEN_VERSION);
-        if (numTokenVer == null) {
-            _log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.DB_NUM_TOKEN_VERSION, dbSvcId);
+        String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
+        if (numToken == null) {
+            _log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.NUM_TOKENS_KEY, dbSvcId);
             return false;
         }
-
-        String curVer = this._coordinator.getTargetDbSchemaVersion();
-        _log.info("Target db schema version is {}, last num_tokens adjusted at version {}", curVer, numTokenVer);
-        return curVer.equals(numTokenVer);
+        
+         return Integer.valueOf(numToken).equals(DbConfigConstants.DEFUALT_NUM_TOKENS);
     }
 
     public boolean isDBMigrationDone() {

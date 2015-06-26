@@ -235,10 +235,9 @@ public class Main {
             System.err.println("Exception e=" + e);
             usage();
         } finally {
-            if (cmd.equals(Command.LOCK)) {
-                return;
+            if (!cmd.equals(Command.LOCK)) {
+                stop();
             }
-            stop();
         }
     }
 

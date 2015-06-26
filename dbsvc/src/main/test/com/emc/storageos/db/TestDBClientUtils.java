@@ -86,20 +86,4 @@ public class TestDBClientUtils {
             count ++;
         return count;
     }
-    
-    public static void setDbNumTokenVersion(CoordinatorClient coordinator,
-            String targetVersion) {
-        String configKind = coordinator.getDbConfigPath("dbsvc");
-        Configuration config = coordinator.queryConfiguration(configKind, "foobar");
-        if(config == null) {
-            log.warn("Fail to set {} with {}.", DbConfigConstants.DB_NUM_TOKEN_VERSION,
-                targetVersion);
-            return;
-        }
-        config.setConfig(DbConfigConstants.DB_NUM_TOKEN_VERSION, targetVersion);
-        coordinator.persistServiceConfiguration(config);
-        log.info("Set {} with {} successfully.", DbConfigConstants.DB_NUM_TOKEN_VERSION,
-                targetVersion);
-    }
-
 }

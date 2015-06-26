@@ -60,10 +60,15 @@
 				<ref bean="getSynchronizationAspects"/>
 				<ref bean="getReplicationRelationshipInstances"/>
 
+                <!-- get Bound volumes for VMAX2 Thin pools -->
+                <ref bean="getBoundStorageVolumesForVMAX2ThinPools" />
+
                 <!-- get Storage Volume Views for provider 4.x -->
 				<ref bean="getStorageVolumesFor4x" />
 
-                <!-- get Storage Volume Views for provider 8.x -->
+                <!-- get Storage Volumes for provider 8.x -->
+                <!-- getAllocatedFromStoragePoolsFor8x is needed by getStorageVolumesFor8x -->
+                <ref bean="getAllocatedFromStoragePoolsFor8x"/>
 				<ref bean="getStorageVolumesFor8x" />
 
                 <!-- get element composition service -->
@@ -862,6 +867,53 @@
 		<property name="partitionManager" ref="partitionManager" />
 	</bean>
 
+    <!-- SMI Call to get bound Storage volumes for VMAX2 Thin pools -->
+    <bean id="getBoundStorageVolumesForVMAX2ThinPools" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+        <property name="_arguments">
+            <list>
+                <ref bean="reference-vmax2-thin-pools" />
+                <ref bean="resultClass-allocatedFromStoragePool" />
+                <ref bean="null" />
+                <ref bean="bool" />
+                <ref bean="boundToThinStoragePoolProp" />
+                <ref bean="null" />
+                <ref bean="null" />
+                <ref bean="timeout" />
+                <ref bean="bool" />
+                <ref bean="maxObjects" />
+                
+            </list>
+        </property>
+        <property name="instance" ref="cimClient" />
+        <property name="_result" value="" />
+        <property name="_method" value="references" />
+        <property name="_processor" ref="storageVolumeBoundPoolProcessor" />
+        <property name="message" value="Invoking references to get bound Storage volumes for VMAX2 Thin pools"/>
+    </bean>
+    
+    <bean id="reference-vmax2-thin-pools" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getReferenceValue" />
+        <property name="_value" value="vmax2ThinPools" />
+    </bean>
+    
+    <bean id="resultClass-allocatedFromStoragePool" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getStringValue" />
+        <property name="_value" value="Symm_AllocatedFromStoragePool_VPP_SV" />
+    </bean>
+    
+    <bean id="boundToThinStoragePoolProp" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+        <property name="_creator" ref="argscreator" />
+        <property name="_method" value="getStringArrayValue" />
+        <property name="_value" value="EMCBoundToThinStoragePool,Dependent" />
+        <property name="_name" value="boundPool" />
+    </bean>
+    
+    <!-- Processors -->
+    <bean id="storageVolumeBoundPoolProcessor"
+        class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.StorageVolumeBoundPoolProcessor" />
+
 	<!-- SMI Call to get volume information using provider 4.x -->
 	<bean id="getStorageVolumesFor4x" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="_arguments">
@@ -889,7 +941,7 @@
 		<property name="supportedVersion" value="4.x"/>
 		<property name="message" value="Invoking associators to get Storage volumes using provider version 4.x"/>
 	</bean>
-	
+
 	<bean id="resultClass-Volumes" class="com.emc.storageos.plugins.common.domainmodel.Argument">
 		<property name="_creator" ref="argscreator" />
 		<property name="_method" value="getStringValue" />
@@ -910,6 +962,54 @@
 		<property name="_name" value="prvcList" />
 	</bean>
 	
+	<!-- SMI Call to get volume SpaceConsumed using 8.x -->
+	<bean id="getAllocatedFromStoragePoolsFor8x" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="_arguments">
+			<list>
+				<ref bean="reference-vmax2pools" />
+				<ref bean="resultClass-EMC_AllocatedFromStoragePools" />
+				<ref bean="null" />
+				<ref bean="bool-true" />
+				<ref bean="allocatedFromStoragePool-prop" />
+				<ref bean="null" />
+				<ref bean="null" />
+				<ref bean="timeout" />
+				<ref bean="bool" />
+				<ref bean="maxObjects" />
+			</list>
+		</property>
+		<property name="instance" ref="cimClient" />
+		<property name="_result" value="" />
+		<property name="_method" value="references" />
+		<property name="_processor" ref="allocatedFromStoragePoolProcessor" />
+		<property name="supportedVersion" value="8.x"/>
+		<property name="message" value="Invoking references to get AllocatedFromStoragePool from Storage Pools using provider 8.x"/>
+	</bean>
+
+	<bean id="reference-vmax2pools" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getReferenceValue" />
+		<property name="_value" value="vmax2pools" />
+	</bean>
+
+	<bean id="resultClass-EMC_AllocatedFromStoragePools" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getStringValue" />
+		<property name="_value" value="EMC_AllocatedFromStoragePool" />
+	</bean>
+
+	<bean id="allocatedFromStoragePool-prop" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="_creator" ref="argscreator" />
+		<property name="_method" value="getStringArrayValue" />
+		<property name="_value" value="SpaceConsumed" />
+		<property name="_name" value="prvcList" />
+	</bean>
+
+	<!-- Processors -->
+	<bean id="allocatedFromStoragePoolProcessor"
+		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.AllocatedFromStoragePoolProcessor">
+	</bean>
+
 	<!-- SMI Call to get volume information using provider 8.x -->
 	<bean id="getStorageVolumesFor8x" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="_arguments">
@@ -937,12 +1037,12 @@
 		<property name="supportedVersion" value="8.x"/>
 		<property name="message" value="Invoking associators to get Storage volumes using provider version 8.x"/>
 	</bean>
-	
+
 	<bean id="volumeview-prop8x" class="com.emc.storageos.plugins.common.domainmodel.Argument">
 		<property name="_creator" ref="argscreator" />
 		<property name="_method" value="getStringArrayValue" />
 		<property name="_value"
-			value="EMCDataFormat,EMCIsMapped,EMCRaidLevel,EMCRecoverPointEnabled,IsComposite,EMCSpaceConsumed,Usage,EMCWWN,ThinlyProvisioned,BlockSize,ConsumableBlocks,DeviceID,ElementName,Name,EMCIsBound" />
+			value="EMCDataFormat,EMCIsMapped,EMCRaidLevel,EMCRecoverPointEnabled,EMCIsComposite,EMCSpaceConsumed,Usage,EMCWWN,ThinlyProvisioned,BlockSize,ConsumableBlocks,DeviceID,ElementName,Name,EMCIsBound" />
 		<property name="_name" value="prvcList" />
 	</bean>
 
@@ -1200,6 +1300,7 @@
         <property name="_result" value="metaVolumesList" />
         <property name="_method" value="associatorNames" />
         <property name="_processor" ref="cimpathprocessor" />   <!--  by default stores the object path in the above result key in Map -->
+        <property name="supportedVersion" value="4.x"/> <!--  only necessary for 4.x. For 8.x, metaVolumesList is set in getStorageVolumesFor8x -->       
         <property name="message" value="Invoking associatorNames to get StorageVolume path for meta volume."/>
     </bean>
 
@@ -1289,7 +1390,7 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="metaVolumesList" />
+        <property name="_result" value="" />
         <property name="_method" value="associatorNames" />
         <property name="_processor" ref="metaVolumeTypeProcessor" />
         <property name="message" value="Invoking associatorNames to get EMC_Meta path for meta volume."/>

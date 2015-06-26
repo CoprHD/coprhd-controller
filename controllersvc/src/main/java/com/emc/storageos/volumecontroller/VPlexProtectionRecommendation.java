@@ -404,9 +404,9 @@ public class VPlexProtectionRecommendation extends VPlexRecommendation {
                     for (URI varrayId : protectionRec.getVirtualArrayProtectionMap().keySet()) {
                         VirtualArray varray = (VirtualArray)dbClient.queryObject(VirtualArray.class,  varrayId);
                         StoragePool targetPool = (StoragePool)dbClient.queryObject(StoragePool.class, protectionRec.getVirtualArrayProtectionMap().get(varrayId).getTargetStoragePool());                       
-                        VirtualArray targetJournalVarray = dbClient.queryObject(VirtualArray.class, this.getVirtualArrayProtectionMap().get(varrayId).getTargetJournalVarray());
-        	    	    VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, this.getVirtualArrayProtectionMap().get(varrayId).getTargetJournalVpool());
-        	    	    StoragePool targetJournalPool = dbClient.queryObject(StoragePool.class, this.getVirtualArrayProtectionMap().get(varrayId).getTargetJournalStoragePool());
+                        VirtualArray targetJournalVarray = dbClient.queryObject(VirtualArray.class, protectionRec.getVirtualArrayProtectionMap().get(varrayId).getTargetJournalVarray());
+        	    	    VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, protectionRec.getVirtualArrayProtectionMap().get(varrayId).getTargetJournalVpool());
+        	    	    StoragePool targetJournalPool = dbClient.queryObject(StoragePool.class, protectionRec.getVirtualArrayProtectionMap().get(varrayId).getTargetJournalStoragePool());
                         StorageSystem targetSystem = (StorageSystem)dbClient.queryObject(StorageSystem.class, protectionRec.getVirtualArrayProtectionMap().get(varrayId).getTargetDevice());
                         String targetInternalSiteName = protectionRec.getVirtualArrayProtectionMap().get(varrayId).getTargetInternalSiteName();
                         String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName) : targetInternalSiteName;

@@ -84,7 +84,7 @@ nav.systemNodeRecovery=Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
 nav.adminDashboard=System
-nav.dbHealthDashboard=Database Consistency Check
+nav.dbHealthDashboard=Database Consistency Status
 nav.adminDashboardPage=Dashboard
 nav.localPasswords=Local Passwords
 nav.keystores=Keystore
@@ -131,7 +131,7 @@ nav.LDAPsources=Authentication Providers
 nav.computeSystems=Vblock Compute Systems
 nav.computeImages=Compute Images
 nav.sites=Sites
-nav.userGroup=User Group
+nav.userGroups=User Groups
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -819,7 +819,7 @@ system.healthdashboard.loading=loading...
 system.healthdashboard.nodeReboot=Reboot %s
 
 #Database Consistency Dashboard
-health.start=Start time of Check: 
+health.start=Start time
 health.end=End time
 dbstatus.lastCompletionTime=Last Completed Database Check: 
 dbstatus.progress=Percentage completed: 
@@ -1098,7 +1098,7 @@ keystores.title=Update Keystore
 keystores.description=Enter the information needed to update the Keystore.
 keystore.saved=Keystore updated successfully.
 keystore.saved.reboot=Keystore updated successfully.  ViPR will reboot for the change to take effect.
-keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save.
+keystore.rebootRequiredMessage=ViPR will be rebooted automatically after save and will not be operational for few minutes. 
 keystore.certChain=Certificate Chain
 keystore.certKey=Private Key
 keystore.viewChain = View Certificate Chain
@@ -1200,9 +1200,13 @@ roleAssignments.role=Role
 roleAssignments.grant=Grant
 roleAssignments.description=Description
 roleAssignments.tenantRoles=Tenant Roles
-roleAssignments.tenantRoles.description=Roles which determine what functions Users/Groups can perform within the Tenant.
+roleAssignments.tenantRoles.description=Roles which determine what functions Users/Groups can perform within the Tenant. \
+                                            When selecting Group to assign roles, the group members who are \
+                                            part of the Tenant will be granted with the selected roles.
 roleAssignments.vdcRoles=Virtual Data Center Roles
-roleAssignments.vdcRoles.description=Roles which determine what functions Users/Groups can perform within the Virtual Data Center.
+roleAssignments.vdcRoles.description=Roles which determine what functions Users/Groups can perform within the Virtual Data Center. \
+                                        When selecting Group to assign roles, the group members who are part of the \
+                                         Root Provider Tenant will be granted with the selected roles.
 roleAssignments.rootNotDeleted=Role Assignments for the 'root' user were not deleted.
 roleAssignments.atLeastOneChecked=At least one Role must be selected.
 roleAssignments.USER.alreadyExists=A role assignment already exists for this user.
@@ -2240,7 +2244,7 @@ adminDashboard.license=License
 adminDashboard.licenses=Licenses
 adminDashboard.dbhealthstatus=DB status
 adminDashboard.health=System Health
-adminDashboard.dbhealth=Database Consistency Check
+adminDashboard.dbhealth=Database Consistency Status
 adminDashboard.physicalAssets=Physical Assets
 adminDashboard.virtualAssets=Virtual Assets
 adminDashboard.lastUpdated=Last Updated
@@ -2902,7 +2906,7 @@ resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. 
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found
-resources.filesystems.deleteconfirm=Are you sure you want to delete this file system?
+resources.filesystems.deleteconfirm=Are you sure you want to delete the selected file system(s)?
 resources.filesystems.deactivate=Created %s tasks to delete file systems.
 resources.filesystems.unknown=Unknown File System with ID '%s'
 resources.filesystem.deactivate=Created task to delete file system.
@@ -2959,7 +2963,7 @@ resources.filesystem.share.acl.deleted=Task initiated to delete selected ACEs.
 resources.filesystem.share.acl.deleteConfirm=Are you sure you want delete these access control setting(s)?
 resources.filesystem.share.acl.added=Task created to add Access Control Entry, You may need to refresh this view to see new  changes.
 resources.filesystem.share.acl.invalid.settings=Please Enter valid access control setting(s)
-resources.filesystem.share.acl.add=Add Accesss Control Entry
+resources.filesystem.share.acl.add=Add Access Control Entry
 resources.filesystem.share.mountpoint=Mount Point
 resources.filesystem.share.description=Description
 resources.filesystem.share.path=Native Path
@@ -3826,5 +3830,6 @@ ipreconfig.successful=Network re-configuration has been successfully initiated, 
 ipReconfig.notSupported=Network re-configuration not supported for geo-distrubuted setup.
 ipReconfig.clusterNotStable=Network re-configuration cannot be performed at this time, the system is not stable.
 ipreconfig.error=Your network re-configuration request failed.
+ipreconfig.exception=Your network re-configuration request failed with exception: '%s'
 ipreconfig.status.success=Your last network re-configuration request completed successfully.
 ipreconfig.status.error=Your last network re-configuration request failed. Error message: '%s'

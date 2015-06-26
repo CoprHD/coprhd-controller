@@ -26,6 +26,9 @@ import com.emc.storageos.model.usergroup.UserAttributeParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMappingAttribute;
+import com.emc.storageos.security.exceptions.*;
+import com.emc.storageos.security.exceptions.SecurityException;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Lists;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -354,23 +357,21 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
     /*
-     * @see com.emc.storageos.auth.StorageOSPersonAttributeDao#isUserValid(java.lang.String, java.lang.String)
+     * @see com.emc.storageos.auth.StorageOSPersonAttributeDao#validateUser(java.lang.String, java.lang.String)
      */
     @Override
-    public boolean isUserValid(final String userId, final String tenantId,
-            final String altTenantId, ValidationFailureReason[] failureReason) {
+    public void validateUser(final String userId, final String tenantId, final String altTenantId) {
+
         UsernamePasswordCredentials creds = new UsernamePasswordCredentials(userId, "");
-        StorageOSUserDAO user = getStorageOSUser(creds, failureReason);
-        if( null != user && null != user.getTenantId()) {
-            boolean belongsToTenant = user.getTenantId().equals(tenantId);
-            boolean belongsToAltTenant =
-                    (altTenantId != null) && user.getTenantId().equals(altTenantId);
-            if (!(belongsToTenant || belongsToAltTenant)) {
-                failureReason[0] = ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT;
-            }
-            return belongsToTenant || belongsToAltTenant;
+        StorageOSUserDAO user = getStorageOSUser(creds);
+
+        // the user must not be null and it must have tenant id
+        boolean belongsToTenant = user.getTenantId().equals(tenantId);
+        boolean belongsToAltTenant =
+                (altTenantId != null) && user.getTenantId().equals(altTenantId);
+        if (!(belongsToTenant || belongsToAltTenant)) {
+            throw APIException.badRequests.principalSearchFailed(userId);
         }
-        return false;
     }
 
     /*
@@ -398,6 +399,57 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         return null;
     }
 
+    /*
+     * another implementation of getStorageOSUser which throws Exception with error message instead of using failure reason.
+     */
+    @Override
+    public StorageOSUserDAO getStorageOSUser(final Credentials credentials) {
+        final String username = ((UsernamePasswordCredentials)credentials).getUserName();
+
+        ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
+
+        UserAndTenants userAndTenants = getStorageOSUserAndTenants(username, failureReason);
+
+        if (userAndTenants == null) {
+            switch (failureReason[0]) {
+                case LDAP_CONNECTION_FAILED:
+                    throw SecurityException.fatals
+                            .communicationToLDAPResourceFailed();
+                case LDAP_MANAGER_AUTH_FAILED:
+                    throw SecurityException.fatals.ldapManagerAuthenticationFailed();
+                case USER_OR_GROUP_NOT_FOUND_FOR_TENANT:
+                default:
+                    throw APIException.badRequests.principalSearchFailed(username);
+            }
+        }
+
+        StorageOSUserDAO user = userAndTenants._user;
+        Map<URI, UserMapping> tenants = userAndTenants._tenants;
+
+        if( null == tenants || tenants.isEmpty()) {
+            _log.error("User {} did not match any tenant", username);
+            throw APIException.forbidden.userDoesNotMapToAnyTenancy(user.getUserName());
+        }
+
+        if(tenants.keySet().size() > 1) {
+            _log.error("User {} mapped to tenants {}", username, tenants.keySet().toArray());
+            throw APIException.forbidden.userBelongsToMultiTenancy(user.getUserName(), tenantName(tenants.keySet()));
+        }
+
+        user.setTenantId(tenants.keySet().iterator().next().toString());
+        return user;
+    }
+
+    private List<String> tenantName(Set<URI> uris) {
+        List<String> tenantNames = new ArrayList<>();
+        for (URI tId : uris) {
+            TenantOrg t = _dbClient.queryObject(TenantOrg.class, tId);
+            tenantNames.add(t.getLabel());
+        }
+
+        return tenantNames;
+    }
+
     @Override
     public Map<URI, UserMapping> getUserTenants(String username) {
         ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
@@ -410,6 +462,18 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
     }
 
 
+    @Override
+    public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMapping) {
+        ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
+        UserAndTenants userAndTenants = getStorageOSUserAndTenants(username,
+                failureReason, tenantURI, userMapping);
+        if( null != userAndTenants ) {
+            return userAndTenants._tenants;
+        }
+        return null;
+    }
+
+
     /**
      * Search for the user in LDAP and create a StorageOSUserDAO and also
      * Map the user to tenant(s)
@@ -418,6 +482,12 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
      */
     private UserAndTenants getStorageOSUserAndTenants(String username,
             ValidationFailureReason[] failureReason) {
+        return getStorageOSUserAndTenants(username, failureReason, null, null);
+    }
+
+    private UserAndTenants getStorageOSUserAndTenants(String username,
+                                             ValidationFailureReason[] failureReason,
+                                             URI tenantURI, List<UserMapping> usermapping) {
         BasePermissionsHelper permissionsHelper = new BasePermissionsHelper(_dbClient, false);
 
         final String[] userDomain = username.split("@");
@@ -438,10 +508,20 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         Map<URI, List<UserMapping>> tenantToMappingMap = permissionsHelper.getAllUserMappingsForDomain(domain);
         if( _searchControls.getReturningAttributes() != null ) {
             Collections.addAll(attrs, _searchControls.getReturningAttributes());
-        }  
+        }
+
+        if (tenantURI != null) {
+            tenantToMappingMap.put(tenantURI, usermapping);
+        }
+
+        printTenantToMappingMap(tenantToMappingMap);
 
         // Add attributes that need to be released for tenant mapping           
         for( List<UserMapping> mappings : tenantToMappingMap.values()) {
+            if (mappings == null) {
+                continue;
+            }
+
             for(UserMapping mapping : mappings) {
                 if(mapping.getAttributes() != null && !mapping.getAttributes().isEmpty()) {
                     for( UserMappingAttribute mappingAttribute : mapping.getAttributes() ) {
@@ -537,18 +617,39 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         }
         
         for(Entry<URI, List<UserMapping>> tenantToMappingMapEntry : tenantToMappingMap.entrySet()) {
+            if (tenantToMappingMapEntry == null || tenantToMappingMapEntry.getValue() == null) {
+                continue;
+            }
+
             for(UserMapping userMapping : tenantToMappingMapEntry.getValue()) {                
                 if( userMapping.isMatch(domain, userMappingAttributes, userMappingGroups )) {
                     tenants.put(tenantToMappingMapEntry.getKey(), userMapping);
                 }
             }            
         }
+
+        // if no tenant was found then set it to the root tenant
+        // unless the root tenant is restricted by a mapping
         if(tenants.isEmpty()) {
-            // If no tenant was found then set it to the root tenant 
-            // unless the root tenant is restricted by a mapping
+
             BasePermissionsHelper permissionsHelper = new BasePermissionsHelper(_dbClient, false);
             TenantOrg rootTenant = permissionsHelper.getRootTenant();
-            if( rootTenant.getUserMappings() == null || rootTenant.getUserMappings().isEmpty() ) {
+
+            // check if UserMappingMap parameter contains provider tenant or not.
+            // if yes, means Provider Tenant's user-mapping under modification.
+            if (tenantToMappingMap.containsKey(rootTenant.getId())) {
+                List<UserMapping> rootUserMapping = tenantToMappingMap.get(rootTenant.getId());
+
+                // check if the change is to remove all user-mapping from provider tenant.
+                // if yes, set user map to provider tenant.
+                if (CollectionUtils.isEmpty(rootUserMapping)) {
+                    _log.debug("User {} did not match a tenant.  Assigning to root tenant since root does not have any attribute mappings", storageOSUser.getUserName());
+                    tenants.put(rootTenant.getId(), null);
+                }
+
+            // provider tenant is not in UserMapping parameter, means no change to its user-mapping in this request,
+            // need to check if its original user-mapping is empty or not.
+            } else if( rootTenant.getUserMappings() == null || rootTenant.getUserMappings().isEmpty() ) {
                 _log.debug("User {} did not match a tenant.  Assigning to root tenant since root does not have any attribute mappings", storageOSUser.getUserName());
                 tenants.put(rootTenant.getId(), null);
             }
@@ -1195,5 +1296,16 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
 
         private final StorageOSUserDAO _user;
         private final Map<URI, UserMapping> _tenants;
+    }
+
+
+    private void printTenantToMappingMap(Map<URI, List<UserMapping>> maps) {
+        Iterator<URI> keys = maps.keySet().iterator();
+
+        _log.debug("user mapping: ");
+        while (keys.hasNext()) {
+            URI key = keys.next();
+            if (maps.get(key) != null) _log.debug(key + " = " + maps.get(key).toString());
+        }
     }
 }

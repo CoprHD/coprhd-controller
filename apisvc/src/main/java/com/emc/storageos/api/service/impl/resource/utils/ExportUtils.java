@@ -86,7 +86,7 @@ public class ExportUtils {
         List<StoragePort> ports = null;
         List<StoragePort> initiatorPorts = null;
         
-	BlockObject bo = Volume.fetchExportMaskBlockObject(dbClient, blockObject.getId());
+        BlockObject bo = Volume.fetchExportMaskBlockObject(dbClient, blockObject.getId());
         if (bo != null) {
 	        Map<StoragePort, List<FCZoneReference>> zoneRefs = null;
         	for (ExportMask exportMask : exportMasks.keySet()) {

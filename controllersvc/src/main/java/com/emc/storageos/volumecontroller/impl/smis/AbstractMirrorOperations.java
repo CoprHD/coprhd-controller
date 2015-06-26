@@ -162,6 +162,18 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             boolean isVmax3 = storage.checkIfVmax3();
             while (storageSyncRefs.hasNext()) {
                 CIMObjectPath storageSync = storageSyncRefs.next();
+                _log.debug(storageSync.toString());
+                /**
+                 * JIRA CTRL-11855
+                 * User created mirror and did pause operation using SMI 4.6.2.
+                 * Then He upgraded to SMI 8.0.3. While doing mirror resume getting exception from SMI because of the 
+                 * existing mirrorObj.getSynchronizedInstance() contains SystemName=\"SYMMETRIX+000195701573\""
+                 * This is wrong with 8.0.3 as SystemName=\"SYMMETRIX-+-000195701573\"".
+                 * To resolve this issue setting new value collected from current smis provider here.
+                 * 
+                 */
+                mirrorObj.setSynchronizedInstance(storageSync.toString());
+                _dbClient.persistObject(mirrorObj);
                 CIMArgument[] inArgs = isVmax3 ? _helper.getResumeSynchronizationInputArgumentsWithCopyState(storageSync)
                         : _helper.getResumeSynchronizationInputArguments(storageSync);
                 CIMArgument[] outArgs = new CIMArgument[5];
@@ -171,6 +183,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResumeMirrorJob(job,
                             storage.getId(), taskCompleter)));
                 }
+                
             }
         } catch (Exception e) {
             _log.error("Failed to resume single volume mirror: {}", mirror);

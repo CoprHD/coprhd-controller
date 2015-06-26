@@ -17,7 +17,7 @@ package com.emc.storageos.installer.widget;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerConstants;
 
 import charva.awt.BorderLayout;
 import charva.awt.Container;

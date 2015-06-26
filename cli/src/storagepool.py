@@ -339,10 +339,11 @@ class StoragePool(object):
                                                  serialnumber)
 
         storagepool_ids = self.storagepool_list_by_uri(device_id)
-
+        not_found=1
         for uri in storagepool_ids:
             storpool = self.storagepool_show_by_uri(device_id, uri)
-
+            if(storpool['pool_name'])==poolname:
+                not_found=0
             if(poolname):
                 if(storpool['pool_name'] == poolname):
                     if ((volumetype) and
@@ -371,11 +372,13 @@ class StoragePool(object):
                     self.storagepool_update_by_uri(storpool['id'],
                                                    nhassignments,
                                                     maxresources,
-                                                    maxpoolutilization,
-                                                     maxthinpoolsubscription)
-
-    def storagepool_register_main(self, serialnumber,
-                                  deviceType, poolName):
+                                                    maxpoolutilization,maxthinpoolsubscription)
+        if(poolname is not None):
+            if(not_found==1):
+                raise SOSError(SOSError.NOT_FOUND_ERR,
+                "Storagepool with name "
+                + str(poolname) + " not found\n")
+    def storagepool_register_main(self, serialnumber,deviceType, poolName):
         '''
         Registers a storagepool with specified parameters
         Parameters:
@@ -410,18 +413,17 @@ class StoragePool(object):
 
                 compval = storpool['pool_name']
 
-            if(poolName == compval):
+                if(poolName == compval):
 
-                found = True
-                self.storagepool_register(systemuri, pooluri)
-            else:
-                self.storagepool_register(systemuri, pooluri)
+                    found = True
+                    self.storagepool_register(systemuri, pooluri)
+                else:
+                    self.storagepool_register(systemuri, pooluri)
 
         # Print error if named pool is not found
         if (not (found)):
             raise SOSError(SOSError.NOT_FOUND_ERR,
-            "Storagepool with name "
-            + poolName + " not found\n")
+            "Storagepool with name "+ poolName + " not found\n")
 
     def storagepool_register(self, systemuri, pooluri):
         '''
@@ -1057,8 +1059,10 @@ def storagepool_list(args):
 
                         if(len(vpoolnames) > 0):
                             vpoolnames = vpoolnames[0:len(vpoolnames) - 1]
-
-                        iter['vpool_set'] = vpoolnames
+                        if(vpoolnames):
+                            iter['vpool_set'] = vpoolnames
+                        else:
+                            iter['vpool_set']= 'NULL'
 
                     if('tagged_varrays' in iter):
                         nbhnames = ''
@@ -1072,7 +1076,11 @@ def storagepool_list(args):
 
                         if(len(nbhnames) > 0):
                             nbhnames = nbhnames[0:len(nbhnames) - 1]
-                        iter['tagged_varrays'] = nbhnames
+
+                        if(nbhnames):
+                            iter['tagged_varrays'] = nbhnames
+                        else:
+                            iter['tagged_varrays']= 'NULL'
 
                 from common import TableGenerator
                 TableGenerator(output, ['pool_name', 'registration_status',

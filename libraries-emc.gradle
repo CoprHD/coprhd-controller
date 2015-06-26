@@ -20,9 +20,14 @@ ext {
         "com.rsa.cryptoj:cryptojcommon:6.1.1:FIPS-140",
         "com.rsa.cryptoj:jcmFIPS:6.1.1:FIPS-140",
     ]
-    
+
     netapp = [
         "com.netapp:manageontap:4.1"
+    ]
+
+    charva = [
+        "charvax:charva:1.1.4",
+        "charvax:libTerminal:1.1.4:@so"
     ]
 
 }

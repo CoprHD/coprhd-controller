@@ -78,16 +78,33 @@
 
    <div ng-show="task.steps.length != 0">
         <div class="section-header"><h1>Steps</h1></div>
-        <table class="table">
-                <tr ng-repeat="workflowStep in task.steps" ng-class="{danger:workflowStep.state=='ERROR'}">
-                    <td width="10px"><status type="workflowStep" status="{{workflowStep.state}}"></status></td>
-                    <td  width="100px">
-                        <span  ng-show="workflowStep.startDate>0">{{workflowStep.elapsedTime | timeAgoInWords}}</span>
-                    </td>
-                    <td width="250px">{{workflowStep.systemName}}</td>
-                    <td width="200px">{{workflowStep.message}}</td>
-                    <td>{{workflowStep.description}}</td>
+        <table class="table table-condensed dataTable">
+        <tbody>
+                <tr ng-repeat-start="workflowStep in task.steps"  class="workflowStep" ng-click="workflowStep.expanded = !workflowStep.expanded">                
+                <td class="expandable" ng-class="{'expanded': workflowStep.expanded}">
+          			<span class="expand-indicator"></span>
+        		</td>        			              
+                <td class="time" width="10px"><status type="workflowStep" status="{{workflowStep.state}}"></status></td>
+                <td  width="100px">
+                	<span  ng-show="workflowStep.startDate>0" bind-once>{{workflowStep.elapsedTime | timeAgoInWords}}</span>
+                </td>
+                <td class="name"width="250px" bind-once>{{workflowStep.systemName}}</td>
+                <td class="message" width="200px" bind-once>{{workflowStep.message}}</td>
+                <td class="desc" bind-once>{{workflowStep.description}}</td>
                 </tr>
+               
+                <tr ng-repeat-end ng-repeat="child in workflowStep.childSteps" ng-if="workflowStep.expanded" class="openedRow">                         
+        		<td colspan="0" class="expandedRow" ></td>        		
+        		<td class="time" width="10px"><status type="workflowStep" status="{{child.state}}" ></status></td>
+                <td  width="100px">
+                	<span  ng-show="workflowStep.startDate>0" bind-once>{{child.elapsedTime | timeAgoInWords}}</span>
+                </td>
+                <td class="name"width="250px" bind-once>{{workflowStep.systemName}}</td>
+                <td class="message" width="200px" bind-once>{{child.message}}</td>
+                <td class="desc" bind-once>{{child.description}}</td>
+            	</tr>
+            	<tr><br/><tr>            	
+      			</tbody>
         </table>
    </div>
 
@@ -200,4 +217,5 @@ function escapeHTML(s) {
 }  
 
 </script>
+
 #{/set}

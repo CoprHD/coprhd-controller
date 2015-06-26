@@ -34,7 +34,7 @@ if 'install' in sys.argv:
         print "...Interrupted"
         sys.exit()
 
-version = '2.2'
+version = '2.3'
 # Find the CLI version from version file.
 # This ver.txt generated while build process.
 # contains string storageos-cli-2.2.0.0.1
@@ -442,7 +442,7 @@ def _install_vipr_cli():
     _update_copy_path_file("viprcli.pth")  
     _install_cli()
     _install_vipr_cli_post_processing()
-    
+
 class Logger(object):
     def __init__(self):
         self.terminal = sys.stdout

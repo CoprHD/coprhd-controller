@@ -20,16 +20,21 @@ import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
+import com.emc.storageos.services.util.EnvConfig;
 
 
 public class MiscTests {
 
     static private NetAppFacade netAppFacade = null;
     static private Server server = null;
+    private static String host = EnvConfig.get("sanity", "netapp.host");
+    private static String portNumber = EnvConfig.get("sanity", "netapp.port");
+    private static String userName = EnvConfig.get("sanity", "netapp.username");
+    private static String password = EnvConfig.get("sanity", "netapp.password");
     
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
-        netAppFacade = new NetAppFacade("10.2.1.25", 80, "root", "1Wave$oftware", false);
+        netAppFacade = new NetAppFacade(host, Integer.parseInt(portNumber), userName, password, false);
         server = netAppFacade.server;
     }  
     

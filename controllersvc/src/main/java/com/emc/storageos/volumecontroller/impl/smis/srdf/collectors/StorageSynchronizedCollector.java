@@ -22,14 +22,12 @@ public class StorageSynchronizedCollector extends AbstractCollector {
     }
 
     @Override
-    public Collection<CIMObjectPath> collect(StorageSystem provider, Volume targetVolume) {
-        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+    public Collection<CIMObjectPath> collect(StorageSystem activeProviderSystem, Volume targetVolume) {
         Volume sourceVolume = dbClient.queryObject(Volume.class, targetVolume.getSrdfParent().getURI());
-        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
 
         Collection<CIMObjectPath> syncPaths = null;
         try {
-            syncPaths = utils.getSynchronizations(sourceSystem, sourceVolume, targetSystem, targetVolume, false);
+            syncPaths = utils.getSynchronizations(activeProviderSystem, sourceVolume, targetVolume, false);
         } catch (Exception e) {
             throw new RuntimeException("Failed to collect synchronization instances", e);
         }

@@ -22,6 +22,8 @@ import java.security.interfaces.RSAPrivateKey;
 
 public class DefaultSecurityService implements SecurityService {
 
+    private String[] ciphers;
+
     @Override
     public byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception {
 
@@ -65,5 +67,14 @@ public class DefaultSecurityService implements SecurityService {
     @Override
     public void initSecurityProvider() {
 
+    }
+
+    @Override
+    public String[] getCipherSuite() {
+        return ciphers;
+    }
+
+    public void setCiphers(String[] ciphers) {
+        this.ciphers = ciphers;
     }
 }

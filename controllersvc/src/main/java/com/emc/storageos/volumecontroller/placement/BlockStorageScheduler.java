@@ -127,7 +127,7 @@ public class BlockStorageScheduler {
      * for all assignments(existing and new).
      * 
      * @param storage
-     * @param initiators
+     * @param initiators - The new initiators to be provisioned.
      * @param pathParams - the Export Path parameters (maxPaths, pathsPerInitiator)
      * @param volumeURIs TODO
      * @param exportGroup
@@ -189,12 +189,22 @@ public class BlockStorageScheduler {
         // Make Net to Initiators Map and URI to Network map.
         Map<URI, List<Initiator>> net2InitiatorsMap = new HashMap<URI, List<Initiator>>();
         Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
+        _log.info("New initiators: ");
         for (Initiator initiator : newInitiators) {
             NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
+            if (network == null) {
+                _log.info(String.format("Initiator %s (%s) is being removed from initiator list because it has no network association", 
+                        initiator.getInitiatorPort(), initiator.getHostName()));
+                continue;
+            }
+            if (existingZoningMap != null && existingZoningMap.containsKey(initiator.getId().toString())) {
+                _log.info(String.format("Initiator %s (%s) is being removed from initiator list because it already exists in zoning map", 
+                        initiator.getInitiatorPort(), initiator.getHostName()));
+                continue;
+            }
+            networkMap.put(network.getId(), network);
             logInitiator(initiator, network);
-            if (network == null) continue;
-            if (! networkMap.containsKey(network.getId())) {
-                networkMap.put(network.getId(), network);
+            if (! net2InitiatorsMap.containsKey(network.getId())) {
                 net2InitiatorsMap.put(network.getId(), new ArrayList<Initiator>());
             }
             net2InitiatorsMap.get(network.getId()).add(initiator);
@@ -208,6 +218,12 @@ public class BlockStorageScheduler {
         StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
         Map<URI, Integer> net2PortsNeeded = assigner.getPortsNeededPerNetwork(net2InitiatorsMap, 
                 pathParams, existingPortsMap, existingInitiatorsMap);
+        for (Map.Entry<URI, Integer> entry : net2PortsNeeded.entrySet()) {
+        	if (networkMap.get(entry.getKey()) != null) {
+        		_log.info(String.format("Network %s (%s) requested ports %d", 
+                    networkMap.get(entry.getKey()).getLabel(), entry.getKey().toString(), entry.getValue()));
+        	}
+        }
         
         // For each Network, allocate the ports required, and then assign the ports.
         StoragePortsAllocator allocator = new StoragePortsAllocator();
@@ -918,8 +934,11 @@ public class BlockStorageScheduler {
         for (String initiatorId : existingZoningMap.keySet()) {
             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
             if (initiator == null || initiator.getInactive()) continue;
+            NetworkLite network = getInitiatorNetwork(initiator, _dbClient);
+            String networkLabel = (network != null ? network.getLabel() : "<unknown network>");
             StringSet ports = existingZoningMap.get(initiatorId);
             if (ports == null) continue;
+            StringBuilder portNames = new StringBuilder();
             for (String portId : ports) {
                 StoragePort port = _dbClient.queryObject(StoragePort.class, URI.create(portId));
                 if (port != null && port.getTaggedVirtualArrays() != null 
@@ -932,8 +951,11 @@ public class BlockStorageScheduler {
                         initiatorsToStoragePortsMap.put(initiator, new ArrayList<StoragePort>());
                     }
                     initiatorsToStoragePortsMap.get(initiator).add(port);
+                    portNames.append(port.getPortName() +" (" + port.getPortNetworkId() +  ")  ");
                 }
             }
+            _log.info(String.format("Existing initiator %s (%s) network %s ports %s", 
+                        initiator.getInitiatorPort(), initiator.getHostName(), networkLabel, portNames.toString()));
         }
         return initiatorsToStoragePortsMap;
     }
@@ -997,7 +1019,7 @@ public class BlockStorageScheduler {
     public static void logInitiator(Initiator initiator, NetworkLite network) {
         String networkName = (network != null ? network.getLabel() : "<unknown network>");
         _log.info(String.format("Attempting to assign port(s) to initiator: %s (%s) in network: %s", 
-                initiator.getInitiatorPort(), initiator.getId(), networkName));
+                initiator.getInitiatorPort(), initiator.getHostName(), networkName));
     }
     
     /**

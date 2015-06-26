@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -24,6 +25,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -69,6 +71,11 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
         List<Initiator> oldInitiators = new ArrayList<Initiator>();
         Iterables.addAll(oldInitiators, getInitiators(host));
         discoverInitiators(host, oldInitiators, changes);
+
+        if (!oldInitiators.isEmpty()) {
+            clearScaleIOInitiators(oldInitiators);
+        }
+
         Collection<URI> oldInitiatorIds = Lists.newArrayList(Collections2.transform(oldInitiators, CommonTransformerFunctions.fctnDataObjectToID()));
         changes.setOldInitiators(oldInitiatorIds);
     }
@@ -233,6 +240,23 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
                     DiscoveryStatusUtils.markAsFailed(modelClient, host, ex.getMessage(), ex);
                     throw ex;
                 }
+            }
+        }
+    }
+    
+    /**
+     * This method clears/removes ScaleIO initiators
+     *
+     * @param initiators
+     *            list of initiators
+     */
+    protected void clearScaleIOInitiators(List<Initiator> initiators) {
+        Iterator<Initiator> iterator = initiators.iterator();
+        while (iterator.hasNext()) {
+            Initiator initiator = iterator.next();
+            if (StringUtils.equalsIgnoreCase(initiator.getProtocol(),
+                    Protocol.ScaleIO.name())) {
+                iterator.remove();
             }
         }
     }

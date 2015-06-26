@@ -977,12 +977,12 @@ def create_parser(subcommand_parsers, common_parser):
 
     create_parser.add_argument('-inactive', '-ci',
                                dest='inactive',
-                               help='This option allows the snapshot to be' +
+                               help='This option allows the snapshot to be ' +
                                'create by without activating the ' +
                                'synchronization',
                                action='store_true')
     create_parser.add_argument('-type', '-t',
-                               help='This option creates a bookmark of a' +
+                               help='This option creates a bookmark of a ' +
                                'specific type, such as RP, SRDF, NATIVE',
                                dest='type',
                                choices=Snapshot.TYPE_REPLIC_LIST,
@@ -1098,7 +1098,7 @@ def list_parser(subcommand_parsers, common_parser):
                              action='store_true')
     list_parser.add_argument('-long', '-l',
                              dest='long',
-                             help='List Storageport in table with details',
+                             help='List snapshots in table with details',
                              action='store_true')
 
     list_parser.set_defaults(func=snapshot_list)

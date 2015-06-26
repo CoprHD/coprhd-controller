@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -88,7 +87,7 @@ public class SGsWithFastVolumesProcessor extends StorageProcessor {
             processVolumes(volumeInstances, policyName, keyMap, operation);
             while (!volumeInstanceChunks.isEnd()) {
                 _logger.debug("Processing Next Volume Chunk of size {}", BATCH_SIZE);
-                volumeInstanceChunks = client.getInstancePaths(null, 
+                volumeInstanceChunks = client.getInstancePaths(storageGroupPath, 
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
               processVolumes(volumeInstanceChunks.getResponses(), policyName, keyMap, operation);
             }

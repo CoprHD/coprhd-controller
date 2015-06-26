@@ -184,19 +184,23 @@ public class DbServiceStatusChecker {
 
     public void waitForAllNodesNumTokenAdjusted() {
         while (true) {
+            if (this.clusterNodeCount == 1){
+            	log.info("no adjust toke for single node vipr, skip");
+            	return;
+            }
+            
             List<Configuration> cfgs = this.coordinator.queryAllConfiguration(this.coordinator.getDbConfigPath(this.serviceName));
-
             int adjustedCount = 0;
             for (Configuration cfg : cfgs) {
                 // Bypasses item of "global" and folders of "version", just check db configurations.
                 if (cfg.getId() == null || cfg.getId().equals(Constants.GLOBAL_ID))
                     continue;
 
-                String numTokenVer = cfg.getConfig(DbConfigConstants.DB_NUM_TOKEN_VERSION);
-                if (numTokenVer == null) {
-                    log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.DB_NUM_TOKEN_VERSION, cfg.getId());
-                } else if (numTokenVer.equals(this.version)) {
-                    log.info("Found num_tokens of node {} reached target version {}", cfg.getId(), numTokenVer);
+                String numTokens = cfg.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
+                if (numTokens == null) {
+                    log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.NUM_TOKENS_KEY, cfg.getId());
+                } else if (Integer.valueOf(numTokens).equals(DbConfigConstants.DEFUALT_NUM_TOKENS)) {
+                    log.info("Found num_tokens of node {} reached target version {}", cfg.getId(), numTokens);
                     adjustedCount++;
                 }
             }

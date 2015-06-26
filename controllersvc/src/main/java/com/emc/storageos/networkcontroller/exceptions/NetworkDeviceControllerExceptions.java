@@ -68,10 +68,6 @@ public interface NetworkDeviceControllerExceptions {
     public NetworkDeviceControllerException addSanZonesFailedNull(final String systemtype);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public NetworkDeviceControllerException addSanZonesFailedExc(final String systemtype,
-            final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException addRemoveZonesFailedNull(final String systemtype);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
@@ -82,19 +78,9 @@ public interface NetworkDeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException updateSanZonesFailedNull(final String systemtype);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public NetworkDeviceControllerException updateSanZonesFailedExc(final String systemtype,
-            final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException removeZoneFailedNull(final String systemtype);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public NetworkDeviceControllerException zoneExportRemoveVolumeFailedNull(final String volUri);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public NetworkDeviceControllerException zoneExportRemoveVolumesFailedNull(final String volUri);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException discoverNetworkSystemFailed(final Throwable cause);
@@ -133,7 +119,7 @@ public interface NetworkDeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException getZonesToBeDeletedFailedIllegalAddress(
             final String address);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException getWBEMClientFailed(
             final String ipaddress, final Throwable cause);
@@ -146,9 +132,6 @@ public interface NetworkDeviceControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException addZonesStrategyFailedPath();
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public NetworkDeviceControllerException addZonesStrategyFailedNoZCommit();
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException addZonesStrategyFailedZoneCommit();
@@ -222,9 +205,6 @@ public interface NetworkDeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException exceptionReleasingFabricLock(String fabricId,
          final Throwable cause);
-
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public NetworkDeviceControllerException activeZoneWithSameNameExists();
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException noActiveZonesetForFabric(String fabricId);

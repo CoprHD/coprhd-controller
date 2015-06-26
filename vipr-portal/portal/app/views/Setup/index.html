@@ -118,12 +118,14 @@ function nextClicked() {
     var activeIndex = getActivePageIndex();
     validateActiveTab(function() {
         changeActivePage(activeIndex + 1);
-    });    
+        showPwValidRules();
+    });  
 }
 
 function backClicked() {
     var activeIndex = getActivePageIndex();
     changeActivePage(activeIndex - 1);
+    showPwValidRules();
 }
 
 function changeActivePage(index) {
@@ -400,10 +402,27 @@ function onTabClick(e) {
     var $this = $(this);
     validateActiveTab(function() {
         $this.tab('show');
+        showPwValidRules();
     });
 }
 
+function showPwValidRules(){
+	if(getActivePageIndex() == 0){
+		$('#alerts_info').show();
+	 	if($('#alerts_info .message').html() == ""){
+	 		$.post("@{Setup.getPasswordValidPromptRule}",function(result) {
+   	 			$('#alerts_info .message').append(result);
+   	 		});
+	 	}
+	}else{
+		 $('#alerts_info').hide();
+	}
+
+ }
+
 $(document).ready(function() {
+	
+	showPwValidRules();
     // Select the contents of any password field on focus
     $('input[type=password]').focus(function() {
         $(this).one('mouseup', function(e) {
@@ -448,6 +467,7 @@ $(document).ready(function() {
 #{Form.header titleKey:titleKey, descriptionKey:descriptionKey/}
 
 #{alerts/}
+    
 
 %{
   fieldCssClass = 'span4'

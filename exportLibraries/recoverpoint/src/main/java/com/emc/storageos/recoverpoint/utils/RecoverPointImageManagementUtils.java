@@ -896,8 +896,7 @@ public class RecoverPointImageManagementUtils {
 	 **/
 	public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, ConsistencyGroupCopyUID cgCopyUID, PipeState desiredPipeState) throws RecoverPointException {
 		
-		int numRetries = 0;
-		boolean correctState = false;
+		int numRetries = 0;		
 		String cgName = null;
 		try {
 			cgName = impl.getGroupName(cgUID);
@@ -906,16 +905,19 @@ public class RecoverPointImageManagementUtils {
 		} catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);
 		}
+		
 		boolean isInitializing = false;
-		while ((!correctState && numRetries++ < MAX_RETRIES) || isInitializing) {
-			ConsistencyGroupState cgState = null;
-			
-			isInitializing = false;
-			
+		boolean allLinksInDesiredState = false;
+		while ((!allLinksInDesiredState && numRetries++ < MAX_RETRIES) || isInitializing) {
+			ConsistencyGroupState cgState = null;				
+			isInitializing = false;			
 			try {
 				cgState = impl.getGroupState(cgUID);
-				boolean allLinksInDesiredState = true;
-				for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {
+				
+				// Lets assume all links are in desired state and use boolean AND operation to concatenate the results 
+				// to get a cumulative status on all the links. 
+				//allLinksInDesiredState = true;
+				for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {						
 					if (cgCopyUID != null) {
 						if (!(RecoverPointUtils.cgCopyEqual(linkstate.getGroupLinkUID().getFirstCopy(), cgCopyUID.getGlobalCopyUID()) ||
 						   (RecoverPointUtils.cgCopyEqual(linkstate.getGroupLinkUID().getSecondCopy(), cgCopyUID.getGlobalCopyUID())))) {
@@ -938,14 +940,16 @@ public class RecoverPointImageManagementUtils {
 							logger.info("CG link state is PAUSED.  Resume link.");
 							impl.startGroupTransfer(cgUID);
 							allLinksInDesiredState = false;
+							break;
 						} else if (PipeState.INITIALIZING.equals(pipeState)) {
 							logger.info("CG link state is INITIALIZING.");
 							isInitializing = true;
 							allLinksInDesiredState = false;
-						}
-						else {					
+							break;
+						} else {					
 							logger.info("CG link state is not active. It is: " + pipeState.toString());
 							allLinksInDesiredState = false;
+							break;
 						}
 					} else {
 						// Other desired states (like UNKNOWN [inactive])
@@ -957,9 +961,11 @@ public class RecoverPointImageManagementUtils {
 							// in the undesired state, we still need to wait for it.
 							logger.info("CG link state is not in desired state. It is: " + pipeState.toString());
 							allLinksInDesiredState = false;
+							break;
 						}
 					}
 				}
+				
 				if (allLinksInDesiredState) {
 					return;
 				} else {

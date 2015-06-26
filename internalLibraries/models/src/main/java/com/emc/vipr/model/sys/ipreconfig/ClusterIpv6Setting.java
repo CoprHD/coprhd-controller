@@ -125,23 +125,6 @@ public class ClusterIpv6Setting implements Serializable{
             network_addrs.add(propMap.get(network_ipaddr6_key));
         }
     }
-
-     public Map<String, String> toMap() {
-        Map<String, String> map= new HashMap();
-        map.put(PropertyConstants.IPV6_VIP_KEY, network_vip6);
-        map.put(PropertyConstants.IPV6_GATEWAY_KEY, network_gateway6);
-        map.put(PropertyConstants.IPV6_PREFIX_KEY, network_prefix_length.toString());
-        map.put(PropertyConstants.NODE_COUNT_KEY, Integer.toString(network_addrs.size()));
-
-        int nodeid=1;
-        for (String addr: network_addrs) {
-            map.put(String.format(PropertyConstants.IPV6_ADDR_KEY, nodeid), addr);
-            nodeid++;
-        }
-
-        return map;
-    }
-
     public boolean isDefault() {
         if (network_vip6.equals(PropertyConstants.IPV6_ADDR_DEFAULT))
             return true;

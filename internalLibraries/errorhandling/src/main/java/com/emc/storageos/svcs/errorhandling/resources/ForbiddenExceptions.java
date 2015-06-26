@@ -18,6 +18,8 @@ package com.emc.storageos.svcs.errorhandling.resources;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 
+import java.util.List;
+
 /**
  * This interface holds all the methods used to create an error condition that
  * will be associated with an HTTP status of Forbidden (403)
@@ -43,6 +45,9 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException insufficientPermissionsForUser(final String user);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException securityAdminCantDropHisOwnSecurityAdminRole(final String user);
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException failedReadingTenantRoles(final Throwable cause);
@@ -111,4 +116,7 @@ public interface ForbiddenExceptions {
     
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException localUsersNotAllowedForSingleSignOn(final String userName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException userBelongsToMultiTenancy(String userName, List<String> strings);
 }

@@ -37,9 +37,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  */
 public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     
-    // Maximum number of VMAX full copies
-    public static final int MAX_VMAX_COPY_SESSIONS = 8;
-    
     /**
      * Constructor
      * 
@@ -65,21 +62,14 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        super.validateFullCopyCreateRequest(fcSourceObjList, count);
-        
-        // Now platform specific checks.
-        for (BlockObject fcSourceObj : fcSourceObjList) {
-            URI fcSourceObjURI = fcSourceObj.getId();
+        if (fcSourceObjList.size() > 0) {
+            URI fcSourceObjURI = fcSourceObjList.get(0).getId();
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
                 // Not supported for snapshots.
                 throw APIException.badRequests.fullCopyNotSupportedFromSnapshot(
                     DiscoveredDataObject.Type.vmax.name(), fcSourceObjURI);
             } else {
-                // Verify the requested copy count.
-                if (count > MAX_VMAX_COPY_SESSIONS) {
-                    throw APIException.badRequests.vMaxCopySessionLimitExceeded(
-                        fcSourceObj.getId(), MAX_VMAX_COPY_SESSIONS);
-                }
+                super.validateFullCopyCreateRequest(fcSourceObjList, count);
             }
         }
     }

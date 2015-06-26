@@ -394,8 +394,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterBlockMaximumCopiesForVolumeExceededForHA(
             Integer haVpoolMaxCC, String sourceVolumeName, String haVpoolName, Integer currentHAMirrorCount);
-    
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterBlockSnapshotCannotBeExportedWhenInactive(
             String label, URI id);
@@ -604,7 +603,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterStorageProviderAlreadyRegistered(String ipAddress);
-
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterSMISProviderListIsEmpty();
@@ -1056,6 +1054,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException propertyValueTypeIsInvalid(final String property, final String type);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException upgradeCheckFrequencyNotPositive();
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException protectedVolumesNotSupported();
 
@@ -1252,7 +1253,6 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.DBSVC_ENTITY_NOT_FOUND)
     public BadRequestException unableToFindStorageProvidersForIds(List<URI> ids);
 
-
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException unableToFindSuitablePoolForProtectionVArray(final URI varrayId);
 
@@ -1420,7 +1420,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_ATTACHMENT)
     public BadRequestException attachmentLogsSizeError(final long currentSize, final long logsZie,
-            final long maxSize);
+            final long maxSize,final String queryParams);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException connectEMCNotConfigured();
@@ -1442,6 +1442,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteVolumeBlockSnapShotExists(String dependencies);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotStopSRDFBlockSnapShotExists(String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException principalSearchFailed(final String userName);
@@ -1455,7 +1458,6 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException notSupportedForInternalVolumes();
-    
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException inventoryDeleteNotSupportedOnSnapshots(final String nativeGuid);
@@ -1738,9 +1740,6 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_INVALID_MAX_CONTINUOUS_COPIES)
     public BadRequestException invalidMaxContinuousCopiesForVplex(final Integer maxCopies);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException vMaxCopySessionLimitExceeded(final URI volume, final int limit);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cantDeleteVPlexHaVPool(final String vpoolName);
@@ -2111,9 +2110,6 @@ public interface BadRequestExceptions {
 	public BadRequestException invalidParameterRemovePreexistingInitiator(final String maskName, final String initiatorPort);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException shadowImagePairLimitReached(final URI sourceId, final int count);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToFindVDC(String name);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2136,8 +2132,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException nonSRDFVolumeCannotbeAddedToSRDFCG();
-    
-    
+
     @DeclareServiceCode(ServiceCode.API_INVALID_OBJECT)
     public BadRequestException invalidVplexMirror(String mirrorName, String mirrorId);
     
@@ -2194,6 +2189,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException userMappingAttributeIsEmpty();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException UserMappingNotAllowed(final String user);
 	
 	@DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteOrEditUserGroup(final int numResources, final Set<URI> resourceIDs);
@@ -2253,6 +2251,9 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantDeleteFullCopyNotDetached(final String volumeId);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantStopSRDFFullCopyNotDetached(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantCreateNewVolumesInCGActiveFullCopies(final String cgId);
@@ -2310,10 +2311,29 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyExpansionNotAllowed(final String volumeId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException overlappingAttributesNotAllowed(final String userGroupName,
+                                                               final Set<String> overlappingUserGroups);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantCreateFullCopyOfVNXFullCopy();
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantCreateFullCopyOfVPlexFullCopyUsingVNX();
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException maxFullCopySessionLimitExceeded(final URI volume, final int maxStillAllowed);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullCopyNotSupportedByBackendSystem(final URI volume);            
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException NoAuthnProviderFound(String userId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidPrincipals(String details);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName); 
 }

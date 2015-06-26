@@ -51,22 +51,11 @@ public class LicensingServiceImpl extends BaseLogSvcResource implements Licensin
     // Spring Injected
     private LicenseManager _licenseManager;
     private static final String EVENT_SERVICE_TYPE = "license";
-    
-    private static final int FIXED_THREAD_POOL_SIZE = 5;
-    private static ExecutorService executorService = null;
 
     @Autowired
     private AuditLogManager _auditMgr;
     @Autowired
     private CallHomeService _callHomeService;
-    
-    // creating thread pool for licensing service
-    private synchronized static ExecutorService getExecutorServiceInstance() {
-        if (executorService == null) {
-            executorService = Executors.newFixedThreadPool(FIXED_THREAD_POOL_SIZE);
-        }
-        return executorService;
-    }
     
     /**
      * Default constructor.
@@ -121,18 +110,11 @@ public class LicensingServiceImpl extends BaseLogSvcResource implements Licensin
             throw APIException.badRequests.licenseIsNotValid(e.getMessage());
         }
 
-        // start registration a separate task so that in case connectEMC is not 
-        // available adding license should still succeed.       
-        getExecutorServiceInstance().submit(new Runnable() {
-        	@Override
-        	public void run() {
-                try{
-                    _callHomeService.sendRegistrationEvent();
-                } catch (Exception e) {
-                    _log.warn("Error occurred while sending registration event. {}", e);
-                }
-            }
-        });
+        try{
+            ((CallHomeServiceImpl)_callHomeService).internalSendRegistrationEvent();
+        } catch (Exception e) {
+            _log.warn("Error occurred while sending registration event. {}", e);
+        }
                 
         auditLicense(OperationTypeEnum.ADD_LICENSE,
                 AuditLogManager.AUDITLOG_SUCCESS, null);

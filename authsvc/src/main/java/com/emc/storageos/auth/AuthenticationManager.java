@@ -15,6 +15,7 @@
 package com.emc.storageos.auth;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.httpclient.Credentials;
@@ -48,11 +49,8 @@ public interface AuthenticationManager {
      * validate the user against the tenant provided
      * @param userId
      * @param tenantId
-     * @param failureReason put parameter which explains why the validation failed
-     * @return true if valid, false otherwise
      */
-    public boolean isUserValid(final String userId, final String tenantId,
-            final String altTenantId, ValidationFailureReason[] failureReason);
+    public void validateUser(final String userId, final String tenantId, final String altTenantId);
 
     /**
      * validate the group name
@@ -84,6 +82,10 @@ public interface AuthenticationManager {
      * @return A map with tenant ID as the key and the applied mapping as the value
      */
     public Map<URI, UserMapping> getUserTenants(String username);
+
+
+
+    public Map<URI, UserMapping> peekUserTenants(String username, URI tenantUri, List<UserMapping> userMappings);
 
     /**
      * Gets the user's details- tenant and groups.

@@ -548,7 +548,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             s_logger.info("Volume to Consistency Group Map is: " + volumesToCgs.toString());
             
             Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
-
+            Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
             
             if (null != allVirtualVolumes) {
                 for (String name : allVirtualVolumes.keySet()) {
@@ -586,13 +586,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                             // just refresh / update the existing unmanaged volume
                             s_logger.info("Unmanaged Volume {} is already known to ViPR", name);
                             
-                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, clusterIdToNameMap);
+                            updateUnmanagedVolume(info, vplex, unmanagedVolume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
                             knownUnmanagedVolumes.add(unmanagedVolume);
                         } else {
                             // set up new unmanaged vplex volume
                             s_logger.info("Unmanaged Volume {} is not known to ViPR", name);
                             
-                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, clusterIdToNameMap);
+                            unmanagedVolume = createUnmanagedVolume(info, vplex, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
                             newUnmanagedVolumes.add(unmanagedVolume);
                         }
                         
@@ -720,7 +720,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private void updateUnmanagedVolume(VPlexVirtualVolumeInfo info, 
             StorageSystem vplex, UnManagedVolume volume, 
-            Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap) {
+            Map<String, String> volumesToCgs, 
+            Map<String, String> clusterIdToNameMap,
+            Map<String, String> varrayToClusterIdMap) {
         
         s_logger.info("Updating UnManagedVolume {} with latest from VPLEX volume {}", 
                         volume.getLabel(), info.getName());
@@ -808,7 +810,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         unManagedVolumeInformation.put(SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
             volumeClusters);            
 
-
         // set supported vpool list
         StringSet matchedVPools = new StringSet();  
         String highAvailability = info.getLocality().equals(LOCAL) ? 
@@ -817,7 +818,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         List<URI> allVpoolUris = _dbClient.queryByType(VirtualPool.class, true);
         List<VirtualPool> allVpools = _dbClient.queryObject(VirtualPool.class, allVpoolUris);
         s_logger.info("finding valid virtual pools for UnManagedVolume {}", volume.getLabel());
+        
         for (VirtualPool vpool : allVpools) {
+
             // VPool must specify the correct VPLEX HA.
             if ((vpool.getHighAvailability() == null) ||
                 (!vpool.getHighAvailability().equals(highAvailability))) {
@@ -848,8 +851,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             // VPool must be assigned to a varray corresponding to volumes clusters.
             StringSet varraysForVpool = vpool.getVirtualArrays();
             for (String varrayId : varraysForVpool) {
-                String varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(URI.create(varrayId), vplex.getId(), _dbClient);
-                if (!varrayClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
+                String varrayClusterId = varrayToClusterIdMap.get(varrayId);
+                if (null == varrayClusterId) {
+                    varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(URI.create(varrayId), vplex.getId(), _dbClient);
+                    varrayToClusterIdMap.put(varrayId, varrayClusterId);
+                }
+                
+                if (!ConnectivityUtil.CLUSTER_UNKNOWN.equals(varrayClusterId)) {
                     String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
                     if (volumeClusters.contains(varrayClusterName)) {
                         matchedVPools.add(vpool.getId().toString());
@@ -895,7 +903,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * @param volumesToCgs a Map of volume labels to consistency group names 
      */
     private UnManagedVolume createUnmanagedVolume(VPlexVirtualVolumeInfo info, 
-            StorageSystem vplex, Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap) {
+            StorageSystem vplex, Map<String, String> volumesToCgs, Map<String, String> clusterIdToNameMap, 
+            Map<String, String> varrayToClusterIdMap) {
 
         s_logger.info("Creating new UnManagedVolume from VPLEX volume {}", 
                 info.getName());
@@ -903,7 +912,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         UnManagedVolume volume = new UnManagedVolume();
         volume.setId(URIUtil.createId(UnManagedVolume.class));
         
-        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, clusterIdToNameMap);
+        updateUnmanagedVolume(info, vplex, volume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
         
         return volume;
     }

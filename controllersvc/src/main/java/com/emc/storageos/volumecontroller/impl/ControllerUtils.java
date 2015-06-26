@@ -539,7 +539,7 @@ public class ControllerUtils {
                     nativeId = Integer.parseInt(blockObject.getNativeId(), 16);
                     nativeIdString = String.format("%04d", nativeId);
                 } else if (!storageType.equals(DiscoveredDataObject.Type.vnxe.name()) && 
-                		blockObject.getNativeId().matches("\\d+")) {
+                        blockObject.getNativeId().matches("\\d+")) {
                     nativeId = Integer.parseInt(blockObject.getNativeId());
                     nativeIdString = String.format("%04d", nativeId);
                 }
@@ -772,7 +772,7 @@ public class ControllerUtils {
                 getBlockSnapshotsBySnapsetLabel(snapshot.getSnapsetLabel()), list);
         Iterator<BlockSnapshot> resultsIt = dbClient.queryIterativeObjects(BlockSnapshot.class, list);
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
-        while( resultsIt.hasNext() ) {
+        while (resultsIt.hasNext()) {
             BlockSnapshot snap = resultsIt.next();
             if(snapshot.getProject() != null && snapshot.getProject().getURI().equals(snap.getProject().getURI())) {
                 snapshots.add(snap);

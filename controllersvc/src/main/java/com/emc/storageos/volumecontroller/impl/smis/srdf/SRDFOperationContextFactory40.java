@@ -37,6 +37,8 @@ public class SRDFOperationContextFactory40 extends AbstractSRDFOperationContextF
 
         if (SUSPEND_CONS_EXEMPT.equals(operation) || DELETE_PAIR.equals(operation)) {
             collectorStrategy = collectorFactory().getSingleCollector();
+        } else if (SWAP.equals(operation) || FAIL_BACK.equals(operation) || ESTABLISH.equals(operation)) {
+            collectorStrategy = collectorFactory().getCollector(target, true);
         } else {
             collectorStrategy = collectorFactory().getCollector(target, false);
         }
@@ -54,6 +56,13 @@ public class SRDFOperationContextFactory40 extends AbstractSRDFOperationContextF
         // Determine how to build the SMI-S arguments
         ExecutorStrategy executorStrategy = null;
         switch(operation) {
+        	case FAIL_MECHANISM:
+        	    if (target.hasConsistencyGroup()) {
+                    executorStrategy = new FailMechanismGroupSyncStrategy(helper);
+                } else {
+                    executorStrategy = new FailMechanismStorageSyncsStrategy(helper);
+                }
+        		break;
             case SUSPEND:
                 executorStrategy = new SuspendStorageSyncsStrategy(helper);
                 break;
@@ -64,19 +73,30 @@ public class SRDFOperationContextFactory40 extends AbstractSRDFOperationContextF
                 executorStrategy = new SplitStorageSyncsStrategy(helper);
                 break;
             case ESTABLISH:
-                executorStrategy = new EstablishStorageSyncsStrategy(helper);
+                if (target.hasConsistencyGroup()) {
+                    executorStrategy = new EstablishGroupSyncStrategy(helper);
+                } else {
+                    executorStrategy = new EstablishStorageSyncsStrategy(helper);
+                }
                 break;
             case FAIL_OVER:
                 executorStrategy = new FailoverStorageSyncsStrategy(helper);
                 break;
             case FAIL_BACK:
-                executorStrategy = new FailbackStorageSyncsStrategy(helper);
-                break;
+                if (target.hasConsistencyGroup()) {
+                    executorStrategy = new FailbackGroupSyncStrategy(helper);
+                } else {
+                    executorStrategy = new FailbackStorageSyncsStrategy(helper);
+                }
             case RESTORE:
                 executorStrategy = new RestoreStorageSyncsStrategy(helper);
                 break;
             case SWAP:
-                executorStrategy = new SwapStorageSyncsStrategy(helper);
+                if (target.hasConsistencyGroup()) {
+                    executorStrategy = new SwapGroupSyncStrategy(helper);
+                } else {
+                    executorStrategy = new SwapStorageSyncsStrategy(helper);
+                }
                 break;
             case DELETE_GROUP_PAIRS:
             case DELETE_PAIR:

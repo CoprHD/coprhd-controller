@@ -414,11 +414,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 filesystem.setProject(new NamedURI(param.getProject(), filesystem.getLabel())); 
                 
                 _logger.info("Un Managed File System {} has exports? : {}", unManagedFileSystem.getId(), unManagedFileSystem.getHasExports());
+                StoragePort sPort = compareAndSelectPortURIForUMFS(system, port,neighborhood);
                 if(unManagedFileSystem.getHasExports()){
-                	
-                    //Get Appropriate storageport for the filesystem, and associate it with Filesystem's StoragePort field.
-                    //in cases where FSexportMap is not present (meaning no exports present for FS) make the FS's storagePort null.
-                      StoragePort sPort = compareAndSelectPortURIForUMFS(system, port,neighborhood);
                       _logger.info("Storage Port Found {}", sPort);
                       if (null != sPort) {
                           filesystem.setPortName(sPort.getPortName());
@@ -457,9 +454,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
                 
                 if(unManagedFileSystem.getHasShares()){
-                	//Get Appropriate storageport for the filesystem, and associate it with Filesystem's StoragePort field.
-                    //in cases where SMBShareMap is not present (meaning no shares present for FS) make the FS's storagePort null.
-                      StoragePort sPort = compareAndSelectPortURIForUMFS(system, port,neighborhood);
                       _logger.info("Storage Port Found {}", sPort);
                       if (null != sPort) {
                           filesystem.setPortName(sPort.getPortName());
@@ -489,10 +483,15 @@ public class UnManagedFilesystemService extends TaggedResource {
                       }
                 }
 
-                if(!unManagedFileSystem.getHasShares() && !unManagedFileSystem.getHasExports()){
-                    //if file system doesn't contains shares and exports then storageport need to be set to null
-                    filesystem.setStoragePort(null);
-                    _logger.info("Storage Port not found for fs {}", fsName);
+                if(!unManagedFileSystem.getHasShares() && !unManagedFileSystem.getHasExports()){                	
+                    if (null != sPort) {
+                    	_logger.info("Storage Port Found {}", sPort);
+                        filesystem.setPortName(sPort.getPortName());
+                        filesystem.setStoragePort(sPort.getId());
+                    } else {
+                    	filesystem.setStoragePort(null);                    	
+                    	_logger.info("Storage Port not found for fs {}", fsName);
+                    }
                 }
 
                 //Set quota

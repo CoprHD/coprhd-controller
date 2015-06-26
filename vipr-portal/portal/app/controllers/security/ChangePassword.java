@@ -19,6 +19,8 @@ import controllers.Common;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.storageos.security.password.Constants;
+
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
@@ -57,6 +59,11 @@ public class ChangePassword extends Controller {
             renderJSON(ValidationResponse.valid());
         }
         
+    }
+    
+    public static String getPasswordValidPromptRule() {
+    	String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_UPDATE_PROMPT);
+        return promptString;
     }
     
     public static class PasswordForm {

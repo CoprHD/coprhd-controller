@@ -15,6 +15,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import com.emc.storageos.model.tenant.*;
+import com.emc.storageos.security.resource.UserInfoPage;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
@@ -270,23 +271,17 @@ public class TenantsService extends TaggedResource {
                 throw ForbiddenException.forbidden.onlySecurityAdminsCanModifyUserMapping();
             }
 
-            if( null != param.getUserMappingChanges().getAdd() && !param.getUserMappingChanges().getAdd().isEmpty() ) {
-                checkUserMappingAttribute(param.getUserMappingChanges().getAdd());
-                addUserMappings(tenant, param.getUserMappingChanges().getAdd(), getUserFromContext());
-            }
-
-
             if( null != param.getUserMappingChanges().getRemove() && !param.getUserMappingChanges().getRemove().isEmpty() && null != tenant.getUserMappings()) {
                 checkUserMappingAttribute(param.getUserMappingChanges().getRemove());
-            	List<UserMapping> remove = UserMapping.fromParamList(param.getUserMappingChanges().getRemove());
-            	StringSetMap mappingsToRemove = new StringSetMap();
+                List<UserMapping> remove = UserMapping.fromParamList(param.getUserMappingChanges().getRemove());
+                StringSetMap mappingsToRemove = new StringSetMap();
                 // Find the database entries to remove
-                for(UserMapping mappingToRemove : remove ) {
+                for (UserMapping mappingToRemove : remove) {
                     StringSet domainMappings = tenant.getUserMappings().get(mappingToRemove.getDomain().trim());
                     trimGroupAndDomainNames(mappingToRemove);
-                    if( null != domainMappings ) {
-                        for(String existingMapping : domainMappings) {
-                            if(mappingToRemove.equals(UserMapping.fromString(existingMapping))) {
+                    if (null != domainMappings) {
+                        for (String existingMapping : domainMappings) {
+                            if (mappingToRemove.equals(UserMapping.fromString(existingMapping))) {
                                 mappingsToRemove.put(mappingToRemove.getDomain(), existingMapping);
                             }
                         }
@@ -298,24 +293,33 @@ public class TenantsService extends TaggedResource {
                         .entrySet()) {
                     for (String mappingToRemove : mappingToRemoveSet.getValue()) {
                         tenant.removeUserMapping(mappingToRemoveSet.getKey(),
-                                mappingToRemove);                        
-                    }
-                }
-                if (!TenantOrg.isRootTenant(tenant)) {
-                    boolean bMappingsEmpty = true;
-                    for (AbstractChangeTrackingSet<String> mapping : tenant
-                            .getUserMappings().values()) {
-                        if (!mapping.isEmpty()) {
-                            bMappingsEmpty = false;
-                            break;
-                        }
-                    }
-                    if (bMappingsEmpty) {
-                        throw APIException.badRequests
-                                .requiredParameterMissingOrEmpty("user_mappings");
+                                mappingToRemove);
                     }
                 }
             }
+
+            if( null != param.getUserMappingChanges().getAdd() && !param.getUserMappingChanges().getAdd().isEmpty() ) {
+                checkUserMappingAttribute(param.getUserMappingChanges().getAdd());
+                addUserMappings(tenant, param.getUserMappingChanges().getAdd(), getUserFromContext());
+            }
+
+            if (!TenantOrg.isRootTenant(tenant)) {
+                boolean bMappingsEmpty = true;
+                for (AbstractChangeTrackingSet<String> mapping : tenant
+                        .getUserMappings().values()) {
+                    if (!mapping.isEmpty()) {
+                        bMappingsEmpty = false;
+                        break;
+                    }
+                }
+                if (bMappingsEmpty) {
+                    throw APIException.badRequests
+                            .requiredParameterMissingOrEmpty("user_mappings");
+                }
+            }
+
+            // request contains user-mapping change, perform the check.
+            mapOutProviderTenantCheck(tenant);
         }
 
         _dbClient.updateAndReindexObject(tenant);
@@ -362,6 +366,10 @@ public class TenantsService extends TaggedResource {
         // add creator as tenant admin
         subtenant.addRole(new PermissionsKey(PermissionsKey.Type.SID,
                 getUserFromContext().getName()).toString(), Role.TENANT_ADMIN.toString());
+
+        // perform user tenant check before persistent
+        mapOutProviderTenantCheck(subtenant);
+
         _dbClient.createObject(subtenant);
         // To Do - add attributes to the set of attributes to pull from AD/LDAP
 
@@ -439,7 +447,7 @@ public class TenantsService extends TaggedResource {
      */
     @POST
     @Path("/{id}/deactivate")
-    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public Response deactivateTenant(@PathParam("id") URI id) {
         TenantOrg tenant = getTenantById(id, true);
         if (TenantOrg.isRootTenant(tenant)) {
@@ -1316,6 +1324,50 @@ public class TenantsService extends TaggedResource {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * SecurityAdmin has permission to create subtenant, or change a tenant's user mapping.
+     *
+     * before persisting user-mapping change to database, this check makes sure current user, if he is SecurityAdmin,
+     * will not be mapped out of Provider Tenant, and lose its security admin role.
+     *
+     * @param tenant tenant, which is about to be created or modified
+     */
+    private void mapOutProviderTenantCheck(TenantOrg tenant) {
+
+        // if the user don't have SecurityAdmin role, skip further check
+        if (!_permissionsHelper.userHasGivenRole(
+                (StorageOSUser)sc.getUserPrincipal(),
+                null, Role.SECURITY_ADMIN)) {
+            return;
+        }
+
+        String user = getUserFromContext().getName();
+        UserInfoPage.UserTenantList userAndTenants = Validator.getUserTenants(user, tenant);
+
+        if( null != userAndTenants ) {
+            List<UserInfoPage.UserTenant> userTenants = userAndTenants._userTenantList;
+
+            if (CollectionUtils.isEmpty(userTenants)) {
+                _log.error("User {} will not match any tenant after this user mapping change", user);
+                throw APIException.badRequests.UserMappingNotAllowed(user);
+            } else if (userTenants.size() > 1) {
+                _log.error("User {} will map to multiple tenants {} after this user mapping change", user, userTenants.toArray());
+                throw APIException.badRequests.UserMappingNotAllowed(user);
+            } else {
+                String tenantUri = userTenants.get(0)._id.toString();
+                String providerTenantId = _permissionsHelper.getRootTenant().getId().toString();
+                _log.debug("user will map to tenant: " + tenantUri);
+                _log.debug("provider tenant ID: " + providerTenantId);
+
+                if (!providerTenantId.equalsIgnoreCase(tenantUri)) {
+                    _log.error("User {} will map to tenant {}, which is not provider tenant", user, tenant.getLabel());
+                    throw APIException.badRequests.UserMappingNotAllowed(user);
+                }
+            }
+
         }
     }
 }

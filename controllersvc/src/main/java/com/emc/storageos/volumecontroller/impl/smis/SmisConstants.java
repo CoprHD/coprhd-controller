@@ -234,6 +234,7 @@ public interface SmisConstants {
     static final String TARGET_ELEMENT_SUPPLIER = "TargetElementSupplier";
     static final String THIN_PROVISIONING_POLICY = "ThinProvisioningPolicy";
     static final String EMC_SETUNSET_RECOVERPOINT = "EMCSetUnsetRecoverPoint";
+    public static final String EMC_BOUND_TO_THIN_STORAGE_POOL = "EMCBoundToThinStoragePool";
 
     // Constants used for VMAX Masking names
     static public char MASK_NAME_DELIMITER = '_';

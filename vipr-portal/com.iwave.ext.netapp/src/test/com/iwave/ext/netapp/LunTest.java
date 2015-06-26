@@ -8,12 +8,12 @@
 package com.iwave.ext.netapp;
 
 import static org.junit.Assert.*;
-
 import netapp.manage.NaServer;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.emc.storageos.services.util.EnvConfig;
 
 /**
  * @author sdorcas
@@ -28,13 +28,17 @@ public class LunTest {
 	static private final long NEW_LUN_SIZE = (120*1024*1024); // 120Mb in bytes
 	static private final String INIT_GROUP = "testgroup";
 	static private final int LUN_ID = 99;
+    private static String host = EnvConfig.get("sanity", "netapp.host");
+    private static String portNumber = EnvConfig.get("sanity", "netapp.port");
+    private static String userName = EnvConfig.get("sanity", "netapp.username");
+    private static String password = EnvConfig.get("sanity", "netapp.password");
 	
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		Server s = new Server("10.2.1.25", 80, "root", "1Wave$oftware", false);
+		Server s = new Server(host, Integer.parseInt(portNumber), userName, password, false);
 		server = s.getNaServer();
 	}
 	

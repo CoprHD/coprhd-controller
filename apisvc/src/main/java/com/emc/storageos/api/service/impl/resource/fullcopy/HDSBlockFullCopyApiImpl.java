@@ -28,7 +28,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -65,32 +64,24 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        super.validateFullCopyCreateRequest(fcSourceObjList, count);
-        
-        // Now platform specific checks.
-        for (BlockObject fcSourceObj : fcSourceObjList) {
-            URI fcSourceObjURI = fcSourceObj.getId();
+    public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {        
+        if (fcSourceObjList.size() > 0) {
+            URI fcSourceObjURI = fcSourceObjList.get(0).getId();
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
                 // Not supported for snapshots.
                 throw APIException.badRequests.fullCopyNotSupportedFromSnapshot(
                     DiscoveredDataObject.Type.hds.name(), fcSourceObjURI);
             } else {
-                // Verify the requested copy count.
-                Volume fcSourceVolume = (Volume) fcSourceObj;
-                int availableMirrorCount = 0;
-                if (null != fcSourceVolume.getMirrors()) {
-                    availableMirrorCount = fcSourceVolume.getMirrors().size();
-                }
-                if ((availableMirrorCount + count) > HDSConstants.MAX_SHADOWIMAGE_PAIR_COUNT) {
-                    throw APIException.badRequests.shadowImagePairLimitReached(
-                        fcSourceVolume.getId(), HDSConstants.MAX_SHADOWIMAGE_PAIR_COUNT
-                            - availableMirrorCount);
-                }
-                
-                // Verify the volume is exported.
-                if (!fcSourceVolume.isVolumeExported(_dbClient)) {
-                    throw APIException.badRequests.sourceNotExported(fcSourceObjURI);
+                // Call super first.
+                super.validateFullCopyCreateRequest(fcSourceObjList, count);
+        
+                // Now platform specific checks.
+                for (BlockObject fcSourceObj : fcSourceObjList) {
+                    // Verify the volume is exported.
+                    Volume fcSourceVolume = (Volume) fcSourceObj;
+                    if (!fcSourceVolume.isVolumeExported(_dbClient)) {
+                        throw APIException.badRequests.sourceNotExported(fcSourceObjURI);
+                    }
                 }
             }
         }
@@ -143,5 +134,24 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void verifyFullCopyRequestCount(BlockObject fcSourceObj, int count) {
+        // Verify the requested copy count. For HDS
+        // we must account for continuous copies as
+        // well as full copies as they both count 
+        // against the shadow image pair limit for a
+        // volume.
+        Volume fcSourceVolume = (Volume) fcSourceObj;
+        int currentMirrorCount = 0;
+        if (null != fcSourceVolume.getMirrors()) {
+            currentMirrorCount = fcSourceVolume.getMirrors().size();
+        }
+        BlockFullCopyUtils.validateActiveFullCopyCount(fcSourceObj, count,
+            currentMirrorCount, _dbClient);
     }    
 }

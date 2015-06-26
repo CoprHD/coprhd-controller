@@ -264,7 +264,7 @@ def vdc_add_parser(subcommand_parsers, common_parser):
                             dest='endpoint',
                             metavar='<endpoint>',
                             required=True)
-    mandatory_args.add_argument('-certfile', '-cf',
+    mandatory_args.add_argument('-certfile', '-crf',
                             help='path of file with certificate to be added',
                             dest='certfile',
                             metavar='<certificatefile>',

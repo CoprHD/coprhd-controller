@@ -10,6 +10,8 @@ Preferences = vipr_user_preferences
 Setup = InitSetup
 SystemHealth = vipr_c_system_health
 SystemHealth.logs = vipr_c_logs
+SystemHealth.nodeRecovery = SystemNodeRecovery
+SystemHealth.dbHealth = SettingsDatabaseConsistencyCheck
 VirtualArrays = VirtualArrays
 VirtualArrays.create = CreateVirtualArray
 VirtualArrays.edit = EditVirtualArray
@@ -108,6 +110,7 @@ infra.VirtualDataCenters = VirtualDataCenters
 infra.VirtualDataCenters.create = CreateVirtualDataCenter
 infra.VirtualDataCenters.edit = EditVirtualDataCenter
 infra.VirtualDataCenters.endpoints = InterVDCCommunicationEndpoints
+infra.ClusterInfo = IPNetworkConfigurationPage
 
 # Resources
 resources.BlockConsistencyGroups = ResourcesConsistencyGroups

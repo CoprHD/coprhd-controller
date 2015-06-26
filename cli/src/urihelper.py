@@ -70,8 +70,8 @@ class URIHelper(object):
     URI_VOLUME = URI_VOLUMES + '/{0}'
     URI_VOLUME_SEARCH_BY_PROJECT = '/block/volumes/search?project={0}'
     URI_VOLUME_TASK_LIST = URI_VOLUME + '/tasks'
-    
     URI_VOLUME_TASK=URI_VOLUME_TASK_LIST+'/{1}'
+    URI_VOLUME_TASK_BY_ID = '/vdc/tasks/{0}'
 
     '''
     Consistencygroup URIs
@@ -81,7 +81,8 @@ class URIHelper(object):
     URI_CG = URI_CGS + '/{0}'
     URI_CG_SEARCH_BY_PROJECT = '/block/consistency-groups/search?project={0}'
     URI_CG_TASK_LIST = URI_CG + '/tasks'
-    URI_CG_TASK = '/vdc/tasks/{0}'
+    URI_CG_TASK = URI_CG_TASK_LIST+'/{1}'
+    URI_CG_TASK_BY_ID = '/vdc/tasks/{0}'
     
     '''
     Export Group URIs
@@ -96,7 +97,8 @@ class URIHelper(object):
     URI_EXPORT_GROUP_DEACTIVATE = URI_EXPORT_GROUPS_SHOW + '/deactivate'
     URI_EXPORT_GROUP_UPDATE = '/block/exports/{0}'
     URI_EXPORT_GROUP_TASKS_LIST = '/block/exports/{0}/tasks'
-    URI_EXPORT_GROUP_TASK = '/vdc/tasks/{0}'
+    URI_EXPORT_GROUP_TASK = URI_EXPORT_GROUP_TASKS_LIST+'/{1}'
+    URI_EXPORT_GROUP_TASK_BY_ID = '/vdc/tasks/{0}'
 
     '''
     Order module map and its uris
@@ -264,6 +266,7 @@ class URIHelper(object):
         self.EXPORT_GROUP_URIS_MAP[
             "tasks_list"] = self.URI_EXPORT_GROUP_TASKS_LIST
         self.EXPORT_GROUP_URIS_MAP["task"] = self.URI_EXPORT_GROUP_TASK
+        self.EXPORT_GROUP_URIS_MAP["task_by_id"] = self.URI_EXPORT_GROUP_TASK_BY_ID
 
     def __fillOrderMap(self):
         self.ORDER_URIS_MAP["list"] = self.URI_ORDER_GET_ORDERS
@@ -281,6 +284,7 @@ class URIHelper(object):
     def __fillVolumeMap(self):
         self.VOLUME_URIS_MAP["tasks_list"] = self.URI_VOLUME_TASK_LIST
         self.VOLUME_URIS_MAP["task"] = self.URI_VOLUME_TASK
+        self.VOLUME_URIS_MAP["task_by_id"] = self.URI_VOLUME_TASK_BY_ID
         self.VOLUME_URIS_MAP[
             "search_by_project"] = self.URI_VOLUME_SEARCH_BY_PROJECT
         self.VOLUME_URIS_MAP["show"] = self.URI_VOLUME
@@ -288,6 +292,7 @@ class URIHelper(object):
     def __fillConsistencyGroupMap(self):
         self.CG_URIS_MAP["tasks_list"] = self.URI_CG_TASK_LIST
         self.CG_URIS_MAP["task"] = self.URI_CG_TASK
+        self.CG_URIS_MAP["task_by_id"] = self.URI_CG_TASK_BY_ID
         self.CG_URIS_MAP[
             "search_by_project"] = self.URI_CG_SEARCH_BY_PROJECT
         self.CG_URIS_MAP["show"] = self.URI_CG

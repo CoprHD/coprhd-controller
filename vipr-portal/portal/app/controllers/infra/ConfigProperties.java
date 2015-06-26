@@ -5,9 +5,12 @@
 package controllers.infra;
 
 import com.emc.storageos.model.property.PropertyMetadata;
+import com.emc.storageos.security.password.Constants;
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import controllers.Common;
 import controllers.Maintenance;
 import controllers.deadbolt.Restrict;
@@ -15,8 +18,10 @@ import controllers.deadbolt.Restrictions;
 import controllers.security.Security;
 import jobs.UpdatePropertiesJob;
 import models.properties.*;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
+
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -127,7 +132,9 @@ public class ConfigProperties extends Controller {
         Map<String, Property> properties = loadProperties();
         Map<String, PropertyPage> pages = Maps.newLinkedHashMap();
         addPage(pages, new NetworkPropertyPage(properties));
-        addPage(pages, new SecurityPropertyPage(properties));
+        if (PlatformUtils.isAppliance()) {
+            addPage(pages, new SecurityPropertyPage(properties));
+        }
         addPage(pages, new ControllerPropertyPage(properties));
         addPage(pages, new DiscoveryPropertyPage(properties));
         addPage(pages, new ImageServerPropertyPage(properties));
@@ -260,6 +267,11 @@ public class ConfigProperties extends Controller {
         else {
             renderJSON(ValidationResponse.valid(Messages.get("configProperties.smtp.testSuccessful")));
         }
+    }
+    
+    public static String getPasswordValidPromptRule() {
+    	String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_VALID_PROMPT);
+        return promptString;
     }
     
     public static void validatePasswords(@Required String password, @Required String fieldName) {

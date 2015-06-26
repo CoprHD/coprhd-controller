@@ -16,6 +16,7 @@ package com.emc.storageos.auth.local;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.httpclient.Credentials;
@@ -44,9 +45,8 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
     }
 
     @Override
-    public boolean isUserValid(final String userId, final String tenantId,
-            final String altTenantId, ValidationFailureReason[] failureReason) {
-        return false;
+    public void validateUser(final String userId, final String tenantId, final String altTenantId) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -65,11 +65,22 @@ public class StorageOSLocalPersonAttributeDao implements StorageOSPersonAttribut
         return storageOSUser;
     }
 
+    @Override
+    public StorageOSUserDAO getStorageOSUser(Credentials credentials) {
+        // failureReason is not used in local DAO
+        return getStorageOSUser(credentials, null);
+    }
+
     /*
      * @see com.emc.storageos.auth.StorageOSPersonAttributeDao#getUserTenants(java.lang.String)
      */
     @Override
     public Map<URI, UserMapping> getUserTenants(String username) {
         return Collections.singletonMap( _permissionsHelper.getRootTenant().getId(), null);
+    }
+
+    @Override
+    public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMappings) {
+        return getUserTenants(username);
     }
 }

@@ -298,19 +298,8 @@ public abstract class StartupMode {
 
         void onPostStart() {
             super.onPostStart();
-            try {
-                String modeType = DbServiceImpl.instance.readStartupModeFromDisk();
-                if (Constants.STARTUPMODE_RESTORE_REINIT.equalsIgnoreCase(modeType)) {
-                    //Gossip should be stopped during geodb restore to avoid stale node info in the cluster
-                    log.info("Detected restore init state . stop gossiping ");
-                    StorageService.instance.stopGossiping();
-                }
-            } catch (IOException ex) {
-                log.warn("Could not read startup mode from db directory {}", dbDir);
-                throw new IllegalStateException("Error when read startup mode from db dir", ex);
-            }
-            removeFlag(Constants.STARTUPMODE_RESTORE_REINIT);
             DbServiceImpl.instance.removeStartupModeOnDisk();
+            removeFlag(Constants.STARTUPMODE_RESTORE_REINIT);
         }
     }
 }

@@ -19,19 +19,26 @@ import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Facto
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -66,40 +73,65 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
         
         List<URI> protectionSetURIs = dbClient.queryByType(ProtectionSet.class, true);
         
+        log.info("Scanning ProtectionSets for stale Volume references.");
         for (URI protectionSetURI : protectionSetURIs) {
-            log.info("Scanning ProtectionSets for RP+VPlex Volume references.");
+            // First, cleanup any stale volume references for the ProtectionSet
+            if (cleanupStaleProtectionSetVolumes(protectionSetURI)) {
+                log.info("ProtectionSet {} has been removed so continuing to the next one.", protectionSetURI);
+            }
+        }
+        
+        consolidateDuplicates();
+        
+        protectionSetURIs = dbClient.queryByType(ProtectionSet.class, true);
+        log.info("Scanning ProtectionSets for RP+VPlex Volume references.");
+        for (URI protectionSetURI : protectionSetURIs) {
+            // Lookup the ProtectionSet again after stale volume references have been removed.
             ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protectionSetURI);
+            
+            log.info("Scanning ProtectionSet {}|{} ", protectionSet.getLabel(), protectionSet.getId());
             
             if (protectionSet != null && protectionSet.getVolumes() != null) {
                 // Get the first volume to determine if it has 2 BlockConsistencyGroup references.
                 // This would identify that the volume, and all volumes in this ProtectionSet
                 // are RP+VPlex volumes.
                 if (protectionSet.getVolumes() != null && !protectionSet.getVolumes().isEmpty()) {
-                    Volume firstVolume = dbClient.queryObject(Volume.class, 
-                            URI.create(protectionSet.getVolumes().iterator().next()));
+                    Iterator<String> protectionSetVolumes = protectionSet.getVolumes().iterator();
+
+                    Volume protectionSetVolume = null;
+                    
+                    while (protectionSetVolumes.hasNext()) {
+                        Volume vol = dbClient.queryObject(Volume.class, 
+                                URI.create(protectionSetVolumes.next()));
+                        
+                        if (vol != null) {
+                            log.info("Using ProtectionSet Volume {}|{} to migrate consistency group.", vol.getLabel(), vol.getId());
+                            protectionSetVolume = vol;
+                            break;
+                        }
+                    }
+                    
                     BlockConsistencyGroup primaryCg = null;
 
                     // RP+VPlex volumes will have references to exactly 2 BlockConsistencyGroups.  Every
                     // other type of volume will only reference a single BlockConsistencyGroup.
-                    // Note: It is possible that firstVolume can be null because of an issue with RP
-                    // volume delete (see CTRL-9806).  In this case, the delete would fail, leaving the
-                    // ProtectionSet referencing a volume that was actually deleted from the database. So,
-                    // if firstVolume is null, we simply ignore it.
-                    if (firstVolume != null && firstVolume.getConsistencyGroups() != null 
-                            && !firstVolume.getConsistencyGroups().isEmpty()
-                            && firstVolume.getConsistencyGroups().size() == 2) {
-                        log.info("Found RP+VPlex ProtectionSet {}.  Preparing to migrated referenced RP+VPlex "
-                                + "volumes and associated BlockConsistencyGroups.", protectionSet.getLabel());
+                    if (protectionSetVolume.getConsistencyGroups() != null 
+                            && !protectionSetVolume.getConsistencyGroups().isEmpty()
+                            && protectionSetVolume.getConsistencyGroups().size() == 2) {
+                        log.info("Found RP+VPlex ProtectionSet {}|{}.  Preparing to migrated referenced RP+VPlex "
+                                + "volumes and associated BlockConsistencyGroups.", protectionSet.getLabel(), protectionSet.getId());
                         // There are references to 2 different BlockConsistencyGroup objects,
                         // so this is an RP+VPlex volume.
-                        Iterator<String> cgUriItr = firstVolume.getConsistencyGroups().iterator();
+                        Iterator<String> cgUriItr = protectionSetVolume.getConsistencyGroups().iterator();
+                        log.info("Attempting to locate the RP BlockConsistencyGroup for Volume {}|{}", protectionSetVolume.getLabel(), protectionSetVolume.getId());
                         while (cgUriItr.hasNext()) {
                             BlockConsistencyGroup cg = 
                                     dbClient.queryObject(BlockConsistencyGroup.class, URI.create(cgUriItr.next()));
+                            log.info("Found BlockConsistencyGroup {} of type {}", cg.getLabel(), cg.getType());
                             // The RP BlockConsistencyGroup will be the primary BlockConsistencyGroup so we must
                             // first find that.  All VPlex BlockConsistencyGroups for Volumes in the protection set
                             // will be mapped to this primary BlockConsistencyGroup.
-                            if (cg.getType().equals(Types.RP.name())) {
+                            if (cg.getTypes() != null && cg.getType().equals(Types.RP.name())) {
                                 log.info("Primary RP BlockConsistencyGroup {} found for ProtectionSet {}.", cg.getLabel(), protectionSet.getLabel());
                                 primaryCg = cg;
                                 // Add the RP type
@@ -108,6 +140,11 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                             }
                         }
 
+                        if (primaryCg == null) {
+                            log.warn("Unable to migration volumes/consistency groups associated with ProtectionSet {}.  Could not find an RP associated BlockConsistencyGroup for Volume {}.  ", protectionSet.getId(), protectionSetVolume.getId());
+                            continue;
+                        }
+                        
                         // Migrate the protection system/cg entry that replaces the use of the deviceName field.
                         primaryCg.addSystemConsistencyGroup(protectionSet.getProtectionSystem().toString(), "ViPR-" + primaryCg.getLabel());
                         
@@ -129,7 +166,7 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                                     while (cgUriItr.hasNext()) {
                                         BlockConsistencyGroup cg = 
                                                 dbClient.queryObject(BlockConsistencyGroup.class, URI.create(cgUriItr.next()));
-                                        if (cg.getType().equals(Types.VPLEX.name())) {
+                                        if (cg.getType() != null && cg.getType().equals(Types.VPLEX.name())) {
                                             vplexCg = cg;
                                             log.info("Volume {} belongs to VPLEX BlockConsistencyGroup {}.", volume.getLabel(), cg.getLabel());
                                             break;
@@ -173,10 +210,10 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                                 }
                             }
                         }
-                    } else if (firstVolume != null && firstVolume.getConsistencyGroups() != null 
-                            && !firstVolume.getConsistencyGroups().isEmpty()
-                            && firstVolume.getConsistencyGroups().size() == 1) {
-                        Iterator<String> cgUriItr = firstVolume.getConsistencyGroups().iterator();
+                    } else if (protectionSetVolume != null && protectionSetVolume.getConsistencyGroups() != null 
+                            && !protectionSetVolume.getConsistencyGroups().isEmpty()
+                            && protectionSetVolume.getConsistencyGroups().size() == 1) {
+                        Iterator<String> cgUriItr = protectionSetVolume.getConsistencyGroups().iterator();
                         BlockConsistencyGroup cg = 
                                 dbClient.queryObject(BlockConsistencyGroup.class, URI.create(cgUriItr.next()));
                         
@@ -386,5 +423,130 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
         }
         
         return isVPlex;
+    }
+    
+    /**
+     * searches for protection sets with duplicate names and consolidates into one protection set
+     * @return
+     */
+    private void consolidateDuplicates() {
+        
+        Map<String, List<ProtectionSet>> labelURIListMap = new HashMap<String, List<ProtectionSet>>();
+        List<URI> protectionSetURIs = dbClient.queryByType(ProtectionSet.class, true);
+        
+        log.info("Scanning ProtectionSets for duplicate names.");
+        for (URI protectionSetURI : protectionSetURIs) {
+            ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protectionSetURI);
+            if (protectionSet == null || protectionSet.getInactive()) {
+                log.info("Skipping null or inactive protection set {}", protectionSetURI);
+                continue;
+            }
+            if (!labelURIListMap.containsKey(protectionSet.getLabel())) {
+                labelURIListMap.put(protectionSet.getLabel(), new ArrayList<ProtectionSet>());
+            }
+            labelURIListMap.get(protectionSet.getLabel()).add(protectionSet);
+        }
+        
+        List<ProtectionSet> protectionSetsToDelete = new ArrayList<ProtectionSet>();
+        List<ProtectionSet> protectionSetsToPersist = new ArrayList<ProtectionSet>();
+        List<Volume> volumesToPersist = new ArrayList<Volume>();
+        List<BlockSnapshot> snapsToPersist = new ArrayList<BlockSnapshot>();
+        for (Entry<String, List<ProtectionSet>> entry : labelURIListMap.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                log.info("Duplicate protection sets found {} | {}", entry.getKey(), entry.getValue().toArray());
+                ProtectionSet protectionSet = entry.getValue().iterator().next();
+                for (ProtectionSet duplicate : entry.getValue()) {
+                    if (duplicate.getId().equals(protectionSet.getId())) {
+                        continue;
+                    }
+                    log.info(String.format("duplicating %s protection set %s to %s)", protectionSet.getLabel(), duplicate.getId(), protectionSet.getId()));
+                   
+                    // add the volumes from the duplicate to the original
+                    protectionSet.getVolumes().addAll(duplicate.getVolumes());
+                    
+                    // reset the protection set id on the volumes in the duplicate 
+                    for (String volid : duplicate.getVolumes()) {
+                        Volume vol = dbClient.queryObject(Volume.class, URI.create(volid));
+                        if (vol == null || vol.getInactive()) {
+                            log.info("Skipping null or inactive volume {}", volid);
+                            continue;
+                        }
+                        log.info(String.format("Changing protection set id on volume %s from %s to %s", vol.getId(), vol.getProtectionSet().getURI(), protectionSet.getId()));
+                        vol.setProtectionSet(new NamedURI(protectionSet.getId(), protectionSet.getLabel()));
+                        volumesToPersist.add(vol);
+                    }
+                    
+                    // reset any block snapshot that points to the duplicate protection set
+                    URIQueryResultList blockSnapIds = new URIQueryResultList();
+                    Constraint constraint = ContainmentConstraint.Factory.getProtectionSetBlockSnapshotConstraint(duplicate.getId());
+                    dbClient.queryByConstraint(constraint, blockSnapIds);
+                    Iterator<URI> itr = blockSnapIds.iterator();
+                    while (itr.hasNext()) {
+                        URI snapId = itr.next();
+                        BlockSnapshot snap = dbClient.queryObject(BlockSnapshot.class, snapId);
+                        if (snap == null || snap.getInactive()) {
+                            log.info("Skipping null or inactive volume {}", snapId);
+                            continue;
+                        }
+                        log.info(String.format("Changing protection set id on snapshot %s from %s to %s", snap.getId(), snap.getProtectionSet(), protectionSet.getId()));
+                        snap.setProtectionSet(protectionSet.getId());
+                        snapsToPersist.add(snap);
+                    }
+                    log.info("deleting duplicate protection set {}", duplicate.getId());
+                    protectionSetsToDelete.add(duplicate);
+                }
+                protectionSetsToPersist.add(protectionSet);
+            }
+        }
+        dbClient.persistObject(protectionSetsToPersist);
+        dbClient.persistObject(volumesToPersist);
+        dbClient.persistObject(snapsToPersist);
+        dbClient.markForDeletion(protectionSetsToDelete);
+    }
+    
+    /**
+     * Cleans up stale ProtectionSet volume references.  Meaning, volumes referenced
+     * by the ProtectionSet that no longer exist in the DB will be removed.  Also,
+     * if the ProtectionSet ends up containing zero volumes after this operation, the
+     * ProtectionSet itself will be removed from the DB.
+     * 
+     * @param protectionSetUri the ProtectionSet to be cleaned-up.
+     * @return boolean true if the ProtectionSet has been removed from the DB, false otherwise.
+     */
+    private boolean cleanupStaleProtectionSetVolumes(URI protectionSetURI) {
+        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, protectionSetURI);
+        boolean protectionSetRemoved = false;
+        
+        if (protectionSet != null) {
+            StringSet protectionSetVolumes = protectionSet.getVolumes();
+            StringSet volumesToRemove = new StringSet();
+            
+            if (protectionSetVolumes != null) {
+                Iterator<String> volumesItr = protectionSetVolumes.iterator();
+                while (volumesItr.hasNext()) {
+                    String volumeUriStr = volumesItr.next();
+                    Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeUriStr));
+                    if (volume == null) {
+                        volumesToRemove.add(volumeUriStr);
+                        // Volume is referenced by the ProtectionSet but it is not in the database.  It should
+                        // be removed from the ProtectionSet.
+                        log.info("Removing stale Volume {} referenced by ProtectionSet {}.", volumeUriStr, protectionSet.getId());
+                    }
+                }
+                
+                if (protectionSetVolumes.size() == volumesToRemove.size()) {
+                    // There are no volume references for this ProtectionSet so remove it.
+                    log.info("ProtectionSet {} has no volume references so it is being removed.", protectionSet.getId());
+                    dbClient.markForDeletion(protectionSet);
+                    protectionSetRemoved = true;
+                } else {
+                    // Stale volume references have been removed.
+                    protectionSetVolumes.removeAll(volumesToRemove);
+                    dbClient.persistObject(protectionSet);
+                }
+            }
+        }
+        
+        return protectionSetRemoved;
     }
 }

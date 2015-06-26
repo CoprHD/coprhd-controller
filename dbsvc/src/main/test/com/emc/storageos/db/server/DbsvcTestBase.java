@@ -165,7 +165,7 @@ public class DbsvcTestBase {
         service.setName("dbsvc");
         service.setVersion(schemaVersion);
         service.setEndpoint(URI.create("thrift://localhost:9160"));
-        service.setId("foobar");
+        service.setId("db-standalone");
 
         StubBeaconImpl beacon = new StubBeaconImpl(service);
         if (scanner == null) {
@@ -190,8 +190,8 @@ public class DbsvcTestBase {
         statusChecker.setClusterNodeCount(1);
         statusChecker.setDbVersionInfo(_dbVersionInfo);
         statusChecker.setServiceName(service.getName());
-        
-        SchemaUtil util = new SchemaUtil();
+
+        SchemaUtil util = new MockSchemaUtil();
         util.setKeyspaceName("Test");
         util.setClusterName("Test");
         util.setDataObjectScanner(scanner);
@@ -246,8 +246,6 @@ public class DbsvcTestBase {
         
         DependencyChecker localDependencyChecker = new DependencyChecker(_dbClient, scanner);
         _geoDependencyChecker = new GeoDependencyChecker(_dbClient, _coordinator, localDependencyChecker);
-        
-        TestDBClientUtils.setDbNumTokenVersion(_coordinator, schemaVersion);
         
         _dbsvc = new DbServiceImpl();
         _dbsvc.setConfig("db-test.yaml");
@@ -304,5 +302,12 @@ public class DbsvcTestBase {
 
     protected static CoordinatorClient getCoordinator(){
         return _coordinator;
+    }
+
+    static class MockSchemaUtil extends SchemaUtil {
+        @Override
+        public void insertVdcVersion(final DbClient dbClient) {
+            //Do nothing
+        }
     }
 }

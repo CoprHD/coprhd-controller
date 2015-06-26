@@ -579,25 +579,26 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
         Set<RPSite> sites = rp.getAssociatedRPSites();
 
-        // For determining which storage system to use with the RPA, we will look at the transport zones created as a result of 
-        // a network system (aka switch) discovery. We look at each transport zone to check if the RPA WWN is in one of the VSANs and
-        // if we do find a match then we look at the arrays in that VSAN and determine which one to use. 
-        // For now, this code assumes there are VSANs created on the switch, might need to tweak this if there are no VSANs. 
+        // For determining which storage system to use with the RPA, we will look at the Network created as a result of 
+        // a NetworkSystem (aka switch or Fabric Manager) discovery. We look at each NetworkSystem to check if the RPA WWN(aka RP Initiator) is in one of the 
+        // Networks/VSANs and if we do find a match then we look at the arrays in that Network/VSAN and determine which one to use. 
+        // For now, this code assumes there are Networks/VSANs created on the switch, might need to tweak this if there are no Networks/VSANs. 
 
-        //One more important note : VSANs have be configured on the switch in order for zoning to work and transport zones to discover.
-        //No VSANs on the switch means, none of this will work and zoning has to be done by the end-user prior to using StorageOS.
+        // One more important note : Networks/VSANs have be configured on the switch in order for zoning to work and NetworkSystem to discover.
+        // No Networks/VSANs on the switch means, none of this will work and zoning has to be done by the end-user prior to using StorageOS.
 
-        //Get all the transport zones already in the system only if there are any NetworkSystems configured. Possible zoning candidates can be identified only if there is a NetworkSystem configured.
+        //Get all the NetworkSystems already in the system (if there are any NetworkSystems configured). 
+        // Possible zoning candidates can be identified only if there is a NetworkSystem configured.
         List<SiteArrays> rpSiteArrays = new ArrayList<SiteArrays>();
         List<URI> networkSystemList = _dbClient.queryByType(NetworkSystem.class, true);
         boolean isNetworkSystemConfigured = false;
         if (networkSystemList.iterator().hasNext()) {    	   
-            List<URI> allTransportZones = _dbClient.queryByType(Network.class, true);
+            List<URI> allNetwroks = _dbClient.queryByType(Network.class, true);
             
             // Transfer to a reset-able list
-            List<URI> transportZones = new ArrayList<>();
-            for (URI tzURI : allTransportZones) {        			
-            	transportZones.add(tzURI);
+            List<URI> networks = new ArrayList<>();
+            for (URI networkURI : allNetwroks) {        			
+            	networks.add(networkURI);
             }
 
             for(RPSite site : sites) {        	
@@ -611,22 +612,23 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                 StringSet siteInitiators = new StringSet(sitesInitiatorWWNS.keySet());
                 system.putSiteIntitiatorsEntry(site.getInternalSiteName(), siteInitiators);
                 
-                //check to see if the RP initiator is in any transport zone - Based on which transport zone the RP initiator is in, we can look for the arrays in that transportzone 
-                //that are potential candidates for zoning.         
+                // Check to see if the RP initiator is in any Network - Based on which Network the RP initiator is in, 
+                // we can look for the arrays in that Network that are potential candidates for connectivity.         
                 for (String wwn : sitesInitiatorWWNS.keySet()) {        		
-                    for (URI tzURI : transportZones) {        			
-                        Network tz = _dbClient.queryObject(Network.class, tzURI);
-                        StringMap discoveredEndpoints = tz.getEndpointsMap();
+                    for (URI networkURI : networks) {        			
+                        Network network = _dbClient.queryObject(Network.class, networkURI);
+                        StringMap discoveredEndpoints = network.getEndpointsMap();
 
                         if (discoveredEndpoints.containsKey(wwn.toUpperCase())) {
-                            _log.info("WWN " + wwn + " is in transport zone : " + tz.getLabel());
-                            isNetworkSystemConfigured = true; //Set this to true as we found the RP initiators in a transport zone on the network system
+                            _log.info("WWN " + wwn + " is in Network : " + network.getLabel());
+                            isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network System
                             for (String discoveredEndpoint : discoveredEndpoints.keySet()) {	        				 
-                                //ignore the RP endpoints - RP WWNs have a unique prefix. we want to only return back non RP initiators in that VSAN. 
-                                if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) 
+                                // Ignore the RP endpoints - RP WWNs have a unique prefix. We want to only return back non RP initiators in that NetworkVSAN. 
+                                if (discoveredEndpoint.startsWith(RP_INITIATOR_PREFIX)) {
                                     continue;
+                                }
 
-                                //Add the found endpoints to the list
+                                // Add the found endpoints to the list
                                 siteArrays.getArrays().add(discoveredEndpoint);                     
                             }	        			
                         }
@@ -637,16 +639,16 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
             }
         }
 
-        //It is possible that the RP is already zoned to an array, try to get the list of available targets by  querying the RPA.
-        //If the RPA is 4.0+, then the operation is not supported, thrown an error.
-        //Ideal way to use for an RP4.0 system is to come via the switch configuration.  
-        //if its a non RP4.0 system, then query the normal way and find out the targets/arrays from the RPAs.
+        // It is possible that the RP is already zoned to an array, try to get the list of available targets by querying the RPA.
+        // If the RPA is 4.0+, then the operation is not supported, thrown an error.
+        // Ideal way to use for an RP4.0 system is to come via the switch configuration.  
+        // If its a non RP4.0 system, then query the normal way and find out the targets/arrays from the RPAs.
         if (!rp.getAssociatedRPSites().isEmpty()) {
         	_log.info("site1 version: " + rp.getAssociatedRPSites().iterator().next().getSiteVersion());
         }
         
         if (!isNetworkSystemConfigured) {
-        	// This is not an error to the end-user.  When they add a network system, everything will rediscover correctly.
+        	// This is not an error to the end-user. When they add a network system, everything will rediscover correctly.
         	_log.warn("Network systems are required when configuring RecoverPoint.");
         }
 
@@ -774,8 +776,9 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
     		for (URI id : ids) {
     			_log.info("discoverProtectionSystem(): reading rpsitearray: " + id.toASCIIString());
     			rpSiteArray = _dbClient.queryObject(RPSiteArray.class, id);
-    			if (rpSiteArray==null)
+    			if (rpSiteArray == null) {
     				continue;
+    			}
 
     			if ((rpSiteArray.getRpProtectionSystem() != null) && (rpSiteArray.getRpProtectionSystem().equals(storageObj.getId()))) {
     				_log.info("discoverProtectionSystem(): removing rpsitearray: " + id.toASCIIString() + " : " + rpSiteArray.toString());

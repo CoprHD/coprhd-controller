@@ -42,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -101,7 +102,7 @@ public class DbServiceImpl implements DbService {
     private String truststorePath;
     private boolean cassandraInitialized = false;
     private boolean disableScheduledDbRepair = false;
-    
+
 
     @Autowired
     private DbManager dbMgr;
@@ -211,7 +212,7 @@ public class DbServiceImpl implements DbService {
     private String getSchemaLockName() {
     	return isGeoDbsvc() ? GEODB_SCHEMA_LOCK : DB_SCHEMA_LOCK;
     }
-    
+
     public String getConfigValue(String key) {
     	String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
     	Configuration config = _coordinator.queryConfiguration(configKind,
@@ -231,7 +232,7 @@ public class DbServiceImpl implements DbService {
             _coordinator.persistServiceConfiguration(config);
         }
     }
-    
+
     /**
      * Checks and registers db configuration information,
      * this is one time when cluster is coming up for the first time
@@ -251,20 +252,19 @@ public class DbServiceImpl implements DbService {
             cfg.setKind(configKind);
             cfg.setConfig(DbConfigConstants.NODE_ID, _coordinator.getInetAddessLookupMap().getNodeName());
             cfg.setConfig(DbConfigConstants.AUTOBOOT, Boolean.TRUE.toString());
+
             // Adding "num_tokens" and "num_token_ver" for new deployment, which directly reflects the configuration in yaml, so
             // no adjustNumTokens() will be called.
             // If this node is upgraded from an older version, the db-# nodes already exists, which will missing those 2 values,
             // that will lead to an adjustNumTokens() call from syssvc.
             try {
                 Config yaml = new YamlConfigurationLoader().loadConfig();
-                cfg.setConfig(DbConfigConstants.NUM_TOKENS, Integer.toString(yaml.num_tokens));
+                cfg.setConfig(DbConfigConstants.NUM_TOKENS_KEY, Integer.toString(yaml.num_tokens));
                 _log.info("num_tokens for current node should be {} in ZK", yaml.num_tokens);
             } catch (ConfigurationException e) {
                 _log.error("Failed to load yaml file", e);
-                cfg.setConfig(DbConfigConstants.NUM_TOKENS, "16");
+                cfg.setConfig(DbConfigConstants.NUM_TOKENS_KEY, DbConfigConstants.DEFUALT_NUM_TOKENS.toString());
             }
-            String curVer = this._coordinator.getTargetDbSchemaVersion();
-            cfg.setConfig(DbConfigConstants.DB_NUM_TOKEN_VERSION, curVer);
             // check other existing db nodes
             List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
             if (configs.size() == 0) {
@@ -281,16 +281,68 @@ public class DbServiceImpl implements DbService {
         }
         return config;
     }
+    
+    private void removeStaleConfiguration(){
+    	removeStaleServiceConfiguration();
+    	removeStaleVersionedDbConfiguration();
+    }
+    
+    private void removeStaleVersionedDbConfiguration() {
+        String configKind = _coordinator.getVersionedDbConfigPath(_serviceInfo.getName(), _serviceInfo.getVersion());
+        List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+        for (Configuration config : configs) {
+            if (isStaleConfiguration(config)) {
+                _coordinator.removeServiceConfiguration(config);
+                _log.info("Remove stale version db config, id: {}", config.getId());
+            }
+        }
+    }
 
+    private void removeStaleServiceConfiguration() {
+        String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
+        List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
+        for (Configuration config : configs) {
+            if (isStaleConfiguration(config)) {
+                _coordinator.removeServiceConfiguration(config);
+                _log.info("Remove stale config, id: {}", config.getId());
+            }
+        }
+    }
+
+    private boolean isStaleConfiguration(Configuration config) {
+        String delimiter = "-";
+        String configId = config.getId();
+
+        // Bypasses item of "global" and folders of "version", just check db configurations.
+        if (configId == null || configId.equals(Constants.GLOBAL_ID) || !configId.contains(delimiter)) {
+            return false;
+        }
+
+        if (_serviceInfo.getId().endsWith(Constants.STANDALONE_ID)) {
+            if (!configId.equals(_serviceInfo.getId())) {
+                return true;
+            }
+        } else {
+            CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
+            int nodeCount = nodeMap.getControllerNodeIPLookupMap().size();
+
+            String nodeIndex = configId.split(delimiter)[1];
+            if (Constants.STANDALONE_ID.equalsIgnoreCase(nodeIndex) || Integer.parseInt(nodeIndex) > nodeCount) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // check and initialize global configuration
     private Configuration checkGlobalConfiguration() {
-    	String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
-    	Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
+        String configKind = _coordinator.getDbConfigPath(_serviceInfo.getName());
+        Configuration config = _coordinator.queryConfiguration(configKind, Constants.GLOBAL_ID);
         if (config == null) {
             ConfigurationImpl cfg = new ConfigurationImpl();
             cfg.setId(Constants.GLOBAL_ID);
             cfg.setKind(configKind);
+
             // persist configuration
             _coordinator.persistServiceConfiguration(cfg);
             config = cfg;
@@ -454,21 +506,17 @@ public class DbServiceImpl implements DbService {
 
         InterProcessLock lock = null;
         Configuration config = null;
+        boolean schemaInited = false;
 
         try {
-        	try {
-        		lock = getLock(getSchemaLockName());
-        		config = checkConfiguration();
-        	} finally {
-        		if (lock != null) {
-                    try {
-                    	lock.release();
-                    } catch (Exception e) {
-                        _log.error("failed to release lock:", e);
-                    }
-                }
-        	}
+            // we use this lock to discourage more than one node bootstrapping / joining at the same time
+            // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
+            lock = getLock(getSchemaLockName());
+
+            config = checkConfiguration();
+            checkGlobalConfiguration();
             checkVersionedConfiguration();
+            removeStaleConfiguration();
 
             // The num_tokens in ZK is what we previously running at, which could be different from in current .yaml
             checkNumTokens(config);
@@ -491,12 +539,6 @@ public class DbServiceImpl implements DbService {
             _service = new CassandraDaemon();
             _service.init(null);
             _service.start();
-
-            // we use this lock to discourage more than one node bootstrapping / joining at the same time
-            // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
-            lock = getLock(getSchemaLockName());
-
-            checkGlobalConfiguration();
 
             cassandraInitialized = true;
             mode.onPostStart();
@@ -564,7 +606,7 @@ public class DbServiceImpl implements DbService {
      * Check Cassandra num_tokens settting in ZK. 
      */
     private void checkNumTokens(Configuration config) {
-        String numTokensEffective = config.getConfig(DbConfigConstants.NUM_TOKENS);
+        String numTokensEffective = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
         if (numTokensEffective == null) {
             numTokensEffective = String.valueOf(isGeoDbsvc() ? INIT_GEO_DB_NUM_TOKENS : INIT_LOCAL_DB_NUM_TOKENS);
         }
@@ -775,10 +817,13 @@ public class DbServiceImpl implements DbService {
      * we should elminate this trick update after Cassandra solve this issue in future.
      */
     private void removeCassandraSavedCaches() {
+        _log.info("Try to remove cassandra saved caches");
         String savedCachesLocation = DatabaseDescriptor.getSavedCachesLocation();
         File savedCachesDir = new File(savedCachesLocation);
         if (savedCachesDir != null && savedCachesDir.exists()) {
-            FileUtils.deleteQuietly(savedCachesDir);
+            for (File file : savedCachesDir.listFiles()) {
+                FileUtils.deleteQuietly(file);
+            }
             _log.info("Delete cassandra saved caches({}) successfully", savedCachesLocation);
         }
     }
@@ -816,7 +861,9 @@ public class DbServiceImpl implements DbService {
         
         _exe.shutdownNow();   
 
-        _service.stop();
+        if (cassandraInitialized) {
+            _service.stop();
+        }
 
         if (_jmxServer != null)
            _jmxServer.stop();

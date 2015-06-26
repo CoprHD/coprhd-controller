@@ -19,7 +19,7 @@ import charva.awt.event.ItemEvent;
 import charva.awt.event.ItemListener;
 import charvax.swing.JRadioButton;
 
-import com.emc.storageos.services.data.Configuration;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.installer.util.ClusterType;
 import com.emc.storageos.installer.widget.SelectButtonPanel;
 

@@ -484,7 +484,8 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doRollbackLinks(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+	public void doRollbackLinks(StorageSystem system, List<URI> sources,
+			List<URI> targets, boolean isGroupRollback, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

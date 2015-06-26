@@ -743,10 +743,15 @@ public class AuthenticationResource {
                         String token = _tokenManager.getToken(user);
                         if(token == null) {
                             _log.error("Could not generate token for user: {}", user.getUserName());
+                            auditOp(null, null,
+                                    OperationTypeEnum.AUTHENTICATION, false, null, credentials.getUserName());
                             return Response.status(Status.INTERNAL_SERVER_ERROR).build();
                         }
                         _log.debug("Redirecting to the original service: {}", service);
                         _invLoginManager.removeInvalidRecord(clientIP);
+
+                        auditOp(URI.create(user.getTenantId()), URI.create(user.getUserName()),
+                                OperationTypeEnum.AUTHENTICATION, true, null, credentials.getUserName());
 
                         // If remember me check box is on, set the expiration time.                 
                         return buildLoginResponse(service, source, true,
@@ -781,6 +786,9 @@ public class AuthenticationResource {
         } else {
             formLP = getFormLoginPage(service, source, MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, loginError));
         }
+
+        auditOp(null, null,
+                OperationTypeEnum.AUTHENTICATION, false, null, formData.getFirst("username"));
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
                     .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();

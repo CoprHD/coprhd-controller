@@ -81,20 +81,6 @@ public class VolumeVpoolChangeTaskCompleter extends VolumeWorkflowCompleter {
                     if (!VirtualPool.vPoolSpecifiesProtection(oldVpool)) {
                         _log.info("Rollback the volume's changes for RP...");
                         
-                        // Clean up the CG first for the change vpool volume. This CG would
-                        // have been created automatically during a change vpool to add RP
-                        // protection.
-                        // TODO: This must change when we are able to re-use existing CGs for vpool change. 
-                        // We would then remove the volume from the existing CG and make sure the volume's CG 
-                        // reference is removed and we wouldn't delete the CG in this case.
-                        if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
-                            if (cg != null && !cg.getInactive()) {
-                                cg.setInactive(true);
-                                dbClient.persistObject(cg);
-                            } 
-                        }
-                        
                         // Clear out the rest of the RP related fields that would not be needed during
                         // a rollback. This resets the volume back to it's pre-RP state so it can be
                         // used again.

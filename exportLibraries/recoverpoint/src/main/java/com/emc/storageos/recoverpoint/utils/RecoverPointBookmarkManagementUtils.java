@@ -77,7 +77,7 @@ public class RecoverPointBookmarkManagementUtils {
     public Map<String, RPConsistencyGroup> mapCGsForWWNs(FunctionalAPIImpl impl, CreateBookmarkRequestParams request, Set<String> unmappedWWNs) throws RecoverPointException {
         try {
 
-            Set<String>wwnList = request.getVolumeWWNSet();
+            Set<String> wwnList = request.getVolumeWWNSet();
             if (wwnList.isEmpty()){
                 logger.error("Input WWN list size is 0");
                 return null;
@@ -88,46 +88,62 @@ public class RecoverPointBookmarkManagementUtils {
 
             for (String wwn : wwnList) {
                 wwnListCopy.add(wwn.toLowerCase(Locale.ENGLISH));
-                logger.info("Mapping source WWN " + wwn.toLowerCase(Locale.ENGLISH) + " to CG");
+                logger.info("Mapping source WWN " + wwn.toLowerCase(Locale.ENGLISH) + " to RecoverPoint CG");
             }
-            List<ConsistencyGroupSettings> cgsSettings = impl.getAllGroupsSettings();
+            
+            List<ConsistencyGroupSettings> cgSettings = impl.getAllGroupsSettings();
             RPConsistencyGroup rpCG = null;
-            for (ConsistencyGroupSettings cgSettings : cgsSettings) {
-                for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
-                    for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
-                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
+            for (ConsistencyGroupSettings cgSetting : cgSettings) {
+                for (ReplicationSetSettings rsSetting : cgSetting.getReplicationSetsSettings()) {
+                    // Only get the unique volumes from a replication set. In MetroPoint, a replication set will list the source volume
+                    // twice. This is because in MetroPoint each VPLEX leg is considered a copy but the WWN/volume is the same.
+                    Set<UserVolumeSettings> uvSettings = new HashSet<UserVolumeSettings>();
+                    uvSettings.addAll(rsSetting.getVolumes());
+                    for (UserVolumeSettings uvSetting : uvSettings) {
+                        String volUID = RecoverPointUtils.getGuidBufferAsString(uvSetting.getVolumeInfo().getRawUids(), false);
                         if (wwnListCopy.contains(volUID.toLowerCase(Locale.ENGLISH))) {
-                            String cgName = cgSettings.getName();
-                            ConsistencyGroupUID cgUID = cgSettings.getGroupUID();
-                            rpCG = new RPConsistencyGroup();
-                            logger.info("Source WWN: " + volUID + " is on CG " + cgName + " with CGID " + cgUID.getId());
-                            rpCG.setName(cgName);
-                            rpCG.setCGUID(cgUID);
+                            // Remove the volUID from the list
+                            wwnListCopy.remove(volUID.toLowerCase(Locale.ENGLISH));
+                            
                             //We are getting the index of the first production copy because we only need to 
                             //get the cluster ID of the source. All source copies in a CG, across different Rsets, are on the same cluster. 
                             //Hence we are ok fetching the first one and getting its cluster id and using it. 
-                            ConsistencyGroupCopyUID productionCopyUID = cgSettings.getProductionCopiesUIDs().get(0);
-                            rpCG.setClusterUID(productionCopyUID.getGlobalCopyUID().getClusterUID());
-                            rpCG.setSiteToArrayIDsMap(mapCGToStorageArraysNoConnection(cgSettings));
-                            returnMap.put(volUID, rpCG);
-                            wwnListCopy.remove(volUID.toLowerCase(Locale.ENGLISH));
+                            ConsistencyGroupCopyUID productionCopyUID = cgSetting.getProductionCopiesUIDs().get(0);         
+                            
+                            // Get the RecoverPoint CG name and ID
+                            String cgName = cgSetting.getName();
+                            ConsistencyGroupUID cgUID = cgSetting.getGroupUID();
+                            
+                            // Get the Copy information
                             RPCopy rpCopy = new RPCopy();
-                            rpCopy.setCGGroupCopyUID(uvSettings.getGroupCopyUID());
-                            Set<RPCopy>copies = new HashSet<RPCopy>();
+                            rpCopy.setCGGroupCopyUID(uvSetting.getGroupCopyUID());
+                            Set<RPCopy> copies = new HashSet<RPCopy>();
                             copies.add(rpCopy);
+                            
+                            logger.info("Source WWN: " + volUID + " is on RecoverPoint CG " + cgName + " with RecoverPoint CGID " + cgUID.getId());
+                            rpCG = new RPConsistencyGroup();
+                            rpCG.setName(cgName);
+                            rpCG.setCGUID(cgUID);
+                            rpCG.setClusterUID(productionCopyUID.getGlobalCopyUID().getClusterUID());
+                            rpCG.setSiteToArrayIDsMap(mapCGToStorageArraysNoConnection(cgSetting));
                             rpCG.setCopies(copies);
+                            returnMap.put(volUID, rpCG);
+                                                                                                                                          
                             break;
                         }
                     }
                 }
+                
                 if (wwnListCopy.isEmpty()) {
                     break;
                 }
             }
+            
             for (String wwnMissing : wwnListCopy) {
                 logger.error("Could not map WWN: " + wwnMissing);
                 unmappedWWNs.add(wwnMissing);
             }
+            
             return returnMap;
         } catch (FunctionalAPIActionFailedException_Exception e) {
             logger.error(e.getMessage());
@@ -209,44 +225,44 @@ public class RecoverPointBookmarkManagementUtils {
     public CreateBookmarkResponse createCGBookmarks (FunctionalAPIImpl impl, Map<String,
             RPConsistencyGroup> rpCGMap,
             CreateBookmarkRequestParams request) throws RecoverPointException {
-    Set<ConsistencyGroupUID> uniqueCGUIDSet = new HashSet<ConsistencyGroupUID>();
-    List<ConsistencyGroupUID> uniqueCGUIDlist = new LinkedList<ConsistencyGroupUID>();
-    Set<RPConsistencyGroup>rpCGSet = new HashSet<RPConsistencyGroup>();
-    CreateBookmarkResponse response = new CreateBookmarkResponse();
+        Set<ConsistencyGroupUID> uniqueCGUIDSet = new HashSet<ConsistencyGroupUID>();
+        List<ConsistencyGroupUID> uniqueCGUIDlist = new LinkedList<ConsistencyGroupUID>();
+        Set<RPConsistencyGroup>rpCGSet = new HashSet<RPConsistencyGroup>();
+        CreateBookmarkResponse response = new CreateBookmarkResponse();
 
-    for (String volume : rpCGMap.keySet()) {
-        RPConsistencyGroup rpCG = rpCGMap.get(volume);
-        if (rpCG.getCGUID() != null) {
-            boolean foundCGUID = false;
-            ConsistencyGroupUID cguid = rpCG.getCGUID();
-            for (ConsistencyGroupUID cguidunique : uniqueCGUIDSet) {
-                if (cguidunique.getId() == cguid.getId()) {
-                    foundCGUID = true;
-                    break;
+        for (String volume : rpCGMap.keySet()) {
+            RPConsistencyGroup rpCG = rpCGMap.get(volume);
+            if (rpCG.getCGUID() != null) {
+                boolean foundCGUID = false;
+                ConsistencyGroupUID cguid = rpCG.getCGUID();
+                for (ConsistencyGroupUID cguidunique : uniqueCGUIDSet) {
+                    if (cguidunique.getId() == cguid.getId()) {
+                        foundCGUID = true;
+                        break;
+                    }
+                }
+                if (!foundCGUID) {
+                    logger.info("Adding CG: " + rpCG.getName() + " with ID " + rpCG.getCGUID().getId() + " to unique CGUID list");
+                    uniqueCGUIDSet.add(cguid);
+                    uniqueCGUIDlist.add(cguid);
+                    rpCGSet.add(rpCG);
                 }
             }
-            if (!foundCGUID) {
-                logger.info("Adding CG: " + rpCG.getName() + " with ID " + rpCG.getCGUID().getId() + " to unique CGUID list");
-                uniqueCGUIDSet.add(cguid);
-                uniqueCGUIDlist.add(cguid);
-                rpCGSet.add(rpCG);
-            }
         }
-    }
-
-    // Make sure the CG is in a good state before we make bookmarks
-    RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-    for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {
-        // Make sure the CG is ready for enable
-    	imageManager.waitForCGLinkState(impl, cgID, null, PipeState.ACTIVE);
-    }
-
-    try {
-        impl.createBookmark(uniqueCGUIDlist, request.getBookmark(), 
-        		BookmarkConsolidationPolicy.NEVER_CONSOLIDATE, SnapshotConsistencyType.APPLICATION_CONSISTENT);
-        logger.info(String.format("Created RP Bookmark successfully: %s", request.getBookmark()));
-        response.setCgBookmarkMap(findRPBookmarks(impl, rpCGSet, request));
-        response.setReturnCode(RecoverPointReturnCode.SUCCESS);
+    
+        // Make sure the CG is in a good state before we make bookmarks
+        RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
+        for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {
+            // Make sure the CG is ready for enable
+        	imageManager.waitForCGLinkState(impl, cgID, null, PipeState.ACTIVE);
+        }
+    
+        try {
+            impl.createBookmark(uniqueCGUIDlist, request.getBookmark(), 
+            		BookmarkConsolidationPolicy.NEVER_CONSOLIDATE, SnapshotConsistencyType.APPLICATION_CONSISTENT);
+            logger.info(String.format("Created RP Bookmark successfully: %s", request.getBookmark()));
+            response.setCgBookmarkMap(findRPBookmarks(impl, rpCGSet, request));
+            response.setReturnCode(RecoverPointReturnCode.SUCCESS);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             logger.error(e.getMessage());
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
@@ -254,7 +270,8 @@ public class RecoverPointBookmarkManagementUtils {
             logger.error(e.getMessage());
             return null;
         }
-    return response;
+        
+        return response;
     }
 
     /**

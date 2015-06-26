@@ -16,6 +16,7 @@ import netapp.manage.NaServer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.emc.storageos.services.util.EnvConfig;
 
 /**
  * @author sdorcas
@@ -27,12 +28,16 @@ public class VolumeTest {
 	static private final String VOL_NAME = "scott1";
 	static private final String AGGR_NAME = "aggr0";
 	static private final String NEW_VOL_SIZE = "600m";
+    private static String host = EnvConfig.get("sanity", "netapp.host");
+    private static String portNumber = EnvConfig.get("sanity", "netapp.port");
+    private static String userName = EnvConfig.get("sanity", "netapp.username");
+    private static String password = EnvConfig.get("sanity", "netapp.password");
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		Server s = new Server("10.2.1.25", 80, "root", "1Wave$oftware", false);
+		Server s = new Server(host, Integer.parseInt(portNumber), userName, password, false);
 		server = s.getNaServer();
 	}
 	

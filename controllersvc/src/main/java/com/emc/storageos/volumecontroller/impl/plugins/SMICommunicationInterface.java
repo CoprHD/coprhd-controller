@@ -407,6 +407,9 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         _keyMap.put(Constants.VNXPOOLSETTINGS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.VNXPOOLS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.VMAXPOOLS, new LinkedList<CIMObjectPath>());
+        _keyMap.put(Constants.VMAX2POOLS, new LinkedList<CIMObjectPath>());
+        _keyMap.put(Constants.VMAX2_THIN_POOLS, new LinkedList<CIMObjectPath>());
+
         _keyMap.put(Constants.TIERDOMAINS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.MASKING_VIEWS, new LinkedList<CIMObjectPath>());
         _keyMap.put(Constants.VNXPOOLSETTINGINSTANCES, new LinkedList<CIMInstance>());
@@ -430,7 +433,13 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         
         Map<String, String> volumesWithSLO = new HashMap<String, String>();
         _keyMap.put(Constants.VOLUMES_WITH_SLOS, volumesWithSLO);
-        
+
+        Map<String, String> volumeToSpaceConsumedMap = new HashMap<String, String>();
+        _keyMap.put(Constants.VOLUME_SPACE_CONSUMED_MAP, volumeToSpaceConsumedMap);
+
+        Map<String, Set<String>> vmax2ThinPoolToBoundVolumesMap = new HashMap<String, Set<String>>();
+        _keyMap.put(Constants.VMAX2_THIN_POOL_TO_BOUND_VOLUMES, vmax2ThinPoolToBoundVolumesMap);
+
         // modifiedSettingInstances
         _keyMap.put(Constants.MODIFIED_SETTING_INSTANCES, new LinkedList<CIMInstance>());
         _keyMap.put(Constants.SYSTEMCREATEDDEVICEGROUPNAMES, new LinkedList<String>());

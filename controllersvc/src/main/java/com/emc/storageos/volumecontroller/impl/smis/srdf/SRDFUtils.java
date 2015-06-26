@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -41,6 +42,8 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
+import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
@@ -113,6 +116,7 @@ public class SRDFUtils implements SmisConstants {
     }
 
     public boolean isBroken(final CIMInstance syncInstance) {
+        if (null == syncInstance) return false;
         String copyState = syncInstance.getPropertyValue(CP_COPY_STATE).toString();
         // Solutions Enabler may report a Split status as Failed Over, for legacy reasons.
         if (String.valueOf(BROKEN).equalsIgnoreCase(copyState)
@@ -143,25 +147,36 @@ public class SRDFUtils implements SmisConstants {
         return cimPath.getGroupSynchronized(sourceGroupPath, targetGroupPath);
     }
 
-    public CIMObjectPath getStorageSynchronizedObject(final StorageSystem system,
-                                                         final Volume source, final Volume target) {
+    public CIMObjectPath getStorageSynchronizedObject(final StorageSystem sourceSystem, final Volume source,
+            final Volume target, final StorageSystem activeProviderSystem) {
         CloseableIterator<CIMObjectPath> iterator = null;
         try {
-            CIMObjectPath volumePath = cimPath.getVolumePath(system, source.getNativeId());
-            log.info("Volume Path {}",volumePath.toString());
+            // If the Source Provider is down, make use of target provider to
+            // find the Sync Paths. 
+            // null check makes the caller not to check liveness for multiple volumes in loop.
+            boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.equals(activeProviderSystem.getId(), sourceSystem.getId()));
+            String nativeIdToUse = (isSourceActiveNow) ? source.getNativeId() : target.getNativeId();
+            // Use the activeSystem always.
+            StorageSystem systemToUse = (isSourceActiveNow) ? sourceSystem : activeProviderSystem;
+            if (null != activeProviderSystem) {
+                log.info("sourceSystem, activeProviderSystem: {} {}", sourceSystem.getNativeGuid(), activeProviderSystem.getNativeGuid());
+            }
+
+            CIMObjectPath volumePath = cimPath.getVolumePath(systemToUse, nativeIdToUse);
+            log.info("Volume Path {}", volumePath.toString());
             if (volumePath == null) {
                 throw new IllegalStateException("Volume not found : " + source.getNativeId());
             }
-            iterator = helper.getReference(system, volumePath, SE_STORAGE_SYNCHRONIZED_SV_SV, null);
+            iterator = helper.getReference(systemToUse, volumePath, SE_STORAGE_SYNCHRONIZED_SV_SV, null);
             while (iterator.hasNext()) {
                 CIMObjectPath reference = iterator.next();
-                if (reference.toString().contains(target.getNativeId())) {
-                    log.info("Storage Synchronized  reference {}",reference.toString());
+                if (reference.toString().contains(nativeIdToUse)) {
+                    log.info("Storage Synchronized  reference {}", reference.toString());
                     return reference;
                 }
             }
         } catch (Exception e) {
-            log.error("Failed to acquire group synchronization instance", e);
+            log.error("Failed to acquire synchronization instance", e);
         } finally {
             if (iterator != null) {
                 iterator.close();
@@ -186,19 +201,23 @@ public class SRDFUtils implements SmisConstants {
         return result;
     }
 
-    public Collection<CIMObjectPath> getSynchronizations(StorageSystem sourceSystem, Volume sourceVolume,
-                                                            StorageSystem targetSystem, Volume targetVolume) throws WBEMException {
-        return getSynchronizations(sourceSystem, sourceVolume, targetSystem, targetVolume, true);
+    public Collection<CIMObjectPath> getSynchronizations(StorageSystem activeProviderSystem, Volume sourceVolume,
+            Volume targetVolume) throws WBEMException {
+        return getSynchronizations(activeProviderSystem, sourceVolume, targetVolume, true);
     }
 
-    public Collection<CIMObjectPath> getSynchronizations(StorageSystem sourceSystem, Volume sourceVolume,
-                                                            StorageSystem targetSystem, Volume targetVolume,
-                                                            boolean includeGroup) throws WBEMException {
+    public Collection<CIMObjectPath> getSynchronizations(StorageSystem activeProviderSystem, Volume sourceVolume,
+            Volume targetVolume, boolean includeGroup) throws WBEMException {
+        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
+        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
+
         List<CIMObjectPath> result = new ArrayList<>();
         if (sourceVolume.hasConsistencyGroup() && includeGroup) {
-            result.addAll(getConsistencyGroupSyncPairs(sourceSystem, sourceVolume, targetSystem, targetVolume));
+            result.addAll(getConsistencyGroupSyncPairs(sourceSystem, sourceVolume, targetSystem, targetVolume,
+                    activeProviderSystem));
         } else {
-            CIMObjectPath objectPath = getStorageSynchronizedObject(sourceSystem, sourceVolume, targetVolume);
+            CIMObjectPath objectPath = getStorageSynchronizedObject(sourceSystem, sourceVolume, targetVolume,
+                    activeProviderSystem);
             if (objectPath != null) {
                 result.add(objectPath);
             }
@@ -387,7 +406,8 @@ public class SRDFUtils implements SmisConstants {
     }
 
     private Collection<CIMObjectPath> getConsistencyGroupSyncPairs(StorageSystem sourceSystem, Volume source,
-                                                                   StorageSystem targetSystem, Volume target) throws WBEMException {
+                                                                   StorageSystem targetSystem, Volume target,
+                                                                   StorageSystem activeProviderSystem) throws WBEMException {
         List<URI> srcVolumeUris =   dbClient.queryByConstraint(getVolumesByConsistencyGroup(source.getConsistencyGroup()));
         List<Volume> cgSrcVolumes = dbClient.queryObject(Volume.class, srcVolumeUris);
         Collection<String> srcDevIds = transform(cgSrcVolumes, fctnBlockObjectToNativeID());
@@ -395,9 +415,9 @@ public class SRDFUtils implements SmisConstants {
         List<URI> tgtVolumeUris =   dbClient.queryByConstraint(getVolumesByConsistencyGroup(target.getConsistencyGroup()));
         List<Volume> cgTgtVolumes = dbClient.queryObject(Volume.class, tgtVolumeUris);
         Collection<String> tgtDevIds = transform(cgTgtVolumes, fctnBlockObjectToNativeID());
-
+        
         // Get the storagesync instances for remote sync/async mirrors
-        List<CIMObjectPath> repPaths = helper.getReplicationRelationships(sourceSystem,
+        List<CIMObjectPath> repPaths = helper.getReplicationRelationships(activeProviderSystem,
                 REMOTE_LOCALITY_VALUE, MIRROR_VALUE, SRDFOperations.Mode.valueOf(target.getSrdfCopyMode()).getMode(),
                 STORAGE_SYNCHRONIZED_VALUE);
 

@@ -129,7 +129,7 @@ public class BackupSchedulerTest {
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
                             Strings.join(",", upExec.fileMap.keySet().toArray(new String[upExec.fileMap.size()]))),
-                    upExec.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1.zip")
+                    upExec.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
             );
         }
     }
@@ -279,16 +279,18 @@ class FakeBackupClient extends BackupScheduler {
         files.add(new BackupFile(createFakeInfo(tag, BackupType.db), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.geodb), "vipr1"));
         files.add(new BackupFile(createFakeInfo(tag, BackupType.zk), "vipr1"));
+        
         return files;
     }
 
-    @Override
-    public int getNodeMask(BackupFileSet files) {
-        return 1;
-    }
+	@Override
+	public String generateZipFileName(String tag, BackupFileSet files) {
+		Set<String> availableNodes = files.uniqueNodes();
+		return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size());
+	}
 
 
-    @Override
+	@Override
     public void uploadTo(BackupFileSet files, long offset, OutputStream uploadStream) throws IOException {
         byte[] buf = new byte[1024];
         for (int i = 0; i < buf.length; i++) {

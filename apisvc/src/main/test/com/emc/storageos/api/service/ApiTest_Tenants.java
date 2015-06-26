@@ -21,12 +21,14 @@ import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
 import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.*;
+import com.emc.storageos.model.user.UserInfo;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.util.CollectionUtils;
 
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
@@ -50,6 +52,7 @@ public class ApiTest_Tenants extends ApiTestBase {
 	private final String TEST_GET_PROJECT_API = TEST_ROOT_TENANT_BASEURL + "/projects";
 	private final String TEST_DELETE_PROJECT_API = "/projects/%s/deactivate";
 	private final String TEST_GET_TENANT_API = "/tenant";
+	private final String TEST_USER_WHOAMI_API = "/user/whoami";
 
 	private final static String DEFAULT_TEST_TENANT_LABEL = "TestTenant";
     @SuppressWarnings("unused")
@@ -189,6 +192,10 @@ public class ApiTest_Tenants extends ApiTestBase {
 		
 		return roles;
 	}
+
+	private String getTenantRole(int index){
+		return DEFAULT_TEST_TENANT_ROLES[index];
+	}
 	
 	private RoleAssignmentEntry getRoleAssignmentEntryForGroup(List<String> roles, String group){
 		RoleAssignmentEntry roleAssignmentEntry = new RoleAssignmentEntry();
@@ -234,6 +241,65 @@ public class ApiTest_Tenants extends ApiTestBase {
 		
 		return param;
 	}
+
+	private void addUserMapping(URI tenantId, String group) {
+		TenantUpdateParam tenantUpdate = new TenantUpdateParam();
+		tenantUpdate.setUserMappingChanges(new UserMappingChanges());
+		tenantUpdate.getUserMappingChanges().setAdd(new ArrayList<UserMappingParam>());
+		UserMappingParam rootMapping = new UserMappingParam();
+		rootMapping.setDomain(getTestDomainName());
+		rootMapping.getGroups().add(group);
+		tenantUpdate.getUserMappingChanges().getAdd().add(rootMapping);
+
+		TenantOrgRestRep getTenantResp = rSys.path(getTestEditApi(tenantId)).get(TenantOrgRestRep.class);
+		Assert.assertNotNull(getTenantResp.getName());
+		tenantUpdate.setLabel(getTenantResp.getName());
+
+		ClientResponse resp = rSys.path(getTestEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
+		Assert.assertEquals(200, resp.getStatus());
+	}
+
+	private void addUserMappingAndExpectFailure(URI tenantId, String group, BalancedWebResource user) {
+		TenantUpdateParam tenantUpdate = new TenantUpdateParam();
+		tenantUpdate.setUserMappingChanges(new UserMappingChanges());
+		tenantUpdate.getUserMappingChanges().setAdd(new ArrayList<UserMappingParam>());
+		UserMappingParam rootMapping = new UserMappingParam();
+		rootMapping.setDomain(getTestDomainName());
+		rootMapping.getGroups().add(group);
+		tenantUpdate.getUserMappingChanges().getAdd().add(rootMapping);
+
+		TenantOrgRestRep getTenantResp = rSys.path(getTestEditApi(tenantId)).get(TenantOrgRestRep.class);
+		Assert.assertNotNull(getTenantResp.getName());
+		tenantUpdate.setLabel(getTenantResp.getName());
+
+		ClientResponse resp = user.path(getTestEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
+
+		//Since the tenant creation is done by the provider tenant admin,
+		//the operation will fail.
+		String partialExpectedErrorMsg = "Only users with SECURITY_ADMIN role can modify user-mapping properties";
+		validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, resp);
+	}
+
+	private void removeUserMapping(URI tenantId, String group) {
+		TenantUpdateParam tenantUpdate = new TenantUpdateParam();
+		tenantUpdate.setUserMappingChanges(new UserMappingChanges());
+		tenantUpdate.getUserMappingChanges().setAdd(new ArrayList<UserMappingParam>());
+		UserMappingParam rootMapping = new UserMappingParam();
+		rootMapping.setDomain(getTestDomainName());
+		rootMapping.getGroups().add(group);
+		tenantUpdate.getUserMappingChanges().getRemove().add(rootMapping);
+
+		TenantOrgRestRep getTenantResp = rSys.path(getTestEditApi(tenantId)).get(TenantOrgRestRep.class);
+		Assert.assertNotNull(getTenantResp.getName());
+		tenantUpdate.setLabel(getTenantResp.getName());
+
+		ClientResponse resp = rSys.path(getTestEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
+		Assert.assertEquals(200, resp.getStatus());
+	}
+
+	private AuthnCreateParam getDefaultAuthnCreateParam (String description) {
+		return apiTestAuthnProviderUtils.getDefaultAuthnCreateParam(description);
+	}
 	
 	private String getGroup(int index){
 		return apiTestAuthnProviderUtils.getLDAPGroup(index);
@@ -252,7 +318,7 @@ public class ApiTest_Tenants extends ApiTestBase {
 	}
 	
 	private String getUserWithDomain(int index){
-		return getUser(index) + "@" + getTestDomainName();
+		return apiTestAuthnProviderUtils.getUserWithDomain(index);
 	}
 	
 	private String getGroupObjectClass(int index){
@@ -262,9 +328,16 @@ public class ApiTest_Tenants extends ApiTestBase {
 	private String getGroupMemberAttribute(int index){
 		return apiTestAuthnProviderUtils.getGroupMemberAttribute(index);
 	}
+
+	private String getLDAPUserPassword () {
+		return apiTestAuthnProviderUtils.getLDAPUserPassword();
+	}
+
+	private String getUserWhoAmIApi() {
+		return TEST_USER_WHOAMI_API;
+	}
 	
-	
-	private TenantUpdateParam getAuthnUpdateParamFromAuthnProviderRestResp (TenantOrgRestRep createResponse) {
+	private TenantUpdateParam getTenantUpdateParamFromTenantCreateRestResp(TenantOrgRestRep createResponse) {
 		TenantUpdateParam param = new TenantUpdateParam();
 		param.setLabel(createResponse.getName());
 		param.setDescription(createResponse.getDescription());
@@ -335,7 +408,8 @@ public class ApiTest_Tenants extends ApiTestBase {
     	Assert.assertEquals(expectedStatus, actual.getStatus());
     	
     	final ServiceErrorRestRep actualErrorMsg = actual.getEntity(ServiceErrorRestRep.class);
-    	Assert.assertTrue(actualErrorMsg.getDetailedMessage().startsWith(expectedErrorMsg));
+
+		Assert.assertTrue(actualErrorMsg.getDetailedMessage().startsWith(expectedErrorMsg));
 	}
 	
 	private RoleAssignmentEntry getRoleAssginementByGroup(String group, List<RoleAssignmentEntry> roleAssignmentEnties){
@@ -417,10 +491,32 @@ public class ApiTest_Tenants extends ApiTestBase {
 		Assert.assertTrue(projectFound);
 	}
 
-    private AuthnCreateParam getDefaultAuthnCreateParam (String description) {
-        return apiTestAuthnProviderUtils.getDefaultAuthnCreateParam(description);
-    }
-	
+	private void validateUserTenantRoles(UserInfo actual, List<String> expectedRoles) {
+		Assert.assertNotNull(actual);
+		Assert.assertFalse(CollectionUtils.isEmpty(actual.getHomeTenantRoles()));
+		Assert.assertTrue(actual.getHomeTenantRoles().containsAll(expectedRoles));
+	}
+
+	private void validateVDCRoleAssignmentsRemove (RoleAssignments actual, String expectedEntity,
+												   boolean isGroup) {
+		Assert.assertNotNull(actual);
+
+		boolean found = false;
+		for (RoleAssignmentEntry roleAssignmentEntry : actual.getAssignments()) {
+			Assert.assertNotNull(roleAssignmentEntry);
+			if (isGroup) {
+				if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getGroup())) {
+					found = true;
+				}
+			} else {
+				if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getSubjectId())){
+					found = true;
+				}
+			}
+		}
+		Assert.assertFalse(found);
+	}
+
 	@Test
 	public void testTenantCreateWithGroupInLDAPAuthnProviderWithoutLDAPGroupProperties(){
 		final String testName = "testTenantCreateWithGroupInLDAPAuthnProviderWithoutLDAPGroupProperties - ";
@@ -617,7 +713,7 @@ public class ApiTest_Tenants extends ApiTestBase {
 		
 		String testEditApi = this.getTestEditApi(createResp.getId());
 		
-		TenantUpdateParam editParam = getAuthnUpdateParamFromAuthnProviderRestResp(createResp);
+		TenantUpdateParam editParam = getTenantUpdateParamFromTenantCreateRestResp(createResp);
 		editParam.setDescription(testName + "Editing the tenant with some valid groups. This will fail as authnprovider has empty group properties");
 		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(0));
 		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(1));
@@ -662,7 +758,7 @@ public class ApiTest_Tenants extends ApiTestBase {
 				
 		String testEditApi = this.getTestEditApi(createResp.getId());
 		
-		TenantUpdateParam editParam = getAuthnUpdateParamFromAuthnProviderRestResp(createResp);
+		TenantUpdateParam editParam = getTenantUpdateParamFromTenantCreateRestResp(createResp);
 		editParam.setDescription(testName + "Editing the tenant by removing the valid groups and adding some attributes");
 		
 		//Remove the groups by removing the added userMapping.
@@ -740,7 +836,7 @@ public class ApiTest_Tenants extends ApiTestBase {
 		//in the authnprovider. So, the update request should fail.
 		String testEditApi = this.getTestEditApi(createResp.getId());
 		
-		TenantUpdateParam editParam = getAuthnUpdateParamFromAuthnProviderRestResp(createResp);
+		TenantUpdateParam editParam = getTenantUpdateParamFromTenantCreateRestResp(createResp);
 		editParam.setDescription(testName + "Editing the tenant by adding a new groups thats objectclass does not match the authn provider supported");
 		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(3));
 		
@@ -801,7 +897,7 @@ public class ApiTest_Tenants extends ApiTestBase {
 		createParam.getUserMappings().get(1).getGroups().clear();
 		createParam.getUserMappings().get(1).getGroups().add(getGroup(4));
 		createParam.setDescription(testName + "With valid groups in both userMappingParam but the objectClassName of the group is"
-						+ "not supported by the authnprovider");
+				+ "not supported by the authnprovider");
 		
 		clientCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 		
@@ -961,5 +1057,700 @@ public class ApiTest_Tenants extends ApiTestBase {
 		ClientResponse clientProjectIdsResp = ldapUser.path(getProjectApi).get(ClientResponse.class);
 		
 		Assert.assertEquals(403, clientProjectIdsResp.getStatus());
+	}
+
+	@Test
+	public void testTenantEditWithDomainComponentInGroup(){
+		final String testName = "testTenantEditWithDomainComponentInGroup - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant with group only");
+		TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+		validateTenantCreateSuccess(createParam, createResp);
+
+		//Now edit the created tenant and remove the added groups and add some attributes.
+
+		String testEditApi = this.getTestEditApi(createResp.getId());
+
+		TenantUpdateParam editParam = getTenantUpdateParamFromTenantCreateRestResp(createResp);
+		editParam.setDescription(testName + "Editing the tenant by removing the valid groups and adding some attributes");
+
+		//Remove the groups by removing the added userMapping.
+		UserMappingParam userMappingParam = new UserMappingParam(createResp.getUserMappings().get(0).getDomain(), createResp.getUserMappings().get(0).getAttributes(), createResp.getUserMappings().get(0).getGroups());
+		editParam.getUserMappingChanges().getRemove().add(userMappingParam);
+
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().clear();
+		editParam.getUserMappingChanges().getAdd().get(0).getAttributes().addAll(getDefaultUserMappingAttributeParamList(2));
+
+		TenantOrgRestRep editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		validateTenantEditSuccess(editParam, editResp);
+
+		//Remove the groups by removing the added userMapping.
+		userMappingParam = new UserMappingParam(createResp.getUserMappings().get(0).getDomain(), createResp.getUserMappings().get(0).getAttributes(), createResp.getUserMappings().get(0).getGroups());
+		editParam.getUserMappingChanges().getRemove().add(userMappingParam);
+
+		//Add some valid groups.
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(0));
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(1));
+		editParam.setDescription(testName + "Editing the tenant by Adding the valid groups back");
+
+		editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		validateTenantEditSuccess(editParam, editResp);
+
+		//Make sure all the added user mappings available in the tenant.
+		Assert.assertEquals(1, editResp.getUserMappings().size());
+
+		//Remove all the existing groups.
+		editParam.getUserMappingChanges().getRemove().get(0).getGroups().add(getGroup(0));
+		editParam.getUserMappingChanges().getRemove().get(0).getGroups().add(getGroup(1));
+
+		//Add the same old groups with domain component.
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().set(0, getGroup(0)+"@"+editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().set(1, getGroup(1) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.setDescription(testName + "Editing the tenant by Adding the domain component in the groups");
+
+		editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		//Make sure all the added user mappings available in the tenant.
+		Assert.assertEquals(1, editResp.getUserMappings().size());
+		Assert.assertEquals(2, editResp.getUserMappings().get(0).getGroups().size());
+	}
+
+	@Test
+	public void testTenantEditByAddingGroupsWithDomainComponent(){
+		final String testName = "testTenantEditByAddingGroupsWithDomainComponent - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant with group only");
+		TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+		validateTenantCreateSuccess(createParam, createResp);
+
+		//Now edit the created tenant and remove the added groups and add some attributes.
+
+		String testEditApi = this.getTestEditApi(createResp.getId());
+
+		TenantUpdateParam editParam = getTenantUpdateParamFromTenantCreateRestResp(createResp);
+		editParam.setDescription(testName + "Editing the tenant by removing the valid groups and adding some attributes");
+
+		//Remove the groups by removing the added userMapping.
+		UserMappingParam userMappingParam = new UserMappingParam(createResp.getUserMappings().get(0).getDomain(), createResp.getUserMappings().get(0).getAttributes(), createResp.getUserMappings().get(0).getGroups());
+		editParam.getUserMappingChanges().getRemove().add(userMappingParam);
+
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().clear();
+		editParam.getUserMappingChanges().getAdd().get(0).getAttributes().addAll(getDefaultUserMappingAttributeParamList(2));
+
+		TenantOrgRestRep editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		validateTenantEditSuccess(editParam, editResp);
+
+		//Remove the groups by removing the added userMapping.
+		userMappingParam = new UserMappingParam(createResp.getUserMappings().get(0).getDomain(), createResp.getUserMappings().get(0).getAttributes(), createResp.getUserMappings().get(0).getGroups());
+		editParam.getUserMappingChanges().getRemove().add(userMappingParam);
+
+		//Add some valid groups.
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(0));
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(1));
+		editParam.setDescription(testName + "Editing the tenant by Adding the valid groups back");
+
+		editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		validateTenantEditSuccess(editParam, editResp);
+
+		//Make sure all the added user mappings available in the tenant.
+		Assert.assertEquals(1, editResp.getUserMappings().size());
+
+		//Add some groups with domain component.
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().set(0, getGroup(0) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().set(1, getGroup(1) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.setDescription(testName + "Editing the tenant by Adding the domain component in the groups");
+
+		editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		//Make sure all the added user mappings available in the tenant.
+		Assert.assertEquals(1, editResp.getUserMappings().size());
+		Assert.assertEquals(2, editResp.getUserMappings().get(0).getGroups().size());
+
+		//Add some groups with domain component.
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(0) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(1) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.setDescription(testName + "Editing the tenant by Adding the domain component in the groups");
+
+		editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		//Make sure all the added user mappings available in the tenant.
+		Assert.assertEquals(1, editResp.getUserMappings().size());
+		Assert.assertEquals(2, editResp.getUserMappings().get(0).getGroups().size());
+
+		//Add some groups with domain component.
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(2)+"@"+editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.getUserMappingChanges().getAdd().get(0).getGroups().add(getGroup(3) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
+		editParam.setDescription(testName + "Editing the tenant by Adding the domain component in the groups");
+
+		editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
+
+		//Make sure all the added user mappings available in the tenant.
+		Assert.assertEquals(2, editResp.getUserMappings().size());
+		Assert.assertEquals(2, editResp.getUserMappings().get(0).getGroups().size());
+		Assert.assertEquals(4, editResp.getUserMappings().get(1).getGroups().size());
+	}
+
+	@Test
+	public void testTenantCreateByProviderTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testTenantCreateByProviderTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(rootTenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of provider tenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(rootTenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has provider tenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		//Create a subtenant by provider tenant admin.
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Tenant creation by Provider tenant admin should fail.");
+		ClientResponse clientCreateResp = ldapViPRUser1.path(getTestApi()).post(ClientResponse.class, createParam);
+
+		//Only sec admin can create sub tenants, the operation will fail.
+		String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+		partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
+		validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientCreateResp);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(rootTenantId, groupToAddInUserMapping);
+	}
+
+	@Test
+	public void testTenantCreateBySubTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testTenantCreateBySubTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		//Create a subtenant by sec admin.
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant by sec admin.");
+		TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+		validateTenantCreateSuccess(createParam, createResp);
+
+		URI tenantId = createResp.getId();
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(tenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of subtenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(tenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has subtenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		//Change the name the subtenant to something different.
+		createParam = this.getDefaultTenantCreateParam(testName + "Tenant creation by subtenant admin should fail.");
+		createParam.setLabel("Tenant Created by subtenant admin");
+
+		//Create a subtenant by subtenant admin.
+		ClientResponse clientCreateResp = ldapViPRUser1.path(getTestApi()).post(ClientResponse.class, createParam);
+
+		//Only sec admin can create sub tenants, the operation will fail.
+		String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+		partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
+		validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientCreateResp);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(tenantId, groupToAddInUserMapping);
+	}
+
+	@Test
+	public void testProviderTenantEditByProviderTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testProviderTenantEditByProviderTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(rootTenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of provider tenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(rootTenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has provider tenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		String rootTenantEditApi = getTestEditApi(rootTenantId);
+
+		TenantUpdateParam editParam = new TenantUpdateParam();
+		editParam.setDescription(testName + "Provider tenant admin editing the provider tenant by changing the description.");
+
+		//Provider tenant edits the provider tenant by changing its description.
+		ClientResponse clientEditResp = ldapViPRUser1.path(rootTenantEditApi).put(ClientResponse.class, editParam);
+		Assert.assertEquals(200, clientEditResp.getStatus());
+
+		//Add the user mapping to the provider tenant.
+		//Only sec admin can create sub tenants, the operation will fail.
+		addUserMappingAndExpectFailure(rootTenantId, getGroup(0), ldapViPRUser1);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(rootTenantId, groupToAddInUserMapping);
+	}
+
+	@Test
+	public void testSubTenantEditByProviderTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testSubTenantEditByProviderTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(rootTenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of provider tenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(rootTenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has provider tenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant by sec admin.");
+		TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+		validateTenantCreateSuccess(createParam, createResp);
+
+		URI subTenantId = createResp.getId();
+		String subTenantEditApi = getTestEditApi(subTenantId);
+
+		TenantUpdateParam editParam = new TenantUpdateParam();
+		editParam.setDescription(testName + "SubTenant - Set by provider tenant admin");
+
+		//Edit the subtenant by changing its description. It should fail
+		//as only the tenant admin or sec admin can edit the tenant.
+		ClientResponse clientEditResp = ldapViPRUser1.path(subTenantEditApi).put(ClientResponse.class, editParam);
+
+		String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+		partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
+		validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientEditResp);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(rootTenantId, groupToAddInUserMapping);
+	}
+
+	//@Test
+	public void testSubTenantEditBySubTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testSubTenantEditBySubTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		//Create a subtenant by the sec admin.
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant by sec admin.");
+		TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+		validateTenantCreateSuccess(createParam, createResp);
+
+		//Add the user mapping to the subtenant.
+		URI subTenantId = createResp.getId();
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(subTenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of subtenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(subTenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has subtenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		String subTenantEditApi = getTestEditApi(subTenantId);
+
+		//Edit the provider tenant by changing its description.
+		TenantUpdateParam editParam = new TenantUpdateParam();
+		editParam.setDescription(testName + "SubTenant - Set by subtenant admin");
+
+		ClientResponse clientEditResp = ldapViPRUser1.path(subTenantEditApi).put(ClientResponse.class, editParam);
+		Assert.assertEquals(200, clientEditResp.getStatus());
+
+		//Add the user mapping to it. It should fail as this is done by provider tenant admin.
+		//Only sec admin can edit sub tenants, the operation will fail.
+		addUserMappingAndExpectFailure(subTenantId, getGroup(0), ldapViPRUser1);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(subTenantId, groupToAddInUserMapping);
+	}
+
+	@Test
+	public void testProviderTenantDeleteByProviderTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testProviderTenantDeleteByProviderTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(rootTenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of provider tenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(rootTenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has tenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		String rootTenantDeleteApi = getTestDeleteApi(rootTenantId);
+
+		//Delete the provider tenant. It should fail. Deleting provider tenant can't be done.
+		ClientResponse clientEditResp = ldapViPRUser1.path(rootTenantDeleteApi).post(ClientResponse.class);
+
+		String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+		partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
+		validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientEditResp);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(rootTenantId, groupToAddInUserMapping);
+	}
+
+	@Test
+	public void testSubTenantDeleteByProviderTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testSubTenantDeleteByProviderTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(rootTenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of provider tenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(rootTenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has tenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		//Create a subtenant by sec admin.
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of subtenant by sec admin.");
+		TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+		validateTenantCreateSuccess(createParam, createResp);
+
+		URI subTenantId = createResp.getId();
+		String subTenantDeleteApi = getTestDeleteApi(subTenantId);
+
+		//Delete the subtenant tenant.
+		//Only sec admin can create sub tenants, the operation will fail.
+		ClientResponse clientDeleteResp = ldapViPRUser1.path(subTenantDeleteApi).post(ClientResponse.class);
+
+		String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+		partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
+		validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientDeleteResp);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(rootTenantId, groupToAddInUserMapping);
+	}
+
+	@Test
+	public void testSubTenantDeleteBySubTenantAdmin() throws NoSuchAlgorithmException {
+		final String testName = "testSubTenantDeleteBySubTenantAdmin - ";
+
+		//Create an authnprovider before creating a tenant.
+		AuthnCreateParam authnProviderCreateParam = getDefaultAuthnCreateParam(testName + getTestDefaultAuthnProviderDescription());
+
+		ClientResponse clientAuthnProviderCreateResp = rSys.path(getTestAuthnProviderApi()).post(ClientResponse.class, authnProviderCreateParam);
+
+		//Validate the authn provider creation success and add the
+		//resource to the resource clean up list.
+		validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
+
+		TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of sbutenant by sec admin.");
+		TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
+
+		validateTenantCreateSuccess(createParam, createResp);
+
+		URI subTenantId = createResp.getId();
+
+		String groupToAddInUserMapping = getGroup(0);
+		addUserMapping(subTenantId, groupToAddInUserMapping);
+
+		//Assign tenant admin role to the user ldapvipruser1@maxcrc.com
+		//who is part of subtenant.
+		RoleAssignmentChanges roleAssignmentEntryParam = getDefaultRoleAssignmentChanges(false, true);
+		roleAssignmentEntryParam.getAdd().get(0).setSubjectId(getUserWithDomain(0));
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().clear();
+		roleAssignmentEntryParam.getAdd().get(0).getRoles().add(getTenantRole(0));
+
+		String roleAssignmentsApi = getTestRoleAssignmentsApi(subTenantId);
+
+		RoleAssignments roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateRoleAssignmentCreateSuccess(roleAssignmentEntryParam, roleAssignmentCreateResp);
+
+		//Create a ldapvipruser1@maxcrc.com who has subtenant admin role.
+		String ldapViPRUser1Name = getUserWithDomain(0);
+		BalancedWebResource ldapViPRUser1 = getHttpsClient(ldapViPRUser1Name, getLDAPUserPassword());
+
+		String whoAmIApi = getUserWhoAmIApi();
+		UserInfo ldapViPRUser1UserInfo = ldapViPRUser1.path(whoAmIApi).get(UserInfo.class);
+		List<String> expectedRoles = new ArrayList<String>();
+		expectedRoles.add(getTenantRole(0));
+		validateUserTenantRoles(ldapViPRUser1UserInfo, expectedRoles);
+
+		String subTenantDeleteApi = getTestDeleteApi(subTenantId);
+
+		//Delete the subtenant.
+		//Only sec admin can create sub tenants, the operation will fail.
+		ClientResponse clientDeleteResp = ldapViPRUser1.path(subTenantDeleteApi).post(ClientResponse.class);
+
+		String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+		partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
+		validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientDeleteResp);
+
+		//Logout the user.
+		logoutUser(ldapViPRUser1);
+
+		//Remove the role assignment for the user.
+		roleAssignmentEntryParam.getRemove().add(roleAssignmentEntryParam.getAdd().get(0));
+		roleAssignmentEntryParam.getAdd().clear();
+
+		roleAssignmentCreateResp = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentEntryParam);
+		validateVDCRoleAssignmentsRemove(roleAssignmentCreateResp, ldapViPRUser1Name, false);
+
+		//Remove the user mappings.
+		removeUserMapping(subTenantId, groupToAddInUserMapping);
 	}
 }

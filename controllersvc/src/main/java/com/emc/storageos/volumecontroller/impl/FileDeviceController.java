@@ -1586,65 +1586,74 @@ public class FileDeviceController implements FileController {
     	try {
             String[] params = { storage.toString(),  quotaDir.toString(), fs.toString() };
             _log.info("FileDeviceController::deleteQuotaDirectory: storage : {}, quotadir : {}, fs : {}", params);
-    		
-    		StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-    		fsObj = _dbClient.queryObject(FileShare.class, fs);    		
-    		quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);   		
-    		FileDeviceInputOutput args = new FileDeviceInputOutput();
+
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            fsObj = _dbClient.queryObject(FileShare.class, fs);
+            quotaDirObj = _dbClient.queryObject(QuotaDirectory.class, quotaDir);
+            FileDeviceInputOutput args = new FileDeviceInputOutput();
             String quotaName = quotaDirObj.getName();
             args.addFSFileObject(fsObj);
 
-            //delete fileshare of quota directory
-            SMBShareMap smbShareMap = args.getFileObj().getSMBFileShares();
-            if( smbShareMap != null && !smbShareMap.isEmpty()) {
-                FileSMBShare fileSMBShare = null;
-                for(SMBFileShare smbFileShare : smbShareMap.values()) {
-                    //check sub directory path and then delete sub directory
-                    if((smbFileShare.isSubdir().equals("true")) &&
-                            (true == smbFileShare.getPath().endsWith(quotaName))) {
-                        fileSMBShare = new FileSMBShare(smbFileShare);
-                        _log.info("Delete the cifs sub directory path of quota directory {}",
-                                                            smbFileShare.getPath());
-                        break;
-                    }
-                }
-                if(fileSMBShare != null) {
-                    this.deleteShare(storage, fs, fileSMBShare, task);
-                } else {
-                    _log.info("Quota directory is not exported as cifs sub directory {}",
-                                                                fileSMBShare.getPath());
-                }
-            }
-            //delete sub dir export of quota directory
-            FSExportMap fsExportMap = args.getFileObj().getFsExports();
+            FSExportMap fsExportMap = fsObj.getFsExports();
+            boolean isExported = false;
+            //delete export
             if(fsExportMap != null && !fsExportMap.isEmpty()) {
+                //check the quota directory is exported
                 for(FileExport fileExport : fsExportMap.values()) {
                     if(fileExport.getSubDirectory().equals(quotaName) &&
                             fileExport.getPath().endsWith(quotaName)) {
-                        _log.info("Delete the nfs sub directory export path {}",
-                                                                fileExport.getPath());
-                        this.deleteExportRules(storage, fs, false, quotaName, task);
-                        break;
+                        isExported = true;
+                        _log.info("Delete the nfs sub directory export path {} and key {}",
+                                fileExport.getPath(), fileExport.getFileExportKey());
+                    }
+                }
+                if(true == isExported) {
+                    //delete the export of quota directory
+                    this.deleteExportRules(storage, fs, false, quotaName, task);
+                    fsObj = _dbClient.queryObject(FileShare.class, fs);
+                }
+            }
+
+            //delete fileshare of quota directory
+            SMBShareMap smbShareMap = fsObj.getSMBFileShares();
+            if(smbShareMap != null && !smbShareMap.isEmpty()) {
+                FileSMBShare fileSMBShare = null;
+                List<FileSMBShare> fileSMBShares = new ArrayList<FileSMBShare>();
+                for(SMBFileShare smbFileShare : smbShareMap.values()) {
+                    //check for quotaname in native fs path
+                    if(true == (smbFileShare.getPath().endsWith(quotaName))) {
+                        fileSMBShare = new FileSMBShare(smbFileShare);
+                        _log.info("Delete the cifs sub directory path of quota directory {}",
+                                smbFileShare.getPath());
+                        fileSMBShares.add(fileSMBShare);
+                    }
+                }
+                if(fileSMBShares != null && !fileSMBShares.isEmpty()) { //delete shares
+                    for(FileSMBShare tempFileSMBShare: fileSMBShares) {
+                        this.deleteShare(storage, fs, tempFileSMBShare, task);
+                        _log.info("Delete SMB Share Name{} for quota ", tempFileSMBShare.getName());
                     }
                 }
             }
 
-    		// Set up args
-    		args.addFileShare(fsObj);
-    		args.addQuotaDirectory(quotaDirObj);
+            fsObj = _dbClient.queryObject(FileShare.class, fs);
+            // Set up args
+            args.addFSFileObject(fsObj);
+
+            args.addQuotaDirectory(quotaDirObj);
             args.setOpId(task);
-    	
-    		FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
-    		BiosCommandResult result = nasDevice.doDeleteQuotaDirectory(storageObj, args);  
+
+            FileStorageDevice nasDevice = getDevice(storageObj.getSystemType());
+            BiosCommandResult result = nasDevice.doDeleteQuotaDirectory(storageObj, args);
             if (result.getCommandPending()) {
                 return;
             }
             fsObj.getOpStatus().updateTaskStatus(task, result.toOperation());
-            quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation()); 
-            
+            quotaDirObj.getOpStatus().updateTaskStatus(task, result.toOperation());
+
             String fsName = fsObj.getName();
             quotaDirObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, quotaDirObj, fsName));
-            
+
             if(!result.isCommandSuccess()){ 
                 _log.error("FileDeviceController::deleteQuotaDirectory: command is not successfull");
             } 
@@ -2060,7 +2069,7 @@ public class FileDeviceController implements FileController {
      */
     private String getExportNewClientExtensions(List<ExportRule> fExports) {
 
-        if (fExports == null && fExports.size() > 0)
+        if (fExports == null || fExports.isEmpty())
             return "";
 
         StringBuilder strBuilder = new StringBuilder();

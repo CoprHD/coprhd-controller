@@ -773,9 +773,17 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 dmIntMap.put(intf.getName(), intf);
             }
 
+            // Changes to fix Jira CTRL - 9151
+            VNXFileSshApi sshDmApi = new VNXFileSshApi();
+            sshDmApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+            
             //collect VDM interfaces
             for(VNXVdm vdm:vdms){
-                for(String vdmIF:vdm.getInterfaces()){
+                //Sometimes getVdmPortGroups(system) method does not collect all VDM interfaces,
+            	//So running Collect NFS/CIFS interfaces from nas_server -info command. This will return
+                //Interfaces assigned to VDM and not thru CIFS servers
+                Map<String, String> vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
+                for(String vdmIF:vdmIntfs.keySet()){
                     _logger.info("Remove VDM interface {}", vdmIF);
                     dmIntMap.remove(vdmIF);
                 }

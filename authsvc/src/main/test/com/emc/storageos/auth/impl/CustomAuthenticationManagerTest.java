@@ -26,13 +26,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.emc.storageos.services.util.EnvConfig;
-import org.junit.Assert;
+import org.junit.*;
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +57,6 @@ import com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMappingAttribute;
 import com.emc.storageos.security.resource.UserInfoPage.UserDetails;
-import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -86,6 +83,9 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
     private InvalidLoginManager _invalidLoginManager = new InvalidLoginManager();
 
     private static final String _adManagerPassword = EnvConfig.get("sanity", "ad.manager.password");
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -577,36 +577,46 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         Assert.assertEquals(_rootTenantId.toString(), user.getTenantId());
 
         ValidationFailureReason[] failureReason = new ValidationFailureReason[1];
-        Assert.assertTrue(_authManager.isUserValid("sanity_user@sanity.local",
-                _rootTenantId.toString(), null, failureReason));
-        Assert.assertFalse(_authManager.isUserValid("sanity_user@sanity.local",
-                _subtenantId.toString(), null, failureReason));
-        Assert.assertTrue(_authManager.isUserValid("sanity_user@sanity.local",   
-                _subtenantId.toString(), _rootTenantId.toString(), failureReason));
-        Assert.assertEquals(failureReason[0],
-                ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT);
+        _authManager.validateUser("sanity_user@sanity.local",
+                _rootTenantId.toString(), null);
 
-        Assert.assertTrue(_authManager.isUserValid("user2@root.com",
-                _rootTenantId.toString(), null, failureReason));
-        Assert.assertFalse(_authManager.isUserValid("user2@root.com",
-                _subtenantId.toString(), null, failureReason));
-        Assert.assertTrue(_authManager.isUserValid("user2@root.com",
-                _subtenantId.toString(), _rootTenantId.toString(), failureReason));
+        thrown.expect(APIException.class);
+        _authManager.validateUser("sanity_user@sanity.local",
+                _subtenantId.toString(), null);
 
-        Assert.assertTrue(_authManager.isUserValid("user@root.com",
-                _subtenantId.toString(), null, failureReason));
-        Assert.assertFalse(_authManager.isUserValid("user@root.com",
-                _rootTenantId.toString(), null, failureReason));
+        _authManager.validateUser("sanity_user@sanity.local",
+                _subtenantId.toString(), _rootTenantId.toString());
 
-        Assert.assertTrue(_authManager.isUserValid("testuser@sanity.local",
-                _subtenantId.toString(), null, failureReason));
-        Assert.assertFalse(_authManager.isUserValid("testuser@sanity.local",
-                _rootTenantId.toString(), null, failureReason));
-        Assert.assertFalse(_authManager.isUserValid("testuser", _rootTenantId.toString(),
-                null, failureReason));
-        Assert.assertFalse(_authManager.isUserValid("testuser", _subtenantId.toString(),
-                null, failureReason));
+        _authManager.validateUser("user2@root.com",
+                _rootTenantId.toString(), null);
 
+        thrown.expect(APIException.class);
+        _authManager.validateUser("user2@root.com",
+                _subtenantId.toString(), null);
+
+        _authManager.validateUser("user2@root.com",
+                _subtenantId.toString(), _rootTenantId.toString());
+
+        _authManager.validateUser("user@root.com",
+                _subtenantId.toString(), null);
+
+        thrown.expect(APIException.class);
+        _authManager.validateUser("user@root.com",
+                _rootTenantId.toString(), null);
+
+        _authManager.validateUser("testuser@sanity.local",
+                _subtenantId.toString(), null);
+
+        thrown.expect(APIException.class);
+        _authManager.validateUser("testuser@sanity.local",
+                _rootTenantId.toString(), null);
+
+        thrown.expect(APIException.class);
+        _authManager.validateUser("testuser", _rootTenantId.toString(),
+                null);
+
+        thrown.expect(APIException.class);
+        _authManager.validateUser("testuser", _subtenantId.toString(), null);
 
         Assert.assertTrue(_authManager.isGroupValid("Test Group@sanity.local",
                 failureReason));
@@ -673,12 +683,12 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         user = _authManager.authenticate(sidTestUserCreds);
         Assert.assertEquals(subtenant2Id.toString(), user.getTenantId());
 
-        Assert.assertTrue(_authManager.isUserValid("sanity_user@sidtest",
-                subtenant2Id.toString(), null, failureReason));
-        Assert.assertTrue(_authManager.isUserValid("testuser@sidtest",
-                subtenant2Id.toString(), null, failureReason));
-        Assert.assertFalse(_authManager.isUserValid("baduser@sidtest",
-                subtenant2Id.toString(), null, failureReason));
+        _authManager.validateUser("sanity_user@sidtest",
+                subtenant2Id.toString(), null);
+        _authManager.validateUser("testuser@sidtest",
+                subtenant2Id.toString(), null);
+        _authManager.validateUser("baduser@sidtest",
+                subtenant2Id.toString(), null);
 
         // Test group
         Assert.assertTrue(_authManager.isGroupValid(
@@ -715,8 +725,11 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         // but do not throw connection exceptions
         user = _authManager.authenticate(badURLUserCreds);
         Assert.assertNull(user);
-        Assert.assertFalse(_authManager.isUserValid("user@badurl.com",
-                subtenant2Id.toString(), null, failureReason));
+
+        thrown.expect(APIException.class);
+        _authManager.validateUser("user@badurl.com",
+                subtenant2Id.toString(), null);
+
         Assert.assertFalse(_authManager.isGroupValid("group@badurl.com", failureReason));
 
         cleanupProviders();
@@ -1156,9 +1169,8 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         }
 
         @Override
-        public boolean isUserValid(String userId, String tenantId, String altTenantId,
-                ValidationFailureReason[] failureReason) {
-            return false;
+        public void validateUser(String userId, String tenantId, String altTenantId) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -1171,7 +1183,17 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         }
 
         @Override
+        public StorageOSUserDAO getStorageOSUser(Credentials credentials) {
+            return getStorageOSUser(credentials, null);
+        }
+
+        @Override
         public Map<URI, UserMapping> getUserTenants(String username) {
+            return null;
+        }
+
+        @Override
+        public Map<URI, UserMapping> peekUserTenants(String username, URI uri, List<UserMapping> userMappings) {
             return null;
         }
 

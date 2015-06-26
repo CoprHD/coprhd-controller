@@ -179,7 +179,7 @@ public class VPlexControllerUtils {
             if (assocVolume.getVirtualArray().toString().equals(vaURI.toString())) {
                 StorageSystem assocVolumeSystem = getDataObject(StorageSystem.class,
                     assocVolume.getStorageController(), dbClient);
-                VolumeInfo info = new VolumeInfo(assocVolumeSystem.getNativeGuid(),
+                VolumeInfo info = new VolumeInfo(assocVolumeSystem.getNativeGuid(), assocVolumeSystem.getSystemType(),
                     assocVolume.getWWN().toUpperCase().replaceAll(":", ""),
                     assocVolume.getNativeId(), assocVolume.getThinlyProvisioned().booleanValue());
                 clusterName = client.getClaimedStorageVolumeClusterName(info);

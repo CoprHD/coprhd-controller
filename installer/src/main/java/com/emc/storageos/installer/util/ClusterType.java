@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.installer.util;
 
-import com.emc.storageos.services.util.InstallerConstants;
-
 public enum ClusterType {
 	NODE_COUNT_1 (1, InstallerConstants.NODE_COUNT_1_STRING),
 	NODE_COUNT_3 (3, InstallerConstants.NODE_COUNT_3_STRING),

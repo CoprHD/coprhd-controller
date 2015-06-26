@@ -13,6 +13,7 @@ import java.util.List;
 @XmlRootElement(name = "subtenant")
 public class SubTenantRoles {
     private String tenant;
+    private String tenantName;
     private List<String> roles;
 
     public String getTenant() {
@@ -21,6 +22,14 @@ public class SubTenantRoles {
 
     public void setTenant(String tenant) {
         this.tenant = tenant;
+    }
+
+    public String getTenantName() {
+        return tenantName;
+    }
+
+    public void setTenantName(String tenantName) {
+        this.tenantName = tenantName;
     }
 
     @XmlElementWrapper(name = "roles")

@@ -76,6 +76,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolDefaultValuesForSystemTypeDriveTypeMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.ProtectionSystemAssocStorageSystemMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.HDSStorageSystemSerialNumberMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolVNXAutoTierPolicyIdMigration"/>
                 <!-- This was originally added for migration from 1.1 to 2.0, but it was discovered after the  -->
                 <!-- 2.0 release and was added in 2.0 patch1. Someone who has upgraded to 2.0 will not execute -->
                 <!-- this callback. It is added in the 2.1 to 2.2 upgrade so that the VPLEX volume full copy   -->
@@ -89,6 +90,7 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.CifsShareACLMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotReplicationGroupInstanceMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.FullCopyVolumeReplicaStateMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.RecoverPointBlockSnapshotMigration"/>
             </list>
         </entry>
     </util:map>

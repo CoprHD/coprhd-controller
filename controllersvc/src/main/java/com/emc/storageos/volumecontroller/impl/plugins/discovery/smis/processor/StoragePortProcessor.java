@@ -132,23 +132,32 @@ public class StoragePortProcessor extends StorageProcessor {
                     // Ports , because SCSI address we don't have it in
                     // CIM_LogicalPort Class
                         // 2 - Ethernet Port 4 - FC Port
-                        if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance,
-                                LINKTECHNOLOGY))) {
-                        port = createStoragePort(null, portInstance, profile, haDomain,
-                                false, IP, device);
-                            checkProtocolAlreadyExists(protocols, ISCSI);
-                        keyMap.put(getCIMPropertyValue(portInstance, DEVICEID).toString(), port);
-                            addPath(keyMap, operation.get_result(), portInstance.getObjectPath());
-                        } else if ("4".equalsIgnoreCase(getCIMPropertyValue(portInstance,
-                                LINKTECHNOLOGY))) {
+                    if ("2".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
+                        port = createStoragePort(null, portInstance, profile, haDomain, false, IP, device);
+                        checkProtocolAlreadyExists(protocols, ISCSI);
+                        String deviceId = getCIMPropertyValue(portInstance, DEVICEID);
+                        /* 
+                         * For SMI-S 8.x, While getting the iSCSI Port details, we use SystemName property 
+                         * (Ex. SYMMETRIX-+-<<SERIAL>>-+-SE-1G-+-0)
+                         * Where this call just add the deviceId to the KeyMap (i.e SE-1G-+-0). 
+                         * Hence manually constructing the key.
+                         */
+                        if (device.getUsingSmis80()) {
+                            String systemName = getCIMPropertyValue(portInstance, SYSTEM_NAME);
+                            StringBuffer deviceIdStrBuf = new StringBuffer(systemName);
+                            deviceIdStrBuf.append(Constants.SMIS80_DELIMITER).append(deviceId);
+                            deviceId = deviceIdStrBuf.toString();
+                        }
+                        _logger.debug("Adding iSCSI Port instance {} to keyMap", deviceId);
+                        keyMap.put(deviceId, port);
+                        addPath(keyMap, operation.get_result(), portInstance.getObjectPath());
+                    } else if ("4".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                         port = checkStoragePortExistsInDB(portInstance, device, _dbClient);
-                            checkProtocolAlreadyExists(protocols, FC);
-                        createStoragePort(port, portInstance, profile, haDomain, true,
-                                FC, device);
-						} else {
-							_logger.debug("Unsupported Port : {}",
-									getCIMPropertyValue(portInstance, DEVICEID));
-						}
+                        checkProtocolAlreadyExists(protocols, FC);
+                        createStoragePort(port, portInstance, profile, haDomain, true, FC, device);
+                    } else {
+                        _logger.debug("Unsupported Port : {}", getCIMPropertyValue(portInstance, DEVICEID));
+                    }
 
 				} catch (Exception e) {
 					_logger.warn("Port Discovery failed for {}",

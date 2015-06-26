@@ -1550,6 +1550,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             // if there was any alias added, commit them
             if ( !addedAliasesName.isEmpty()) {
                 dialog.deviceAliasCommit();
+                dialog.copyRunningConfigToStartupFabric();
             } else {
                 dialog.exitToConfig();
             }
@@ -1658,6 +1659,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             // if there was any alias added, commit them
             if ( !removedAliasesName.isEmpty()) {
                 dialog.deviceAliasCommit();
+                dialog.copyRunningConfigToStartupFabric();
             } else {
                 dialog.exitToConfig();
             }
@@ -1813,6 +1815,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             // if there was any alias added, commit them
             if ( !updatedAliasesName.isEmpty()) {
                 dialog.deviceAliasCommit();
+                dialog.copyRunningConfigToStartupFabric();
             } else {
                 dialog.exitToConfig();
             }

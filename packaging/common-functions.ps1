@@ -6,6 +6,16 @@ function CheckPropertiesContentLength($outputProperties, $fixedContentLength) {
     }
 }
 
+function IsValidIPv4Netmask($mask, $label) {
+    $netmaskPattern = '^(254|252|248|240|224|192|128)\.0\.0\.0|255\.(254|252|248|240|224|192|128|0)\.0\.0|255\.255\.(254|252|248|240|224|192|128|0)\.0|255\.255\.255\.(254|252|248|240|224|192|128|0)$'
+    $isValid = $true
+    if (-not ($mask -match $netmaskPattern)) {
+        Write-Host "Invalid $label"
+        $isValid = $false
+    }
+    return $isValid
+}
+
 function IsValidIPv4($ipv4, $label) {
 	if ([string]::IsNullOrEmpty($ipv4)) {
 		return $false
@@ -278,11 +288,36 @@ function SetIpv4DefaultValue() {
 	$Script:ipaddr_4=$defaultIPv4Value
 	$Script:ipaddr_5=$defaultIPv4Value
 	$Script:gateway=$defaultIPv4Value
-	$Script:netmask=$defaultIPv4Value
+	$Script:netmask="255.255.255.0"
+}
+
+function IsIPv4Setted() {
+	$isIPv4Setted=$false
+	if (($Script:vip -ne "0.0.0.0") -or ($Script:ipaddr_1 -ne "0.0.0.0") -or ($Script:ipaddr_2 -ne "0.0.0.0") -or ($Script:ipaddr_3 -ne "0.0.0.0") -or ($Script:ipaddr_4 -ne "0.0.0.0") -or ($Script:ipaddr_5 -ne "0.0.0.0") -or ($Script:isNetmaskGiven -eq $true) -or ($Script:gateway -ne "0.0.0.0")) {
+		$isIPv4Setted=$true
+	}
+	
+	return $isIPv4Setted
+}
+
+function IsIPv6Setted() {
+	$isIPv6Setted=$false
+	if (($Script:vip6 -ne "::0") -or ($Script:ipaddr6_1 -ne "::0") -or ($Script:ipaddr6_2 -ne "::0") -or ($Script:ipaddr6_3 -ne "::0") -or ($Script:ipaddr6_4 -ne "::0") -or ($Script:ipaddr6_5 -ne "::0") -or ($Script:gateway6 -ne "::0")) {
+		$isIPv6Setted=$true
+	}
+	
+	return $isIPv6Setted
 }
 
 function CheckIpv4Params ($isInteractive) {
-    $Script:vip=CheckParam $Script:vip "Public virtual IPv4 address" $isInteractive $false IsValidIPv4
+	$isIpv4Set=IsIPv4Setted
+	if (($isInteractive -eq $false) -and ($isIpv4Set -eq $true) -and ($Script:vip -eq "0.0.0.0")) {
+		$Script:vip=CheckParam $Script:vip "Public virtual IPv4 address" $true $false IsValidIPv4
+	}
+	else {
+		$Script:vip=CheckParam $Script:vip "Public virtual IPv4 address" $isInteractive $false IsValidIPv4
+	}
+	
     if ($Script:vip -ne "0.0.0.0") {
         $Script:ipaddr_1=CheckParam $Script:ipaddr_1 "Server 1 IPv4 address" $isInteractive $false IsValidIPv4
 		if ($Script:nodeCount -ne "1") {
@@ -304,8 +339,15 @@ function CheckIpv4Params ($isInteractive) {
 			$Script:ipaddr_4="0.0.0.0"
 			$Script:ipaddr_5="0.0.0.0"
 		}
+		
         $Script:gateway=CheckParam $Script:gateway "IPv4 default gateway" $isInteractive $false IsValidIPv4
-        $Script:netmask=CheckParam $Script:netmask "Network netmask" $isInteractive $false IsValidIPv4
+		if ($Script:isNetmaskGiven -eq $false) {
+			$Script:netmask=CheckParam $Script:netmask "Network netmask" $true $false IsValidIPv4Netmask
+			$Script:isNetmaskGiven=$true
+		}
+		else {
+			$Script:netmask=CheckParam $Script:netmask "Network netmask" $isInteractive $false IsValidIPv4Netmask
+		}
     }
 	else {
 		SetIpv4DefaultValue
@@ -324,7 +366,14 @@ function SetIpv6DefaultValue() {
 }
 
 function CheckIpv6Params ($isInteractive) {
-	$Script:vip6=CheckParam $Script:vip6 "Public virtual IPv6 address" $isInteractive $false IsValidIPv6
+	$isIpv6Set=IsIPv6Setted
+	if (($isInteractive -eq $false) -and ($isIpv6Set -eq $true) -and ($Script:vip6 -eq "::0")) {
+		$Script:vip6=CheckParam $Script:vip6 "Public virtual IPv6 address" $true $false IsValidIPv6
+	}
+	else {
+		$Script:vip6=CheckParam $Script:vip6 "Public virtual IPv6 address" $isInteractive $false IsValidIPv6
+	}
+	
     if ($Script:vip6 -ne "::0") {
         $Script:ipaddr6_1=CheckParam $Script:ipaddr6_1 "Server 1 IPv6 address" $isInteractive $false IsValidIPv6
 		if ($Script:nodeCount -ne "1") {
@@ -346,11 +395,112 @@ function CheckIpv6Params ($isInteractive) {
 			$Script:ipaddr6_5="::0"
 		}
         $Script:gateway6=CheckParam $Script:gateway6 "IPv6 default gateway" $isInteractive $false IsValidIPv6
-        $Script:ipv6prefixlength=CheckParam $Script:ipv6prefixlength "IPv6 prefix length" $isInteractive $false IsValidIPv6PrefixLength
+		$Script:ipv6prefixlength=CheckParam $Script:ipv6prefixlength "IPv6 prefix length" $isInteractive $false IsValidIPv6PrefixLength
     }
 	else {
 		SetIpv6DefaultValue
 	}
+}
+
+function hasDupIPv4Props() {
+	$hasDuplicate = $false
+	if (IsIPv4Setted) {
+		$IPs = @()
+		$dupIPs = @()
+		$IPs += $Script:vip
+		if(-not ($Script:ipaddr_1 -in $IPs)) {
+			$IPs += $Script:ipaddr_1
+		} elseif (-not ($Script:ipaddr_1 -in $dupIPs)) {
+			$dupIPs += $Script:ipaddr_1
+		}
+		if ($Script:nodeCount -ne "1") {
+			if(-not ($Script:ipaddr_2 -in $IPs)) {
+				$IPs += $Script:ipaddr_2
+			} elseif (-not ($Script:ipaddr_2 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr_2
+			}
+			if(-not ($Script:ipaddr_3 -in $IPs)) {
+				$IPs += $Script:ipaddr_3
+			} elseif (-not ($Script:ipaddr_3 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr_3
+			}
+		}
+		if ($Script:nodeCount -eq "5") {
+			if(-not ($Script:ipaddr_4 -in $IPs)) {
+				$IPs += $Script:ipaddr_4
+			} elseif (-not ($Script:ipaddr_4 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr_4
+			}
+			if(-not ($Script:ipaddr_5 -in $IPs)) {
+				$IPs += $Script:ipaddr_5
+			} elseif (-not ($Script:ipaddr_5 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr_5
+			}
+		}
+		if(-not ($Script:gateway -in $IPs)) {
+			$IPs += $Script:gateway
+		} elseif (-not ($Script:gateway -in $dupIPs)) {
+			$dupIPs += $Script:gateway
+		}
+		if(-not ($Script:netmask -in $IPs)) {
+			$IPs += $Script:netmask
+		} elseif (-not ($Script:netmask -in $dupIPs)) {
+			$dupIPs += $Script:netmask
+		}
+		if("$($IPs.Length - 3)" -ne $Script:nodeCount) {
+			Write-Host "There are duplicate IPs in your input IPv4 properties: $dupIPs"
+			$hasDuplicate = $true
+		}
+	}
+	return $hasDuplicate
+}
+
+function hasDupIPv6Props() {
+	$hasDuplicate = $false
+	if (IsIPv6Setted) {
+		$IPs = @()
+		$dupIPs = @()
+		$IPs += $Script:vip6
+		if(-not ($Script:ipaddr6_1 -in $IPs)) {
+			$IPs += $Script:ipaddr6_1
+		} elseif(-not ($Script:ipaddr6_1 -in $dupIPs)) {
+			$dupIPs += $Script:ipaddr6_1
+		}
+		if ($Script:nodeCount -ne "1") {
+			if(-not ($Script:ipaddr6_2 -in $IPs)) {
+				$IPs += $Script:ipaddr6_2
+			} elseif(-not ($Script:ipaddr6_2 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr6_2
+			}
+			if(-not ($Script:ipaddr6_3 -in $IPs)) {
+				$IPs += $Script:ipaddr6_3
+			} elseif(-not ($Script:ipaddr6_3 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr6_3
+			}
+		}
+		if ($Script:nodeCount -eq "5") {
+			if(-not ($Script:ipaddr6_4 -in $IPs)) {
+				$IPs += $Script:ipaddr6_4
+			} elseif(-not ($Script:ipaddr6_4 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr6_4
+			}
+			if(-not ($Script:ipaddr6_5 -in $IPs)) {
+				$IPs += $Script:ipaddr6_5
+			} elseif(-not ($Script:ipaddr6_5 -in $dupIPs)) {
+				$dupIPs += $Script:ipaddr6_5
+			}
+		}
+		if(-not ($Script:gateway6 -in $IPs)) {
+			$IPs += $Script:gateway6
+		} elseif(-not ($Script:gateway6 -in $dupIPs)) {
+			$dupIPs += $Script:gateway6
+		}
+		if("$($IPs.Length - 2)" -ne $Script:nodeCount) {
+			Write-Host "There are duplicate IPs in your input IPv6 properties: $dupIPs"
+			$hasDuplicate = $true
+		}
+	}
+	return $hasDuplicate
 }
 
 function CheckNetWorkProperties($isInteractive) {
@@ -377,7 +527,13 @@ function CheckNetWorkProperties($isInteractive) {
 	
 	while ($true) {
 		CheckIpv4Params $isInteractive
+		while (hasDupIPv4Props) {
+			CheckIpv4Params $true
+		}
 		CheckIpv6Params $isInteractive
+		while (hasDupIPv6Props) {
+			CheckIpv6Params $true
+		}
 		if (($Script:vip -ne "0.0.0.0") -or ($Script:vip6 -ne "::0")) {
 			break
 		}

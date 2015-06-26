@@ -50,13 +50,11 @@ _get_ipprotocol(){
     elif [ ${_GENCONFIG_NETWORK_STACK} == IPv6 ] ; then
         echo "IPV6"
     else
-        #Dual stack set AUTO if host name is not explicitly IPV4 or IPV6
-        if _is_ipv4_addr ${1} ;then
-            echo "IPV4"
-        elif _is_ipv6_addr ${1} ;then
+        #Dual stack set IPV4 if host name is not explicitly IPV6
+        if _is_ipv6_addr ${1} ;then
             echo "IPV6"
         else
-            echo "AUTO"
+            echo "IPV4"
         fi
     fi
 }

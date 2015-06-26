@@ -160,6 +160,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 .addListener(new org.apache.curator.framework.state.ConnectionStateListener() {
                     @Override
                     public void stateChanged(CuratorFramework client, final ConnectionState newState) {
+                        log.info("Entering stateChanged method : {}",newState);
                         _connectionStateWorker.submit(new Callable<Object>() {
                             @Override
                             public Object call() throws Exception {

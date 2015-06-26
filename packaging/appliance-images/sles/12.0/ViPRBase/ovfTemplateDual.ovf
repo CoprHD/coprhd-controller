@@ -844,7 +844,7 @@ CLCK WRP Rev 20090813&#13;
     </AnnotationSection>
     <OperatingSystemSection ovf:id="85" ovf:version="11" vmw:osType="sles11_64Guest">
       <Info>Guest Operating System</Info>
-      <Description>SUSE Linux Enterprise Server 11.1 64bit</Description>
+      <Description>SUSE Linux Enterprise Server 12 64bit</Description>
     </OperatingSystemSection>
     <VirtualHardwareSection ovf:transport="iso,com.vmware.guestInfo" ovf:required="false">
 __VIRTUALHARDWARE__

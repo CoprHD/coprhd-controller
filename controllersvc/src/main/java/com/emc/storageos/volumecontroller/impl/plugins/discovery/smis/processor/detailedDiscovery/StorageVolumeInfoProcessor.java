@@ -93,6 +93,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     List<UnManagedVolume>       _unManagedVolumesUpdate              = null;
     List<UnManagedExportMask>   _unManagedExportMasksUpdate          = null;
     List<CIMObjectPath>         _metaVolumeViewPaths                 = null;
+    List<CIMObjectPath>         _metaVolumePaths                     = null;
+    private Map<String, String> _volumeToSpaceConsumedMap            = null;
     Set<URI>                    unManagedVolumesReturnedFromProvider = new HashSet<URI>();
 
     public void setPartitionManager(PartitionManager partitionManager) {
@@ -118,6 +120,10 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     .get(Constants.UN_VOLUME_RAGROUP_MAP);
             @SuppressWarnings("unchecked")
             Map<String, LocalReplicaObject> volumeToLocalReplicaMap = (Map<String, LocalReplicaObject>) keyMap.get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
+            @SuppressWarnings("unchecked")
+            Map<String, Set<String>> vmax2ThinPoolToBoundVolumesMap = (Map<String, Set<String>>) keyMap
+                    .get(Constants.VMAX2_THIN_POOL_TO_BOUND_VOLUMES);
+            Set<String> boundVolumes = null;
 
             storagePoolPath = getObjectPathfromCIMArgument(_args);
             String poolNativeGuid = NativeGUIDGenerator.generateNativeGuidForPool(storagePoolPath);
@@ -128,9 +134,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         storagePoolPath.toString());
                 return;
             }
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, _profile.getSystemId());
             _unManagedVolumesInsert = new ArrayList<UnManagedVolume>();
             _unManagedVolumesUpdate = new ArrayList<UnManagedVolume>();
             _unManagedExportMasksUpdate = new ArrayList<UnManagedExportMask>();
+
+            // get bound volumes list for VMAX2 Thin pools
+            boundVolumes = vmax2ThinPoolToBoundVolumesMap.get(storagePoolPath.toString());
 
             Set<String> poolSupportedSLONames = (Set<String>) keyMap.get(poolNativeGuid);
             _logger.debug("Pool Supporting SLO Names:{}", poolSupportedSLONames);
@@ -141,24 +151,27 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             }
             // create empty place holder list for meta volume paths (cannot
             // define this in xml)
-            List<CIMObjectPath> metaVolumePaths = (List<CIMObjectPath>) keyMap.get(Constants.META_VOLUMES);
-            if (metaVolumePaths == null) {
-                keyMap.put(Constants.META_VOLUMES, new ArrayList<CIMObjectPath>());
+            _metaVolumePaths = (List<CIMObjectPath>) keyMap.get(Constants.META_VOLUMES);
+            if (_metaVolumePaths == null) {
+                _metaVolumePaths = new ArrayList<CIMObjectPath>();
+                keyMap.put(Constants.META_VOLUMES, _metaVolumePaths);
             }
+
+            _volumeToSpaceConsumedMap = (Map<String, String>) keyMap.get(Constants.VOLUME_SPACE_CONSUMED_MAP);
 
             // get VolumeInfo Object and inject Fast Policy Name.
 
             volumeInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
             volumeInstances = volumeInstanceChunks.getResponses();
 
-            processVolumes(volumeInstances, keyMap, operation, pool, exportedVolumes,
-                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames);
+            processVolumes(volumeInstances, keyMap, operation, pool, system, exportedVolumes,
+                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes);
             while (!volumeInstanceChunks.isEnd()) {
                 _logger.info("Processing Next Volume Chunk of size {}", BATCH_SIZE);
                 volumeInstanceChunks = client.getInstancesWithPath(storagePoolPath,
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
-                processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation, pool, exportedVolumes,
-                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames);
+                processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation, pool, system, exportedVolumes,
+                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes);
             }
             if (null != _unManagedVolumesUpdate && _unManagedVolumesUpdate.size() > 0) {
                 _partitionManager.updateInBatches(_unManagedVolumesUpdate, getPartitionSize(keyMap),
@@ -203,19 +216,22 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * @param keyMap
      * @param operation
      * @param pool
+     * @param system 
      * @param exportedVolumes
      * @param volumesAndReplicas
      * @param existingVolumesInCG
      * @param volumeToRAGroupMap
      * @param poolSupportedSLONames
+     * @param boundVolumes 
      */
     private void processVolumes(Iterator<CIMInstance> it, Map<String, Object> keyMap, Operation operation,
-            StoragePool pool, Map<String, VolHostIOObject> exportedVolumes,
+            StoragePool pool, StorageSystem system, Map<String, VolHostIOObject> exportedVolumes,
             Set<String> existingVolumesInCG, Map<String, RemoteMirrorObject> volumeToRAGroupMap,
             Map<String, LocalReplicaObject> volumeToLocalReplicaMap,
-            Set<String> poolSupportedSLONames) {
+            Set<String> poolSupportedSLONames, Set<String> boundVolumes) {
 
         List<CIMObjectPath> metaVolumes = new ArrayList<CIMObjectPath>();
+        List<CIMObjectPath> metaVolumeViews = new ArrayList<CIMObjectPath>();
         while (it.hasNext()) {
             CIMInstance volumeViewInstance = null;
             try {
@@ -229,6 +245,21 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     continue;
                 }
 
+                // skip non-bound volumes for this pool
+                if (boundVolumes != null) {
+                    String deviceId = null;
+                    if (system.getUsingSmis80()) {
+                        deviceId = volumeViewInstance.getObjectPath().getKey(DEVICE_ID).getValue().toString();
+                    } else {
+                        deviceId = volumeViewInstance.getObjectPath().getKey(SVDEVICEID).getValue().toString();                        
+                    }
+                    if (!boundVolumes.contains(deviceId)) {
+                        _logger.info("Skipping volume, as this Volume {} is not bound to this Thin Storage Pool {}",
+                                volumeNativeGuid ,pool.getLabel());
+                        continue;
+                    }
+                }
+
                 addPath(keyMap, operation.get_result(), volumeViewInstance.getObjectPath());
                 String unManagedVolumeNativeGuid = getUnManagedVolumeNativeGuid(
                         volumeViewInstance.getObjectPath(), keyMap);
@@ -236,7 +267,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(unManagedVolumeNativeGuid,
                         _dbClient);
                 unManagedVolume = createUnManagedVolume(unManagedVolume, volumeViewInstance,
-                        unManagedVolumeNativeGuid, pool, _profile.getSystemId(), volumeNativeGuid,
+                        unManagedVolumeNativeGuid, pool, system, volumeNativeGuid,
                         exportedVolumes, existingVolumesInCG, volumeToRAGroupMap,
                         volumeToLocalReplicaMap, poolSupportedSLONames, keyMap);
 
@@ -299,7 +330,14 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 String isMetaVolume = unManagedVolume.getVolumeCharacterstics().get(
                         SupportedVolumeCharacterstics.IS_METAVOLUME.toString());
                 if (null != isMetaVolume && Boolean.valueOf(isMetaVolume)) {
-                    metaVolumes.add(volumeViewInstance.getObjectPath());
+                    if (keyMap.containsKey(Constants.IS_NEW_SMIS_PROVIDER)
+                            && Boolean.valueOf(keyMap.get(Constants.IS_NEW_SMIS_PROVIDER).toString())) {
+                        metaVolumes.add(volumeViewInstance.getObjectPath());
+                    }
+                    else {
+                        metaVolumeViews.add(volumeViewInstance.getObjectPath());
+                    }
+
                     _logger.info("Found meta volume: {}, name: {}", volumeViewInstance.getObjectPath(),
                             unManagedVolume.getLabel());
                 }
@@ -332,10 +370,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         }
 
         // Add meta volumes to the keyMap
-        try {
+        try {            
             if (metaVolumes != null && !metaVolumes.isEmpty()) {
-                _metaVolumeViewPaths.addAll(metaVolumes);
-                _logger.info("Added  {} meta volumes.", metaVolumes.size());
+                _metaVolumePaths.addAll(metaVolumes);
+                _logger.info("Added {} meta volumes.", metaVolumes.size());
+            }
+
+            if (metaVolumeViews != null && !metaVolumeViews.isEmpty()) {
+                _metaVolumeViewPaths.addAll(metaVolumeViews);
+                _logger.info("Added {} meta volume views.", metaVolumeViews.size());
             }
         } catch (Exception ex) {
             _logger.error("Processing UnManaged meta volumes.", ex);
@@ -455,7 +498,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             CIMInstance volumeInstance,
             String unManagedVolumeNativeGuid,
             StoragePool pool,
-            URI storageSystemUri,
+            StorageSystem system,
             String volumeNativeGuid,
             // to make the code uniform, passed in all the below sets as
             // arguments
@@ -470,7 +513,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume = new UnManagedVolume();
                 unManagedVolume.setId(URIUtil.createId(UnManagedVolume.class));
                 unManagedVolume.setNativeGuid(unManagedVolumeNativeGuid);
-                unManagedVolume.setStorageSystemUri(storageSystemUri);
+                unManagedVolume.setStorageSystemUri(system.getId());
                 created = true;
             }
 
@@ -509,7 +552,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
             Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, _profile.getSystemId());
             if (null != system) {
                 StringSet systemTypes = new StringSet();
                 systemTypes.add(system.getSystemType());
@@ -609,6 +651,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             boolean isIngestable;
             String isBound;
             String isThinlyProvisioned;
+            String isMetaVolume;
+            String allocCapacity;
             // Set the attributes for new smis version.
             if (keyMap.containsKey(Constants.IS_NEW_SMIS_PROVIDER)
                     && Boolean.valueOf(keyMap.get(Constants.IS_NEW_SMIS_PROVIDER).toString())) {
@@ -619,6 +663,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         SupportedVolumeCharacterstics.IS_BOUND.getAlterCharacterstic());
                 isIngestable = isVolumeIngestable(volumeInstance, isBound, USAGE);
                 isThinlyProvisioned = getCIMPropertyValue(volumeInstance, THINLY_PROVISIONED);
+                isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getAlterCharacterstic());
+                allocCapacity = getAllocatedCapacity(volumeInstance, _volumeToSpaceConsumedMap, system.checkIfVmax3());                
             } else {
                 unManagedVolume.setLabel(getCIMPropertyValue(volumeInstance, SVELEMENT_NAME));
                 isBound = getCIMPropertyValue(volumeInstance,
@@ -627,6 +673,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         .getInfoKey());
                 isIngestable = isVolumeIngestable(volumeInstance, isBound, SVUSAGE);
                 isThinlyProvisioned = getCIMPropertyValue(volumeInstance, EMC_THINLY_PROVISIONED);
+                isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getCharacterstic());
+                allocCapacity = getCIMPropertyValue(volumeInstance, EMC_ALLOCATED_CAPACITY);
             }
 
             if (null != raidLevelObj) {
@@ -644,6 +692,12 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString(), 
                         isThinlyProvisioned);
             }
+
+            if (null != isMetaVolume) {
+                unManagedVolumeCharacteristics
+                        .put(SupportedVolumeCharacterstics.IS_METAVOLUME.toString(), isMetaVolume);
+            }
+
             // only Volumes with Usage 2 can be ingestable, other volumes
             // [SAVE,VAULT...] apart from replicas have usage other than 2
             // Volumes which are set EMCIsBound as false cannot be ingested
@@ -894,6 +948,14 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
             }
 
+            // set allocated capacity
+            if (allocCapacity != null) {
+                StringSet allocCapacitySet = new StringSet();
+                allocCapacitySet.add(allocCapacity);
+                unManagedVolumeInformation.put(SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
+                        allocCapacitySet);
+            }
+
             StringSet provCapacity = new StringSet();
             provCapacity.add(String.valueOf(returnProvisionedCapacity(volumeInstance, keyMap)));
             unManagedVolumeInformation.put(SupportedVolumeInformation.PROVISIONED_CAPACITY.toString(),
@@ -986,3 +1048,4 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         _args = inputArgs;
     }
 }
+

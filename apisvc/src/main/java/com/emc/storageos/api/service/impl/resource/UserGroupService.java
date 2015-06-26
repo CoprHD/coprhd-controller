@@ -143,7 +143,7 @@ public class UserGroupService extends TaggedResource {
         _log.debug("Saving the UserGroup: {}: {}", userGroup.getId(), userGroup.toString());
 
         //Check if there is any existing user group with same set of properties.
-        checkForDuplicateUserGroup(userGroup);
+        checkForOverlappingUserGroup(userGroup);
 
         _dbClient.createObject(userGroup);
 
@@ -184,7 +184,7 @@ public class UserGroupService extends TaggedResource {
         overlayUserGroup(userGroup, param);
 
         //Check if there is any existing user group with same set of properties.
-        checkForDuplicateUserGroup(userGroup);
+        checkForOverlappingUserGroup(userGroup);
 
         _dbClient.persistObject(userGroup);
 
@@ -614,13 +614,11 @@ public class UserGroupService extends TaggedResource {
         return EXPECTED_GEO_VERSION;
     }
 
-    private void checkForDuplicateUserGroup(UserGroup userGroup) {
+    private void checkForOverlappingUserGroup(UserGroup userGroup) {
         if (userGroup == null) {
             _log.error("Invalid user group to compare");
             return;
         }
-
-        String existingUserGroupName = null;
 
         List<UserGroup> userGroupList =
                 _permissionsHelper.getAllUserGroupForDomain(userGroup.getDomain());
@@ -630,6 +628,7 @@ public class UserGroupService extends TaggedResource {
             return;
         }
 
+        Set<String> overlappingGroups = new HashSet<String>();
         for (UserGroup existingUserGroup : userGroupList) {
             if (existingUserGroup == null) {
                 _log.info("Invalid user group found in db");
@@ -637,14 +636,19 @@ public class UserGroupService extends TaggedResource {
             }
 
             if ((!userGroup.getLabel().equalsIgnoreCase(existingUserGroup.getLabel())) &&
-                    userGroup.isEqual(existingUserGroup)) {
-                existingUserGroupName = existingUserGroup.getLabel();
-                break;
+                    userGroup.overlap(existingUserGroup)) {
+                overlappingGroups.add(existingUserGroup.getLabel());
+            }
+
+            if ((!userGroup.getLabel().equalsIgnoreCase(existingUserGroup.getLabel())) &&
+                    existingUserGroup.overlap(userGroup)) {
+                overlappingGroups.add(existingUserGroup.getLabel());
             }
         }
 
-        if (StringUtils.isNotBlank(existingUserGroupName)) {
-            throw APIException.badRequests.userGroupExistsAlready(existingUserGroupName);
+        if (!CollectionUtils.isEmpty(overlappingGroups)) {
+            throw APIException.badRequests.overlappingAttributesNotAllowed(userGroup.getLabel(),
+                    overlappingGroups);
         }
     }
 

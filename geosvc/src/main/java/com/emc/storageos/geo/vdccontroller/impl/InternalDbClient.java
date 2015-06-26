@@ -209,6 +209,7 @@ public class InternalDbClient extends DbClientImpl {
         while (System.currentTimeMillis() - start < DB_STABLE_TIMEOUT) {
             try {
                 List<String> liveNodes = geoInstance.getDcLiveNodes(vdcShortId);
+                log.info("{} has live nodes of {}", vdcShortId, liveNodes);
                 if (liveNodes.size() >= numHosts) {
                     int i = 0;
                     for (String host : liveNodes) {

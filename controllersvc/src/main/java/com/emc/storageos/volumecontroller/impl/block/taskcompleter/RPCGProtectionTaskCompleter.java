@@ -136,10 +136,10 @@ public class RPCGProtectionTaskCompleter extends RPCGTaskCompleter {
     	try {
     		eventManager.recordEvents(event);
     		_log.info("Bourne {} event recorded", evtType);
-    	} catch (Throwable th) {
+    	} catch (Exception e) {
     		_log.error(
     				"Failed to record event. Event description: {}. Error: ",
-    				evtType, th);
+    				evtType, e);
     	}
     }
 }

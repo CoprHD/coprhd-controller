@@ -575,8 +575,8 @@ public class VMwareSupport {
      * @param volumes
      *        the volumes to remove the tag from.
      */
-    public void removeVmfsDatastoreTag(Collection<VolumeRestRep> volumes, URI hostOrClusterId) {
-        for (VolumeRestRep volume : volumes) {
+    public void removeVmfsDatastoreTag(Collection<? extends BlockObjectRestRep> volumes, URI hostOrClusterId) {
+        for (BlockObjectRestRep volume : volumes) {
             removeVmfsDatastoreTag(volume, hostOrClusterId);
         }
     }
@@ -587,7 +587,7 @@ public class VMwareSupport {
      * @param volume
      *        the volume to remove the tag from.
      */
-    public void removeVmfsDatastoreTag(VolumeRestRep volume, URI hostOrClusterId) {
+    public void removeVmfsDatastoreTag(BlockObjectRestRep volume, URI hostOrClusterId) {
         execute(new RemoveBlockVolumeMachineTag(volume.getId(),
                 KnownMachineTags.getVMFSDatastoreTagName(hostOrClusterId)));
         addAffectedResource(volume);

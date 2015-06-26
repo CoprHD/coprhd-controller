@@ -38,6 +38,7 @@ import util.MessagesUtils;
 import util.VirtualDataCenterUtils;
 
 import com.emc.storageos.model.vdc.VirtualDataCenterRestRep;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.google.common.collect.Lists;
@@ -99,7 +100,7 @@ public class Common extends Controller {
         boolean isFormEncoded = StringUtils.equals(request.contentType, "application/x-www-form-urlencoded");
         boolean isApiRequest = StringUtils.startsWith(request.path, "/api/");
         if (isPost && isFormEncoded && !isApiRequest) {
-            String authenticityToken = params.get("authenticityToken");
+            String authenticityToken = SecurityUtils.stripXSS( params.get("authenticityToken") );
             if (authenticityToken == null) {
                 Logger.warn("No authenticity token from %s for request: %s", request.remoteAddress, request.url);
             }
@@ -107,6 +108,17 @@ public class Common extends Controller {
         }
     }
 
+    @Before(priority=0)
+    public static void xssCheck() {
+    	String[] data = params.getAll("name");
+    	if (data == null)
+    		return;
+    	
+    	for (String val : data) {
+    		val = SecurityUtils.stripXSS(val);
+    	}
+    }
+    
     @Before(priority=5)
     public static void addCommonRenderArgs() {
         // Set cache control. We don't want caching of our dynamic pages
@@ -115,7 +127,7 @@ public class Common extends Controller {
         UserInfo userInfo = Security.getUserInfo();
 
         angularRenderArgs().put(USER, userInfo);
-        angularRenderArgs().put(AUTHENTICITY_TOKEN, session.getAuthenticityToken());
+        angularRenderArgs().put(AUTHENTICITY_TOKEN, SecurityUtils.stripXSS( session.getAuthenticityToken() ));
         renderArgs.put(USER, userInfo);
         renderArgs.put(TOKEN, Security.getAuthToken());
         renderArgs.put(VDCS, getVDCs());

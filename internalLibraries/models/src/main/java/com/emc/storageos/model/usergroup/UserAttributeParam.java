@@ -140,6 +140,48 @@ public class UserAttributeParam {
     }
 
     /***
+     * Compare to find if the given user attribute param matches/subset or not.
+     *
+     * @param attributeParam to compared.
+     * @return true if the attributeParam matches with this.
+     */
+    public boolean containsOverlappingAttributeValues (UserAttributeParam attributeParam) {
+        boolean containsOverlappingAttributes = false;
+
+        if (attributeParam == null) {
+            _log.warn("Invalid user attribute param");
+            return containsOverlappingAttributes;
+        }
+
+        _log.debug("Comparing attributes {}, {}", attributeParam.toString(), this.toString());
+
+        if (!getKey().equalsIgnoreCase(attributeParam.getKey())) {
+            _log.debug("Attribute key {} does not match with {}", getKey(), attributeParam.getKey());
+            return containsOverlappingAttributes;
+        }
+
+        if (getValues() == null || getValues().isEmpty() ||
+                attributeParam.getValues() == null || attributeParam.getValues().isEmpty()) {
+            _log.debug("Empty attribute values to compare. attributes {}, comparing attributes {}",
+                    getValues(), attributeParam.getValues());
+            return containsOverlappingAttributes;
+        }
+
+        for (String comparingValue : attributeParam.getValues()) {
+            for (String value : getValues()) {
+                if (value != null &&
+                        comparingValue != null &&
+                        comparingValue.equalsIgnoreCase(value)) {
+                    containsOverlappingAttributes = true;
+                    break;
+                }
+            }
+        }
+
+        return containsOverlappingAttributes;
+    }
+
+    /***
      * Compare to find if the given user attribute param matches or not.
      *
      * @param attributeParam to compared.

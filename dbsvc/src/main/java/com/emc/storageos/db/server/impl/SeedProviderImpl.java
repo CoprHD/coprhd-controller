@@ -102,8 +102,6 @@ public class SeedProviderImpl implements SeedProvider {
     public List<InetAddress> getSeeds() {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
-            int nodeCount = nodeMap.getControllerNodeIPLookupMap().size();
-
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
             List<InetAddress> seeds = new ArrayList<>(configs.size());
             for (int i = 0; i < configs.size(); i++) {
@@ -113,11 +111,6 @@ public class SeedProviderImpl implements SeedProvider {
                     continue;
                 }
                 String nodeIndex = config.getId().split("-")[1];
-                // Need handle devkit, where nodeIndex is standalone
-                // if (Integer.parseInt(nodeIndex) > nodeCount) {
-                //    _client.removeServiceConfiguration(config);
-                //    continue;
-                //}
                 String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
                 if (nodeId == null) {
                     // suppose that they are existing znodes from a previous version

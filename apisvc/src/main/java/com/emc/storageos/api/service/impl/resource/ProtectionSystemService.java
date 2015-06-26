@@ -57,6 +57,7 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -454,6 +455,41 @@ public class ProtectionSystemService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, ProtectionSystem.class, "id");
         return getConnectivity(queryResource(id));
     }
+    
+    /**
+     * checks for the existence of any volumes associated with a protection sysem
+     * also compiles a list of empty protection sets associated with the protection system that can be deleted
+     * @param system protection system
+     * @param protectionSetsToDelete (return) empty list to be populated by this method
+     * @return true if volumes exist; else false
+     */
+    private boolean checkForVolumes(URI id, List<ProtectionSet> protectionSetsToDelete) {
+        boolean volumesExist = false;
+        URIQueryResultList list = new URIQueryResultList();
+        Constraint constraint = ContainmentConstraint.Factory.getProtectionSystemProtectionSetConstraint(id);
+        _dbClient.queryByConstraint(constraint, list);
+        Iterator<URI> it = list.iterator();
+        while (it.hasNext()) {
+            URI protectionSetId = it.next();
+            ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protectionSetId);
+            if (protectionSet != null && !protectionSet.getInactive()) {
+                if (protectionSet.getVolumes() != null && !protectionSet.getVolumes().isEmpty()) {
+                    for (String volId : protectionSet.getVolumes()) {
+                        Volume vol = _dbClient.queryObject(Volume.class, URI.create(volId));
+                        if (vol != null && !vol.getInactive()) {
+                            volumesExist = true;
+                            break;
+                        }
+                    }
+                }
+                if (!volumesExist) {
+                    // there are no volumes in this protection set, we can delete it
+                    protectionSetsToDelete.add(protectionSet);
+                }
+            }
+        }
+        return volumesExist;
+    }
 
     /**     
      * Deactivate protection system, this will move it to a "marked-for-delete" state.
@@ -473,24 +509,22 @@ public class ProtectionSystemService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(system, id, isIdEmbeddedInURL(id));
 
 
-        // In order to delete a protection system, you need the following conditions to be true:
-        // There are no protection sets that aren't marked for deletion
-        URIQueryResultList list = new URIQueryResultList();
-        Constraint constraint = ContainmentConstraint.Factory.getProtectionSystemProtectionSetConstraint(id);
-        _dbClient.queryByConstraint(constraint, list);
-        Iterator<URI> it = list.iterator();
-        while (it.hasNext()) {
-            URI protectionSetId = it.next();
-            ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, protectionSetId);
-            ArgValidator.checkEntity(protectionSet, protectionSetId, false);
+        // Check to make sure there are no volumes associated with this protection system
+        List<ProtectionSet> protectionSetsToDelete = new ArrayList<ProtectionSet>();
+        if (checkForVolumes(id, protectionSetsToDelete)) {
+            // don't allow the delete protection system if there are volumes
+            throw APIException.badRequests.unableToDeactivateDueToDependencies(id);            
         }
+        
+        // delete any empty protection sets
+        _dbClient.markForDeletion(protectionSetsToDelete);
 
         // Side-effect: RPSiteArray entries need to be cleaned up so placement and connectivity feeds are correct
         // Mark all of the RPSiteArray entries associated with this protection system for deletion
         URIQueryResultList sitelist = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getRPSiteArrayProtectionSystemConstraint(id.toString()), sitelist);
-        it = sitelist.iterator();
+        Iterator<URI> it = sitelist.iterator();
         while (it.hasNext()) {
             URI rpSiteArrayId = it.next();
             RPSiteArray siteArray = _dbClient.queryObject(RPSiteArray.class, rpSiteArrayId);

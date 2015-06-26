@@ -110,7 +110,7 @@ public abstract class DbServiceTestBase {
         service.setName("dbsvc");
         service.setVersion(schemaVersion);
         service.setEndpoint(URI.create("thrift://localhost:9160"));
-        service.setId("foobar");
+        service.setId("db-standalone");
 
         DataObjectScanner scanner = new DataObjectScanner();
         scanner.setPackages(pkgsArray);
@@ -189,7 +189,6 @@ public abstract class DbServiceTestBase {
         dbsvc.setMigrationHandler(handler);
         dbsvc.setDisableScheduledDbRepair(true);
         
-        TestDBClientUtils.setDbNumTokenVersion(coordinator, schemaVersion);
         dbsvc.start();
     }
 

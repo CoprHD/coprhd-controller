@@ -180,43 +180,46 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        
-        // The volume passed is not a VPLEX volume if this API is called to
-        // verify if a full copy is supported for a VPLEX snapshot. Currently
-        // you cannot create a full copy of a VPLEX snapshot.
-        for (BlockObject fcSourceObj : fcSourceObjList) {
-            URI fcSourceURI = fcSourceObj.getId();
-            if (URIUtil.isType(fcSourceURI, Volume.class)) {
-                Volume fcSourceVolume = (Volume) fcSourceObj;
-                StorageSystem system = _dbClient.queryObject(StorageSystem.class,
-                    fcSourceVolume.getStorageController());
-                if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
-                    // If the volume is a VPLEX volume, then we need to be sure that
-                    // storage pool of the source backend volume of the VPLEX volume,
-                    // which is volume used to create the native full copy, supports
-                    // full copy.
-                    Volume srcBackendVolume = VPlexUtil.getVPLEXBackendVolume(
-                        fcSourceVolume, true, _dbClient, true);
-                    StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
-                        srcBackendVolume.getPool());
-                    verifyFullCopySupportedForStoragePool(storagePool);
-                    
-                    // If the full copy source is itself a full copy, it is not
-                    // detached, and the native full copy i.e., the source side
-                    // backend volume, is VNX, then creating a full copy of the
-                    // volume will fail. As such, we prevent it.
-                    if ((BlockFullCopyUtils.isVolumeFullCopy(fcSourceVolume, _dbClient)) &&
-                        (!BlockFullCopyUtils.isFullCopyDetached(fcSourceVolume, _dbClient))) {
-                        URI backendSystemURI = srcBackendVolume.getStorageController();
-                        StorageSystem backendSystem = _dbClient.queryObject(
-                            StorageSystem.class, backendSystemURI);
-                        if (DiscoveredDataObject.Type.vnxblock.name().equals(backendSystem.getSystemType())) {
-                            throw APIException.badRequests.cantCreateFullCopyOfVPlexFullCopyUsingVNX();
+        if (fcSourceObjList.size() > 0) {
+            URI fcSourceObjURI = fcSourceObjList.get(0).getId();
+            if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
+                // Currently you cannot create a full copy of a VPLEX snapshot.
+                throw APIException.badRequests.cantCreateFullCopyForVPlexSnapshot();
+            } else {
+                // Call super first.
+                super.validateFullCopyCreateRequest(fcSourceObjList, count);
+
+                // Platform specific checks.
+                for (BlockObject fcSourceObj : fcSourceObjList) {
+                    Volume fcSourceVolume = (Volume) fcSourceObj;
+                    StorageSystem system = _dbClient.queryObject(StorageSystem.class,
+                        fcSourceVolume.getStorageController());
+                    if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
+                        // If the volume is a VPLEX volume, then we need to be sure that
+                        // storage pool of the source backend volume of the VPLEX volume,
+                        // which is volume used to create the native full copy, supports
+                        // full copy.
+                        Volume srcBackendVolume = VPlexUtil.getVPLEXBackendVolume(
+                            fcSourceVolume, true, _dbClient, true);
+                        StoragePool storagePool = _dbClient.queryObject(StoragePool.class,
+                            srcBackendVolume.getPool());
+                        verifyFullCopySupportedForStoragePool(storagePool);
+                                       
+                        // If the full copy source is itself a full copy, it is not
+                        // detached, and the native full copy i.e., the source side
+                        // backend volume, is VNX, then creating a full copy of the
+                        // volume will fail. As such, we prevent it.
+                        if ((BlockFullCopyUtils.isVolumeFullCopy(fcSourceVolume, _dbClient)) &&
+                            (!BlockFullCopyUtils.isFullCopyDetached(fcSourceVolume, _dbClient))) {
+                            URI backendSystemURI = srcBackendVolume.getStorageController();
+                            StorageSystem backendSystem = _dbClient.queryObject(
+                                StorageSystem.class, backendSystemURI);
+                            if (DiscoveredDataObject.Type.vnxblock.name().equals(backendSystem.getSystemType())) {
+                                throw APIException.badRequests.cantCreateFullCopyOfVPlexFullCopyUsingVNX();
+                            }
                         }
                     }
                 }
-            } else {
-                throw APIException.badRequests.cantCreateFullCopyForVPlexSnapshot();
             }
         }
     }
@@ -839,5 +842,32 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         VolumeRestRep volumeRestRep = BlockMapper.map(_dbClient, fullCopyVolume);
         volumeRestRep.getProtection().getFullCopyRep().setPercentSynced(percentSynced);
         return volumeRestRep;
-    }    
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void verifyFullCopyRequestCount(BlockObject fcSourceObj, int count) {
+        // Verify the requested copy count. You can only
+        // have as many as is allowed by the source backend
+        // volume.
+        Volume fcSourceVolume = (Volume) fcSourceObj;
+        Volume srcBackendVolume = VPlexUtil.getVPLEXBackendVolume(fcSourceVolume, true,
+            _dbClient, true);
+        //Verify if the source backend volume supports full copy
+        URI systemURI = fcSourceObj.getStorageController();
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+        int maxCount = Integer.MAX_VALUE;
+        if (system != null) {
+            maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType
+                (system.getSystemType());
+        }
+        //If max count is 0, then the operation is not supported
+        if(maxCount == 0) {
+            throw APIException.badRequests.fullCopyNotSupportedByBackendSystem(fcSourceVolume.getId());
+        }
+        
+        BlockFullCopyUtils.validateActiveFullCopyCount(srcBackendVolume, count, _dbClient);
+    }
 }

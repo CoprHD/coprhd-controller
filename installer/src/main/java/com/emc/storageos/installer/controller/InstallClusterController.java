@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,9 +27,9 @@ import charva.awt.event.ItemEvent;
 import charva.awt.event.ItemListener;
 import charvax.swing.JRadioButton;
 
-import com.emc.storageos.services.data.Configuration;
-import com.emc.storageos.services.util.InstallerConstants;
-import com.emc.storageos.services.util.InstallerOperation;
+import com.emc.storageos.installer.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerOperation;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.services.util.ServerProbe;
 import com.emc.storageos.installer.widget.SelectButtonPanel;
 
@@ -141,7 +142,7 @@ public class InstallClusterController implements IConfigPanelController {
 			config.setNodeCount(0);
 			config.setNodeId(null);
 			config.getAliveNodes().clear();
-			config.getHwConfig().remove(InstallerConstants.PROPERTY_KEY_DISK);
+			config.getHwConfig().remove(PropertyConstants.PROPERTY_KEY_DISK);
 			config.getNetworkIpv4Config().clear();
 			config.getNetworkIpv6Config().clear();
 		}

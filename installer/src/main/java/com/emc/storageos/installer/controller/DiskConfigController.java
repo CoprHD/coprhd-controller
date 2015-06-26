@@ -14,15 +14,16 @@
  */
 package com.emc.storageos.installer.controller;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import charvax.swing.event.ListSelectionEvent;
 import charvax.swing.event.ListSelectionListener;
 
-import com.emc.storageos.services.data.Configuration;
-import com.emc.storageos.services.util.InstallerConstants;
-import com.emc.storageos.services.util.InstallerOperation;
+import com.emc.storageos.installer.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerOperation;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.services.util.ServerProbe;
 import com.emc.storageos.installer.widget.SelectListPanel;
 
@@ -110,8 +111,8 @@ public class DiskConfigController implements IConfigPanelController {
 			if (status != null && status.length != 0) {
 				return status;
 			} else {
-				config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_DISK, diskName);
-				config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_DISK_CAPACITY, sizeStr);
+				config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK, diskName);
+				config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_DISK_CAPACITY, sizeStr);
 			}
 		}
 		return (msg == null) ? null : new String[] {msg};

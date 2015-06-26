@@ -526,6 +526,13 @@ public class VNXFileArgsCreator extends ArgsCreator {
     		TreeQuotaQueryParams.AspectSelection selection = new TreeQuotaQueryParams.AspectSelection();
     		selection.setTreeQuotas(true);
     		queryParam.setAspectSelection(selection);
+    		
+    		// Set the parent file system.
+    		String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+    		if(!isInValid(fsId)){
+    			queryParam.setFileSystem(fsId);
+    		}
+    		
     		query.getQueryRequestChoice().add(queryParam);
     		iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(queryParam,false);
     	} catch (JAXBException jaxbException) {
@@ -910,14 +917,33 @@ public class VNXFileArgsCreator extends ArgsCreator {
             FileSystem fsSystem = (FileSystem)keyMap.get(VNXFileConstants.FILESYSTEM);
             String fsName = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
             String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
-            Long size = (Long) keyMap.get(VNXFileConstants.FILESYSTEM_SIZE)
-                    - (Long) keyMap.get(VNXFileConstants.ORIGINAL_FS_SIZE);
+            Long fsSize = (Long) keyMap.get(VNXFileConstants.FILESYSTEM_SIZE);
+            Long fsAllocatedSize = (Long) keyMap.get(VNXFileConstants.ORIGINAL_FS_SIZE);
+            Boolean isVirtualProvisioning = (Boolean) keyMap.get(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING);
+            
+            Long fsThinPerAllocSize = (Long) keyMap.get(VNXFileConstants.THIN_FS_ALLOC_SIZE);
+            
 
-            if (null == fsSystem || isInValid(fsName) || isInValid(fsId) || null == size) {
+            if (null == fsSystem || isInValid(fsName) || isInValid(fsId) || null == fsSize || null == fsAllocatedSize ) {
                 throw new VNXFilePluginException("Prior command did not execute successfully", 
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
+            Long fsExpandSize = fsSize - fsAllocatedSize;
+            if(fsExpandSize < 0){
+            	fsExpandSize = fsSize;
+            }
+            // How much more I should allocate for you?
+            if(isVirtualProvisioning){
+            	fsExpandSize = fsThinPerAllocSize;
+            	if(fsAllocatedSize < fsThinPerAllocSize){
+            		fsExpandSize = fsThinPerAllocSize - fsAllocatedSize;
+            	}
+            	
+            }
+            
+            _logger.info("Expanding File system size : {}, thin {}", fsExpandSize, isVirtualProvisioning);
+            
             String pool = fsSystem.getStoragePools().get(0);
             String storage = fsSystem.getStorages().get(0);
             
@@ -928,10 +954,12 @@ public class VNXFileArgsCreator extends ArgsCreator {
             
             ExtendFileSystem.StoragePool sp = new ExtendFileSystem.StoragePool();
             sp.setPool(pool);
-            sp.setSize(size);
+            if(fsExpandSize > 0){
+            	sp.setSize(fsExpandSize);
+            }
             sp.setStorage(storage);
             _logger.info("Expanding File system using StoragePool : {}, storage {}", pool, storage);
-            _logger.info("Expanding File system size : {}, name {}", size, fsName);
+            _logger.info("Expanding File system size : {}, name {}", fsExpandSize, fsName);
             
             extendFS.setFileSystem(fsSystem.getFileSystem());
             extendFS.setStoragePool(sp);

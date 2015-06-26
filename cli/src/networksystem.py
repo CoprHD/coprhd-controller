@@ -302,7 +302,7 @@ class Networksystem(object):
                             wwnaliases, fabricid=None):
         obj = Networksystem(self.__ipAddr, self.__port)
         nsuri = obj.networksystem_query(networkname)
-        params = obj.get_alias_param(wwnaliases)
+        params = obj.get_alias_param(wwnaliases, fabricid)
         body = json.dumps(params)
 
         (s, h) = common.service_json_request(
@@ -319,7 +319,7 @@ class Networksystem(object):
         obj = Networksystem(self.__ipAddr, self.__port)
 
         nsuri = obj.networksystem_query(networkname)
-        body = json.dumps(obj.get_alias_param(wwnaliases))
+        body = json.dumps(obj.get_alias_param(wwnaliases, fabricid))
 
 
         (s, h) = common.service_json_request(

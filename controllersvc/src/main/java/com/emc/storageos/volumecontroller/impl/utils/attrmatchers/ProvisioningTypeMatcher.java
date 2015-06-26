@@ -66,14 +66,14 @@ public class ProvisioningTypeMatcher extends AttributeMatcher{
                         SupportedProvisioningTypes.THIN.name()
                                     .equalsIgnoreCase(system.getSupportedProvisioningType()))) {
                 // if pool's supported volume Type is thick, means we need to filter this pool
-                _logger.info("Ignoring pool {} as thick resources are not supported :", pool.getId());
+                _logger.info("Ignoring pool {} as thick resources are not supported :", pool.getNativeGuid());
                 filteredPoolList.remove(pool);
             } else if (VirtualPool.ProvisioningType.Thin.name().equalsIgnoreCase(provisioningType)
                     && (StoragePool.SupportedResourceTypes.THICK_ONLY.name()
                             .equalsIgnoreCase(pool.getSupportedResourceTypes()) ||
                         SupportedProvisioningTypes.THICK.name()
                                     .equalsIgnoreCase(system.getSupportedProvisioningType()))) {
-                _logger.info("Ignoring pool {} as thin resources are not supported :", pool.getId());
+                _logger.info("Ignoring pool {} as thin resources are not supported :", pool.getNativeGuid());
                 filteredPoolList.remove(pool);
             }
         }

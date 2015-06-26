@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.GeoVisibleResource;
+import com.emc.storageos.db.client.model.VdcVersion;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
 import com.emc.storageos.db.client.model.VirtualDataCenter.GeoReplicationStatus;
@@ -74,13 +75,14 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
         lockHelper.acquire(operatedVdc.getShortId());
 
         geoClientCache.clearCache();
-        loadVdcInfo(); 
-        
+        loadVdcInfo();
+        log.info("Load vdc info is done");
+
         checkVdcInUse();
         checkVdcDependency(operatedVdc.getShortId());
         
         // make sure all other vdc are up and running
-
+        log.info("Check vdc stable");
         URI unstable = checkAllVdcStable(false, !isOperatedVdcDisconnected);
         if (unstable != null) {
             log.error("The vdc {} is not stable.", unstable);
@@ -127,6 +129,7 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
                 dbClient.waitVdcRemoveDone(operatedVdc.getShortId());
             dbClient.waitAllSitesDbStable();
             dbClient.removeVdcNodesFromBlacklist(operatedVdc);
+            removeVdcVersion(operatedVdc);
         } catch (Exception e) {
             log.error("wait for all sites db stable failed");
             throw GeoException.fatals.removeVdcPostcheckFail(e);
@@ -244,6 +247,19 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
             throw GeoException.fatals.removeVdcPrecheckFail(operatedVdc.getLabel(), ex.toString());
         }
     
+    }
+    
+    private void removeVdcVersion(VirtualDataCenter operatedVdc) {
+        List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
+        List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class,
+                vdcVersionIds);
+        for (VdcVersion vdcVersion : vdcVersions) {
+            if (vdcVersion.getVdcId().equals(operatedVdc.getId())) {
+                log.info("The VdcVersion record {} will be removed.", vdcVersion);
+                dbClient.markForDeletion(vdcVersion);
+                return;
+            }
+        }
     }
 
 

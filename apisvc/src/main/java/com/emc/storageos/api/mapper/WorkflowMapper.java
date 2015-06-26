@@ -10,6 +10,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -70,7 +71,11 @@ public class WorkflowMapper {
         to.setStepGroup(from.getStepGroup());
         to.setStepId(from.getStepId());
         to.setWaitFor(from.getWaitFor());
-        to.setSystem(from.getSystemId().toString());
+        if (false == from.getSystemId().equals(URIUtil.NULL_URI)) {
+            to.setSystem(from.getSystemId().toString());
+        } else {
+            to.setSystem("");
+        }
         to.setWorkflow(toRelatedResource(ResourceTypeEnum.WORKFLOW, from.getWorkflowId()));
         to.setStartTime(from.getStartTime());
         to.setEndTime(from.getEndTime());

@@ -31,6 +31,8 @@ public class SecurityServiceJSafe implements SecurityService {
 
     private static Logger log = LoggerFactory.getLogger(SecurityServiceJSafe.class);
 
+    private String[] ciphers;
+
     /**
      * @param pemKey
      * @return
@@ -109,6 +111,15 @@ public class SecurityServiceJSafe implements SecurityService {
     @Override
     public void initSecurityProvider() {
         Security.insertProviderAt(new JsafeJCE(), 1);
-        log.info("Set JsafeJCE as the cypto provider for JDK.");
+        log.info("Set RSA JsafeJCE as the Java cypto provider.");
+    }
+
+    @Override
+    public String[] getCipherSuite() {
+        return ciphers;
+    }
+
+    public void setCiphers(String[] ciphers) {
+        this.ciphers = ciphers;
     }
 }

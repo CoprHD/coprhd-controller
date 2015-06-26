@@ -98,13 +98,10 @@ public class FileUtils {
      * @param content
      * @throws IOException
      */
-    public static void writePlainFile(String filePath, byte[] content, long offset) throws IOException {
-        try ( RandomAccessFile fout = new RandomAccessFile(filePath, "rw")) {
-            if (offset > 0) {
-                fout.seek(offset);
-            }
-            fout.write(content);
-        }
+    public static void writePlainFile(String filePath, byte[] content) throws IOException {
+        FileOutputStream fileOuputStream = new FileOutputStream(filePath);
+        fileOuputStream.write(content);
+        fileOuputStream.close();
     }
 
     /**
@@ -154,5 +151,23 @@ public class FileUtils {
         }
         log.info("File({}) doesn't exist", file.getAbsoluteFile());
         return null;
+    }
+
+    public static void chmod(File file, String perms) {
+        if (file == null || file.exists() == false)
+            return;
+        String[] cmds = {"/bin/chmod", "-R", perms, file.getAbsolutePath()};
+        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        if (result.execFailed() || result.getExitValue() != 0)
+            throw new IllegalStateException(String.format("Execute command failed: %s", result));
+    }
+
+    public static void chown(File file, String owner, String group) {
+        if(file == null || file.exists() == false)
+            return;
+        String[] cmds = {"/bin/chown", "-R", owner + ":" + group, file.getAbsolutePath()};
+        Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
+        if (result.execFailed() || result.getExitValue() != 0)
+            throw new IllegalStateException(String.format("Execute command failed: %s", result));
     }
 }

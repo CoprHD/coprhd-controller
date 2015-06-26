@@ -291,7 +291,7 @@ public class ApiTestBase {
         param.setManagerPassword("P@ssw0rd");
         param.setSearchBase("DC=sanity,DC=local");
         param.setSearchFilter("userPrincipalName=%u");
-        param.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        param.getServerUrls().add("ldap://"+AD_SERVER1_IP);
         param.setMode("ad");
         param.setSearchScope("SUBTREE");
         try {
@@ -423,7 +423,7 @@ public class ApiTestBase {
         rSTCross = createHttpsClient(CROSS_TENANT_USER, AD_PASSWORD, baseUrls);
     }
 
-    private void logoutUser (BalancedWebResource resource) {
+    public void logoutUser (BalancedWebResource resource) {
         resource.path("/logout")
                 .queryParam("force", "true")
                 .queryParam("proxytokens", "true")

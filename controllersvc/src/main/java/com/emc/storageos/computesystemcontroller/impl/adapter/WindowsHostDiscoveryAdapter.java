@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -169,9 +170,11 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         catch (WinRMSoapException e) {
             info("Could not retrieve fibre channel HBAs: %s", e.getMessage());
+            clearInitiators(oldInitiators, Protocol.FC.name());
         }
         catch (WinRMException e) {
             warn(e, "Error while retrieving fibre channel HBAs: %s", e.getMessage());
+            clearInitiators(oldInitiators, Protocol.FC.name());
         }
         try {
             for (String iqn : windows.listIScsiInitiators()) {
@@ -187,9 +190,11 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         catch (WinRMSoapException e) {
             info("Could not retrieve iSCSI interfaces: %s", e.getMessage());
+            clearInitiators(oldInitiators, Protocol.iSCSI.name());
         }
         catch (WinRMException e) {
             warn(e, "Error while retrieving iSCSI interfaces: %s", e.getMessage());
+            clearInitiators(oldInitiators, Protocol.iSCSI.name());
         }
         
         // update export groups with new initiators if host is in use.
@@ -235,6 +240,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         catch (WinRMException e) {
             warn(e, "Error while retrieving IP interfaces: %s", e.getMessage());
+            oldIpInterfaces.clear();
         }
     }
 
@@ -301,6 +307,21 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         return adapters.get(0);
     }
 
+    /**
+     * Removes initiators from list that have the given protocol
+     * @param initiators list of initiators
+     * @param protocol protocol to compare and remove
+     */
+    private void clearInitiators(List<Initiator> initiators, String protocol) {
+        Iterator<Initiator> iterator = initiators.iterator();
+        while(iterator.hasNext()) {
+            Initiator initiator = iterator.next();
+            if (StringUtils.equals(initiator.getProtocol(), protocol)) {
+                iterator.remove();
+            }
+        }
+    }
+    
     @Override
     protected void setNativeGuid(Host host) {
         WindowsSystemWinRM windows = createWindowsSystem(host);

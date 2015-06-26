@@ -92,9 +92,9 @@ ${include="storageos-cluster-properties.xml"}
     <VirtualSystem ovf:id="vipr${iter}">
       <Info>EMC ${product_brand} controller virtual nachine</Info>
       <Name>vipr${iter}</Name>
-      <OperatingSystemSection ovf:id="85" ovf:version="11" vmw:osType="sles11_64Guest">
+      <OperatingSystemSection ovf:id="85" ovf:version="12" vmw:osType="otherLinux64Guest">
         <Info>Guest Operating System</Info>
-        <Description>Novell SUSE Linux Enterprise 11 (64-bit)</Description>
+        <Description>Other Linux (64-bit)</Description>
       </OperatingSystemSection>
 
       <!-- Virtual Hardware -->

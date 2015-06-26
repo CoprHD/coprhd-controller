@@ -16,8 +16,8 @@ import charva.awt.event.ItemEvent;
 import charva.awt.event.ItemListener;
 import charvax.swing.JRadioButton;
 
-import com.emc.storageos.services.data.Configuration;
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerConstants;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.installer.widget.SelectButtonPanel;
 
 public class RejoinClusterController implements IConfigPanelController {

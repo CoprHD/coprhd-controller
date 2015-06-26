@@ -259,6 +259,7 @@
          <property name="coordinator" ref="coordinator"/>
          <property name="blockScheduler" ref="rpscheduler"/>
          <property name="rpHelper" ref="rphelper"/>
+         <property name ="vplexBlockServiceApiImpl" ref="vplexBlockServiceApiImpl"/>
     </bean>
 
     <bean id="srdfBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.SRDFBlockServiceApiImpl">
@@ -368,6 +369,7 @@
                     <property name="geoServiceHelper" ref="geohelper"/>
                     <property name="certificateVersionHelper" ref="certificateVersionHelper"/>
                     <property name="coordConfigStoringHelper" ref="zooKeeperHelper"/>
+                    <property name="localUsers" ref="localUserMap"/>
                 </bean>
                 <ref bean="blockService"/>
                 <ref bean="tenantService"/>

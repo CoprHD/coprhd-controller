@@ -64,7 +64,8 @@
     },
     
     blockSize:{
-        type: "assetType.vipr.blockSize"
+        type: "assetType.vipr.blockSize",
+        lockable: true
     },
     
     mountPoint:{

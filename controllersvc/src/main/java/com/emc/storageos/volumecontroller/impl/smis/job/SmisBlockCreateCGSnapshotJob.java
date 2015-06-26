@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
@@ -79,10 +80,8 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
                 WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
                 CIMObjectPath replicationGroupPath = client.associatorNames(getCimJob(), null, SmisConstants.SE_REPLICATION_GROUP, null, null).next();
                 String replicationGroupInstance = (String) replicationGroupPath.getKey(SmisConstants.CP_INSTANCE_ID).getValue();
-                boolean isSmi80 = storage.getUsingSmis80();
-                if (isSmi80) {
-                    replicationGroupInstance = SmisUtils.getTargetGroupName(replicationGroupInstance);
-                }
+                replicationGroupInstance = SmisUtils.getTargetGroupName(replicationGroupInstance, storage.getUsingSmis80());
+                String relationshipName = getRelationShipName(client, replicationGroupPath, replicationGroupInstance);
                 syncVolumeIter = client.associatorNames(replicationGroupPath, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
                 Calendar now = Calendar.getInstance();
                 while (syncVolumeIter.hasNext()) {
@@ -117,7 +116,7 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
 	                    snapshot.setCreationTime(now);
 	                    snapshot.setWWN(wwn.toUpperCase());
 	                    snapshot.setAlternateName(alternativeName);
-	                    commonSnapshotUpdate(snapshot,syncVolume,client,storage,_sourceGroupId,replicationGroupInstance);
+	                    commonSnapshotUpdate(snapshot,syncVolume,client,storage,_sourceGroupId, relationshipName);
 	                    _log.info(String.format("For sync volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). " +
 	                            "Replication Group instance is %5$s. Associated volume is %6$s",
 	                            syncVolumePath.toString(), snapshot.getId().toString(),
@@ -143,6 +142,35 @@ public class SmisBlockCreateCGSnapshotJob extends SmisSnapShotJob {
             }
             super.updateStatus(jobContext);
         }
+    }
+    
+    private String getRelationShipName(WBEMClient client, CIMObjectPath replicationGroupPath, 
+    		String replicationGroupID) {
+    	CloseableIterator<CIMInstance> iterator = null;
+    	try {
+    		_log.info("replicationGroupID : {}", replicationGroupID);
+    		iterator = client.referenceInstances(replicationGroupPath,
+					SmisConstants.SE_GROUP_SYNCHRONIZED_RG_RG, null, false,	null);
+			while (iterator.hasNext()) {
+				CIMInstance groupSynchronized = iterator.next();
+				CIMProperty syncElement = groupSynchronized.getProperty(SmisConstants.CP_SYNCED_ELEMENT);
+				_log.info("syncElement : {}", syncElement.getValue().toString());
+				if (syncElement.toString().contains(replicationGroupID)) {
+					String relationshipName = (String) groupSynchronized
+							.getProperty(SmisConstants.RELATIONSHIP_NAME).getValue();
+					_log.info("Relationship name : {}", relationshipName);
+					return relationshipName;
+				}
+				
+			}
+		} catch (Exception e) {
+			_log.error("Caught an exception while trying to get the relationship name for Group Synchronized");
+		} finally {
+			if (iterator != null) {
+				iterator.close();
+			}
+		}
+    	return null;
     }
 
 }

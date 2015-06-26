@@ -157,50 +157,6 @@ adg_KIWIMods() {
     sed -i "s|'--pkg-cache-dir /var/cache/kiwi/packages'|\"--pkg-cache-dir \$packageCache\"|g" $kiwiPath/KIWIManagerZypper.pm
     sed -i "s|my @zopts = ();|my @zopts = (\"--keep-packages\");|" $kiwiPath/KIWIManagerZypper.pm
     sed -i -e '/keep packages on remote repos/,+6d' $kiwiPath/KIWIManagerZypper.pm
-
-#  ########################################################
-#  # Grub2 modification 
-#    cp -R /usr/share/kiwi/image/vmxboot/suse-SLES11/ /usr/share/kiwi/image/vmxboot/suse-SLES11-grub2
-#    cp -R /usr/share/kiwi/image/oemboot/suse-SLES11/ /usr/share/kiwi/image/oemboot/suse-SLES11-grub2
-#    cp /usr/share/kiwi/image/vmxboot/suse-linuxrc /usr/share/kiwi/image/vmxboot/suse-SLES11-grub2/root/linuxrc
-#    sed -i /if\ searchVolumeGroup\;\ then/a"\ kiwi_lvmgroup=\"\${kiwi_lvmgroup}N\"" /usr/share/kiwi/image/vmxboot/suse-SLES11-grub2/root/linuxrc
-#    sed -i /if\ searchVolumeGroup\;\ then/a"\ vgrename \$kiwi_lvmgroup \"\${kiwi_lvmgroup}N\"" /usr/share/kiwi/image/vmxboot/suse-SLES11-grub2/root/linuxrc
-#    cp /usr/share/kiwi/image/oemboot/suse-linuxrc /usr/share/kiwi/image/oemboot/suse-SLES11-grub2/root/linuxrc
-#    sed -i /if\ searchVolumeGroup\;\ then/a"\ kiwi_lvmgroup=\"\${kiwi_lvmgroup}N\"" /usr/share/kiwi/image/oemboot/suse-SLES11-grub2/root/linuxrc
-#    sed -i /if\ searchVolumeGroup\;\ then/a"\ vgrename \$kiwi_lvmgroup \"\${kiwi_lvmgroup}N\"" /usr/share/kiwi/image/oemboot/suse-SLES11-grub2/root/linuxrc
-#    sed -i /package\ name=\"grub\"/a"\ <package name=\"grub2-i386-pc\"/>" /usr/share/kiwi/image/vmxboot/suse-SLES11-grub2/config.xml
-#    sed -i /package\ name=\"grub\"/a"\ <package name=\"grub2-x86_64-efi\" arch=\"x86_64\"/>" /usr/share/kiwi/image/vmxboot/suse-SLES11-grub2/config.xml
-#    sed -i /package\ name=\"grub\"/a"\ <package name=\"grub2\"/>" /usr/share/kiwi/image/vmxboot/suse-SLES11-grub2/config.xml
-#    sed -i /package\ name=\"grub\"/a"\ <package name=\"grub2-i386-pc\"/>" /usr/share/kiwi/image/oemboot/suse-SLES11-grub2/config.xml
-#    sed -i /package\ name=\"grub\"/a"\ <package name=\"grub2-x86_64-efi\" arch=\"x86_64\"/>" /usr/share/kiwi/image/oemboot/suse-SLES11-grub2/config.xml
-#    sed -i /package\ name=\"grub\"/a"\ <package name=\"grub2\"/>" /usr/share/kiwi/image/oemboot/suse-SLES11-grub2/config.xml
-
-
-#    ########################################################
-#    # The following patch is needed in order to complete a build when running a container
-#    module="/usr/share/kiwi/modules/KIWIBoot.pm"
-#    cp ${module} ${module}.bak
-#    grep -q "#GRUB2 INSTALLATION ADG PATCH" $module
-#    if [ $? -ne 0 ]; then
-#       sed -i '5605d;' $module
-#       line=$( grep -nr "Installing grub2:" $module | cut -d: -f1 )
-#       sed -i "$((${line}+2))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \#GRUB2 INSTALLATION ADG PATCH" $module
-#       sed -i "$((${line}+3))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \$status = KIWIQX::qxx (\"pgrep init 2>&1\");" $module
-#       sed -i "$((${line}+4))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \$result = \$? >> 8;" $module
-#       sed -i "$((${line}+5))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ if (\$result != 0) {" $module
-#       sed -i "$((${line}+6))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \$loaderTarget = \$this->{loop};" $module
-#       sed -i "$((${line}+7))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ my \$grubtool = \$locator -> getExecPath ('grub2-install');" $module
-#       sed -i "$((${line}+8))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ my \$grubtoolopts = \"--grub-mkdevicemap=\$dmfile \";" $module
-#       sed -i "$((${line}+9))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \$grubtoolopts.= \"-d \$stages \";" $module
-#       sed -i "$((${line}+10))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \$grubtoolopts.= \"--root-directory=/mnt --force --no-nvram \";" $module
-#       sed -i "$((${line}+11))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \$status = KIWIQX::qxx (" $module
-#       sed -i "$((${line}+12))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \"\$grubtool \$grubtoolopts \$loaderTarget 2>&1\"" $module
-#       sed -i "$((${line}+13))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ );" $module
-#       sed -i "$((${line}+14))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \$result = \$? >> 8;" $module
-#       sed -i "$((${line}+15))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }" $module
-#       sed -i "$((${line}+16))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ else {" $module
-#       sed -i "$((${line}+28))i \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }" $module
-#    fi
 }
 
 #======================================
@@ -256,7 +212,7 @@ GEN001780.sh - Appends mesg n to /etc/profile so messaging will not be used to c
 GEN002040.sh - There must be no .rhosts, .shosts, hosts.equiv, or shosts.equiv files on the system - hosts.equiv
 GEN002060.sh - All .rhosts, .shosts, .netrc, or hosts.equiv files must be accessible by only root or the owner - hosts.equiv
 GEN002440.sh - The owner, group-owner, mode, ACL and location of files with the 'sgid' bit set must be documented.
-#GEN002560.sh - The system and user default umask must be 077
+GEN002560.sh - The system and user default umask must be 077
 GEN002690.sh - Sets the audit log file owner to root if it is not set to root, bin, sys or system
 GEN002700.sh - System audit logs must have mode 0640 or less permissive.
 GEN002717.sh - System audit tool executables must have mode 0750 or less permissive -  /sbin/auditctl
@@ -302,6 +258,7 @@ GEN002825_3.sh - The audit system must be configured to audit the loading and un
 GEN002825_4.sh - The audit system must be configured to audit the loading and unloading of dynamic kernel modules -  modprobe
 GEN002825_5.sh - The audit system must be configured to audit the loading and unloading of dynamic kernel modules -  rmmod
 GEN003060.sh - System accounts must not be listed in cron.allow or must be included in cron.deny, if cron.allow does not exist
+GEN003080.sh - Sets crontab file permssions to be no more permissive than 700
 GEN003252.sh - The at.deny file must have mode 0600 or less permissive.
 GEN003460.sh - The at.allow file must be owned by root, bin, or sys.
 GEN003581.sh - Network interfaces must not be configured to allow user control.
@@ -497,6 +454,21 @@ fix_devkit_firewall() {
     fi
 }
 
+# fix root umask for devkit
+#  Required negate global umask settings in dev environment
+fix_devkit_root_umask() {
+    if [ -f /root/.bashrc ] ; then
+        if grep umask /root/.bashrc ; then
+            xsed /root/.bashrc 's/umask .*/umask 022/'
+        else
+            xcat /root/.bashrc 'umask 022'
+        fi
+    else
+        touch /root/.bashrc
+        xcat /root/.bashrc 'umask 022'
+    fi
+}
+
 # Fix /etc/sysconfig/network/ifcfg-eth0
 #
 fix_ifcfg() {
@@ -622,7 +594,7 @@ fix_kiwi_storage_network() {
     fi
 }
 
-# Fix /etc/sysconfig/network/config
+# Fix /etc/sysconfig/network/config on both base and devkit
 #
 fix_network_config() {
     rm -f /etc/resolv.conf /etc/resolv.conf.netconfig
@@ -630,6 +602,13 @@ fix_network_config() {
 s/^NETCONFIG_MODULES_ORDER=.*/NETCONFIG_MODULES_ORDER="dns-resolver dns-bind ntp-runtime"/
 s/^NETCONFIG_DNS_STATIC_SEARCHLIST=.*/NETCONFIG_DNS_STATIC_SEARCHLIST=""/
 s/^NETCONFIG_DNS_STATIC_SERVERS=.*/NETCONFIG_DNS_STATIC_SERVERS=""/'
+}
+
+# Fix /etc/sysconfig/network/config on base (in addition to common)
+#
+fix_base_network_config() {
+    xsed /etc/sysconfig/network/config '
+s/^CHECK_DUPLICATE_IP=.*/CHECK_DUPLICATE_IP="no"/'
 }
 
 fix_permission() {

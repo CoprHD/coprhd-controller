@@ -16,6 +16,7 @@ package com.emc.storageos.auth;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.List;
 
 import org.apache.commons.httpclient.Credentials;
 
@@ -40,10 +41,8 @@ public interface StorageOSPersonAttributeDao {
      * Check if a user is valid within the specified tenant
      * @param userId ID of the user to check
      * @param tenantId ID of the user's tenant
-     * @return true if the user ID is valid within the specified tenant
      */
-    public boolean isUserValid(final String userId, final String tenantId,
-            final String altTenantId, ValidationFailureReason[] failureReason);
+    public void validateUser(final String userId, final String tenantId, final String altTenantId);
 
     /**
      * Retrieve the person's attributes from the attribute repository
@@ -55,9 +54,26 @@ public interface StorageOSPersonAttributeDao {
             ValidationFailureReason[] failureReason);
 
     /**
+     * Another implementation of getStorageOSUser which throws Exception with error message instead of using failure reason.
+     * @param credentials
+     * @return
+     */
+    public StorageOSUserDAO getStorageOSUser(final Credentials credentials);
+
+    /**
      * Get a map of tenancies a user maps to and the applied user mapping
      * @param username name of the user
      * @return A map with tenant ID as the key and the applied mapping as the value
      */
     public Map<URI, UserMapping> getUserTenants(String username);
+
+
+    /**
+     *
+     * @param username
+     * @param tenantURI
+     * @param userMapping
+     * @return
+     */
+    public Map<URI, UserMapping> peekUserTenants(String username, URI tenantURI, List<UserMapping> userMapping);
 }

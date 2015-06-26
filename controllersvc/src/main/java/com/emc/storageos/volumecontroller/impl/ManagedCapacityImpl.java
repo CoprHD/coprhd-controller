@@ -142,7 +142,7 @@ public class ManagedCapacityImpl implements Runnable {
         }
         manCap = new ManagedResourcesCapacity.ManagedResourceCapacity();
         manCap.setType(ManagedResourcesCapacity.CapacityResourceType.FILESHARE);
-        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient,FileShare.class,"capacity");
+        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient,FileShare.class,"usedCapacity");
         manCap.setNumResources(aggr.getCount());
         manCap.setResourceCapacity(aggr.getValue());
         resourcesCapacity.getResourceCapacityList().add(manCap);

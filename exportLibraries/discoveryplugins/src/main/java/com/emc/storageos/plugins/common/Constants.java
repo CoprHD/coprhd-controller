@@ -190,6 +190,9 @@ public class Constants {
     public static final String NAME = "Name";
     public static final String TIERDOMAINS = "tierDomains";
     public static final String VMAXPOOLS = "vmaxpools";
+    public static final String VMAX2POOLS = "vmax2pools";
+    public static final String VMAX2_THIN_POOLS = "vmax2ThinPools";
+    public static final String VMAX2_THIN_POOL_TO_BOUND_VOLUMES = "vmax2ThinPoolToBoundVolumes";
     public static final String TIER = "tier";
     public static final String EMC_STORAGE_TIER = "EMC_StorageTier";
     public static final String MANIFEST_COLLECTION_NAME = "StorageOS_Metrics";
@@ -215,6 +218,7 @@ public class Constants {
     public static final String MASKING_VIEWS = "maskingViews";
     public static final String EXPORTED_VOLUMES = "exportedVolumes";
     public static final String VOLUMES_WITH_SLOS = "volumesWithSLO";
+    public static final String VOLUME_SPACE_CONSUMED_MAP = "volumeToSpaceConsumed";
     public static final String TOTAL_CAPACITY = "TotalCapacity";
     public static final String INITIAL_STORAGE_TIERING_SELECTION = "InitialStorageTieringSelection";
     public static final int RELATIVE_PERFORMANCE_ORDER = 2;

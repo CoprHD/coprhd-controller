@@ -81,14 +81,6 @@ public class ClusterIpInfo implements Serializable{
         return (ClusterIpInfo)obj;
     }
 
-    public final Map<String, String> getIPv4Settings() {
-        return ipv4_setting.toMap();
-    }
-
-    public final Map<String, String> getIPv6Settings() {
-        return ipv6_setting.toMap();
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (this == obj)

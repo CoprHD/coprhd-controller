@@ -1216,14 +1216,14 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
         ApplicationContext context = null;
         XMLApiResult apiResult = null;
     	try {
-    		_log.info("VNXFileStorageDeviceXML doUpdateQuotaDirectory - start");
+    		_log.info("VNXFileStorageDeviceXML doDeleteQuotaDirectory - start");
     		
     		String fsName = args.getFsName();  			
     		String quotaTreetreeName = args.getQuotaDirectoryName();
     		QuotaDirectory quotaDir = args.getQuotaDirectory();
     		
     		if (null == fsName) {
-		        _log.error("VNXFileStorageDeviceXML::doUpdateQuotaDirectory failed:  Filesystem name is either missing or empty");
+		        _log.error("VNXFileStorageDeviceXML::doDeleteQuotaDirectory failed:  Filesystem name is either missing or empty");
 		        ServiceError serviceError = DeviceControllerErrors.vnx.unableToDeleteQuotaDir();             
 		        serviceError.setMessage(FileSystemConstants.FS_ERR_FS_NAME_MISSING_OR_EMPTY);
 		        result = BiosCommandResult.createErrorResult(serviceError);
@@ -1231,7 +1231,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     		}
     		
     		if (null == quotaTreetreeName) {
-		        _log.error("VNXFileStorageDeviceXML::doUpdateQuotaDirectory failed:  Quota Tree name is either missing or empty");
+		        _log.error("VNXFileStorageDeviceXML::doDeleteQuotaDirectory failed:  Quota Tree name is either missing or empty");
 		        ServiceError serviceError = DeviceControllerErrors.vnx.unableToDeleteQuotaDir();             
 		        serviceError.setMessage(FileSystemConstants.FS_ERR_QUOTADIR_NAME_MISSING_OR_EMPTY);
 		        result = BiosCommandResult.createErrorResult(serviceError);
@@ -1242,6 +1242,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             _log.info("Quota tree name: {}", args.getQuotaDirectoryName());
             
             boolean isMountRequired = !(args.isFileShareMounted());
+
             _log.info("Mount required or not, to delete quota dir requested {}", isMountRequired);
 
             //Load the context
@@ -1250,11 +1251,13 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             if (null == vnxComm) {
                 throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
             }
-            apiResult = vnxComm.deleteQuotaDirectory( storage, args.getFsName(), quotaTreetreeName, false, isMountRequired);
+
+            //we can't delete quota, if the filsystem is not mount, We should changes quota cmd
+            apiResult = vnxComm.deleteQuotaDirectory( storage, args.getFsName(), quotaTreetreeName, true, isMountRequired);
             if(apiResult.isCommandSuccess()){
             	result = BiosCommandResult.createSuccessfulResult();
             }
-            _log.info("doUpdateQuotaDirectory call result : {}", apiResult.isCommandSuccess());
+            _log.info("doDeleteQuotaDirectory call result : {}", apiResult.isCommandSuccess());
         } catch (VNXException e) {
             throw new DeviceControllerException(e);
         } finally {

@@ -4,18 +4,22 @@
  */
 package controllers;
 
+import com.emc.storageos.security.password.Constants;
 import com.emc.storageos.systemservices.impl.validate.PropertiesConfigurationValidator;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.net.InetAddresses;
+
 import controllers.deadbolt.Deadbolt;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.security.Security;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+
 import play.Logger;
 import play.Play;
 import play.data.validation.MinSize;
@@ -31,6 +35,7 @@ import util.validation.HostNameOrIpAddressCheck;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -170,6 +175,12 @@ public class Setup extends Controller {
         checkCompleteAndLicensed();
         SetupUtils.markSetupComplete();
         license();
+    }
+    
+    
+    public static String getPasswordValidPromptRule() {
+    	String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_VALID_PROMPT);
+        return promptString;
     }
     
     /**

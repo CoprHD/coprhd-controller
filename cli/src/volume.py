@@ -1328,7 +1328,8 @@ class Volume(object):
             
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(Volume.BLOCK , volumeUri, o["id"])
+            task = o["task"][0]
+            return self.check_for_sync(task,sync)
         else:
             return o
         
@@ -1352,7 +1353,8 @@ class Volume(object):
             
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(Volume.BLOCK , volumeUri, o["id"])
+            task = o["task"][0]
+            return self.check_for_sync(task,sync)
         else:
             return o   
  
@@ -1376,7 +1378,8 @@ class Volume(object):
             
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(Volume.BLOCK , volumeUri, o["id"])
+            task = o["task"][0]
+            return self.check_for_sync(task,sync)
         else:
             return o 
 
@@ -1400,7 +1403,8 @@ class Volume(object):
             
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(Volume.BLOCK , volumeUri, o["id"])
+            task = o["task"][0]
+            return self.check_for_sync(task,sync)
         else:
             return o    
         
@@ -1425,7 +1429,8 @@ class Volume(object):
             
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(Volume.BLOCK , volumeUri, o["id"])
+            task = o["task"][0]
+            return self.check_for_sync(task ,sync)
         else:
             return o  
         
@@ -1630,14 +1635,27 @@ def volume_clone_list_parser(cc_common_parser):
 def volume_clone_get_parser(cc_common_parser):
     mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
     
-    volume_clone_list_parser(cc_common_parser)
+    mandatory_args.add_argument('-consistencygroup', '-cg',
+                       metavar='<consistencygroup>',
+                       dest='consistencygroup',
+                       help='Name of consistencygroup',
+                       required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<fullcopyname>',
                                 dest='name',
                                 help='Name of fullcopy ',
                                 required=True)
-    
-    
+    cc_common_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+
 # Common Parser for clone 
 def volume_clone_common_parser(cc_common_parser):
     mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
@@ -1665,10 +1683,10 @@ def volume_clone_common_parser(cc_common_parser):
                                 dest='name',
                                 help='Name of fullcopy ',
                                 required=True)
-    cc_common_parser.add_argument('-syncronous', '-sync',
+    cc_common_parser.add_argument('-synchronous', '-sync',
                        dest='sync',
                        action='store_true',
-                       help='Syncronous mode enabled')
+                       help='Synchronous mode enabled')
 
 def get_clone_source_resource(volObj, args, snapshot=None): 
     (storageresType, storageresTypename) = volObj.get_storageAttributes(
@@ -2917,7 +2935,7 @@ def mirror_protect_parser(subcommand_parsers, common_parser):
         help='Start Continuous copies for given volume',
         description='ViPR continuous_copies create CLI usage.')
     # Add parameter from common protection parser.
-    add_protection_common_parser(mptcreate_parser)
+    add_protection_common_parser_nosrdf(mptcreate_parser)
     mptcreate_parser.add_argument('-count', '-cu',
                                   metavar='<count>',
                                   dest='count',

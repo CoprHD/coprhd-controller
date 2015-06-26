@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.HDSException;
@@ -119,6 +120,11 @@ public class HDSCloneOperations implements CloneOperations{
 		} catch (Exception e) {
 			String errorMsg = String.format(CREATE_ERROR_MSG_FORMAT, sourceVolumeURI, cloneVolumeURI);
 			log.error(errorMsg, e);
+			Volume clone = dbClient.queryObject(Volume.class, cloneVolumeURI);
+            if (clone != null) {
+                clone.setInactive(true);
+                dbClient.persistObject(clone);
+            }
 			ServiceError serviceError = DeviceControllerErrors.hds.methodFailed("createSingleClone",
 					e.getMessage());
 			taskCompleter.error(dbClient, serviceError);
@@ -147,6 +153,7 @@ public class HDSCloneOperations implements CloneOperations{
 			hdsProtectionOperations.deleteShadowImagePair(storageSystem, sourceVolume, targetVolume);
 			hdsProtectionOperations.removeDummyLunPath(storageSystem, cloneVolumeURI);
 			targetVolume.setReplicaState(ReplicationState.DETACHED.name());
+			targetVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
 			dbClient.persistObject(targetVolume);
 			if (taskCompleter != null) {
 			    taskCompleter.ready(dbClient);

@@ -10,6 +10,7 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import java.net.URI;
 
 public class ExportClusterFilter extends ExportFilter {
+    public static final String CLUSTER_EXPORT_TYPE = "Cluster";
     private final URI clusterId;
 
     public ExportClusterFilter(URI clusterId, URI projectId, URI varrayId) {
@@ -23,7 +24,7 @@ public class ExportClusterFilter extends ExportFilter {
             return false;
         }
 
-        return item.getType().equals("Cluster") && hasCluster(item);
+        return item.getType().equals(CLUSTER_EXPORT_TYPE) && hasCluster(item);
     }
 
     private boolean hasCluster(ExportGroupRestRep item) {

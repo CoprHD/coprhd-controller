@@ -20,6 +20,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -317,11 +318,19 @@ public class WorkflowService {
 
         // Print out the status of each step into the log.
         for (StepStatus status : statusMap.values()) {
+            Date startTime = status.startTime;
+            Date endTime = status.endTime;
+            if (startTime != null && endTime != null) {
             _log.info(String.format(
                     "Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",
                     status.stepId, status.description,
                     status.state, status.message, status.startTime, 
                     status.endTime, (status.endTime.getTime() - status.startTime.getTime())));
+            } else {
+                _log.info(String.format(
+                        "Step: %s (%s) state: %s message: %s ",
+                        status.stepId, status.description, status.state, status.message ));
+            }
         }
 
         // Get composite status and status message
@@ -389,6 +398,7 @@ public class WorkflowService {
         		}
         	}
         } finally {
+        	logWorkflow(workflow, true);
         	// Release the Workflow's locks, if any.
         	boolean removed = _ownerLocker.releaseLocks(workflow.getWorkflowURI().toString());
         	if (!removed) {
@@ -462,7 +472,6 @@ public class WorkflowService {
                 _dataManager.removeNode(path);
                 _log.info("Removed ZK workflow: " + workflow.getWorkflowURI());
             }
-            logWorkflow(workflow, true);
         } catch (Exception ex) {
             _log.error("Cannot destroy Workflow: " + id);
         }
@@ -987,13 +996,17 @@ public class WorkflowService {
             _dbClient.persistObject(logWorkflow);
             }
 
-            List<Task> tasks =  com.emc.storageos.db.client.model.util.TaskUtils.findTasksForRequestId(_dbClient, workflow.getOrchTaskId());
-            for (Task task : tasks) {
-                task.setWorkflow(workflow.getWorkflowURI());
+            if (workflow.getOrchTaskId() != null) {
+                List<Task> tasks =  com.emc.storageos.db.client.model.util.TaskUtils.findTasksForRequestId(_dbClient, workflow.getOrchTaskId());
+                if (tasks != null && false == tasks.isEmpty()) {
+                    for (Task task : tasks) {
+                        task.setWorkflow(workflow.getWorkflowURI());
+                    }
+                    _dbClient.persistObject(tasks);
+                }
             }
-            _dbClient.persistObject(tasks);
         } catch (DatabaseException ex) {
-            _log.error("Cannot persist Cassandra Workflow record");
+            _log.error("Cannot persist Cassandra Workflow record " + workflow.getWorkflowURI().toString(), ex);
         }
     }
 

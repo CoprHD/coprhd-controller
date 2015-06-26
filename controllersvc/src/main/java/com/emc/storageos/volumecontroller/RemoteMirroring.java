@@ -67,9 +67,10 @@ public interface RemoteMirroring {
      * @param system
      * @param sources
      * @param targets
+     * @param isGroupRollback
      * @param completer
      */
-    void doRollbackLinks(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
+    void doRollbackLinks(StorageSystem system, List<URI> sources, List<URI> targets, boolean isGroupRollback, TaskCompleter completer);
 
     /**
      * Split replication links.

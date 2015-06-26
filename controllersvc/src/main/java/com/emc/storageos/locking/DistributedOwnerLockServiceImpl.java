@@ -189,7 +189,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
 				Long heldTime = (System.currentTimeMillis() - data.timeAcquired) / 1000;
 				log.info(String.format("Lock %s released after %d seconds", lockName, heldTime));
 			} else {
-			    log.info(String.format("unable to unlock lockname: %s owner: %s lock not found in zk"));
+			    log.info(String.format("unable to unlock lockname: %s owner: %s lock not found in zk", lockName, owner));
 			}
 			retval = true;
 		} finally {

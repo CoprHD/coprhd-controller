@@ -264,9 +264,17 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
     private VdcPreCheckResponse preCheck() {
         log.info("Starting precheck on vdc connect ...");
 
+        //Step 0: Get remote vdc version before send preCheck, since we modify the preCheckParam
+        // avoid to send preCheck from v2.3 or higher to v2.2 v2.1, v2.0
+        if (!isRemoteVdcVersionCompatible(vdcInfo)) {
+            throw GeoException.fatals.connectVdcPrecheckFail(myVdcId, "Software version from remote vdc is lower than v2.3.");
+        }
+
+        log.info("Send vdc precheck to remote vdc");
         // step 1: 2 way communication to verify if link should be permitted
         VdcPreCheckResponse vdcResp = sendVdcPrecheckRequest(vdcInfo, true);
 
+        log.info("Check VIP of remote vdc is used as the ApiEndpoint");
         // verify if node IP address is used as the ApiEndpoint
         String virtualIP = vdcInfo.getProperty(GeoServiceJob.VDC_API_ENDPOINT);
         if (!InetAddresses.isInetAddress(virtualIP)) {
@@ -285,7 +293,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             throw GeoException.fatals.wrongIPSpecification(vdcInfo.getProperty(GeoServiceJob.VDC_NAME));
         }
 
-
+        log.info("Check vdc stable");
         //check if the cluster is stable
         if(!vdcResp.isClusterStable()) {
             throw GeoException.fatals.unstableVdcFailure(vdcInfo.getProperty(GeoServiceJob.VDC_NAME));
@@ -305,7 +313,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
         // verify the software version compatibility
         if (!isGeoCompatible(vdcResp)) {
-            throw GeoException.fatals.remoteVDCInSmallerVersion();
+            throw GeoException.fatals.remoteVDCInLowerVersion();
         }
 
         if (hasTripleVdcVersionsInFederation(vdcResp)) {

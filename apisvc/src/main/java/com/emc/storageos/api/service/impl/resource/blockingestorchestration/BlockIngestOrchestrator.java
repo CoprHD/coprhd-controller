@@ -293,11 +293,12 @@ public abstract class BlockIngestOrchestrator{
      * @param vPool
      * @param unManagedVolume
      * @param project
+     * @param tenant
      * @return
      * @throws Exception
      */
     protected Volume createVolume(StorageSystem system, String volumeNativeGuid, StoragePool pool, VirtualArray virtualArray,
-            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, String autoTierPolicyId) throws IngestionException {
+            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, TenantOrg tenant, String autoTierPolicyId) throws IngestionException {
         _logger.info("creating new Volume for native volume id " + volumeNativeGuid);
         
         Volume volume = new Volume();
@@ -309,11 +310,10 @@ public abstract class BlockIngestOrchestrator{
         volume.setAccessState(String.valueOf(unManagedVolume
                 .getVolumeInformation().get(
                         SupportedVolumeInformation.ACCESS.toString())));
-        // TODO- change Tenant parameter
-        if (null != getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), null, virtualArray.getId(), _dbClient)) {
-            updateCGPropertiesInVolume(
-                    getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), null, virtualArray.getId(), _dbClient),
-                    volume, system, unManagedVolume);
+        
+        URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenant.getId(), virtualArray.getId(), _dbClient);
+        if (null != cgUri) {
+            updateCGPropertiesInVolume(cgUri, volume, system, unManagedVolume);
         }
         if (null != autoTierPolicyId) {
             updateTierPolicyProperties(autoTierPolicyId, volume);

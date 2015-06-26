@@ -21,6 +21,7 @@ import java.util.Calendar;
 import java.util.Map;
 
 import com.emc.storageos.security.exceptions.*;
+import com.emc.storageos.services.util.PlatformUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +69,11 @@ public class SshConfigurator {
     private InterProcessLock sshLock;
 
     public void run() throws Exception {
+
+        if (!PlatformUtils.isAppliance()) {
+            log.info("This is not a ViPR appliance so skip ssh configuration.");
+            return;
+        }
 
         sshProps = coordinator.getTargetInfo(PropertyInfoExt.class);
 

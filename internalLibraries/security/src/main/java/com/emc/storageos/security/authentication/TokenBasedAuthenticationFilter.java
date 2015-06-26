@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.net.InetAddresses;
@@ -141,7 +142,7 @@ public class TokenBasedAuthenticationFilter extends AbstractAuthenticationFilter
             redirectURL.append("/login?");
         }
         StringBuilder serviceURL = new StringBuilder(req.getRequestURL().toString());
-        String queryString = RequestProcessingUtils.removeFromQueryString(req.getQueryString(), REQUESTING_COOKIES);
+        String queryString = SecurityUtils.stripXSS(RequestProcessingUtils.removeFromQueryString(req.getQueryString(), REQUESTING_COOKIES));
 
         if (queryString != null && !queryString.isEmpty()) {
             serviceURL.append("?" + queryString);

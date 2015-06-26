@@ -62,7 +62,6 @@ public class FindProviderWithGroup implements FindProviderStrategy {
                         targetSystem.getActiveProviderURI());
                 return targetSystem;
             }
-
         }
         log.info("Replication Group {} available in source Provider {}", cgLabel,
                 sourceSystem.getActiveProviderURI());

@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -230,14 +231,6 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     CHANGE_VPOOL_WF_NAME, true, taskId);
             String waitFor = null;    // the wait for key returned by previous call
             
-            // Check to see if we need to add any expand steps before we perform the change vpool
-            // operation. This can occur for a RP or RP+VPLEX/MetroPoint change vpool operation
-            // due to the fact that we may be using mixed backend arrays for source/target(s).
-            // RP needs to have all source/target(s) provisioned capacities to be the same to properly
-            // protect the volumes. Capacity adjustments (if any) would have been made in the API. We 
-            // just need to follow through with the expand if required.
-            waitFor = addRPChangeVpoolExpandSteps(workflow, waitFor, volumes, taskId);
-            
             // Mainly for RP+VPLEX as a change vpool would require new volumes (source-journal, target(s), 
             // target-journal) to be created.
             waitFor = _blockDeviceController.addStepsForCreateVolumes(
@@ -250,6 +243,11 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Last, call the RPDeviceController to add change virtual pool steps.
             waitFor = _rpDeviceController.addStepsForChangeVirtualPool(
                     workflow, waitFor, volumes, taskId);
+            
+            // This step is currently used to ensure that any existing resources get added to native
+            // CGs. Mainly used for VPLEX->RP+VPLEX change vpool. The existing VPLEX volume would not be
+            // in any CG and we now need it's backing volume(s) to be added to their local array CG.
+            waitFor = postRPChangeVpoolSteps(workflow, waitFor, volumes, taskId);
 
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
@@ -321,11 +319,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     }
     
     /**
-     * Determine if there are any expand steps needed for the change vpool operation. Mainly
-     * needed for RP change vpool. The existing volume(s) may need to be expanded to match the
-     * all volumes being protected by RP. RP requires all source/target volumes have the same
-     * capacities otherwise the RP CG creation will fail. The API takes care of the calculation to
-     * increase capacity, this method fulfills the expand request by adding expand steps if needed. 
+     * Needed to perform post change vpool operations on RP volumes.
      * 
      * @param workflow The current workflow
      * @param waitFor The previous operation to wait for 
@@ -333,89 +327,61 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
      * @param taskId The current task id
      * @return The previous operation id
      */
-    private String addRPChangeVpoolExpandSteps(Workflow workflow,
-            String waitFor, List<VolumeDescriptor> volumeDescriptors, String taskId) {
-        // Check to see if this is an RP change vpool request
-        List<VolumeDescriptor> rpExistingVolumeDescs = VolumeDescriptor.filterByType(volumeDescriptors,
-                                                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_EXISTING_SOURCE },
-                                                    new VolumeDescriptor.Type[] {});
-        // If there are no RP_EXISTING_SOURCE descriptors, just return
-        if (rpExistingVolumeDescs == null || rpExistingVolumeDescs.isEmpty()) {
-            return waitFor;
-        }
+    private String postRPChangeVpoolSteps(Workflow workflow, String waitFor,
+            List<VolumeDescriptor> volumes, String taskId) {
+        // Get the list of descriptors needed for post change virtual pool operations on RP.
+        List<VolumeDescriptor> rpVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] {
+                    VolumeDescriptor.Type.RP_EXISTING_SOURCE,                    
+                }, null);
+
+        // If no volume descriptors match, just return
+        if (rpVolumeDescriptors.isEmpty()) return waitFor;
+                        
+        List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();
         
-        // Generic descriptor list
-        List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-        descriptors.addAll(rpExistingVolumeDescs);            
-        
-        // Grab any migration descriptors if they exist, we'll use them later if needed.
-        List<VolumeDescriptor> migrateDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_MIGRATE_VOLUME }, null );                
-        
-        // If there are any migration descriptors, blockDeviceController will use them to filter out
-        // any VPLEX backing volumes that do not require an expand.
-        if (migrateDescriptors != null && !migrateDescriptors.isEmpty()) {   
-            descriptors.addAll(migrateDescriptors);
-        }
-        
-        for (VolumeDescriptor rpExistingVolumeDesc : rpExistingVolumeDescs) {
-            // Get the existing source volume
-            Volume rpExistingSource = s_dbClient.queryObject(Volume.class, rpExistingVolumeDesc.getVolumeURI());
-            
-            s_logger.info("RP change vpool operation, check to see if we need to perform an expand on volume [{}].", 
-                    rpExistingSource.getLabel());
-            
-            // Check to see if this is a RP+VPLEX/MetroPoint change vpool request        
-            boolean isRPVPlex = (rpExistingSource.getAssociatedVolumes() != null 
-                                   && !rpExistingSource.getAssociatedVolumes().isEmpty());
-            
-            // Flag to see if an expand is necessary
-            boolean performExpand = false;
-            
-            // Check to see if the capacity and provisioned capacity of the volumes are different. If they are
-            // we need to perform and expand.
-            // If this is RP+VPLEX or MetroPoint check the backend volumes otherwise, the volume itself is OK to check.  
-            // NOTE: We could be expanding a backing volume that may be deleted by migration after, however in this case
-            // better safe than sorry because we could have the case where 1 backing volume is migrated and the
-            // other is not.
-            if (isRPVPlex) {
-                for (String volId : rpExistingSource.getAssociatedVolumes()) {                   
-                    URI volURI = URI.create(volId);
-                    Volume associatedVolume = s_dbClient.queryObject(Volume.class, volURI);
-                    // Perform an expand if the capacity and provisioned capacity are different
-                    if (associatedVolume.getCapacity().longValue() > associatedVolume.getProvisionedCapacity()) {
-                        performExpand = true;
-                        break;
-                    }
-                }            
-            }
-            else {
-                // Perform an expand if the capacity and provisioned capacity are different
-                performExpand = (rpExistingSource.getCapacity().longValue() > rpExistingSource.getProvisionedCapacity());
-            }
-    
-            // Check to see if we need to perform an expand
-            if (performExpand) {
-                s_logger.info(String.format("Volume capacity size is different from provisioned capacity size, " +
-                                                "adding expand volume steps for volume [%s].",
-                                                rpExistingSource.getLabel()));
-                                                
-                s_logger.info("Adding Block expand steps.");
-                // Call the BlockDeviceController to add its methods if there are block or VPLEX backend volumes.
-                waitFor = _blockDeviceController.addStepsForExpandVolume(
-                            workflow, waitFor, descriptors, taskId);
-                
-                if (isRPVPlex) {
-                    s_logger.info("Adding VPLEX expand steps.");
-                    // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
-                    waitFor = _vplexDeviceController.addStepsForExpandVolume(
-                                workflow, waitFor, descriptors, taskId);
+        for (VolumeDescriptor descr : rpVolumeDescriptors) {
+            // If there are RP_EXISTING_SOURCE volume descriptors, we need to ensure the
+            // existing volumes are added to their native CGs for the change vpool request.
+            // Before any existing resource can be protected by RP they have to be removed
+            // from their existing CGs but now will need to be added to the new CG needed 
+            // for RecoverPoint protection.
+            // NOTE: Only relevant for RP+VPLEX and MetroPoint. Regular RP does not enforce local
+            // array CGs.
+            Volume rpExistingSource = s_dbClient.queryObject(Volume.class, descr.getVolumeURI());
+                       
+            // Check to see if the existing is not already protected by RP and that
+            // there are associated volumes (meaning it's a VPLEX volume)
+            if (RPHelper.isVPlexVolume(rpExistingSource)) {
+                s_logger.info(String.format("Adding post RP Change Vpool steps for existing VPLEX source volume [%s].", rpExistingSource.getLabel()));
+                // VPLEX, use associated backing volumes
+                // NOTE: If migrations exist for this volume the VPLEX Device Controller will clean these up
+                // newly added CGs because we won't need them as the migration volumes will create their own CGs.
+                // This is OK.
+                for (String assocVolumeId : rpExistingSource.getAssociatedVolumes()) {
+                    // Create the BLOCK_DATA descriptor with the correct info
+                    // for creating the CG and adding the backing volume to it.
+                    Volume assocVolume = s_dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
+                    VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                            assocVolume.getStorageController(), assocVolume.getId(), null, rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
+                    blockDataDescriptors.add(blockDataDesc);
+                    
+                    // Good time to update the backing volume with it's new CG
+                    assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
+                    s_dbClient.persistObject(assocVolume);
+                    
+                    s_logger.info(String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].", 
+                            assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(), assocVolume.getStorageController()));
                 }
-            }
-            else {
-                s_logger.info(String.format("No expand steps required for volume [%s].",
-                        rpExistingSource.getLabel()));
-            }
+            }            
+        }
+        
+        if (!blockDataDescriptors.isEmpty()) {
+            // Add a step to create the local array consistency group
+            waitFor = _blockDeviceController.addStepsForCreateConsistencyGroup(workflow, waitFor, blockDataDescriptors, false);
+            
+            // Add a step to update the local array consistency group with the volumes to add
+            waitFor = _blockDeviceController.addStepsForAddToConsistencyGroup(workflow, waitFor, blockDataDescriptors);
         }
         
         return waitFor;

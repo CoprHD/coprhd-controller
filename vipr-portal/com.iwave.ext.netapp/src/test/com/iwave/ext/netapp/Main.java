@@ -24,12 +24,16 @@ public class Main {
 	private NaServer server2 = null;
 	
 	public static void main(String[] args) {
-        
-		String arrayIp = "10.247.96.54";
-	    String arrayUser = "root";
-		String arrayPassword = "dangerous1";
 		
-		int arrayPort = 443;
+	    String arrayIp = null;
+	    int arrayPort = 443;
+	    String arrayUser = null, arrayPassword = null;
+		
+	    if(args.length == 3) {
+		    arrayIp = args[0];
+		    arrayUser = args[1];
+		    arrayPassword = args[2];
+	    }
 		System.out.println("Entering OnTap Test Client");
 		netAppFacade =  new NetAppFacade(arrayIp, arrayPort, arrayUser, arrayPassword, true);
        
@@ -101,7 +105,7 @@ public class Main {
         
         
 //        List<String> endpointsList = new ArrayList<String>();
-//        endpointsList.add("lglap103.lss.emc.com");
+//        endpointsList.add("");
 //        
 //        Boolean status2 = exportFS(endpointsList, "rw", "6553", "rajaFS", NFSSecurityStyle.sys.toString());
 //        

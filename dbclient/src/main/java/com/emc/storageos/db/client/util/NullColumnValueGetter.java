@@ -97,4 +97,34 @@ public class NullColumnValueGetter {
     public static NamedURI normalize(NamedURI uri) {
         return isNullNamedURI(uri) ? null : uri;
     }
+    
+    /**
+     * Returns the string value of the passed in object or "null" otherwise.
+     * 
+     * @param obj Supported as String, URI, and NamedURI for now
+     * @return String value or "null" as default
+     */
+    public static String getStringValue(Object obj) {
+        String value = NullColumnValueGetter.NULL_STR;
+        
+        if (obj != null) {
+            if (obj instanceof String) {
+                value = (String)obj;                
+            }
+            else if (obj instanceof URI) {
+                URI uri = (URI)obj;
+                if (!isNullURI(uri)) {
+                    value = uri.toString();
+                }
+            }
+            else if (obj instanceof NamedURI) {
+                NamedURI namedURI = (NamedURI)obj;
+                if (!isNullNamedURI(namedURI)) {
+                    value = namedURI.getName();
+                }
+            }
+        }
+        
+        return value;
+    }
 }

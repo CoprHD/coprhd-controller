@@ -24,8 +24,11 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Properties;
 
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.security.geo.exceptions.FatalGeoException;
 import com.emc.storageos.security.geo.GeoServiceJob;
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
@@ -86,6 +89,8 @@ public abstract class AbstractVdcTaskOp {
     protected String errMsg;
 
     private final static String VIPR_INVALID_VERSION_PREFIX="vipr-2.0";
+
+    protected final static SoftwareVersion vdcVersionCheckMinVer = new SoftwareVersion("2.3.0.0.*");
 
     // TODO we have so many constructor arguments here. refactor it later
     protected AbstractVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache, 
@@ -358,13 +363,18 @@ public abstract class AbstractVdcTaskOp {
     
     /**
      * Send precheck request to target vdc.
-     * @param vdcConfigType - connect, update or remove
+     * @param vdcProp - vdc properties
      * @return VdcPreCheckResponse from target vdc
      */
     protected VdcPreCheckResponse sendVdcPrecheckRequest(Properties vdcProp, boolean isFresher) {
         VdcPreCheckParam param = new VdcPreCheckParam();
         param.setFresher(isFresher);
         param.setConfigChangeType(changeType().toString());
+        try {
+            param.setSoftwareVersion(dbClient.getCoordinatorClient().getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
+        } catch (Exception ex) {
+            log.error("Fail to get version info for preCheck. {}", ex.getMessage());
+        }
         String vdcName = vdcProp.getProperty(GeoServiceJob.VDC_NAME);
         return geoClientCache.getGeoClient(vdcProp).syncVdcConfigPreCheck(param, vdcName);
     }
@@ -385,7 +395,7 @@ public abstract class AbstractVdcTaskOp {
 
     /**
      * Make sure the living vdcs are stable.
-     * @param vdcConfigType
+     * @param checkOperatedVdc
      * @param ignoreException
      * @return the unstable vdc otherwise null
      */
@@ -424,15 +434,9 @@ public abstract class AbstractVdcTaskOp {
 
 
     private boolean checkVdcStable(Properties info, boolean ignoreException){
-        // non-local vdcs
         String shortId = info.getProperty(GeoServiceJob.VDC_SHORT_ID);
-        String name = info.getProperty(GeoServiceJob.VDC_NAME);
-        String ip = info.getProperty(GeoServiceJob.VDC_API_ENDPOINT);
         try {
-            VdcPreCheckResponse vdcResp = sendVdcPrecheckRequest(info,false);
-            boolean stable = vdcResp.isClusterStable();
-            log.info(String.format("the vdc being checked - %s is %s", shortId, stable ? "stable" : "not stable"));
-            return stable;
+            return geoClientCache.getGeoClient(shortId).isVdcStable();
         } catch (Exception e) {
             log.error("the vdc being checked does not meet the requirement");
             if (!ignoreException) {
@@ -440,7 +444,6 @@ public abstract class AbstractVdcTaskOp {
             }
             return false;
         }
-
     }
 
     /**
@@ -547,8 +550,7 @@ public abstract class AbstractVdcTaskOp {
                 continue;
             }
             if(vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.CONNECTED) {
-                GeoServiceClient client = geoClientCache.getGeoClient(vdc.getShortId());
-                String viPRVersion = client.getViPRVersion();
+                String viPRVersion = helper.getViPRVersion(vdc.getShortId());
                 if (viPRVersion.startsWith(VIPR_INVALID_VERSION_PREFIX)) {
                     errMsg = String.format("The vipr version for vdc %s is 2.0", vdc.getLabel());
                     log.info("The vipr version for vdc {} is 2.0", vdc.getShortId());
@@ -770,5 +772,18 @@ public abstract class AbstractVdcTaskOp {
             default:
                 return ConnectionStatus.UPDATE_PRECHECK_FAILED;
         }
+    }
+
+    protected boolean isRemoteVdcVersionCompatible(Properties vdcInfo) {
+        boolean isCompatible = true;
+
+        SoftwareVersion remoteSoftVer = new SoftwareVersion(helper.getViPRVersion(vdcInfo));
+        log.info("Remote version is {}", remoteSoftVer);
+        if (vdcVersionCheckMinVer.compareTo(remoteSoftVer) >= 0) {
+            log.info("Software version from remote vdc is lower than v2.3.");
+            isCompatible = false;
+        }
+
+        return isCompatible;
     }
 }

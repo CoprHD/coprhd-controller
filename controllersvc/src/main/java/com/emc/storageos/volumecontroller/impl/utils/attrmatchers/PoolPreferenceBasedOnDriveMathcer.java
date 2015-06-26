@@ -75,6 +75,13 @@ public class PoolPreferenceBasedOnDriveMathcer extends AttributeMatcher {
                 _logger.info("Not able to find any Pools with Drive Type {}",driveType);
             }
         }
+        //CTRL-12532: For storage pools of type FTS, drive type will have "Unknown" value.
+        //if the optimal pools is empty, it means that all pools are have a drive type other than FC, SAS, NL_SAS, SATA, SSD.
+        //In this case, return all the pools.
+        if(optimalPools.isEmpty()) {
+            _logger.info("Storage pool list is empty after filtering based on optimal pools. Returning back the full list.");
+            optimalPools = allPools;
+        }
         _logger.info("Optimal Pool Selection Matcher Ended {} :", Joiner.on("\t").join(getNativeGuidFromPools(optimalPools)));
         return optimalPools;
     }

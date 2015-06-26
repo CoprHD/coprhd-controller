@@ -86,6 +86,4 @@ public class SmisCreateCGCloneJob extends SmisReplicaCreationJobs{
             super.updateStatus(jobContext);
         }
     }
-    
-    
 }

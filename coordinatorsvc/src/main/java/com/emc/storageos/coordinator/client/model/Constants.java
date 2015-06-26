@@ -68,6 +68,8 @@ public interface Constants {
     public static final Pattern CONTROL_NODE_SYSSVC_ID_PATTERN = Pattern.compile("syssvc-(\\d+|standalone)");
     public static final String  HIDDEN_TEXT_MASK  = "********";
 
+    public static final String STANDALONE_ID = "standalone";
+
     // category name under which db configurations are stored
     public static final String DB_CONFIG = "dbconfig";
 

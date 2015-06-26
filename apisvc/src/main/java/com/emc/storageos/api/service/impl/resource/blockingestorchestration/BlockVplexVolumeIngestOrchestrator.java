@@ -14,6 +14,8 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +46,15 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchestrator {
     private static final Logger _logger = LoggerFactory.getLogger(BlockVplexVolumeIngestOrchestrator.class);
 
+    private static final long CACHE_TIMEOUT = 600000; // ten minutes
+    private long cacheLastRefreshed = 0;
+    
+    // maps the cluster id (1 or 2) to its name (e.g., cluster-1 or cluster-2)
+    private Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
+    
+    // maps each virtual array's URI to the cluster id (1 or 2) it connects to
+    private Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
+    
     @Override
     public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache,StorageSystem system, UnManagedVolume unManagedVolume,
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesToBeDeleted, 
@@ -51,7 +62,17 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             Map<String, StringBuffer> taskStatusMap) throws IngestionException {
         // For VPLEX volumes, verify that it is OK to ingest the unmanaged
         // volume into the requested virtual array.
-        if (!VolumeIngestionUtil.isValidVarrayForUnmanagedVolume(unManagedVolume, virtualArray.getId(), _dbClient)) {
+        
+        long timeRightNow = new Date().getTime();
+        if (timeRightNow > (cacheLastRefreshed + CACHE_TIMEOUT)) {
+            _logger.debug("clearing vplex ingestion api info cache");
+            clusterIdToNameMap.clear();
+            varrayToClusterIdMap.clear();
+            cacheLastRefreshed = timeRightNow;
+        }
+        
+        if (!VolumeIngestionUtil.isValidVarrayForUnmanagedVolume(unManagedVolume, virtualArray.getId(), 
+                clusterIdToNameMap, varrayToClusterIdMap, _dbClient)) {
             _logger.warn("UnManaged Volume {} cannot be ingested into the requested varray. Skipping Ingestion.",
                     unManagedVolume.getLabel());
             

@@ -887,7 +887,7 @@ def create_parser(subcommand_parsers, common_parser):
                                 metavar='<varray>',
                                 dest='varray',
                                 required=True)
-    mandatory_args.add_argument('-id', '-id',
+    create_parser.add_argument('-id', '-id',
                                 help='Optional Id for VNX FileSystem',
                                 metavar='<filesystemid>',
                                 dest='id',

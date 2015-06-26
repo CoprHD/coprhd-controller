@@ -645,7 +645,8 @@ public class FileSnapshotService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
 
         ArgValidator.checkFieldUriType(id, Snapshot.class, "id");
-        ArgValidator.checkFsName(param.getShareName(), "name");
+        ArgValidator.checkFieldNotNull(param.getShareName(), "name");
+        ArgValidator.checkFieldNotEmpty(param.getShareName(), "name");
         Snapshot snap = queryResource(id);
         FileShare fs = _permissionsHelper.getObjectById(snap.getParent(), FileShare.class);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());

@@ -46,7 +46,7 @@ public class ThinVolumePreAllocationMatcher extends AttributeMatcher{
             StoragePool pool = poolIterator.next();
             if (!pool.getThinVolumePreAllocationSupported()) {
                 if (!attributeMap.get(Attributes.vpool_type.toString()).equals(VirtualPool.Type.file)) {
-                	_logger.info("Ignoring pool {} as it does not support thin Resource Preallocation.", pool.getId());
+                	_logger.info("Ignoring pool {} as it does not support thin Resource Preallocation.", pool.getNativeGuid());
                 	filteredPoolList.remove(pool);
                 }
             } else {
@@ -54,7 +54,7 @@ public class ThinVolumePreAllocationMatcher extends AttributeMatcher{
                 if(storageDevice.checkIfVmax3() && thinVolumePreAllocationPercentage != Constants.VMAX3_FULLY_ALLOCATED_VOLUME_PERCENTAGE){
                     _logger.info("Ignoring pool {} as it belongs to VMAX3 storage system and to qualify this pool, "
                             + "Virtual pool should have Thin Volume preallocation of {} but its set to {}. ",
-                            new Object[]{pool.getId(), Constants.VMAX3_FULLY_ALLOCATED_VOLUME_PERCENTAGE, thinVolumePreAllocationPercentage});
+                            new Object[]{pool.getNativeGuid(), Constants.VMAX3_FULLY_ALLOCATED_VOLUME_PERCENTAGE, thinVolumePreAllocationPercentage});
                     filteredPoolList.remove(pool);
                 }
             }

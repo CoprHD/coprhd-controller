@@ -25,9 +25,11 @@ import com.emc.vipr.model.sys.ipreconfig.ClusterIpInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.lang.Exception;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 /**
@@ -38,10 +40,6 @@ import java.util.Map;
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final int CMD_TIMEOUT = 10 * 1000;
-
-    //it's the offset of the disk4 where the data starts
-    private static final int ISO_HEADER_LENGTH = 43008;
-    private static final int OVF_ENV_FILE_SIZE= 4096;
 
     private static void usage() {
         System.out.println("Usage: ");
@@ -105,6 +103,7 @@ public class Main {
                 applyIpinfo(newIpinfo, node_id, node_count, true);
                 break;
             default:
+                log.info("No need to handle status {}...", localnode_status);
                 return;
         }
     }
@@ -129,28 +128,24 @@ public class Main {
 
     private static void applyIpinfo(ClusterIpInfo ipinfo, String nodeid, int node_count, boolean bNewIp) throws Exception{
         log.info("applying ip info: {}", ipinfo.toString());
+        String isoFilePath = "/tmp/ovf-env.iso";
+        File isoFile = new File(isoFilePath);
         try {
-            byte[] data= new byte[OVF_ENV_FILE_SIZE];
-            Arrays.fill(data, (byte)' ');
-            ByteBuffer buf = ByteBuffer.wrap(data);
+            String tmpstr = PlatformUtils.genOvfenvPropertyKVString(ipinfo,nodeid,node_count);
+
+            PlatformUtils.genOvfenvIsoImage(tmpstr, isoFilePath);
 
             String ovfenv_part = PlatformUtils.probeOvfenvPartition();
-            String tmpstr;
 
-            /* If current node is upgraded from 2.2.0.1 or earlier, the disk4 is /dev/sdd1
-             * and the config file is ovf-env.xml, we generate the configuration in xml format
-             * in this case.
-             */
-            if ( ovfenv_part.equals("/dev/sdd1")) {
-                tmpstr= genOvfEnvPropertyXMLString(ipinfo, nodeid, node_count);
-                log.info("ovf-env.xml={}", tmpstr);
-            }else {
-                tmpstr = PlatformUtils.genOvfenvPropertyKVString(ipinfo, nodeid, node_count);
-            }
-            buf.put(tmpstr.getBytes());
-            FileUtils.writePlainFile(ovfenv_part, data, ISO_HEADER_LENGTH);
+            Path path = Paths.get(isoFilePath);
+            byte[] data = Files.readAllBytes(path);
+            FileUtils.writePlainFile(ovfenv_part, data);
+            log.info("Succeed to apply the ip info : {} to ovfenv partition", ipinfo.toString());
         } catch (Exception e) {
-            log.error("Applying ip info to ovfenv partition failed with exception", e);
+            log.error("Applying ip info to ovfenv partition failed with exception: {}",
+                    e.getMessage());
+        } finally {
+            isoFile.delete();
         }
 
         if (bNewIp) {
@@ -160,58 +155,6 @@ public class Main {
             IpReconfigUtil.writeNodeStatusFile(IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK.toString());
             FileUtils.deleteFile(IpReconfigConstants.OLDIP_PATH);
         }
-    }
-
-    private static String genOvfEnvPropertyXMLString(ClusterIpInfo ipInfo, String nodeId, int nodeCount) {
-        Map<String, String> ipv4Settings = ipInfo.getIPv4Settings();
-        Map<String, String> ipv6Settings = ipInfo.getIPv6Settings();
-
-        StringBuilder builder = new StringBuilder();
-        //generate header
-        builder.append(String.format("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                "<Environment oe:id=\"%s\">\n" +
-                "   <PlatformSection>\n" +
-                "      <Kind>Commodity hardware</Kind>\n" +
-                "      <Version>No hypervisor</Version>\n" +
-                "   </PlatformSection>\n", nodeId));
-
-        //generate IPv4 settings in <PropertySection>
-        String propertySection = String.format("   <PropertySection>\n" +
-                        "    <Property oe:key=\"%s\" oe:value=\"%s\"/>\n" +
-                        "      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n" +
-                        "      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n" +
-                        "      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n",
-                PropertyConstants.NODE_COUNT_KEY, ipv4Settings.get(PropertyConstants.NODE_COUNT_KEY),
-                PropertyConstants.IPV4_VIP_KEY, ipv4Settings.get(PropertyConstants.IPV4_VIP_KEY),
-                PropertyConstants.IPV4_GATEWAY_KEY, ipv4Settings.get(PropertyConstants.IPV4_GATEWAY_KEY),
-                PropertyConstants.IPV4_NETMASK_KEY, ipv4Settings.get(PropertyConstants.IPV4_NETMASK_KEY));
-
-        for (int i=1; i<= nodeCount; i++ ) {
-            String key=String.format(PropertyConstants.IPV4_ADDR_KEY, i);
-            propertySection+=String.format("      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n", key, ipv4Settings.get(key));
-        }
-
-        //generate IPv6 settings in <PropertySection>
-        propertySection +=String.format(
-                        "      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n" +
-                        "      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n" +
-                        "      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n",
-                PropertyConstants.IPV6_VIP_KEY, ipv6Settings.get(PropertyConstants.IPV6_VIP_KEY),
-                PropertyConstants.IPV6_GATEWAY_KEY, ipv6Settings.get(PropertyConstants.IPV6_GATEWAY_KEY),
-                PropertyConstants.IPV6_PREFIX_KEY, ipv6Settings.get(PropertyConstants.IPV6_PREFIX_KEY));
-
-        for (int i=1; i<= nodeCount; i++ ) {
-            String key=String.format(PropertyConstants.IPV6_ADDR_KEY, i);
-            propertySection += String.format("      <Property oe:key=\"%s\" oe:value=\"%s\"/>\n", key, ipv6Settings.get(key));
-        }
-
-        propertySection += "  </PropertySection>\n";
-
-        for (int i = 0; i < nodeCount; i++) {
-            builder.append(propertySection);
-        }
-
-        return builder.toString();
     }
 
     /**

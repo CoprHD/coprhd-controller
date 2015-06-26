@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -80,7 +81,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         BlockObject blockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
 
         // validate srdf blockObjects.
-        validateUnManagedVolumeProperties(unManagedVolume, virtualArray, vPool);
+        validateUnManagedVolumeProperties(unManagedVolume, virtualArray, vPool, project);
         // Check if ingested volume has exportmasks pending for ingestion.
         if (isExportIngestionPending(blockObject, unManagedVolume.getId(), unManagedVolumeExported)) {
             return clazz.cast(blockObject);
@@ -154,8 +155,24 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
      * @param virtualPool
      */
     private void validateUnManagedVolumeProperties(UnManagedVolume unManagedVolume, VirtualArray virtualArray,
-            VirtualPool virtualPool) {
+            VirtualPool virtualPool, Project project) {
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+        URI rdfGroupId = getRDFGroupBasedOnPersonality(unManagedVolumeInformation);
+        // To make sure rdfGroup is populated for both R1 & R2 volumes.
+        if (null == rdfGroupId) {
+            _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {} as not able to find RDFGroup.",
+                    unManagedVolume.getNativeGuid());
+            throw IngestionException.exceptions.unmanagedVolumeRDFGroupMissing(unManagedVolume.getNativeGuid());
+        }
+        RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupId);
+        // Validate the project Name with the unmanaged volume rdfGroup name.
+        if (null == rdfGroup.getLabel() || !rdfGroup.getLabel().equalsIgnoreCase(project.getLabel())) {
+            _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {} due to mismatch in rdfgroup name",
+                    unManagedVolume.getNativeGuid());
+            throw IngestionException.exceptions.unmanagedVolumeRDFGroupMismatch(unManagedVolume.getNativeGuid(),
+                    rdfGroup.getLabel(), project.getLabel());
+        }
+        
         String type = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(), unManagedVolumeInformation);
         if (null == type) {
@@ -170,6 +187,53 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             validateTargetVolumeVpoolWithSourceVolume(unManagedVolume, virtualArray);
         }
 
+    }
+
+    /**
+     * Return the rdfGroupId based on the personality.
+     * For source volume, we will not have RDFGroup hence we should get it from its targets.
+     * 
+     * @param unManagedVolumeInformation
+     * @return
+     */
+    private URI getRDFGroupBasedOnPersonality(StringSetMap unManagedVolumeInformation) {
+        String type = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(), unManagedVolumeInformation);
+        URI rdfGroupId = null;
+        if (RemoteMirrorObject.Types.SOURCE.toString().equalsIgnoreCase(type)) {
+            StringSet targetUnManagedVolumeGuids = unManagedVolumeInformation.get(SupportedVolumeInformation.REMOTE_MIRRORS
+                    .toString());
+            if (null != targetUnManagedVolumeGuids && targetUnManagedVolumeGuids.size() > 0) {
+                StringSet targetVolumeNativeGuids = VolumeIngestionUtil.getListofVolumeIds(targetUnManagedVolumeGuids);
+                List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, _dbClient);
+                if (null == targetUris || targetUris.isEmpty()) {
+                    List<URI> unmanagedTargetVolumes = VolumeIngestionUtil.getUnManagedVolumeUris(targetUnManagedVolumeGuids, _dbClient);
+                    for (URI targetUmv : unmanagedTargetVolumes) {
+                        _logger.info("RDFGroup Found using unmanaged Target volume {}", targetUmv);
+                        UnManagedVolume umv = _dbClient.queryObject(UnManagedVolume.class, targetUmv);
+                        rdfGroupId = URI.create(PropertySetterUtil.extractValueFromStringSet(
+                                SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), umv.getVolumeInformation()));
+                        break;
+                    }
+                } else {
+                    // If targets are already ingested.
+                    List<Volume> targetVolumes = _dbClient.queryObject(Volume.class, targetUris);
+                    if (null != targetVolumes && !targetVolumes.isEmpty()) {
+                        for (Volume targetVolume : targetVolumes) {
+                            _logger.info("RDFGroup Found for using ingested Target volumes {}.", targetVolume.getNativeGuid());
+                            rdfGroupId = targetVolume.getSrdfGroup();
+                            break;
+                        }
+                    }
+                }
+            }
+            
+        } else if (RemoteMirrorObject.Types.TARGET.toString().equalsIgnoreCase(type)) {
+            rdfGroupId = URI.create(PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), unManagedVolumeInformation));
+        }
+        
+        return rdfGroupId;
     }
 
     /**

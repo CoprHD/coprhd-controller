@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.WBEMException;
 
@@ -421,8 +422,9 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
 
             final String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
             final CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
-            List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
-            if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
+            final CIMInstance groupSynchronizedInstance = _helper.checkExists(storage, groupSynchronized, false, false);
+            List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
+            if (groupSynchronizedInstance != null) {
                 // Check if the snapshot requires a copy-to-target. This is essentially
                 // the operation that would make the snapshot 'active', though it's
                 // different from the ViPR snapshot activate. The copy-to-target would
@@ -432,24 +434,28 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 if (snapshotObj.getNeedsCopyToTarget()) {
                     _log.info("Consistency group {} snapshots require copy-to-target",
                             consistencyGroupName);
-                    snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
                     List<URI> snapshotList = new ArrayList<URI>();
                     for(BlockSnapshot snapshot : snapshots) {
                         snapshotList.add(snapshot.getId());
                     }
                     internalGroupSnapCopyToTarget(storage, snapshotObj, snapshotList);
                 }
-            	// Deactivate Synchronization
-            	CIMArgument[] deactivateGroupInput = _helper.getDeactivateSnapshotSynchronousInputArguments(groupSynchronized);
-                CIMArgument[] outArgs = new CIMArgument[5];
-                _helper.callModifyReplica(storage, deactivateGroupInput, outArgs);
+                CIMObjectPath settingsPathFromOutputArg = null;
+            	// Deactivate Synchronization if not already deactivated
+                String copyState = groupSynchronizedInstance.getPropertyValue(SmisConstants.CP_COPY_STATE).toString();
+                if (!String.valueOf(SmisConstants.INACTIVE_VALUE).equalsIgnoreCase(copyState)) {
+                    CIMArgument[] deactivateGroupInput = _helper.getDeactivateSnapshotSynchronousInputArguments(groupSynchronized);
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    _helper.callModifyReplica(storage, deactivateGroupInput, outArgs);
+                    settingsPathFromOutputArg = (CIMObjectPath) outArgs[0].getValue();
+                }
                 
                 final boolean isSynchronizationAspectSet = snapshotObj.getSettingsGroupInstance() != null;
                 
                 // Get the Clar_SettingsDefineState_RG_SAFS path
 				final CIMObjectPath settingsPath = isSynchronizationAspectSet ? 
 						_helper.getSettingsDefineStateForSourceGroup(storage, snapshotObj.getSettingsGroupInstance()): 
-						(CIMObjectPath) outArgs[0].getValue();
+						settingsPathFromOutputArg;
                
                 // If the Clar_SynchronizationAspectForSourceGroup hasn't been set in the snapshots, then set it.
                 if(!isSynchronizationAspectSet){

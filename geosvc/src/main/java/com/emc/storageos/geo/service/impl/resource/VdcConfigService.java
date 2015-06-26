@@ -153,14 +153,23 @@ public class VdcConfigService {
         hasData |= hasDataService();
 
         log.info("Checking software version ...");
-        SoftwareVersion softVer;
+        SoftwareVersion remoteSoftVer = null;
+
         try {
-            softVer = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
-            log.info("Software version of current vdc: {}", softVer.toString());
+            remoteSoftVer = new SoftwareVersion(checkParam.getSoftwareVersion());
+            log.info("Software version of remote vdc: {}", remoteSoftVer);
         } catch (Exception e) {
+            log.info("Cannot get software version from checkParam, the version of remote vdc is lower than v2.3 with exception {}", e.getMessage());
+        }
+
+        SoftwareVersion localSoftVer;
+        try {
+            localSoftVer = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+        } catch (Exception ex) {
             throw GeoException.fatals.remoteVDCFailedToGetVersion(vdc.getId());
         }
-        return toVirtualDataCenterResponse(vdc, hasData, softVer);
+
+        return toVirtualDataCenterResponse(vdc, hasData, remoteSoftVer, localSoftVer);
     }
 
     /**
@@ -644,7 +653,7 @@ public class VdcConfigService {
         return to;
     }
 
-    private VdcPreCheckResponse toVirtualDataCenterResponse(VirtualDataCenter from, boolean hasData, SoftwareVersion softVer) {
+    private VdcPreCheckResponse toVirtualDataCenterResponse(VirtualDataCenter from, boolean hasData, SoftwareVersion remoteSoftVer, SoftwareVersion localSoftVer) {
         if (from == null) {
             return null;
         }
@@ -664,8 +673,12 @@ public class VdcConfigService {
         to.setApiEndpoint(from.getApiEndpoint());
         to.setSecretKey(from.getSecretKey());
         to.setHasData(hasData);
-        to.setSoftwareVersion(softVer.toString());
-        to.setCompatible(helper.isCompatibleVersion(softVer));
+        to.setSoftwareVersion(localSoftVer.toString());
+        boolean compatible = false;
+        if (remoteSoftVer != null) {
+            compatible = helper.isCompatibleVersion(remoteSoftVer);
+        }
+        to.setCompatible(compatible);
         boolean clusterStable = isClusterStable();
         to.setClusterStable(clusterStable);
         log.info("current cluster stable {}",clusterStable );

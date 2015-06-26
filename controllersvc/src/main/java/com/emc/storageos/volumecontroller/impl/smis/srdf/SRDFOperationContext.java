@@ -71,7 +71,7 @@ public class SRDFOperationContext {
         }
     }
 
-    public void perform() throws WBEMException {
+    public void perform() throws Exception {
         // Find the provider to make SMI-S calls to.
         StorageSystem provider = providerFinder.find();
 

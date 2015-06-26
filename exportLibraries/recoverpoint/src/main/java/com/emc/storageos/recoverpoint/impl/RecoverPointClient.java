@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1183,20 +1182,25 @@ public class RecoverPointClient {
         if (null == mgmtIPAddress) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
+        
         Set<String>wwnSet = request.getVolumeWWNSet();
         if (wwnSet == null) {
             throw RecoverPointException.exceptions.noWWNsFoundInRequest();
         }
+        
         Set<String> unmappedWWNs = new HashSet<String>();
         RecoverPointBookmarkManagementUtils bookmarkManager = new RecoverPointBookmarkManagementUtils();
         Map<String, RPConsistencyGroup> rpCGMap = bookmarkManager.mapCGsForWWNs(functionalAPI, request, unmappedWWNs);
-        if(!unmappedWWNs.isEmpty()) {
+        
+        if (!unmappedWWNs.isEmpty()) {
             throw RecoverPointException.exceptions.couldNotMapWWNsToAGroup(unmappedWWNs);
         }
+        
         if (rpCGMap == null) {
             throw RecoverPointException.exceptions.couldNotMapWWNsToAGroup(wwnSet);
         }
-        return bookmarkManager.createCGBookmarks (functionalAPI, rpCGMap, request);
+        
+        return bookmarkManager.createCGBookmarks(functionalAPI, rpCGMap, request);
     }
 
     private Quantity getQuantity(QuantityType type, long value) {
@@ -1938,6 +1942,20 @@ public class RecoverPointClient {
         
         // Set the failover copy as production to resume data flow
         imageManager.setCopyAsProduction(functionalAPI, cgCopyUID);
+        
+        // wait for links to become active
+        ConsistencyGroupUID cgUID = cgCopyUID.getGroupUID();
+        String cgName = null;
+        try {
+            cgName = functionalAPI.getGroupName(cgUID);
+        } catch (FunctionalAPIActionFailedException_Exception | FunctionalAPIInternalError_Exception e) {
+            // benign error -- cgName is only used for logging
+            logger.error(e.getMessage(), e);
+        }
+        
+        logger.info("Waiting for links to become active for CG " + (cgName==null?"unknown CG name":cgName));
+        (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
+        logger.info(String.format("Replication sets have been added to consistency group %s.", (cgName==null?"unknown CG name":cgName)));
 	}
 
     /**
@@ -2340,8 +2358,8 @@ public class RecoverPointClient {
             throw RecoverPointException.exceptions.failedToGetStatistics(e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToGetStatistics(e);
-        } catch (Throwable t) {
-            throw RecoverPointException.exceptions.failedToGetStatistics(t);
+        } catch (Exception e) {
+            throw RecoverPointException.exceptions.failedToGetStatistics(e);
         }
     }
 
@@ -2702,8 +2720,10 @@ public class RecoverPointClient {
         copySettingsParam.setProductionCopy(isProduction);
         copySettingsParam.setTransferEnabled(false); 
         
-        logger.info("Validate and add Production copy: " + copyParams.toString());
-        functionalAPI.validateAddConsistencyGroupCopy(copySettingsParam);;
+        // we can't call validateAddConsistencyGroupCopy here because during a swap operation, it throws an exception
+        // which is just a warning that a full sweep will be required. There didn't seem to be a way to catch
+        // just the warning and let other errors propegate as errors.
+        logger.info("Add Production copy (no validation): " + copyParams.toString());
         functionalAPI.addConsistencyGroupCopy(copySettingsParam);
         
         // add journals

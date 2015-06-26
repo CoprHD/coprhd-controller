@@ -680,7 +680,8 @@ public class VolumeIngestionUtil {
 	 * 
 	 * @return true if the unmanaged volume can be ingested into the varray, false otherwise.
 	 */
-	public static boolean isValidVarrayForUnmanagedVolume(UnManagedVolume unmanagedVolume, URI varrayURI, DbClient dbClient) {
+	public static boolean isValidVarrayForUnmanagedVolume(UnManagedVolume unmanagedVolume, URI varrayURI, 
+	        Map<String, String> clusterIdToNameMap, Map<String, String> varrayToClusterIdMap, DbClient dbClient) {
 	    if (isVplexVolume(unmanagedVolume)) {
 	        StringSet unmanagedVolumeClusters = unmanagedVolume.getVolumeInformation().get(SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
 	        if (unmanagedVolumeClusters == null) {
@@ -688,14 +689,26 @@ public class VolumeIngestionUtil {
 	            return false;
 	        }
 	        
-	        String varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayURI, unmanagedVolume.getStorageSystemUri(), dbClient);
+	        String varrayClusterId = varrayToClusterIdMap.get(varrayURI.toString());
+	        if (null == varrayClusterId) {
+                varrayClusterId = ConnectivityUtil.getVplexClusterForVarray(varrayURI, unmanagedVolume.getStorageSystemUri(), dbClient);
+                varrayToClusterIdMap.put(varrayURI.toString(), varrayClusterId);
+                _logger.debug("added {} to varrayToClusterIdMap cache", varrayClusterId);
+	        }
+	                
 	        if (varrayClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
                 _logger.info("Virtual array {} is not associated with either cluster of VPLEX {}", varrayURI, null);
                 return false;
 	        }
 	        
-            String varrayClusterName = VPlexControllerUtils.getClusterNameForId(
-                    varrayClusterId, unmanagedVolume.getStorageSystemUri(), dbClient);
+            String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
+            if (null == varrayClusterName) {
+                varrayClusterName = VPlexControllerUtils.getClusterNameForId(
+                        varrayClusterId, unmanagedVolume.getStorageSystemUri(), dbClient);
+                clusterIdToNameMap.put(varrayClusterId, varrayClusterName);
+                _logger.debug("added {} to clusterIdToNameMap cache", varrayClusterName);
+            }
+                    
             if (null == varrayClusterName) {
                 _logger.info("Unmanaged VPLEX volume {} cannot be ingested; "
                         + "couldn't find VPLEX cluster name for id {}", unmanagedVolume.getLabel(), varrayClusterId);

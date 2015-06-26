@@ -84,6 +84,8 @@ public class VMAXPolicyToTierProcessor extends AbstractFASTPolicyProcessor {
                 CIMObjectPath tierPath = vmaxTierInstance.getObjectPath();
                 String tierID = tierPath.getKey(Constants.INSTANCEID).getValue()
                         .toString();
+                //For 8.x -+- becomes +, internal DB format uses + only; for 4.6 remains as it is
+                tierID = tierID.replaceAll(Constants.SMIS_80_STYLE, Constants.SMIS_PLUS_REGEX);
                 if (keyMap.containsKey(tierID)) {
                     List<CIMObjectPath> policyPaths =  (List<CIMObjectPath>) keyMap.get(tierID);
                     policyPaths.add(vmaxFastPolicyRule);
@@ -92,7 +94,7 @@ public class VMAXPolicyToTierProcessor extends AbstractFASTPolicyProcessor {
                     addPath(keyMap, Constants.STORAGETIERS, tierPath);
                     List<CIMObjectPath> policyPaths = new ArrayList<CIMObjectPath>();
                     policyPaths.add(vmaxFastPolicyRule);
-                    keyMap.put(tierID.replaceAll(Constants.SMIS_80_STYLE, Constants.SMIS_PLUS_REGEX), policyPaths);
+                    keyMap.put(tierID, policyPaths);
                 }
                 String tierNativeGuid = getTierNativeGuidForVMax(tierID);
                 tierNativeGuidsfromProvider.add(tierNativeGuid);

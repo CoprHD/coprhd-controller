@@ -153,6 +153,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         long millisToSleep = coming.getTime() - System.currentTimeMillis();
+        log.info("schedule next backup run at {}", coming);
         this.scheduledTask = this.service.schedule((Runnable)this, millisToSleep, TimeUnit.MILLISECONDS);
     }
 
@@ -178,7 +179,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         }
 
         //Will retry every 5 min if schedule next run fail
-        while (true) {
+        while (isLeader && !service.isShutdown()) {
             try {
                 scheduleNextRun();
                 break;
@@ -251,19 +252,19 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         this.backupService.collectData(files, new SkipOutputStream(uploadStream, offset));
     }
 
-    public int getNodeMask(BackupFileSet files) {
+    public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
         Set<String> nodeNames = this.coordinatorClient.getInetAddessLookupMap().getControllerNodeIPLookupMap().keySet();
         String[] allNodes = nodeNames.toArray(new String[nodeNames.size()]);
         Arrays.sort(allNodes);
-        int nodeMask = 0;
+        int backupNodeCount = 0;
         for (int i = 0; i < allNodes.length; i++) {
             if (availableNodes.contains(allNodes[i])) {
-                nodeMask |= 1 << i;
+            	backupNodeCount++;
             }
         }
 
-        return nodeMask;
+        return ScheduledBackupTag.toZipFileName(tag, nodeNames.size(), backupNodeCount);
     }
 
     public List<String> getDescParams(final String tag){
@@ -325,8 +326,10 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         protected void startLeadership() throws Exception {
             log.info("This node is selected as backup leader, starting Backup Scheduler");
 
+            isLeader = true;
+            
             service = new NamedScheduledThreadPoolExecutor("BackupScheduler", 1);
-
+            ((NamedScheduledThreadPoolExecutor)service).setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
             service.schedule((Callable<Object>)BackupScheduler.this, 0L, TimeUnit.MICROSECONDS);
         }
 
@@ -334,6 +337,8 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         protected void stopLeadership() {
             log.info("give up leader, stop backup scheduler");
 
+            isLeader = false;
+            
             // Stop scheduler thread
             service.shutdown();
             try {

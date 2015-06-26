@@ -33,7 +33,6 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.BlockObjectMultipleConsistencyGroupsMigration;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 import org.junit.BeforeClass;
@@ -72,6 +71,13 @@ import org.junit.Assert;
  * 
  * This class tests the following migration callback classes:
  * - BlockObjectMultipleConsistencyGroupsMigration
+ * 
+ * ****************************************************************************
+ * 
+ * NOTE: to run this multiple time, delete the folder "dbtest" under dbsvc
+ * 
+ * ****************************************************************************
+ * 
  */
 public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(BlockObjectMultipleConsistencyGroupsMigrationTest.class);
@@ -89,6 +95,8 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
     
     // Used for RP result verification
     private static URI rpConsistencyGroupURI = null; 
+    private static URI rpConsistencyGroupURI2 = null;
+    private static URI rpConsistencyGroupURI3 = null;
     private static List<URI> rpVolumeURIs = new ArrayList<URI>();
     
     // Used for Local Array result verification
@@ -108,13 +116,15 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
     private URI projectURI = null;
     private URI protectionSystemURI = null;
     
+    private URI staleProtectionSetURI = null;
+    private URI staleProtectionSetURI2 = null;
+    private StringSet staleProtectionSetVolumeURIs = new StringSet();
+    
     @BeforeClass
     public static void setup() throws IOException {
         customMigrationCallbacks.put("2.1", new ArrayList<BaseCustomMigrationCallback>() {{
             add(new BlockObjectMultipleConsistencyGroupsMigration());
         }});
-
-        DbsvcTestBase.setup();
     }
 
     @Override
@@ -138,6 +148,9 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         prepareLocalArrayConsistencyGroupData();
         prepareBlockSnapshotData("blockSnapshot", 10);
         prepareBlockMirrorData("blockMirror", 10);
+        prepareProtectionSetWithAllStaleVolumes();
+        prepareRPConsistencyGroupDataWithDuplicates();
+        prepareRPConsistencyGroupDataWithStaleVolumes();
     }
 
     @Override
@@ -149,6 +162,9 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         verifyBlockSnapshotMigration();
         verifyBlockMirrorMigration();
         verifyEmptyConsistencyGroupMigration();
+        verifyStaleProtectionSet();
+        verifyProtectionSetWith2StaleVolumes();
+        verifyRpConsistencyGroupWithDuplicatesMigration();
     }
     
     /**
@@ -189,7 +205,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         String cg1Name = "rpVplexCg";
         // Create the primary RecoverPoint BlockConsistencyGroup that will be shared by all the 
         // RP+VPlex volumes.
-        BlockConsistencyGroup rpVplexCg = createBlockConsistencyGroup(cg1Name, null, Types.RP.name());
+        BlockConsistencyGroup rpVplexCg = createBlockConsistencyGroup(cg1Name, null, Types.RP.name(), true);
         // Save the CG references for migration verification.
         rpVplexPrimaryConsistencyGroupURI = rpVplexCg.getId();
         
@@ -207,6 +223,29 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
     }
     
     /**
+     * Prepares a ProtectionSet with volume references to volumes that do not
+     * exist in the DB.
+     * @throws Exception
+     */
+    private void prepareProtectionSetWithAllStaleVolumes() throws Exception {
+        String cgName = "staleVolumeTest";
+        ProtectionSet protectionSet = createProtectionSet(cgName, projectURI);
+        staleProtectionSetURI = protectionSet.getId();
+        
+        URI volumeURI1 = URIUtil.createId(Volume.class);
+        URI volumeURI2 = URIUtil.createId(Volume.class);
+        URI volumeURI3 = URIUtil.createId(Volume.class);
+        
+        StringSet volumes = new StringSet();
+        volumes.add(volumeURI1.toString());
+        volumes.add(volumeURI2.toString());
+        volumes.add(volumeURI3.toString());
+        
+        protectionSet.setVolumes(volumes);
+        _dbClient.persistObject(protectionSet);
+    }
+    
+    /**
      * Prepare the RecoverPoint only volumes and associated consistency group data.
      * @throws Exception
      */
@@ -214,21 +253,135 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         String cg2Name = "rpCg";
         // Create the RecoverPoint BlockConsistencyGroup that will be shared by all the 
         // RP volumes.
-        BlockConsistencyGroup rpCg = createBlockConsistencyGroup(cg2Name, null, Types.RP.name());
+        BlockConsistencyGroup rpCg = createBlockConsistencyGroup(cg2Name, null, Types.RP.name(), true);
         // Save the CG references for migration verification.
         rpConsistencyGroupURI = rpCg.getId();
         
-        // Create the ProtectionSet that the RP volumes will belong to. 
-        ProtectionSet cg2ps = createProtectionSet("rpCgProtectionSet", projectURI);
+        // create a protection set and volumes and add them to the CG
+        addProtectionSetAndVolumes(rpCg, "rpCg", 0);
+        
+    }
+    
+    /**
+     * Prepare the RecoverPoint only volumes and associated consistency group data.
+     * @throws Exception
+     */
+    private void prepareRPConsistencyGroupDataWithDuplicates() throws Exception {
+        String cg2Name = "rpCg3";
+        // Create the RecoverPoint BlockConsistencyGroup that will be shared by all the 
+        // RP volumes.
+        BlockConsistencyGroup rpCg = createBlockConsistencyGroup(cg2Name, null, Types.RP.name(), true);
+        // Save the CG references for migration verification.
+        rpConsistencyGroupURI3 = rpCg.getId();
+        
+        // create a protection set and volumes and add them to the CG
+        addProtectionSetAndVolumes(rpCg, "ps-dup", 3);
+        
+        // create a protection set and volumes and add them to the CG
+        addProtectionSetAndVolumes(rpCg, "ps-dup", 3);
+        
+        // same volume in two protection sets
+        // Create the ProtectionSet that the RP volumes will belong to.
+        String prefix = "ps-dup2-";
+        ProtectionSet cg2ps1 = createProtectionSet(prefix+"ProtectionSet", projectURI);
+        ProtectionSet cg2ps2 = createProtectionSet(prefix+"ProtectionSet", projectURI);
         
         // Create all the RP volumes
-        List<Volume> rpCgVolumes = createRpVolumes("rpCgVolumeA", 2, cg2ps, false);
-        rpCgVolumes.addAll(createRpVolumes("rpCgVolumeB", 2, cg2ps, false));
+        List<Volume> rpCgVolumes = createRpVolumes(prefix+"VolumeA", 1, cg2ps1, false);
+        
+        // Add the RP volumes to the RP consistency group
+        addVolumesToBlockConsistencyGroup(rpCg.getId(), rpCgVolumes);
+        // Add the RP volumes to the protection set
+        addVolumesToProtectionSet(cg2ps1.getId(), rpCgVolumes);
+        addVolumesToProtectionSet(cg2ps2.getId(), rpCgVolumes);
+        
+    }
+    
+    /**
+     * creates snapshot objects
+     * @param numSnapshots
+     * @param volume
+     * @param name snapshot name
+     */
+    public void addSnapshots(int numSnapshots, Volume volume, BlockConsistencyGroup cg, ProtectionSet ps, String name) {
+        for (int i = 1; i <= numSnapshots; i++) {
+            BlockSnapshot blockSnapshot = new BlockSnapshot();
+            URI blockSnapshotURI = URIUtil.createId(BlockSnapshot.class);
+            blockSnapshotURIs.add(blockSnapshotURI);
+            blockSnapshot.setId(blockSnapshotURI);
+            blockSnapshot.setLabel(name + i);
+            blockSnapshot.setSnapsetLabel(name + i);
+            blockSnapshot.setParent(new NamedURI(volume.getId(), name + i));
+            blockSnapshot.addConsistencyGroup(cg.getId().toString());
+            blockSnapshot.setProtectionSet(ps.getId());
+            _dbClient.createObject(blockSnapshot);
+        }
+        
+    }
+    
+    /**
+     * adds new protection set with volumes to a CG; it's intentional that the protection set name is 
+     * not unique
+     * @param rpCg
+     * @param prefix
+     * @throws Exception
+     */
+    private void addProtectionSetAndVolumes(BlockConsistencyGroup rpCg, String prefix, int numberOfSnaps) throws Exception {
+        // Create the ProtectionSet that the RP volumes will belong to. 
+        ProtectionSet cg2ps = createProtectionSet(prefix+"ProtectionSet", projectURI);
+        
+        // Create all the RP volumes
+        List<Volume> rpCgVolumes = createRpVolumes(prefix+"VolumeA", 2, cg2ps, false);
+        rpCgVolumes.addAll(createRpVolumes(prefix+"VolumeB", 2, cg2ps, false));
         
         // Add the RP volumes to the RP consistency group
         addVolumesToBlockConsistencyGroup(rpCg.getId(), rpCgVolumes);
         // Add the RP volumes to the protection set
         addVolumesToProtectionSet(cg2ps.getId(), rpCgVolumes);
+        
+        // add some snapshots
+        addSnapshots(numberOfSnaps, rpCgVolumes.iterator().next(), rpCg, cg2ps, prefix+"SnapVolmeA");
+        
+    }
+    
+    /**
+     * Prepare the RecoverPoint only volumes and associated consistency group data.
+     * @throws Exception
+     */
+    private void prepareRPConsistencyGroupDataWithStaleVolumes() throws Exception {
+        String cg2Name = "rpCg2";
+        // Create the RecoverPoint BlockConsistencyGroup that will be shared by all the 
+        // RP volumes.
+        BlockConsistencyGroup rpCg = createBlockConsistencyGroup(cg2Name, null, Types.RP.name(), true);
+        // Save the CG references for migration verification.
+        rpConsistencyGroupURI2 = rpCg.getId();
+        
+        // Create the ProtectionSet that the RP volumes will belong to. 
+        ProtectionSet cg2ps = createProtectionSet("rpCg2ProtectionSet", projectURI);
+        
+        // Create all the RP volumes
+        List<Volume> rpCg2Volumes = createRpVolumes("rpCg2VolumeA", 2, cg2ps, false);
+        rpCg2Volumes.addAll(createRpVolumes("rpCg2VolumeB", 2, cg2ps, false));
+        
+        // Add the RP volumes to the RP consistency group
+        addVolumesToBlockConsistencyGroup(rpCg.getId(), rpCg2Volumes);
+        // Add the RP volumes to the protection set
+        addVolumesToProtectionSet(cg2ps.getId(), rpCg2Volumes);
+        
+        // Add stale volume references
+        URI staleVolumeURI1 = URIUtil.createId(Volume.class);
+        URI staleVolumeURI2 = URIUtil.createId(Volume.class);
+        
+        ProtectionSet ps = _dbClient.queryObject(ProtectionSet.class, cg2ps.getId());
+        StringSet vols = ps.getVolumes();
+        vols.add(staleVolumeURI1.toString());
+        vols.add(staleVolumeURI2.toString());
+        
+        staleProtectionSetURI2 = cg2ps.getId();
+        staleProtectionSetVolumeURIs.add(staleVolumeURI1.toString());
+        staleProtectionSetVolumeURIs.add(staleVolumeURI2.toString());
+        
+        _dbClient.persistObject(ps);
     }
     
     /**
@@ -241,7 +394,8 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         
         // Create the VPlex volumes and add them to the VPlex consistency group
         List<Volume> vplexVolumes = createVPlexVolumes("vplexVolume", 3, storageSystem.getId());
-        BlockConsistencyGroup vplexCg = createBlockConsistencyGroup("vplexCg", storageSystem.getId(), Types.VPLEX.name());
+        // Prior to 2.2, VPlex only CGs (nothing to do with RP) did not set the CG type of VPLEX.  So we pass false here.
+        BlockConsistencyGroup vplexCg = createBlockConsistencyGroup("vplexCg", storageSystem.getId(), Types.VPLEX.name(), false);
         // Save a references to the cg for migration verification
         vplexConsistencyGroupURI = vplexCg.getId();
         // Add the VPlex volumes to the VPlex consistency group
@@ -258,7 +412,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         // Create the block volumes that will be part of the cg
         List<Volume> blockVolumes = createBlockVolumes("blockVolume", 3, storageSystem.getId());
         // Create the consistency group and add the block volumes
-        BlockConsistencyGroup localArrayCg = createBlockConsistencyGroup("localArrayCg", storageSystem.getId(), Types.LOCAL.name());
+        BlockConsistencyGroup localArrayCg = createBlockConsistencyGroup("localArrayCg", storageSystem.getId(), Types.LOCAL.name(), true);
         localArrayConsistencyGroupURI = localArrayCg.getId();
         addVolumesToBlockConsistencyGroup(localArrayCg.getId(), blockVolumes);
     }
@@ -280,7 +434,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         String volName = "blockSnapshotVolume";
         volume.setLabel(volName);
         BlockConsistencyGroup cg = 
-                createBlockConsistencyGroup("blockSnapshotConsistencyGroup", storageSystem.getId(), Types.LOCAL.name());
+                createBlockConsistencyGroup("blockSnapshotConsistencyGroup", storageSystem.getId(), Types.LOCAL.name(), true);
         volume.setConsistencyGroup(cg.getId());
         _dbClient.createObject(volume);
 
@@ -305,7 +459,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
      */
     private void prepareBlockMirrorData(String name, int numBlockMirrors) throws Exception {
         BlockConsistencyGroup cg = 
-                createBlockConsistencyGroup("blockMirrorConsistencyGroup", null, Types.LOCAL.name());
+                createBlockConsistencyGroup("blockMirrorConsistencyGroup", null, Types.LOCAL.name(), true);
         
         for (int i = 1; i <= numBlockMirrors; i++) {
             BlockMirror blockMirror = new BlockMirror();
@@ -384,7 +538,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
      * @param name
      * @return
      */
-    private BlockConsistencyGroup createBlockConsistencyGroup(String name, URI storageSystem, String type) {
+    private BlockConsistencyGroup createBlockConsistencyGroup(String name, URI storageSystem, String type, boolean setType) {
         BlockConsistencyGroup cg = new BlockConsistencyGroup();
         URI cgURI = URIUtil.createId(BlockConsistencyGroup.class);
         cg.setId(cgURI);
@@ -394,20 +548,21 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
         if (type.equals(Types.LOCAL.name())) {
             // Set the 'old' field value so it can be migrated
             cg.setDeviceName("localArrayDeviceName");
-            cg.setType(type);
         } else if (type.equals(Types.VPLEX.name())) {
             // Set the 'old' field value so it can be migrated
-            // Note VPLEX CGs did not set type prior to 2.2.
             cg.setDeviceName("vplexDeviceName");
         } else if (type.equals(Types.RP.name())) {
             // Set the 'old' field value so it can be migrated.
             cg.setDeviceName("rpDeviceName");
-            cg.setType(type);
         } else if (type.equals(Types.SRDF.name())) {
             // Set the 'old' field value so it can be migrated
             cg.setDeviceName("srdfDeviceName");
+        }
+       
+        if (setType) {
             cg.setType(type);
         }
+        
         // Set the 'old' field value so it can be migrated
         _dbClient.createObject(cg);
         return cg;
@@ -515,7 +670,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
             sourceVolume.setNativeId("/clusters/cluster-1/virtual-volumes/device_V000195701573-01E7A_vol");
             // Create a VPLEX ViPR BlockConsistencyGroup for the source volume
             BlockConsistencyGroup sourceVolumeCg = 
-                    createBlockConsistencyGroup(sourceVolume.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name());
+                    createBlockConsistencyGroup(sourceVolume.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name(), true);
             addVolumeToBlockConsistencyGroup(sourceVolumeCg.getId(), sourceVolume);
             rpVplexVolumeToCgMapping.put(sourceVolumeURI, sourceVolumeCg.getId());
         } else {
@@ -536,7 +691,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
             sourceVolumeJournal.setNativeId("/clusters/cluster-1/virtual-volumes/device_V000195701573-01E7B_vol");
             // Create a VPLEX ViPR BlockConsistencyGroup for the source journal volume
             BlockConsistencyGroup sourceVolumeJournalCg = 
-                    createBlockConsistencyGroup(sourceVolumeJournal.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name());
+                    createBlockConsistencyGroup(sourceVolumeJournal.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name(), true);
             addVolumeToBlockConsistencyGroup(sourceVolumeJournalCg.getId(), sourceVolumeJournal);
             rpVplexVolumeToCgMapping.put(sourceVolumeJournalURI, sourceVolumeJournalCg.getId());
         } else {
@@ -559,7 +714,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
                 sourceVolumeTarget.setNativeId("/clusters/cluster-2/virtual-volumes/device_V000195701573-01E7C_vol" + i);
                 // Create a VPLEX ViPR BlockConsistencyGroup for the target volume
                 BlockConsistencyGroup sourceVolumeTargetCg = 
-                        createBlockConsistencyGroup(sourceVolumeTarget.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name());
+                        createBlockConsistencyGroup(sourceVolumeTarget.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name(), true);
                 addVolumeToBlockConsistencyGroup(sourceVolumeTargetCg.getId(), sourceVolumeTarget);
                 rpVplexVolumeToCgMapping.put(sourceVolumeTargetURI, sourceVolumeTargetCg.getId());
             } else {
@@ -581,7 +736,7 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
                 sourceVolumeTargetJournal.setNativeId("/clusters/cluster-2/virtual-volumes/device_V000195701573-01ED_vol" + i);
                 // Create a VPLEX ViPR BlockConsistencyGroup for the source target journal volume
                 BlockConsistencyGroup sourceVolumeTargetJournalCg = 
-                        createBlockConsistencyGroup(sourceVolumeTargetJournal.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name());
+                        createBlockConsistencyGroup(sourceVolumeTargetJournal.getLabel() + "-CG", storageSystem.getId(), Types.VPLEX.name(), true);
                 addVolumeToBlockConsistencyGroup(sourceVolumeTargetJournalCg.getId(), sourceVolumeTargetJournal);
                 rpVplexVolumeToCgMapping.put(sourceVolumeTargetJournalURI, sourceVolumeTargetJournalCg.getId());
             } else {
@@ -741,6 +896,74 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
     }
     
     /**
+     * Verify the RP consistency group and its volumes have been properly migrated.
+     * @throws Exception
+     */
+    private void verifyRpConsistencyGroupWithDuplicatesMigration() throws Exception {
+        log.info("Verifying duplicate protection sets were cleaned up.");
+        
+        List<URI> protSetIds = _dbClient.queryByType(ProtectionSet.class, true);
+        
+        List<String> protSetNames = new ArrayList<String>();
+        for (URI id : protSetIds) {
+            ProtectionSet protSet = _dbClient.queryObject(ProtectionSet.class, id);
+            if (protSet == null || protSet.getInactive()) {
+                continue;
+            }
+            if (protSetNames.contains(protSet.getLabel())) {
+                // fail duplicate protection set
+                Assert.fail("Duplicate protection sets exist after migration " + protSet.getLabel());
+            } else {
+                protSetNames.add(protSet.getLabel());
+                
+                // verify that there are no duplicates or stale volumes on the volume list
+                List<String> volumeIds = new ArrayList<String>();
+                for (String volId : protSet.getVolumes()) {
+                    Volume vol = _dbClient.queryObject(Volume.class, URI.create(volId));
+                    if (vol == null || vol.getInactive()) {
+                        // fail stale volume on protection set
+                        Assert.fail(String.format("Stale volume %s exists on protection set %s exist after migration", volId, protSet.getLabel()));
+                    } else if (volumeIds.contains(volId)){
+                        // fail duplicate volume on protection set
+                        Assert.fail(String.format("Duplicate volume %s exists on protection set %s exist after migration", volId, protSet.getLabel()));
+                    } else if (vol.getProtectionSet() == null || vol.getProtectionSet().getURI() == null || !vol.getProtectionSet().getURI().equals(protSet.getId())) {
+                        // fail volume does not point back to protection set
+                        Assert.fail(String.format("Volume %s does not point back to protection set %s exist after migration", volId, protSet.getLabel()));
+                    } else {
+                        volumeIds.add(volId);
+                    }
+                }
+            }
+        }
+        
+        // make sure there are no dangling protection sets on volumes
+        List<URI> volumes = _dbClient.queryByType(Volume.class, true);
+        for (URI id : volumes) {
+            Volume vol = _dbClient.queryObject(Volume.class, id);
+            if (vol.getProtectionSet() != null && vol.getProtectionSet().getURI() != null) {
+                ProtectionSet protSet = _dbClient.queryObject(ProtectionSet.class, vol.getProtectionSet().getURI());
+                if (protSet == null || protSet.getInactive()) {
+                    // fail dangling protection set
+                    Assert.fail(String.format("Stale protection set %s on volume %s exists after migration", vol.getProtectionSet().getURI(), id));
+                }
+            }
+        }
+        
+        // make sure there are no dangling protection sets on snapshots
+        List<URI> snapshots = _dbClient.queryByType(BlockSnapshot.class, true);
+        for (URI id : snapshots) {
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, id);
+            if (snapshot.getProtectionSet() != null) {
+                ProtectionSet protSet = _dbClient.queryObject(ProtectionSet.class, snapshot.getProtectionSet());
+                if (protSet == null || protSet.getInactive()) {
+                    // fail dangling protection set
+                    Assert.fail(String.format("Stale protection set %s on snapshot %s exists after migration", snapshot.getProtectionSet(), id));
+                }
+            }
+        }
+    }
+    
+    /**
      * Verify the local array consistency group and its volumes have been properly
      * migrated.
      * @throws Exception
@@ -812,8 +1035,9 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
     private void verifyConsistencyGroupMigration(BlockConsistencyGroup consistencyGroup, String... types) throws Exception {
         log.info("Verifying BlockConsistencyGroup migration for " + consistencyGroup.getLabel());
         
-        // Verify that the primary CG now has the VPlex type added to its types list is null
-        Assert.assertTrue("The local array BlockConsistencyGroup.type field should be null.", 
+        // Verify that the primary CG now has the VPlex type added to its types list is and that 
+        // the type field null
+        Assert.assertTrue("The BlockConsistencyGroup.type field should be null.", 
                 consistencyGroup.getType().equals(NullColumnValueGetter.getNullStr()));
         
         for (String type : types) {
@@ -843,6 +1067,27 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
             Assert.assertNotNull("BlockObject.consistencyGroup field should not be null.", 
                     blockObject.getConsistencyGroup());
         }   
+    }
+    
+    /**
+     * Verifies that ProtectionSets referencing all stale volumes get removed from the DB.
+     */
+    private void verifyStaleProtectionSet() {
+        ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, staleProtectionSetURI);
+        Assert.assertTrue("ProtectionSet  " + staleProtectionSetURI + " is stale and should have been removed.",
+                (protectionSet == null || protectionSet.getInactive()));
+    }
+    
+    /**
+     * Verifies that stale volumes have been removed from the ProtectionSet.
+     */
+    private void verifyProtectionSetWith2StaleVolumes() {
+        ProtectionSet protectionSet = _dbClient.queryObject(ProtectionSet.class, staleProtectionSetURI2);
+        StringSet psVolumes = protectionSet.getVolumes();
+        for (String staleVolume : staleProtectionSetVolumeURIs) {
+            // verify the stale volumes were removed
+            Assert.assertFalse("ProtectionSet " + staleProtectionSetURI2 + " should not contain stale volume " + staleVolume, psVolumes.contains(staleVolume));
+        }
     }
     
     /**

@@ -576,6 +576,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     }
                     _log.info("Done invoking remove volume from storage group");
                 }
+                // For clones, 'replicationgroupinstance' property contains the Replication Group name.
+                if (volume.getReplicationGroupInstance() != null) {
+                    removeVolumeFromConsistencyGroup(storageSystem, volume);
+                }
                 if (volume.getConsistencyGroup() != null) {
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
                     // Only perform native CG operations if the CG is not for RecoverPoint alone.  If the
@@ -1070,6 +1074,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDetachClone(final StorageSystem storage, final URI cloneVolume,
                               final TaskCompleter taskCompleter) {
+        Volume clone = _dbClient.queryObject(Volume.class, cloneVolume);
+        if (clone != null && clone.getReplicaState().equals(ReplicationState.DETACHED.name())) {
+            taskCompleter.ready(_dbClient);
+            return;
+        }
         _cloneOperations.detachSingleClone(storage, cloneVolume, taskCompleter);
     }
 
@@ -1235,7 +1244,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             // Check if the consistency group exists
             String groupName = null;
-            if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
+            // In case of clone, 'replicationgroupinstance' property contains the Replication Group name.
+            if (volume.getReplicationGroupInstance() != null) {
                 groupName = volume.getReplicationGroupInstance();
             } else {
                 groupName = _helper.getConsistencyGroupName(volume, storage);
@@ -1878,9 +1888,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doRollbackLinks(final StorageSystem system, final List<URI> sourceURIs,
-                                final List<URI> targetURIs, final TaskCompleter completer) {
-        _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, completer);
+	public void doRollbackLinks(final StorageSystem system,
+			final List<URI> sourceURIs, final List<URI> targetURIs,
+			final boolean isGroupRollback, final TaskCompleter completer) {
+        _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, isGroupRollback, completer);
     }
 
     public void doSplitLink(final StorageSystem system, final Volume targetVolume, boolean rollback,
@@ -1997,6 +2008,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume,
             TaskCompleter taskCompleter) {
+        Volume clone = _dbClient.queryObject(Volume.class, cloneVolume.get(0));
+        if (clone != null && clone.getReplicaState().equals(ReplicationState.DETACHED.name())) {
+            taskCompleter.ready(_dbClient);
+            return;
+        }
         _cloneOperations.detachGroupClones(storage, cloneVolume, taskCompleter);
         
     }

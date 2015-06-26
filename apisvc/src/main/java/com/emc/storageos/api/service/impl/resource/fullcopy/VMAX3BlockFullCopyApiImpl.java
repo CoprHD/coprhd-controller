@@ -54,7 +54,7 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        // Call super.
+        // Call super first.
         super.validateFullCopyCreateRequest(fcSourceObjList, count);
         
         // For VMAX3 you cannot have active snap and full copy sessions,

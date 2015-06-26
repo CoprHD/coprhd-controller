@@ -121,23 +121,28 @@ public abstract class AbstractManager implements Runnable {
      * @return true if a quorum can be maintained, false otherwise
      */
     protected boolean isQuorumMaintained() {
+        if (nodeCount == 1) {
+            log.info("There's no way to maintain quorum on single node deployments. Proceed anyway.");
+            return true;
+        }
+
         int quorumNodeCnt = nodeCount / 2 + 1;
 
         CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
 
-        List<Service> activeDbsvcs = coordinatorClient.locateAllSvcsAllVers(Constants.DBSVC_NAME);
-        List<String> activeDbsvcIds = new ArrayList<>(activeDbsvcs.size());
+        List<Service> allActiveDbsvcs = coordinatorClient.locateAllSvcsAllVers(Constants.DBSVC_NAME);
+        List<String> otherActiveDbsvcIds = new ArrayList<>();
 
         String mySvcId = coordinator.getMySvcId();
         String localDbSvcId = "db" + mySvcId.substring(mySvcId.lastIndexOf("-"));
-        for (Service activeDbsvc : activeDbsvcs) {
+        for (Service activeDbsvc : allActiveDbsvcs) {
             if (! localDbSvcId.equals(activeDbsvc.getId())) // exclude the local dbsvc instance
-                activeDbsvcIds.add(activeDbsvc.getId());
+                otherActiveDbsvcIds.add(activeDbsvc.getId());
         }
         log.info("List of active dbsvc instances on other nodes: {}, expect {} instances to maintain quorum",
-                activeDbsvcIds, quorumNodeCnt);
+                otherActiveDbsvcIds, quorumNodeCnt);
 
-        boolean isMaintained = activeDbsvcs.size() >= quorumNodeCnt;
+        boolean isMaintained = otherActiveDbsvcIds.size() >= quorumNodeCnt;
         if (! isMaintained) {
             log.info("quorum would lost if reboot the current node. Retrying...");
         }

@@ -19,7 +19,6 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -44,18 +43,12 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.Constraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
@@ -72,8 +65,6 @@ import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -82,13 +73,11 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Protection;
@@ -96,7 +85,6 @@ import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexProtection;
 import com.emc.storageos.volumecontroller.VPlexProtectionRecommendation;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 
@@ -211,14 +199,16 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     	// The secondary source journal volume is used for MetroPoint.
     	Volume secondarySourceJournalVolume = null;
     	Volume targetJournalVolume = null;
-    	boolean createTargetJournal = false;
+    	
     	boolean createStandbyTargetJournal = false;
-    	boolean isChangeVpool = false;
+    	boolean createTargetJournal = false;
+    	boolean isChangeVpool = false;    	
+    	boolean isSrcAndHaSwapped = VirtualPool.isRPVPlexProtectHASide(originalVpool);
     	
     	String volumeName = param.getName();
     	
     	// Need to check if we should swap src and ha, call the block scheduler code to
-        // find out.
+        // find out. Nothing will be changed for MetroPoint.
         VirtualArray haVarray = null;
         VirtualPool haVpool = null;     
         RPVPlexVarrayVpool container = this.getBlockScheduler().new RPVPlexVarrayVpool();     
@@ -226,13 +216,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         container.setSrcVpool(originalVpool);            
         container.setHaVarray(haVarray);
         container.setHaVpool(haVpool);                 
-                     
-        // Do not swap for MetroPoint
-        if (!VirtualPool.vPoolSpecifiesMetroPoint(originalVpool)) {
-        	// Swap src and ha IF required
-        	container = RPVPlexScheduler.setActiveProtectionAtHAVarray(container, _dbClient);
-        }
-    	
+       	container = RPVPlexScheduler.setActiveProtectionAtHAVarray(container, _dbClient);
+            	
         // Use the new references post swap
         VirtualArray varray = container.getSrcVarray();
         VirtualPool vpool = container.getSrcVpool();
@@ -247,7 +232,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     	boolean isAdditionalJournalRequired = false;
     	if (!cgSourceVolumes.isEmpty()) {
     		isAdditionalJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(), consistencyGroup, param.getSize(), 
-    				numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(), cgSourceVolumes.get(0).getInternalSiteName(), false);
+    				numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(), cgSourceVolumes.get(0).getInternalSiteName());
     			if (!isAdditionalJournalRequired) {
     				primarySourceJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
     			}
@@ -367,25 +352,24 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 		    	        									 ((RPProtectionRecommendation) primaryRecommendation).getProtectionDevice(),
 		    	        									 Volume.PersonalityTypes.SOURCE, rsetName, 
 		    	        									 ((RPProtectionRecommendation) primaryRecommendation).getSourceInternalSiteName(), 
-		    	        									 (metroPointEnabled ? activeSourceCopyName : srcCopyName), null, primaryRecommendation, secondaryRecommendation);            	
+		    	        									 (metroPointEnabled ? activeSourceCopyName : srcCopyName), null, primaryRecommendation, secondaryRecommendation);            		
             		volumeURIs.add(sourceVolume.getId());                      		
                 } else {                    
                     // Check to see if the source volume doesn't already have Protection
                 	isChangeVpool = true;
                     if (!primaryRecommendation.isVpoolChangeProtectionAlreadyExists()) {
-                        sourceVolume = _dbClient.queryObject(Volume.class, primaryRecommendation.getVpoolChangeVolume());                                                         
+                        sourceVolume = _dbClient.queryObject(Volume.class, primaryRecommendation.getVpoolChangeVolume()); 
                         
                         // If we are using the HA as the RP source, swap the Source and HA recs for the VPlexBlockServiceApiImpl.
                         // This is because the VPlexBlockServiceApiImpl will be creating the migration descriptors for the backend
                         // volumes and it doesn't really care that we are swapping the Source and HA it just needs the correct
-                        // recommendations.
-                        boolean swapHaAndSrcRecs =  VirtualPool.isRPVPlexProtectHASide(vpool);
+                        // recommendations.                        
                         List<Recommendation> swapRecommendations = new ArrayList<Recommendation>();                                        
-                        if (swapHaAndSrcRecs) {
+                        if (isSrcAndHaSwapped) {
                             swapRecommendations.add(0, secondaryRecommendation);
                             swapRecommendations.add(1, primaryRecommendation);                        
                             // If we had to swap, that's means we had to use the HA vpool as the Source vpool
-                            // and Source Vpool as HA vpool for placement to happen correctly. This can lead weird 
+                            // and Source Vpool as HA vpool for placement to happen correctly. This can lead to weird 
                             // instances when calling code that doesn't understand the swap.
                             // VPLEX doesn't really care about swap so let's make sure
                             // we use the originalVpool here to correctly to get the change vpool 
@@ -399,25 +383,37 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                         StorageSystem vplexStorageSystem = _dbClient.queryObject(StorageSystem.class, sourceVolume.getStorageController());
     					descriptors.addAll(vplexBlockServiceApiImpl.createChangeVirtualPoolDescriptors(vplexStorageSystem, sourceVolume, vpool, task, swapRecommendations, capabilities));
                                             
-    					 if (swapHaAndSrcRecs) {                       
-    					     // Return things back to the way they were.
-    					     vpool = container.getSrcVpool();
-    					 }
+    					if (isSrcAndHaSwapped) {                       
+    					    // Return things back to the way they were.
+    					    vpool = container.getSrcVpool();
+    					}
     					 
     		            sourceVolume = prepareVPlexVirtualVolume(sourceVolume, project, varray, vpool, param.getSize(), 
                                                                     newVolumeLabel, consistencyGroup, task, false, 
                                                                     ((RPProtectionRecommendation) primaryRecommendation).getProtectionDevice(),
                                                                     Volume.PersonalityTypes.SOURCE, rsetName, 
                                                                     ((RPProtectionRecommendation) primaryRecommendation).getSourceInternalSiteName(), 
-                                                                    metroPointEnabled ? activeSourceCopyName : srcCopyName, null, primaryRecommendation, secondaryRecommendation);
+                                                                    metroPointEnabled ? activeSourceCopyName : srcCopyName, null, primaryRecommendation, secondaryRecommendation);    		            
                     } else {
                         // Make sure that the source volumes have the correct internal site information for their backing volumes
-                        sourceVolume = allVolumesInCG.get(volumeCount);
-                        setInternalSitesForBackingVolumes(vpool, primaryRecommendation, secondaryRecommendation, Volume.PersonalityTypes.SOURCE, sourceVolume);
+                        sourceVolume = allVolumesInCG.get(volumeCount);                        
                     }
                     volumeURIs.add(sourceVolume.getId());
                 }
                 
+                // MetroPoint and Distributed RP+VPLEX(HA as RP source) Source volumes need to have their backing volumes set with the correct internal 
+                // site name. The reason for this is so we know later on where to export the volumes to.
+                //
+                // This is very evident with MetroPoint as we need to export BOTH sides of the VPLEX Distributed Volume.
+                //
+                // This is less evident with Distributed RP+VPLEX that has "HA as RP source" set. 
+                // In this case we need to set it on the HA volume as that is the side to export (not the source side). 
+                // To do this we need to pass in a hint...
+                // We need the (unswapped) original vpool and we then check the getHaVarrayConnectedToRp() value which tells us which side(varray) to export.
+                // This value will only be used if isSrcAndHaSwapped == true.
+                setInternalSitesForSourceBackingVolumes(primaryRecommendation, secondaryRecommendation, 
+                        sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp());
+                                
                 logVolumeInfo(sourceVolume);
                 
                 ///////// PRIMARY SOURCE JOURNAL ///////////                
@@ -425,7 +421,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 if (!primaryRecommendation.isVpoolChangeProtectionAlreadyExists()) {                              
                     // If there's no Journal volumes created yet, let's do that now.                   
                     if (primarySourceJournalVolume == null) {
-                    	VirtualArray journalVaray = _dbClient.queryObject(VirtualArray.class, primaryRecommendation.getSourceJournalVarray());
+                    	VirtualArray journalVarray = _dbClient.queryObject(VirtualArray.class, primaryRecommendation.getSourceJournalVarray());
                     	VirtualPool journalVpool = _dbClient.queryObject(VirtualPool.class, primaryRecommendation.getSourceJournalVpool());
                     	String journalSize = String.valueOf(RPHelper.getJournalSizeGivenPolicy(param.getSize(), vpool.getJournalSize(), volumeCountInRec));
                     	String sourceJournalVolumeName = new StringBuilder(newVolumeLabel).append(PRIMARY_SRC_JOURNAL_SUFFIX).toString(); 
@@ -434,14 +430,14 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                     	if (VirtualPool.vPoolSpecifiesHighAvailability(journalVpool)) {
     	                	 _log.info("Create VPLEX Source Journal");
     	                	primarySourceJournalVolume = createJournalVolume(primaryRecommendation, task, taskList, param, project, 
-    														                			primaryRecommendation.getVPlexStorageSystem(), journalVaray, journalVpool, 
+    														                			primaryRecommendation.getVPlexStorageSystem(), journalVarray, journalVpool, 
     														                			sourceJournalVolumeName, capabilities, descriptors, consistencyGroup, metroPointEnabled ? activeSourceCopyName : srcCopyName, 
     														                			sourceInternalSiteName, primaryRecommendation.getSourceDevice(), 
     														                			journalStoragePoolUri, journalSize);
     		            		        				      
                     	} else {
     		        	    _log.info("Create non-VPLEX Source Journal");			        	   		        	
-    		        	    primarySourceJournalVolume = rpBlockServiceApiImpl.prepareJournalVolume( project, journalVaray, journalVpool, 
+    		        	    primarySourceJournalVolume = rpBlockServiceApiImpl.prepareJournalVolume( project, journalVarray, journalVpool, 
     				                                                                                 journalSize, primaryRecommendation, journalStoragePoolUri,
     				                                                                                 sourceJournalVolumeName, consistencyGroup, task, false, 
     				                                                                                 primaryRecommendation.getProtectionDevice(), 
@@ -453,7 +449,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                         volumeURIs.add(primarySourceJournalVolume.getId());    
                         logVolumeInfo(primarySourceJournalVolume);
                     } else {
-                        _log.info("Reusing existing journal for active site.");
+                        _log.info(String.format("Re-using existing journal for active site - %s", ((RPProtectionRecommendation) primaryRecommendation).getSourceInternalSiteName()));
                     }
 
             		if (sourceVolume != null) {
@@ -466,8 +462,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 }
                 
                 
-                ///////// SECONDARY SOURCE JOURNAL ///////////
-                
+                ///////// SECONDARY SOURCE JOURNAL ///////////                
                 // If MetroPoint is enabled we need to create the secondary journal volume
                 if (metroPointEnabled) {     
                 	if (secondarySourceJournalVolume == null) {
@@ -478,8 +473,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 		                	// Get the HA varray
 		                	haVarray = _dbClient.queryObject(VirtualArray.class, secondaryProtectionRecommendation.getVirtualArray());
 		                	// Check to see if we need to add a secondary journal or not
-		                	if (isChangeVpool || cgSourceVolumes.isEmpty() ||   _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(), consistencyGroup, param.getSize(), 
-		            				numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(), secondarySourceJournalInternalSiteName, true)) {
+		                	if (isChangeVpool || cgSourceVolumes.isEmpty() || isAdditionalJournalRequired) {
 		                		String journalSize = String.valueOf(RPHelper.getJournalSizeGivenPolicy(param.getSize(), vpool.getJournalSize(), volumeCountInRec));
 		                	    VirtualArray standbyJournalVarray = _dbClient.queryObject(VirtualArray.class, secondaryRecommendation.getStandbySourceJournalVarray());
 		                    	VirtualPool standbyJournalVpool = _dbClient.queryObject(VirtualPool.class, secondaryRecommendation.getStandbySourceJournalVpool());
@@ -514,6 +508,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 			            			}
 			            		}
 		                	} else {
+		                		_log.info(String.format("Re-using existing journal on stand-by site - %s", secondarySourceJournalInternalSiteName));
 		                		secondarySourceJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(_rpHelper.getCgVolumes(consistencyGroup.getId(), 
 		                											Volume.PersonalityTypes.SOURCE.toString()), true);
 					        	sourceVolume.setSecondaryRpJournalVolume(secondarySourceJournalVolume.getId());
@@ -650,10 +645,10 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 					volumeURIs.add(targetVolume.getId());
 					
 					// Check whether additional journals are required computation needs to happen only once per copy, 
-					// irrespective of number of volumes requested
+					// irrespective of number of volumes requested					
                     if (volumeCount == 0 && (cgSourceVolumes.isEmpty() 
                             || _rpHelper.isAdditionalJournalRequiredForCG(settings.getJournalSize(), consistencyGroup, param.getSize(), 
-                    		numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), copyInternalSiteName, false))) {
+                    		numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), copyInternalSiteName))) {
                     	createTargetJournal = true; 
                     }
 					
@@ -695,7 +690,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 			        	targetVolume.setRpJournalVolume(targetJournalVolume.getId());
 			        	_dbClient.persistObject(targetVolume);			        
 			        } else {
-			            _log.info("Re-use existing Journal");
+			            _log.info(String.format("Re-use existing journal for target site %s", copyInternalSiteName));
                         // We are creating multiple resources so grab the journal we already created for this
 			        	// protection virtual array and re-use it.
 			        	targetJournalVolume = _rpHelper.selectExistingJournalForTargetVolume(_rpHelper.getCgVolumes(consistencyGroup.getId(), 
@@ -705,15 +700,13 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                     }
 			        logVolumeInfo(targetJournalVolume);
 			        primaryProtectionTargets.add(tgtVirtualArrayURI);
+			        createTargetJournal = false;
 				}  
-				
-				createTargetJournal = false;
-				
+											
 				///////// METROPOINT TARGET(S) /////////// 				
 				// If metropoint is chosen and two local copies are configured, one copy on each side 
 				// then we need to create targets for the second (stand-by) leg.
-				if (metroPointEnabled && metroPointType != MetroPointType.SINGLE_REMOTE) {					     
-				    
+				if (metroPointEnabled && metroPointType != MetroPointType.SINGLE_REMOTE) {					     				    
 				    // Consolidate all VPLEX and non-VPLEX targets
 	                List<URI> allSecondaryTargetVarrayURIs = new ArrayList<URI>();    
 	                allSecondaryTargetVarrayURIs.addAll(secondaryRecommendation.getVirtualArrayProtectionMap().keySet());    
@@ -828,7 +821,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 						logVolumeInfo(targetVolume);
 						// whether additional journals are required computation needs to happen only once per copy, irrespective of number of volumes requested
 	                    if (volumeCount == 0 && (cgSourceVolumes.isEmpty() || _rpHelper.isAdditionalJournalRequiredForCG(settings.getJournalSize(), consistencyGroup, param.getSize(), 
-	                    		numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), targetVolume.getInternalSiteName(), false))) {
+	                    		numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), targetVolume.getInternalSiteName()))) {
 	                    	createStandbyTargetJournal = true; 
 	                    }
 	                    
@@ -919,6 +912,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 			StringBuilder buff =  new StringBuilder();
 			buff.append(String.format("\nPreparing Volume:\n"));
 			buff. append(String.format("\t VolumePersonality : [%s]\n", volume.getPersonality()));
+			buff.append(String.format("\t Volume Internal Site : [%s]\n", volume.getInternalSiteName()));
 			buff.append(String.format("\t URI : [%s] - Name : [%s]\n", volume.getId(), volume.getLabel()));
 			if (!NullColumnValueGetter.isNullURI(volume.getStorageController())) {
 				StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
@@ -1112,7 +1106,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         		        volumeType = VolumeDescriptor.Type.RP_JOURNAL;
         		    }
         		}
-        		 desc = new VolumeDescriptor(volumeType, volume.getStorageController(), volume.getId(), volume.getPool(),
+        		desc = new VolumeDescriptor(volumeType, volume.getStorageController(), volume.getId(), volume.getPool(),
         										null, capabilities, volume.getCapacity());
         		descriptors.add(desc);        	
         	}
@@ -1152,10 +1146,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 									            VPlexProtectionRecommendation primaryRecommendation, 
 									            VPlexProtectionRecommendation secondaryRecommendation) {
                 
-    	volume.setRpCopyName(rpCopyName);
-    	
-    	setInternalSitesForBackingVolumes(vpool, primaryRecommendation, secondaryRecommendation, personality, volume);
-        
+    	volume.setRpCopyName(rpCopyName);    	    	        
         volume.setPersonality(personality.toString());
         
         // Set all Journal Volumes to have the INTERNAL_OBJECT flag.
@@ -1227,21 +1218,6 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         														recommendations, volumeLabel, capabilities, 
         														volumeDescriptors);
         
-        // Inspects the volumes to determine if all the source/target volumes are
-        // provisioned on the same storage system type (vmax, vnx, etc.).  If not,
-        // we need to ensure the volume allocation capacities across the different
-        // arrays are the same.
-        Long requestedVolumeCapacitity = 0L;
-        for (URI volumeURI : volumeURIs) {
-        	Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-        	if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE)) {
-        		requestedVolumeCapacitity = volume.getCapacity();
-        		break;
-        	}
-        }
-               
-        rpBlockServiceApiImpl.computeProtectionCapacity(volumeURIs, requestedVolumeCapacitity, false, volumeDescriptors);
-
         // Execute the volume creations requests for each recommendation.
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         while (recommendationsIter.hasNext()) {
@@ -1251,11 +1227,23 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                         BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
                 
-                // Check to see if this is a regular RP+VPLEX volume create or a RP+VPLEX change virtual pool        
-                URI changeVirtualPoolVolumeURI = VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors);                        
-                boolean changeVpoolRequest = (changeVirtualPoolVolumeURI != null);   
+                // Check to see if this is a regular RP+VPLEX volume create or a RP+VPLEX change virtual pool                       
+                URI changeVirtualPoolVolumeURI = VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors);
+                boolean isChangeVpool = (changeVirtualPoolVolumeURI != null);                
+             
+                // TODO might be able to use param.getSize() instead of the below code to find requestedVolumeCapactity
+                Long requestedVolumeCapactity = 0L;
+                for (URI volumeURI : volumeURIs) {
+                    Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                    if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE)) {
+                        requestedVolumeCapactity = volume.getCapacity();
+                        break;
+                    }
+                }
+                
+                rpBlockServiceApiImpl.computeProtectionCapacity(volumeURIs, requestedVolumeCapactity, false, isChangeVpool, null);
         		               
-                if (changeVpoolRequest) {                    
+                if (isChangeVpool) {                    
                     _log.info("RP+VPLEX Change Virtual Volume...");                                       
                     controller.changeVirtualPool(volumeDescriptors, task);
                 } else {
@@ -1316,66 +1304,22 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
           
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI, List<URI> volumeURIs) {
-    	List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
-    	Set<URI> allVolumesToDelete = new HashSet<URI>();
-
-    	for (URI sourceVolumeURI : volumeURIs) {
-    		Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-
-    		// Validate that the volume requested is a source volume.
-    		if (!sourceVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-    			throw APIException.internalServerErrors.unableToDeleteRpVolume(sourceVolume.getId());   				
-    		}
-
-    		_log.info(String.format("Adding RP_VPLEX_VIRT_SOURCE descriptor to delete virtual volume [%s] ", sourceVolume.getLabel()));
-    		VolumeDescriptor rpvpSourceDescriptor = new VolumeDescriptor(VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE,
-    				                                                        systemURI, sourceVolumeURI, null, null);
-    		descriptors.add(rpvpSourceDescriptor);
-    		allVolumesToDelete.addAll(_rpHelper.getVolumesToDelete(sourceVolume, volumeURIs));
-    	}
-
-    	// Add a descriptor for each of the associated volumes.
-    	// First, add all the VPLEX volume descriptors for the underlying VPLEX volumes
-    	for (URI volumeURI : allVolumesToDelete) {
-    		Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-    		
-    		if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-    		    // VPLEX virtual volume
-    		    _log.info(String.format("Adding VPLEX_VIRT_VOLUME descriptor to delete virtual volume [%s] ", volume.getLabel()));
-        		VolumeDescriptor virtualVolumeDesc = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
-        				                                                    volume.getStorageController(), 
-        				                                                    volume.getId(), null, null);
-        		descriptors.add(virtualVolumeDesc);
-        		
-        		// If there were any Block Mirrors, add a descriptors for them.
-        		// TODO: RP-TEAM - This might NOT be required for this case. Its not common to have any snapshots 
-        		// for the underlying VPLEX or back-end BLOCK volumes.
-        		// Need to figure this out and get rid of the below line if its not likely that a snap will 
-        		// exist for the underlying volumes.
-        		addDescriptorsForMirrors(descriptors, volume);    		
-    
-        		// Next, add all the BLOCK volume descriptors for the VPLEX back-end volumes
-        		for (String associatedVolumeId : volume.getAssociatedVolumes()) {    		        			
-    				Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeId));
-    				// a previous failed delete may have already removed associated volumes
-    				if (associatedVolume != null && !associatedVolume.getInactive()) {
-        				 _log.info(String.format("Adding BLOCK_DATA descriptor to delete backing volume [%s] ", associatedVolume.getLabel()));
-        				VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, 
-        						                                                associatedVolume.getStorageController(), 
-        						                                                associatedVolume.getId(), null, null);
-        				descriptors.add(blockDataDesc);  
-    				}
-        		}
-    		} else {
-    		    // Just a regular volume
-    		    _log.info(String.format("Adding BLOCK_DATA descriptor to delete volume [%s] ", volume.getLabel()));
-    		    VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA, 
-    		                                                            volume.getStorageController(), 
-    		                                                            volume.getId(), null, null);
-                descriptors.add(blockDataDesc);
-    		}
-    	}
-    	return descriptors;    		
+    	
+        List<VolumeDescriptor> volumeDescriptors = _rpHelper.getDescriptorsForVolumesToBeDeleted(systemURI, volumeURIs);
+        
+        List<VolumeDescriptor> filteredDescriptors = VolumeDescriptor.filterByType(volumeDescriptors, 
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
+                VolumeDescriptor.Type.VPLEX_VIRT_VOLUME}, 
+                new VolumeDescriptor.Type[] { });
+        
+        for (VolumeDescriptor descriptor : filteredDescriptors) {
+            URI volumeURI = descriptor.getDeviceURI();
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume != null && !volume.getInactive()) {
+                addDescriptorsForMirrors(volumeDescriptors, volume);
+            }
+        }
+    	return volumeDescriptors;    		
     }
 
 	/**
@@ -1401,54 +1345,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      */
     @Override
     public <T extends DataObject> String checkForDelete(T object) throws InternalException {
-        // The standard dependency checker really doesn't fly with RP because we need to determine if we can do
-        // a tear-down of the volume, and that tear-down involved cleaning up dependent relationships.
-        // So this will be a bit more manual and calculated.  In order to determine if we can delete this object,
-        // we need to make sure:
-        // 1. This device is a SOURCE device if the protection set is happy and healthy (this is done before we get here)
-        // 2. This device and all of the other devices don't have any block snapshots
-        // 3. If the device isn't part of a healthy protection set, then do a dependency check
-
-        // Generate a list of dependencies, if there are any.
-        Map<URI, URI> dependencies = new HashMap<URI, URI>();
-
-        // Get all of the volumes associated with the volume
-        List<URI> volumeIDs;
-        volumeIDs = _rpHelper.getReplicationSetVolumes((Volume) object);
-        	for (URI volumeID : volumeIDs) {
-        		URIQueryResultList list = new URIQueryResultList();
-            Constraint constraint = ContainmentConstraint.Factory
-                    .getVolumeSnapshotConstraint(volumeID);
-        		_dbClient.queryByConstraint(constraint, list);
-        		Iterator<URI> it = list.iterator();
-        		while (it.hasNext()) {
-        			URI snapshotID = it.next();
-        			BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                if (snapshot != null && !snapshot.getInactive()) {
-        				dependencies.put(volumeID, snapshotID);
-        			}
-        		}
-
-        		if (!dependencies.isEmpty()) {
-        			throw APIException.badRequests.cannotDeleteVolumeBlockSnapShotExists(String.valueOf(dependencies));
-        		}
-
-            // Do a relatively "normal" check, as long as it's a "broken"
-            // protection set.
-            // It's considered a broken protection set if there's only one
-            // volume returned from the getRPVolumes() call,
-            // Because that can only have happened if the CG was already torn
-            // down.
-            if (volumeIDs.size() == 1) {
-                String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                        object.getClass(), true);
-                if (depMsg != null) {
-                    return depMsg;
-                }
-                return object.canBeDeleted();
-            }
-    	}
-        return null;
+        return rpBlockServiceApiImpl.checkForDelete(object);
     }
 
     @Override
@@ -1553,13 +1450,15 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         // volumes.
         List<VolumeDescriptor> sourceVolumeDescriptors = VolumeDescriptor
             .getDescriptors(volumeDescriptors, VolumeDescriptor.Type.RP_SOURCE);
-        List<URI> sourceVolumeURIs = VolumeDescriptor.getVolumeURIs(sourceVolumeDescriptors);
-        for (URI sourceVolumeURI : sourceVolumeURIs) {
+        List<URI> sourceVolumeURIs = new ArrayList<URI>();
+        for (URI sourceVolumeURI : VolumeDescriptor.getVolumeURIs(sourceVolumeDescriptors)) {
             Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-            if (!sourceVolume.isIngestedVolume(_dbClient)) { // Keeping this in here for when we do RP ingest.
-                for (URI assocVolumeURI : _rpHelper.getVolumesToDelete(sourceVolume, sourceVolumeURIs)) {
-                    cleanVolumeFromExports(assocVolumeURI, true);
-                }
+            if (sourceVolume != null && !sourceVolume.getInactive() &&
+                    !sourceVolume.isIngestedVolume(_dbClient)) { // Keeping this in here for when we do RP ingest.
+                sourceVolumeURIs.add(sourceVolumeURI);
+            }
+            for (URI assocVolumeURI : _rpHelper.getVolumesToDelete(sourceVolumeURIs)) {
+                cleanVolumeFromExports(assocVolumeURI, true);
             }
         }
 
@@ -1596,8 +1495,14 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, systemURI);
         String systemType = storageSystem.getSystemType();
         if ((DiscoveredDataObject.Type.vplex.name().equals(systemType))) {
-            
+            // Get the current vpool            
             VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            
+            // Now that we have a handle on the current vpool, let's set the new vpool on the volume.
+            // The volume will not be persisted just yet but we need to have the new vpool to
+            // properly make placement decisions and to add reference to the new vpool to the
+            // recommendation objects that will be created.
+            volume.setVirtualPool(newVpool.getId());
             
             if (volume.checkForRp() 
                     && !VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
@@ -1834,7 +1739,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     			//Step 2: Just because we have a RP source/target on VMAX and have a size calculated doesn't mean VNX can honor it. 
     			//The trick is that the size of the volume must be a multiple of 512 for VNX and 520 for VMAX because of the different block sizes. 
     			//We will find a number (in bytes) that is greater than the requested size and meets the above criteria and use that our final expanded volume size. 
-    			long normalizedRequestSize = rpBlockServiceApiImpl.computeProtectionCapacity(replicationSetVolumes, newSize, true, null);     
+    			long normalizedRequestSize = rpBlockServiceApiImpl.computeProtectionCapacity(replicationSetVolumes, newSize, true, false, null);     
 
     			//Step 3: Call the controller to do the expand. 
     			_log.info("Expand volume request size : {}", normalizedRequestSize);
@@ -1876,92 +1781,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
         String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
-        // For RP snapshots, validate that the volume type is not a target,
-        // metadata, or null - must be source.
-        if (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())
-            && (reqVolume.getPersonality() == null || !reqVolume.getPersonality().equals(
-                PersonalityTypes.SOURCE.toString()))) {
-            String volumeType = reqVolume.getPersonality() != null ? reqVolume
-                .getPersonality().toLowerCase() : UNKNOWN_VOL_TYPE;
-            throw APIException.badRequests.notSupportedSnapshotVolumeType(volumeType);
-        }
-        
-        // If this is a local array snap of an RP+VPlex source volume, we need to check for mixed
-        // backing array storage systems.  We cannot create local array snaps if the source volumes
-        // in the CG don't all use the same backing arrays.
-        if (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.NATIVE.toString())
-                && NullColumnValueGetter.isNotNullValue(reqVolume.getPersonality()) && reqVolume.getPersonality().equals(
-                    PersonalityTypes.SOURCE.toString())) {
-            if (!NullColumnValueGetter.isNullURI(reqVolume.getConsistencyGroup())) {
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, reqVolume.getConsistencyGroup());
-                if (containsMixedBackingArrays(cg)) {
-                    throw APIException.badRequests.notSupportedSnapshotWithMixedArrays(cg.getId());
-                }
-            }
-        }
-        
-        // If not an RP bookmark snapshot, then do what the base class does, else
-        // we just need to verify the volumes and name.
-        if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString())) {
-        	List<Volume> baseVolumesToSnap = new ArrayList<Volume>();
-        	for (Volume vplexVolume : volumesToSnap) {
-        		if (vplexVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()) || vplexVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-        			baseVolumesToSnap.add(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(vplexVolume));
-        		}
-        	}
-            super.validateCreateSnapshot(reqVolume, baseVolumesToSnap, snapshotType, snapshotName, fcManager);
-        } else {
-            ArgValidator.checkFieldNotEmpty(volumesToSnap, "volumes");
-            ArgValidator.checkFieldNotEmpty(snapshotName, "name");
-            
-            // Check if there are any snapshots of the same name for the volume(s)
-            for (Volume volumeToSnap : volumesToSnap) {
-                checkForDuplicatSnapshotName(snapshotName, volumeToSnap);
-            }
-        }
-    }
-    
-    /**
-     * Determines if the CG source volumes contain mixed backing arrays.
-     * 
-     * @param cg the consistency group to search.
-     * @return true if the CG contains source volumes with mixed backing arrays, false otherwise.
-     */
-    private boolean containsMixedBackingArrays(BlockConsistencyGroup cg) {
-        // Get the active RP SOURCE VPLEX volumes for the consistency group.
-        List<Volume> vplexVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(
-                cg, _dbClient, PersonalityTypes.SOURCE);
-
-        if (vplexVolumes.size() > 1) {
-            // Get the first volume's source side backing array.  Compare the backing arrays
-            // from other source volume's in the CG to see if they are different.
-            URI storageSystemToCompare = getSourceBackingVolumeStorageSystem(vplexVolumes.get(0));
-            
-            for (Volume volume : vplexVolumes) {
-                URI storageSystem = getSourceBackingVolumeStorageSystem(volume);
-                if (!storageSystem.equals(storageSystemToCompare)) {
-                    // The backing storage systems for the source side are different between
-                    // volumes in the CG.  
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Gets the non-HA side backing volume storage system for the given VPlex volume.
-     * 
-     * @param vplexVolume the VPlex volume. 
-     * @return the storage system URI corresonding to the backing volume.
-     */
-    private URI getSourceBackingVolumeStorageSystem(Volume vplexVolume) {
-        // Get the backing volume associated with the source side only
-        Volume localVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume,
-                true, _dbClient);
-        
-        return localVolume.getStorageController();
+        rpBlockServiceApiImpl.validateCreateSnapshot(reqVolume, volumesToSnap, snapshotType, snapshotName, fcManager);
     }
     
     /**
@@ -1977,90 +1797,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      */
     @Override
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
-        String snapshotName, List<URI> snapshotURIs, String taskId) {       
-    	List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
-        for (Volume volume : volumes) {        	  
-        	 if (isProtectionBasedSnapshot(volume, snapshotType)
-                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {	          
-	            		// For protection-based snapshots, get the protection domains we
-	                    // need to create snapshots on
-            		for (String targetVolumeStr : volume.getRpTargets()) {
-            			Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeStr));
-            			BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName);		            			
-		                snapshot.setOpStatus(new OpStatusMap());
-	                    snapshot.setEmName(snapshotName);
-	                    snapshot.setEmInternalSiteName(targetVolume.getInternalSiteName());	
-	                    snapshot.setVirtualArray(targetVolume.getVirtualArray());		
-	                    snapshots.add(snapshot);
-            	}	            			 
-            } else {
-            	Volume vplexSourceVolume = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(volume);
-            	BlockSnapshot snapshot = prepareSnapshotFromVolume(vplexSourceVolume, snapshotName);
-            	snapshot.setTechnologyType(snapshotType);
-            	
-            	if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) &&
-                		volume.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-                    // For RP+Vplex target volumes, we do not want to create a backing array 
-            		// CG snap.  To avoid doing this, we do not set the consistency group.  
-                    snapshot.setConsistencyGroup(null);
-            	}
-            	
-                snapshots.add(snapshot);            	
-            }
-        }
-        
-      	for (BlockSnapshot snapshot: snapshots) {
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT);
-            op.setStartTime(Calendar.getInstance());
-            snapshot.getOpStatus().createTaskStatus(taskId, op);
-            snapshotURIs.add(snapshot.getId());		             
-    	}	              
-        _dbClient.createObject(snapshots);
-        
-        return snapshots;
-    }
-    
-    /**
-     * Creates and returns a new ViPR BlockSnapshot instance with the passed
-     * name for the passed volume.
-     * 
-     * @param volume The volume for which the snapshot is being created.
-     * @param snapshotName The name to be given the snapshot
-     * 
-     * @return A reference to the new BlockSnapshot instance.
-     */
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName) {
-        BlockSnapshot snapshot = new BlockSnapshot();
-        snapshot.setId(URIUtil.createId(BlockSnapshot.class));        
-        URI cgUri = null;
-        
-        URIQueryResultList queryResults = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeByAssociatedVolumesConstraint(volume.getId().toString()),
-                queryResults);
-        if (queryResults.iterator().hasNext()) {
-        	Volume sourceVplexVolume = _dbClient.queryObject(Volume.class, queryResults.iterator().next());
-        	cgUri = sourceVplexVolume.getConsistencyGroup();
-        	 snapshot.setProject(new NamedURI(sourceVplexVolume.getProject().getURI(), snapshotName));
-        } else {
-        	 cgUri = volume.getConsistencyGroup();
-        	 snapshot.setProject(new NamedURI(volume.getProject().getURI(), snapshotName));
-        }
-                      
-        if (cgUri != null) {
-            snapshot.setConsistencyGroup(cgUri);
-        }         
-        snapshot.setSourceNativeId(volume.getNativeId());
-        snapshot.setParent(new NamedURI(volume.getId(), snapshotName));
-        snapshot.setLabel(snapshotName);
-        snapshot.setStorageController(volume.getStorageController());
-        snapshot.setVirtualArray(volume.getVirtualArray());
-        snapshot.setProtocol(new StringSet());
-        snapshot.getProtocol().addAll(volume.getProtocol());            
-        snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
-            snapshotName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
-        return snapshot;
+        String snapshotName, List<URI> snapshotURIs, String taskId) {        
+        return rpBlockServiceApiImpl.prepareSnapshots(volumes, snapshotType, snapshotName, snapshotURIs, taskId);
     }
     
     /**
@@ -2071,38 +1809,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      */
     @Override
     public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
-        // If the volume is under protection
-        if (snapshot.getEmName()!=null) {
-            Volume volume = _dbClient.queryObject(Volume.class,  snapshot.getParent());
-            RPController rpController = getController(RPController.class, ProtectionSystem._RP);
-            rpController.deleteSnapshot(volume.getProtectionController(), snapshot.getId(), taskId);
-        } else {
-            super.deleteSnapshot(snapshot, taskId);
-        }
-    }
-    
-    /**
-     * Does this snapshot require any sort of protection intervention?  If it's a local array-based
-     * snapshot, probably not.  If it's a protection-based snapshot or a remote array-based snapshot
-     * that requires protection intervention to ensure consistency between the source and target, then
-     * you should go to the protection controller
-     *
-     * @param volume source volume
-     * @param snapshotType The snapshot technology type.
-     * 
-     * @return true if this is a protection based snapshot, false otherwise.
-     */
-    private boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
-        // This is a protection based snapshot request if:
-        // The volume allows for bookmarking (it's under protection) and
-        // - The param either asked for a bookmark, or
-        // - The param didn't ask for a bookmark, but the volume is a remote volume
-        if (volume.getProtectionController() != null
-            && (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString()) || volume
-                .getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()))) {
-            return true;
-        }
-        return false;
+        rpBlockServiceApiImpl.deleteSnapshot(snapshot, taskId);
     }
     
     /**
@@ -2110,53 +1817,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      */
     @Override
     public List<Volume> getVolumesToSnap(Volume reqVolume, String snapshotType) {
-    	List<Volume> volumesToSnap = new ArrayList<Volume>();
-    	
-    	// Only return the requested volume for RP bookmark (snapshot) requests.  We only
-    	// want a single BlockSnapshot created.
-        if (snapshotType != null && 
-        		snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
-        	volumesToSnap.add(reqVolume);
-        	return volumesToSnap;
-        }
-    	
-    	// If the passed volume is in a consistency group all volumes
-        // of the same type (source or target) in the consistency group 
-    	// should be snapped.
-        URI cgURI = reqVolume.getConsistencyGroup();
-        if (!NullColumnValueGetter.isNullURI(cgURI)) {
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            // If there is no corresponding native CG for the VPLEX
-            // CG, then this is a CG created prior to 2.2 and in this
-            // case we maintain pre-2.2 behavior by only snapping the
-            // requested volume.
-            if (!cg.checkForType(Types.LOCAL)) {
-                volumesToSnap.add(reqVolume);
-            } else {
-            	if (NullColumnValueGetter.isNotNullValue(reqVolume.getPersonality())) {
-	            	if (reqVolume.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-		                List<Volume> cgVolumes = getActiveCGVolumes(cg);
-		                for (Volume cgVolume : cgVolumes) {
-		                	// We want to snap all source volumes in the CG so add each one as we
-		                	// find them.
-		                	if (NullColumnValueGetter.isNotNullValue(cgVolume.getPersonality()) && 
-		                			cgVolume.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
-		                		volumesToSnap.add(cgVolume);
-		                	}
-		                }
-	            	} else if (reqVolume.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-	            		// In the case of target volumes, we do not want to snap all target
-	            		// volumes in the CG. We only want to create one for the requested
-	            		// volume.
-	            		volumesToSnap.add(reqVolume);
-	            	}
-            	}
-            }
-        } else {
-            volumesToSnap.add(reqVolume);
-        }
-        
-        return volumesToSnap;
+    	return rpBlockServiceApiImpl.getVolumesToSnap(reqVolume, snapshotType);
     }
     
     /**
@@ -2172,23 +1833,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
         String snapshotType, Boolean createInactive, String taskId) {   
-          ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());     
-          URI storageControllerURI = null;
-          if(reqVolume.getAssociatedVolumes() != null) {     
-            Volume backendVolume = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume);
-      	  	storageControllerURI = backendVolume.getStorageController();
-          } else {
-        	  storageControllerURI = reqVolume.getStorageController();
-          }
-          
-          if (isProtectionBasedSnapshot(reqVolume, snapshotType)) {
-	          StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
-	          RPController controller = (RPController) getController(RPController.class, protectionSystem.getSystemType());
-	      	  controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, taskId);   
-          } else {
-        	  super.createSnapshot( vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume)
-        			  	, snapshotURIs, snapshotType, createInactive, taskId);
-          }          
+        rpBlockServiceApiImpl.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, taskId);
     }
     
     /**
@@ -2212,6 +1857,18 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
     	rpBlockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, taskId);
     }
+    
+    /**
+     * Get the snapshots for the passed volume.
+     * 
+     * @param volume A reference to a volume.
+     *  
+     * @return The snapshots for the passed volume.
+     */
+    @Override
+    public List<BlockSnapshot> getSnapshots(Volume volume) {        
+        return rpBlockServiceApiImpl.getSnapshots(volume);
+    }
 
     @Override
     protected List<VirtualPoolChangeOperationEnum> getVirtualPoolChangeAllowedOperations(Volume volume, VirtualPool currentVpool, 
@@ -2230,7 +1887,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         } else if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)                    
                     && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
                     && VirtualPoolChangeAnalyzer.isSupportedRPChangeProtectionVirtualPoolChange(volume, currentVpool, newVpool, 
-                            _dbClient, notSuppReasonBuff)) {
+                            _dbClient, notSuppReasonBuff)) {       
             // Allow the RP change protection operation
             allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED_CHANGE);                       
         } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)                    
@@ -2288,41 +1945,28 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     }
     
     /**
-     * Add the internal site found by the scheduler (stored in the rec objects) to the VPLEX volumes
+     * Add the internal site found by the scheduler (stored in the rec objects) to the VPLEX SOURCE volumes
      * backing volumes should this be a MP or Export to HA side request.
-     * 
-     * If it is for neither of those requests, nothing will be changed.
      * 
      * @param vpool The virtual pool for this volume
      * @param primaryRecommendation The primary rec from the scheduler
      * @param secondaryRecommendation The secondary rec from the scheduler
-     * @param personality Volume personality
-     * @param volume The volume that should be checked for it's backing volumes to be updated 
+     * @param sourceVolume The volume that should be checked for it's backing volumes to be updated 
+     * @param haVarrayConnectedToRp only be used if isSrcAndHaSwapped == true, tells us which varray is the HA one
      */
-    private void setInternalSitesForBackingVolumes(VirtualPool vpool, VPlexProtectionRecommendation primaryRecommendation, 
-                                                    VPlexProtectionRecommendation secondaryRecommendation, 
-                                                    Volume.PersonalityTypes personality, Volume volume) {
-        // In a MetroPoint setup we need to export both sides/legs of the Distributed Source volume in VPLEX to RP.
-        boolean exportForMetroPoint = (VirtualPool.vPoolSpecifiesMetroPoint(vpool))
-                                        && primaryRecommendation != null
-                                        && secondaryRecommendation != null
-                                        && personality.toString().equals(PersonalityTypes.SOURCE.toString());
-        
-        // In an RP+VPLEX distributed setup, the user can choose to protect only the HA side, so we special steps to 
-        // export only the Distributed Source volume to the HA side/leg on the VPLEX.
-        boolean exportToHASideOnly = VirtualPool.isRPVPlexProtectHASide(vpool)
-                                        && personality.toString().equals(PersonalityTypes.SOURCE.toString());
-                
+    private void setInternalSitesForSourceBackingVolumes(VPlexProtectionRecommendation primaryRecommendation, 
+                                                    VPlexProtectionRecommendation secondaryRecommendation, Volume sourceVolume, 
+                                                    boolean exportForMetroPoint, boolean exportToHASideOnly, String haVarrayConnectedToRp) {                
         if (exportForMetroPoint) {
             // If this is MetroPoint request and we're looking at the SOURCE volume we need to ensure the
             // backing volumes are aware of which internal site they have been assigned (needed for exporting in
             // RPDeviceController).
             
             _log.info(String.format("MetroPoint export, update backing volumes for [%s] " +
-            		"with correct internal site", volume.getLabel()));
+            		"with correct internal site", sourceVolume.getLabel()));
             
             // Iterate over each backing volume...
-            Iterator<String> it = volume.getAssociatedVolumes().iterator();           
+            Iterator<String> it = sourceVolume.getAssociatedVolumes().iterator();           
             while (it.hasNext()) {
                 Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(it.next()));   
                 VirtualArray backingVolumeVarray = _dbClient.queryObject(VirtualArray.class, backingVolume.getVirtualArray());
@@ -2330,7 +1974,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 // If this backing volume's varray is equal to the MetroPoint Source virtual volume's varray, 
                 // then we're looking at the primary leg. Otherwise, it's the
                 // secondary leg. Set the InternalSiteName accordingly. 
-                if (backingVolume.getVirtualArray().equals(volume.getVirtualArray())) {                    
+                if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {                    
                     rpSite = primaryRecommendation.getSourceInternalSiteName();  
                     backingVolume.setRpCopyName(backingVolumeVarray.getLabel() + MP_ACTIVE_COPY_SUFFIX);                    
                 } else {                
@@ -2346,15 +1990,15 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
             // If this is RP+VPLEX request and we're looking at exporting to the HA side only,
             // we need to set the internal site name on the HA backing volume.
             _log.info(String.format("RP+VPLEX HA side export, update HA backing volume for [%s] " +
-            		"with correct internal site", volume.getLabel()));
+            		"with correct internal site", sourceVolume.getLabel()));
             
             
             // Iterate over each backing volume...
-            Iterator<String> it = volume.getAssociatedVolumes().iterator();           
+            Iterator<String> it = sourceVolume.getAssociatedVolumes().iterator();           
             while (it.hasNext()) {
                 Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(it.next()));
                                 
-                if (backingVolume.getVirtualArray().toString().equals(vpool.getHaVarrayConnectedToRp())) {                    
+                if (backingVolume.getVirtualArray().toString().equals(haVarrayConnectedToRp)) {                    
                     // Save the internal site name to the HA backing volume, this will be needed 
                     // for exporting the HA side/leg later in RPDeviceController
                     backingVolume.setInternalSiteName(primaryRecommendation.getSourceInternalSiteName());         

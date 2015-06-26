@@ -245,7 +245,7 @@ public class LDAPsources extends ViprResourceController {
             this.description = ldapSources.getDescription();
             this.disable = ldapSources.getDisable();
             this.domains = Lists.newArrayList(ldapSources.getDomains());
-            this.groupAttribute = ldapSources.getGroupAttribute();
+            this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
             this.managerDn = ldapSources.getManagerDN();
             this.managerPassword = ""; // the platform will never return the real password

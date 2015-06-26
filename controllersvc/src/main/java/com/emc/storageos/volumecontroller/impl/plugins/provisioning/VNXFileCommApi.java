@@ -108,6 +108,7 @@ public class VNXFileCommApi {
     public static final String THIN_PROVISIONED_ATTRIBUTE     = "ThinProvisioned";
     public static final String THIN_PROVISIONED_DEF           = "false";
     public static final String THIN_PROVISIONED_FS_SIZE_MB    = "1024";
+    
 
     private static final String SERVER_URI                 = "/servlets/CelerraManagementServices";
 
@@ -116,12 +117,22 @@ public class VNXFileCommApi {
 
     private DbClient _dbClient;
     
+    private String _thinFsAllocPercentage;
+    
     public DbClient getDbClient() {
         return _dbClient;
     }
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
+    }
+    
+    public String getThinFsAllocPercentage() {
+        return _thinFsAllocPercentage;
+    }
+
+    public void setThinFsAllocPercentage(String  thinFsAllocPercentage) {
+    	_thinFsAllocPercentage = thinFsAllocPercentage;
     }
 
     private VNXFileSshApi sshApi = new VNXFileSshApi();
@@ -184,12 +195,18 @@ public class VNXFileCommApi {
                 _log.info("FileSystem Id provided is null or empty so we will use system generated id" );
             }
 
+            // calculate the thin fs allocation size
+            String thinProvFsSizeMBs = THIN_PROVISIONED_FS_SIZE_MB;
+            if(virtualProvisioning){
+            	thinProvFsSizeMBs = getThinFSAllocSize(size, true).toString();
+            }
+            
             //FileSystem doesnt exist on the array, so now create it
             sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
-            String createFSCmd = sshApi.formatCreateFS(fileSys, FILE_SYSTEM_TYPE_DEF, THIN_PROVISIONED_FS_SIZE_MB,
+            String createFSCmd = sshApi.formatCreateFS(fileSys, FILE_SYSTEM_TYPE_DEF, thinProvFsSizeMBs,
                     size.toString(), pool, "", virtualProvisioning, nativeFsId);
             _log.info("parsed createFSCmd {}.", createFSCmd);
-            result = sshApi.executeSsh(VNXFileSshApi.NAS_FS, createFSCmd);
+            result = sshApi.executeSshRetry(VNXFileSshApi.NAS_FS, createFSCmd);
             if(!result.isCommandSuccess()) {
                 cmdResult = VNXFileConstants.CMD_FAILURE;
             }
@@ -421,8 +438,7 @@ public class VNXFileCommApi {
 
     	return result;
     }
-    
-    
+
     public XMLApiResult deleteQuotaDirectory(final StorageSystem system,
     		final String fsName, final String quotaDirName, final Boolean forceDelete, Boolean isMountRequired
     		) throws VNXException {
@@ -925,7 +941,7 @@ public class VNXFileCommApi {
                 String data = sshApi.formatExportCmd(moverOrVdmName, newExportEntries, userInfo, netBios);
                 _log.info("Export command {}", data);
                 if (data != null) {
-                    result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);
+                    result = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, data);
                 }
                 if (!result.isCommandSuccess()) {
                 	if(firstExport) {
@@ -1255,6 +1271,39 @@ public class VNXFileCommApi {
         return result;
     }
 
+    /*
+     * getThinFSAllocSize - calculate the allocation size for thin file system
+     * based on the allocation percentage set in conf file.
+     * and make sure the minimum allocation size to be 1024M or FS size, if fs size less than 1024M.
+     */
+    private Long getThinFSAllocSize(Long  fsSizeMBs, boolean considerMinAlloc) {
+    	Long allocPer = 10L;
+    	Long thinFsSizeMin = Long.parseLong(THIN_PROVISIONED_FS_SIZE_MB);
+    	Long allocSize = thinFsSizeMin;
+    	
+    	String allocPerStr = this.getThinFsAllocPercentage();
+    	if(allocPerStr != null && !allocPerStr.isEmpty()){
+    		_log.info("Allocation percentage from conf file {}", allocPerStr);
+    		allocPer = Long.parseLong(allocPerStr);
+    	}
+    	
+    	allocSize = (fsSizeMBs*allocPer)/100;
+    	if(!considerMinAlloc){
+    		_log.info("getThinFSAllocSize return allocation size {}", allocSize.toString());
+    		return allocSize;
+    	}
+    	// allocation size less than 1GB or file size less than 1GB
+    	// set the allocation size accordingly!!!
+    	if( allocSize < thinFsSizeMin){
+    		allocSize = thinFsSizeMin;
+    		if(allocSize > fsSizeMBs){
+    			allocSize = fsSizeMBs;
+    		}
+    	}
+    	_log.info("getThinFSAllocSize return allocation size {}", allocSize.toString());
+        return allocSize;
+    }
+    
     private String getFSSize(final StorageSystem system, String fsName) {
         sshApi.setConnParams(system.getIpAddress(), system.getUsername(),
                 system.getPassword());
@@ -1276,6 +1325,14 @@ public class VNXFileCommApi {
             reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/"+fsName);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING, isVirtualProvisioned);
             reqAttributeMap.put(VNXFileConstants.ORIGINAL_FS_SIZE, fsSize);
+            
+            // calculate the thin fs allocation size
+            Long thinProvFsSizeMBs = Long.parseLong(THIN_PROVISIONED_FS_SIZE_MB);
+            if(isVirtualProvisioned){
+            	thinProvFsSizeMBs = getThinFSAllocSize(extendSize, false);
+            }
+            reqAttributeMap.put(VNXFileConstants.THIN_FS_ALLOC_SIZE, thinProvFsSizeMBs);
+            
             _provExecutor.set_keyMap(reqAttributeMap);
 
             if (isMountRequired) {

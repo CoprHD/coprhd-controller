@@ -21,6 +21,7 @@ dependencies {
 
     compile library(commons_compress),
             library(commons_codec),
+            library(json_simple),
             project(":dbsvc"),
             project(":security"),
             project(":coordinatorsvc"),

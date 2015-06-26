@@ -14,7 +14,7 @@
  */
 package com.emc.storageos.installer.widget;
 
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerConstants;
 
 import charva.awt.Component;
 import charva.awt.GridBagConstraints;

@@ -80,6 +80,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String HOST_IO_LIMIT_IOPS="hostIOLimitIOPs";
     private static final String AUTO_CROSS_CONNECT_EXPORT="autoCrossConnectExport";
     private static final String RP_RPO_VALUE="rpRpoValue";
+    private static final String HA_CONNECTED_TO_RP = "haVarrayConnectedToRp";
 
     private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] { AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH,HOST_IO_LIMIT_IOPS };
     private static final String[] EXCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] {
@@ -105,7 +106,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     public static VirtualPoolChangeOperationEnum getSupportedVPlexVolumeVirtualPoolChangeOperation(Volume volume,
         VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient,
         StringBuffer notSuppReasonBuff) {
-        s_logger.info("Running getSupportedVPlexVolumeVirtualPoolChangeOperation...");
+        s_logger.info(String.format("Checking getSupportedVPlexVolumeVirtualPoolChangeOperation from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         // Make sure the VirtualPool's are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return null;
@@ -147,7 +148,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static VirtualPoolChangeOperationEnum vplexCommonChecks(Volume volume,
             VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient,
             StringBuffer notSuppReasonBuff, String[] include) {
-        s_logger.info("Running vplexCommonChecks...");
+        s_logger.info(String.format("Checking vplexCommonChecks from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         boolean isRPVPlex = VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesRPVPlex(newVpool);
         
         // If the volume is in a CG and the target vpool does not specify multi
@@ -223,7 +224,14 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         VirtualPool currentHaVpool = getHaVpool(currentVpool, dbClient);
         if (currentHaVpool != null) {
             // Get the new HA varray vpool.
-            newHaVpool = getNewHaVpool(currentVpool, newVpool, dbClient);
+            try {
+                newHaVpool = getNewHaVpool(currentVpool, newVpool, dbClient);
+            }
+            catch (Exception e) {
+                s_logger.error(e.getMessage());
+                notSuppReasonBuff.append(String.format("Could not get new HA vpool from [%s]", newVpool.getLabel()));
+                return null;
+            }
             if (!currentHaVpool.getId().toString().equals(newHaVpool.getId().toString())) {
                 s_logger.info("HA varray vpools are different");
 
@@ -406,7 +414,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * @return true if equivalent, false otherwise.
      */
     public static boolean vpoolChangeRequiresMigration(VirtualPool currentVpool, VirtualPool newVpool) {
-        s_logger.info("Running vpoolChangeRequiresMigration...");
+        s_logger.info(String.format("Checking vpoolChangeRequiresMigration from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         // Verify they are different Vpool.
         if (isSameVirtualPool(currentVpool, newVpool)) {
             return false;
@@ -439,8 +447,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      *         availability, false otherwise.
      */
     public static boolean isVPlexImport(VirtualPool vpool1, VirtualPool vpool2,
-        StringBuffer notImportReasonBuff) {
-        s_logger.info("Running isVPlexImport...");
+        StringBuffer notImportReasonBuff) {        
+        s_logger.info(String.format("Checking isVPlexImport from [%s] to [%s]...", vpool1.getLabel(), vpool2.getLabel()));
         String[] excluded = new String[] { ACLS, ASSIGNED_STORAGE_POOLS, DESCRIPTION,
             HA_VARRAY_VPOOL_MAP, LABEL, MATCHED_POOLS, INVALID_MATCHED_POOLS, NUM_PATHS,
             STATUS, TAGS, CREATION_TIME, THIN_VOLUME_PRE_ALLOCATION_PERCENTAGE, 
@@ -493,6 +501,34 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         
         return false;
     }
+
+    /**
+     * Returns true if the new virtual pool contains the storage pool of the
+     * volume requested for virtual pool change.
+     * 
+     * @param volume the volume requested for virtual pool change
+     * @param newVpool the target virtual pool
+     * @param notSuppReasonBuff [OUT] contains the reasons a virtual pool 
+     *                          change is not supported
+     *        
+     * @return true if the target virtual pool contains the storage pool of 
+     *              the volume requested for virtual pool change
+     */
+    public static boolean doesVplexVpoolContainVolumeStoragePool(Volume volume, 
+            VirtualPool newVpool, StringBuffer notSuppReasonBuff) {        
+        s_logger.info(String.format("Checking doesVplexVpoolContainVolumeStoragePool for [%s]...", newVpool.getLabel()));
+        StringSet poolsToCheck = newVpool.getUseMatchedPools() ? 
+                newVpool.getMatchedStoragePools() : newVpool.getAssignedStoragePools();
+        
+        if ((null == poolsToCheck) || !poolsToCheck.contains(volume.getPool().toString())) {
+            notSuppReasonBuff.append("The target virtual pool ").append(newVpool.getLabel());
+            notSuppReasonBuff.append(" does not contain the volume's storage pool (");
+            notSuppReasonBuff.append(volume.getPool()).append(") ");
+            return false;
+        }
+        
+        return true;
+    }
     
     /**
      * Returns true iff the only difference is converting from a vplex_local to
@@ -509,6 +545,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     public static boolean isVPlexConvertToDistributed(VirtualPool vpool1, VirtualPool vpool2,
         StringBuffer notSuppReasonBuff) {
         s_logger.info("Running isVPlexConvertToDistributed...");
+        s_logger.info(String.format("Checking isVPlexConvertToDistributed from [%s] to [%s]...", vpool1.getLabel(), vpool2.getLabel()));
         String[] excluded = new String[] { ASSIGNED_STORAGE_POOLS, DESCRIPTION,
             HA_VARRAY_VPOOL_MAP, LABEL, MATCHED_POOLS, INVALID_MATCHED_POOLS, NUM_PATHS,
             STATUS, TAGS, CREATION_TIME, NON_DISRUPTIVE_EXPANSION };
@@ -582,10 +619,15 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      */
     public static boolean isSupportedRPVolumeVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, 
                                                                 DbClient dbClient, StringBuffer notSuppReasonBuff) {        
-        s_logger.info("Running isSupportedRPVolumeVirtualPoolChange...");
-        
+        s_logger.info(String.format("Checking isSupportedRPVolumeVirtualPoolChange from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         // Make sure the Vpool are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }
+        
+        // Not supported yet, will be in the future
+        if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+            notSuppReasonBuff.append("Can't add RecoverPoint Protection directly to non-VPLEX volume. Import to VPLEX first.");
             return false;
         }
         
@@ -665,7 +707,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      */
     public static boolean isSupportedSRDFVolumeVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool, 
                                                                    DbClient dbClient, StringBuffer notSuppReasonBuff) {
-        s_logger.info("Running isSupportedSRDFVolumeVirtualPoolChange...");
+        s_logger.info(String.format("Checking isSupportedSRDFVolumeVirtualPoolChange from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         // Make sure that the volume is vmax volume. Only vmax supports srdf protection.
         URI storageDeviceURI = volume.getStorageController();
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageDeviceURI);
@@ -730,7 +772,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     public static boolean isSupportedAddMirrorsVirtualPoolChange(Volume volume, VirtualPool currentVpool,
                                                                  VirtualPool newVpool, DbClient dbClient,
                                                                  StringBuffer notSuppReasonBuff) {
-        s_logger.info("Running isSupportedAddMirrorsVirtualPoolChange...");
+        s_logger.info(String.format("Checking isSupportedAddMirrorsVirtualPoolChange from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
         }
@@ -777,6 +819,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static boolean isSupportedAddMirrorsVirtualPoolChangeForVplexDistributed(Volume volume, VirtualPool currentVpool,
             VirtualPool newVpool, DbClient dbClient,
             StringBuffer notSuppReasonBuff) {        
+        s_logger.info(String.format("Checking isSupportedAddMirrorsVirtualPoolChangeForVplexDistributed from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
     	boolean supported = false;
     	
     	// This if section is basically checking source side vpool to make sure its good to be changed with newVpool
@@ -934,7 +977,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
          * Case 4 : from host io limit bandwidth and/or iops fron current vpool are different from new vPool.          
          *
          */
-
+        s_logger.info(String.format("Checking isSupportedAutoTieringPolicyAndLimitsChange from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         // Make sure the VirtualPool's are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
@@ -1069,29 +1112,27 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      */
     public static boolean isSupportedRPChangeProtectionVirtualPoolChange(Volume volume,VirtualPool currentVpool, VirtualPool newVpool, 
                                                                                 DbClient dbClient, StringBuffer notSuppReasonBuff) {    
-        s_logger.info(String.format("Checking if RP change protection operation is supported between vpool [%s] and vpool [%s]...", 
-                currentVpool.getLabel(), newVpool.getLabel()));
+        s_logger.info(String.format("Checking isSupportedRPChangeProtectionVirtualPoolChange from [%s] to [%s]...", currentVpool.getLabel(), newVpool.getLabel()));
         
         // Make sure the Vpool are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
         }
         
+        // RP+VPLEX Distributed to MetroPoint is supported
         if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
                 && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
-            // RP+VPLEX upgrade to MetroPoint
+
             if (!volume.getAssociatedVolumes().isEmpty()
                     && volume.getAssociatedVolumes().size() > 1) {
-                // RP+VPLEX Distributed to MetroPoint
-                // Supported
-                
-                // Throw an exception if any of the following properties are different
-                // between the current and new Vpool.
+                                
+                // Return false if any of the following properties are different
+                // between the current and new vpool.
                 String[] include = new String[] { TYPE, VARRAYS,
                                                     REF_VPOOL, MIRROR_VPOOL,
                                                     HIGH_AVAILABILITY,
                                                     FAST_EXPANSION, ACLS, 
-                                                    INACTIVE };
+                                                    INACTIVE, HA_CONNECTED_TO_RP };
                 if (!analyzeChanges(currentVpool, newVpool, include, null, null).isEmpty()) {
                     notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
                     int pCount = 0;
@@ -1101,6 +1142,15 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                             notSuppReasonBuff.append(", ");
                         }
                     }
+                    return false;
+                }
+                                
+                if (currentVpool.getProtectionVarraySettings() == null 
+                        || newVpool.getProtectionVarraySettings() == null
+                        || currentVpool.getProtectionVarraySettings().isEmpty()
+                        || newVpool.getProtectionVarraySettings().isEmpty()) {
+                    notSuppReasonBuff.append(String.format("Source Protection Varray Settings [%s] is null or empty OR Target" +
+                            " Protection Varray Settings [%s] is null or empty.", currentVpool.getProtectionVarraySettings(), newVpool.getProtectionVarraySettings()));
                     return false;
                 }
                 
@@ -1113,10 +1163,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     notSuppReasonBuff.append("Multiple targets not supported for upgrade to MetroPoint (for now).");
                     return false;
                 }
-                else {
+                else {                    
+                    // Check the Targets...
                     // Need to make sure that the new vpool has the same target varray/vpool
                     // defined to make the transition to MetroPoint seemless.
-                    boolean supportedVpool = false;
+                    // Also applies to target journal varray/vpool.
                     for (Map.Entry<String, String> entry : newVpool.getProtectionVarraySettings().entrySet()) {
                         // Make sure they both use the same target varray
                         if (currentVpool.getProtectionVarraySettings().containsKey(entry.getKey())) {
@@ -1134,20 +1185,74 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                             VpoolProtectionVarraySettings newProtectionVarraySetting = 
                                     dbClient.queryObject(VpoolProtectionVarraySettings.class, 
                                             URI.create(newSettingsId));
+                                                        
+                            String currentTargetVpool           = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting.getVirtualPool());
+                            String currentTargetJournalVarray   = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting.getJournalVarray());
+                            String currentTargetJournalVpool    = NullColumnValueGetter.getStringValue(currentProtectionVarraySetting.getJournalVpool());
                             
-                            // Make sure the vpools are the same
-                            if (currentProtectionVarraySetting.getVirtualPool().equals(
-                                    newProtectionVarraySetting.getVirtualPool())) {
-                                supportedVpool = true;
-                                break;
+                            String newTargetVpool               = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getVirtualPool());
+                            String newTargetJournalVarray       = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getJournalVarray());
+                            String newTargetJournalVpool        = NullColumnValueGetter.getStringValue(newProtectionVarraySetting.getJournalVpool());
+
+                            // Make sure the target vpools are the same
+                            if (!currentTargetVpool.equals(newTargetVpool)) {
+                                notSuppReasonBuff.append("Target virtual pools do not match.");
+                                return false;                                
                             }
-                        }                        
+                            
+                            // Make sure the target journal varrays are the same
+                            if (!currentTargetJournalVarray.equals(newTargetJournalVarray)) {
+                                notSuppReasonBuff.append("Target journal virtual arrays do not match.");
+                                return false;                                
+                            }
+                            
+                            // Make sure the target journal vpools are the same
+                            if (!currentTargetJournalVpool.equals(newTargetJournalVpool)) {
+                                notSuppReasonBuff.append("Target journal virtual vpools do not match.");
+                                return false;                                
+                            }                 
+                        }
+                        else {
+                            notSuppReasonBuff.append("Target virtual arrays do not match.");
+                            return false;
+                        }
+                    } 
+                    
+                    // Targets are OK if we reach here so on to the next check for Source/HA journals...
+                    //
+                    // The current RP+VPLEX vpool is either protecting the Source site or HA site.
+                    // This will make a difference in checking which journal side should be added when
+                    // upgrading to MetroPoint.
+                    // If we were protecting the Source site, then the HA journal changes are OK and we need to check the Source Journal settings for changes.
+                    // If we were protecting the HA site, then the Source journal changes are OK and we need to check the HA Journal settings for changes.                    
+                    String currentJournalVarray = null;
+                    String currentJournalVpool = null;
+                    String newJournalVarray = null;
+                    String newJournalVpool = null;
+                    
+                    if (VirtualPool.isRPVPlexProtectHASide(currentVpool)) {
+                        currentJournalVarray = NullColumnValueGetter.getStringValue(currentVpool.getStandbyJournalVarray());
+                        currentJournalVpool  = NullColumnValueGetter.getStringValue(currentVpool.getStandbyJournalVpool());
+                        newJournalVarray     = NullColumnValueGetter.getStringValue(newVpool.getStandbyJournalVarray());
+                        newJournalVpool      = NullColumnValueGetter.getStringValue(newVpool.getStandbyJournalVpool());
+                    }
+                    else {
+                        currentJournalVarray = NullColumnValueGetter.getStringValue(currentVpool.getJournalVarray());
+                        currentJournalVpool  = NullColumnValueGetter.getStringValue(currentVpool.getJournalVpool());
+                        newJournalVarray     = NullColumnValueGetter.getStringValue(newVpool.getJournalVarray());
+                        newJournalVpool      = NullColumnValueGetter.getStringValue(newVpool.getJournalVpool());
                     }
                     
-                    if (!supportedVpool) {
-                        notSuppReasonBuff.append("Varray and Vpools of source and new vpool do not match for targets.");
+                    // Source journals need to match up
+                    if (!currentJournalVarray.equals(newJournalVarray)) {
+                        notSuppReasonBuff.append("Source journal virtual arrays do not match.");
                         return false;
                     }
+                                      
+                    if (!currentJournalVpool.equals(newJournalVpool)) {
+                        notSuppReasonBuff.append("Source journal virtual pools do not match.");
+                        return false;
+                    }                                        
                 }
             }
             else {

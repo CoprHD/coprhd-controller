@@ -9,10 +9,13 @@ scripts {
 }
 
 dependencies {
+    if (buildType == 'emc')
+        compile library(charva)
+
     compile library(commons_logging),
             library(commons_codec),
             library(slf4j),
-            library(charva),
+            library(jmdns),
             project(":serviceutils"),
             project(":jmx")
 }

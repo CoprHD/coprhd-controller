@@ -20,14 +20,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 
+import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.services.util.MulticastUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.services.data.Configuration;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.installer.widget.DisplayPanel;
-import com.emc.storageos.services.util.InstallerConstants;
-import com.emc.storageos.services.util.InstallerOperation;
-import com.emc.storageos.services.util.InstallerUtil;
 
 /**
  * Class implements installer operations for install/config/redeploy cases.
@@ -86,7 +85,7 @@ public class InstallationTask extends Thread {
      * @see java.lang.Thread#run()
      */
     public void run() {
-    	final String disk = config.getHwConfig().get(InstallerConstants.PROPERTY_KEY_DISK);
+    	final String disk = config.getHwConfig().get(PropertyConstants.PROPERTY_KEY_DISK);
         int progress = 2;
         updateProgressBarValue(progress);
 		if (config.isInstallMode() || 
@@ -296,7 +295,7 @@ public class InstallationTask extends Thread {
 			while (true) {
 				log.info("{} - Scanning for broadcasting configs from others", config.getNodeId());
 				Set<Configuration> availableClusters = InstallerUtil.scanClusters(config.getHwConfig()
-						.get(InstallerConstants.PROPERTY_KEY_NETIF), releaseVersion, config.getScenario());
+						.get(PropertyConstants.PROPERTY_KEY_NETIF), releaseVersion, config.getScenario());
 				log.info("{} - found {} configurations", config.getNodeId(), availableClusters.size());
 				if (availableClusters != null && !availableClusters.isEmpty()) {
 					if (allNodesAreInstalled(availableClusters)) {
@@ -392,13 +391,13 @@ public class InstallationTask extends Thread {
                 try {
                     log.info("Broadcasting configuration {} over network {}",
                             config.getNetworkVip() + "/" + config.getNodeId(),
-                            config.getHwConfig().get(InstallerConstants.PROPERTY_KEY_NETIF));
+                            config.getHwConfig().get(PropertyConstants.PROPERTY_KEY_NETIF));
 
                     // in redeploy case, add local node id to alive node list before broadcast
                     if (config.isRedeployMode() && config.getAliveNodes() != null) {
                         config.getAliveNodes().add(config.getNodeId());
                     }
-                    if (!InstallerUtil.doBroadcast(releaseVersion, config, InstallerConstants.NORMAL_MULTICAST_TIMEOUT)) {
+                    if (!MulticastUtil.doBroadcast(releaseVersion, config, InstallerConstants.NORMAL_MULTICAST_TIMEOUT)) {
                         statusMsg = "caught exception!";
                         log.error(TASK_BROADCAST + statusMsg);
                         popupErrorMsg(new String[] {TASK_BROADCAST + statusMsg, ERR_LOG_MSG});

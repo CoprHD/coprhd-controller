@@ -24,8 +24,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.TaskList;
@@ -64,19 +62,18 @@ public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         super.validateFullCopyCreateRequest(fcSourceObjList, count);
         
-        // For VNX, if a full copy source is itself a full copy, 
-        // and it is not detached, full copy creation would fail.
-        // So, we prevent a full copy of an attached full copy.
+        // Now platform specific checks.
         Iterator<BlockObject> fcSourceObjIter = fcSourceObjList.iterator();
         while (fcSourceObjIter.hasNext()) {
             BlockObject fcSourceObj = fcSourceObjIter.next();
             URI fcSourceURI = fcSourceObj.getId();
             if (URIUtil.isType(fcSourceURI, Volume.class)) {
                 Volume fcSourceVolume = (Volume) fcSourceObj;
-                URI systemURI = fcSourceObj.getStorageController();
-                StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-                if ((DiscoveredDataObject.Type.vnxblock.name().equals(system.getSystemType())) && 
-                    (BlockFullCopyUtils.isVolumeFullCopy(fcSourceVolume, _dbClient)) && 
+                
+                // For VNX, if a full copy source is itself a full copy, 
+                // and it is not detached, full copy creation would fail.
+                // So, we prevent a full copy of an attached full copy.
+                if ((BlockFullCopyUtils.isVolumeFullCopy(fcSourceVolume, _dbClient)) && 
                     (!BlockFullCopyUtils.isFullCopyDetached(fcSourceVolume, _dbClient))) {
                     throw APIException.badRequests.cantCreateFullCopyOfVNXFullCopy();
                 }

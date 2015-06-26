@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.NamedVolumesList;
@@ -81,6 +82,25 @@ public class BlockFullCopyManager {
     // Enumeration specifying the valid keys for the full copy implementations map. 
     private enum FullCopyImpl {
         dflt, vmax, vmax3, vnx, vnxe, hds, openstack, scaleio, xtremio, xiv, rp, vplex
+    }
+    
+    private static final int VMAX_MAX_FULLCOPY_COUNT = 8; // Applies for VMAX3 also
+    private static final int VNX_MAX_FULLCOPY_COUNT = 8;
+    private static final int SCALEIO_MAX_FULLCOPY_COUNT = 31;
+    private static final int XIV_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
+    private static final int OPENSTACK_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
+    
+    // Map of the values for maximum active full copy sessions for each block storage platform.
+    public static Map<String, Integer> s_maxFullCopyMap = new HashMap<String, Integer>();
+    static {
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.vmax.name(), VMAX_MAX_FULLCOPY_COUNT);
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.vnxblock.name(), VNX_MAX_FULLCOPY_COUNT);
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.vnxe.name(), 0); // not supported
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.hds.name(), HDSConstants.MAX_SHADOWIMAGE_PAIR_COUNT);
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.openstack.name(), OPENSTACK_MAX_FULLCOPY_COUNT);
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.scaleio.name(), SCALEIO_MAX_FULLCOPY_COUNT);
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.xtremio.name(), 0); // not supported
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.ibmxiv.name(), XIV_MAX_FULLCOPY_COUNT);
     }
     
     // A reference to a database client.
@@ -259,21 +279,10 @@ public class BlockFullCopyManager {
         for (BlockObject fcSourceObj : fcSourceObjList) {
             // The full copy source object id.
             URI fcSourceURI = fcSourceObj.getId();
-            
-            URI cgURI = fcSourceObj.getConsistencyGroup();
             if (URIUtil.isType(fcSourceURI, Volume.class)) {
                 // Verify the operation is supported for ingested volumes.
                 VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume((Volume) fcSourceObj,
                     ResourceOperationTypeEnum.CREATE_VOLUME_FULL_COPY, _dbClient);
-                
-                // We only allow you to create a single full copy at a time
-                // for volumes in a consistency group.
-                if ((!NullColumnValueGetter.isNullURI(cgURI)) && (count > 1)) {
-                    throw APIException.badRequests.invalidFullCopyCountForVolumesInConsistencyGroup();
-                }
-            } else if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                // We don't support creating full copies of snapshots in consistency groups.
-                throw APIException.badRequests.fullCopyNotSupportedForConsistencyGroup();
             }
             
             // Verify the source is not an internal object.
@@ -869,5 +878,21 @@ public class BlockFullCopyManager {
             BlockService.EVENT_SERVICE_TYPE, opType, System.currentTimeMillis(),
             operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS
                 : AuditLogManager.AUDITLOG_FAILURE, operationStage, descparams);
-    }    
+    }
+    
+    /**
+     * Return the maximum number of active full copies for storage
+     * systems of the passed type.
+     * 
+     * @param systemType The system type.
+     * 
+     * @return The maximum number of active full copies.
+     */
+    public static int getMaxFullCopiesForSystemType(String systemType) {
+        if (s_maxFullCopyMap.containsKey(systemType)) {
+            return s_maxFullCopyMap.get(systemType);
+        }
+         
+        return Integer.MAX_VALUE;
+    }
 }

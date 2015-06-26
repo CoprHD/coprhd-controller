@@ -46,15 +46,7 @@ public interface NetworkDeviceControllerErrors {
     public ServiceError zoningFailedArgs(final String volUris);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError addSanZonesFailed(final String uri,
-            final String systemtype);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError addRemoveZonesFailed(final String systemtype);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError removeSanZonesFailed(final String uri,
-            final String systemtype);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError removeZoneFailed(final String uri,
@@ -86,62 +78,21 @@ public interface NetworkDeviceControllerErrors {
     public ServiceError zoneExportGroupCreateFailed(final String message, final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportGroupCreateTaskFailed(final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportAddVolumeFailed(final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportAddVolumesFailed(final String message, final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportAddInitiatorFailed(final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError zoneExportAddInitiatorsFailed(final String message, final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportGroupDeleteTaskFailed(final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError zoneExportGroupDeleteFailed(final String message, final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportRemoveVolumeFailed(final String volUri,
-            final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportRemoveVolumesFailed(final String volUri,
-            final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneExportRemoveInitiatorFailed(final String message, final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError zoneExportRemoveInitiatorsFailed(final String message, final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError zoneRollbackFailed(final String exportGroupUri);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError zoneRollbackFailedExc(final String exportGroupUri,
             final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError doZoneExportGroupDeleteFailed(final String exportGroupUri);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError doZoneExportGroupAddInitiatorsFailed(final String initiatorUris);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError doZoneExportGroupRemoveInitiatorsFailed(final String initiatorUris);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError doZoneExportGroupAddVolumesFailed(final String volUris);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError doZoneExportGroupRemoveVolumesFailed(final String volUris);
-    
+    public ServiceError zoneRollbackFailed(final String exportGroupUri);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError doConnectFailedNotMds(final String network);
     
@@ -151,25 +102,15 @@ public interface NetworkDeviceControllerErrors {
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException getAliasesFailedExc(final String uri,
             final String date, final Throwable cause);
-    
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError addAliasesFailedExc(final String systemType, final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError addAliasesFailed(final String uri, final String systemtype);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError removeAliasesFailedExc(final String systemType, final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError removeAliasesFailed(final String uri, final String systemtype);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError updateAliasesFailedExc(final String systemType, final Throwable cause);
-    
-    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
-    public ServiceError updateAliasesFailed(final String uri, final String systemtype);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public ServiceError batchOperationFailed(final String results);

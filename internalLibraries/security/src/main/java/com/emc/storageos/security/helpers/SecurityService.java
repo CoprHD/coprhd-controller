@@ -34,4 +34,6 @@ public interface SecurityService {
     void clearSensitiveData(SecureRandom random);
 
     void initSecurityProvider();
+
+    String[] getCipherSuite();
 }

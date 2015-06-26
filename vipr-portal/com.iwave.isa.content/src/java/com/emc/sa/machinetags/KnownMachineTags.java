@@ -25,6 +25,10 @@ public class KnownMachineTags {
         return VMFS_DATASTORE+"-"+hostId;
     }
     
+    public static String getVmfsDatastoreTagName() {
+        return VMFS_DATASTORE;
+    }
+    
     public static String getOrderIdTagName() {
         return ORDER_ID;
     }

@@ -10,8 +10,8 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import java.net.URI;
 
 public class ExportHostFilter extends ExportFilter {
-    private static final String HOST_EXPORT_TYPE = "Host";
-    private static final String EXCLUSIVE_EXPORT_TYPE = "Exclusive";
+    public static final String HOST_EXPORT_TYPE = "Host";
+    public static final String EXCLUSIVE_EXPORT_TYPE = "Exclusive";
 
     private final URI hostId;
 

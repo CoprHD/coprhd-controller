@@ -17,8 +17,9 @@ package com.emc.storageos.installer.controller;
 import charvax.swing.event.ListSelectionEvent;
 import charvax.swing.event.ListSelectionListener;
 
-import com.emc.storageos.services.data.Configuration;
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerConstants;
+import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.installer.widget.SelectListPanel;
 
 /**
@@ -61,7 +62,7 @@ public class NetworkInterfaceConfigController implements IConfigPanelController 
 		if (netIf == null || netIf.isEmpty()) {
 			msg = InstallerConstants.NETWORK_INT_CONFIG_WARN_MSG;
 		} else {
-			config.getHwConfig().put(InstallerConstants.PROPERTY_KEY_NETIF, netIf);
+			config.getHwConfig().put(PropertyConstants.PROPERTY_KEY_NETIF, netIf);
 		}
 		return (msg == null) ? null : new String[] {msg};
 	}

@@ -8,7 +8,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -29,16 +28,10 @@ import java.util.Map;
 
 public class StorageVolumeViewProcessor extends StorageProcessor{
 
-    private static final String TWELVE = "12";
     private static final String SVUSAGE = "SVUsage";
-    private static final String VOLUME = "Volume";
-    private static final String BLOCK_SNAPSHOT = "BlockSnapshot";
-    private static final String EIGHT = "8";
-    private static final String BLOCK_MIRROR = "BlockMirror";
     
     private Logger _logger = LoggerFactory.getLogger(StorageVolumeViewProcessor.class);
     private DbClient _dbClient;
-    private AccessProfile _profile = null;
     private List<Volume> _updateVolumes = null;
     private List<Object> _args;
     private List<BlockSnapshot> _updateSnapShots;
@@ -59,7 +52,6 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
         EnumerateResponse<CIMInstance> volumeInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
         WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-        _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
         _updateVolumes = new ArrayList<Volume>();
         _updateSnapShots = new ArrayList<BlockSnapshot>();
         _updateMirrors = new ArrayList<BlockMirror>();
@@ -76,10 +68,10 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
                 keyMap.put(Constants.META_VOLUMES, new ArrayList<CIMObjectPath>());
             }
 
+            CIMObjectPath storagePoolPath = getObjectPathfromCIMArgument(_args);
             volumeInstances = volumeInstanceChunks.getResponses();
             processVolumes(volumeInstances, keyMap);
             while (!volumeInstanceChunks.isEnd()) {
-                CIMObjectPath storagePoolPath = getObjectPathfromCIMArgument(_args);
                 _logger.info("Processing Next Volume Chunk of size {}", BATCH_SIZE);
                 volumeInstanceChunks = client.getInstancesWithPath(storagePoolPath,
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
@@ -123,7 +115,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
                     _logger.debug("Skipping Snapshot, as its not being managed in Bourne");
                     continue;
                 }
-                updateBlockSnapShot(volumeViewInstance, snapShot, nativeGuid, keyMap);
+                updateBlockSnapShot(volumeViewInstance, snapShot, keyMap);
                 if (_updateSnapShots.size() > BATCH_SIZE) {
                     _partitionManager.updateInBatches(_updateSnapShots, getPartitionSize(keyMap),
                             _dbClient, BLOCK_SNAPSHOT);
@@ -135,7 +127,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
                     _logger.debug("Skipping Mirror, as its not being managed in Bourne");
                     continue;
                 }
-                updateBlockMirror(volumeViewInstance, mirror, nativeGuid, keyMap);
+                updateBlockMirror(volumeViewInstance, mirror, keyMap);
                 if (_updateMirrors.size() > BATCH_SIZE) {
                     _partitionManager.updateInBatches(_updateMirrors, getPartitionSize(keyMap),
                             _dbClient, BLOCK_MIRROR);
@@ -195,8 +187,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
     }
     
     private void updateBlockSnapShot(CIMInstance volumeInstance,
-            BlockSnapshot snapShot, String nativeGuid,
-            Map<String, Object> keyMap) {
+            BlockSnapshot snapShot, Map<String, Object> keyMap) {
         snapShot.setAllocatedCapacity(Long.parseLong(getCIMPropertyValue(
                 volumeInstance, EMC_ALLOCATED_CAPACITY)));
         snapShot.setProvisionedCapacity(returnProvisionedCapacity(
@@ -205,7 +196,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
     }
     
     private void updateBlockMirror(CIMInstance volumeInstance,
-            BlockMirror mirror, String nativeGuid, Map<String, Object> keyMap) {
+            BlockMirror mirror, Map<String, Object> keyMap) {
         mirror.setAllocatedCapacity(Long.parseLong(getCIMPropertyValue(
                 volumeInstance, EMC_ALLOCATED_CAPACITY)));
         mirror.setProvisionedCapacity(returnProvisionedCapacity(volumeInstance,

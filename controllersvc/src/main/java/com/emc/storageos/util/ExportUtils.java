@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -781,20 +782,20 @@ public class ExportUtils {
      * 
      * @param _dbClient
      *            DB Client
-     * @param volumeURI
-     *            Volume to check
+     * @param blockObjectURI
+     *            BlockObject to check
      * @return Whether or not to use the EMC force flag
      */
-    public static boolean useEMCForceFlag(DbClient _dbClient, URI volumeURI) {
+    public static boolean useEMCForceFlag(DbClient _dbClient, URI blockObjectURI) {
         boolean forceFlag = false;
         // If there are any volumes that are RP, then we need to use the force flag on this operation
-        BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, volumeURI);
-        if (bo instanceof Volume) {
-            Volume volume = (Volume)bo;
-            if (volume != null && volume.checkForRp()) {
-                forceFlag = true;
-            }
+        BlockObject bo = Volume.fetchExportMaskBlockObject(_dbClient, blockObjectURI);
+        
+        if (bo != null && BlockObject.checkForRP(_dbClient, bo.getId())) {
+            // Set the force flag if the Block object is an RP Volume or BlockSnapshot.
+            forceFlag = true;
         }
+
         return forceFlag;
     }
     

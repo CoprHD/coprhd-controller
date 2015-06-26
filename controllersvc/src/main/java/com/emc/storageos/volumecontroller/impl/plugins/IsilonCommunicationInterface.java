@@ -758,7 +758,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             }
                         	List<UnManagedFileExportRule> validExportRules  = getUnManagedFSExportRules(unManagedFs, expIdMap, storagePort, fs.getPath(), isilonApi);
         					_log.info("Number of exports discovered for file system {} is {}", unManagedFs.getId(), validExportRules.size());
-        					
+                            UnManagedFileExportRule existingRule = null;
         					for (UnManagedFileExportRule dbExportRule : validExportRules) {
         						_log.info("Un Managed File Export Rule : {}", dbExportRule);
         						String fsExportRulenativeId = dbExportRule.getFsExportIndex();
@@ -770,24 +770,24 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         						dbExportRule.setNativeGuid(fsUnManagedFileExportRuleNativeGuid);
         						dbExportRule.setFileSystemId(unManagedFs.getId());
         						dbExportRule.setId(URIUtil.createId(UnManagedFileExportRule.class));
-        						// Build all export rules list.
-        						unManagedExportRules.add(dbExportRule);
+                                existingRule = checkUnManagedFsExportRuleExistsInDB(_dbClient, dbExportRule.getNativeGuid());
+                                if(null == existingRule){
+                                    unManagedExportRules.add(dbExportRule);
+                                } else {
+                                    existingRule.setInactive(true);
+                                    _dbClient.persistObject(existingRule);
+                                    unManagedExportRules.add(dbExportRule);
+                                }
         					}
         					
         					// Validate Rules Compatible with ViPR - Same rules should
         					// apply as per API SVC Validations.
-        					if(unManagedExportRules.size() > 0) {
-        						boolean isAllRulesValid = validationUtility
-        								.validateUnManagedExportRules(unManagedExportRules);
-        						if (isAllRulesValid) {
-        							_log.info("Validating rules success for export {}", fs.getName());
-        							newUnManagedExportRules.addAll(unManagedExportRules);
-        							unManagedFs.setHasExports(true);
-        							_log.info("File System {} has Exports and their size is {}", unManagedFs.getId(), newUnManagedExportRules.size());
-        						} else {
-        							_log.warn("Validating rules failed for export {}. Ignroing to import these rules into ViPR DB", fs.getName());
-        						}
-        					}
+                            if(unManagedExportRules.size() > 0) {
+                                _log.info("Validating rules success for export {}", fs.getName());
+                                newUnManagedExportRules.addAll(unManagedExportRules);
+                                unManagedFs.setHasExports(true);
+                                _log.info("File System {} has Exports and their size is {}", unManagedFs.getId(), newUnManagedExportRules.size());
+                            }
                         }
                         if( expIdMap.keySet().size() == 0 && noOfShares == 0){
                             //NO exports found
@@ -1570,16 +1570,38 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
      */
     private List<UnManagedFileExportRule> getUnManagedFSExportRules(UnManagedFileSystem umfs, HashMap<String, HashSet<Integer>>expIdMap,
                                             StoragePort storagePort, String fsPath, IsilonApi isilonApi) {
-
-        List<UnManagedFileExportRule> exportRules = null;
-
+        List<UnManagedFileExportRule> exportRules = new ArrayList<UnManagedFileExportRule>();
+        UnManagedExportVerificationUtility validationUtility =
+                                    new UnManagedExportVerificationUtility(_dbClient);
+        List<UnManagedFileExportRule> exportRulesTemp = null;
+        boolean isAllRulesValid = true;
         for(String expMapPath:expIdMap.keySet()) {
             HashSet<Integer> isilonExportIds = new HashSet<>();
-            _log.info("getUnManagedFSExportMap {} : export ids : {}", expMapPath, expIdMap.get(expMapPath));
+            _log.info("getUnManagedFSExportMap {} : export ids : {}",
+                                                expMapPath, expIdMap.get(expMapPath));
             isilonExportIds = expIdMap.get(expMapPath);
             if(isilonExportIds != null && isilonExportIds.size() > 0) {
-                exportRules = getUnManagedFSExportRules(umfs, storagePort, isilonExportIds, fsPath, isilonApi);
+                exportRulesTemp = getUnManagedFSExportRules(umfs, storagePort,
+                                                isilonExportIds, expMapPath, isilonApi);
+                //validate export rules for each path
+                if(null != exportRulesTemp && !exportRulesTemp.isEmpty()) {
+                    isAllRulesValid = validationUtility.validateUnManagedExportRules(
+                                                                exportRulesTemp, false);
+                    if(isAllRulesValid) {
+                        _log.info("Validating rules success for export {}", expMapPath);
+                        exportRules.addAll(exportRulesTemp);
+                    } else {
+                        _log.info("Ignroing the rules for export {}", expMapPath);
+                        isAllRulesValid = false;
+                    }
+                }
             }
+        }
+
+        if(exportRules.isEmpty() || false == isAllRulesValid) {
+            umfs.setHasExports(false);
+            _log.info("FileSystem " + fsPath + " does not have valid ViPR exports ");
+            exportRules.clear();
         }
         return exportRules;
     }

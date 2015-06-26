@@ -142,13 +142,13 @@ public class PxeIntegrationService {
 		// common parameters for all versions
 		ImageServerUtils.replaceAll(sb, "${clear.device}", clearDevice);
 		ImageServerUtils.replaceAll(sb, "${install.device}", installDevice);
-		ImageServerUtils.replaceAll(sb, "${root.password}", job.getPasswordHash());
 		ImageServerUtils.replaceAll(sb, "${http.ip}", imageServerConf.getImageServerSecondIp());
 		ImageServerUtils.replaceAll(sb, "${http.port}", imageServerConf.getImageServerHttpPort());
 		ImageServerUtils.replaceAll(sb, "${session.id}", job.getPxeBootIdentifier());
 		str = sb.toString();
 		log.trace(str);
-		return str;
+		ImageServerUtils.replaceAll(sb, "${root.password}", job.getPasswordHash());
+		return sb.toString();
 	}
 	
 	private String generateFirstboot(ComputeImageJob job, ComputeImage ci) {

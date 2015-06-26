@@ -41,6 +41,7 @@ import com.emc.sa.service.vipr.block.tasks.DetachFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ExpandVolume;
 import com.emc.sa.service.vipr.block.tasks.FindExportByCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
+import com.emc.sa.service.vipr.block.tasks.FindExportsContainingCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingHost;
 import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
 import com.emc.sa.service.vipr.block.tasks.GetActiveContinuousCopiesForVolume;
@@ -79,6 +80,8 @@ import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.core.filters.ExportClusterFilter;
+import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -183,6 +186,10 @@ public class BlockStorageUtils {
         return execute(new FindExportByCluster(cluster.getId(), projectId, varrayId, volume));
     }
 
+    public static List<ExportGroupRestRep> findExportsContainingCluster(URI cluster, URI projectId, URI varrayId) {
+        return execute(new FindExportsContainingCluster(cluster, projectId, varrayId));
+    }
+    
     public static List<ExportGroupRestRep> findExportsContainingHost(URI host, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
     }
@@ -363,6 +370,7 @@ public class BlockStorageUtils {
     }
 
     public static void removeContinuousCopiesForVolume(URI volumeId, Collection<URI> continuousCopyIds) {
+        removeBlockResourcesFromExports(continuousCopyIds);
         for (URI continuousCopyId : continuousCopyIds) {
             removeContinuousCopy(volumeId, continuousCopyId);
         }
@@ -533,6 +541,20 @@ public class BlockStorageUtils {
         return virtualArrays;
     }
 
+    public static Collection<ExportGroupRestRep> filterExportsByType(Collection<ExportGroupRestRep> exportGroups, final URI hostOrCluster) {
+        return Collections2.filter(exportGroups, new Predicate<ExportGroupRestRep>() {
+            @Override
+            public boolean apply(ExportGroupRestRep input) {
+                if (BlockStorageUtils.isCluster(hostOrCluster)) {
+                    return input.getType().equals(ExportClusterFilter.CLUSTER_EXPORT_TYPE);
+                } else {
+                    return input.getType().equals(ExportHostFilter.EXCLUSIVE_EXPORT_TYPE) ||
+                            (input.getType().equals(ExportHostFilter.HOST_EXPORT_TYPE));
+                }
+            }
+        });
+    }
+    
     public static Collection<Initiator> filterInitiatorsByType(Collection<Initiator> initiators, final Protocol protocol) {
         return Collections2.filter(initiators, new Predicate<Initiator>() {
             @Override

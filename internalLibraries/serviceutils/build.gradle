@@ -8,5 +8,7 @@ dependencies {
             library(httpclient3),
             library(spring),
             library(commons_lang),
+            library(owasp_esapi),
+            library(jsoup),
             library(jmdns)
 }

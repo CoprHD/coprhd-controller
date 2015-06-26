@@ -46,7 +46,7 @@ public class StoragePoolProcessor extends StorageProcessor {
             @SuppressWarnings("unchecked")
             
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
-            _dbClient = (DbClient) keyMap.get(Constants.dbClient);            
+            _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             
             while (it.hasNext()) {
                 CIMObjectPath poolPath = it.next();
@@ -55,6 +55,16 @@ public class StoragePoolProcessor extends StorageProcessor {
                 StoragePool pool = checkStoragePoolExistsInDB(poolNativeGuid, _dbClient);
                 if (pool != null && validPool(poolPath)) {
                     addPath(keyMap, operation.get_result(), poolPath);
+                    // add VMAX2 Thin pools to get BoundVolumes later
+                    if (poolPath.toString().contains(StoragePool.PoolClassNames.Symm_VirtualProvisioningPool.toString())) {
+                        addPath(keyMap, Constants.VMAX2_THIN_POOLS, poolPath);
+                    }
+                    
+                    String poolClass = poolPath.getObjectName();
+                    if (poolClass.startsWith(SYMM_CLASS_PREFIX) &&
+                        !poolClass.equals(StoragePool.PoolClassNames.Symm_SRPStoragePool.name())) {
+                        addPath(keyMap, Constants.VMAX2POOLS, poolPath);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -86,3 +96,4 @@ public class StoragePoolProcessor extends StorageProcessor {
         // TODO Auto-generated method stub
     }
 }
+

@@ -27,6 +27,7 @@ import java.net.SocketException;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,6 +150,27 @@ public class MulticastUtil {
         return results;
     }
 
+    /*
+     * Broadcast local configuration to others over the network.
+     * @return true if broadcast successful, false if failed.
+     */
+    public static boolean doBroadcast(String releaseVersion, Configuration config, long publishTime) {
+        boolean taskSuccess = true;
+        _log.debug("{} - broadcasting cluster configuration {}", config.getNodeId(), config.toString());
+        try {
+            MulticastUtil.create(config.getHwConfig().get(PropertyConstants.PROPERTY_KEY_NETIF))
+                    .publish(releaseVersion, config.getNodeId(), config.getConfigMap(), publishTime);
+        } catch (IOException e) {
+            taskSuccess = false;
+            _log.error("broadcast configuration caught exception with: " + e.getMessage());
+        } finally {
+            _log.info("broadcast configuration via {} for {} is done",
+                    config.getHwConfig().get(PropertyConstants.PROPERTY_KEY_NETIF),
+                    config.getScenario());
+        }
+        return taskSuccess;
+    }
+
     // to be removed
     private static void server(String nodeId, Map<String, String> clusterConfig) {
         final String serviceName = "vipr-2.2.0.0.1";
@@ -164,7 +186,6 @@ public class MulticastUtil {
     private static void client() {
         final String serviceName = "vipr-2.2.0.0.1";
         try {
-            //Set<Configuration> nodesConfig = MulticastUtil.create().list(serviceName);
             MulticastUtil.create().list(serviceName);
         } catch (Exception e) {
             e.printStackTrace();

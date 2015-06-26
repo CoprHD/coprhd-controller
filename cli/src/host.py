@@ -1158,10 +1158,25 @@ def host_list_initiators(args):
             hostInitiatorObj = HostInitiator(args.ip, args.port)
             initiatorListDetails = hostInitiatorObj.show(initiatorList)
 
+            for item in initiatorListDetails:
+                if(not item["name"]):
+                    item["name"]= " "
+
             if(args.verbose):
                 return common.format_json_object(initiatorListDetails)
             else:
                 if(args.largetable):
+                    for item in initiatorListDetails:
+                        if( "name" not in item or item['name']==""):
+                            item["name"]=" "
+                        if( "protocol" not in item or item['protocol']==""):
+                            item["protocol"]=" "
+                        if( "initiator_node" not in item or item['initiator_node']==""):
+                            item["initiator_node"]=" "
+                        if( "initiator_port" not in item or item['initiator_port']==""):
+                            item["initiator_port"]=" "
+                        if( "hostname" not in item or item['hostname']==""):
+                            item["hostname"]=" "
                     TableGenerator(initiatorListDetails,
                                    ['name', 'protocol', 'initiator_node',
                                     'initiator_port', 'hostname']).printTable()

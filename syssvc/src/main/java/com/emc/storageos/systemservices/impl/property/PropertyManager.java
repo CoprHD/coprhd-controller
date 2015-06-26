@@ -16,7 +16,6 @@
 package com.emc.storageos.systemservices.impl.property;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +49,8 @@ public class PropertyManager extends AbstractManager {
     private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
     private static final String VDC_IDS_KEY= "vdc_ids";
 
-    private static final long SHUTDOWN_TIMEOUT = 15000;
+    // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
+    private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
     private static final int SLEEP_MS = 100;
 
     private boolean shouldReboot=false;
@@ -131,7 +131,7 @@ public class PropertyManager extends AbstractManager {
     public void poweroffCluster(){
         log.info("powering off the cluster!");
         final String[] cmd = {POWEROFFTOOL_COMMAND};
-        Exec.sudo(SHUTDOWN_TIMEOUT, cmd);
+        Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
     }
 
     @Override
@@ -186,32 +186,9 @@ public class PropertyManager extends AbstractManager {
             }
 
             // Step2: power off if all nodes agree.
-            //  If target poweroff state is not NONE, that means user has set it to STARTED.
-            //  in the checkAllNodesAgreeToPowerOff, all nodes, including control nodes and data nodes
-            //  will start to publish their poweroff state in the order of [NOTICED, ACKNOWLEDGED, POWEROFF].
-            //  Every node can publish the next state only if it sees the previous state are found on every other nodes.
-            //  By doing this, we can gaurantee that all nodes receive the acknowledgement of powering among each other,
-            //  we can then safely poweroff.
-            //  No matter the poweroff failed or not, at the end, we reset the target poweroff state back to NONE.
             log.info("Step2: Power off if poweroff state != NONE. {}", targetPowerOffState);
             try {
-                if (targetPowerOffState != null && targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
-                    boolean forceSet = false;
-                    if(targetPowerOffState.getPowerOffState() == PowerOffState.State.FORCESTART){
-                        forceSet = true;
-                    }
-                    if (checkAllNodesAgreeToPowerOff(forceSet)){
-                        ArrayList<String> unavailableNodesList = coordinator.getUnavailableControllerNodes();
-                        if (!unavailableNodesList.isEmpty()){
-                            log.info("We've got some unavailable controller nodes. They are: " + unavailableNodesList.toString());
-                        }
-                        if(initiatePoweroff(forceSet)){
-                            resetTargetPowerOffState();
-                            poweroffCluster();
-                        }
-                    }
-                    resetTargetPowerOffState();
-                }
+                gracefulPoweroffCluster();
             } catch (Exception e) {
                 log.error("Step2: Failed to poweroff. {}", e);
             }
@@ -254,6 +231,33 @@ public class PropertyManager extends AbstractManager {
                 // Step5: sleep
                 log.info("Step5: sleep");
                 longSleep();
+            }
+        }
+    }
+
+    /**
+     *  If target poweroff state is not NONE, that means user has set it to STARTED.
+     *  in the checkAllNodesAgreeToPowerOff, all nodes, including control nodes and data nodes
+     *  will start to publish their poweroff state in the order of [NOTICED, ACKNOWLEDGED, POWEROFF].
+     *  Every node can publish the next state only if it sees the previous state are found on every other nodes.
+     *  By doing this, we can gaurantee that all nodes receive the acknowledgement of powering among each other,
+     *  we can then safely poweroff.
+     *  No matter the poweroff failed or not, at the end, we reset the target poweroff state back to NONE.
+     *  CTRL-11690: the new behavior is if an agreement cannot be reached, a best-effort attempt to poweroff the
+     *  remaining nodes will be made, as if the force parameter is provided.
+     */
+    private void gracefulPoweroffCluster() {
+        if (targetPowerOffState != null && targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
+            boolean forceSet = targetPowerOffState.getPowerOffState() == PowerOffState.State.FORCESTART;
+            log.info("Step2: Trying to reach agreement with timeout on cluster poweroff");
+            if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)){
+                resetTargetPowerOffState();
+                poweroffCluster();
+            } else {
+                log.warn("Step2: Failed to reach agreement among all the nodes. Proceed with best-effort poweroff");
+                initiatePoweroff(true);
+                resetTargetPowerOffState();
+                poweroffCluster();
             }
         }
     }
@@ -596,22 +600,22 @@ public class PropertyManager extends AbstractManager {
             try {
                 // Send NOTICED signal and verify
                 publishNodePowerOffState(PowerOffState.State.NOTICED);
-                poweroffAgreementsKeeper = new HashSet<String>();
+                poweroffAgreementsKeeper = new HashSet<>();
                 if (!waitClusterPowerOffStateNotLessThan(PowerOffState.State.NOTICED, !forceSet)) {
-                    log.info("Failed to get {} signal from all other nodes", PowerOffState.State.NOTICED);
+                    log.error("Failed to get {} signal from all other nodes", PowerOffState.State.NOTICED);
                     return false;
                 }
                 // Send ACKNOWLEDGED signal and verify
                 publishNodePowerOffState(PowerOffState.State.ACKNOWLEDGED);
                 if (!waitClusterPowerOffStateNotLessThan(PowerOffState.State.ACKNOWLEDGED, !forceSet)) {
-                    log.info("Failed to get {} signal from all other nodes", PowerOffState.State.ACKNOWLEDGED);
+                    log.error("Failed to get {} signal from all other nodes", PowerOffState.State.ACKNOWLEDGED);
                     return false;
                 }
 
                 // Send POWEROFF signal and verify
                 publishNodePowerOffState(PowerOffState.State.POWEROFF);
                 if (!waitClusterPowerOffStateNotLessThan(PowerOffState.State.POWEROFF, !forceSet)) {
-                    log.info("Failed to get {} signal from all other nodes", PowerOffState.State.POWEROFF);
+                    log.error("Failed to get {} signal from all other nodes", PowerOffState.State.POWEROFF);
                     return false;
                 }
 

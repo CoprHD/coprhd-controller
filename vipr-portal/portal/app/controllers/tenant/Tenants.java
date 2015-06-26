@@ -123,8 +123,12 @@ public class Tenants extends ViprResourceController {
         else {
             TenantOrgRestRep currentTenant = TenantUtils.getTenant(tenant.id);
             if (currentTenant != null) {
-                UserMappingChanges mappingChanges = new UserMappingChanges(UserMappingForm.getAddedMappings(currentTenant.getUserMappings(), tenant.usermapping),
-                        UserMappingForm.getRemovedMappings(currentTenant.getUserMappings(), tenant.usermapping));
+                UserMappingChanges mappingChanges = null;
+                if (Security.isSecurityAdmin()) {
+                    mappingChanges = new UserMappingChanges(UserMappingForm.getAddedMappings(currentTenant.getUserMappings(), tenant.usermapping),
+                            UserMappingForm.getRemovedMappings(currentTenant.getUserMappings(), tenant.usermapping));
+                }
+
                 TenantUpdateParam updateParam = new TenantUpdateParam(tenant.name, mappingChanges);
                 updateParam.setDescription(tenant.description);
                 TenantUtils.update(tenant.id, updateParam);
@@ -350,6 +354,12 @@ public class Tenants extends ViprResourceController {
 
         public void validate(String formName) {
             Validation.valid(formName, this);
+
+            // if the user is not security admin, skip validation for user-mapping and quota below
+            // as the fields are disabled in UI, and should be no change for them.
+            if (!Security.isSecurityAdmin()) {
+                return;
+            }
 
             // Root Tenant is special in that it doesn't need UserMappings
             if (!TenantUtils.isRootTenant(uri(id))) {

@@ -72,7 +72,7 @@ public class MaxResourcesMatcher extends AttributeMatcher {
             if (pool.getMaxResources() < (poolResources + resourceCount)) {
                 _log.info(
                         "Ignoring Storage pool {} since it's approaching Resource limit: {}. ",
-                        pool.getId(), pool.getMaxResources());
+                        pool.getNativeGuid(), pool.getMaxResources());
                 return true;
             }
         }
@@ -84,7 +84,7 @@ public class MaxResourcesMatcher extends AttributeMatcher {
             if (system.getMaxResources() < (systemResources + resourceCount)) {
                 _log.info(
                         "Ignoring Storage system {} pools since it's approaching Resource limit: {}. ",
-                        systemId, system.getMaxResources());
+                        system.getNativeGuid(), system.getMaxResources());
                 return true;
             }
         }

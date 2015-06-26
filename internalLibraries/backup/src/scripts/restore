@@ -63,31 +63,8 @@ extract_backup_files() {
     cd $RESTORE_DIR
     unzip $BACKUP_ZIP >/dev/null
 
-    BACKUP_NODE_COUNT=$((`grep -o "," *_info.properties | wc -l` + 1))
     local fileArray=($(ls -f *geodb*.zip))
-    if [ ${#fileArray[@]} -eq 0 ]; then
-        echo -e "\nCan't find valid backup files under $RESTORE_DIR, exiting.."
-        exit 2
-    elif [ ${#fileArray[@]} -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
-        if [ ${#fileArray[@]} -eq $NODE_COUNT ]; then
-            echo -n "WARNING: Cluster node count changed which maybe lead to data loss.."
-        else
-            echo -e "\nThis backupset is invalid, exiting.."
-            exit 2
-        fi
-    elif [ ${#fileArray[@]} -lt $BACKUP_NODE_COUNT ]; then
-        if [ ${#fileArray[@]} -eq $NODE_COUNT ]; then
-            echo -n "WARNING: Cluster node count changed.."
-        else
-            echo -n "WARNING: This is an incomplete backupset.."
-        fi
-    elif [ ${#fileArray[@]} -eq $BACKUP_NODE_COUNT ]; then
-        if [ ${#fileArray[@]} -lt $NODE_COUNT ]; then
-            echo -n "WARNING: Cluster node count changed.."
-        fi
-    fi
 
-    local fileArray=($(ls -f *geodb*.zip))
     local geodbType=`ls ${fileArray[0]} | awk '{split($0,a,"_"); print a[2]}'`
     if [ -z "$geodbType" ]; then
         echo -e "\nCan't identify the type of geodb from backup file name, exiting.."
@@ -100,9 +77,47 @@ extract_backup_files() {
         echo -e "\nInvalid geodb type: $geodbType, exiting.."
         exit 2
     fi
+
+    validate_backup_files ${#fileArray[@]}
+}
+
+validate_backup_files() {
+    local fileNodeCount=${1}
+
+    BACKUP_NODE_COUNT=$((`grep -o "," ${RESTORE_DIR}/*_info.properties | wc -l` + 1))
+    if [ ${fileNodeCount} -eq 0 ]; then
+        echo -e "\nCan't find valid backup files under $RESTORE_DIR, exiting.."
+        exit 2
+    elif [ ${fileNodeCount} -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
+        echo -e "\nThis backupset is invalid, exiting.."
+        exit 2
+    elif [ ${fileNodeCount} -lt $BACKUP_NODE_COUNT ]; then
+        echo -n "WARNING: This is an incomplete backupset.."
+        if [ $NODE_COUNT != $BACKUP_NODE_COUNT ]; then
+            echo -e "\nCluster nodes count can't change in restoring with incomplete backupset, exiting.."
+            exit 2
+        fi
+    elif [ ${fileNodeCount} -eq $BACKUP_NODE_COUNT ]; then
+        if [ $NODE_COUNT -lt $[ $BACKUP_NODE_COUNT / 2 + 1 ] ]; then
+            echo -e "\nNodes count of cluster to be restored should not be less than quorum nodes count of cluster taken backup, exiting.."
+            exit 2
+        elif [ $BACKUP_NODE_COUNT -lt $[ $NODE_COUNT / 2 + 1 ] ]; then
+            echo -e "\nNodes count of cluster taken backup should not be less than quorum nodes count of cluster to be restored, exiting.."
+            exit 2
+        elif [ $NODE_COUNT != $BACKUP_NODE_COUNT ]; then
+            if [ "$IS_CONNECTED_VDC" == "true" ]; then
+                echo -e "\nCluster nodes count can't change when backup was taken in geo system, exiting.."
+                exit 2
+            else
+                echo -n "WARNING: Cluster nodes count changed.."
+            fi
+        fi
+    fi
+
 }
 
 copy_to_other_nodes() {
+    chmod -R 777 "$RESTORE_DIR"
     local command="scp svcuser@$LOCAL_NODE:$RESTORE_DIR/* $RESTORE_DIR"
     loop_execute "${command}" "false"
 }
@@ -200,8 +215,11 @@ finish_message() {
     fi
     echo "Note: nodes will reboot if there is any change of property in this cluster."
     if [ "$IS_CONNECTED_VDC" == "true" ]; then
-        echo "Please reconnect this vdc after the status of cluster is stable."
-        echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually)"
+        if [ "$GEO_RESTORE_FROM_SCRATCH" == "false" ]; then
+            echo "Please reconnect this vdc after the status of cluster is stable."
+        fi
+        echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually from other vdcs,"
+        echo "by using this command: \"/opt/storageos/bin/dbutils geoblacklist reset <vdc short id>\")"
     fi    
 }
 

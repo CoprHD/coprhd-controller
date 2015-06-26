@@ -99,7 +99,7 @@ public class NetworkUtil {
             }
             
             if (network != null && network.getInactive() == false) {
-                _log.info("networklite {} for endpoint {} was found", networkUri, endpoint);
+                _log.info(String.format("endpoint %s in network %s (%s)", endpoint, network.getLabel(), network.getId()));
                 return network;
             } else {
                 _log.info("networklite {} for endpoint {} was deleted or is inactive", networkUri, endpoint);

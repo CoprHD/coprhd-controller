@@ -108,6 +108,7 @@ public class VNXFileConstants {
     public static final String CIFS_SUPPORTED  = "cifs_supported";
     public static final String CIFS_SERVERS    = "cifs_servers";
     public static final String ORIGINAL_FS_SIZE = "originalFSSize";
+    public static final String THIN_FS_ALLOC_SIZE = "thinFsAllocSize";
 
     public static final String FAULT_DESC      = "fault description";
     public static final String FAULT_DIAG      = "fault diagnostics";

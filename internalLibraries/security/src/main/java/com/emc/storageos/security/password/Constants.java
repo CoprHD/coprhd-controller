@@ -32,6 +32,7 @@ public class Constants {
     public static final String PASSWORD_EXPIRE_DAYS = "password_expire_days";
     public static final String ROOT_EXPIRY_DAYS = "system_root_expiry_date";
     public static final String SVCUSER_EXPIRY_DAYS = "system_svcuser_expiry_date";
+    public static final String SYSTEM_UPDATE_CHECK_FREQUENCY_HOURS = "system_update_check_frequency_hours";
 
     // prompt information shown in changePassword.html
     public static final String[][] PASSWORD_CHANGE_PROMPT = new String[][]{
@@ -40,20 +41,31 @@ public class Constants {
             {PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase"},
             {PASSWORD_NUMERIC_NUMBER,  "at least {0} numeric"},
             {PASSWORD_SPECIAL_NUMBER, "at least {0} special character"},
-            {PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating"},
+            {PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters"},
             {PASSWORD_CHANGED_NUMBER, "at least change {0} characters"},
-            {PASSWORD_REUSE_NUMBER,  "NOT in last {0} change iterations" }
+            {PASSWORD_REUSE_NUMBER,  "cannot be the last {0} passwords used" }
     };
 
-    public static final String[] PASSWORD_RESET_PROMPT = new String[]{
-            PASSWORD_MIN_LENGTH,
-            PASSWORD_LOWERCASE_NUMBER,
-            PASSWORD_UPPERCASE_NUMBER,
-            PASSWORD_NUMERIC_NUMBER,
-            PASSWORD_SPECIAL_NUMBER,
-            PASSWORD_REPEATING_NUMBER,
-            PASSWORD_CHANGED_NUMBER,
+    public static final String[][] PASSWORD_VALID_PROMPT = new String[][]{
+    	 {PASSWORD_MIN_LENGTH, "at least {0} characters"},
+         {PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase"},
+         {PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase"},
+         {PASSWORD_NUMERIC_NUMBER,  "at least {0} numeric"},
+         {PASSWORD_SPECIAL_NUMBER, "at least {0} special character"},
+         {PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters"}
     };
+
+    public static final String[][] PASSWORD_UPDATE_PROMPT = new String[][]{
+        {PASSWORD_MIN_LENGTH, "at least {0} characters"},
+        {PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase"},
+        {PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase"},
+        {PASSWORD_NUMERIC_NUMBER,  "at least {0} numeric"},
+        {PASSWORD_SPECIAL_NUMBER, "at least {0} special character"},
+        {PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters"},
+        {PASSWORD_CHANGED_NUMBER, "at least change {0} characters"},
+        {PASSWORD_REUSE_NUMBER,  "cannot be the last {0} passwords used" },
+        {PASSWORD_CHANGE_INTERVAL,"cannot be changed more than once in every {0} minutes"}
+};
 
     /*
      * it is the day when the first mail sent to user to notify their password to be expired.

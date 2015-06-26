@@ -195,17 +195,14 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         && hw.systemInfo.uuid != null) {
                     // try finding host by UUID
                     uuid = hw.systemInfo.uuid;
+                    //search host by uuid in VIPR if host already discovered
                     targetHost = findHostByUuid(uuid);
                     checkDuplicateHost(host, targetHost);
                 }
 
                 if (targetHost == null) {
-                    Host existingHost = findExistingHost(hostSystem);
-                    if (existingHost != null) {
-                        targetHost = existingHost;
-                    } else {
-                        targetHost = getOrCreateHost(new ArrayList<Host>(), hostSystem.getName());
-                    }
+                    //if target host is null, this is a new discovery.
+                    targetHost = host;
                 }
                 targetHost.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
                 targetHost.setDiscoverable(true);
@@ -704,23 +701,6 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         initiator.setInitiatorPort(hba.getIScsiName());
         initiator.setIsManualCreation(false);
         save(initiator);
-    }
-
-    /**
-     * This method clears/removes ScaleIO initiators
-     *
-     * @param initiators
-     *            list of initiators
-     */
-    protected void clearScaleIOInitiators(List<Initiator> initiators) {
-        Iterator<Initiator> iterator = initiators.iterator();
-        while (iterator.hasNext()) {
-            Initiator initiator = iterator.next();
-            if (StringUtils.equalsIgnoreCase(initiator.getProtocol(),
-                    Protocol.ScaleIO.name())) {
-                iterator.remove();
-            }
-        }
     }
 
     /**

@@ -16,8 +16,8 @@ package com.emc.storageos.installer.widget;
 
 import java.util.LinkedHashMap;
 
-import com.emc.storageos.services.util.InstallerConstants;
-import com.emc.storageos.services.util.InstallerUtil;
+import com.emc.storageos.installer.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerUtil;
 
 import charva.awt.GridBagConstraints;
 import charva.awt.GridBagLayout;

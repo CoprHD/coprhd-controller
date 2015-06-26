@@ -205,7 +205,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
         
         if (VirtualPool.vPoolSpecifiesHighAvailability(newVirtualPool) &&
-            VirtualPoolChangeAnalyzer.isVPlexImport(volumeVirtualPool, newVirtualPool, notSuppReasonBuff) ) {
+            VirtualPoolChangeAnalyzer.isVPlexImport(volumeVirtualPool, newVirtualPool, notSuppReasonBuff) &&
+            VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVirtualPool, notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.NON_VPLEX_TO_VPLEX); 
         }               
         

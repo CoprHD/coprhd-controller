@@ -20,7 +20,7 @@ import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_POWER_OFF_CL
 public class AuthClient {
     protected RestClient client;
 
-    AuthClient(RestClient client) {
+    public AuthClient(RestClient client) {
         this.client = client;
     }
 
@@ -46,6 +46,10 @@ public class AuthClient {
     public AuthClient(ClientConfig config) {
         this(config.newClient());
     }
+    
+    public RestClient getClient() {
+        return this.client;
+    }
 
     /**
      * Performs a login operation. The token is automatically associated with this client
@@ -60,6 +64,7 @@ public class AuthClient {
         resource.addFilter(new HTTPBasicAuthFilter(username, password));
         ClientResponse response = resource.get(ClientResponse.class);
         response.close();
+        client.setLoginTime(System.currentTimeMillis());
         return client.getAuthToken();
     }
 

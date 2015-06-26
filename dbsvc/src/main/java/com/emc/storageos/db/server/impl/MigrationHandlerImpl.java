@@ -62,6 +62,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
     private static final int WAIT_TIME_BEFORE_RETRY_MSEC = 5 * 1000; // 5 sec
     private static final String DB_MIGRATION_LOCK = "dbmigration";
+    private static final int MAX_MIGRATION_RETRY = 10;
 
     private CoordinatorClient coordinator;
     private InternalDbClient dbClient;
@@ -187,7 +188,8 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
         InterProcessLock lock = null;
         String currentSchemaVersion = null;
-        while (true) {
+        int retryCount = 0;
+        while (retryCount < MAX_MIGRATION_RETRY) {
             log.debug("Migration handlers - Start. Trying to grab lock ...");
             try {
                 // grab global lock for migration
@@ -271,28 +273,12 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 log.debug("Migration handler - Done.");
                 return true;
             } catch (Exception e) {
-                if (e instanceof FatalDatabaseException ||
-                    e instanceof FatalCoordinatorException ||
-                    e instanceof IllegalArgumentException ||
-                    e instanceof IllegalStateException) {
-
-                    schemaUtil.setMigrationStatus(MigrationStatus.FAILED);
-
-                    String errMsg =
-                       String.format("The DB migration fails from %s to %s due to some unexpected error.",
-                                     currentSchemaVersion, targetVersion);
-
-                    if (failedCallbackName != null) {
-                        errMsg += "(The failed DB migration callback is " + failedCallbackName + ").";
-                    }
-
-                    errMsg +=" Please contract the EMC support team.";
-
-                    alertLog.error(errMsg);
-                    log.error(e.getMessage(), e);
+                if (isUnRetryableException(e)) {
+                    markMigrationFail(currentSchemaVersion, e);
                     return false;
                 }  else {
                     log.warn("Retryable exception during migration ", e);
+                    retryCount++;
                 }
             } finally {
                 if (lock != null) {
@@ -303,12 +289,41 @@ public class MigrationHandlerImpl implements MigrationHandler {
                     }
                 }
             }
-            // we are here ... means, we need to retry, sleep before we retry
-            try {
-                log.info("Waiting for {}sec before retrying migration ...", WAIT_TIME_BEFORE_RETRY_MSEC / 1000);
-                Thread.sleep(WAIT_TIME_BEFORE_RETRY_MSEC);
-            } catch (InterruptedException ex) { }
+            sleepBeforeRetry();
         }  // while -- not done
+        return false;
+    }
+    
+    private void markMigrationFail(String currentSchemaVersion, Exception e) {
+        schemaUtil.setMigrationStatus(MigrationStatus.FAILED);
+
+        String errMsg =
+           String.format("The DB migration fails from %s to %s due to some unexpected error.",
+                         currentSchemaVersion, targetVersion);
+
+        if (failedCallbackName != null) {
+            errMsg += "(The failed DB migration callback is " + failedCallbackName + ").";
+        }
+
+        errMsg +=" Please contract the EMC support team.";
+
+        alertLog.error(errMsg);
+        log.error(e.getMessage(), e);
+    }
+
+    private boolean isUnRetryableException(Exception e) {
+        return e instanceof FatalDatabaseException ||
+            e instanceof FatalCoordinatorException ||
+            e instanceof IllegalArgumentException ||
+            e instanceof IllegalStateException;
+    }
+
+    public void sleepBeforeRetry(){
+        try {
+            log.info("Waiting for {} sec before retrying ...", WAIT_TIME_BEFORE_RETRY_MSEC / 1000);
+            Thread.sleep(WAIT_TIME_BEFORE_RETRY_MSEC);
+        } catch (InterruptedException ex) { }
+    	
     }
 
     private boolean isSchemaMissed(DbSchemas persistedSchema,
@@ -415,7 +430,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
 			    
 			    log.info("Invoking migration callback: " + callback.getName());
 			    try {
-			        callback.process();
+			    	callback.process();
 			    }catch (Exception e) {
 			        failedCallbackName = callback.getName();
 			        throw e;
@@ -427,7 +442,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
 	        enableGeoAccess(geoContext);
 		}
     }
-
 
     private void enableGeoAccess(DbClientContext geoContext) {
     	log.info("enable geo access since migration callback done");

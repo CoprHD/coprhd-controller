@@ -32,6 +32,7 @@ public class Exec {
     private static final Logger    _log = LoggerFactory.getLogger(Exec.class);
 
     public static final int SIGNAL_OFFSET = 128;
+    public static final long DEFAULT_CMD_TIMEOUT = 10 * 1000;
     
     private static final int _SLEEP_MS = 100;
     private static final int _EXCEPTION_EXIT_VALUE = 0xffff;

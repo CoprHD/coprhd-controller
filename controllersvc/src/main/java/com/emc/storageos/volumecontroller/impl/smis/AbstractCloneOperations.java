@@ -216,6 +216,11 @@ public class AbstractCloneOperations implements CloneOperations {
                         taskCompleter)));
             }
         } catch (Exception e) {
+            Volume clone = _dbClient.queryObject(Volume.class, cloneVolume);
+            if (clone != null) {
+                clone.setInactive(true);
+                _dbClient.persistObject(clone);
+            }
             String errorMsg = String.format(CREATE_ERROR_MSG_FORMAT, sourceVolume, cloneVolume);
             _log.error(errorMsg, e);
             SmisException serviceCode = DeviceControllerExceptions.smis.createFullCopyFailure(errorMsg, e);
@@ -262,6 +267,7 @@ public class AbstractCloneOperations implements CloneOperations {
              * @see <code>BlockService#activateFullCopy
              * volume.setSyncActive(false);
              */
+            clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             clone.setReplicaState(ReplicationState.DETACHED.name());
             _dbClient.persistObject(clone);
             if (taskCompleter != null) {
@@ -502,7 +508,7 @@ public class AbstractCloneOperations implements CloneOperations {
             CIMObjectPath syncObjectPath = _cimPath.getStorageSynchronized(storage, originalVol, storage, cloneVol); 
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 CIMArgument[] outArgs = new CIMArgument[5];
-                CIMArgument[] inArgs = _helper.getRestoreFromReplicaInputArgumentsWithoutForce(syncObjectPath);
+                CIMArgument[] inArgs = _helper.getRestoreFromReplicaInputArgumentsWithForce(syncObjectPath);
                 _helper.callModifyReplica(storage, inArgs, outArgs);
                 CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 if (job != null) {

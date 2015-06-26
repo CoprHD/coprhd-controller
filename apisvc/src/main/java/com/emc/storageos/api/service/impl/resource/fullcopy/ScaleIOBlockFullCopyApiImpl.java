@@ -17,7 +17,9 @@ package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -55,6 +57,17 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
         List<BlockObject> fcSourceObjList = new ArrayList<BlockObject>();
         fcSourceObjList.add(fcSourceObj);
         return fcSourceObjList;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
+        Volume fullCopyVolume) {
+        Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
+        fullCopyMap.put(fullCopyVolume.getId(), fullCopyVolume);
+        return fullCopyMap;
     }
 
     /**
@@ -113,4 +126,22 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
     }    
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void verifyCGVolumeRequestCount(int count) {
+        // Do nothing here. scaleio only supports clone of single volume,
+        // thus no full copy count restriction in ViPR.
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void verifyCGSnapshotRequest() {
+        // Do nothing here. scaleIO only supports clone of single volume,
+        // this includes clone of snapshot of volume in a CG.
+    }
 }

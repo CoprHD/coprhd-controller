@@ -120,6 +120,7 @@ public class BlockMapper {
         
         if (from.checkForRp()) {
             toRp = new RecoverPointRestRep();
+            toRp.setProtectionSystem(toRelatedResource(ResourceTypeEnum.PROTECTION_SYSTEM, from.getProtectionController()));
             toRp.setPersonality(from.getPersonality());
             toRp.setInternalSiteName(from.getInternalSiteName());
             toRp.setCopyName(from.getRpCopyName());

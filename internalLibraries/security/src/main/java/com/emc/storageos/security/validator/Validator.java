@@ -15,13 +15,20 @@
 package com.emc.storageos.security.validator;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.model.auth.AuthnProviderParamsToValidate;
 import com.emc.storageos.model.auth.PrincipalsToValidate;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authentication.AuthSvcEndPointLocator;
 import com.emc.storageos.security.authentication.AuthSvcInternalApiClientIterator;
 import com.emc.storageos.security.authentication.ServiceLocatorInfo;
 import com.emc.storageos.security.authentication.StorageOSUserRepository;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.exceptions.FatalSecurityException;
 import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.resource.UserInfoPage.UserTenantList;
@@ -31,9 +38,13 @@ import com.sun.jersey.api.client.ClientResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.Marshaller;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.util.Iterator;
 
 
 /**
@@ -271,7 +282,12 @@ public class Validator {
      * @param username
      * @return List of tenancies the user maps to with the applied mapping
      */
+
     public static UserTenantList getUserTenants(String username) {
+        return getUserTenants(username, null);
+    }
+
+    public static UserTenantList getUserTenants(String username, TenantOrg tenant) {
         String endpoint = null;
         int attempts = 0;
         while(attempts < _MAX_VALIDATION_RETRIES) {
@@ -281,7 +297,18 @@ public class Validator {
                 if(authSvcClientItr.hasNext()) {
                     endpoint = authSvcClientItr.peek().toString();
 
-                    final ClientResponse response = authSvcClientItr.get(URI.create(_URI_USERTENANT + "?username=" + username));
+                    //
+                    String queryParameters = "?username=" + username;
+                    if (tenant != null) {
+                        queryParameters += "&tenantURI=" + tenant.getId();
+                        if (tenant.getUserMappings() != null ) {
+                            String userMappingStr = MarshallUtil.ConvertTenantUserMappingToString(tenant);
+                            String encodedUserMapping = URLEncoder.encode(userMappingStr);
+                            queryParameters += "&usermappings=" + encodedUserMapping ;
+                        }
+                    }
+
+                    final ClientResponse response = authSvcClientItr.get(URI.create(_URI_USERTENANT + queryParameters));
                     final int status = response.getStatus();
 
                     _log.debug("Status: {}", status);

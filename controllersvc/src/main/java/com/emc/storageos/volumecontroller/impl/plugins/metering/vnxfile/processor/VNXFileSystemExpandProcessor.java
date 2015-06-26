@@ -59,21 +59,25 @@ public class VNXFileSystemExpandProcessor extends VNXFileProcessor {
                 List<Object> queryResponse = getTaskResponse(responsePacket);
                 Iterator<Object> queryRespItr = queryResponse.iterator();
                 while (queryRespItr.hasNext()) {
-                    Object responseObj = queryRespItr.next();
-                    if (responseObj instanceof TaskResponse) {
-                        TaskResponse taskResp = (TaskResponse) responseObj;
-                        status = taskResp.getStatus();
-                        _logger.info("FileSystem expand task response status: {}", status.getMaxSeverity().name());
+                	Object responseObj = queryRespItr.next();
+                	if(responseObj != null){
+                		if (responseObj instanceof TaskResponse) {
+                			TaskResponse taskResp = (TaskResponse) responseObj;
+                			status = taskResp.getStatus();
+                			_logger.info("FileSystem expand task response status: {}", status.getMaxSeverity().name());
 
-                        if (status.getMaxSeverity() == Severity.OK) {
-                            keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
-                        } else {
-                            processErrorStatus(status, keyMap);
-                        }
-                        break;
-                    } else {
-                        _logger.info("Response not TaskResponse: {}", responseObj.getClass().getName());
-                    }
+                			if (status.getMaxSeverity() == Severity.OK) {
+                				keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
+                			} else {
+                				processErrorStatus(status, keyMap);
+                			}
+                			break;
+                		} else {
+                			_logger.info("Response not TaskResponse: {}", responseObj.getClass().getName());
+                		}
+                	}else{
+                		_logger.warn("FileSystem expand task response is null");
+                	}
                 }
                 // Extract session information from the response header.
                 Header[] headers = result

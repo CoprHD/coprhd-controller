@@ -65,7 +65,7 @@ public class HDSShadowImagePairCountMatcher extends AttributeMatcher {
         	if (DiscoveredDataObject.Type.hds.name().equalsIgnoreCase(system.getSystemType()) 
         			&& (mirrorCount > HDSConstants.MAX_SHADOWIMAGE_PAIR_COUNT || 
         					snapshotCount > HDSConstants.MAX_SNAPSHOT_COUNT)) {
-        		logger.info("Ignoring pool {} since mirror/snapshot count exceeded the limit supported by HDS", pool.getId());
+        		logger.info("Ignoring pool {} since mirror/snapshot count exceeded the limit supported by HDS", pool.getNativeGuid());
         		filteredPoolList.remove(pool);
         	}
         }

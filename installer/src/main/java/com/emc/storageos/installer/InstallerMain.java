@@ -16,7 +16,7 @@ package com.emc.storageos.installer;
 
 import com.emc.storageos.installer.controller.InstallerManager;
 import com.emc.storageos.installer.controller.InstallerWizardController;
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.installer.widget.InstallerWizard;
 
 import org.slf4j.Logger;
@@ -44,16 +44,16 @@ public class InstallerMain {
 
         String release_version = args[0];
         String boot_mode = args[1];
-        if ( !(boot_mode.equals(InstallerConstants.INIT_MODE)) &&
-             !(boot_mode.equals(InstallerConstants.INSTALL_MODE)) &&
-             !(boot_mode.equals(InstallerConstants.CONFIG_MODE))  &&
-             !(boot_mode.equals(InstallerConstants.REDEPLOY_MODE)) ) {
+        if ( !(boot_mode.equals(PropertyConstants.INIT_MODE)) &&
+             !(boot_mode.equals(PropertyConstants.INSTALL_MODE)) &&
+             !(boot_mode.equals(PropertyConstants.CONFIG_MODE))  &&
+             !(boot_mode.equals(PropertyConstants.REDEPLOY_MODE)) ) {
             usage();
         }
 
         boolean multicast_redeploy = false;
         InstallerManager manager = new InstallerManager(release_version, boot_mode);
-        if (!boot_mode.equals(InstallerConstants.REDEPLOY_MODE)) {
+        if (!boot_mode.equals(PropertyConstants.REDEPLOY_MODE)) {
             if (args.length > 2 && args[2].equals("true")) {
                 manager.setDevMode(true);
             }

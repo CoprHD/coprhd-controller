@@ -296,11 +296,16 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
 
     @Override
     public Response sendRegistrationEvent() {
+        internalSendRegistrationEvent();
 
-        _callHomeEventManager.validateSendEvent(); 
+        return Response.ok().build();
+    }
+
+    void internalSendRegistrationEvent() {
+        _callHomeEventManager.validateSendEvent();
         LicenseInfoListExt licenseList = null;
         try {
-            licenseList = _licenseManager.getLicenseInfoListFromCoordinator();        	        
+            licenseList = _licenseManager.getLicenseInfoListFromCoordinator();
         }
         catch(Exception e) {
             throw APIException.internalServerErrors.licenseInfoNotFoundForType("all license types");
@@ -310,17 +315,15 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
             for(LicenseInfoExt licenseInfo : licenseList.getLicenseList()) {
                 if(licenseInfo.isTrialLicense()) {
                     _log.warn("Cannot send regisration event to SYR for trial license {}",
-                            licenseInfo.getLicenseType().toString());                    
+                            licenseInfo.getLicenseType().toString());
                     throw APIException.forbidden.permissionDeniedForTrialLicense(
-                            licenseInfo.getLicenseType().toString());                    
+                            licenseInfo.getLicenseType().toString());
                 }
                 _callHomeEventsFacade.sendRegistrationEvent(licenseInfo, getMediaType());
             }
-        }         
+        }
         auditCallhome(OperationTypeEnum.SEND_REGISTRATION,
                 AuditLogManager.AUDITLOG_SUCCESS, null);
-
-        return Response.ok().build();
     }
 
     @Override
@@ -331,7 +334,7 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
 
         LicenseInfoListExt licenseList = null;
         try {
-            licenseList = _licenseManager.getLicenseInfoListFromCoordinator();        	        
+            licenseList = _licenseManager.getLicenseInfoListFromCoordinator();
         }
         catch(Exception e) {
             throw APIException.internalServerErrors.licenseInfoNotFoundForType("all license types");
@@ -341,17 +344,18 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
             for(LicenseInfoExt licenseInfo : licenseList.getLicenseList()) {
                 if(licenseInfo.isTrialLicense()) {
                     _log.warn("Cannot send heartbeat event to SYR for trial license {} ",
-                            licenseInfo.getLicenseType().toString());                    
+                            licenseInfo.getLicenseType().toString());
                     throw APIException.forbidden.permissionDeniedForTrialLicense(
-                            licenseInfo.getLicenseType().toString());                    
+                            licenseInfo.getLicenseType().toString());
                 }
- 
+
                 _callHomeEventsFacade.sendHeartBeatEvent(licenseInfo, getMediaType());
             }
         }
-        
+
         auditCallhome(OperationTypeEnum.SEND_HEARTBEAT,
                 AuditLogManager.AUDITLOG_SUCCESS, null);
+
         return Response.ok().build();
     }
 

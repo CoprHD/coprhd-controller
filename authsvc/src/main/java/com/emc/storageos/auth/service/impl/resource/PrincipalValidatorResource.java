@@ -54,10 +54,8 @@ public class PrincipalValidatorResource {
         String principal = null;
         ValidationFailureReason[] reason = { ValidationFailureReason.USER_OR_GROUP_NOT_FOUND_FOR_TENANT };
         if( null != subjectId && null != tenantId ) {
-            principal = subjectId;
-            if (_authManager.isUserValid(subjectId, tenantId, altTenantId, reason)) {
-                return Response.ok().build();
-            }
+            _authManager.validateUser(subjectId, tenantId, altTenantId);
+            return Response.ok().build();
         } else if( null != groupId ) {
             principal = groupId;
             if( _authManager.isGroupValid(groupId, reason)) {
@@ -106,7 +104,7 @@ public class PrincipalValidatorResource {
                     validatePrincipal(null, principalsToValidate.getTenantId(), null,
                             group);
                 } catch (APIException e) {
-                    invalidPrincipals.add(group);
+                    invalidPrincipals.add(group + " : " + e.getMessage());
                 }
             }
         }
@@ -117,7 +115,7 @@ public class PrincipalValidatorResource {
                     validatePrincipal(user, principalsToValidate.getTenantId(), null,
                             null);
                 } catch (APIException e) {
-                    invalidPrincipals.add(user);
+                    invalidPrincipals.add(user + " : " + e.getMessage());
                 }
             }
         }
@@ -128,7 +126,7 @@ public class PrincipalValidatorResource {
                     validatePrincipal(user, principalsToValidate.getTenantId(),
                             principalsToValidate.getAltTenantId(), null);
                 } catch (APIException e) {
-                    invalidPrincipals.add(user);
+                    invalidPrincipals.add(user + " : " + e.getMessage());
                 }
             }
         }
@@ -136,7 +134,6 @@ public class PrincipalValidatorResource {
             return Response.ok().build();
         }
 
-        throw APIException.badRequests.searchForPrincipalsFailedForThisTenant(StringUtils
-                .join(invalidPrincipals, ", "));
+        throw APIException.badRequests.invalidPrincipals(StringUtils.join(invalidPrincipals, ", "));
     }
 }

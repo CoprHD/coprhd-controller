@@ -90,6 +90,7 @@ import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 
 /**
  * StoragePort resource implementation
@@ -639,13 +640,32 @@ public class StoragePortService extends TaggedResource {
                 _log.info("The port is in use by {} masks. Checking the masks virtual arrays.", masks.size());
                 for (ExportMask mask : masks) {
                     if (!mask.getInactive()) {
+                        _log.info("checking ExportMask {}", mask.getMaskName());
                         List<ExportGroup> groups = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient,
                                 mask.getId(),  ExportGroup.class, "exportMasks");
                         for (ExportGroup group : groups) {
+                            // Determine the Varray of the ExportMask.
+                            URI varray = group.getVirtualArray();
+                            if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
+                                _log.info("not all target ports of {} are tagged for varray {}", mask, varray);
+                                 // See if in alternate virtual array
+                                 if (group.getAltVirtualArrays() != null) {
+                                      String altVarray = group.getAltVirtualArrays().get(storagePort.getStorageDevice().toString());
+                                      if (null != altVarray) {
+                                          URI altVarrayUri = URI.create(altVarray);
+                                          if (ExportMaskUtils.exportMaskInVarray(_dbClient, mask, altVarrayUri)) {
+                                              _log.info("using the export group's alternate varray: {}", altVarrayUri);
+                                              varray = altVarrayUri;
+                                          }
+                                      }
+                                 }
+                            }
+                            _log.info("the virtual array found for this port is {}", varray);
+                            
                             // only error if the ports ends up in a state where it can no longer be used in the varray
                             // if removing the varrays reverts the port to using implicit varrays which contains the 
                             // export, then it is all good.
-                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(group.getVirtualArray().toString()) ) {
+                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varray.toString()) ) {
                                 _log.info("The port is in use by export group {} in virtual array {} " +
                                         "which will no longer in the port's tagged varray",
                                         group.getLabel(),  group.getVirtualArray().toString());

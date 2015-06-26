@@ -7,6 +7,7 @@ package com.emc.vipr.client.core.impl;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
+import com.emc.vipr.client.AuthClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.emc.vipr.client.exceptions.ServiceErrorsException;
 import com.emc.vipr.client.exceptions.TimeoutException;
@@ -41,6 +42,7 @@ public class TaskUtil {
             catch (InterruptedException e) {
                 throw new ViPRException(e);
             }
+            refreshSession(client);
             task = refresh(client, task);
         }
         return task;
@@ -106,5 +108,16 @@ public class TaskUtil {
             serviceError.setDetailedMessage("");
         }
         return serviceError;
+    }
+    
+    private synchronized static void refreshSession(RestClient client) {
+        if (client.getLoginTime() > 0 
+                && (System.currentTimeMillis() - client.getLoginTime()) > client.getConfig().getSessionKeyRenewTimeout()
+                && client.getUsername() != null && client.getPassword() != null) {
+            AuthClient authClient = new AuthClient(client);
+            authClient.logout();
+            authClient.login(client.getUsername(), client.getPassword());
+            client.setProxyToken(authClient.proxyToken());
+        }
     }
 }

@@ -126,6 +126,11 @@ public class DbCli {
         }
     }
     
+    public void start(boolean skipMigrationCheck){
+    	_dbClient.setBypassMigrationLock(skipMigrationCheck);
+   		_dbClient.start();
+    }
+    
     /**
      * Print column families.
      */

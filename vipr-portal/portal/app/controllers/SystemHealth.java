@@ -110,16 +110,16 @@ public class SystemHealth extends Controller {
     public static void dbHealth(){
     	DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
     	int progress = dbstatus.getProgress();
-    	Date startTime = dbstatus.getStartTime();
-    	Date endTime = dbstatus.getLastCompletionTime();
     	String health = dbstatus.getStatus().toString();
     	angularRenderArgs().put("progress", progress+"%");
     	angularRenderArgs().put("health",health);
-    	if(startTime!=null){
-    		angularRenderArgs().put("startTime",startTime.toString());
+    	if(dbstatus.getStartTime()!=null){
+    		DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
+    		renderArgs.put("startTime", startTime);
     	}
-    	if (endTime!=null){
-    		angularRenderArgs().put("endTime",endTime.toString());
+    	if(dbstatus.getLastCompletionTime()!=null){
+    		DateTime endTime = new DateTime(dbstatus.getLastCompletionTime().getTime());
+    		renderArgs.put("endTime",endTime);
     	}
     	render(dbstatus);
     }

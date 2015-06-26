@@ -167,14 +167,13 @@ fi
 %config /etc/sysconfig/scripts/FWiptables-template
 /etc/patch-props.defaults
 /etc/ovf-env.README
-/etc/cron.hourly/cleanup_logs
-/etc/cron.hourly/vipr_backup_zk
+%attr(700,root,root) /etc/cron.hourly/cleanup_logs
 /etc/storageos/boot-ovfenv
 /etc/storageos/storageos
 /etc/storageos/syncntp
 /etc/storageos/installer
 /etc/storageos/ipchecktool
-/etc/logrotate.d/
+/etc/logrotate.d/storageserver
 %config /etc/keepalived/keepalived-IPv4-template.conf
 %config /etc/keepalived/keepalived-IPv6-template.conf
 %config /etc/keepalived/keepalived-dual-template.conf

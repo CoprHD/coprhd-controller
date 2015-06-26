@@ -417,7 +417,7 @@ public class VdcConfigHelper {
 
         boolean isChanged = false;
         
-        log.info("mergeVdcConfig - Vdc connection status {}, new status {}", 
+        log.info("mergeVdcConfig - Vdc connection status {}, new status {}",
                 srcVdc.getConnectionStatus(), targetVdc.getConnectionStatus());
         if (! isEqual(srcVdc.getConnectionStatus(), targetVdc.getConnectionStatus())) {
             isChanged = true;
@@ -536,7 +536,7 @@ public class VdcConfigHelper {
         }
         
         // If this vdc is isolated, should then reset repstatus to rep_none
-        log.info("Checking if Vdc {} is isolated ...{}", targetVdc.getId(),targetVdc.getConnectionStatus());
+        log.info("Checking if Vdc {} is isolated ...{}", targetVdc.getId(), targetVdc.getConnectionStatus());
         if (targetVdc.getConnectionStatus().equals(ConnectionStatus.ISOLATED.toString())) {
             log.info("Vdc {} is isolated, setting georep state to not replicated.", targetVdc.getShortId());
             isChanged = true;
@@ -1107,5 +1107,23 @@ public class VdcConfigHelper {
         }
 
         return null;
+    }
+
+    /**
+     * Send rest call to get vdc version
+     * @param vdcId vdc short Id
+     * @return vdc version in string format
+     */
+    public String getViPRVersion(String vdcId) {
+        return geoClientCache.getGeoClient(vdcId).getViPRVersion();
+    }
+
+    /**
+     * Send rest call to get vdc version
+     * @param vdcProp vdc short Id
+     * @return vdc version in string format
+     */
+    public String getViPRVersion(Properties vdcProp) {
+        return geoClientCache.getGeoClient(vdcProp).getViPRVersion();
     }
 }

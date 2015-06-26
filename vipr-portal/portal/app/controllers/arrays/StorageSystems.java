@@ -299,7 +299,7 @@ public class StorageSystems extends ViprResourceController {
         render(storageArrayPort, storagePort, storageSystem);
     }
 
-    @FlashException(keep=true, referrer={"createPort","editPort"})
+    @FlashException(keep=true, referrer={"ports"})
     public static void savePort(StorageArrayPortForm storageArrayPort) {
         storageArrayPort.validate("storageArrayPort");
         if (Validation.hasErrors()) {

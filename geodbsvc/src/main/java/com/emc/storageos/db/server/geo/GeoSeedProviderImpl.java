@@ -266,13 +266,6 @@ public class GeoSeedProviderImpl implements SeedProvider {
         if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
             return false;
         }
-        int nodeCount = coordinator.getInetAddessLookupMap().getControllerNodeIPLookupMap().size();
-        String nodeIndex = config.getId().split("-")[1];
-        // Need handle devkit, where nodeIndex is standalone 
-        //if (Integer.parseInt(nodeIndex) > nodeCount) {
-        //    coordinator.removeServiceConfiguration(config);
-        //    return false;
-        //}
         return true;
     }
 }

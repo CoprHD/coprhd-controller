@@ -164,6 +164,7 @@ public class UserInfoPage {
         // To Do - fix Distinguished name - for now setting it to name
         info.setDistinguishedName(user.getName());
         info.setTenant(user.getTenantId());
+        info.setTenantName(_permissionsHelper.getTenantNameByID(user.getTenantId()));
         info.setVdcRoles(new ArrayList<String>());
         info.setHomeTenantRoles(new ArrayList<String>());
         info.setSubTenantRoles(new ArrayList<SubTenantRoles>());
@@ -213,6 +214,7 @@ public class UserInfoPage {
                 for (Entry<String, Collection<String>> entry : subTenantRoles.entrySet()) {
                     SubTenantRoles subRoles = new SubTenantRoles();
                     subRoles.setTenant(entry.getKey());
+                    subRoles.setTenantName(_permissionsHelper.getTenantNameByID(entry.getKey()));
                     subRoles.setRoles(new ArrayList<String>(entry.getValue()));
                     info.getSubTenantRoles().add(subRoles);
                 }

@@ -22,13 +22,19 @@ public class Main2 {
 	public static void main(String[] args) {
         
 		//Simulator info/creds
-		//String arrayIp = "lglw6204.lss.emc.com";
-		String arrayIp = "10.247.100.254";
-		String arrayUser = "root";
-		String arrayPassword = "password2";
+	    String arrayIp = null;
+	    int arrayPort = 443;
+	    String arrayUser = null, arrayPassword = null;
 		String vFiler = "vfiler3";
-		//String arrayPassword = "dangerous1";
-		int arrayPort = 443;
+		String host1 = null, host2 = null;
+		
+	    if(args.length == 5) {
+		    arrayIp = args[0];
+		    arrayUser = args[1];
+		    arrayPassword = args[2];
+		    host1 = args[3];
+		    host2 = args[4];
+	    }
 		System.out.println("Entering OnTap Test Client");
 		
 		//netAppFacade = new NetAppFacade(arrayIp, arrayPort, arrayUser, arrayPassword, vFiler, true);
@@ -75,10 +81,10 @@ public class Main2 {
       	boolean rwAddAll = false;
       	boolean rootAddAll = false;
       	List<NFSSecurityStyle> securityStyle = new ArrayList<NFSSecurityStyle>();
-      	//rwHosts.add("lglap134.lss.emc.com");
-        rwHosts.add("lglap135.lss.emc.com");   
+      	//rwHosts.add("");
+        rwHosts.add(host1);   
        
-      	//rootHosts.add("LGLW0021.lss.emc.com");
+      	//rootHosts.add("");
         securityStyle.add(NFSSecurityStyle.sys);
 //        List<String> share = 
 //        
@@ -98,9 +104,9 @@ public class Main2 {
       	List<NFSSecurityStyle> securityStyle2 = new ArrayList<NFSSecurityStyle>();
       	securityStyle2.add(NFSSecurityStyle.sys);
       	securityStyle2.add(NFSSecurityStyle.krb5);
-      	roHosts2.add("lglap134.lss.emc.com");
-        //roHosts2.add("lglap135.lss.emc.com"); 
-      	//rootHosts.add("LGLW0021.lss.emc.com");
+      	roHosts2.add(host2);
+        //roHosts2.add(""); 
+      	//rootHosts.add("");
         netAppFacade.addNFSShare(null, volumeName, 0, roHosts2, 
         		roAddAll2, rwHosts2, rwAddAll2, rootHosts2, rootAddAll2, securityStyle2);
         

@@ -118,6 +118,12 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeVolumeTypeNotSet( String unManagedVolume );
     
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unmanagedVolumeRDFGroupMismatch( String unManagedVolume, String umvRDFGroupName, String projectName);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unmanagedVolumeRDFGroupMissing( String unManagedVolume);
+    
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException unmanagedSRDFTargetVolumeVArrayMismatch( String unManagedVolume, String sourceVarray );
     
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)

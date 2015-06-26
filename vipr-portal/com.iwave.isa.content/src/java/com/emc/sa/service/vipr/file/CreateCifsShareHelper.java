@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.ServiceParams.VOLUME_NAME;
+
 import java.net.URI;
 
 import com.emc.sa.engine.bind.Bindable;
@@ -41,6 +42,11 @@ public class CreateCifsShareHelper {
     
     protected URI fileSystemId;
 
+    public void precheckFileACLs() {
+        if (fileSystemShareACLs != null && fileSystemShareACLs.length > 0) {
+            fileSystemShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSystemShareACLs);
+        }
+    }
     public FileShareRestRep createCifsShare() {
         this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb);
         FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null);

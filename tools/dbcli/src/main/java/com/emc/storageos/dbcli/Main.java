@@ -22,6 +22,9 @@ import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public class Main {
@@ -33,6 +36,7 @@ public class Main {
     private static final String LIST_ACTIVE = "-activeonly";
     private static final String LIST_LIMIT = "-limit";
     private static final String REGEX_NUMBERS = "\\d+";
+    private static final String SKIP_MIGRATION_CHECK = "-bypassMigrationCheck";
 
     private static ClassPathXmlApplicationContext ctx = null;
 
@@ -144,12 +148,22 @@ public class Main {
         System.out.println(String.format("\t%s", Command.HELP.name().toLowerCase()));
         System.out.println(String.format("\t%s", Command.SHOW_CF.name().toLowerCase()));
         System.out.println(String.format("\t%s <Column Family Name>", Command.SHOW_SCHEMA.name().toLowerCase()));
+        System.out.printf("\t -bypassMigrationCheck\n");
+        System.out.printf("\t\tNote: it's used with other commands together only when migration fail, dbcli still work even migration fail if you pass this option");
+
     }
     
     public static void main(String[] args) {
         if(args.length == 0) {
             usage();
             return;
+        }
+
+        boolean skipMigrationCheck = skipMigrationCheck(args); 
+        //it's a hack of passed arg since we already hard-coded 
+        //parameter position in args array.
+        if (skipMigrationCheck){
+        	args = removeMigrationCheckArg(args);
         }
 
         Command cmd;
@@ -165,6 +179,7 @@ public class Main {
 
             ctx = new ClassPathXmlApplicationContext("/dbcli-conf.xml");
             dbCli = (DbCli) ctx.getBean("dbcli");
+            dbCli.start(skipMigrationCheck);
 
             String cfName = null;
             String[] ids;
@@ -319,5 +334,26 @@ public class Main {
             }
         }
     }
+    
+	private static String[] removeMigrationCheckArg(String[] args) {
+		List<String> tmpArgs = new ArrayList<String>();
+		for (String arg : args) {
+			if (arg!=null && arg.equals(SKIP_MIGRATION_CHECK)) {
+				continue;
+			}
+			tmpArgs.add(arg);
+		}
+		return tmpArgs.toArray(new String[tmpArgs.size()]);
+	}
+
+	private static boolean skipMigrationCheck(String[] args) {
+		for (String arg : args){
+			if (arg!=null && arg.equals(SKIP_MIGRATION_CHECK)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 }
 

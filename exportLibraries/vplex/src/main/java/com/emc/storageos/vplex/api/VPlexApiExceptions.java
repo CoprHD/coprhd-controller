@@ -366,6 +366,10 @@ public interface VPlexApiExceptions {
         final String status, final String cause);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException setCGAutoResumeFailureStatus(final String cgName,
+        final String status, final String cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException deleteStorageViewFailureStatus(final String viewName,
         final String status, final String cause);
     
@@ -517,6 +521,10 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException claimVolumeFailureStatus(final String volumeWWN,
         final String status, final String cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException claimedVolumeNameIsTooLong(final String volumeName,
+                                                        final String size);
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedClaimVolume(final String volumeWWN,
@@ -696,4 +704,7 @@ public interface VPlexApiExceptions {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException detachFullCopyFailed(String fullCopyIds, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException systemTypeNotSupported(String systemType);
 }

@@ -213,6 +213,24 @@ public class SendAlertEvent extends SendEvent implements Runnable{
     }
 
     /**
+     * Constructs String of query parameters used
+     */
+    @Override
+    protected ArrayList<String> collectQueryParameters() {
+        ArrayList<String> params = new ArrayList<String>();
+        params.add("event_id="+_eventId);
+        params.add("logNames="+_logNames);
+        params.add("severity="+_severity);
+        params.add("start="+_start);
+        params.add("end="+_end);
+        params.add("nodeIds="+_nodeIds);
+        params.add("msgRegex="+_msgRegex);
+        params.add("maxCount="+maxCount);
+
+        return params;
+    }
+
+    /**
      * build events data as marshalled string of xml data.
      *
      * @return

@@ -175,8 +175,8 @@ cat "${tmp_metadata_file}" >> "${sqfs_file}".temp # Append the vipr metadata to 
 chmod 666                                                          "${sqfs_file}".temp
 
 # Rename rootimg.temp to rootimg
-rm -f                                                                                   "${sqfs_file}"
-rm -f                                                                                   "${tmp_metadata_file}"
-mv                                                                 "${sqfs_file}".temp "${sqfs_file}"
+rm -f                           "${sqfs_file}"
+rm -f                           "${tmp_metadata_file}"
+mv                              "${sqfs_file}".temp "${sqfs_file}"
 
 # END

@@ -27,6 +27,7 @@ import javax.ws.rs.core.NewCookie;
 
 import com.emc.storageos.vnxe.VNXeConstants;
 import com.emc.storageos.vnxe.VNXeException;
+import com.emc.storageos.vnxe.VNXeExceptions;
 import com.emc.storageos.vnxe.models.ParamBase;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
@@ -62,6 +63,9 @@ public class KHRequests <T> {
     
     private static final String AUTH_TOKEN = "Cookie";
     private static final String CLIENT_HEADER = "X-EMC-REST-CLIENT";
+    private static final String GET_REQUEST = "GET";
+    private static final String POST_REQUEST = "POST";
+    private static final String DELETE_REQUEST = "DELETE";
 
     public KHRequests(KHClient client) {
         _client = client;
@@ -290,29 +294,7 @@ public class KHRequests <T> {
 	    	_logger.error("redirected too many times for the request {}",_url);
             throw VNXeException.exceptions.unexpectedDataError("Redirected too many times while sending the request for " +_url);
 	    }
-	    Status status = response.getClientResponseStatus();
-	    if (status != ClientResponse.Status.CREATED &&
-	    		status != ClientResponse.Status.ACCEPTED &&
-	    		status != ClientResponse.Status.OK &&
-	    		status != ClientResponse.Status.NO_CONTENT) {
-	    	//error
-	    	StringBuilder errorBuilder = new StringBuilder();
-	    	errorBuilder.append("The post request to:");
-	    	errorBuilder.append(_url);
-	    	errorBuilder.append(" failed with status code: ");
-	    	errorBuilder.append(status);
-	    	errorBuilder.append(" ");
-	    	errorBuilder.append("message: ");
-	    	String msg = response.getEntity(String.class);
-	    	errorBuilder.append(msg);
-	    	_logger.error(errorBuilder.toString());
-	    	//System.out.println(errorBuilder.toString());
-	    	String code = null;
-	    	if (status != null)  {
-	    	    code = status.toString();
-	    	}
-	    	throw VNXeException.exceptions.vnxeCommandFailed(_url, code, msg);
-	    }
+	    checkResponse(response, POST_REQUEST);
 	    return response;
 
 
@@ -421,6 +403,9 @@ public class KHRequests <T> {
 	    	_logger.error("redirected too many times for the request {}", _url);
             throw VNXeException.exceptions.unexpectedDataError("Redirected too many times while sending the request for " +_url);
 	    }
+	    
+	    checkResponse(response, GET_REQUEST);
+	    
 	    List<NewCookie> cookies = response.getCookies();
         if (cookies != null && cookies.size()>0) {
             _requestCookies.addAll(cookies);
@@ -453,15 +438,6 @@ public class KHRequests <T> {
     }
     
     /*
-     * save cookies in KHClient for next request
-     */
-    private void saveClientCookies() {
-        if (_requestCookies.size()>0) {
-        	_client.set_cookie(_requestCookies);
-        }
-    }
-    
-    /*
      * Send DELETE request to KittyHawk server, and handle redirect/cookies
      * @param resource webResource
      * @param param parameters for delete
@@ -472,11 +448,11 @@ public class KHRequests <T> {
     	ClientResponse response = sendDeleteRequest(param);
     	
         Status statusCode = response.getClientResponseStatus();
-	    if (statusCode == ClientResponse.Status.OK 
-	    		|| statusCode == ClientResponse.Status.ACCEPTED
-	    		|| statusCode == ClientResponse.Status.NO_CONTENT) {
-	    	return response;
-	    } else if (response.getClientResponseStatus() == ClientResponse.Status.UNAUTHORIZED) {
+        if (statusCode == ClientResponse.Status.OK 
+        		|| statusCode == ClientResponse.Status.ACCEPTED
+        		|| statusCode == ClientResponse.Status.NO_CONTENT) {
+        	return response;
+        } else if (response.getClientResponseStatus() == ClientResponse.Status.UNAUTHORIZED) {
             authenticate();
             response = sendDeleteRequest(param);
             statusCode = response.getClientResponseStatus();
@@ -486,54 +462,44 @@ public class KHRequests <T> {
     	    	return response;
             }
         }
-	    int redirectTimes = 1;
-	    //handle redirect
-	    while (response.getClientResponseStatus() == ClientResponse.Status.FOUND && 
-	    		redirectTimes <VNXeConstants.REDIRECT_MAX) {
-	        
-	        String code = response.getClientResponseStatus().toString();
-	        String data = response.getEntity(String.class);
-	        _logger.debug("Returned code: {} returned data: ", code, data);
-	        WebResource resource = handelRedirect(response);
-	        if (resource != null) {
-	        	response = buildRequest(resource.getRequestBuilder()).entity(param).delete(ClientResponse.class);
-	        	redirectTimes++;
-	        } else {
-	        	//could not find the redirect url, return
-	        	_logger.error(String.format("The post request to: %s failed with: %s %s", _url,
+        int redirectTimes = 1;
+        //handle redirect
+        while (response.getClientResponseStatus() == ClientResponse.Status.FOUND && 
+        		redirectTimes <VNXeConstants.REDIRECT_MAX) {
+            
+            String code = response.getClientResponseStatus().toString();
+            String data = response.getEntity(String.class);
+            _logger.debug("Returned code: {} returned data: ", code, data);
+            WebResource resource = handelRedirect(response);
+            if (resource != null) {
+            	response = buildRequest(resource.getRequestBuilder()).entity(param).delete(ClientResponse.class);
+            	redirectTimes++;
+            } else {
+            	//could not find the redirect url, return
+            	_logger.error(String.format("The post request to: %s failed with: %s %s", _url,
                         response.getClientResponseStatus().toString(), response.getEntity(String.class)) );
-	        	throw VNXeException.exceptions.unexpectedDataError("Got redirect status code, but could not get redirected URL");
-	        }
-	    }
-	    if (redirectTimes >= VNXeConstants.REDIRECT_MAX) {
-	    	_logger.error("redirected too many times for the request {} ", _url);
+            	throw VNXeException.exceptions.unexpectedDataError("Got redirect status code, but could not get redirected URL");
+            }
+        }
+        if (redirectTimes >= VNXeConstants.REDIRECT_MAX) {
+        	_logger.error("redirected too many times for the request {} ", _url);
             throw VNXeException.exceptions.unexpectedDataError("Redirected too many times while sending the request for " +_url);
-	    }
-	    Status status = response.getClientResponseStatus();
-	    if (status != ClientResponse.Status.OK &&
-	    	status != ClientResponse.Status.ACCEPTED &&
-	    	status != ClientResponse.Status.NO_CONTENT) {
-	    	//error
-	        String code = null;
-	        if (status != null) {
-	            code = status.toString();
-	        }
-	    	StringBuilder errorBuilder = new StringBuilder();
-	    	errorBuilder.append("The delete request to:");
-	    	errorBuilder.append(_url);
-	    	errorBuilder.append(" failed with status code: ");
-	    	errorBuilder.append(code);
-	    	errorBuilder.append(" ");
-	    	errorBuilder.append("message: ");
-	    	String msg = response.getEntity(String.class);
-	    	errorBuilder.append(msg);
-	    	_logger.error(errorBuilder.toString());
+        }
+        
+        checkResponse(response, DELETE_REQUEST);
+        
+        return response;
+    
+    
+    }
 
-	    	throw VNXeException.exceptions.vnxeCommandFailed(_url, code, msg);
-	    }
-	    return response;
-
-
+    /*
+     * save cookies in KHClient for next request
+     */
+    private void saveClientCookies() {
+        if (_requestCookies.size()>0) {
+        	_client.set_cookie(_requestCookies);
+        }
     }
     
     /*
@@ -600,6 +566,35 @@ public class KHRequests <T> {
                     .getRequestBuilder()).delete(ClientResponse.class);
     	}
     	return response;
+    }
+    
+    private void checkResponse(ClientResponse response, String requestType) {
+        Status status = response.getClientResponseStatus();
+        if (status != ClientResponse.Status.OK &&
+            status != ClientResponse.Status.ACCEPTED &&
+            status != ClientResponse.Status.NO_CONTENT) {
+            //error
+            if (status == ClientResponse.Status.UNAUTHORIZED){
+                throw VNXeException.exceptions.authenticationFailure(_url.toString());
+            }
+            String code = null;
+            if (status != null) {
+                code = status.toString();
+            }
+            
+            StringBuilder errorBuilder = new StringBuilder();
+            errorBuilder.append(requestType).append(" request to:");
+            errorBuilder.append(_url);
+            errorBuilder.append(" failed with status code: ");
+            errorBuilder.append(code);
+            errorBuilder.append(" ");
+            errorBuilder.append("message: ");
+            String msg = response.getEntity(String.class);
+            errorBuilder.append(msg);
+            _logger.error(errorBuilder.toString());
+    
+            throw VNXeException.exceptions.vnxeCommandFailed(_url, code, msg);
+        }
     }
 }
 

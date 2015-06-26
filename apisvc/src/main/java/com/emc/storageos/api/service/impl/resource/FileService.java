@@ -1025,7 +1025,8 @@ public class FileService extends TaskResourceService {
     public TaskResourceRep share(@PathParam("id") URI id, FileSystemShareParam param)
             throws InternalException {
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-        ArgValidator.checkFsName(param.getShareName(), "name");
+        ArgValidator.checkFieldNotNull(param.getShareName(), "name");
+        ArgValidator.checkFieldNotEmpty(param.getShareName(), "name");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class,

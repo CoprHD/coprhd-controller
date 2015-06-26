@@ -60,7 +60,7 @@ public class MultiVolumeConsistencyMatcher extends AttributeMatcher {
             if (checkAsynchronousActions(system) || checkStorageSystemType(system)) {
                 matchedPools.add(pool);
             } else {
-                _logger.info("Ignoring pool {} as it does not support Consistency Groups", pool.getId());
+                _logger.info("Ignoring pool {} as it does not support Consistency Groups", pool.getNativeGuid());
                 continue;
             }
         }

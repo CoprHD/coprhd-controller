@@ -193,6 +193,12 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException fractureFullCopyFailed(final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException srdfConsistencyGroupAlreadyExistsWithVolume(final String cgName);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException srdfConsistencyGroupNotFoundOnProviders();
+    
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failbackVolumeOperationFailed(final String message, final Throwable cause);
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)

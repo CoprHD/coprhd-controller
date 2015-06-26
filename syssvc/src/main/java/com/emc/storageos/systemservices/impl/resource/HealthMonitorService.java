@@ -368,7 +368,8 @@ public class HealthMonitorService extends BaseLogSvcResource {
             List<ServiceHealth> serviceHealthList = NodeHealthExtractor.getServiceHealth
                     (NodeStatsExtractor.getServiceStats(availableServices), _coordinatorClientExt.getCoordinatorClient(), nodeId, nodeIP);
             for (ServiceHealth serviceHealth : serviceHealthList) {
-                if (Status.UNAVAILABLE.toString().equals(serviceHealth.getStatus())) {
+                if (Status.UNAVAILABLE.toString().equals(serviceHealth.getStatus())
+                        || Status.DEGRADED.toString().equals(serviceHealth.getStatus())) {
                     nodeStatus = Status.DEGRADED.toString();
                     break;
                 }

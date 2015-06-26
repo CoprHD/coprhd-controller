@@ -159,6 +159,7 @@ class SanFabrics(object):
             updateParam['san_zone'] = zonesParam
         else:
             req_type = "PUT"
+            addMembers = []
             if(addwwwpns != None):
                 addMembers = addwwwpns
             removeMembers = []

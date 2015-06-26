@@ -8,10 +8,13 @@ import static com.emc.vipr.client.core.filters.CompatibilityFilter.INCOMPATIBLE;
 import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -19,14 +22,21 @@ import com.emc.sa.asset.AssetOptionsUtils;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.sa.asset.providers.BlockProvider.UnexportedBlockResourceFilter;
 import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterRestRep;
+import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.SourceTargetVolumesFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -116,6 +126,34 @@ public class VMWareProvider extends BaseHostProvider {
         return createStringOptions(listFileDatastoresByProjectAndDatacenter(context, project, datacenter));
     }
 
+    @Asset("unassignedBlockDatastore")
+    @AssetDependencies({"esxHost", "project"})
+    public List<AssetOption> getUnassignedDatastores(AssetOptionsContext ctx, URI hostOrClusterId, final URI projectId) {
+        ViPRCoreClient client = api(ctx);
+        Set<URI> exportedBlockResources = BlockProvider.getExportedVolumes(api(ctx), projectId, hostOrClusterId, null);
+        UnexportedBlockResourceFilter<VolumeRestRep> unexportedFilter = new UnexportedBlockResourceFilter<VolumeRestRep>(exportedBlockResources);
+        SourceTargetVolumesFilter sourceTargetVolumesFilter = new SourceTargetVolumesFilter();
+        List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId, unexportedFilter.and(sourceTargetVolumesFilter));
+
+        return createBlockVolumeDatastoreOptions(volumes, hostOrClusterId);
+    }
+    
+    @Asset("assignedBlockDatastore")
+    @AssetDependencies("esxHost")
+    public List<AssetOption> getAssignedDatastores(AssetOptionsContext context, URI esxHost) {
+        debug("getting blockDatastores (esxHost=%s)", esxHost);
+
+        List<ExportGroupRestRep> exports = BlockProviderUtils.getExportsForHostOrCluster(api(context), context.getTenant(), esxHost);
+        Collection<ExportGroupRestRep> filteredExportGroups = BlockStorageUtils.filterExportsByType(exports, esxHost);
+        Set<URI> volumeIds = BlockProviderUtils.getExportedResourceIds(filteredExportGroups, ResourceType.VOLUME);
+        Set<URI> snapshotIds = BlockProviderUtils.getExportedResourceIds(filteredExportGroups, ResourceType.BLOCK_SNAPSHOT);
+
+        List<BlockObjectRestRep> resources = new ArrayList<>();
+        resources.addAll(api(context).blockVolumes().getByIds(volumeIds));
+        resources.addAll(api(context).blockSnapshots().getByIds(snapshotIds));
+        return createBlockVolumeDatastoreOptions(resources, esxHost);
+    }
+    
     @Asset("blockdatastore")
     @AssetDependencies("esxHost")
     public List<AssetOption> getBlockDatastores(AssetOptionsContext context, URI esxHost) {
@@ -153,6 +191,21 @@ public class VMWareProvider extends BaseHostProvider {
         debug("getting datacenters (vcenter=%s, cluster=%s)", vcentersForEsxCluster, esxCluster);
         return createBaseResourceOptions(listDatacentersByVCenterAndCluster(context, vcentersForEsxCluster, esxCluster));
     }
+    
+    protected static List<AssetOption> createBlockVolumeDatastoreOptions(List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (BlockObjectRestRep volume : mountedVolumes) {
+            Set<String> datastoreNames = VMwareDatastoreTagger.getDatastoreNames(volume);
+            if (datastoreNames.isEmpty()) {
+                options.add(new AssetOption(volume.getId(), volume.getDeviceLabel()));
+            } else {
+                options.add(new AssetOption(volume.getId(), volume.getDeviceLabel() + " [datastores: " + StringUtils.join(datastoreNames, ",") + "]"));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
     
     protected static List<AssetOption> createDatastoreOptions(List<? extends BlockObjectRestRep> mountedVolumes, URI hostId) {
         Set<String> datastores = Sets.newHashSet(); // There can be multiple volumes to a DS, so de-dupe in a Set

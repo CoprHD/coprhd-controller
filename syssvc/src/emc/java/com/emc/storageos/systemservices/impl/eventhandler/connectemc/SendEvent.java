@@ -232,6 +232,13 @@ public abstract class SendEvent {
     protected abstract EventType getEventType() throws Exception;
 
     /**
+     * Constructs ArrayList of query parameters used
+     */
+    protected ArrayList<String> collectQueryParameters(){
+        return new ArrayList<String>();
+    }
+
+    /**
      * Required to set the appropriate embed level in the identifier section of
      * the CallHome event.
      */
@@ -318,7 +325,8 @@ public abstract class SendEvent {
                     _log.info("Logs attachment size is {} MB ", totalLogsSize);
                     throw APIException.badRequests.attachmentLogsSizeError
                             (attachmentSizeMB,
-                            (long) totalLogsSize, attachmentsMaxMB);
+                            (long) totalLogsSize, attachmentsMaxMB,
+                                    collectQueryParameters().toString());
                 }
                 throw APIException.internalServerErrors.attachmentSizeError
                         (attachmentSizeMB,

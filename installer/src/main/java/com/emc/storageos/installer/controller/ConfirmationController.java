@@ -20,9 +20,9 @@ import org.slf4j.LoggerFactory;
 import charva.awt.event.ActionEvent;
 import charva.awt.event.ActionListener;
 
-import com.emc.storageos.services.data.Configuration;
+import com.emc.storageos.services.util.Configuration;
 import com.emc.storageos.installer.util.InstallationTask;
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerConstants;
 import com.emc.storageos.installer.widget.DisplayPanel;
 
 /**

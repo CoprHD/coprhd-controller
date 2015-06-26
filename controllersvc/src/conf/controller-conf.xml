@@ -158,6 +158,7 @@
         <property name="eventManager" ref="recordableEventMgr"/>
         <property name="blockScheduler" ref="blockscheduler"/>
         <property name="workflowService" ref="workflowService"/>
+        <property name="srdfDeviceController" ref="srdfDeviceController"/>
     </bean>
 
     <bean id="blockDeviceExportController"
@@ -261,6 +262,7 @@
         <property name="helper" ref="vmaxSmisCommandHelper"/>
         <property name="cimObjectPathFactory" ref="vmaxCIMObjectPathFactoryAdapter"/>
         <property name="utils" ref="vmaxSrdfUtils"/>
+        <property name="findProviderFactory" ref="vmaxFindProviderFactory"/>
     </bean>
     
     <bean id="storagedevicePreProcessor" class="com.emc.storageos.volumecontroller.impl.smis.SmisStorageDevicePreProcessor">

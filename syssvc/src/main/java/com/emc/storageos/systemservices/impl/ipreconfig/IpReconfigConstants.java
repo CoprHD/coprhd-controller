@@ -49,6 +49,7 @@ public class IpReconfigConstants {
 
     public static final String ERRSTR_TIMEOUT="Ip reconfiguration timeout";
     public static final String ERRSTR_ROLLBACK="User rollback to the original ip configuration";
+    public static final String ERRSTR_MANUAL_CONFIGURED="Network reconfiguration has been interrupted";
 
     /**
      * Each node's statuses during the whole ip reconfiguration procedure

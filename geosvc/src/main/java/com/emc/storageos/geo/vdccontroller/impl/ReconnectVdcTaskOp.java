@@ -54,6 +54,7 @@ public class ReconnectVdcTaskOp extends AbstractVdcTaskOp {
     protected void process() {
         log.info("Start reconnect vdc operation to vdc {}", operatedVdc.getId());
         loadVdcInfo();
+        log.info("Load vdc info is done");
 
         preCheck();
 

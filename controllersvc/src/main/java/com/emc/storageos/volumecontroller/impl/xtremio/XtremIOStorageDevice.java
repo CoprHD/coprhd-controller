@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +42,7 @@ import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -73,6 +73,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     
     private XtremIOExportOperations xtremioExportOperationHelper;
     private NameGenerator _nameGenerator;
+    
+    private static final String noOpOnThisStorageArrayString = "No operation to perform on this storage array...";
 
     public void setXtremioExportOperationHelper(XtremIOExportOperations xtremioExportOperationHelper) {
         this.xtremioExportOperationHelper = xtremioExportOperationHelper;
@@ -471,11 +473,27 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         }
 
     }
+    
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
+                                         Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
+    	_log.info("doDeleteConsistencyGroup: " + noOpOnThisStorageArrayString);
+    	taskCompleter.ready(dbClient);
+    }
 
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-        taskCompleter.ready(dbClient);
+    	_log.info("doCreateConsistencyGroup: " + noOpOnThisStorageArrayString);
+    	taskCompleter.ready(dbClient);
+    }
+    
+    @Override
+    public void doAddToConsistencyGroup(StorageSystem storage,
+            URI consistencyGroupId, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+    	_log.info("doAddToConsistencyGroup: " + noOpOnThisStorageArrayString);
+    	taskCompleter.ready(dbClient);
     }
 
     @Override

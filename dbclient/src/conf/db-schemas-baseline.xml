@@ -8429,7 +8429,13 @@ Please DO NOT modify the content.
                 <annotations/>
             </field>
             <field name="associatedSourceVolume" type="java.net.URI">
-                <annotations/>
+                <annotations>
+                    <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="cf" value="associatedSourceVolumeIndex"/>
+                        <annotation_value name="deactivateIfEmpty" value="false"/>
+                        <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
+                    </annotation>
+                </annotations>
             </field>
             <field name="associatedVolumes" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
@@ -10740,7 +10746,13 @@ Please DO NOT modify the content.
                 <annotations/>
             </field>
             <field name="associatedSourceVolume" type="java.net.URI">
-                <annotations/>
+                <annotations>
+                    <annotation name="RelationIndex" type="com.emc.storageos.db.client.model.RelationIndex">
+                        <annotation_value name="cf" value="associatedSourceVolumeIndex"/>
+                        <annotation_value name="deactivateIfEmpty" value="false"/>
+                        <annotation_value name="type" type="com.emc.storageos.db.client.model.Volume" value="Volume"/>
+                    </annotation>
+                </annotations>
             </field>
             <field name="associatedVolumes" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>

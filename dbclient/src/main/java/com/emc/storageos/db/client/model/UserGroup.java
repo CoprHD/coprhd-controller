@@ -83,6 +83,50 @@ public class UserGroup extends DataObject {
         return null;
     }
 
+    private StringSet getAttributeKeySet () {
+        StringSet attributeKeySet = new StringSet();
+
+        for (String attributeParamString : _attributes) {
+            UserAttributeParam attributeParam = UserAttributeParam.fromString(attributeParamString);
+            if (attributeParam == null) {
+                _log.warn("Failed to convert attributes param string {} to object.", attributeParamString);
+                continue;
+            }
+
+            attributeKeySet.add(attributeParam.getKey());
+        }
+
+        return attributeKeySet;
+    }
+
+    /***
+     * Common compare method for both isEqual and overlap.
+     *
+     * @param userGroup to be compared.
+     * @return true if userGroup's _domain matches with
+     *          the object otherwise false.
+     */
+    private boolean commonCompare(UserGroup userGroup) {
+        if (userGroup == null) {
+            _log.warn("Invalid user group to compare");
+            return false;
+        }
+
+        _log.debug("Comparing user groups {}, {}",
+                userGroup.toString(), this.toString());
+
+        //Now compare the domain of both user group.
+        if (StringUtils.isBlank(this._domain) ||
+                StringUtils.isBlank(userGroup._domain) &&
+                        !this._domain.equalsIgnoreCase(userGroup._domain)) {
+            String[] toTrace = {this._domain, this.getLabel(), userGroup._domain, userGroup.getLabel()};
+            _log.debug("Domain {} of {} does not match with domain {} of {}.", toTrace);
+            return false;
+        }
+
+        return true;
+    }
+
     /***
      * Checks if the given userGroup is matching with the object or not
      * The comparison is done based on the _domain and _attributes.
@@ -94,20 +138,7 @@ public class UserGroup extends DataObject {
     public boolean isEqual(UserGroup userGroup) {
         boolean isEqual = false;
 
-        if (userGroup == null) {
-            _log.warn("Invalid user group to compare");
-            return isEqual;
-        }
-
-        _log.debug("Comparing user groups {}, {}",
-                userGroup.toString(), this.toString());
-
-        //Now compare the domain of both user group.
-        if (StringUtils.isBlank(this._domain) ||
-                StringUtils.isBlank(userGroup._domain) &&
-                !this._domain.equalsIgnoreCase(userGroup._domain)) {
-            String[] toTrace = {this._domain, this.getLabel(), userGroup._domain, userGroup.getLabel()};
-            _log.debug("Domain {} of {} does not match with domain {} of {}.", toTrace);
+        if (!commonCompare(userGroup)) {
             return isEqual;
         }
 
@@ -178,5 +209,118 @@ public class UserGroup extends DataObject {
         }
 
         return isEqual;
+    }
+
+    /***
+     * Checks if the keys of object's all the _attributes is available
+     * in the userGroup's attributes or not .
+     *
+     * @param userGroup to be compared.
+     * @return true if all the keys of object attributes are also available
+     *          in the userGroup's attributes otherwise false.
+     */
+    private boolean checkIfAllKeysAvailable(UserGroup userGroup) {
+        boolean isAllKeysFound = true;
+
+        StringSet objectAttributeKeySet = getAttributeKeySet();
+        StringSet comparingAttributeKeySet = userGroup.getAttributeKeySet();
+
+        for (String objectKey : objectAttributeKeySet) {
+            boolean keyFound = false;
+            for (String comparingKey : comparingAttributeKeySet) {
+                if (comparingKey.equalsIgnoreCase(objectKey)) {
+                    keyFound = true;
+                    break;
+                }
+            }
+            if (!keyFound) {
+                isAllKeysFound = false;
+                break;
+            }
+        }
+        return isAllKeysFound;
+    }
+
+    /***
+     * Checks if the object's _attribute overlaps with
+     * userGroup's attributes or not .
+     *
+     * @param userGroup to be compared.
+     * @param attributeParamString attribute of the object to be compared.
+     * @return true if object's _attribute overlaps with one of
+     *          userGroup's _attributes otherwise false.
+     */
+    private boolean checkOverlappingAttributes(UserGroup userGroup, String attributeParamString) {
+        boolean overlaps = false;
+
+        if (StringUtils.isBlank(attributeParamString)) {
+            _log.warn("Invalid attribute string {} in user group {}.", attributeParamString, this.getLabel());
+            return overlaps;
+        }
+
+        UserAttributeParam attributeParam = UserAttributeParam.fromString(attributeParamString);
+        if (attributeParam == null) {
+            _log.warn("Failed to convert attributes param string {} to object.", attributeParamString);
+            return overlaps;
+        }
+
+        if (CollectionUtils.isEmpty(userGroup._attributes)) {
+            _log.info("No attributes to compare");
+            return overlaps;
+        }
+
+        for (String comparingAttributeParamString : userGroup._attributes) {
+            if (StringUtils.isBlank(comparingAttributeParamString)) {
+                _log.info("Invalid attribute string {}", comparingAttributeParamString);
+                break;
+            }
+
+            UserAttributeParam comparingAttributeParam = UserAttributeParam.fromString(comparingAttributeParamString);
+            if (comparingAttributeParam == null) {
+                _log.info("Failed to convert attributes param string {} to object.", comparingAttributeParamString);
+                return overlaps;
+            }
+
+            if (comparingAttributeParam.containsOverlappingAttributeValues(attributeParam)) {
+                _log.debug("Attributes {} match with {}", attributeParamString, comparingAttributeParamString);
+                overlaps = true;
+                break;
+            }
+        }
+
+        return overlaps;
+    }
+
+    /***
+     * Checks if the given userGroup overlapping with the object or not.
+     * The comparison is done based on the _domain and _attributes.
+     *
+     * @param userGroup to be compared.
+     * @return true if userGroup's _domain and _attributes become overlaps with
+     *          object otherwise false.
+     */
+    public boolean overlap(UserGroup userGroup) {
+        boolean overlaps = false;
+
+        if (!commonCompare(userGroup)) {
+            return overlaps;
+        }
+
+        //Now compare the attribute keys. To overlap, object's all the attribute keys
+        //should be available in the userGroup.
+        if (!checkIfAllKeysAvailable(userGroup)) {
+            _log.debug("User group {} does not contain all the attribute keys of {}", userGroup.getLabel(), this.getLabel());
+            return overlaps;
+        }
+
+        //Now compare the each individual attribute of the group.
+        for (String attributeParamString : this._attributes) {
+            overlaps = checkOverlappingAttributes(userGroup, attributeParamString);
+            if (!overlaps) {
+                break;
+            }
+        }
+
+        return overlaps;
     }
 }

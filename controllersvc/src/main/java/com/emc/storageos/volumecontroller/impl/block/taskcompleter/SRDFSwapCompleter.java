@@ -38,6 +38,6 @@ public class SRDFSwapCompleter extends SRDFTaskCompleter {
     }
     @Override
     protected Volume.LinkStatus getVolumeSRDFLinkStatusForSuccess() {
-        return Volume.LinkStatus.IN_SYNC;
+        return Volume.LinkStatus.SWAPPED;
     }
 }

@@ -33,6 +33,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -239,6 +240,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
             modifyGroupClones(storage, clones, completer, SmisConstants.DETACH_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
+                clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                 clone.setReplicaState(ReplicationState.DETACHED.name());
             }
             _dbClient.persistObject(cloneVols);

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -213,6 +214,7 @@ public class Volume extends BlockObject implements ProjectResource {
         setChanged("fullCopies");
     }
     
+    @RelationIndex(cf = "associatedSourceVolumeIndex", type = Volume.class)
     @Name("associatedSourceVolume")
     public URI getAssociatedSourceVolume() {
         return associatedSourceVolume;
@@ -650,14 +652,19 @@ public class Volume extends BlockObject implements ProjectResource {
             bo = dbClient.queryObject(Volume.class, blockURI);
         } else if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, blockURI);
-            if (snapshot != null && snapshot.getEmName() != null && snapshot.getParent() != null) {
-            	// At this point, if we don't find the target RP volume, we need to return null.
+            if (snapshot != null && snapshot.getParent() != null && 
+                    NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) && 
+                    snapshot.getTechnologyType().equals(TechnologyType.RP.name())) {
+            	// Process RP snapshots. At this point, if we don't find the target RP volume, 
+                // we need to return null.
                 Volume parent = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
                 if (parent.getRpTargets() != null) {
                 	for (String targetIdStr : parent.getRpTargets()) {
                 		Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(targetIdStr));
                 		if (targetVolume != null && targetVolume.getVirtualArray().equals(snapshot.getVirtualArray())) {
-                			return targetVolume;
+                		    // Always return the BlockSnapshot here.  ExportMasks reference the RP BlockSnapshot, not 
+                		    // Volume, when a RP BlockSnapshot export is performed.
+                			return snapshot;
                 		}	
                 	}
                 }
@@ -665,7 +672,11 @@ public class Volume extends BlockObject implements ProjectResource {
                 return null;
             }
             // It's a snapshot that can be exported directly.
+            // Local array snapshots of RP or RP+VPlex target volumes also apply to this case.
             bo = snapshot;
+        } else if (URIUtil.isType(blockURI, BlockMirror.class)) {
+            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, blockURI);
+            bo = mirror;
         }
         return bo;
     }

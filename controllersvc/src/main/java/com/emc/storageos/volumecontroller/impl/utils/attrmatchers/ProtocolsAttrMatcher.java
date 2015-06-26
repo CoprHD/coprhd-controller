@@ -80,7 +80,7 @@ public class ProtocolsAttrMatcher extends AttributeMatcher{
                 } 
             }
             if (!isPoolMatched) {
-                _logger.info("Ignoring pool {} id: {} as it doesn't support protocols.",pool.getNativeGuid(), pool.getId());
+                _logger.info("Ignoring pool {} id: {} as it doesn't support protocols.",pool.getNativeGuid(), pool.getNativeGuid());
             }
         }
         getNetworkMatchingPoolsForVnxe(matchedPools, protocolsRequested, attributeMap);

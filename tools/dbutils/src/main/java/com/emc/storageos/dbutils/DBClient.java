@@ -15,6 +15,7 @@
 package com.emc.storageos.dbutils;
 
 import org.apache.commons.lang3.StringUtils;
+
 import com.emc.storageos.db.client.TimeSeriesMetadata;
 import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.impl.DataObjectType;
@@ -32,8 +33,10 @@ import com.emc.storageos.geo.service.impl.util.VdcConfigHelper;
 import com.emc.storageos.geo.vdccontroller.impl.InternalDbClient;
 import com.emc.storageos.geomodel.VdcConfig;
 import com.emc.storageos.security.SerializerUtils;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.sun.jersey.core.spi.scanning.PackageNamesScanner;
 import com.sun.jersey.spi.scanning.AnnotationScannerListener;
+
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +52,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -95,12 +99,13 @@ public class DBClient {
     private VdcConfigHelper vdcConfHelper;
     private EncryptionProviderImpl geoEncryptionProvider;
     private EncryptionProviderImpl encryptionProvider;
+    private boolean skipMigrationCheck = false;
 
-    @SuppressWarnings("unchecked")
-    public DBClient() {
+    public DBClient(boolean skipMigrationCheck) {
+    	this.skipMigrationCheck = skipMigrationCheck;
     }
 
-    public void init(){
+	public void init(){
         try {
             System.out.println("Initializing db client ...");
             ctx = new ClassPathXmlApplicationContext("/dbutils-conf.xml");
@@ -109,7 +114,7 @@ public class DBClient {
             vdcConfHelper = (VdcConfigHelper)ctx.getBean("vdcConfHelper");
             geoEncryptionProvider = (EncryptionProviderImpl)ctx.getBean("geoEncryptionProvider");
             encryptionProvider = (EncryptionProviderImpl)ctx.getBean("encryptionProvider");
-
+            dbClient.setBypassMigrationLock(skipMigrationCheck);
             dbClient.start();
             _dbClient = dbClient;
 
@@ -1018,34 +1023,20 @@ public class DBClient {
         }
     }
 
-    /**
-     *  check correctness of URI and serialize
-     */
     public void checkDB() {
-        int cfCount = 0;
-        System.out.println("Start checking.");
-
-        Collection<DataObjectType> cfList = TypeMap.getAllDoTypes();
-        for (DataObjectType objType : cfList) {
-            try {
-                log.info("Check CF {}", objType.getDataObjectClass().getName());
-                List<URI> uris = _dbClient.queryByType(objType.getDataObjectClass(), false);
-                for(URI uri : uris) {
-                    try {
-                        _dbClient.queryObject(objType.getDataObjectClass(), uri);
-                    } catch (Exception ex) {
-                        String errMsg = String.format("Fail to query object for '%s' with err %s ", uri, ex.getMessage());
-                        log.error(errMsg);
-                        System.err.println(errMsg);
-                    }
-                    //TODO add checking for index
-                }
-                cfCount++;
-            } catch (Exception ex) {
-                log.error("Fail to check CF {}, with err", objType.getDataObjectClass().getName(), ex);
-            }
+        try {
+            _dbClient.checkDataObjects();
+            _dbClient.checkIndexingCFs();
+            
+            String msg = "\nAll the checks have been done.";
+            System.out.println(msg);
+            log.info(msg);
+        } catch (ConnectionException e) {
+            log.error("Database connection exception happens, fail to connect: ", e);
+			System.err.println("The checker has been stopped by database connection exception. "
+					+ "Please see the log for more information.");
         }
-
-        System.out.println(String.format("End checking. Totally check %s cfs", cfCount));
+        
+        
     }
 }

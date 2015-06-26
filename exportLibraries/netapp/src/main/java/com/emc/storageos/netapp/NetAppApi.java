@@ -866,7 +866,7 @@ public class NetAppApi {
             
             // Modify the quota
             if (size > 0) {
-            	netAppFacade.modifyDiskLimitTreeQuota(volumeName, qtreePath, size/SIZE_KB, 0);
+            	netAppFacade.setDiskLimitTreeQuota(volumeName, qtreePath, size/SIZE_KB, 0);
             	try {
                 	QuotaStatus quotaStatus = netAppFacade.getQuotaStatus(volumeName);
                 	if(quotaStatus.OFF ==quotaStatus ){

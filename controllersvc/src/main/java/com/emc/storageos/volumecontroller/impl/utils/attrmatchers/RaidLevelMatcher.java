@@ -59,20 +59,20 @@ public class RaidLevelMatcher extends ConditionalAttributeMatcher {
             StringSet poolSupportedRaidLevels = pool.getSupportedRaidLevels();
             if (null != poolSupportedRaidLevels) {
                 _logger.info("Supported Raid Levels {} for Pool {} ", Joiner.on("\t")
-                        .join(poolSupportedRaidLevels), pool.getId());
+                        .join(poolSupportedRaidLevels), pool.getNativeGuid());
             } else {
-                _logger.info("Supported Raid Levels Empty for Pool {} ", pool.getId());
+                _logger.info("Supported Raid Levels Empty for Pool {} ", pool.getNativeGuid());
             }
             // if Pool doesn't have any details on Raid Level, remove that Pool
             if (null == poolSupportedRaidLevels) {
-                _logger.info("Ignoring pool {} as it doesn't have raid levels", pool.getId());
+                _logger.info("Ignoring pool {} as it doesn't have raid levels", pool.getNativeGuid());
                 filteredPoolList.remove(pool);
                 continue;
             }
             Set<String> copies = new HashSet<String>(poolSupportedRaidLevels);
             copies.retainAll(raidLevels);
             if (copies.isEmpty()) {
-                _logger.info("Ignoring pool {} as it is not supporting the raid levels.", pool.getId());
+                _logger.info("Ignoring pool {} as it is not supporting the raid levels.", pool.getNativeGuid());
                 filteredPoolList.remove(pool);
             }
         }

@@ -184,9 +184,15 @@ public class SmisUtils {
     /*
      * Parse target group name VMAX V3 only for now
      */
-    public static String getTargetGroupName(String instanceId) {
-        // for VMAX V3 instanceId, e.g., 000196700567+EMC_SMI_RG1415737386866
-        return instanceId.split(Constants.SMIS_PLUS_REGEX)[1];
+    public static String getTargetGroupName(String instanceId, Boolean isUsingSMIS80) {
+    	if(isUsingSMIS80){
+    		// for VMAX V3 instanceId, e.g., 000196700567+EMC_SMI_RG1415737386866
+            return instanceId.split(Constants.SMIS_PLUS_REGEX)[1];
+    	}else{
+    		// for VMAX V2 using 4.6.2, instanceId, e.g., 557B5BBA+1+SYMMETRIX+000195701573
+    		return instanceId.split(Constants.SMIS_PLUS_REGEX)[0];
+    	}
+    	
     }
     
     public static String getSLOPolicyName(CIMInstance instance) {

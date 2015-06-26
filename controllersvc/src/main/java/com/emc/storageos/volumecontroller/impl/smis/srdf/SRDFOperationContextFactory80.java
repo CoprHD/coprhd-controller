@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller.impl.smis.srdf;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.ActiveSynchronizationsOnlyFilter;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.AllStorageSyncsInCGCollector;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.CollectorStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.*;
 
@@ -51,6 +52,13 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
         // Determine how to build the SMI-S arguments
         ExecutorStrategy executorStrategy = null;
         switch(operation) {
+        	case FAIL_MECHANISM:
+        	    if (target.hasConsistencyGroup()) {
+                    executorStrategy = new FailMechanismGroupSyncStrategy(helper);
+                } else {
+                    executorStrategy = new FailMechanismStorageSyncsStrategy(helper);
+                }
+        		break;
             case SUSPEND:
                 if (target.hasConsistencyGroup()) {
                     executorStrategy = new SuspendGroupSyncStrategy(helper);

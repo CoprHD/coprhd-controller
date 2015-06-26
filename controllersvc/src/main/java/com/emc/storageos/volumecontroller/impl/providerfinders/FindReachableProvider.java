@@ -40,7 +40,7 @@ public class FindReachableProvider implements FindProviderStrategy {
         if (!helper.checkConnectionliveness(sourceSystem)) {
             log.info("Source Site {} Not reachable",sourceSystem.getActiveProviderURI());
             if (helper.checkConnectionliveness(targetSystem)) {
-                log.info("target Site {}  reachable",sourceSystem.getActiveProviderURI());
+                log.info("target Site {}  reachable",targetSystem.getActiveProviderURI());
                 reachableSystem = targetSystem;
             } else {
                 return null;

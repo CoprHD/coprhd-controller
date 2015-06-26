@@ -1505,12 +1505,12 @@ public class NetworkDeviceController implements NetworkController {
         try {
             NetworkFCContext context = (NetworkFCContext) WorkflowService.getInstance()
                     .loadStepData(contextKey);
-            if (context == null) {
-                _log.error("No zone rollback information for Step: " + contextKey);
-                ServiceError svcError = NetworkDeviceControllerException.errors.zoneRollbackFailed(
-                        exportGroupURI.toString());
-                WorkflowStepCompleter.stepFailed(taskId, svcError);
-                return false;
+            if (context == null ) {
+                _log.warn("No zone rollback information for Step: " + contextKey + 
+                        " , Export Group: " + exportGroupURI.toString() + ", and Task: " +
+                        taskId + ". The zoning step either did not complete or encountered an error.");
+                WorkflowStepCompleter.stepSucceded(taskId);
+                return true;
             }
             logZones(context.getZoneInfos());
             WorkflowStepCompleter.stepExecuting(taskId);
@@ -1809,27 +1809,27 @@ public class NetworkDeviceController implements NetworkController {
         // Select the network system to use
         NetworkSystem networkSystem =  null; 
         Map<String, Initiator> wwnToInitiatorMap = wwnToInitiatorMap(initiators);
-        for (String strUri : network.getNetworkSystems()) {
-            try {
-                networkSystem = _dbClient.queryObject(NetworkSystem.class, URI.create(strUri));
-                if (networkSystem != null && !networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) &&
-                        !networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString()) &&
-                        !networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString()) &&
-                        !networkSystem.getInactive()) {
-                    _log.info("Found network system {} for network {}", networkSystem.getLabel(), network.getLabel());
-                    wwnToZones.putAll( getDevice(networkSystem.getSystemType()).getEndpointsZones(networkSystem, 
-                            NetworkUtil.getNetworkWwn(network), network.getNativeId(), wwnToInitiatorMap.keySet()));
-                    break; //if we get here, we were successful at getting the zones, do not try any more network systems
-                }
-            } catch (Exception ex) {
-                // if we hit and exception, log it and try the next network system;
-                wwnToZones.clear();
-                _log.error("Failed to get the zones for initiators {} in network {} " +
-                        "using network system {}. Will try the other available network systems",
-                        new Object[] {wwnToInitiatorMap.keySet(), network.getLabel(), 
-                        networkSystem == null ? "null" : networkSystem.getLabel()});
-            }
-            networkSystem = null;
+        List<NetworkSystem> zoningNetworkSystems = _networkScheduler.getZoningNetworkSystems(network, null);
+        Iterator<NetworkSystem> itr = zoningNetworkSystems.iterator();
+        while (itr.hasNext()) {
+        	networkSystem = itr.next();
+        	try {
+        		if(networkSystem != null) {
+        			_log.info("Trying network system {} for network {} to get initiator zones.", 
+        					networkSystem.getLabel(), network.getLabel());
+        			wwnToZones.putAll( getDevice(networkSystem.getSystemType()).getEndpointsZones(networkSystem, 
+        					NetworkUtil.getNetworkWwn(network), network.getNativeId(), wwnToInitiatorMap.keySet()));
+        			break; //if we get here, we were successful at getting the zones, do not try any more network systems
+        		}
+        	} catch (Exception ex) {
+        		// if we hit and exception, log it and try the next network system;
+        		wwnToZones.clear();
+        		_log.error("Failed to get the zones for initiators {} in network {} " +
+        				"using network system {}. Will try the other available network systems",
+        				new Object[] {wwnToInitiatorMap.keySet(), network.getLabel(), 
+        				networkSystem == null ? "null" : networkSystem.getLabel()});
+        	}
+        	networkSystem = null;
         }
         if (networkSystem == null) {
             _log.error("Failed to find a registered network system in good discovery status to discover the zones");

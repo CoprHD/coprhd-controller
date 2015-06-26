@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.scaleio.api.ScaleIOAttributes;
@@ -80,6 +81,11 @@ public class ScaleIOCloneOperations implements CloneOperations {
                 taskCompleter.error(dbClient, code);
             }
         } catch (Exception e) {
+            Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+            if (clone != null) {
+                clone.setInactive(true);
+                dbClient.persistObject(clone);
+            }
             log.error("Encountered an exception", e);
             ServiceCoded code =
                     DeviceControllerErrors.scaleio.
@@ -93,6 +99,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
         log.info("START detachSingleClone operation");
         // no operation, set to ready
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);
         taskCompleter.ready(dbClient);

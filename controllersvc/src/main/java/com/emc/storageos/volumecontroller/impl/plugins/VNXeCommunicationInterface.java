@@ -387,7 +387,7 @@ public class VNXeCommunicationInterface extends
             } 
         } catch(Exception e) {
             detailedStatusMessage = String.format(
-                    "Discovery failed for VNXe %s because %s",
+                    "Discovery failed for VNXe %s: %s",
                     storageSystemURI.toString(), e.getLocalizedMessage());
         	_logger.error(detailedStatusMessage, e);
         	throw VNXeException.exceptions.discoveryError("Discovery error", e);

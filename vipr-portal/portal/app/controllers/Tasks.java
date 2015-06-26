@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.workflow.WorkflowStepRestRep;
 import com.google.common.collect.Maps;
 
@@ -437,6 +438,8 @@ public class Tasks extends Controller {
         public long startDate;
         public long endDate;
         public long elapsedTime;
+        public List<RelatedResourceRep> childFlow;
+        public List<WorkflowStepRestRep> childSteps;
 
         public WorkflowStep(WorkflowStepRestRep step,   Map<String, DataObjectRestRep> systemObjects) {
             state = step.getState();
@@ -462,6 +465,16 @@ public class Tasks extends Controller {
             }
             else {
                 elapsedTime = endDate - startDate;
+            }
+            if(step.getChildWorkflows()==null) {
+            	childSteps=null;
+            }
+            else {
+            	childFlow=step.getChildWorkflows();
+            	for (int i=0;i<childFlow.size();i++) {
+            		childSteps = getViprClient().workflows().getSteps(step.getChildWorkflows().get(i).getId());
+            		
+            	}
             }
         }
     }

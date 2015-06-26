@@ -454,16 +454,18 @@ public class Util {
         boolean isModified = false;
 
         CIMProperty<?>[] properties = cimObjectPath.getKeys();
+        CIMProperty<?>[] changedProperties = new CIMProperty<?>[properties.length];
         for (int index=0; index < properties.length; index++) {
             CIMProperty property = properties[index];
             Object value = cimObjectPath.getKeyValue(property.getName());
             if (value instanceof String) {
                 String string = (String) value;
+                changedProperties[index] = property;
                 if (string.contains(delimiter)) {
                     String modified = string.replaceAll(searchRegex, replaceWith);
                     CIMProperty changed =
                             new CIMProperty<>(property.getName(), CIMDataType.STRING_T, modified, true, false, null);
-                    properties[index] = changed;
+                    changedProperties[index] = changed;
                     isModified = true;
                     if (keyMap != null) {
                         keyMap.put(Constants.USING_SMIS80_DELIMITERS, Boolean.TRUE);
@@ -474,7 +476,7 @@ public class Util {
 
         if (isModified) {
             result = CimObjectPathCreator.createInstance(cimObjectPath.getObjectName(),
-                    cimObjectPath.getNamespace(), properties);
+                    cimObjectPath.getNamespace(), changedProperties);
         }
         return result;
     }

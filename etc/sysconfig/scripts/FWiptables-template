@@ -39,7 +39,7 @@ fw_custom_iptables() {
     #   7443 - authsvc
     #   8080 - apisvc
     #   8443 - apisvc
-    #   8444 - sasvc
+    #   9553 - sasvc
     #   8543 - geosvc
     #   9093 - vasasvc
     #   9160 - dbsvc
@@ -52,7 +52,7 @@ fw_custom_iptables() {
     # NOTE: iptables/ip6tables accepts up to maximun of ports is 15 in the argument list, please do not exceed the limit
     #
     INGRES_PORTS_PART1="2181,2888,2889,6443,7000,7001,7100,7101,7199,7200,7299,7300,7399,7400"
-    INGRES_PORTS_PART2="7443,8080,8443,8444,8543,9093,9160,9260,9993,10099,10199,40201"
+    INGRES_PORTS_PART2="7443,8080,8443,8543,9093,9160,9260,9553,9993,10099,10199,40201"
 
     # TODO support multiple nics
     NIC_NAME="${network_nic_name}"

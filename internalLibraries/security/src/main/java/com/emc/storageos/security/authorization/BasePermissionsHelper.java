@@ -1928,4 +1928,16 @@ public class BasePermissionsHelper {
 
         return false;
     }
+
+    /**
+     *  given tenant id, find its name
+     */
+    public String getTenantNameByID(String tenantID) {
+        if (StringUtils.isEmpty(tenantID)) {
+            return null;
+        }
+
+        TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, URI.create(tenantID));
+        return tenantOrg != null ? tenantOrg.getLabel() : null ;
+    }
 }

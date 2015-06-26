@@ -15,6 +15,10 @@
 
 package com.emc.storageos.systemservices.impl.upgrade;
 
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.JSONParser;
+
 import java.io.*;
 import java.net.*;
 import java.security.KeyManagementException;
@@ -69,9 +73,10 @@ public class RemoteRepository {
     
     // create instance and invoke private constructor
     private static ExecutorService _executorService = null;
-    private String _cookie;
+    private String _ssohost;
     private String _username;
     private String _password;
+    private String _ctsession;
     private SSLSocketFactory _sslSocketFactory;
     private final int MAXIMUM_REDIRECT_ALLOWED = 10;
     private static CoordinatorClientExt _coordinator;
@@ -85,6 +90,15 @@ public class RemoteRepository {
     private final static String SYSTEM_UPDATE_CHECK_FREQUENCY_HOURS = "system_update_check_frequency_hours";
     // connect + read timeout constant
     private final static int SYSTEM_UPDATE_REPO_TIMEOUT = 30000;
+
+    private static final String EMC_SSO_AUTH_SERVICE_PROTOCOL = "https";
+    private static final String EMC_SSO_AUTH_SERVICE_HOST= "sso.emc.com";
+    private static final String EMC_SSO_AUTH_SERVICE_TESTHOST= "sso-tst.emc.com";
+    private static final String EMC_SSO_DOWNLOAD_SERVICE_HOST= "download.emc.com";
+    private static final String EMC_SSO_DOWNLOAD_SERVICE_TESTHOST= "download-tst.emc.com";
+    private static final String EMC_SSO_AUTH_SERVICE_URLPATH = "/authRest/service/auth.json";
+    private static final String EMC_SSO_AUTH_SERVICE_LOGIN_POST_CONTENT = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><user><password>{0}</password><username>{1}</username></user>";
+
     /**
      * Create singleton instance of ExecutorsService with a fixed thread pool.
      * 
@@ -115,7 +129,7 @@ public class RemoteRepository {
         if( null == repoUrl || repoUrl.isEmpty() ) {
             _disabled = true;            
         } else {
-            try {                
+            try {
                 _repo = new URL(repoUrl);                
                 initializeSslContext();
             } catch (MalformedURLException e) {
@@ -135,9 +149,8 @@ public class RemoteRepository {
                 } catch (IllegalArgumentException e) {
                     _log.error("Error in RemoteRepository Constructor: Illegal argument for proxy URL {}, {}", repoProxy, e.getMessage());
                 } 
-                }
-            
             }
+        }
     }
             
     /**
@@ -659,63 +672,162 @@ public class RemoteRepository {
     
     /**
      * Invoke a request to the URL
+     * For images in download-tst.emc.com, using sso-tst.emc.com as auth source
+     * For images in download.emc.com, using sso.emc.com as auth source
      * @param url
      * @return a connection to the URL that was sent the request
      * @throws RemoteRepositoryException 
      */
     private HttpURLConnection invokeRequest(URL url) throws RemoteRepositoryException {
-        return invokeRequest(url, null, 0); // There is 0 redirects when the initial request happened
+        if ( url.getProtocol().equalsIgnoreCase(EMC_SSO_AUTH_SERVICE_PROTOCOL) &&
+            url.getHost().equalsIgnoreCase(EMC_SSO_DOWNLOAD_SERVICE_TESTHOST) ) {
+            _ssohost = EMC_SSO_AUTH_SERVICE_TESTHOST;
+        } else if ( url.getProtocol().equalsIgnoreCase(EMC_SSO_AUTH_SERVICE_PROTOCOL) &&
+                    url.getHost().equalsIgnoreCase(EMC_SSO_DOWNLOAD_SERVICE_HOST) ) {
+            _ssohost = EMC_SSO_AUTH_SERVICE_HOST;
+        } else {
+            _ssohost = null;
+        }
+        if (_ssohost != null) {
+            login();
+        }
+        return connectImage(url);
     }
-    
+
     /**
-     * INvoke a request to the URL
-     * @param url
-     * @param content optional content to post
-     * @param redirect count
-     * @return a connection to the url that was sent the request
-     * @throws RemoteRepositoryException 
+     * The EMC SSO service (https://sso.emc.com) authenticates uses and issues authentication
+     * tokens that enable access to other EMC services, in particular to the EMC download repository (https://download.emc.com).
+     * Request:
+     *   URI:			http://sso.emc.com/authRest/service/auth.json
+     *   Format:			XML
+     *   HTTP Method:		POST
+     *   Request Body for customer, partner or lite users:
+     *     <?xml version="1.0" encoding="UTF-8" standalone="yes"?><user><password>##########</password><username>johndoe@acme.com</username></user>
+     *   Request Body for employee
+     *     <?xml version="1.0" encoding="UTF-8" standalone="yes"?><user><password>pin+fob/softtoken</password><username>emp nt</username></user>
+     *
+     * Response:
+     * 1. Example for successful response:
+     *   {
+     *       "object": {
+     *           "authResult": {
+     *               "status":"SUCCESS",
+     *               "operation":"VALID_USER",
+     *               "token":"AAAAAgABAFBLtr+WcJAh+DJ1Q2GXYiH0PC5+Txuscy1+pU7TRpAcUoyfhNwB55DZwPCZlQwgVpyY+vaOYNblApcSOZ+hEWFzIxj1JtII/ozshY+33ddafg==",
+     *               "userProps":[{"propName":"LAST_NAME","propValue":"[TestFour]"},{"propName":"GIVEN_NAME","propValue":"[AlphaFour]"},{"propName":"UID","propValue":"[1110000003]"},{"propName":"EMC_IDENTITY","propValue":"[C]"}]
+     *           }
+     *        },
+     *       "serviceFault":null
+     *   }
+     * 2. Example for failure response:
+     *   {
+     *       "object": {
+     *           "authResult":    {
+     *               "status": "FAILED",
+     *               "operation": "INVALID_USERNAME_PASSWORD",
+     *               "token": null,
+     *               "userProps": null
+     *           }
+     *       },
+     *       "serviceFault":null
+     *   }
+     *
+     * @param username
+     * @param password
      */
-    private HttpURLConnection invokeRequest(URL url, String content, int redirectCount) throws RemoteRepositoryException {
+    private void login() {
+        _log.info("{} is trying to login ...", _username);
         try {
+            URL url = new URL(EMC_SSO_AUTH_SERVICE_PROTOCOL, _ssohost, EMC_SSO_AUTH_SERVICE_URLPATH);
             HttpURLConnection httpCon = prepareConnection(url);
             httpCon.setInstanceFollowRedirects(false);
+            String loginContent = SoftwareUpdate.getDownloadLoginContent(_username, _password);
+            writePostContent(httpCon, loginContent);
 
-            if( null != _cookie &&  !_cookie.isEmpty()) {
-                httpCon.setRequestProperty("Cookie", _cookie);
+            InputStream in = httpCon.getInputStream();
+            if(in == null) {
+                throw new IllegalArgumentException("in is null");
             }
-            if( null == content || content.isEmpty()) {
-                httpCon.setRequestMethod("GET");
-                httpCon.connect();
-            } else {
-                writePostContent(httpCon, content);
+
+            // use InputStreamReader to read charset encoding gracefully
+            BufferedReader rd = new BufferedReader(new InputStreamReader(in));
+            String line;
+            StringBuffer response = new StringBuffer();
+            while((line = rd.readLine()) != null) {
+              response.append(line);
+              response.append('\r');
             }
-            if(httpCon.getResponseCode() == HttpURLConnection.HTTP_MOVED_TEMP || httpCon.getResponseCode() == HttpURLConnection.HTTP_MOVED_PERM) {
-                redirectCount++;
-                if(redirectCount>MAXIMUM_REDIRECT_ALLOWED){
-                    throw SyssvcException.syssvcExceptions.remoteRepoError("Too many redirects! Quit connection!");
+            rd.close();
+            String s = response.toString();
+            _log.debug("Response body: " + s);
+
+            JSONParser parser = new JSONParser();
+            JSONObject obj = (JSONObject)parser.parse(s);
+            JSONObject authObj = (JSONObject)obj.get("object");
+            JSONObject authResultObj = (JSONObject)authObj.get("authResult");
+            if (authResultObj.get("status").toString().equalsIgnoreCase("SUCCESS")) {
+                _log.info("{} login EMC SSO service successfully", _username);
+                if (authResultObj.get("token") != null) {
+                    _ctsession = authResultObj.get("token").toString();
+                    _log.debug("From EMC SSO service, user {} obtained CTSESSION cookie: {}", _username, _ctsession);
+                } else {
+                    throw new IllegalArgumentException("Failed to parse ctsession token as expected");
                 }
-                cacheCookies(httpCon);
-                URL forwardedTo = new URL(httpCon.getHeaderField("Location"));   
-                _log.info("Connecting to URL " + url.toString() + " redirected to " + forwardedTo);
-                if(forwardedTo.getFile().equalsIgnoreCase("/sso/login.htm?CTAuthMode=BASIC")) {
-                    if( _username == null || _username.isEmpty() || _password == null || _password.isEmpty()) {
-                        throw SyssvcException.syssvcExceptions.remoteRepoError("Credentials for EMC update repository are not configured");
-                    } 
-                    return invokeRequest(forwardedTo, SoftwareUpdate.getDownloadLoginContent(_username, _password), redirectCount);
-                } else if (forwardedTo.getFile().contains("loginStatus=failed")){
-                    throw SyssvcException.syssvcExceptions.remoteRepoError(MessageFormat.format("Log in to {0} failed", url));
-                }else {
-                    return invokeRequest(forwardedTo, null, redirectCount);
+            } else if (authResultObj.get("status").toString().equalsIgnoreCase("FAILED")) {
+                JSONObject serviceFaultObj = (JSONObject)obj.get("serviceFault");
+                String errstr = "";
+                if (serviceFaultObj != null) {
+                    errstr = "Please contact with EMC customer support.  EMC SSO service failed:" + serviceFaultObj.toString();
+                } else {
+                    String operation = authResultObj.get("operation").toString();
+                    errstr= "EMC SSO authentication result is " + operation;
                 }
+                _log.error(errstr);
+                throw SyssvcException.syssvcExceptions.remoteRepoError(errstr);
             }
-            return httpCon;
-        } catch (RemoteRepositoryException e ) {
-            throw e;
-        } catch( Exception e){
-            throw SyssvcException.syssvcExceptions.remoteRepoError(MessageFormat.format("Failed sending request to {0} ({1})", url, e));
+        } catch ( Exception e){
+            throw SyssvcException.syssvcExceptions.remoteRepoError(
+                      MessageFormat.format("User {0} failed to login {1}: {2}", _username, EMC_SSO_AUTH_SERVICE_URLPATH, e));
         }
     }
-    
+
+    /**
+     * Connect with remote target url for download
+     * Client needs to read the token from returned JSON object for login request.
+     * Token aka CTSESSION is one of the important attribute to access any application or rest services that is protected behind RSA.
+     *     For Example: if support zone rest needs to be accessed then use the auth rest service read the token and set the cookie header with the token as shown
+     * For download request:
+     *   URI:			image url
+     *   Format:			XML
+     *   HTTP Method:		GET
+     *   HTTP Header:       CTSESSION="token"
+     *
+     * @param url
+     * @return HttpURLConnection
+     * @throws RemoteRepositoryException
+     */
+    private HttpURLConnection connectImage(URL url) throws RemoteRepositoryException {
+        try {
+            _log.info("Connecting to URL: {}", url.toString());
+            HttpURLConnection httpCon = prepareConnection(url);
+
+            httpCon.setInstanceFollowRedirects(false);
+            String cookie = "CTSESSION=" + _ctsession;
+            httpCon.setRequestProperty("Cookie", cookie);
+            httpCon.setRequestMethod("GET");
+            httpCon.connect();
+            if(httpCon.getResponseCode() != HttpURLConnection.HTTP_OK) {
+                _log.info("connect image request return {}", httpCon.getResponseCode());
+                throw new IllegalArgumentException("Http error code:" + httpCon.getResponseCode());
+            }
+            _log.info("Image is located successfully and its size is " + httpCon.getContentLength());
+            return  httpCon;
+        } catch ( Exception e){
+            throw SyssvcException.syssvcExceptions.remoteRepoError(
+                      MessageFormat.format("User {0} failed to connect with remote image {1}: {2}", _username, url.toString(), e));
+        }
+    }
+
     /**
      * Initialize the SSL context for connecting to a remote repository
      * @throws NoSuchAlgorithmException
@@ -757,26 +869,11 @@ public class RemoteRepository {
         connection = (HttpURLConnection) url.openConnection(_proxy);   
         connection.setConnectTimeout(_timeout);
         connection.setReadTimeout(_timeout);
-        if( url.getProtocol().equalsIgnoreCase("https")) {
+        if( url.getProtocol().equalsIgnoreCase(EMC_SSO_AUTH_SERVICE_PROTOCOL)) {
             ((HttpsURLConnection)connection).setSSLSocketFactory(_sslSocketFactory);
         }
         return connection;
 
-    }
-    
-    /**
-     * Cache any cookies in the response headers
-     */
-    private void cacheCookies(HttpURLConnection connection) {
-        for( int i = 1; null != connection.getHeaderField(i); i++ ) {
-            if( connection.getHeaderFieldKey(i).equalsIgnoreCase("Set-Cookie")) {
-                if( null == _cookie || _cookie.isEmpty() ) {
-                    _cookie = connection.getHeaderField(i);
-                } else {
-                    _cookie += "; " + connection.getHeaderField(i);
-                } 
-            }
-        }
     }
     
     /**

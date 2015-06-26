@@ -204,4 +204,12 @@ public class ExportBlockVolumeHelper {
 
         return null;
     }
+    
+    public URI getHostId() {
+        return hostId;
+    }
+
+    public List<String> getVolumeIds() {
+        return volumeIds;
+    }
 }

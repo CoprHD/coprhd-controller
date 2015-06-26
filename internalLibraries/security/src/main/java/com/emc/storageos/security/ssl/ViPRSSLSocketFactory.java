@@ -22,11 +22,9 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 
 import javax.net.SocketFactory;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
 
+import com.emc.storageos.security.helpers.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,6 +88,23 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
                 + ", int port:" + port + ",  boolean autoClose:" + autoClose + ")");
 
         return socketFactory.createSocket(socket, host, port, autoClose);
+    }
+
+    private Socket setStrongCiphers(Socket socket) {
+        SSLSocket sslSocket = (SSLSocket) socket;
+
+        if (cipherSuiteDefined(SecurityUtil.getCipherSuite())) {
+            sslSocket.setEnabledCipherSuites(SecurityUtil.getCipherSuite());
+        }
+        log.debug("Supported Cipher Suites are {}", Arrays.asList(sslSocket.getEnabledCipherSuites()).toString());
+        return sslSocket;
+    }
+
+    private boolean cipherSuiteDefined(String[] cipherSuite) {
+        if (cipherSuite != null && cipherSuite.length > 0) {
+            return true;
+        }
+        return false;
     }
 
     /* (non-Javadoc)

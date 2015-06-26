@@ -126,12 +126,20 @@ public class UpdateVdcTaskOp extends AbstractVdcTaskOp {
     private VdcPreCheckResponse preCheck() {
         log.info("Starting precheck on vdc update ...");
 
+        //Step 0: Get remote vdc version before send preCheck, since we modify the preCheckParam
+        // avoid to send preCheck from v2.3 or higher to v2.2 v2.1, v2.0
+        if (!isRemoteVdcVersionCompatible(vdcInfo)) {
+            throw GeoException.fatals.updateVdcPrecheckFail("Software version from remote vdc is lower than v2.3.");
+        }
+
         //BZ:
         // TODO  It appears that this code assumes that update node is a remote node.
         // we need to modify it to make it simpler when updated node is local.
+        log.info("Send vdc precheck to remote vdc");
         VdcPreCheckResponse vdcResp =
                 sendVdcPrecheckRequest(vdcInfo, false);
 
+        log.info("Check vdc stable");
         //check if the cluster is stable
         URI unstable =  checkAllVdcStable(false, true);
         if (unstable != null) {

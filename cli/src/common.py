@@ -297,8 +297,7 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
             elif(response.status_code == 404):
                 error_msg = "Requested resource not found"
             elif(response.status_code == 405):
-                error_msg = http_method + \
-                    " method is not supported by resource: " + uri
+                error_msg = str(response.text)
             elif(response.status_code == 503):
                 error_msg = "Service temporarily unavailable: The server" + \
                     " is temporarily unable to service your request"
@@ -988,7 +987,7 @@ Returns the tasks details for a given task id
 def get_tasks_by_taskid(componentType, task_id, ipAddr, port):
       
             task_uri_constant = singletonURIHelperInstance.getUri(
-                componentType, "task")
+                componentType, "task_by_id")
             (s, h) = service_json_request(
                 ipAddr, port, "GET",
                 task_uri_constant.format(task_id), None)

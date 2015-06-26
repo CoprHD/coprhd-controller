@@ -134,9 +134,10 @@ public class NetAppClusterFacade {
 	 * 		in conjunction with containingAggrName.
 	 * @param spaceReserve - Optional. Type of volume guarantee new volume will use. Valid
 	 * 		values are "none", "file", "volume".
+	 * @param permission - Optional. Unix permission bits in octal string format.    
 	 * @return
 	 */
-	public boolean createFlexibleVolume(String volName, String containingAggrName, String path, String size, String spaceReserve)
+	public boolean createFlexibleVolume(String volName, String containingAggrName, String path, String size, String spaceReserve, String permission)
 	{
 		if( log.isDebugEnabled() ) {
 			StringBuilder sb = new StringBuilder("Creating new flexible volume offline with params" +
@@ -146,11 +147,12 @@ public class NetAppClusterFacade {
 			sb.append(path).append(", ");
 			sb.append(size).append(", ");
 			sb.append(spaceReserve).append(", ");
+			sb.append(permission).append(", ");
 			log.debug(sb.toString());
 		}
 		// First create the volume
 		FlexVolume vol = new FlexVolume(server.getNaServer(), volName);
-		boolean result = vol.createFlexibleVolume(containingAggrName, path, size, spaceReserve);		
+		boolean result = vol.createFlexibleVolume(containingAggrName, path, size, spaceReserve, permission);		
 		return result;
 	}
 	
@@ -656,6 +658,26 @@ public class NetAppClusterFacade {
         }
         QuotaCommands commands = new QuotaCommands(server.getNaServer());
         return commands.getTreeQuota(volume, path);
+    }
+    
+    /**
+     * Sets a disk-limit tree quota. If the tree quota doesn't already exist, it is created. The 
+     * volume can be specified as a name only, or as the volume path (/vol/<volume-name>). The disk
+     * limit and threshold values are specified in KB.
+     * 
+     * @param volume the volume name or volume path containing the path to apply quota.
+     * @param path the path which will have a disk limit applied.
+     * @param diskLimitInKB the disk limit in KB.
+     * @param thresholdInKB the threshold in KB after which a message will be logged. The threshold
+     *        is only set if it is greater than 0.
+     */
+    public void setDiskLimitTreeQuota(String volume, String path, long diskLimitInKB,
+            long thresholdInKB) {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting disk limit tree quota of " + diskLimitInKB + " KB to " + path);
+        }
+        QuotaCommands commands = new QuotaCommands(server.getNaServer());
+        commands.setDiskLimitTreeQuota(volume, path, diskLimitInKB, thresholdInKB);
     }
     
     /**

@@ -85,7 +85,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
                 if (fastPolicyPools.contains(pool.getId().toString())) {
                     filteredPoolList.add(pool);
                 } else {
-                    _logger.info("Ignoring pool {} as it doesn't belongs to FAST policy.", pool.getId());
+                    _logger.info("Ignoring pool {} as it doesn't belongs to FAST policy.", pool.getNativeGuid());
                 }
             } 
         } else if (deviceTypes.contains(VirtualPool.SystemType.hds.name())) {

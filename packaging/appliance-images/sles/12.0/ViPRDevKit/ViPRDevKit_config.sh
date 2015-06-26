@@ -292,6 +292,7 @@ adg_motd
 adg_ovftoolInstall
 adg_zypperRepos
 fix_adg_security
+fix_devkit_root_umask
 fix_apache
 fix_atop
 fix_audit

@@ -19,13 +19,6 @@
     <bean id="geodbclient" class="com.emc.storageos.geo.vdccontroller.impl.InternalDbClient" init-method="start">
         <property name="coordinatorClient" ref="coordinator"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
-        <property name="localContext" ref="dbclientcontext"/>
-        <property name="geoContext" ref="geodbclientcontext"/>
-    </bean>
-
-    <bean id="geosvcdbclient" class="com.emc.storageos.geo.vdccontroller.impl.InternalDbClient" init-method="start">
-        <property name="coordinatorClient" ref="coordinator"/>
-        <property name="dbVersionInfo" ref="dbVersionInfo"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>
         <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
         <property name="bypassMigrationLock" value="true"/>
@@ -34,7 +27,7 @@
     </bean>
 
     <bean id="vdcConfHelper" class="com.emc.storageos.geo.service.impl.util.VdcConfigHelper">
-        <property name="dbClient" ref="geosvcdbclient"/>
+        <property name="dbClient" ref="geodbclient"/>
         <property name="coordinatorClient" ref="coordinator"/>
     </bean>
 

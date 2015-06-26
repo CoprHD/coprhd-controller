@@ -113,6 +113,7 @@ public class VPlexApiConsistencyGroupManager {
                 Collections.singletonList(clusterInfo), false, true);
             
             // Set the consistency group properties.
+            setAutoResumeAtLoser(cgInfo, true);
             if (isDistributed) {
                 // For distributed the visibility and storage-at-clusters must
                 // be set to both clusters. The detach rule is set to winner
@@ -407,6 +408,54 @@ public class VPlexApiConsistencyGroupManager {
         }
     }
     
+    /**
+     * Sets the auto-resume-at-loser flag under the advanced context
+     * of the requested Consistency Group.
+     * 
+     * NOTE: as of VPLEX API version 5.5, this call is likely no
+     * longer necessary because the default value on new CG creation
+     * will be set to true by the VPLEX.  Prior to 5.5, it is false 
+     * by default.  See also CTRL-10193.
+     * 
+     * @param cgInfo The consistency group to update.
+     * @param autoResume the value to set auto-resume-at-loser to 
+     * 
+     * @throws VPlexApiException When an error occurs updating 
+     *                           the consistency group visibility.
+     */
+    void setAutoResumeAtLoser(VPlexConsistencyGroupInfo cgInfo, boolean autoResume) throws VPlexApiException {
+        
+        // Build the request path.           
+        StringBuilder pathBuilder = new StringBuilder();
+        pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
+        pathBuilder.append(cgInfo.getPath());
+        pathBuilder.append(VPlexApiConstants.URI_CGS_ADVANCED);
+        pathBuilder.append(VPlexApiConstants.QUESTION_MARK);
+        pathBuilder.append(VPlexApiConstants.ATTRIBUTE_CG_AUTO_RESUME);
+        pathBuilder.append(VPlexApiConstants.EQUALS);
+        pathBuilder.append(autoResume);
+
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+            URI.create(pathBuilder.toString()));
+        s_logger.info("Set auto-resume-at-loser URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.put(requestURI);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Set auto-resume-at-loser response is {}", responseStr);
+        int status = response.getStatus();
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            if (status == VPlexApiConstants.ASYNC_STATUS) {
+                s_logger.info("Set auto-resume-at-loser is completing asynchronously");
+                _vplexApiClient.waitForCompletion(response);
+                response.close();
+            } else {
+                response.close();
+                String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                throw VPlexApiException.exceptions.setCGAutoResumeFailureStatus(
+                    cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+            }
+        }
+    }
+
     /**
      * Adds the volumes with the passed names to the consistency group with the
      * passed name.

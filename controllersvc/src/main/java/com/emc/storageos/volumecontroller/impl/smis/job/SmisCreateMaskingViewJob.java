@@ -22,6 +22,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -130,13 +133,21 @@ public class SmisCreateMaskingViewJob extends SmisJob
     		boolean isRPTagNeeded = false;
 
     		//Check if the volumes being protected are RP volumes
-    		for( VolumeURIHLU  volUriHlu : _volumeURIHLUs) {
+    		for (VolumeURIHLU  volUriHlu : _volumeURIHLUs) {
     			URI volumeURI = volUriHlu.getVolumeURI();
-    			Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-    			if(volume != null && volume.checkForRp()) {
-    				isRPTagNeeded = true;
-    				break;
-    			} 		
+    			
+    			BlockObject bo = null;
+                
+                if (URIUtil.isType(volumeURI, BlockSnapshot.class)) {
+                    bo = dbClient.queryObject(BlockSnapshot.class, volumeURI);
+                } else if (URIUtil.isType(volumeURI, Volume.class)) {
+                    bo = dbClient.queryObject(Volume.class, volumeURI);
+                }
+                
+                if (bo != null && BlockObject.checkForRP(dbClient, bo.getId())) {
+                    isRPTagNeeded = true;
+                    break;
+                }	
     		}
 
     		//Do nothing and return from if none of the volumes are RP protected
@@ -171,24 +182,34 @@ public class SmisCreateMaskingViewJob extends SmisJob
     		JobContext jobContext ) {
     	try {				
     		boolean isRPTagNeeded = false;
-    		List<URI> volumeUris = new ArrayList<URI>();
+    		List<URI> blockObjectUris = new ArrayList<URI>();
 
     		//Check if the volumes being protected are RP volumes
     		
-    		for( VolumeURIHLU  volUriHlu : _volumeURIHLUs) {
+    		for (VolumeURIHLU  volUriHlu : _volumeURIHLUs) {
     			URI volumeURI = volUriHlu.getVolumeURI();
-    			Volume volume = dbClient.queryObject(Volume.class, volumeURI);
-    			volumeUris.add(volume.getId());
-    			if(volume != null && volume.checkForRp()) {
-    				isRPTagNeeded = true;
-    				
-    			} 		
+    			
+    			BlockObject bo = null;
+    			
+    			if (URIUtil.isType(volumeURI, BlockSnapshot.class)) {
+    			    bo = dbClient.queryObject(BlockSnapshot.class, volumeURI);
+    			} else if (URIUtil.isType(volumeURI, Volume.class)) {
+    			    bo = dbClient.queryObject(Volume.class, volumeURI);
+    			}
+    			
+    			if (bo != null) {
+    			    blockObjectUris.add(bo.getId());
+    			    
+        			if (BlockObject.checkForRP(dbClient, bo.getId())) {
+        				isRPTagNeeded = true;
+        			} 	
+    			}
     		}
 
     		//Do nothing and return from if none of the volumes are RP protected
     		if (isRPTagNeeded) {
     			SmisCommandHelper helper = jobContext.getSmisCommandHelper();
-    		    helper.setRecoverPointTag(storage, helper.getVolumeMembers(storage, volumeUris), true);
+    		    helper.setRecoverPointTag(storage, helper.getVolumeMembers(storage, blockObjectUris), true);
     		} 
     	} catch (WBEMException e) {
     		_log.error("Encountered an error while trying to set the RecoverPoint tag", e);

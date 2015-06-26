@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import charva.awt.event.*;
 
-import com.emc.storageos.services.util.InstallerConstants;
+import com.emc.storageos.installer.util.InstallerConstants;
 import com.emc.storageos.installer.widget.BasePanel;
 import com.emc.storageos.installer.widget.InstallerWizard;
 

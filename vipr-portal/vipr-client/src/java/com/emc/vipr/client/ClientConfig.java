@@ -26,6 +26,7 @@ public class ClientConfig {
     public static final int DEFAULT_BULK_SIZE = 500;
     public static final int DEFAULT_MAX_CONCURRENT_TASK_REQUESTS = 50;
     public static final int DEFAULT_TASKS_EXECUTION_TIMEOUT_SECONDS = 30;
+    public static final int SESSION_KEY_RENEW_TIMEOUT = 1000 * 60 * 60 * 7; // 7 hours
 
     private int maxConcurrentTaskRequests = DEFAULT_MAX_CONCURRENT_TASK_REQUESTS;
 	private int tasksExecutionTimeoutSeconds = DEFAULT_TASKS_EXECUTION_TIMEOUT_SECONDS;
@@ -41,10 +42,11 @@ public class ClientConfig {
     private int port = DEFAULT_API_PORT;
     private int portalPort = DEFAULT_PORTAL_PORT;
     private int bulkSize = DEFAULT_BULK_SIZE;
+    private int sessionKeyRenewTimeout = SESSION_KEY_RENEW_TIMEOUT;
     private String host;
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
-
+    
     public boolean isRequestLoggingEnabled() {
         return requestLoggingEnabled;
     }
@@ -321,6 +323,24 @@ public class ClientConfig {
 	}
 	
 	/**
+     * Returns session key renew timeout
+     * 
+     * @return
+     */
+    public int getSessionKeyRenewTimeout() {
+        return sessionKeyRenewTimeout;
+    }
+
+    /**
+     * Sets the session key renew timeout
+     * 
+     * @param tasksExecutionTimeoutSeconds
+     */
+    public void setSessionKeyRenewTimeout(int sessionKeyRenewTimeout) {
+        this.sessionKeyRenewTimeout = sessionKeyRenewTimeout;
+    }
+	
+	/**
 	 * Adds the total tasks execution timeout in seconds
 	 * 
 	 * @param tasksExecutionTimeoutSeconds
@@ -546,6 +566,17 @@ public class ClientConfig {
      */
     public ClientConfig withIgnoringCertificates(boolean ignoringCertificates) {
         setIgnoreCertificates(ignoringCertificates);
+        return this;
+    }
+    
+    /**
+     * Sets the session key renew timeout.
+     *
+     * @see #setSessionKeyRenewTimeout(int)
+     * @return the updated ClientConfig object
+     */
+    public ClientConfig withSessionKeyRenewTimeout(int sessionKeyRenewTimeout) {
+        setSessionKeyRenewTimeout(sessionKeyRenewTimeout);
         return this;
     }
 

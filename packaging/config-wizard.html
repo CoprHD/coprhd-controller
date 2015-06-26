@@ -6,8 +6,9 @@
 	<div style="clear:both"></div>
 </div>	
 	<p id="alerts_info" class="alert alert-info" style="display:block">
-		<span class="message"><b>Enter all the information and click on "Generate Settings" button to generate the "deployment.settings" file. After download you can customize the file name. Run the script to deploy a vm with option "-file". The "-file" is the path of  "deployment.settings" file generated. For more details on instructions and examples on how to deploy vm using this setting file, please refer the <a href="#"><i><u> Deployment Documentation </u></i></a><br><br>
-		Note: Mandatory to use either IPv4 or IPv6 or Both. <span style="color:red"> Do not leave both with default values.</span></b></span>
+		<span class="message">This page generates a settings file that can be used with a script to deploy ViPR Controller on a virtual machine (VM).  After entering the information, click Generate Settings. Save "deployment.settings" file generated. After download you can customize the file name.You must generate a separate settings file for each VM (node) being deployed.<br><br>
+		When running the script on each node, use the <b>-file</b> option and provide the path to the .settings file for that node. For instructions and examples on deploying a VM with this setting file, see the <i>ViPR Controller Installation, Upgrade, and Maintenance Guide </i>which is available from the <a href="https://community.emc.com/docs/DOC-44463">"<u>ViPR Controller Production Documentation Index</u>"</a><br><br>		
+		Note: Mandatory to use either IPv4 or IPv6 or Both. <span style="color:red"> Do not leave both with default values.</span></span>
 	</p>
 
 <div class="form-header">
@@ -26,7 +27,7 @@
 				<option value="5">5</option>
 			</select> 
 		</div>
-		<span class="help-block"><div>Node counts of the cluster.Valid value is 3 or 5.</div>
+		<span class="help-block"><div>Total number of ViPR Controller nodes being deployed. Valid value is 3 or 5.</div>
 			<div id="nodeCount1" style="display:none" class="alert alert-warning">
 				<span style="font-weight:bold;">Warning!</span> Cluster Size 1 is only for free evaluation purpose and not supported for Production environment.
 			</div>
@@ -40,7 +41,9 @@
 <div class="form-header">
 	<div style="padding-left:30px" class="description">
 		<h4>Settings for IPv4</h4>
-        <p>Please leave the values to the pre-populated defaults, if you don't want to configure Settings for IPv4 network (Default IPv4 address is 0.0.0.0).</p>
+        <p>If you are configuring an IPv4 network, each ViPR Controller node requires a unique, static IPv4 address in the subnet defined by the netmask.<br>
+		If you are not configuring settings for an IPv4 network, leave the default values of 0.0.0.0 which disables IPv4.
+		</p>
 		
 	</div>
 	<div style="clear:both"></div>
@@ -134,7 +137,9 @@
 <div class="form-header">
 	<div style="padding-left:30px" class="description">
 		<h4>Settings for IPv6</h4>
-        <p>Please leave the values to the pre-populated defaults, if you don't want to configure Settings for IPv6 network (Default IPv6 address is ::0).</p>
+        <p>If you are configuring an IPv6 network, each ViPR Controller node requires a unique, static IPv6 address in the subnet defined by the netmask.<br>
+			If you are not configuring an IPv6 network, leave the default values of ::0 which disables IPv6.
+		</p>
 		
 	</div>
 	<div style="clear:both"></div>
@@ -238,7 +243,7 @@
         <label class="control-label col-sm-3" for="networkName"> Network Name:</label>
 		<div class="col-sm-6 controls">
 			<input type="text" class="form-control span6" id="networkName" value="" autocomplete="off" onkeyup="validateForRequired(this);" onfocus="validateForRequired(this);"> 
-			<span class="help-block">Network Name</span>	
+			<span class="help-block">Name of the VM network.</span>	
 		</div>
 		<div class="col-sm-3">
 		<span class="help-inline"></span>

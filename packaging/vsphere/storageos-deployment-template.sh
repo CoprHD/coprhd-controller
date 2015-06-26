@@ -33,7 +33,7 @@ _usage() {
                -ipaddr6_4        IPv6 address of node 4
                -ipaddr6_5        IPv6 address of node 5
                -gateway6         IPv6 default gateway
-               -ipv6prefixlength IPv6 network prefix length
+               -ipv6prefixlength (Optional)IPv6 network prefix length
 
                -nodeid           Specific node to be deployed, please input a number (start from 1)
                -nodecount        Node counts of the cluster (valid value is 1 (evaluation only), 3 or 5)
@@ -45,12 +45,15 @@ _usage() {
                -vmname           (Optional) virtual machine name
                -vmfolder         (Optional) target virtual machine folder
                -dm               (Optional) disk format:thin, lazyzeroedthick, zeroedthick (default)
+			   -cpucount:        (Optional) Number of virtual CPUs for each VM (default is 2)
+			   -memory:          (Optional) Amount of memory for each VM (default is 8192)
                -poweron          (Optional) auto power on the VM after deploy, (no power on by default)
+			   -file:            (Optional) The settings file
                -username         (Optional) username of vSphere client
                -password         (Optional) password of vSphere client
                -interactive      (Optional) interactive way to deploy
 
-           example: $0 -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeId 1 -nodecount 3 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron
+           example: $0 -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeid 1 -nodecount 3 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron
 
            Redeployment mode options:
                -file             The setting file
@@ -62,10 +65,12 @@ _usage() {
                -vmname           (Optional) virtual machine name
                -vmfolder         (Optional) target virtual machine folder
                -dm               (Optional) disk format:thin, lazyzeroedthick, zeroedthick (default)
+			   -cpucount:        (Optional) Number of virtual CPUs for each VM (default is 2)
+			   -memory:          (Optional) Amount of memory for each VM (default is 8192)
                -poweron          (Optional) auto power on the VM after deploy, (no power on by default)
                -interactive      (Optional) interactive way to redeploy
 
-           example: $0 -mode redeploy -file your_setting_file_path -nodeId 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
+           example: $0 -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
 
     exit 2
 }
@@ -407,7 +412,7 @@ _check_nodeid() {
         return 0
    fi
 
-   error_message="The node ID $1 should be in [1, ${node_count}]"
+   error_message="The node ID should be in [1,${node_count}] but it's $1"
    return 1
 }
 
@@ -435,7 +440,7 @@ _check_nodecount() {
         return 0
     fi
 
-    error_message="The node count should be 1 (evaluation only), 3 or 5"
+    error_message="The node count should be 1 (evaluation only), 3 or 5 but it's set to $1"
     return 1
 }
 
@@ -447,11 +452,12 @@ _check_target_uri() {
 # $1=option name
 # $2=parameter name
 # $3=check function
-# $4: (optional) value not shown
+# $4=no echo
 _set_parameter() {
     local val
-    local hidden_value=${4:-""}
-    local no_echo=${5:-"false"}
+    local no_echo=${4:-"false"}
+    local show_current_value=${5:-"true"}
+    local current_value=""
 
     local opt=""
     if [ "${no_echo}" == "true" ] ; then
@@ -461,10 +467,10 @@ _set_parameter() {
     while true ; do
         current_value=$(eval echo \${$2})
 
-        if [[ "${hidden_value}" != "" && "${current_value}" =~ ${hidden_value} ]] ; then
-            read -r -p "$1 (): " ${opt} val
-        else
+        if [ "${show_current_value}" == "true" ] ; then
             read -r -p "$1 (${current_value}): " ${opt} val
+        else
+            read -r -p "$1 (): " ${opt} val
         fi
 
         if [ "${val}" == "" ] ; then
@@ -539,23 +545,23 @@ _set_netmask() {
 }
 
 _set_ipaddr_1() {
-    _set_parameter "${ipv4_addresses_labels[1]}" ipv4_addresses[1] _check_ipv4_address "${default_ipv4_addresses[1]}"
+    _set_parameter "${ipv4_addresses_labels[1]}" ipv4_addresses[1] _check_ipv4_address
 }
 
 _set_ipaddr_2() {
-    _set_parameter "${ipv4_addresses_labels[2]}" ipv4_addresses[2] _check_ipv4_address "${default_ipv4_addresses[2]}"
+    _set_parameter "${ipv4_addresses_labels[2]}" ipv4_addresses[2] _check_ipv4_address
 }
 
 _set_ipaddr_3() {
-    _set_parameter "${ipv4_addresses_labels[3]}" ipv4_addresses[3] _check_ipv4_address "${default_ipv4_addresses[3]}"
+    _set_parameter "${ipv4_addresses_labels[3]}" ipv4_addresses[3] _check_ipv4_address
 }
 
 _set_ipaddr_4() {
-    _set_parameter "${ipv4_addresses_labels[4]}" ipv4_addresses[4] _check_ipv4_address "${default_ipv4_addresses[4]}"
+    _set_parameter "${ipv4_addresses_labels[4]}" ipv4_addresses[4] _check_ipv4_address
 }
 
 _set_ipaddr_5() {
-    _set_parameter "${ipv4_addresses_labels[5]}" ipv4_addresses[5] _check_ipv4_address "${default_ipv4_addresses[5]}"
+    _set_parameter "${ipv4_addresses_labels[5]}" ipv4_addresses[5] _check_ipv4_address
 }
 
 #IPv6 related functions
@@ -564,23 +570,23 @@ _set_vip6() {
 }
 
 _set_ipaddr6_1() {
-    _set_parameter "${ipv6_addresses_labels[1]}" ipv6_addresses[1] _check_ipv6_address "${default_ipv6_addresses[1]}"
+    _set_parameter "${ipv6_addresses_labels[1]}" ipv6_addresses[1] _check_ipv6_address
 }
 
 _set_ipaddr6_2() {
-    _set_parameter "${ipv6_addresses_labels[2]}" ipv6_addresses[2] _check_ipv6_address "${default_ipv6_addresses[2]}"
+    _set_parameter "${ipv6_addresses_labels[2]}" ipv6_addresses[2] _check_ipv6_address
 }
 
 _set_ipaddr6_3() {
-    _set_parameter "${ipv6_addresses_labels[3]}" ipv6_addresses[3] _check_ipv6_address "${default_ipv6_addresses[3]}"
+    _set_parameter "${ipv6_addresses_labels[3]}" ipv6_addresses[3] _check_ipv6_address
 }
 
 _set_ipaddr6_4() {
-    _set_parameter "${ipv6_addresses_labels[4]}" ipv6_addresses[4] _check_ipv6_address "${default_ipv6_addresses[4]}"
+    _set_parameter "${ipv6_addresses_labels[4]}" ipv6_addresses[4] _check_ipv6_address
 }
 
 _set_ipaddr6_5() {
-    _set_parameter "${ipv6_addresses_labels[5]}" ipv6_addresses[5] _check_ipv6_address "${default_ipv6_addresses[5]}"
+    _set_parameter "${ipv6_addresses_labels[5]}" ipv6_addresses[5] _check_ipv6_address
 }
 
 _set_gateway6() {
@@ -623,6 +629,7 @@ _set_vmfolder() {
 
 _set_nodeid() {
     _set_parameter "${node_id_label}" node_id _check_nodeid
+    vmname="${vmname:-${product_name}${node_id}}"
 }
 
 _set_poweron() {
@@ -641,7 +648,18 @@ _set_target_uri() {
     target_uri=${target_uri%\'}
     target_uri=${target_uri#\"}
     target_uri=${target_uri%\"}
+ 
+    _parse_target_uri
 
+    # if the username is not set, we should ask user to set it
+    if [ "${username}" == "" ] ; then
+        _set_username
+    fi
+
+    # if the password is not set, we should ask user to set it
+    if [ "${password}" == "" ] ; then
+        _set_password
+    fi
 }
 
 _set_username() {
@@ -649,7 +667,7 @@ _set_username() {
 }
 
 _set_password() {
-    _set_parameter "${password_label}" password _nocheck '.*' true #true=no echo
+    _set_parameter "${password_label}" password _nocheck true false 
     echo -e "\n"
 }
 
@@ -657,6 +675,7 @@ _check_missing_vm_parameters() {
     if [ "${node_id}" != "" ] ; then
         _check_nodeid ${node_id}
         if [ $? -eq 1 ] ; then
+            echo "${error_message}"
             parameters_to_set+="nodeid "
         fi
     else
@@ -696,7 +715,7 @@ Network properties
     local i
     for (( i=1; i<=${node_count}; i++ )) ; do
         ipv4_summary+="
-        ${ipv4_addresses_labels[${i}]}: ${ipv4_addresses[i]}"
+       ${ipv4_addresses_labels[${i}]}: ${ipv4_addresses[i]}"
     done
 
     ipv6_summary="
@@ -950,7 +969,6 @@ _check_network_parameters() {
 
 _set_network_parameters() {
     while true ; do
-        _set_nodecount
         _set_network_parameters1 _get_ipv4_parameters_to_config _check_ipv4_duplicate_address
         _set_network_parameters1 _get_ipv6_parameters_to_config _check_ipv6_duplicate_address
 
@@ -959,6 +977,7 @@ _set_network_parameters() {
         if [ $? -eq 0 ] ; then
             break
         fi
+        _set_nodecount
     done
 }
 
@@ -983,7 +1002,7 @@ _set_settings_interactive() {
 }
 
 _set_vm_parameters() {
-    parameters_to_set="nodeid vmname ds dm net vmfolder cpucount memory poweron username password target_uri"
+    parameters_to_set="nodeid vmname ds dm net vmfolder cpucount memory poweron target_uri username password"
     _set_parameters
 }
 
@@ -1082,7 +1101,7 @@ _set_parameters_interactive() {
     while true ; do
         if [ "${show_summary}" = true ] ; then
             _show_summary
-            _confirm "Would you like to keep those settings"
+            _confirm "Would you like to keep these settings"
             if [[ "${confirmed}" =~ [Y|y] ]] ; then
                 break
             fi
@@ -1261,17 +1280,15 @@ _check_missing_network_parameters() {
 
     if [ "${has_ipv4_options}" = false -a "${has_ipv6_options}" = false ] ; then
         parameters_to_set+="network_parameters "
-    elif [ "${is_nodecount_given}" = false ] ; then
-        parameters_to_set="nodecount ${parameters_to_set}"
     fi
 }
 
 _parse_target_uri() {
     # Remove leading vi://
-    target_uri=${target_uri#vi://}
+    local uri=${target_uri#vi://}
 
     local pattern='.*@.*'
-    if ! [[ "${target_uri}" =~ ${pattern} ]] ; then
+    if ! [[ "${uri}" =~ ${pattern} ]] ; then
         #no username and password
         return
     fi
@@ -1279,7 +1296,7 @@ _parse_target_uri() {
     local str
 
     #extract username[:password]
-    str=${target_uri%%@*}
+    str=${uri%%@*}
 
     local user=""
     local passwd=""
@@ -1293,9 +1310,6 @@ _parse_target_uri() {
 
     username=${username:-$user}
     password=${password:-$passwd}
-
-    #remove the username and password
-    target_uri=${target_uri#*@}
 }
 
 _encode_string() {
@@ -1316,6 +1330,28 @@ _encode_string() {
     eval $1='${encoded_str}'
 }
 
+_check_missing_parameters() {
+    _check_missing_network_parameters
+    _check_missing_vm_parameters
+
+    if [ "${target_uri}" != "" ] ; then
+        # Extract the username and password from the target uri
+        # and save them in ${username} and ${password} if they are
+        # not set from the command line
+        _parse_target_uri
+
+        # if the username is not set, we should ask user to set it
+        if [ "${username}" == "" ] ; then
+            parameters_to_set+="username "
+        fi
+
+        # if the password is not set, we should ask user to set it
+        if [ "${password}" == "" ] ; then
+            parameters_to_set+="password "
+        fi
+    fi
+}
+
 _check_parameters() {
     if [ "${mode}" == "" ] ; then
         _fatal "-mode option is missing"
@@ -1329,12 +1365,22 @@ _check_parameters() {
         if [ "${node_count}" = "" ] ; then
             node_count=3
             if [ "${ipv4_addresses[4]}" != "" -o "${ipv4_addresses[5]}" != "" \
-                  -o "${ipv6_addresses[4]}" != "" -o "${ipv6_addresses[5]}" != "" ] ; then
+                 -o "${ipv6_addresses[4]}" != "" -o "${ipv6_addresses[5]}" != "" ] ; then
                 node_count=5
             fi
-            is_nodecount_given=false
+
+            _set_nodecount
 
             interactive=true
+        else
+            _check_nodecount "${node_count}"
+
+            if [ $? -ne 0 ] ; then
+                echo "${error_message}"
+                _set_nodecount
+
+                interactive=true
+            fi
         fi
     else
         # redeploy mode
@@ -1346,11 +1392,14 @@ _check_parameters() {
         fi
     fi
 
-    _check_missing_network_parameters
-    _check_missing_vm_parameters
+    _check_missing_parameters
 
     if [ "${parameters_to_set}" != "" ] ; then
-        show_summary=false
+        interactive=true
+    fi
+
+    if [ "${node_id}" != "" ] ; then
+        vmname=${vmname:-${vmname_prefix}${product_name}${node_id}}
     fi
 
     if [ -f "${setting_file}" ] ; then
@@ -1369,15 +1418,15 @@ _check_parameters() {
             # so go into 'interactive' mode
             interactive=true
         fi
-
-        # the node_id is the only required parameter after initing with .setting file
-        # if it is missing, we should ask it from user instead of showing a summary
-        # page first
-        if [ "${node_id}" != "" ] ; then
-            show_summary=true
-        fi
     fi
 
+    parameters_to_set=""
+    _check_missing_parameters
+
+    if [ "${parameters_to_set}" != "" ] ; then
+        show_summary=false
+    fi
+    
     #init parameters with default values if they are not set
     settings=("${default_settings[@]}")
     _init_parameters
@@ -1397,12 +1446,8 @@ _check_parameters() {
 
     if [ "${parameters_to_set}" == "" -a "${interactive}" = false ] ; then
         # no missing options and -interactive is not given
-        vmname=${vmname:-${vmname_prefix}${product_name}${node_id}}
         return
     fi
-
-    vmname=${vmname:-${vmname_prefix}${product_name}${node_id}}
-    vmname_prefix=${vmname_prefix:-vipr}
 
     _set_parameters_interactive
 }
@@ -1458,6 +1503,7 @@ _parse_setting_file() {
     local i=0
     settings=()
     while read line ; do
+        line=${line%$'\r'}
         if [[ ${line} =~ $comment ]] || [[ ${line} =~ $emptyline ]] ; then
             continue
         fi
@@ -1486,7 +1532,7 @@ _parse_setting_file() {
 }
 
 _confirm_license() {
-    license='${include="storageos-license.txt"}'
+    license="${include="storageos-license-sh.txt"}"
     echo -e "${license}" | more
 
     _confirm "Accept the license?"
@@ -1567,7 +1613,6 @@ mode=""
 mode_label="Mode [ install | redeploy ]"
 
 node_count=
-is_nodecount_given=true
 node_count_label="Node count [ 1 (evaluation only) | 3 | 5 ]"
 
 node_id=
@@ -1638,7 +1683,7 @@ vmdk_dir=""
 common_ovftool_options="--acceptAllEulas "
 confirmed="x"
 error_message=""
-show_summary=false
+show_summary=true
 
 # If no arguments are given
 # print the usage
@@ -1673,6 +1718,12 @@ if [ "${password}" != "" ] ; then
 fi
 
 _parse_target_uri
+
+#Remove leading vi://
+target_uri=${target_uri#vi://}
+
+#remove the username and password
+target_uri=${target_uri#*@}
 
 _generate_file_names
 

@@ -88,8 +88,7 @@ public abstract class UploadExecutor {
                     return "Cannot get enough files for specified backup";
                 }
 
-                int nodeMask = this.cli.getNodeMask(files);
-                String zipName = ScheduledBackupTag.toZipFileName(tag, nodeMask);
+                String zipName = this.cli.generateZipFileName(tag, files);
 
                 Long existingLen = getFileSize(zipName);
                 long len = existingLen == null ? 0 : existingLen;

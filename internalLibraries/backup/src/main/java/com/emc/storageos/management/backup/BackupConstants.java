@@ -64,9 +64,6 @@ public interface BackupConstants {
     // Backup retry max count
     public static final int RETRY_MAX_CNT = 3;
 
-    // timeout for command execution, milliseconds
-    public static final long CMD_TIMEOUT = 10 * 1000;
-
     // Standard date string format
     public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
     
@@ -84,4 +81,7 @@ public interface BackupConstants {
     
     // Delimiter for host IPv4 and IPv6 in _info.properties file
     public static final String HOSTS_IP_DELIMITER = "/";
+
+    public static final String STORAGEOS_USER = "storageos";
+    public static final String STORAGEOS_GROUP = "storageos";
 }

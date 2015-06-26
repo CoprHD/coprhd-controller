@@ -303,7 +303,7 @@ public class VPlexApiTest {
                 String systemGuid = volumeInfoTokenizer.nextToken();
                 String volumeId = volumeInfoTokenizer.nextToken();
                 String volumeNativeId = volumeInfoTokenizer.nextToken();
-                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, volumeId, volumeNativeId, false));
+                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId, volumeNativeId, false));
                 vvNameBuilder.append(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 vvNameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
                 vvNameBuilder.append(systemGuid.substring(systemGuid.indexOf("+") + 1));
@@ -762,7 +762,7 @@ public class VPlexApiTest {
             systemGuid = volumeInfoTokenizer.nextToken();
             String volumeId = volumeInfoTokenizer.nextToken();
             volumeNativeId = volumeInfoTokenizer.nextToken();
-            nativeVolumeInfoList.add(new VolumeInfo(systemGuid, volumeId,
+            nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId,
                 volumeNativeId, false));
             vvNameBuilder = new StringBuilder();
             vvNameBuilder.append(VPlexApiConstants.DEVICE_PREFIX);
@@ -817,7 +817,7 @@ public class VPlexApiTest {
                 String systemGuid = volumeInfoTokenizer.nextToken();
                 String volumeId = volumeInfoTokenizer.nextToken();
                 String volumeNativeId = volumeInfoTokenizer.nextToken();
-                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, volumeId,
+                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId,
                     volumeNativeId, false));
                 vvNameBuilder.append(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 vvNameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
@@ -845,7 +845,7 @@ public class VPlexApiTest {
                 String systemGuid = volumeInfoTokenizer.nextToken();
                 String volumeId = volumeInfoTokenizer.nextToken();
                 String volumeNativeId = volumeInfoTokenizer.nextToken();
-                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, volumeId,
+                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId,
                     volumeNativeId, false));
                 vvNameBuilder.append(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 vvNameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
@@ -897,7 +897,7 @@ public class VPlexApiTest {
             String storageSystemGuid = tokenizer.nextToken();
             String volumeId = tokenizer.nextToken();
             String volumeNativeId = tokenizer.nextToken();
-            newVolumeInfo = new VolumeInfo(storageSystemGuid, volumeId, volumeNativeId, false);
+            newVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId, volumeNativeId, false);
             distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, true, "1");
             Assert.assertNotNull(distVolInfo);
             WaitOnRebuildResult goodRebuild = _client.waitOnRebuildCompletion(distVolInfo.getName());
@@ -930,7 +930,7 @@ public class VPlexApiTest {
         String volumeId = tokenizer.nextToken();
         String volumeNativeId = tokenizer.nextToken();
         List<VolumeInfo> nativeVolumeInfoList = new ArrayList<VolumeInfo>();
-        VolumeInfo nativeVolumeInfo = new VolumeInfo(storageSystemGuid, volumeId,
+        VolumeInfo nativeVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId,
             volumeNativeId, false);
         nativeVolumeInfoList.add(nativeVolumeInfo);
         VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(

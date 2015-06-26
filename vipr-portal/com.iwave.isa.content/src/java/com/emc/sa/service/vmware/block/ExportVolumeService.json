@@ -1,0 +1,41 @@
+{
+  baseKey:"ExportVolume.Block.VMware",
+  serviceId:"VMware-ExportVolume",
+  fields:{
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    storageType:{
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"exclusive"
+    },
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+
+    project: {
+    	type:"assetType.vipr.project"
+    },
+    
+    volumes:{
+    	type:"assetType.vipr.unassignedBlockDatastore",
+    	select: "many"
+    },
+
+    hlu: {
+      type:"number",
+      lockable: true,
+      required: false,
+      initialValue: "-1",
+      validation: {
+        min:-1
+      }
+    }
+
+  }
+  
+}

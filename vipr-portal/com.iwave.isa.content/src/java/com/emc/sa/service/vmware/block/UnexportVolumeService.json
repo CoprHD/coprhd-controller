@@ -1,0 +1,29 @@
+{
+  baseKey:"UnexportVolume.Block.VMware",
+  serviceId:"VMware-UnexportVolume",
+  destructive: true,
+  fields:{
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+
+    storageType:{
+      type:"assetType.vipr.blockStorageType",
+      lockable:true,
+      initialValue:"exclusive"
+    },
+    
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+    
+    volumes: {
+      type:"assetType.vipr.assignedBlockDatastore",   
+      select:"many" 
+    }   
+  }
+  
+}

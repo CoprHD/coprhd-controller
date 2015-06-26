@@ -1,0 +1,15 @@
+apply plugin: 'scripts'
+
+scripts {
+    remoterepotool {
+        mainClass = 'com.emc.storageos.remoterepotool.Main'
+        maxMemory = '512m'
+        service = false
+        gcDetails = false
+    }
+}
+
+dependencies {
+    compile library(json_simple)
+}
+

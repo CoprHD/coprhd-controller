@@ -68,7 +68,7 @@ public class VPlexApiMigrationManager {
      *        exported and need to be discovered by the VPlex.
      * @param startNow true to start the migration now, else migration is
      *        created in a paused state.
-     * 
+     * @param transferSize migration transfer size
      * @return A reference to the migration(s) started to migrate the virtual
      *         volume.
      * 
@@ -78,7 +78,7 @@ public class VPlexApiMigrationManager {
     List<VPlexMigrationInfo> migrateVirtualVolume(String migrationName,
         String virtualVolumeName, List<VolumeInfo> nativeVolumeInfoList,
         boolean isRemote, boolean useDeviceMigration, boolean discoveryRequired,
-        boolean startNow) throws VPlexApiException {
+        boolean startNow, String transferSize) throws VPlexApiException {
 
         s_logger.info("Migrating virtual volume {}", virtualVolumeName);
 
@@ -123,12 +123,12 @@ public class VPlexApiMigrationManager {
         if (VPlexVirtualVolumeInfo.Locality.distributed.name().equals(virtualVolumeInfo.getLocality())) {
             s_logger.info("Virtual volume is on distributed device {}", virtualVolumeInfo.getSupportingDevice());
             return migrateDistributedVirtualVolume(migrationName, virtualVolumeInfo,
-                storageVolumeInfoMap, startNow);
+                storageVolumeInfoMap, startNow, transferSize);
         } else {
             // The virtual volume was built on a local device.
             s_logger.info("Virtual volume is on local device {}", virtualVolumeInfo.getSupportingDevice());
             return Arrays.asList(migrateLocalVirtualVolume(migrationName, virtualVolumeInfo,
-                storageVolumeInfoMap, startNow, isRemote, useDeviceMigration));
+                storageVolumeInfoMap, startNow, isRemote, useDeviceMigration, transferSize));
         }
     }
 
@@ -610,6 +610,7 @@ public class VPlexApiMigrationManager {
      *        data is to be migrated.
      * @param startNow true to start the migration now, else the migration is
      *        created in a paused state.
+     * @param transferSize migration transfer size
      * 
      * @return A list of migration infos.
      * 
@@ -618,8 +619,8 @@ public class VPlexApiMigrationManager {
      */
     private List<VPlexMigrationInfo> migrateDistributedVirtualVolume(
         String migrationName, VPlexVirtualVolumeInfo virtualVolumeInfo,
-        Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow)
-        throws VPlexApiException {
+        Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow,
+        String transferSize) throws VPlexApiException {
 
         // Get the discovery manager.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
@@ -710,7 +711,7 @@ public class VPlexApiMigrationManager {
                 }
                 VPlexMigrationInfo migrationInfo = migrateResource(
                     migrationNameBuilder.toString(), srcExtentInfo, tgtExtentInfo, false,
-                    startNow);
+                    startNow, transferSize);
                 migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
                 migrationInfoList.add(migrationInfo);
             }
@@ -753,7 +754,7 @@ public class VPlexApiMigrationManager {
      *        created in a paused state.
      * @param isRemote true if the migration is across clusters, else false.
      * @param useDeviceMigration true if device migration is required.
-     * 
+     * @param transferSize migration transfer size
      * @return A list of migration infos.
      * 
      * @throws VPlexApiException When an error occurs migrating the virtual
@@ -762,7 +763,7 @@ public class VPlexApiMigrationManager {
     private VPlexMigrationInfo migrateLocalVirtualVolume(String migrationName,
         VPlexVirtualVolumeInfo virtualVolumeInfo,
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow,
-        boolean isRemote, boolean useDeviceMigration) throws VPlexApiException {
+        boolean isRemote, boolean useDeviceMigration, String transferSize) throws VPlexApiException {
         // For remote migrations of local virtual volumes we must use
         // device migration. Otherwise, we can use either. We choose to
         // use extent migration when device migration is not specifically 
@@ -771,10 +772,10 @@ public class VPlexApiMigrationManager {
         // the source and target in the migration name.
         if (isRemote || useDeviceMigration) {
             return migrateLocalVirtualVolumeDevice(migrationName, virtualVolumeInfo,
-                storageVolumeInfoMap, startNow);
+                storageVolumeInfoMap, startNow, transferSize);
         } else {
             return migrateLocalVirtualVolumeExtent(migrationName, virtualVolumeInfo,
-                storageVolumeInfoMap, startNow);
+                storageVolumeInfoMap, startNow, transferSize);
         }
     }
     
@@ -787,6 +788,7 @@ public class VPlexApiMigrationManager {
      *        data is to be migrated.
      * @param startNow true to start the migration now, else the migration is
      *        created in a paused state.
+     * @param transferSize migration transfer size
      * 
      * @return A list of migration infos.
      * 
@@ -795,7 +797,7 @@ public class VPlexApiMigrationManager {
      */
     private VPlexMigrationInfo migrateLocalVirtualVolumeDevice(String migrationName,
         VPlexVirtualVolumeInfo virtualVolumeInfo, Map<VolumeInfo, 
-        VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow)
+        VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow, String transferSize)
             throws VPlexApiException {
 
         // Find the local device.
@@ -834,7 +836,7 @@ public class VPlexApiMigrationManager {
             
             // Migrate the source local device to the target local device.
             VPlexMigrationInfo migrationInfo = migrateResource(
-                migrationName, srcDeviceInfo, tgtDeviceInfo, true, startNow);
+                migrationName, srcDeviceInfo, tgtDeviceInfo, true, startNow, transferSize);
             migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
         
             return migrationInfo;
@@ -866,6 +868,7 @@ public class VPlexApiMigrationManager {
      *        data is to be migrated.
      * @param startNow true to start the migration now, else the migration is
      *        created in a paused state.
+     * @param transferSize migration transfer size
      * 
      * @return A list of migration infos.
      * 
@@ -874,8 +877,8 @@ public class VPlexApiMigrationManager {
      */
     private VPlexMigrationInfo migrateLocalVirtualVolumeExtent(String migrationName,
         VPlexVirtualVolumeInfo virtualVolumeInfo,
-        Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow)
-            throws VPlexApiException {
+        Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean startNow, 
+        String transferSize) throws VPlexApiException {
         
         // Get the extent name from the local device name and find the extent.
         // This is the source extent for the migration.
@@ -916,7 +919,7 @@ public class VPlexApiMigrationManager {
         
             // Migrate the source local device to the target local device.
             VPlexMigrationInfo migrationInfo = migrateResource(
-                migrationName, srcExtentInfo, tgtExtentInfo, false, startNow);
+                migrationName, srcExtentInfo, tgtExtentInfo, false, startNow, transferSize);
             migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
         
             return migrationInfo;
@@ -951,6 +954,7 @@ public class VPlexApiMigrationManager {
      *        migrating an extent.
      * @param startNow true to start the migration, false to create the
      *        migration in the paused state.
+     * @param transferSize migration transfer size
      * 
      * @return A reference to the VPlex migration info.
      * 
@@ -959,7 +963,7 @@ public class VPlexApiMigrationManager {
      */
     private VPlexMigrationInfo migrateResource(String migrationName,
         VPlexResourceInfo sourceInfo, VPlexResourceInfo targetInfo,
-        boolean isDeviceMigration, boolean startNow) throws VPlexApiException {
+        boolean isDeviceMigration, boolean startNow, String transferSize) throws VPlexApiException {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
             VPlexApiConstants.URI_START_MIGRATION);
         s_logger.info("Start migration URI is {}", requestURI.toString());
@@ -971,6 +975,9 @@ public class VPlexApiMigrationManager {
             argsMap.put(VPlexApiConstants.ARG_DASH_N, migrationName);
             argsMap.put(VPlexApiConstants.ARG_DASH_F, sourceInfo.getPath());
             argsMap.put(VPlexApiConstants.ARG_DASH_T, targetInfo.getPath());
+            if (transferSize != null && !transferSize.isEmpty()) {
+                argsMap.put(VPlexApiConstants.ARG_TRANSFER_SIZE, transferSize);
+            }
             if (!startNow) {
                 argsMap.put(VPlexApiConstants.ARG_PAUSED, "");
             }

@@ -1181,9 +1181,9 @@ public class BasePermissionsHelper {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getTenantOrgSubTenantConstraint(userHomeTenant), subtenants);
         for (NamedElement sub : subtenants) {
-            Collection<String> roles = getTenantRolesForUser(user, sub.id, false);
+            Collection<String> roles = getTenantRolesForUser(user, sub.getId(), false);
             if (roles != null && !roles.isEmpty()) {
-                subTenantRoles.put(sub.id.toString(), roles);
+                subTenantRoles.put(sub.getId().toString(), roles);
             }
         }
 

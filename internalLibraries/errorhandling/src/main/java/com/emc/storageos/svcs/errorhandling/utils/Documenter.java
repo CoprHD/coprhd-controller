@@ -97,8 +97,7 @@ public class Documenter {
                     }
                     entries.add(new DocumenterEntry(interfaze, method, status, sce, parameters));
                 } catch (final Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _log.error(String.format("Fail to create document entry for method: %s", method), e);
                 }
             }
         }
@@ -249,8 +248,7 @@ public class Documenter {
             try {
                 return new URI("sos:uri:" + index);
             } catch (final URISyntaxException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                _log.error(String.format("Fail to instantiate URI with \"sos:uri:%s\"", index), e);
             }
         } else if (clazz.isAssignableFrom(Date.class)) {
             final Calendar calendar = Calendar.getInstance();

@@ -50,7 +50,7 @@ public abstract class BackupTestBase {
             //geoDbBackupHandler = context.getBean("geoDbBackupHandler", DbBackupHandler.class);
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            System.err.println(ex);
         }
     }
 

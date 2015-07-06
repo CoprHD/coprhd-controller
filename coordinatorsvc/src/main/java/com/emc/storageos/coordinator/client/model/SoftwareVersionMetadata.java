@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 
-public class SoftwareVersionMetadata {	
+public final class SoftwareVersionMetadata {
 	private static final Logger log = LoggerFactory.getLogger(SoftwareVersionMetadata.class);
 	private static String IMAGE_FILE_PATH_TEMPLATE = "/.volumes/bootfs/%s/rootimg";
 	

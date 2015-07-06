@@ -60,7 +60,7 @@ public class FieldType{
             calendar.setTimeZone(TimeZone.getTimeZone(timeZoneStr));
             calendar.setTimeInMillis(Long.parseLong(timeInMillisStr));
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
             log.debug("Exception: ", e);
             return null;
         }
@@ -72,7 +72,7 @@ public class FieldType{
         try{
             intNum = Integer.valueOf(str);
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
             log.debug("Exception: ", e);
             return null;
         }
@@ -84,7 +84,7 @@ public class FieldType{
         try{
             longNum = new Long(str);
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
             log.debug("Exception in: ", e);
             return null;
         }
@@ -105,7 +105,7 @@ public class FieldType{
         try{
             wrapper = (T) clazz.newInstance(); 
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
             log.debug("Exception in: ", e);
         }
         wrapper.setValue(value);
@@ -116,7 +116,7 @@ public class FieldType{
     
             marshaller.marshal(wrapper, node);
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
             log.debug("Exception in: ", e);
         }
     }
@@ -128,7 +128,7 @@ public class FieldType{
             T object  = (T) unmarshaller.unmarshal(node);
             return object.getValue();
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
             log.debug("Exception in: ", e);
         }
         return null;

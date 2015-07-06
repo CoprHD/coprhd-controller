@@ -73,7 +73,7 @@ public class RmiInvocationHandler implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         List<Service> services = _client.locateAllServices(_name, _version, _tag, _endpointKey);
-        if (services == null || services.size() == 0) {
+        if (services == null || services.isEmpty()) {
             throw CoordinatorException.fatals.endPointUnavailable();
         }
         _log.info("Invoking task {}: {} ", method, args);

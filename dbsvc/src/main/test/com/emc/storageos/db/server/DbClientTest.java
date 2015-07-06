@@ -2031,11 +2031,11 @@ public class DbClientTest extends DbsvcTestBase {
         int count = 0;
         while( it.hasNext()){
             AggregationQueryResultList.AggregatedEntry entry = it.next();
-            _logger.info("         " + entry.id + ";  capacity = " + entry.value.toString());
-            DataObject obj = validatedObj.get(entry.id);
+            _logger.info("         " + entry.getId() + ";  capacity = " + entry.getValue().toString());
+            DataObject obj = validatedObj.get(entry.getId());
             DataObjectType doType = TypeMap.getDoType(clazz);
             Object value = ColumnField.getFieldValue(doType.getColumnField(field),obj);
-            Assert.assertEquals(value,entry.value);
+            Assert.assertEquals(value,entry.getValue());
             count++;
         }
         Assert.assertEquals(count,validatedObj.size());

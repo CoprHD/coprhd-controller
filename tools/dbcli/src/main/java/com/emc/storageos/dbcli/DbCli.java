@@ -100,7 +100,7 @@ public class DbCli {
             _dbClient.start();
 
         } catch (Exception e) {
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
         }
     }
 
@@ -171,7 +171,7 @@ public class DbCli {
             System.out.println(String.format("Load from file: %s successfully", fileName));
             log.info("Load from file: {} successfully", fileName);
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
         }
     }
 
@@ -185,7 +185,7 @@ public class DbCli {
             System.out.println(String.format("Load and create from file: %s successfully", fileName));
             log.info("Load and create from file: {} successfully", fileName);
         } catch(Exception e){
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
         }
     }
 
@@ -478,7 +478,7 @@ public class DbCli {
         try {
             builder = dbf.newDocumentBuilder();
         } catch (Exception e) {
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
         }
         doc = builder.newDocument();
         Element root = doc.createElement("dbschemas");
@@ -503,7 +503,7 @@ public class DbCli {
             System.out.println(String.format("Dump into file: %s successfully", outFileName));
             log.info("Dump into file: {} successfully", outFileName);
         } catch (Exception e) {
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
         }
     }
     
@@ -717,9 +717,9 @@ public class DbCli {
             xformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
             xformer.transform(source, result);
         } catch (TransformerConfigurationException e) {
-            e.printStackTrace();
+        	System.err.println("Caught TransformerConfigurationException" + e);
         } catch (TransformerException e) {
-            e.printStackTrace();
+        	System.err.println("Caught TransformerException" + e);
         }
     }
 
@@ -734,7 +734,7 @@ public class DbCli {
             try{
                 delete(id, cfName, force);
             } catch(Exception e){
-                e.printStackTrace();
+            	System.err.println("Caught exception" + e);
             }
         }
     }

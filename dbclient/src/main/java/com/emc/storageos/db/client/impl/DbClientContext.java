@@ -20,12 +20,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.netflix.astyanax.connectionpool.SSLConnectionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.netflix.astyanax.AstyanaxContext;
 import com.netflix.astyanax.Keyspace;
@@ -50,7 +47,9 @@ public class DbClientContext {
     private static final int DEFAULT_MAX_BLOCKED_THREADS = 500;
     private static final String DEFAULT_CN_POOL_NANE = "DbClientPool";
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
-
+    private static final int MAX_QUERY_RETRY = 5;
+    private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
+    
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
     public static final String GEO_CLUSTER_NAME = "GeoStorageOS";
@@ -60,7 +59,7 @@ public class DbClientContext {
     private int maxConnectionsPerHost = DEFAULT_MAX_CONNECTIONS_PER_HOST;
     private int svcListPoolIntervalSec = DEFAULT_SVCLIST_POLL_INTERVAL_SEC;
     private long monitorIntervalSecs = DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL;
-    private RetryPolicy retryPolicy = new QueryRetryPolicy(5, 1000);
+    private RetryPolicy retryPolicy = new QueryRetryPolicy(MAX_QUERY_RETRY, QUERY_RETRY_SLEEP_SECONDS);
     private String keyspaceName = LOCAL_KEYSPACE_NAME;
     private String clusterName = LOCAL_CLUSTER_NAME;
     
@@ -177,10 +176,11 @@ public class DbClientContext {
         String svcName = hostSupplier.getDbSvcName();
         _log.info ("Initializing hosts for {}", svcName );
         List<Host> hosts = hostSupplier.get();
-        if((hosts != null) && (hosts.size() == 0)) {
+        if((hosts != null) && (hosts.isEmpty())) {
             throw new IllegalStateException(String.format("DbClientContext.init() : host list in hostsupplier for %s is empty", svcName));
         } else {
-            _log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hosts.size()));
+        	int hostCount = hosts==null? 0 : hosts.size();
+            _log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
         }
         Partitioner murmur3partitioner = Murmur3Partitioner.get();
         Map<String, Partitioner> partitioners = new HashMap<String, Partitioner>();

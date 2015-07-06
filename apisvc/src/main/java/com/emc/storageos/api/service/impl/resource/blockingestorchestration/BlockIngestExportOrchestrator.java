@@ -309,7 +309,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
         Set<String> initiatorList = new HashSet<String>();
         List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(hostURI, Initiator.class, "iniport", "host");
         for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
-            initiatorList.add(dataObject.id.toString());
+            initiatorList.add(dataObject.getId().toString());
         }
         return initiatorList;
     }

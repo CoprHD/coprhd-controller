@@ -428,7 +428,7 @@ public class TenantsService extends TaggedResource {
 
         for (NamedElementQueryResultList.NamedElement el : subtenants) {
             list.getSubtenants().add(
-                    toNamedRelatedResource(ResourceTypeEnum.TENANT, el.id, el.name));
+                    toNamedRelatedResource(ResourceTypeEnum.TENANT, el.getId(), el.getName()));
         }
         return list;
     }
@@ -607,7 +607,7 @@ public class TenantsService extends TaggedResource {
         ProjectList list = new ProjectList();
         for (NamedElementQueryResultList.NamedElement el : projects) {
             list.getProjects().add(
-                    toNamedRelatedResource(ResourceTypeEnum.PROJECT, el.id, el.name));
+                    toNamedRelatedResource(ResourceTypeEnum.PROJECT, el.getId(), el.getName()));
         }
         return list;
     }

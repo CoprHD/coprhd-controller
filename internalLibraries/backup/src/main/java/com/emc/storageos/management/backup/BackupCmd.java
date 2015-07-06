@@ -112,7 +112,6 @@ public class BackupCmd {
             }
         } catch (Exception p) {
             System.err.print(p.getMessage());
-            p.printStackTrace();
             formatter.printHelp(TOOL_NAME, options);
             System.exit(-1);
         }

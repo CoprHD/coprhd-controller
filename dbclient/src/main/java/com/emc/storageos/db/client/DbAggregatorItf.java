@@ -18,13 +18,11 @@ package com.emc.storageos.db.client;
 import com.emc.storageos.db.client.impl.CompositeColumnName;
 import com.netflix.astyanax.model.Row;
 
-import java.util.List;
-
 /**
  */
 public interface DbAggregatorItf {
 
-    public void aggregate(Row<String, CompositeColumnName> row);
+    void aggregate(Row<String, CompositeColumnName> row);
 
-    public String[] getAggregatedFields();
+    String[] getAggregatedFields();
 }

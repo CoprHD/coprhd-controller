@@ -19,6 +19,7 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
 
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.DbKeyspace;
 import com.emc.storageos.db.client.model.Name;
 
 public class DbClientGeoVersionTest {
+	private static Logger loger = Logger.getLogger(DbClientGeoVersionTest.class);
 	private static final String VERSION_2_6 = "2.6";
 	private static final String VERSION_2_5 = "2.5";
 	private PropertyDescriptor dummyPd1 = null;
@@ -61,7 +63,7 @@ public class DbClientGeoVersionTest {
 			client2 = new DbClientImpl();
 
 		} catch (Exception e) {
-			e.printStackTrace();
+			loger.error("setup failed ", e);
 		}
 	}
 
@@ -76,7 +78,7 @@ public class DbClientGeoVersionTest {
 			String field2_version = (String) this.maxVersionMethod.invoke(cf2, new Object[]{DummyGeoObject.class, this.dummyPd2});
 			Assert.assertEquals(VERSION_2_6, field2_version);
 		}catch (Exception e){
-			e.printStackTrace();
+			loger.error("shouldGetMaxAllowedGeoVersion failed ", e);
 		}
 	}
 	
@@ -89,7 +91,7 @@ public class DbClientGeoVersionTest {
 			hasGeoVersion = (Boolean) this.hasGeoVersionMethod.invoke(client2, new Object[]{DummyGeoObject.class, this.dummyPd2});
 			Assert.assertTrue(hasGeoVersion);
 		}catch (Exception e){
-			e.printStackTrace();
+			loger.error("testHasGeoVersionAnnotation failed:", e);
 		}
 	}
 

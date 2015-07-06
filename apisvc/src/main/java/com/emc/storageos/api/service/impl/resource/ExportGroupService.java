@@ -2341,7 +2341,7 @@ public class ExportGroupService extends TaskResourceService {
         List<URI> out = Lists.newArrayList();
         if (namedElements != null) {
             for (NamedElement namedElement : namedElements) {
-                out.add(namedElement.id);
+                out.add(namedElement.getId());
             }
         }
         return out;

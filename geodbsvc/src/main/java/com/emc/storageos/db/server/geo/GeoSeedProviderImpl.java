@@ -15,13 +15,11 @@
 
 package com.emc.storageos.db.server.geo;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -55,6 +53,11 @@ public class GeoSeedProviderImpl implements SeedProvider {
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
     
+    /**
+     * 
+     * @param args
+     * @throws Exception
+     */
     public GeoSeedProviderImpl(Map<String, String> args) throws Exception {
         initCoordinatorClient(args); 
         initSeedList(args);
@@ -67,9 +70,10 @@ public class GeoSeedProviderImpl implements SeedProvider {
         try {
             List<InetAddress> result = new ArrayList<>();
 
-            for(String seed : seeds) {
-                if (StringUtils.isNotEmpty(seed))
+            for (String seed : seeds) {
+                if (StringUtils.isNotEmpty(seed)) {
                     result.add(InetAddress.getByName(seed));
+                }
             }
 
             log.info("Seeds list {}",  StringUtils.join(result.toArray(), ","));
@@ -85,7 +89,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
      * 
      * @param args
      */
-    private void initCoordinatorClient(Map<String, String> args) throws IOException{
+    private void initCoordinatorClient(Map<String, String> args) throws IOException {
         // endpoints for coordinator in local site
         String coordinatorArg = args.get(COORDINATORS);
         if (coordinatorArg == null || coordinatorArg.trim().isEmpty()) {
@@ -142,10 +146,12 @@ public class GeoSeedProviderImpl implements SeedProvider {
         //  get the active nodes by checking geodbsvc beacon in zk,
         //  successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
         List<Configuration> configs = getAllConfigZNodes();
-        if (hasRecoveryReinitFlag(configs))
+        if (hasRecoveryReinitFlag(configs)) {
             seeds.addAll(getAllActiveNodes(configs));
-        else
+        }
+        else {
             seeds.add(getNonAutoBootNode(configs));
+        }
     }
 
     private List<Configuration> getAllConfigZNodes() {
@@ -154,8 +160,9 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
         // filter out non config ZNodes: 2.0 and global
         for (Configuration config : configs) {
-            if (isConfigZNode(config))
+            if (isConfigZNode(config)) {
                 result.add(config);
+            }
         }
         return result;
     }
@@ -164,22 +171,26 @@ public class GeoSeedProviderImpl implements SeedProvider {
         List<String> ipAddrs = new ArrayList<>();
         for (Configuration config : configs) {
             // if a node has the STARTUPMODE_RESTORE_REINIT flag, it has not yet been restored.
-            if (isRestoreReinit(config))
+            if (isRestoreReinit(config)) {
                 continue;
-            if (isGeodbsvcStarted(config))
+            }
+            if (isGeodbsvcStarted(config)) {
                 ipAddrs.add(getIpAddrFromConfig(config));
+            }
         }
-        if (ipAddrs.isEmpty())
+        if (ipAddrs.isEmpty()) {
             log.warn("All the nodes in local site are inactive. This could either" +
                     " be the first started node or something went wrong");
+        }
         return ipAddrs;
     }
 
     private String getNonAutoBootNode(List<Configuration> configs) {
         for (Configuration config : configs) {
-            if (isAutoBootNode(config))
+            if (isAutoBootNode(config)) {
                 continue;
-
+            }
+                
             return getIpAddrFromConfig(config);
         }
         throw new IllegalStateException("Cannot find a node with autoboot set to false");
@@ -198,7 +209,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         } else {
             try {
                 ipAddress = InetAddress.getByName(nodeId).getHostAddress();
-            }catch(UnknownHostException e) {
+            } catch (UnknownHostException e) {
                 throw new IllegalStateException(e);
             }
         }

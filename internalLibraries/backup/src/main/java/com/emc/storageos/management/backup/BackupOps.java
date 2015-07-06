@@ -321,11 +321,12 @@ public class BackupOps {
                     }
                 }
                 if (result != null)
-                    throw result;
+                    throw new Exception(result);
                 log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
                 return;
-            } catch (Throwable t) {
+            } catch (Exception e) {
+                Throwable t = e.getCause();
                 boolean retry = (t instanceof RetryableBackupException) &&
                         (retryCnt < BackupConstants.RETRY_MAX_CNT - 1);
                 if (retry) {
@@ -527,9 +528,10 @@ public class BackupOps {
                 }
             }
             if (result != null) 
-                throw result;
+                throw new Exception(result);
             log.info("Delete backup(name={}) success", backupTag);
-        } catch (Throwable t) {
+        } catch (Exception ex) {
+            Throwable t = ex.getCause();
             List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
             for (String host : newErrList) {
                 for (int i = 1; i < ports.size(); i++) {
@@ -658,8 +660,9 @@ public class BackupOps {
                 }
             }
             if (result != null)
-                throw result;
-        } catch (Throwable t) {
+                throw new Exception(result);
+        } catch (Exception e) {
+            Throwable t = e.getCause();
             log.error("Exception when listing backups", t);
             List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
             for (String node : newErrList) {

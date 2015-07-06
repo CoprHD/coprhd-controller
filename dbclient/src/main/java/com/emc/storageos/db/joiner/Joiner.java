@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -491,6 +492,7 @@ public class Joiner {
                 try {
                     values = method.invoke(object);
                 } catch (Exception ex) {
+                	log.warn("failed to invoke {} ", method.getName());
                 }
                 for (URI uri : bURIs) {
                     if (uriInObject(uri, values)) {
@@ -557,6 +559,7 @@ public class Joiner {
                      try {
                          values = method.invoke(object);
                      } catch (Exception ex) {
+                    	 log.warn("failed to invoke method {}", method.getName());
                      }
                      if (!uriInObject(aURI, values)) continue;
                  }
@@ -588,12 +591,12 @@ public class Joiner {
             log.info("Processing subclass: " + subJc.getClazz().getSimpleName() + " count: " + subJc.getUris().size());
             subJc.getUris().clear();
             Map <URI, Set<URI>> subJoinMap = subJc.getJoinMap();
-            for (URI uri : subJoinMap.keySet()) {
-                if (superJc.getJoinMap().get(uri) == null) { 
-                    superJc.getJoinMap().put(uri, new HashSet<URI>());
+            for (Entry<URI, Set<URI>> entry : subJoinMap.entrySet()) {
+                if (superJc.getJoinMap().get(entry.getKey()) == null) { 
+                    superJc.getJoinMap().put(entry.getKey(), new HashSet<URI>());
                 }
                 Map<URI, Set<URI>> superJoinMap = superJc.getJoinMap();
-                superJoinMap.get(uri).addAll(subJoinMap.get(uri));
+                superJoinMap.get(entry.getKey()).addAll(entry.getValue());
             }
             subJc.getJoinMap().clear();
             Map<URI, Object> subCachedObjects = subJc.getCachedObjects();

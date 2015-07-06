@@ -398,7 +398,7 @@ public class VcenterDataCenterService extends TaskResourceService {
             Collection<URI> hostUris = new ArrayList<URI>();
             List<NamedElementQueryResultList.NamedElement> hostNamedElements = listChildren(clusterId, Host.class, "label", "cluster");
             for(NamedElementQueryResultList.NamedElement hostNamedElement : hostNamedElements) {
-                Host host = queryObject(Host.class, hostNamedElement.id, false);
+                Host host = queryObject(Host.class, hostNamedElement.getId(), false);
                 if(isHostCompatibleForVcenterCluster(host)) addHostUris.add(host.getId());
             }
             if(addHostUris.isEmpty()) { // Require at least a single compatible host for automatic mode, do not create empty cluster

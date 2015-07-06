@@ -135,7 +135,7 @@ public class IndexCleanupList  implements IndexColumnList{
                     }
                 }
 
-                if (cols.size() > 0) {
+                if (!cols.isEmpty()) {
                     mapIndexes.put(rowKey, cols);
                 }
             }

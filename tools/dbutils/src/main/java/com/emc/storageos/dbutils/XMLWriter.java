@@ -40,8 +40,7 @@ public class XMLWriter {
             out.close();
             System.out.println(" -> Output file available at : " + file.getAbsolutePath());
         } catch (IOException e) {
-            System.out.println(" --> Exception : " + e.getMessage());
-            e.printStackTrace();
+            System.out.println(" --> Exception : " + e);
         }
         return;
     }

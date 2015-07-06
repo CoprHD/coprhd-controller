@@ -122,7 +122,7 @@ public class SchedulerConfig {
         String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
         String usernameStr = propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
-        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWORD);
+        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
         String enableStr = propInfo.getProperty(BackupConstants.SCHEDULER_ENABLED);
 
         this.interval = ScheduleTimeRange.ScheduleInterval.DAY;
@@ -281,7 +281,7 @@ public class SchedulerConfig {
 
         List<URI> userPrefsIds = new ArrayList<>();
         for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
-            userPrefsIds.add(namedElement.id);
+            userPrefsIds.add(namedElement.getId());
         }
         if (userPrefsIds.size() == 0) {
             return null;

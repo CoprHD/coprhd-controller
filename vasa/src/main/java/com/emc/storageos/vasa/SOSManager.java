@@ -136,8 +136,9 @@ public class SOSManager {
 				+ "] password[****]");
 
 		try {
-			if (Util.isEmpty(username) || Util.isEmpty(password))
+			if (Util.isEmpty(username) || Util.isEmpty(password)) {
 				throw FaultUtil.InvalidLogin("Username or password is invalid");
+			}
 			if (username.contains("\\")) {
 				String[] domainAduser = username.split("\\\\");
 				if (domainAduser.length == 2) {
@@ -258,8 +259,9 @@ public class SOSManager {
 	}
 
 	public List<String> getCosIds(boolean refresh) throws StorageFault {
-		if (refresh)
+		if (refresh) {
 			_syncManager.resetCoS();
+		}
 		return this.getCosIds();
 	}
 
@@ -276,13 +278,12 @@ public class SOSManager {
 
 		log.debug(methodName + "Entry ");
 
-		if (_reportedFileSystemIdList != null)
+		if (_reportedFileSystemIdList != null) {
 			return;
-
+		}
 		List<String> vcMountPaths = this.getMountPathsFromUsageContext();
 
 		try {
-
 			_reportedFileSystemIdList = _syncManager
 					.getFileSystemIdList(vcMountPaths);
 
@@ -301,8 +302,9 @@ public class SOSManager {
 		final String methodName = "setFileSystemIds(): ";
 
 		log.debug(methodName + "Entry with input: refresh[" + refresh + "]");
-		if (refresh)
+		if (refresh) {
 			_reportedFileSystemIdList = null;
+		}
 		setFileSystemIds();
 
 		log.debug(methodName + "Exit ");
@@ -371,8 +373,9 @@ public class SOSManager {
 
 	private void setStoragePorts(boolean refresh) throws StorageFault,
 			InvalidSession {
-		if (refresh)
+		if (refresh) {
 			_reportedStoragePortList = null;
+		}
 		this.setStoragePorts();
 	}
 
@@ -382,9 +385,9 @@ public class SOSManager {
 
 		log.debug(methodName + "Entry");
 
-		if (_reportedStoragePortList != null)
+		if (_reportedStoragePortList != null) {
 			return;
-
+		}
 		try {
 
 			String initiatorList = this
@@ -504,10 +507,11 @@ public class SOSManager {
 			} else {
 
 				for (String inputPortId : portIds) {
-					if (!inputPortId.startsWith(STORAGEPORT_IDENTIFIER_PREFIX))
+					if (!inputPortId.startsWith(STORAGEPORT_IDENTIFIER_PREFIX)) {
 						throw FaultUtil
 								.InvalidArgument("Given portId is invalid: "
 										+ inputPortId);
+					}
 				}
 				List<String> portIdList = Arrays.asList(portIds);
 				portList = this.getStoragePorts(portIdList);
@@ -616,12 +620,13 @@ public class SOSManager {
 						.NotImplemented("This function is not implemented");
 			}
 
-			if (processorId != null)
+			if (processorId != null) {
 				log.debug(methodName + "input processor Ids "
 						+ Arrays.asList(processorId));
-			else
+			}
+			else {
 				log.debug(methodName + "input processor Ids " + processorId);
-
+			}
 			String storageProcessorId = this.getProcessorId();
 
 			if (!Util.isEmpty(processorId)) {
@@ -705,10 +710,10 @@ public class SOSManager {
 						.NotImplemented("This function is not implemented");
 			}
 
-			if (Util.isEmpty(fsUniqueIds))
+			if (Util.isEmpty(fsUniqueIds)) {
 				throw FaultUtil
 						.InvalidArgument("Given file system Ids are invalid");
-
+			}
 			for (String fsId : fsUniqueIds) {
 				if (!Util.isEmpty(fsId)) {
 					if (!fsId.startsWith(FILESYSTEM_IDENTIFIER_PREFIX)) {
@@ -774,7 +779,7 @@ public class SOSManager {
 				fileSystem.setThinProvisioningStatus(AlarmStatusEnum.Green
 						.getValue());
 
-				if (log.isDebugEnabled())
+				if (log.isDebugEnabled()) {
 					log.debug(methodName
 							+ "filesystem: id["
 							+ fileSystem.getUniqueIdentifier()
@@ -795,8 +800,9 @@ public class SOSManager {
 							+ "] fileSystemPath["
 							+ fileSystem.getFileSystemInfo()[0]
 									.getFileSystemPath() + "]");
-
+				}
 				list.add(fileSystem);
+				
 			}
 
 		} catch (SOSFailure e) {
@@ -844,15 +850,16 @@ public class SOSManager {
 						.NotImplemented("This function is not implemented");
 			}
 
-			if (Util.isEmpty(lunUniqueIds))
+			if (Util.isEmpty(lunUniqueIds)) {
 				throw FaultUtil.InvalidArgument("Given LUN Ids are invalid");
-
+			}
 			for (String inputLunId : lunUniqueIds) {
 				if (!Util.isEmpty(inputLunId)) {
-					if (!inputLunId.startsWith(VOLUME_IDENTIFIER_PREFIX))
+					if (!inputLunId.startsWith(VOLUME_IDENTIFIER_PREFIX)) {
 						throw FaultUtil
 								.InvalidArgument("Given LUN Id is invalid: "
 										+ inputLunId);
+					}
 				} else {
 					throw FaultUtil.InvalidArgument("Given LUN Id is invalid: "
 							+ inputLunId);
@@ -890,8 +897,9 @@ public class SOSManager {
 				lun.setDisplayName(volume.getName());
 				lun.setDrsManagementPermitted(true);
 				String esxLunId = "naa.";
-				if (volume.getWWN() != null)
+				if (volume.getWWN() != null) {
 					esxLunId += volume.getWWN().toLowerCase();
+				}
 				lun.setEsxLunIdentifier(esxLunId);
 
 				lun.setThinProvisioned(volume.isThinlyProvisioned());
@@ -900,7 +908,7 @@ public class SOSManager {
 				lun.setThinProvisioningStatus(alarmStatus);
 				lun.setUsedSpaceInMB(volumeUsedCapacityInMB);
 
-				if (log.isDebugEnabled())
+				if (log.isDebugEnabled()) {
 					log.debug(methodName + " Lun detail: id["
 							+ lun.getUniqueIdentifier() + "] ESXLunIdentifier["
 							+ lun.getEsxLunIdentifier() + "] capacityInMB["
@@ -912,6 +920,7 @@ public class SOSManager {
 							+ "] thinProvisioningStatus["
 							+ lun.getThinProvisioningStatus()
 							+ "] usedSpaceInMB[" + lun.getUsedSpaceInMB() + "]");
+				}
 
 				storageLunList.add(lun);
 			}
@@ -969,10 +978,11 @@ public class SOSManager {
 			} else {
 				for (String inputCapId : capIds) {
 					if (!Util.isEmpty(inputCapId)) {
-						if (!inputCapId.startsWith(COS_IDENTIFIER_PREFIX))
+						if (!inputCapId.startsWith(COS_IDENTIFIER_PREFIX)) {
 							throw FaultUtil
 									.InvalidArgument("Storage capability Id is invalid: "
 											+ inputCapId);
+						}
 
 					} else {
 						throw FaultUtil
@@ -1913,17 +1923,18 @@ public class SOSManager {
 
 		// Get when we query last time.
 		Calendar last = _eventManager.getLastEventEnqTime();
-		if (last == null)
+		if (last == null) {
 			last = Calendar.getInstance();
-
+		}
 		Calendar now = Calendar.getInstance();
 		Calendar lastEnqTime = null;
 		while (last.compareTo(now) <= 0) {
 
 			lastEnqTime = _eventManager.getLastEventEnqTime();
 
-			if (lastEnqTime == null)
+			if (lastEnqTime == null) {
 				lastEnqTime = Calendar.getInstance();
+			}
 
 			// Clean up the Q, if the Q holds last hour events.
 			if (lastEnqTime.get(Calendar.HOUR_OF_DAY) != last
@@ -1951,16 +1962,18 @@ public class SOSManager {
 					eventRecorded = false;
 
 					// Does this event already captured?.
-					if (_eventManager.isEventExistsInQueue(event))
+					if (_eventManager.isEventExistsInQueue(event)) {
 						continue;
+					}
 
 					// Is it a Required event?
-					if (!_eventManager.isEventRequired(event.getEventType()))
+					if (!_eventManager.isEventRequired(event.getEventType())) {
 						continue;
+					}
 
-					if (event.getResourceId() == null)
+					if (event.getResourceId() == null) {
 						continue;
-
+					}
 					String resourceId = event.getResourceId().toString();
 
 					log.debug(methodName + " Event occurred on resourceId["
@@ -2245,11 +2258,13 @@ public class SOSManager {
 					// Don't recommend DRS when both fileshares belong to the
 					// same pool
 
-					if (fileShare1.getPool().getId()
-							.equals(fileShare2.getPool().getId()))
+					if (fileShare1.getPool().getId() 
+							.equals(fileShare2.getPool().getId())) {
 						return false;
-					else
+					}
+					else {
 						return true;
+					}
 
 				}
 
@@ -2291,8 +2306,9 @@ public class SOSManager {
 						HighAvailabilityVolumes haVolumes = volume
 								.getHaVolumeList();
 						if (haVolumes != null
-								&& haVolumes.getHaVolumeList() != null)
+								&& haVolumes.getHaVolumeList() != null) {
 							return false;
+						}
 					}
 				}
 				
@@ -2352,9 +2368,10 @@ public class SOSManager {
 
 			if (Util.isEmpty(arrayUniqueId)
 					|| !arrayUniqueId
-							.startsWith(STORAGEARRAY_IDENTIFIER_PREFIX))
+							.startsWith(STORAGEARRAY_IDENTIFIER_PREFIX)) {
 				throw FaultUtil.InvalidArgument("Given array Id is invalid: "
 						+ arrayUniqueId);
+			}
 
 			String sosArrayId = this.getArrayId();
 
@@ -2405,9 +2422,10 @@ public class SOSManager {
 
 			if (Util.isEmpty(arrayUniqueId)
 					|| !arrayUniqueId
-							.startsWith(STORAGEARRAY_IDENTIFIER_PREFIX))
+							.startsWith(STORAGEARRAY_IDENTIFIER_PREFIX)) {
 				throw FaultUtil.InvalidArgument("Given array Id is invalid: "
 						+ arrayUniqueId);
+			}
 
 			String sosArrayId = this.getArrayId();
 
@@ -2453,8 +2471,9 @@ public class SOSManager {
 			for (HostInitiatorInfo initiator : hostInitiators) {
 
 				if (Util.isEmpty(initiator.getPortWwn())
-						&& Util.isEmpty(initiator.getIscsiIdentifier()))
+						&& Util.isEmpty(initiator.getIscsiIdentifier())) {
 					continue;
+				}
 				if (!Util.isEmpty(initiator.getPortWwn())
 						&& !initiator.getPortWwn().startsWith("0x")) {
 					// convert the long into hex string value
@@ -2538,9 +2557,10 @@ public class SOSManager {
 
 			for (HostInitiatorInfo initiator : hostInitiators) {
 
-				if (Util.isEmpty(initiator.getPortWwn())
-						&& Util.isEmpty(initiator.getIscsiIdentifier()))
+				if (Util.isEmpty(initiator.getPortWwn()) 
+						&& Util.isEmpty(initiator.getIscsiIdentifier())) {
 					continue;
+				}
 				if (!Util.isEmpty(initiator.getPortWwn())
 						&& !initiator.getPortWwn().startsWith("0x")) {
 					// convert the long into hex string value
@@ -2564,12 +2584,13 @@ public class SOSManager {
 				}
 
 				String portWWN = initiator.getPortWwn();
-				if (!Util.isEmpty(portWWN))
+				if (!Util.isEmpty(portWWN)) {
 					returnString.append(portWWN.replace("0x:", "")).append(",");
-
+				}
 				String iscsiId = initiator.getIscsiIdentifier();
-				if (!Util.isEmpty(iscsiId))
+				if (!Util.isEmpty(iscsiId)) {
 					returnString.append(iscsiId).append(",");
+				}
 			}
 			returnString.deleteCharAt(returnString.length() - 1);
 		}
@@ -2597,9 +2618,9 @@ public class SOSManager {
 			for (MountInfo eachMountPointInfo : mountPoints) {
 
 				String filePath = eachMountPointInfo.getFilePath();
-				if (!Util.isEmpty(filePath))
+				if (!Util.isEmpty(filePath)) {
 					mountPathList.add(filePath);
-
+				}
 			}
 		}
 

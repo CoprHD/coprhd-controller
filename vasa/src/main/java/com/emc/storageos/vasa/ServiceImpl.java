@@ -234,8 +234,9 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 		log.info(methodName + "Entry");
 
-		if (arrayId != null)
+		if (arrayId != null) {
 			log.info(methodName + "input array Ids: " + Arrays.asList(arrayId));
+		}
 
 		// verify valid SSL and VASA Sessions.
 		sslUtil.checkHttpRequest(true, true);
@@ -582,8 +583,9 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 		log.info(methodName + "Entry");
 
-		if (arrayId != null)
+		if (arrayId != null) {
 			log.info(methodName + "input array Ids: " + Arrays.asList(arrayId));
+		}
 
 		// verify Block profile implmented
 		// inventoryManager.profileImplemented(ProfileEnum._BlockDeviceProfile);
@@ -624,9 +626,10 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 		log.info(methodName + "Entry");
 
-		if (processorId != null)
+		if (processorId != null) {
 			log.info(methodName + "input processor Ids["
 					+ Arrays.asList(processorId) + "]");
+		}
 
 		// verify Block profile implmented
 
@@ -705,9 +708,9 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 		log.info(methodName + "Entry");
 
-		if (portId != null)
-			log.debug(methodName + "input port Ids[" + Arrays.asList(portId)
-					+ "]");
+		if (portId != null) {
+			log.debug(methodName + "input port Ids[" + Arrays.asList(portId) + "]");
+		}
 
 		// verify valid SSL and VASA Sessions.
 		sslUtil.checkHttpRequest(true, true);
@@ -784,9 +787,10 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 		log.info(methodName + "Entry");
 
-		if (lunId != null)
+		if (lunId != null) {
 			log.debug(methodName + "inputs processorIds["
 					+ Arrays.asList(lunId) + "]");
+		}
 
 		// verify valid SSL and VASA Sessions.
 		sslUtil.checkHttpRequest(true, true);
@@ -864,9 +868,10 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 		log.info(methodName + "Entry");
 
-		if (fileSystem != null)
+		if (fileSystem != null) {
 			log.info(methodName + "input file system Ids: "
 					+ Arrays.asList(fileSystem));
+		}
 
 		// verify valid SSL and VASA Sessions.
 		sslUtil.checkHttpRequest(true, true);
@@ -907,9 +912,10 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 		final String methodName = "queryStorageCapabilities(): ";
 
 		log.info(methodName + "Entry");
-		if (capId != null)
+		if (capId != null) {
 			log.info(methodName + "input storage capability Ids: "
 					+ Arrays.asList(capId));
+		}
 
 		// verify valid SSL and VASA Sessions.
 		sslUtil.checkHttpRequest(true, true);
@@ -953,8 +959,9 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 		log.info(methodName + "Entry");
 
-		if (lunId != null)
+		if (lunId != null) {
 			log.info(methodName + "input LUN Ids: " + Arrays.asList(lunId));
+		}
 
 		// verify valid SSL and VASA Sessions.
 		sslUtil.checkHttpRequest(true, true);
@@ -998,9 +1005,10 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 		final String methodName = "queryAssociatedCapabilityForFileSystem(): ";
 
 		log.info(methodName + "Entry");
-		if (fsId != null)
+		if (fsId != null) {
 			log.info(methodName + "input file system Ids: "
 					+ Arrays.asList(fsId));
+		}
 
 		// verify valid SSL and VASA Sessions.
 		sslUtil.checkHttpRequest(true, true);

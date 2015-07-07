@@ -555,13 +555,13 @@ public class SyncManager {
 			CoSList cosElemList = _client.queryObject(FILE_COS_URI,
 					CoSList.class);
 
-			if (cosElemList != null && cosElemList.getCosElements() != null)
+			if (cosElemList != null && cosElemList.getCosElements() != null) {
 				for (CoSElement elem : cosElemList.getCosElements()) {
 					if (elem != null) {
 						fileCosIdList.add(elem.getId());
 					}
-
 				}
+			}
 
 			log.trace(methodName + "File CoS Ids: " + fileCosIdList);
 
@@ -602,13 +602,14 @@ public class SyncManager {
 			CoSList cosElemList = _client.queryObject(BLOCK_COS_URI,
 					CoSList.class);
 
-			if (cosElemList != null && cosElemList.getCosElements() != null)
+			if (cosElemList != null && cosElemList.getCosElements() != null) { 
 				for (CoSElement elem : cosElemList.getCosElements()) {
 					if (elem != null) {
 						blockCosIdList.add(elem.getId());
 					}
 
 				}
+			}
 
 			log.trace(methodName + "Block CoS Ids: " + blockCosIdList);
 

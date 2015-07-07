@@ -4,6 +4,8 @@
  */
 package com.iwave.ext.windows.winrm.winrs;
 
+import java.util.Arrays;
+
 import org.w3c.dom.Element;
 
 import com.iwave.ext.windows.winrm.WinRMInvokeOperation;
@@ -25,7 +27,7 @@ public class SubmitCommandOperation extends WinRMInvokeOperation<String> {
         super(target, WinRSConstants.WINRS_CMD_URI, WinRSConstants.WINRS_COMMAND_URI);
         setSelector(WinRSConstants.SHELL_ID, shellId);
         this.command = command;
-        this.arguments = arguments;
+        this.arguments = Arrays.copyOf(arguments, arguments.length);
         setOption("WINRS_CONSOLE_MODE_STDIN", "TRUE");
     }
 

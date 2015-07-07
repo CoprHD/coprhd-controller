@@ -125,7 +125,7 @@ public class KeyCertificatePairGenerator {
         Date from = getNotBefore();
         Date to =
                 new Date(from.getTime() + valuesHolder.getCertificateValidityInDays()
-                        * 86400000l);
+                        * 86400000L);
         CertificateValidity interval = new CertificateValidity(from, to);
         BigInteger sn = new BigInteger(64, new SecureRandom());
         X500Name owner =

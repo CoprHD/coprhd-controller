@@ -162,7 +162,7 @@ public class CassandraTokenValidator implements TokenValidator {
         }
 
         List<ProxyToken> toReturn = _dbClient.queryObject(ProxyToken.class, uris);
-        if(toReturn == null || toReturn.size() == 0) {
+        if(toReturn == null || toReturn.isEmpty()) {
             _log.info("No proxy token found for user {}", username);
             return null;
         }

@@ -238,8 +238,9 @@ public class LoggingFilter extends ClientFilter {
     }
 
     private void printEntity(StringBuilder b, byte[] entity, boolean truncated) {
-        if (entity.length == 0)
+        if (entity.length == 0) {
             return;
+        }
 
         String entityStr = protectPasswords(new String(entity));
         b.append("\n").append(entityStr);

@@ -96,7 +96,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 			ClientConfig config = ClientConfig.getInstance();
 			_prop = config.getProperties();
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			System.out.println(e1);
 		}
 
 		try {
@@ -104,7 +104,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 					+ _prop.getProperty(ClientConfig.SERVICE_HOST)
 					+ ":9083/storageos-vasasvc/services/vasaService");
 		} catch (AxisFault e) {
-			e.printStackTrace();
+			System.out.println(e);
 		}
 
 	}

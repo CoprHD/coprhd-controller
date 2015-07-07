@@ -242,20 +242,16 @@ public abstract class AbstractSecuredWebServer {
     }
 
     protected void initThreadPool() {
-        if (minQueueThreads == null && maxQueueThreads == null && maxQueued == null) {
+        if (minQueueThreads == null && maxQueueThreads == null && maxQueued == null)
             return;
-        }
 
         QueuedThreadPool tp = new QueuedThreadPool();
-        if (minQueueThreads != null) {
+        if (minQueueThreads != null)
             tp.setMinThreads(minQueueThreads);
-        }
-        if (maxQueueThreads != null) {
+        if (maxQueueThreads != null)
             tp.setMaxThreads(maxQueueThreads);
-        }
-        if (maxQueued != null) {
+        if (maxQueued != null)
             tp.setMaxQueued(maxQueued);
-        }
         threadPool = tp;
     }
 

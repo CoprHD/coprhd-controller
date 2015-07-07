@@ -44,6 +44,7 @@ import com.emc.storageos.security.geo.TokenResponseBuilder.TokenResponseArtifact
 
 import com.emc.storageos.security.validator.Validator;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Cassandra based implementation of the TokenValidator interface
@@ -162,7 +163,7 @@ public class CassandraTokenValidator implements TokenValidator {
         }
 
         List<ProxyToken> toReturn = _dbClient.queryObject(ProxyToken.class, uris);
-        if(toReturn == null || toReturn.isEmpty()) {
+        if (CollectionUtils.isEmpty(toReturn)) {
             _log.info("No proxy token found for user {}", username);
             return null;
         }
@@ -202,7 +203,7 @@ public class CassandraTokenValidator implements TokenValidator {
         _dbClient.removeObject(token);
         List<Token> tokens = getTokensForUserId(userId);
         List<ProxyToken> pTokens = getProxyTokensForUserId(userId);
-        if (tokens.isEmpty() && pTokens.isEmpty()) {
+        if (CollectionUtils.isEmpty(tokens)) {
             _log.info("There are no more tokens referring to the user id {}, marking it inactive");
             StorageOSUserDAO userDAO = _dbClient.queryObject(StorageOSUserDAO.class, userId);
             _dbClient.markForDeletion(userDAO);

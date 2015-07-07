@@ -62,7 +62,7 @@ public class Tasks<R> {
      * @return The first task or null if there are no tasks in the list.
      */
     public Task<R> firstTask() {
-        if (tasks.size() > 0) {
+        if (!tasks.isEmpty()) {
             return tasks.get(0);
         }
         return null;
@@ -74,7 +74,7 @@ public class Tasks<R> {
      * @return The latest task or null if there are no tasks in the list.
      */
     public Task<R> latestFinishedTask() {
-        if (tasks.size() > 0) {
+        if (!tasks.isEmpty()) {
             Collections.sort(tasks, new LatestFinishedTaskComparator());
             Task<R> latestTask = tasks.get(0);
             if(latestTask.getEndTime() != null) {

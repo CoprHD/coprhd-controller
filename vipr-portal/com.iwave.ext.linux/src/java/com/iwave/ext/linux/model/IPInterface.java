@@ -11,7 +11,7 @@ public class IPInterface implements Serializable {
 
     private String interfaceName;
     private String ipAddress;
-    private String MACAddress;
+    private String macAddress;
     private String netMask;
     private String ip6Address;
     private String broadcastAddress;
@@ -29,10 +29,10 @@ public class IPInterface implements Serializable {
         this.ipAddress = ipAddress;
     }
     public String getMACAddress() {
-        return MACAddress;
+        return macAddress;
     }
-    public void setMACAddress(String mACAddress) {
-        MACAddress = mACAddress;
+    public void setMACAddress(String macAddress) {
+        this.macAddress = macAddress;
     }
     public String getNetMask() {
         return netMask;
@@ -55,7 +55,7 @@ public class IPInterface implements Serializable {
     @Override
     public String toString() {
         return "IPInfo [interfaceName=" + interfaceName + ", ipAddress="
-                + ipAddress + ", MACAddress=" + MACAddress + ", netMask="
+                + ipAddress + ", MACAddress=" + macAddress + ", netMask="
                 + netMask + ", ip6Address=" + ip6Address
                 + ", broadcastAddress=" + broadcastAddress + "]";
     }

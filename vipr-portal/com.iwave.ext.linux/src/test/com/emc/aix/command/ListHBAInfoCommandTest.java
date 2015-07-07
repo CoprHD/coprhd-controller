@@ -29,7 +29,7 @@ public class ListHBAInfoCommandTest {
     static ListHBAInfoCommand hbaCommand = null;
     
     @BeforeClass
-    public static void setup() {
+    public synchronized static void setup() {
         CommandOutput commandOutput = new CommandOutput(output, null, 0);
         hbaCommand = createMockBuilder(ListHBAInfoCommand.class).withConstructor().addMockedMethod("getOutput").createMock();
         EasyMock.expect(hbaCommand.getOutput()).andReturn(commandOutput).anyTimes();

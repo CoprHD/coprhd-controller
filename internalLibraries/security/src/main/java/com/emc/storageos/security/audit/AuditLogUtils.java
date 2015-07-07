@@ -89,8 +89,8 @@ public class AuditLogUtils {
                 int formatSpecCount = format_desc.split("%s").length - 1;
                 if (formatSpecCount != paramCount)
                     s_logger.warn("Unexpected number of parameters for audit log {}. Expect {}, {} given."
-                                    + " Filling the gap will nulls.",
-                            new Object[]{parameters[1], formatSpecCount, paramCount});
+                        + " Filling the gap will nulls.", 
+                        new Object[]{parameters[1],formatSpecCount, paramCount});
 
                 // set parameters into the description
                 String[] formatParams = Arrays.copyOfRange(parameters, 2, 

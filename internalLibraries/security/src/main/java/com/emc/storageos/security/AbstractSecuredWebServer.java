@@ -16,7 +16,6 @@ package com.emc.storageos.security;
 
 import java.security.KeyStore;
 import java.security.cert.Certificate;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 

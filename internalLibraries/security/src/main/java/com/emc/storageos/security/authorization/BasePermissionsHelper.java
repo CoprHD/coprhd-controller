@@ -628,7 +628,7 @@ public class BasePermissionsHelper {
 
         // from groups
         Set<String> groups = user.getGroups();
-        if (CollectionUtils.isEmpty(groups)) {
+        if ( !CollectionUtils.isEmpty(groups) ) {
             for (String group : groups) {
                 // add if any roles for the groups, from the vdc
                 Set<String> roleSet = vdc.getRoleSet(
@@ -778,7 +778,7 @@ public class BasePermissionsHelper {
 
         // from groups
         Set<String> groups = user.getGroups();
-        if (CollectionUtils.isEmpty(groups)) {
+        if ( !CollectionUtils.isEmpty(groups) ) {
             for (String group : groups) {
                 // add if any roles for the groups, from root tenant/zone roles
                 Set<String> roleSet = tenant.getRoleSet(
@@ -832,7 +832,7 @@ public class BasePermissionsHelper {
         }
         // from groups
         Set<String> groups = user.getGroups();
-        if (CollectionUtils.isEmpty(groups)) {
+        if ( !CollectionUtils.isEmpty(groups) ) {
             for (String group : groups) {
                 // add if any roles for the groups, from root tenant/zone roles
                 acls = project.getAclSet(
@@ -923,7 +923,7 @@ public class BasePermissionsHelper {
         }
         Set<String> projectAcls = getProjectACLsForUser(user, projectId, false);
         for (ACL acl: acls) {
-            if (acl.equals(ACL.ANY) && projectAcls.isEmpty()) {
+            if (acl.equals(ACL.ANY) && !projectAcls.isEmpty()) {
                 return true;
             }
             if (projectAcls.contains(acl.toString())) {
@@ -1182,7 +1182,7 @@ public class BasePermissionsHelper {
                 .getTenantOrgSubTenantConstraint(userHomeTenant), subtenants);
         for (NamedElement sub : subtenants) {
             Collection<String> roles = getTenantRolesForUser(user, sub.id, false);
-            if (CollectionUtils.isEmpty(roles)) {
+            if ( !CollectionUtils.isEmpty(roles) ) {
                 subTenantRoles.put(sub.id.toString(), roles);
             }
         }
@@ -1202,7 +1202,7 @@ public class BasePermissionsHelper {
             boolean bNeedPersistent = false;
             TenantOrg tenantOrg = tenantOrgIterator.next();
             Set<String> rootRoles = tenantOrg.getRoleSet(keyForRoot);
-            if (CollectionUtils.isEmpty(rootRoles)) {
+            if ( !CollectionUtils.isEmpty(rootRoles) ) {
                 for (String role : rootRoles) {
                     _log.info("removing root's " + role + " from Tenant: " + tenantOrg.getLabel());
                     tenantOrg.removeRole(keyForRoot, role);

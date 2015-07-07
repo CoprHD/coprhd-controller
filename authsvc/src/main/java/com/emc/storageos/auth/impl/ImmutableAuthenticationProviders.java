@@ -555,7 +555,7 @@ public class ImmutableAuthenticationProviders {
                 }
             });
 
-            if (list == null || list.size() == 0) {
+            if (CollectionUtils.isEmpty(list)) {
                 errorString.append(MessageFormat.format("The group attribute {0} could not be found in AD schema at server {1}.", 
                         param.getGroupAttr(), param.getUrls().toString()));
                 return false;
@@ -587,7 +587,7 @@ public class ImmutableAuthenticationProviders {
         List list = template.search("", "(objectclass=*)", SearchControls.OBJECT_SCOPE, 
         						returnAttributes, contextMapper);
 
-        if (list == null || list.size() == 0) {
+        if (CollectionUtils.isEmpty(list)) {
             _log.error("Could not query RootDSE for AD/LDAP");
             return null;
         }
@@ -680,7 +680,7 @@ public class ImmutableAuthenticationProviders {
                     }
                 });
 
-                if (list == null || list.size() == 0) {
+                if (CollectionUtils.isEmpty(list)) {
                     String errorMsg = MessageFormat.format("The attribute {0} could not be found in AD schema at server {1}.", 
                             OBJECT_VERSION, param.getUrls().toString());
                     errorString.append(errorMsg);
@@ -771,7 +771,7 @@ public class ImmutableAuthenticationProviders {
             List<List<String>> attributeList = template.search(schemaDN, "(objectclass=*)", SearchControls.OBJECT_SCOPE,
 											returnAttributes, new LDAPSchemaContextMapper());
             
-            if (attributeList == null || attributeList.size() == 0) {
+            if (CollectionUtils.isEmpty(attributeList)) {
                 errorString.append(MessageFormat.format("The attributes {0} could not be found in LDAP schema {1} at server {2}", 
                 		returnAttributes.toString(), schemaDN, ldapServerUrls.toString()));
             }

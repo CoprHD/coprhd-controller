@@ -1558,7 +1558,7 @@ public class SOSManager {
 
 							List<String> volumeIdList = portToVolumeTable
 									.get(inputPortId);
-							if (volumeIdList != null && volumeIdList.size() > 0) {
+							if (volumeIdList != null && !volumeIdList.isEmpty()) {
 								VasaAssociationObject associationObject = new VasaAssociationObject();
 
 								BaseStorageEntity storagePort = new BaseStorageEntity();
@@ -1813,7 +1813,7 @@ public class SOSManager {
 			List<StorageAlarm> alarmList = _alarmManager
 					.getThinProvisionAlarms(_syncManager, volumeList,
 							lastAlarmId);
-			if (alarmList.size() > 0) {
+			if (!alarmList.isEmpty()) {
 
 				lastAlarmId += alarmList.size();
 

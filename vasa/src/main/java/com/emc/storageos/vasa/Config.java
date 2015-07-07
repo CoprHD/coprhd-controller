@@ -12,7 +12,7 @@ software and the intellectual property contained therein is expressly
 imited to the terms and conditions of the License Agreement under which
 it is provided by or on behalf of EMC.
  
- */
+*/
 package com.emc.storageos.vasa;
 
 import java.io.IOException;
@@ -33,23 +33,21 @@ public class Config {
 	private XmlParser _configParser;
 
 	private Config() {
-
 		final String methodName = "Config(): ";
-                final String CONFIG_FILE_PATH = System.getProperty("vasa.config");
+		final String CONFIG_FILE_PATH = System.getProperty("vasa.config");
 		_configParser = new XmlParser();
 		try {
 			_log.debug(methodName + " loading config file: " + CONFIG_FILE_PATH);
 			_configParser.loadFile(CONFIG_FILE_PATH);
 		} catch (ParserConfigurationException e) {
 			_log.error(methodName + "Unable to parse XML content ", e);
-			e.printStackTrace();
+			//e.printStackTrace();
 		} catch (SAXException e) {
 			_log.error(methodName + "Unable to parse XML content ", e);
-			e.printStackTrace();
+			//e.printStackTrace();
 		} catch (IOException e) {
-			_log.error(methodName + "Unable to load file: " + CONFIG_FILE_PATH,
-					e);
-			e.printStackTrace();
+			_log.error(methodName + "Unable to load file: " + CONFIG_FILE_PATH, e);
+			//e.printStackTrace();
 		}
 	}
 
@@ -70,10 +68,9 @@ public class Config {
 			value = _configParser.getString(configName, null);
 		} catch (XPathExpressionException e) {
 			_log.error(methodName + "Unable to resolve XPath: " + configName, e);
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 		return value;
-
 	}
 
 }

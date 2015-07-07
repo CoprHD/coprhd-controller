@@ -307,7 +307,7 @@ public class SSLUtil {
 			try {
 				encoded = cert.getEncoded();
 			} catch (CertificateEncodingException cee) {
-				cee.printStackTrace();
+				//cee.printStackTrace();
 				throw FaultUtil.InvalidArgument(
 						"Error reading certificate encoding: "
 								+ cee.getMessage(), cee);
@@ -674,7 +674,7 @@ public class SSLUtil {
 			}
 		} catch (Exception e) {
 			log.debug("Did not restart SSL Connector: " + e);
-			e.printStackTrace();
+			//e.printStackTrace();
 			throw e;
 		}
 	}

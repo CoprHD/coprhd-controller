@@ -1077,7 +1077,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 			 * routine returns an Exception it is silently ignored by tomcat.
 			 */
 			log.debug("Init exception: " + e);
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 

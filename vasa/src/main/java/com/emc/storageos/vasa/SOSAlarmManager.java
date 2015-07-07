@@ -437,7 +437,7 @@ public class SOSAlarmManager {
 		String resourceId = null;
 		String resourceType = null;
 
-		if (volumeList != null && volumeList.size() > 0) {
+		if (volumeList != null && !volumeList.isEmpty()) {
 			for (Volume volume : volumeList) {
 
 				resourceId = volume.getId();

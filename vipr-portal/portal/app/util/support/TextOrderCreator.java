@@ -44,7 +44,7 @@ public class TextOrderCreator {
             writeRequestParameters();
             writeExecutionState();
         }
-        catch (Throwable e) {
+        catch (Exception e) {
             writeHeader("ERROR CREATING ORDER");
             buffer.append(ExceptionUtils.getFullStackTrace(e));
         }
@@ -109,19 +109,19 @@ public class TextOrderCreator {
         List<ExecutionLogRestRep> executeLogs = getTaskLogs(logs, ExecutionPhase.EXECUTE);
         List<ExecutionLogRestRep> rollbackLogs = getTaskLogs(logs, ExecutionPhase.ROLLBACK);
 
-        if (precheckLogs.size() > 0) {
+        if (!precheckLogs.isEmpty()) {
             writeHeader("Precheck Steps");
             for (ExecutionLogRestRep log : precheckLogs) {
                 writeLog(log);
             }
         }
-        if (executeLogs.size() > 0) {
+        if (!executeLogs.isEmpty()) {
             writeHeader("Execute Steps");
             for (ExecutionLogRestRep log : executeLogs) {
                 writeLog(log);
             }
         }
-        if (rollbackLogs.size() > 0) {
+        if (!rollbackLogs.isEmpty()) {
             writeHeader("Rollback Steps");
             for (ExecutionLogRestRep log : rollbackLogs) {
                 writeLog(log);

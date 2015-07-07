@@ -169,7 +169,7 @@ public class Tasks extends Controller {
     private static List<TaskResourceRep> tasksLongPoll(Long lastUpdated, Boolean systemTasks) {
         while (true) {
             List<TaskResourceRep> taskResourceReps = taskPoll(lastUpdated, systemTasks);
-            if (taskResourceReps.size() > 0) {
+            if (!taskResourceReps.isEmpty()) {
                 return taskResourceReps;
             }
 

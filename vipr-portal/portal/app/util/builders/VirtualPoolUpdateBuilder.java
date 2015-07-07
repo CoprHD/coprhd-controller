@@ -17,6 +17,7 @@ import models.StorageSystemTypes;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.jsoup.select.Evaluator.IsEmpty;
 
 import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
 import com.emc.storageos.model.pools.VirtualArrayAssignments;
@@ -89,10 +90,10 @@ public class VirtualPoolUpdateBuilder {
         Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(oldVirtualArrays, virtualArrays));
 
         VirtualArrayAssignmentChanges changes = new VirtualArrayAssignmentChanges();
-        if (add.size() > 0) {
+        if (!add.isEmpty()) {
             changes.setAdd(new VirtualArrayAssignments(add));
         }
-        if (remove.size() > 0) {
+        if (!remove.isEmpty()) {
             changes.setRemove(new VirtualArrayAssignments(remove));
         }
         virtualPool.setVarrayChanges(changes);
@@ -106,10 +107,10 @@ public class VirtualPoolUpdateBuilder {
         Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(oldProtocols, protocols));
 
         ProtocolChanges changes = new ProtocolChanges();
-        if (add.size() > 0) {
+        if (!add.isEmpty()) {
             changes.setAdd(new ProtocolAssignments(add));
         }
-        if (remove.size() > 0) {
+        if (!remove.isEmpty()) {
             changes.setRemove(new ProtocolAssignments(remove));
         }
         virtualPool.setProtocolChanges(changes);

@@ -162,8 +162,8 @@ public class ExecutionWindows extends Controller {
         }        
         
         List<OrderRestRep> scheduledOrders = OrderUtils.getScheduledOrdersByExecutionWindow(uri(executionWindowForm.id));
-        if (Validation.hasErrors() || scheduledOrders.size() > 0) {
-            if (scheduledOrders.size() > 0) {
+        if (Validation.hasErrors() || !scheduledOrders.isEmpty()) {
+            if (!scheduledOrders.isEmpty()) {
                 renderArgs.put("error", MessagesUtils.get("executionWindow.deleted.containsScheduledOrders", scheduledOrders.size()));
             }
             response.status = 400;

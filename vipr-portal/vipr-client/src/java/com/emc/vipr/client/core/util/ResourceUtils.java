@@ -371,7 +371,7 @@ public class ResourceUtils {
      * @return true if the values point to the same ID.
      */
     public static boolean idEquals(RelatedResourceRep first, RelatedResourceRep second) {
-        return isEqual(id(first), id(second));
+        return equals(id(first), id(second));
     }
 
     /**
@@ -384,7 +384,7 @@ public class ResourceUtils {
      * @return true if the values point to the same ID.
      */
     public static boolean idEquals(RelatedResourceRep first, DataObjectRestRep second) {
-        return isEqual(id(first), id(second));
+        return equals(id(first), id(second));
     }
 
     /**
@@ -397,7 +397,7 @@ public class ResourceUtils {
      * @return true if the values point to the same ID.
      */
     public static boolean idEquals(DataObjectRestRep first, RelatedResourceRep second) {
-        return isEqual(id(first), id(second));
+        return equals(id(first), id(second));
     }
 
     /**
@@ -409,7 +409,8 @@ public class ResourceUtils {
      *        the second ID.
      * @return true if and only if the IDs are non-null and equal.
      */
-    public static boolean isEqual(URI first, URI second) {
+    @SuppressWarnings("squid:S1201")
+    public static boolean equals(URI first, URI second) {
         if ((first != null) && (second != null)) {
             return first.equals(second);
         }

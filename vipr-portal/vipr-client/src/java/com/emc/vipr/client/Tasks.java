@@ -30,7 +30,7 @@ public class Tasks<R> {
 	
 	private final static Logger log = LoggerFactory.getLogger(Tasks.class);
 	
-	private final int TASKS_EXECUTION_TERMINATION_SECONDS;
+	private final int tasksExecutionTerminationSeconds;
 	
 	private ExecutorService taskExecutor;
 	
@@ -44,7 +44,7 @@ public class Tasks<R> {
             }
         }
         taskExecutor = Executors.newFixedThreadPool(client.getConfig().getMaxConcurrentTaskRequests());
-        TASKS_EXECUTION_TERMINATION_SECONDS = client.getConfig().getTasksExecutionTimeoutSeconds();
+        tasksExecutionTerminationSeconds = client.getConfig().getTasksExecutionTimeoutSeconds();
     }
 
     /**

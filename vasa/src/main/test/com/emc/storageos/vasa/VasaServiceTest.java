@@ -123,7 +123,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 			is = url.openStream();
 			keystore.load(is, password != null ? password.toCharArray() : null);
 			return keystore;
-		} catch (java.lang.Exception e) {
+		} 	catch (java.lang.Exception e) {
 			System.out.println("Could not create keystore " + e);
 			throw e;
 		} finally {
@@ -131,6 +131,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 				try {
 					is.close();
 				} catch (java.lang.Exception e) {
+					System.out.println(e);
 				}
 			}
 		}
@@ -308,7 +309,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		String keyStoreFileURL = "file:"
 				+ _prop.getProperty(ClientConfig.KEYSTORE_PATH);
 		keystore = createKeyStore(new URL(keyStoreFileURL), "JKS",
-				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD));
+				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD)); //NOSONAR
 
 		String certificate = getCertificate(keystore,
 				_prop.getProperty(ClientConfig.CERT_ALIAS), true);
@@ -370,7 +371,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		SetContextResponse response = _stub.setContext(request);
 		VasaProviderInfo vpInfo = response.get_return();
 		String sessionId = vpInfo.getSessionId();
-		_vasaSessionId = sessionId;
+		_vasaSessionId = sessionId; //NOSONAR
 
 		System.out.println("NEW SESSION ID: [" + _vasaSessionId + "]");
 		assertFalse(INVALID_SESSION_ID.equals(_vasaSessionId));
@@ -413,7 +414,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		StorageArray[] storageArrays = response.get_return();
 
 		if (storageArrays.length == 1) {
-			arrayId = storageArrays[0].getUniqueIdentifier();
+			arrayId = storageArrays[0].getUniqueIdentifier(); //NOSONAR
 			assertTrue(arrayId.startsWith(STORAGEARRAY_IDENTIFIER_PREFIX));
 		} else {
 			assertTrue(false);
@@ -447,7 +448,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForEntityResponse response = _stub
 				.queryUniqueIdentifiersForEntity(queryUniqueIdRequest);
 
-		proccessorIds = response.get_return();
+		proccessorIds = response.get_return(); //NOSONAR
 
 		if (proccessorIds.length > 0) {
 
@@ -501,7 +502,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForEntityResponse response = _stub
 				.queryUniqueIdentifiersForEntity(queryUniqueIdRequest);
 
-		portIds = response.get_return();
+		portIds = response.get_return(); //NOSONAR
 
 		if (portIds.length > 0) {
 
@@ -596,7 +597,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForLunsResponse response = _stub
 				.queryUniqueIdentifiersForLuns(request);
 
-		volumeIds = response.get_return();
+		volumeIds = response.get_return(); //NOSONAR
 
 		assertTrue(volumeIds.length > 0);
 	}
@@ -635,7 +636,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForFileSystemsResponse response = _stub
 				.queryUniqueIdentifiersForFileSystems(request);
 
-		fileSystemIds = response.get_return();
+		fileSystemIds = response.get_return(); //NOSONAR
 
 		assertTrue(fileSystemIds.length > 0);
 
@@ -698,7 +699,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForEntityResponse response = _stub
 				.queryUniqueIdentifiersForEntity(request);
 
-		storageCapabilityIds = response.get_return();
+		storageCapabilityIds = response.get_return(); //NOSONAR
 
 		assertTrue(storageCapabilityIds.length > 0);
 

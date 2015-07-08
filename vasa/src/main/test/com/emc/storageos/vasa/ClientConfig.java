@@ -13,7 +13,7 @@ public class ClientConfig {
 	
 	public static String MOUNTPOINT_LIST = "mountPoint.list";
 	public static String ISCSIID_LIST = "iSCSCIId.list";
-	public static String KEYSTORE_PASSWORD =  "keyStorePassword";
+	public static String KEYSTORE_PASSWORD =  "keyStorePassword"; //NOSONAR
 	public static String KEYSTORE_PATH =  "keyStoreFilePath";
 	public static String CERT_ALIAS =  "certAlias";
 	

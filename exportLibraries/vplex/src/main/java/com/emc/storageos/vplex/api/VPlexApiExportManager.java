@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 import org.codehaus.jettison.json.JSONObject;
@@ -97,7 +98,7 @@ public class VPlexApiExportManager {
         s_logger.info("Found storage view");
         
         // Find, register, and add the initiators when specified.
-        if ((initiatorPortInfo != null) && (initiatorPortInfo.size() != 0)) {
+        if ((initiatorPortInfo != null) && !initiatorPortInfo.isEmpty()) {
             s_logger.info("Adding initiators to new storage view");
             List<VPlexInitiatorInfo> initiatorInfoList = findInitiators(clusterInfo,
                 initiatorPortInfo);
@@ -871,7 +872,9 @@ public class VPlexApiExportManager {
                                 String.valueOf(response.getStatus()), cause);
                     }
                 }
-                if (!retryNeeded) s_logger.info("Created storage view {}", viewName);
+                if (!retryNeeded) {
+                    s_logger.info("Created storage view {}", viewName);
+                }
             } catch (VPlexApiException vae) {
                 throw vae;
             } catch (Exception e) {
@@ -1066,10 +1069,11 @@ public class VPlexApiExportManager {
         
         // Create the value for the volumes argument for the request.
         StringBuilder volumeArgsBuilder = new StringBuilder();
-        Iterator<String> virtualVolumesIter = virtualVolumeMap.keySet().iterator();
+        Iterator<Entry<String, Integer>> virtualVolumesIter = virtualVolumeMap.entrySet().iterator();
         while (virtualVolumesIter.hasNext()) {
-            String virtualVolumeName = virtualVolumesIter.next();
-            Integer lunId = virtualVolumeMap.get(virtualVolumeName);
+            Entry<String, Integer> entry = virtualVolumesIter.next();
+            String virtualVolumeName = entry.getKey();
+            Integer lunId = entry.getValue();
             if (volumeArgsBuilder.length() != 0) {
                 volumeArgsBuilder.append(",");
             }

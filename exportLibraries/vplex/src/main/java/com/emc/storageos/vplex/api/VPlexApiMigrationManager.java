@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
@@ -699,17 +700,17 @@ public class VPlexApiMigrationManager {
             // Migrate each extent for the virtual volume from the
             // source to the target.
             int migrationCount = 1;
-            Iterator<VPlexExtentInfo> tgtExtentIter = extentMigrationMap.keySet().iterator();
+            Iterator<Entry<VPlexExtentInfo, VPlexExtentInfo>> tgtExtentIter = extentMigrationMap.entrySet().iterator();
             while (tgtExtentIter.hasNext()) {
-                VPlexExtentInfo tgtExtentInfo = tgtExtentIter.next();
-                VPlexExtentInfo srcExtentInfo = extentMigrationMap.get(tgtExtentInfo);
+                Entry<VPlexExtentInfo, VPlexExtentInfo> entry = tgtExtentIter.next();
+                VPlexExtentInfo srcExtentInfo = entry.getKey();
                 StringBuilder migrationNameBuilder = new StringBuilder(migrationName);
                 if (extentMigrationMap.size() > 1) {
                     migrationNameBuilder.append("_");
                     migrationNameBuilder.append(String.valueOf(migrationCount++));
                 }
                 VPlexMigrationInfo migrationInfo = migrateResource(
-                    migrationNameBuilder.toString(), srcExtentInfo, tgtExtentInfo, false,
+                    migrationNameBuilder.toString(), srcExtentInfo, entry.getValue(), false,
                     startNow);
                 migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
                 migrationInfoList.add(migrationInfo);
@@ -722,7 +723,7 @@ public class VPlexApiMigrationManager {
             s_logger.info("Exception occurred migrating distributed volume, attempting to cleanup VPLEX artifacts");
             try {
                 // Cancel any migrations that may have been successfully created.
-                if (migrationInfoList.size() > 0) {
+                if (!migrationInfoList.isEmpty()) {
                     for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
                         cancelMigrations(Collections.singletonList(migrationInfo.getName()), true, true);
                     }
@@ -1178,7 +1179,7 @@ public class VPlexApiMigrationManager {
                     s_logger.info(
                         "Could not find virtual volume for migration source {}",
                         migrationSrcName);
-                   return;
+                    return;
                 }
 
                 // Update the virtual volume name and associated distributed

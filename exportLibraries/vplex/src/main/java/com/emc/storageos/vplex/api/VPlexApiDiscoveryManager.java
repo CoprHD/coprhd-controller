@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.codehaus.jettison.json.JSONObject;
@@ -2606,11 +2607,12 @@ public class VPlexApiDiscoveryManager {
             // Cycle over the storage systems and determine if it
             // is one with storage volumes to be forgotten.
             for (VPlexStorageSystemInfo systemInfo : systemInfoList) {
-                for (String systemGuid : systemVolumesMap.keySet()) {
+                for (Entry<String, Set<String>> entry : systemVolumesMap.entrySet()) {
+                    String systemGuid = entry.getKey();
                     if (systemInfo.matches(systemGuid)) {
                         // Get all logical units for this storage
                         // system.
-                        Set<String> volumeWWNs = systemVolumesMap.get(systemGuid);
+                        Set<String> volumeWWNs = entry.getValue();
                         StringBuilder uriBuilder = new StringBuilder();
                         uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
                         uriBuilder.append(clusterInfo.getName());
@@ -2702,8 +2704,7 @@ public class VPlexApiDiscoveryManager {
             throw VPlexApiException.exceptions.errorProcessingVirtualVolumeInformation(e.getLocalizedMessage());
         }
         
-        return (virtualVolumeInfoList != null) ? 
-                virtualVolumeInfoList : new ArrayList<VPlexVirtualVolumeInfo>();
+        return virtualVolumeInfoList;
     }
     
     /**

@@ -190,10 +190,10 @@ public class SanSwitches extends ViprResourceController {
         public String userName;
 
         @MaxSize(2048)
-        public String userPassword = "";
+        public String userPassword = ""; //NOSONAR
 
         @MaxSize(2048)
-        public String confirmPassword = "";
+        public String confirmPassword = ""; //NOSONAR
 
         public boolean useSSL;
 

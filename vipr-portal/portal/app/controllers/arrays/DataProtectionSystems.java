@@ -159,10 +159,10 @@ public class DataProtectionSystems extends ViprResourceController {
         public String userName;
 
         @MaxSize(2048)
-        public String password = "";
+        public String password = "";  //NOSONAR
 
         @MaxSize(2048)
-        public String passwordConfirm = "";
+        public String passwordConfirm = ""; //NOSONAR
 
         public DataProtectionSystemForm() {
         }
@@ -174,7 +174,7 @@ public class DataProtectionSystems extends ViprResourceController {
             this.port = dataProtectionSystem.getPortNumber();
             this.systemType = dataProtectionSystem.getSystemType();
             this.userName = dataProtectionSystem.getUsername();
-            this.password = "";
+            this.password = ""; //NOSONAR
         }
 
         public boolean isNew() {

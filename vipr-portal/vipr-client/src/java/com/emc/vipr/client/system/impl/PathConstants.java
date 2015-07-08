@@ -16,11 +16,11 @@ public class PathConstants {
     public static final String LOGS_URL = "/logs";
     public static final String LOG_LEVELS_URL = LOGS_URL + "/log-levels";
     
-    public static final String PASSWD_URL = "/password";
-    public static final String UPDATE_AUTH_KEY_URL = PASSWD_URL + "/authorizedkey2";
-    public static final String UPDATE_PASSWORD_URL = PASSWD_URL + "/reset";
-    public static final String VALIDATE_PASSWORD_URL = PASSWD_URL + "/validate";
-    public static final String VALIDATE_PASSWORD_UPDATE_URL = PASSWD_URL + "/validate-update";
+    public static final String PASSWORD_URL = "/password";//NOSONAR 
+    public static final String UPDATE_AUTH_KEY_URL = PASSWORD_URL + "/authorizedkey2";
+    public static final String UPDATE_PASSWORD_URL = PASSWORD_URL + "/reset";
+    public static final String VALIDATE_PASSWORD_URL = PASSWORD_URL + "/validate";
+    public static final String VALIDATE_PASSWORD_UPDATE_URL = PASSWORD_URL + "/validate-update";
 
     public static final String LICENSE_URL = "/license";
 

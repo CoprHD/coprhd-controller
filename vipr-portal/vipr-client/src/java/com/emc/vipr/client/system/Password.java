@@ -4,7 +4,7 @@
  */
 package com.emc.vipr.client.system;
 
-import static com.emc.vipr.client.system.impl.PathConstants.PASSWD_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.PASSWORD_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.UPDATE_AUTH_KEY_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.UPDATE_PASSWORD_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.VALIDATE_PASSWORD_URL;
@@ -59,7 +59,7 @@ public class Password {
         else {
             param.setPassword(password);
         }
-        client.putURI(String.class, param, client.uriBuilder(PASSWD_URL).queryParam("logout_user", logoutUser).build());
+        client.putURI(String.class, param, client.uriBuilder(PASSWORD_URL).queryParam("logout_user", logoutUser).build());
     }
 
     /**

@@ -75,6 +75,7 @@ public class PasswordUtils {
     }
 
     private static Properties defaultProperties;
+    @SuppressWarnings({"squid:S2444"})
     public static void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }

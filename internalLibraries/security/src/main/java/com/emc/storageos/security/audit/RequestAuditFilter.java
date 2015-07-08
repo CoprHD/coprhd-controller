@@ -138,6 +138,7 @@ public class RequestAuditFilter implements Filter {
         }
     }
 
+    @SuppressWarnings({"squid:S2068"})
     public static String stripCookieToken(String str) {
         Pattern p = Pattern.compile("(?s).*(X-SDS-\\S*:|password=)\\s*([^\\r]*)\\s*\\r?\\n?");
         Matcher m = p.matcher(str);

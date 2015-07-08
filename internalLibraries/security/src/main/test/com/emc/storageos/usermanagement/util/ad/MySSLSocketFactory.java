@@ -8,13 +8,14 @@ import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
 
-
+@SuppressWarnings({"squid:S1148"})
 public class MySSLSocketFactory extends SSLSocketFactory
 {
     private SSLSocketFactory socketFactory;

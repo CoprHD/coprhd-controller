@@ -50,7 +50,7 @@ import com.vmware.vim.vasa._1_0.data.xsd.VasaProviderInfo;
 public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 	private static Logger log = Logger.getLogger(ServiceImpl.class);
-	private static String TRUSTSTOREPASSWORD_PARAM = "trustStorePassword";
+	private static String TRUSTSTOREPASSWORD_PARAM = "trustStorePassword"; //NOSONAR
 
 	private static final String FILE_SEPARATOR = System
 			.getProperty("file.separator");
@@ -58,7 +58,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 	private String tomcatRoot;
 	private String trustStoreFileName = FILE_SEPARATOR + "conf"
 			+ FILE_SEPARATOR + "jssecacerts";
-	private String trustStorePassword = "changeit";
+	private String trustStorePassword = "changeit"; //NOSONAR
 	private SSLUtil sslUtil;
 	private Config config;
 
@@ -89,7 +89,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 			String password, String certificateStr) throws InvalidCertificate,
 			InvalidLogin, InvalidSession, StorageFault {
 		// Mandatory function
-
+		
 		final String methodName = "registerVASACertificate(): ";
 
 		log.info(methodName + "Entry with username[" + username

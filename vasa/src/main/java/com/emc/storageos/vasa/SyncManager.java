@@ -426,7 +426,7 @@ public class SyncManager {
 					FileSystemExports exports = fetchFileSystemExports(tempFilesystemId);
 
 					if (exports != null && exports.getFsExportList() != null
-							&& exports.getFsExportList().size() > 0) {
+							&& !exports.getFsExportList().isEmpty()) {
 						filesystemId = tempFilesystemId;
 					}
 				}

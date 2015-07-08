@@ -30,7 +30,7 @@ import com.emc.vipr.client.ViPRCoreClient;
 public class StorageOsPlugin extends PlayPlugin {
     private static final String DEFAULT_CONTEXT_FILE = "dbclient-prod.xml";
 
-    private static StorageOsPlugin instance;
+    private static StorageOsPlugin instance = null;
 
     private String version;
     private GenericXmlApplicationContext context;
@@ -74,7 +74,7 @@ public class StorageOsPlugin extends PlayPlugin {
      */
     @Override
     public void onApplicationStart() {
-        instance = this;
+        instance = this;//NOSONAR
         if (!isEnabled()) {
             return;
         }
@@ -89,7 +89,7 @@ public class StorageOsPlugin extends PlayPlugin {
 
             Logger.info("Connected to Coordinator Service");
 
-            if (context == null) {
+            if (context == null) {//NOSONAR
                 Logger.error("Spring configuration file %s cannot be found on classpath", getContextFileName());
                 shutdown();
             }

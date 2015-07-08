@@ -123,7 +123,7 @@ public class UserMappingForm {
             return true;
         }
 
-        if (!left.getDomain().equals(right.getDomain())) {
+        if (!left.getDomain().equals(right.getDomain())) { //NOSONAR
             return false;
         }
 

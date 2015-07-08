@@ -52,7 +52,7 @@ public class ClusterInfo extends Controller {
     private static String RECONFIGURATION_STATUS_ERROR = "ipreconfig.status.error";
     
     
-    public static String vip;
+    public static String vip = null;
 	
 	/**
 	 * loads render args
@@ -99,7 +99,7 @@ public class ClusterInfo extends Controller {
 	    		}
     		}
     	}
-    	vip = ipReconfigForm.selectVipforStatusQuery();
+    	vip = ipReconfigForm.selectVipforStatusQuery();//NOSONAR
     	loadRenderArgs();
     	render(ipReconfigForm);
     }
@@ -171,6 +171,7 @@ public class ClusterInfo extends Controller {
 		return isEnabled;
 	}
 	
+	@SuppressWarnings("squid:S00116")
     public static class ClusterIpInfoForm {
     	
         @Required
@@ -416,7 +417,7 @@ public class ClusterInfo extends Controller {
             	}
             }
             
-            if (ipInfo != null) {
+            if (ipInfo != null) { //NOSONAR
             	if(ipInfo.getIpv4Setting() != null && !ipInfo.getIpv4Setting().isDefault()) {
             		if (!ipInfo.getIpv4Setting().isOnSameNetworkIPv4()) {
             			Validation.addError(null, "validation.notOnSameNwIpv4");

@@ -25,7 +25,7 @@ import com.google.common.collect.Lists;
  * Converts an Order to a Textual Representation
  */
 public class TextOrderCreator {
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yy hh:mm");
+    private static final String DATE_FORMAT = "dd-MM-yy hh:mm";
     private static final String DETAIL_INDENT = "      \t                            \t";
     
     private final ViPRCatalogClient2 client;
@@ -178,11 +178,12 @@ public class TextOrderCreator {
     }
 
     private void writeField(String label, Date date) {
+    	final SimpleDateFormat DATE = new SimpleDateFormat(DATE_FORMAT);
         if (date == null) {
             writeField(label, "");
         }
         else {
-            writeField(label, DATE_FORMAT.format((date)));
+            writeField(label, DATE.format((date)));
         }
     }
 

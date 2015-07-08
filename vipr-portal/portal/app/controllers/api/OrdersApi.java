@@ -108,7 +108,7 @@ public class OrdersApi extends Controller {
         }
 
         List<OrderInfo> orders = Lists.newArrayList();
-        for (OrderRestRep order: getCatalogClient().orders().getByIds(param.getIds())) {
+        for (OrderRestRep order: getCatalogClient().orders().getByIds(param.getIds())) { //NOSONAR
             checkPermissions(order);
             orders.add(newOrderInfo(order));
         }

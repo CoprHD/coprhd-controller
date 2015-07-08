@@ -189,7 +189,7 @@ public class OrderExecution extends Controller {
         for (String name : params.data.keySet()) {
             Matcher match = pattern.matcher(name);
             if (match.matches()) {
-                int index = new Integer(match.group(1));
+                int index = Integer.valueOf(match.group(1));
                 for (int i = values.size(); i <= index; i++) {
                     values.add(null);
                 }
@@ -242,7 +242,7 @@ public class OrderExecution extends Controller {
             parameter.setValue(value.trim());
         }
         else {
-            parameter.setValue(value);
+            parameter.setValue(value); //NOSONAR
         }
         parameter.setUserInput(true);
         if (StringUtils.equals(field.getType(), ServiceField.TYPE_PASSWORD)) {

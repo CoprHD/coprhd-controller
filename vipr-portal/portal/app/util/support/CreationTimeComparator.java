@@ -16,7 +16,7 @@ public class CreationTimeComparator implements Comparator<DataObjectRestRep> {
     
     private static final String CREATION_TIME = "creationTime";
     
-    private ComparatorChain COMPARATOR;
+    private ComparatorChain COMPARATOR;//NOSONAR
     
     private boolean reverseOrder = false;
     

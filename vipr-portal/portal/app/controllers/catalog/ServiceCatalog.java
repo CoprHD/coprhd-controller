@@ -56,7 +56,7 @@ public class ServiceCatalog extends Controller {
         if (category == null) {
             redirect(DocUtils.getDocumentationLink());
         }
-        Logger.debug("Redirecting to doc page for category: " + category.getName());
+        Logger.debug("Redirecting to doc page for category: " + category.getName()); //NOSONAR
         redirect(DocUtils.getCatalogDocumentationLink(category.getName()));
     }
 

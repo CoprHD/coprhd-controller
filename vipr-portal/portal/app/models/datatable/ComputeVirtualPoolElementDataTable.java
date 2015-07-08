@@ -75,6 +75,7 @@ public class ComputeVirtualPoolElementDataTable extends DataTable {
             this.numberOfCores = computeElement.getNumOfCores();
         }
         
+        @SuppressWarnings("squid:S00100")
         public String FormatSpeed(String speed) {
             Float newSpeed=Float.parseFloat(speed);
 

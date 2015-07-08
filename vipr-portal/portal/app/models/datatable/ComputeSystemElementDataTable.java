@@ -87,6 +87,8 @@ public class ComputeSystemElementDataTable extends DataTable {
             
 
         }
+        
+        @SuppressWarnings("squid:S00100")
         public String FormatSpeed(String speed) {
             String returnSpeed = Messages.get("computeSystemElements.Unspecified");
             try {

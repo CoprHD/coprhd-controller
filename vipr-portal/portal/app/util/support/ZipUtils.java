@@ -125,9 +125,9 @@ public class ZipUtils {
 
 		@Override
 		public boolean handleDirectory(File directory, int depth, Collection results) {
-			if (directory.getAbsolutePath().equals(startPath))
+			if (directory.getAbsolutePath().equals(startPath)) {
 				return true;
-			
+			}
 			ZipEntry entry = new ZipEntry(createEntryName(directory)+"/");
 			try {
                 entry.setTime(directory.lastModified());

@@ -181,7 +181,7 @@ public class ExecutionWindows extends Controller {
     }
 
     public static void events(int timezoneOffsetInMinutes, String start, String end) {
-        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant()));
+        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant()));//NOSONAR
         DateTimeZone tz = TimeUtils.getLocalTimeZone(timezoneOffsetInMinutes);
         DateTimeFormatter formatter = ISODateTimeFormat.date().withZone(tz);
         DateTime startDateTime = DateTime.parse(start, formatter);

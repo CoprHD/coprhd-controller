@@ -31,7 +31,7 @@ import com.emc.vipr.model.catalog.ObjectFactory;
  * @author Chris Dail
  */
 public class ApiModelPlugin extends PlayPlugin {
-    private static ApiModelPlugin instance;
+    private static ApiModelPlugin instance = null;
     public JAXBContext ctx;
 
     public static ApiModelPlugin getInstance() {
@@ -43,7 +43,7 @@ public class ApiModelPlugin extends PlayPlugin {
     }
     
     public void onApplicationStart() {
-        instance = this;
+        instance = this;//NOSONAR
         Logger.info("API Model Plugin Loaded");
         try {
             ClassLoader cl = ObjectFactory.class.getClassLoader();

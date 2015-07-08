@@ -130,7 +130,7 @@ public class BlockVirtualPools extends ViprResourceController {
         vpool.expandable = true;
         vpool.rpJournalSizeUnit = SizeUnit.x;
         vpool.rpJournalSize = RPCopyForm.JOURNAL_DEFAULT_MULTIPLIER;
-        vpool.rpRpoValue = new Long(25);
+        vpool.rpRpoValue = Long.valueOf(25);
         vpool.rpRpoType = RpoType.SECONDS;
         vpool.protectSourceSite = true;
         vpool.enableAutoCrossConnExport = true;

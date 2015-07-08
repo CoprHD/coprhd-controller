@@ -214,7 +214,7 @@ public class BlockSnapshotService extends TaskResourceService {
         
         // Check that there are no pending tasks for these snapshots.
         Volume volume = _permissionsHelper.getObjectById(snap.getParent(), Volume.class); 
-        deleteCheckForPendingTasks(Arrays.asList(volume.getTenant().getURI()), snapshots);
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), snapshots);
         
         for (BlockSnapshot snapshot : snapshots) {
             Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), task, 

@@ -356,6 +356,7 @@ public class Tasks extends Controller {
         return taskSummaries;
     }
 
+    @SuppressWarnings("squid:S00116")
     private static class TaskSummary {
         public URI id;
         public String opId;

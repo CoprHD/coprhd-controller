@@ -86,7 +86,7 @@ public class ModelExtensions extends JavaExtensions {
     }
 
     public static boolean isError(OrderLogRestRep log) {
-        return LogLevel.ERROR.equals(log.getLevel());
+        return LogLevel.ERROR.equals(log.getLevel()); //NOSONAR
     }
 
     public static boolean isPrecheck(ExecutionStateRestRep state) {

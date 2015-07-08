@@ -39659,8 +39659,7 @@
                 
                 while (!reader.isStartElement() && !reader.isEndElement())
                     reader.next();
-
-                
+                                
                 if (reader.getAttributeValue("http://www.w3.org/2001/XMLSchema-instance","type")!=null){
                   java.lang.String fullTypeName = reader.getAttributeValue("http://www.w3.org/2001/XMLSchema-instance",
                         "type");

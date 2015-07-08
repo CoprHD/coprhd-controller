@@ -19,8 +19,8 @@ public class ClientConfig {
 	
 	private static final String CONFIG_FILE = "ClientConfig.properties";
 	public static final String SERVICE_HOST = "serviceHost";
-	public static final String USERNAME = "username";
-	public static final String PASSWORD = "password";
+	public static final String USERNAME = "username"; //NOSONAR
+	public static final String PASSWORD = "password"; //NOSONAR
 	private Properties properties;
 
 	private ClientConfig() throws IOException {
@@ -55,7 +55,7 @@ public class ClientConfig {
 		}
 	}
 
-	public static ClientConfig getInstance() throws IOException {
+	public synchronized static  ClientConfig getInstance() throws IOException {
 		if (INSTANCE == null) {
 			INSTANCE = new ClientConfig();
 		}

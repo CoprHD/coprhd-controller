@@ -4725,6 +4725,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             //Get the configured migration speed
             String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED, 
                         vplexSystem.getSystemType(), null);
+            _log.info("Migration speed is {}", speed);
             String transferSize = mgirationSpeedToTransferSizeMap.get(speed);
             // Make a call to the VPlex API client to migrate the virtual
             // volume. Note that we need to do a remote migration when a

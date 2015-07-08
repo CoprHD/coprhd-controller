@@ -50,6 +50,7 @@
                 <ref bean="hdsHostStorageDomainNickName"/>
                 <ref bean="hdsHostModeOption" />
                 <ref bean="vplexStorageViewName"/>
+                <ref bean="vplexMigrationSpeed"/>
             </list>
         </property>
     </bean>
@@ -790,8 +791,8 @@
         </property>
     </bean>
     
-    <bean id="migrationSpeed" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-    	<property name="name" value="MigrationSpeed"/>
+    <bean id="vplexMigrationSpeed" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VPlexMigrationSpeed"/>
         <property name="configType" value="SimpleValue"/>
         <property name="type" value="String"/>
         <property name="scope">
@@ -1205,11 +1206,11 @@
     <bean id="predefinedValuesConstraint" class="com.emc.storageos.customconfigcontroller.PredefinedValuesConstraint">
         <property name="predefinedValues">
             <set>
-                <value>"Lowest"</value>
-                <value>"Low"</value>
-                <value>"Medium"</value>
-                <value>"High"</value>
-                <value>"Highest"</value>
+                <value>Lowest</value>
+                <value>Low</value>
+                <value>Medium</value>
+                <value>High</value>
+                <value>Highest</value>
             </set>
         </property>
         <property name="defaultValue" value="Lowest"/>

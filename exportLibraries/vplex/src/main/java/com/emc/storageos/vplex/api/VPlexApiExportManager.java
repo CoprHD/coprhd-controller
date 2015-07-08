@@ -1096,9 +1096,9 @@ public class VPlexApiExportManager {
         
         // 
         updateStorageViewInfo(storageViewInfo);
-        virtualVolumesIter = virtualVolumeMap.keySet().iterator();
-        while (virtualVolumesIter.hasNext()) {
-            String virtualVolumeName = virtualVolumesIter.next();
+        Iterator<String> virtualVolumesNamesIter = virtualVolumeMap.keySet().iterator();
+        while (virtualVolumesNamesIter.hasNext()) {
+            String virtualVolumeName = virtualVolumesNamesIter.next();
             s_logger.info("WWN {} for Volume {}", storageViewInfo.getWWNForStorageViewVolume(virtualVolumeName), virtualVolumeName);
         }
     }

@@ -21,7 +21,7 @@ public class GetBlockVolumeByWWN extends ViPRExecutionTask<VolumeRestRep> {
     @Override
     public VolumeRestRep executeTask() throws Exception {
         List<VolumeRestRep> matches = getClient().blockVolumes().findByWwn(wwn);
-        if (matches.size() > 0) {
+        if (!matches.isEmpty()) {
             return matches.get(0);
         }
 
@@ -30,7 +30,7 @@ public class GetBlockVolumeByWWN extends ViPRExecutionTask<VolumeRestRep> {
         String partialWwn = VolumeWWNUtils.getPartialWwn(wwn);
         logDebug("block.volume.not.found.rety", wwn, partialWwn);
         matches = getClient().blockVolumes().findByWwn(partialWwn);
-        if (matches.size() > 0) {
+        if (!matches.isEmpty()) {
             return matches.get(0);
         }
 
@@ -38,7 +38,7 @@ public class GetBlockVolumeByWWN extends ViPRExecutionTask<VolumeRestRep> {
         partialWwn = VolumeWWNUtils.getHusVmPartialWwn(wwn);
         logDebug("block.volume.not.found.retry", wwn, partialWwn);
         matches = getClient().blockVolumes().findByWwn(partialWwn);
-        if (matches.size() > 0) {
+        if (!matches.isEmpty()) {
             return matches.get(0);
         }
 

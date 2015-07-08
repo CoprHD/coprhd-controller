@@ -17,7 +17,7 @@ import com.emc.vipr.client.AuthClient;
 @Component
 public class ViPRProxyUser {
     private static final String PROXY_USER = "proxyuser";
-    private static final String PROXY_USER_PASSWORD_PROPERTY = "system_proxyuser_encpassword";
+    private static final String PROXY_USER_PASSWORD_PROPERTY = "system_proxyuser_encpassword"; //NOSONAR
 
     @Autowired
     private CoordinatorClient coordinatorClient;

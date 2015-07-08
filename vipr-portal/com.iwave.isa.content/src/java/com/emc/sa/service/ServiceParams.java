@@ -83,8 +83,8 @@ public interface ServiceParams {
     public String PLATFORM = "platform";
     public String NTP_SERVER = "ntpServer";
     public String MANAGEMENT_NETWORK = "managementNetwork";
-    public String HOST_PASSWORD = "hostPassword";
-    public String CONFIRM_PASSWORD = "confirmPassword";
+    public String HOST_PASSWORD = "hostPassword"; //NOSONAR
+    public String CONFIRM_PASSWORD = "confirmPassword"; //NOSONAR
     
     public String MAXUSERS = "maxUsers";
     public String PERMISSIONTYPE = "permissionType";

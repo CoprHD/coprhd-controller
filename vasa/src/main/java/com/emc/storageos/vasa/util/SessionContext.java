@@ -276,7 +276,7 @@ public class SessionContext {
 				false, null, null));
 	}
 	
-	public static boolean IsPreviouslyUsed(String sessionId) {
+	public static boolean IsPreviouslyUsed(String sessionId) { //NOSONAR
 		return sessionIdList.contains(sessionId);
 	}
 }

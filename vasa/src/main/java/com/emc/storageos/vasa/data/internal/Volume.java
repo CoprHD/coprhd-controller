@@ -61,7 +61,7 @@ public class Volume {
 	private AssociatedCoS cos;
 
 	@XmlElement(name = "wwn")
-	private String WWN;
+	private String WWN; //NOSONAR
 
 	private Itls exports;
 

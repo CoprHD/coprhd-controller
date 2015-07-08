@@ -700,17 +700,18 @@ public class VPlexApiMigrationManager {
             // Migrate each extent for the virtual volume from the
             // source to the target.
             int migrationCount = 1;
-            Iterator<Entry<VPlexExtentInfo, VPlexExtentInfo>> tgtExtentIter = extentMigrationMap.entrySet().iterator();
+            Iterator<Entry<VPlexExtentInfo,VPlexExtentInfo>> tgtExtentIter = extentMigrationMap.entrySet().iterator();
             while (tgtExtentIter.hasNext()) {
-                Entry<VPlexExtentInfo, VPlexExtentInfo> entry = tgtExtentIter.next();
-                VPlexExtentInfo srcExtentInfo = entry.getKey();
+                Entry<VPlexExtentInfo,VPlexExtentInfo> entry = tgtExtentIter.next();
+                VPlexExtentInfo tgtExtentInfo = entry.getKey();
+                VPlexExtentInfo srcExtentInfo = entry.getValue();
                 StringBuilder migrationNameBuilder = new StringBuilder(migrationName);
                 if (extentMigrationMap.size() > 1) {
                     migrationNameBuilder.append("_");
                     migrationNameBuilder.append(String.valueOf(migrationCount++));
                 }
                 VPlexMigrationInfo migrationInfo = migrateResource(
-                    migrationNameBuilder.toString(), srcExtentInfo, entry.getValue(), false,
+                    migrationNameBuilder.toString(), srcExtentInfo, tgtExtentInfo, false,
                     startNow);
                 migrationInfo.setVirtualVolumeInfo(virtualVolumeInfo);
                 migrationInfoList.add(migrationInfo);

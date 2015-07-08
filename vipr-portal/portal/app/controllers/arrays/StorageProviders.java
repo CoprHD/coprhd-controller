@@ -176,6 +176,7 @@ public class StorageProviders extends ViprResourceController {
         list();
     }
 
+    @SuppressWarnings("squid:S2068")
     public static class StorageProviderForm {
 
         public String id;

@@ -248,7 +248,7 @@ public class LDAPsources extends ViprResourceController {
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
             this.managerDn = ldapSources.getManagerDN();
-            this.managerPassword = ""; // the platform will never return the real password
+            this.managerPassword = ""; // the platform will never return the real password //NOSONAR
             this.searchBase = ldapSources.getSearchBase();
             this.searchFilter = ldapSources.getSearchFilter();
             this.serverUrls = Lists.newArrayList(ldapSources.getServerUrls());

@@ -31,8 +31,7 @@ public class TenantModificationTest extends TenantMode {
     static ViPRCoreClient secAdminClient;
 
     @BeforeClass
-    @SuppressWarnings({"squid:S2444"})
-    public static void  setupTest() throws Exception{
+    public synchronized static void  setupTest() throws Exception{
         String rootTenantAdmin = getUserByRole(rootTenantID, RoleOrAcl.TenantAdmin);
         tenantAdminClient = new ViPRCoreClient(controllerNodeEndpoint, true).withLogin(rootTenantAdmin, PASSWORD);
 
@@ -41,7 +40,7 @@ public class TenantModificationTest extends TenantMode {
     }
 
     @AfterClass
-    public static void teardownTest() throws Exception{
+    public synchronized static void teardownTest() throws Exception{
         if (tenantAdminClient != null) {
             tenantAdminClient.auth().logout();
             tenantAdminClient = null;

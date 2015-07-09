@@ -56,8 +56,7 @@ public class NotificationManager {
 
     private static CoordinatorClient _coordinator;
     
-   @SuppressWarnings({"squid:S2444"})
-   public void setCoordinator(CoordinatorClient coordinator) {
+    public synchronized void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 

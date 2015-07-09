@@ -255,18 +255,15 @@ public class Validator {
         return false;
     }
 
-    @SuppressWarnings({"squid:S2444"})
-    public static void setAuthSvcEndPointLocator(AuthSvcEndPointLocator authSvcEndPointLocator ) {
+    public synchronized static void setAuthSvcEndPointLocator(AuthSvcEndPointLocator authSvcEndPointLocator ) {
         _authSvcEndPointLocator = authSvcEndPointLocator;
     }
 
-    @SuppressWarnings({"squid:S2444"})
-    public static void setCoordinator(CoordinatorClient coordinator) {
+    public synchronized static void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
-    @SuppressWarnings({"squid:S2444"})
-    public static void setStorageOSUserRepository(StorageOSUserRepository repo) {
+    public synchronized static void setStorageOSUserRepository(StorageOSUserRepository repo) {
         _repository = repo;
     }
 

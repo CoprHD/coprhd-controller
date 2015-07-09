@@ -7,6 +7,7 @@ package com.emc.storageos.usermanagement.setup;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.ViPRSystemClient;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
@@ -18,14 +19,14 @@ import java.util.Properties;
 public class LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(LocalUserMode.class);
 
-    protected static String rootPassword = "ChangeMe";
+    protected static String rootPassword = "ChangeMe"; // NOSONAR
     protected static String controllerNodeEndpoint;
     protected static String dataNodeEndpoint;
     protected static ViPRSystemClient systemClient;
     protected static ViPRCoreClient coreClient;
 
     @BeforeClass
-    public static void setup_LocalUserModeBaseClass() throws Exception {
+    public synchronized static void setup_LocalUserModeBaseClass() throws Exception {
         //get the Bourne IP from parameter
         String  param_IP = System.getProperty("APP_HOST_NAMES");
         if(param_IP != null){

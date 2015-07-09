@@ -727,7 +727,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 	                        Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, primaryRecommendation.getVpoolChangeVolume());
 	                        Volume alreadyProvisionedTarget = RPHelper.findAlreadyProvisionedTargetVolume(changeVpoolVolume, tgtVirtualArrayURI, _dbClient);
 	                        if (alreadyProvisionedTarget != null) {           
-	                            _log.info(String.format("Existing target volume [%s] found for varray [%s]."), alreadyProvisionedTarget.getLabel(), tgtVirtualArray.getLabel());
+	                            _log.info(String.format("Existing target volume [%s] found for varray [%s]."), alreadyProvisionedTarget.getLabel().toString(), tgtVirtualArray.getLabel().toString());
 	                                                            
 	                            // No need to go further, continue on to the next target varray
 	                            continue;
@@ -910,19 +910,19 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     private void logVolumeInfo(Volume volume) {		
 		if (null != volume && !NullColumnValueGetter.isNullURI(volume.getId())) {
 			StringBuilder buff =  new StringBuilder();
-			buff.append(String.format("\nPreparing Volume:\n"));
-			buff. append(String.format("\t VolumePersonality : [%s]\n", volume.getPersonality()));
-			buff.append(String.format("\t Volume Internal Site : [%s]\n", volume.getInternalSiteName()));
-			buff.append(String.format("\t URI : [%s] - Name : [%s]\n", volume.getId(), volume.getLabel()));
+			buff.append(String.format("%nPreparing Volume:%n"));
+			buff. append(String.format("\t VolumePersonality : [%s]%n", volume.getPersonality()));
+			buff.append(String.format("\t Volume Internal Site : [%s]%n", volume.getInternalSiteName()));
+			buff.append(String.format("\t URI : [%s] - Name : [%s]%n", volume.getId(), volume.getLabel()));
 			if (!NullColumnValueGetter.isNullURI(volume.getStorageController())) {
 				StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-				buff.append(String.format("\t StorageSystem : [%s]\n", storageSystem.getLabel()));
+				buff.append(String.format("\t StorageSystem : [%s]%n", storageSystem.getLabel()));
 				
 			}
 		
 			if (!NullColumnValueGetter.isNullURI(volume.getPool())) {		 
 				StoragePool pool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-				buff.append(String.format("\t StoragePool : [%s]\n", pool.getLabel()));
+				buff.append(String.format("\t StoragePool : [%s]%n", pool.getLabel()));
 			}	
 			
 			_log.info(buff.toString());
@@ -1110,7 +1110,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         										null, capabilities, volume.getCapacity());
         		descriptors.add(desc);        	
         	}
-        	_log.info(String.format("\n\nAdding volume descriptor \n\t [%s] - [%s] \n\t type [%s]\n", desc.toString(), volume.getLabel(), volume.getPersonality()));
+        	_log.info(String.format("%n%nAdding volume descriptor %n\t [%s] - [%s] %n\t type [%s]%n", desc.toString(), volume.getLabel(), volume.getPersonality()));
         }
         return descriptors;
     } 

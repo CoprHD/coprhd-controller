@@ -572,7 +572,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VPlexController controller = getController();
             controller.deactivateMirror(vplexStorageSystem.getId(), mirror.getId(), descriptors, taskId);
         } catch (ControllerException e) {
-            String errorMsg = format("Failed to deactivate continuous copy", mirror.getId());
+            String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
             s_logger.error(errorMsg, e);
             _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
         }

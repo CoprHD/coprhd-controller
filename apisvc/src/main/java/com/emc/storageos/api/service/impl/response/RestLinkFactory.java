@@ -182,7 +182,7 @@ public final class RestLinkFactory
      *
      * @param dbClient
      */
-    public void setDbClient(DbClient dbClient) {
+    public synchronized void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
 }

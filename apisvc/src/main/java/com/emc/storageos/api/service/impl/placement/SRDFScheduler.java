@@ -1004,8 +1004,7 @@ public class SRDFScheduler implements Scheduler {
         }
         for (RemoteDirectorGroup raGroup : groups) {
             if (null != raGroup.getSourceReplicationGroupName()
-                    && (raGroup.getSourceReplicationGroupName().contains(cgName) || raGroup
-                            .getSourceReplicationGroupName().contains(cgName))) {
+                    && (raGroup.getSourceReplicationGroupName().contains(cgName))) {
                 _log.info(
                         "Found the RDF Group {}  which contains the CG {}. Processing the RDF Group for other validations.",
                         raGroup.getId(), cgObj.getId());
@@ -1050,7 +1049,7 @@ public class SRDFScheduler implements Scheduler {
             _log.warn(String
                     .format("SRDF RA Group Placement: Project name is longer than the number of characters allowed by VMAX for an RA group name.  This will cause an issue if you have multiple projects that start with %s",
                             project.getLabel().substring(0,
-                                    RDF_GROUP_NAME_MAX_LENGTH - RDF_GROUP_PREFIX.length())));
+                                    RDF_GROUP_NAME_MAX_LENGTH - RDF_GROUP_PREFIX.length())));//NOSONAR ("Suppressing Sonar violation of 1st argument is not used.  User needs warning message”)
         }
         
         _dbClient.queryByConstraint(ContainmentConstraint.Factory

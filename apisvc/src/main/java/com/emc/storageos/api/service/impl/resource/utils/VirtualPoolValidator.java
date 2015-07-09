@@ -53,6 +53,7 @@ public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U e
                 }
             }
         } catch (Exception e) {
+        	_logger.error(e.toString());
         }
         return null;
     }
@@ -67,6 +68,7 @@ public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U e
             StringSet availableValueSet = volumeInformation.get(key);
             return availableValueSet;
         } catch (Exception e) {
+        	_logger.error(e.toString());
         }
         return null;
     }

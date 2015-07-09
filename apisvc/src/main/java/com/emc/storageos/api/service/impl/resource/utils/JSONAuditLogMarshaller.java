@@ -142,7 +142,7 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
     }
 
     @Override
-    public void setLang(String lang) {
+    public synchronized void setLang(String lang) {
         String language, country;
         String[] array = lang.split("_");
         if (array.length != 2){

@@ -52,7 +52,7 @@ public class ErrorHandlingTest {
 	private WebResource baseResource;
 
 	@BeforeClass
-	public static void setupServer() throws Exception {
+	public static synchronized void setupServer() throws Exception {
 	    _server = new Server(port);
 		
 	    // AuthN servlet filters

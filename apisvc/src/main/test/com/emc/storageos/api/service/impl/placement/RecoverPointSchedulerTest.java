@@ -35,7 +35,7 @@ public class RecoverPointSchedulerTest extends Assert {
 	static VirtualArray nh2;
 	
 	@BeforeClass
-	public static void setup() {
+	public static synchronized void setup() {
 		pool1 = new StoragePool();
 		pool1.setId(URI.create("pool1"));
 		pool1.setLabel("Pool1");

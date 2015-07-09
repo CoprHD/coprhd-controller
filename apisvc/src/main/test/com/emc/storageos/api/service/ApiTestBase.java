@@ -222,7 +222,7 @@ public class ApiTestBase {
      *
      * @param isHttps: true for https urls, false otherwise
      */
-    protected void initLoadBalancer(boolean isHttps) {
+    protected synchronized void initLoadBalancer(boolean isHttps) {
         String baseServiceURLTemplate = new String();
         if(isHttps) {
             baseServiceURLTemplate = "https://%1$s:4443";
@@ -491,7 +491,7 @@ public class ApiTestBase {
                 Thread.sleep(2000);
                 System.out.println("Waiting for stable cluster state.");
             } catch (InterruptedException e) {
-
+            	_log.error(e.toString());
             }
 
             try {
@@ -519,7 +519,7 @@ public class ApiTestBase {
                     Thread.sleep(2000);
                     System.out.println("Waiting apisvc to be up");
                 } catch (InterruptedException e) {
-
+                	_log.error(e.toString());
                 }
             }
         }
@@ -732,7 +732,9 @@ public class ApiTestBase {
             sc.init(null, trustAllCerts, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
-        } catch (final Exception e) {}
+        } catch (final Exception e) {
+        	_log.error(e.toString());
+        }
     }
 
 

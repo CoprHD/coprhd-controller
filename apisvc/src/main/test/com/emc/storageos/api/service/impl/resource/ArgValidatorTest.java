@@ -32,12 +32,12 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class ArgValidatorTest extends Assert {
     
     @Test
-    public void TestCheckUri_ValidUri(){
+    public void testCheckUri_ValidUri(){
         ArgValidator.checkUri(URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:"));
     }
     
     @Test(expected=APIException.class)
-    public void TestCheckUri_BadScheme(){
+    public void testCheckUri_BadScheme(){
         try {
             ArgValidator.checkUri(URI.create("other:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:"));
         } catch (APIException apiException) {
@@ -48,7 +48,7 @@ public class ArgValidatorTest extends Assert {
     }
     
     @Test(expected=APIException.class)
-    public void TestCheckUri_BadSchemeSpecificPart(){
+    public void testCheckUri_BadSchemeSpecificPart(){
         try {
             ArgValidator.checkUri(URI.create("urn:other:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:"));
         } catch (APIException apiException) {
@@ -59,7 +59,7 @@ public class ArgValidatorTest extends Assert {
     }
     
     @Test(expected=APIException.class)
-    public void TestCheckUri_EmptyUri(){
+    public void testCheckUri_EmptyUri(){
         try {
             ArgValidator.checkUri(URI.create(EMPTY));
         } catch (APIException apiException) {
@@ -70,7 +70,7 @@ public class ArgValidatorTest extends Assert {
     }
     
     @Test(expected=APIException.class)
-    public void TestCheckUri_NullUri(){
+    public void testCheckUri_NullUri(){
         try {
             ArgValidator.checkUri(null);
         } catch (APIException apiException) {
@@ -81,13 +81,13 @@ public class ArgValidatorTest extends Assert {
     }
     
     @Test
-    public void TestCheckFieldNotNull_PositiveCase(){
+    public void testCheckFieldNotNull_PositiveCase(){
         final Object mockObject = new Object();
         ArgValidator.checkFieldNotNull(mockObject, "mock");
     }
     
     @Test(expected=BadRequestException.class)
-    public void TestCheckFieldNotNull_NegativeCase(){
+    public void testCheckFieldNotNull_NegativeCase(){
         try {
             ArgValidator.checkFieldNotNull(null, "mock");
         } catch (BadRequestException e) {
@@ -98,17 +98,17 @@ public class ArgValidatorTest extends Assert {
     }
     
     @Test
-    public void TestCheckEntity_PositiveCase(){
+    public void testCheckEntity_PositiveCase(){
         ArgValidator.checkEntity(new StorageSystem(), URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:"), false);
     }
 
     @Test(expected=NotFoundException.class)
-    public void TestCheckEntity_NegativeCase(){
+    public void testCheckEntity_NegativeCase(){
         ArgValidator.checkEntity(null, URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:"), true);
     }
 
     @Test(expected=BadRequestException.class)
-    public void TestCheckEntity_InactiveEntity_badrequest(){
+    public void testCheckEntity_InactiveEntity_badrequest(){
         try {
             DataObject object = new DataObject(){};
             object.setId(URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:"));
@@ -122,7 +122,7 @@ public class ArgValidatorTest extends Assert {
     }
 
     @Test(expected=NotFoundException.class)
-    public void TestCheckEntity_InactiveEntity_notfound(){
+    public void testCheckEntity_InactiveEntity_notfound(){
         try {
             DataObject object = new DataObject(){};
             object.setId(URI.create("urn:storageos:StorageSystem:2b91947d-749f-4356-aad7-dcd7f7906197:"));

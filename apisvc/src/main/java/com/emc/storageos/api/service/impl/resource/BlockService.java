@@ -289,9 +289,9 @@ public class BlockService extends TaskResourceService {
     private static double THIN_VOLUME_MAX_LIMIT = 240;
 
     // Block service implementations
-    static private Map<String, BlockServiceApi> _blockServiceApis;
+    private static Map<String, BlockServiceApi> _blockServiceApis;
 
-    static public void setBlockServiceApis(Map<String, BlockServiceApi> serviceInterfaces) {
+    static public synchronized void setBlockServiceApis(Map<String, BlockServiceApi> serviceInterfaces) {
         _blockServiceApis = serviceInterfaces;
     }
 

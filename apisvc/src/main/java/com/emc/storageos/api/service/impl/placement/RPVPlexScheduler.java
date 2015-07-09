@@ -1121,41 +1121,92 @@ public class RPVPlexScheduler implements Scheduler {
      * @param vpoolChangeParam The change param for the vpool change operation
      * @return list of Recommendation objects to satisfy the request
      */
-    public List<Recommendation> scheduleStorageForVpoolChangeProtected(Volume volume, VirtualPool newVpool,
+    public List<Recommendation> scheduleStorageForVpoolChangeRequest(Volume volume, VirtualPool newVpool,
                                                                         List<VirtualArray> protectionVirtualArraysForVirtualPool,
                                                                         VirtualPoolChangeParam vpoolChangeParam) {
+        
+        
+
+
+         
+//         List<StoragePool> allMatchingPools = getSourceCandidatePools(container.getSrcVarray(), container.getSrcVpool(), 
+//                                                                         container.getHaVarray(), container.getHaVpool(),
+//                                                                         project, capabilities);
+//                 
+//         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
+//         
+//         // Find out how much space we'll need to fit the Journals for the source
+//         long journalSize = RPHelper.getJournalSizeGivenPolicy(String.valueOf(volume.getCapacity()), container.getSrcVpool().getJournalSize(), capabilities.getResourceCount());
+ //
+//         // Make sure our pool is in this list; this is a check to ensure the pool is in our existing varray and new Vpool
+//         // and can fit the new sizes needed.  If it can not, send down pools that can.
+//         Iterator<StoragePool> iter = allMatchingPools.iterator();
+//         while (iter.hasNext()) {
+//             StoragePool pool = (StoragePool)iter.next();
+//             if (pool.getId().equals(volume.getPool())) {
+//                 // Make sure there's enough space for this journal volume in the current pool; it's preferred to use it.
+//                 if (capacityMatcher.poolMatchesCapacity(pool, journalSize, journalSize, false, false, null)) {
+//                     sourcePools.add(pool);
+//                     break;
+//                 } else {
+//                     _log.warn(String.format("Not enough capacity found to place RecoverPoint journal volume on pool: %s, searching for other less preferable pools.", pool.getNativeGuid()));
+//                     break;
+//                 }
+//             }
+//         }
+ //
+//         if (sourcePools.isEmpty()) {
+//             // Fall-back: if the existing source pool couldn't be used, let's find a different pool.
+//             sourcePools.addAll(allMatchingPools);
+ //
+//             if (sourcePools.isEmpty()) {
+//                 // We could not verify the source pool exists in the CoS, return appropriate error
+//                 _log.error("No matching storage pools found for the source varray: {0}. There are no storage pools that " +
+//                             "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to " +
+//                             "hold at least one resource of the requested size.", container.getSrcVarray().getLabel());
+//                 throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(container.getSrcVpool().getId(), container.getSrcVarray().getId());              
+//             }
+//         }
+//         
+//         // Flow through the MetroPoint scheduling workflow to get the recommendations, we already placement for the existing 
+//         // resources but we need placement for the HA/Stand-by/Secondary Journal
+//         recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), haVarray, 
+//                                                 haVpool, project, capabilities, sourcePools, haPools, 
+//                                                 volume, vpoolChangeParam);
+//         
+//         // Schedule storage based on the determined storage pools.
+//         return scheduleStorageSourcePoolConstraint(container.getSrcVarray(), protectionVarrays, container.getSrcVpool(), project, 
+//                                                     capabilities, sourcePools, volume, param);
+//     }
+        
+        
         _log.info("Schedule storage for vpool change to vpool {} for volume {}.", 
                 newVpool.getLabel() + "[" + String.valueOf(newVpool.getId()) + "]", 
                 volume.getLabel() + "[" + String.valueOf(volume.getId()) + "]");
         
         VirtualPool currentVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-                
-        this.initResources();
-        
         VirtualArray varray = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
+        
+        this.initResources();                
 
         // Swap src and ha if the flag has been set on the vpool
         RPVPlexVarrayVpool container = this.swapSrcAndHAIfNeeded(varray, newVpool);
                 
-        CapacityMatcher capacityMatcher = new CapacityMatcher();
         Project project = dbClient.queryObject(Project.class, volume.getProject());        
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, vpoolChangeParam.getConsistencyGroup());
                                 
         List<StoragePool> sourcePools = new ArrayList<StoragePool>();
         List<StoragePool> haPools = new ArrayList<StoragePool>();
-                
-        VirtualArray haVarray = vplexScheduler.getHaVirtualArray(container.getSrcVarray(), project, container.getSrcVpool());
-        VirtualPool haVpool = vplexScheduler.getHaVirtualPool(container.getSrcVarray(), project, container.getSrcVpool());        
-               
+                                              
         // Recommendations to return
         List<Recommendation> recommendations = Lists.newArrayList();
         
         // Upgrade RP+VPLEX to MetroPoint
         if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
-                && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {        
+                && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {                    
             // We already have our VPLEX Metro source and targets provisioned.
             // We're going to leverage this for placement.
             _log.info("Scheduling storage for upgrade to MetroPoint, we need to place a HA/Stand-by/Secondary Journal");
@@ -1187,6 +1238,12 @@ public class RPVPlexScheduler implements Scheduler {
             recommendations = createMetroPointRecommendations(container.getSrcVarray(), tgtVarrays, container.getSrcVpool(), haVarray, 
                                                                 haVpool, project, capabilities, sourcePools, haPools, 
                                                                 volume, vpoolChangeParam);            
+        }
+        else if (VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
+            
+        }
+        else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+            
         }
         
         if (recommendations != null && !recommendations.isEmpty()) {

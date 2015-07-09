@@ -625,15 +625,16 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             return false;
         }
         
-        // Not supported yet, will be in the future
+	// Not supported yet, will be in the future
         if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
             notSuppReasonBuff.append("Can't add RecoverPoint Protection directly to non-VPLEX volume. Import to VPLEX first.");
             return false;
-        }
-        
-        // Not supported yet, will be in the future
-        if (VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
-            notSuppReasonBuff.append("Add RecoverPoint Protection not supported for MetroPoint at this time.");
+        }        // Not supported yet, will be in the future
+	// If the new vpool specifies MetroPoint then we can only support VPLEX Metro -> MetroPoint.
+        if (VirtualPool.vPoolSpecifiesMetroPoint(newVpool)
+                && (volume.getAssociatedVolumes().isEmpty() 
+                        || volume.getAssociatedVolumes().size() < 2)) {
+            notSuppReasonBuff.append("Add RecoverPoint Protection for MetroPoint only supported for VPLEX Metro volumes.");
             return false;
         }
 
@@ -677,22 +678,17 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             return false;
         }
         
-        // Check for RP+VPLEX case where we would protect a VPLEX Virtual Volume as long
+        // Check for RP+VPLEX/MetroPoint case where we would protect a VPLEX Virtual Volume as long
         // as the new vpool specifies HA and Protection both.
         if (VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) 
-                && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
-                && !VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
+                && (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
+                        || VirtualPool.vPoolSpecifiesMetroPoint(newVpool))) {
             VirtualPoolChangeOperationEnum op = vplexCommonChecks(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff, include);
             
             if (op == null || !op.equals(VirtualPoolChangeOperationEnum.RP_PROTECTED)) {
                 return false;
             }                
-        }
-        
-        // Not supported yet, will be in the future
-        if (VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
-            return false;
-        }
+        }              
 
         return true;
     }

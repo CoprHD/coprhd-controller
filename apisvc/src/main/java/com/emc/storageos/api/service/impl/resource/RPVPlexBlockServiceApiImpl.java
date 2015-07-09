@@ -1606,23 +1606,10 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      */
     private List<Recommendation> getRecommendationsForVirtualPoolChangeRequest(Volume volume, VirtualPool newVpool, VirtualPoolChangeParam vpoolChangeParam) {
         Project project = _dbClient.queryObject(Project.class, volume.getProject());
-
-        List<Recommendation> recommendations = null;
-        if (volume.checkForRp()) {
-            recommendations = getBlockScheduler().scheduleStorageForVpoolChangeProtected(volume, newVpool,
-                                                                                                RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool, 
-                                                                                                        _dbClient, super.getPermissionsHelper()), 
-                                                                                                vpoolChangeParam);
-            
-        } else {
-            recommendations = getBlockScheduler().scheduleStorageForVpoolChangeUnprotected(volume, newVpool,
-                                                                                            RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool, 
-                                                                                                    _dbClient, super.getPermissionsHelper()), 
-                                                                                            vpoolChangeParam);
-        }
-        
-        // Protection volume placement is requested.
-        return recommendations;
+        return getBlockScheduler().scheduleStorageForVpoolChangeRequest(volume, newVpool,
+                RecoverPointScheduler.getProtectionVirtualArraysForVirtualPool(project, newVpool, 
+                        _dbClient, super.getPermissionsHelper()), 
+                vpoolChangeParam);
     }
  
     /**
@@ -1921,6 +1908,9 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         _log.info(String.format("Upgrade [%s] to MetroPoint", volume.getLabel()));
         
         Project project = _dbClient.queryObject(Project.class, volume.getProject());
+
+        // Force consistency group to be the same as the volume for this operation.
+        vpoolChangeParam.setConsistencyGroup(volume.getConsistencyGroup());
         
         List<Recommendation> recommendations = 
                 getRecommendationsForVirtualPoolChangeRequest(volume, newVpool, vpoolChangeParam);

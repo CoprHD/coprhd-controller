@@ -797,12 +797,12 @@
         <property name="type" value="String"/>
         <property name="scope">
             <map>
-                <entry key="global" value="default"/>
+                <entry key="systemType" value="vplex"/>
             </map>
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="Lowest"/>
+                <entry key="vplex" value="Lowest"/>
             </map>
         </property>
         <property name="constraints">

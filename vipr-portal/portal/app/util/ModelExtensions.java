@@ -86,7 +86,7 @@ public class ModelExtensions extends JavaExtensions {
     }
 
     public static boolean isError(OrderLogRestRep log) {
-        return LogLevel.ERROR.equals(log.getLevel()); //NOSONAR ("Suppressing Sonar violation of Remove this call to "equals"; comparisons between unrelated types always return false.Both are same types.”)
+        return LogLevel.ERROR.equals(log.getLevel()); //NOSONAR ("Suppressing Sonar violation of Remove this call to "equals"; comparisons between unrelated types always return false.Both are same types.")
     }
 
     public static boolean isPrecheck(ExecutionStateRestRep state) {

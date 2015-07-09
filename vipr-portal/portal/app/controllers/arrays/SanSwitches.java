@@ -190,10 +190,10 @@ public class SanSwitches extends ViprResourceController {
         public String userName;
 
         @MaxSize(2048)
-        public String userPassword = ""; //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.”)
+        public String userPassword = ""; //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
         @MaxSize(2048)
-        public String confirmPassword = ""; //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.”)
+        public String confirmPassword = ""; //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
         public boolean useSSL;
 

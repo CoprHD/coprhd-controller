@@ -181,7 +181,7 @@ public class ExecutionWindows extends Controller {
     }
 
     public static void events(int timezoneOffsetInMinutes, String start, String end) {
-        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant())); //NOSONAR ("Suppressing Sonar violation of Method invoking inefficient number constructor”)
+        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant())); //NOSONAR ("Suppressing Sonar violation of Method invoking inefficient number constructor")
         DateTimeZone tz = TimeUtils.getLocalTimeZone(timezoneOffsetInMinutes);
         DateTimeFormatter formatter = ISODateTimeFormat.date().withZone(tz);
         DateTime startDateTime = DateTime.parse(start, formatter);

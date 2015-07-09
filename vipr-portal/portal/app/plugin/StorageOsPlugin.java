@@ -74,7 +74,7 @@ public class StorageOsPlugin extends PlayPlugin {
      */
     @Override
     public void onApplicationStart() {
-        instance = this;//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for field instance”)
+        instance = this;//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for field instance")
         if (!isEnabled()) {
             return;
         }

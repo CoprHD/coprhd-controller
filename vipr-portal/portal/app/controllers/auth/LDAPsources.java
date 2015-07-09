@@ -248,7 +248,7 @@ public class LDAPsources extends ViprResourceController {
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
             this.managerDn = ldapSources.getManagerDN();
-            this.managerPassword = ""; // the platform will never return the real password //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.”)
+            this.managerPassword = ""; // the platform will never return the real password //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
             this.searchBase = ldapSources.getSearchBase();
             this.searchFilter = ldapSources.getSearchFilter();
             this.serverUrls = Lists.newArrayList(ldapSources.getServerUrls());

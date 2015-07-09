@@ -16,7 +16,6 @@
 package com.emc.storageos.systemservices.impl.upgrade;
 
 import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
 import org.json.simple.parser.JSONParser;
 
 import java.io.*;
@@ -66,7 +65,7 @@ public class RemoteRepository {
     private int _timeout;       // connect and read timeout
     private boolean _disabled = false;
     // List of image URLS
-    List<URL> imageUrls = new ArrayList<URL>();
+    List<URL> imageUrls = new ArrayList<>();
 
     // thread pool used to execute the new version check 
     private static final int FIXED_THREAD_POOL_SIZE = 5;
@@ -78,7 +77,7 @@ public class RemoteRepository {
     private String _password;
     private String _ctsession;
     private SSLSocketFactory _sslSocketFactory;
-    private final int MAXIMUM_REDIRECT_ALLOWED = 10;
+    private static final int MAXIMUM_REDIRECT_ALLOWED = 10;
     private static CoordinatorClientExt _coordinator;
     private static RemoteRepositoryCacheUpdate _remoteRepositoryCacheUpdate;
     
@@ -86,7 +85,7 @@ public class RemoteRepository {
     private final static String SYSTEM_UPDATE_REPO = "system_update_repo";
     private final static String SYSTEM_UPDATE_PROXY = "system_update_proxy";    
     private final static String SYSTEM_UPDATE_USERNAME = "system_update_username";
-    private final static String SYSTEM_UPDATE_PASSWORD = "system_update_password";    
+    private final static String SYSTEM_UPDATE_PASSWORD = "system_update_password"; //NOSONAR
     private final static String SYSTEM_UPDATE_CHECK_FREQUENCY_HOURS = "system_update_check_frequency_hours";
     // connect + read timeout constant
     private final static int SYSTEM_UPDATE_REPO_TIMEOUT = 30000;
@@ -191,24 +190,39 @@ public class RemoteRepository {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+
+        if (getClass() != obj.getClass()) {
             return false;
+        }
+
         RemoteRepository other = (RemoteRepository) obj;
         if (_proxy == null) {
-            if (other._proxy != null)
+            if (other._proxy != null) {
                 return false;
-        } else if (!_proxy.equals(other._proxy))
+            }
+        } else if (!_proxy.equals(other._proxy)) {
             return false;
+        }
         if (_repo == null) {
-            if (other._repo != null)
+            if (other._repo != null) {
                 return false;
-        } else if (!_repo.equals(other._repo))
+            }
+        } else if (!_repo.toString().equals(other._repo.toString())) {
             return false;
+        }
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(_proxy, _repo);
     }
 
 /***
@@ -340,8 +354,8 @@ public class RemoteRepository {
     
     /**
      * Read a remote repository.  Return an input stream and the content-type
-     * @param The url of the repository to read
-     * @param A redirect counter to keep track of the number of redirects. There is a upper limit on the redirects
+     * @param repo The url of the repository to read
+     * @param redirectCount A redirect counter to keep track of the number of redirects. There is a upper limit on the redirects
      * @return RepositoryContent object that contains an input stream of the content and the type of content
      * @throws RemoteRepositoryException
      */
@@ -351,7 +365,7 @@ public class RemoteRepository {
             HttpURLConnection httpCon = prepareConnection(repo);
             httpCon.setInstanceFollowRedirects(false);
             httpCon.addRequestProperty("User-Agent", "Mozilla");
-            if( SoftwareUpdate.isCatalogServer(repo) ) {                    
+            if( SoftwareUpdate.isCatalogServer(repo) ) {
                 writePostContent(httpCon, SoftwareUpdate.getCatalogPostContent(repo));
             } else {
                 httpCon.connect();
@@ -377,7 +391,7 @@ public class RemoteRepository {
     //
     private Map<SoftwareVersion, URL> parseRepository() throws RemoteRepositoryException {
         RepositoryContent repositoryContent = readRepository(_repo);
-        _log.debug("Parsing repository URL: the URL after redirections is "+repositoryContent.getRepoURL());
+        _log.debug("Parsing repository URL: the URL after redirections is " + repositoryContent.getRepoURL());
         try {
             if(repositoryContent.getContentType().toLowerCase().contains("text/xml")) {
                 return parseCatalog(readCatalog(readInputStream(repositoryContent.getContentStream())));
@@ -551,8 +565,9 @@ public class RemoteRepository {
     }
     
     public static void startRemoteRepositoryCacheUpdate() {
-        if(! _coordinator.isControlNode())
+        if(! _coordinator.isControlNode()) {
             return;
+        }
 
         if( null == _remoteRepositoryCacheUpdate ) {
             _remoteRepositoryCacheUpdate = new RemoteRepositoryCacheUpdate();
@@ -732,8 +747,6 @@ public class RemoteRepository {
      *       "serviceFault":null
      *   }
      *
-     * @param username
-     * @param password
      */
     private void login() {
         _log.info("{} is trying to login ...", _username);
@@ -852,7 +865,7 @@ public class RemoteRepository {
         SSLContext sslContext;
 
         sslContext = SSLContext.getInstance( "SSL" );
-        sslContext.init( null, trustAllCerts, new java.security.SecureRandom() );
+        sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
         // Create an ssl socket factory with our all-trusting manager
         _sslSocketFactory = sslContext.getSocketFactory();
 
@@ -945,6 +958,9 @@ public class RemoteRepository {
     
     public List<SoftwareVersion> getUpgradeFromVersions(SoftwareVersion version) throws Exception {
     	RemoteRepositoryCache remoteRepositoryCache = _coordinator.getTargetInfo(RemoteRepositoryCache.class); // get cached repository info
+        if (remoteRepositoryCache == null) {
+            return Collections.emptyList();
+        }
     	Map<SoftwareVersion, List<SoftwareVersion>> cachedVersionMap = remoteRepositoryCache.getCachedVersions();
 		if(cachedVersionMap.containsKey(version)){			
 			return cachedVersionMap.get(version);
@@ -961,7 +977,7 @@ public class RemoteRepository {
             // is from a different repository.
             // That way we can still update the time the check was last performed
             // so we're not churning this check on a bad repository configuration
-            if( null != remoteRepositoryCache && remoteRepositoryCache.getRepositoryInfo().equals(repository)) {
+            if(remoteRepositoryCache.getRepositoryInfo().equals(repository)) {
                 softwareVersionMap = remoteRepositoryCache.getCachedVersions();
             } else {
                 softwareVersionMap = Collections.<SoftwareVersion, List<SoftwareVersion>>emptyMap();
@@ -1024,17 +1040,15 @@ public class RemoteRepository {
                     SoftwareVersion tempVersion = new SoftwareVersion(fileName);
                     List<SoftwareVersion> tempList = new ArrayList<SoftwareVersion>();
                     if (!catalogInfo.equals("")) {
-                    	String upgradeFromInfoRaw = null;
                     	for (String s : catalogInfo.split(",")) { // key-value pairs are separated by comma
                     		if (s.startsWith("upgradeFromVersions=")) {
-                    			upgradeFromInfoRaw = s;
-                    			break;
+                                String upgradeFromInfo = s.split("=")[1]; // only need the value
+                                for (String versionStr: upgradeFromInfo.split(";")) { // versions are separated by semicolon
+                                    tempList.add(new SoftwareVersion(versionStr));
+                                }
+                                break;
                     		}
                     	}
-                        String upgradeFromInfo = upgradeFromInfoRaw.split("=")[1]; // only need the value                
-                        for (String versionStr: upgradeFromInfo.split(";")) { // versions are separated by semicolon 
-                        	tempList.add(new SoftwareVersion(versionStr));                   	
-                        }     
                     }                                   
                     map.put(tempVersion, tempList);
                 }
@@ -1083,22 +1097,26 @@ public class RemoteRepository {
             		httpCon.setRequestMethod("GET");
             		List<SoftwareVersion> tempList = new ArrayList<SoftwareVersion>();
             		if(httpCon.getResponseCode() == HttpURLConnection.HTTP_OK) {
-            			InputStream is = httpCon.getInputStream();
             			StringBuilder input = new StringBuilder();
 
-            	        Reader in = new InputStreamReader(is, "UTF-8");
-            	        while (true) {
-            	            char[] buffer = new char[0x10000];
-            	            int read = in.read(buffer, 0, buffer.length);
-            	            if (read <= 0) {
-            	                break;
-            	            }
-            	            input.append(buffer, 0, read);
-            	        }
-            	        _log.info("The meta data file is: "+input.toString());
+            	        try (InputStream is = httpCon.getInputStream();
+                             Reader in = new InputStreamReader(is, "UTF-8")) {
+                            while (true) {
+                                char[] buffer = new char[0x10000];
+                                int read = in.read(buffer, 0, buffer.length);
+                                if (read <= 0) {
+                                    break;
+                                }
+                                input.append(buffer, 0, read);
+                            }
+                        }
+
+            	        _log.info("The meta data file is: {}", input);
             	        for (String s : input.toString().split("\n")) {
             	        	if (s.startsWith("upgrade_from:")) {
-            	        		if (s.trim().endsWith(":")) break;
+            	        		if (s.trim().endsWith(":")) {
+                                    break;
+                                }
             					for (String versionStr : s.substring(13).split(",")){
             						tempList.add(new SoftwareVersion(versionStr));
             					}
@@ -1108,7 +1126,7 @@ public class RemoteRepository {
             		}
             		_versionsMap.put(version, tempList);
                 } catch (Exception e) {
-                    _log.debug("Ignored. " + logMsg + ": " + e);
+                    _log.debug("Ignored. {}", logMsg, e);
                 }
             }
         }
@@ -1160,19 +1178,18 @@ public class RemoteRepository {
                 		// Only find the node for image file of that particular version
                 		Node catalogInfoNode = element.getAttributeNode("CatalogInfo");
                         String catalogInfo = catalogInfoNode.getNodeValue();
-                        if (catalogInfo==null) return versions;
-                        String upgradeFromInfoRaw = null;
+                        if (catalogInfo==null) {
+                            return versions;
+                        }
                     	for (String s : catalogInfo.split(",")) { // key-value pairs are separated by comma
                     		if (s.startsWith("upgradeFromVersions=")) {
-                    			upgradeFromInfoRaw = s;
-                    			break;
+                                String upgradeFromInfo = s.split("=")[1]; // The format is "upgradeableFromVersion=version1;version2". We don't need the key and the equal sign
+                                for(String v: upgradeFromInfo.split(";")){
+                                    versions.add(v);
+                                }
+                                break OUTER;
                     		}
                     	}
-                        String upgradeFromInfo = upgradeFromInfoRaw.split("=")[1]; // The format is "upgradeableFromVersion=version1;version2". We don't need the key and the equal sign
-                        for(String v: upgradeFromInfo.split(";")){
-                        	versions.add(v);
-                        }
-                        break OUTER;
                 	}
                 }
             }
@@ -1190,28 +1207,30 @@ public class RemoteRepository {
 		if(httpCon.getResponseCode() == HttpURLConnection.HTTP_OK) {
 			for (String s :readInputStream(httpCon.getInputStream()).split("\n")) {
 				if (s.startsWith("upgrade_from:")) {
-					if (!s.trim().endsWith(":")) return Arrays.asList(s.substring(13).split(","));
+					if (!s.trim().endsWith(":")) {
+                        return Arrays.asList(s.substring(13).split(","));
+                    }
 					break;
 				}
 			}
 		}		
-		return new ArrayList<String>();
+		return new ArrayList<>();
 	}
 
 	/**
 	 * Get a list of new versions that can be installed from the remote repository
-	 * @param remoteVersions versions available in the remote repository
 	 * @param forceInstall whether we should show versions available for force install
 	 * @param localCurrent current target version
 	 * @param localVersions currently installed versions
-	 * @param prefix log prefix
 	 */
 	public List<SoftwareVersion> findInstallableVersions(
 	        final boolean forceInstall,
 	        final SoftwareVersion localCurrent,
 	        final List<SoftwareVersion> localVersions) {
 		List<SoftwareVersion> newVersionList = findNewVersions(localCurrent, localVersions, forceInstall);
-	    if (newVersionList.isEmpty()) return newVersionList;
+	    if (newVersionList.isEmpty()) {
+            return newVersionList;
+        }
 	    RepositoryContent repositoryContent = readRepository(_repo);
 		try {
             if(repositoryContent.getContentType().toLowerCase().contains("text/xml")) {
@@ -1286,7 +1305,9 @@ public class RemoteRepository {
                 	if(newVersionList.contains(tempVersion)) {
                 		Node catalogInfoNode = element.getAttributeNode("CatalogInfo");
                         String catalogInfo = catalogInfoNode.getNodeValue();
-                        if (catalogInfo.equals("")) continue; // Ignore the version that doesn't have the upgradeFromVersion metadata
+                        if (catalogInfo.equals("")) {
+                            continue; // Ignore the version that doesn't have the upgradeFromVersion metadata
+                        }
                         String upgradeFromInfoRaw = catalogInfo.split(",")[0]; // key-value pairs are separated by comma
                         String upgradeFromInfo = upgradeFromInfoRaw.split("=")[1]; // only need the value
                         for (String versionStr: upgradeFromInfo.split(";")) { // versions are separated by semicolon 

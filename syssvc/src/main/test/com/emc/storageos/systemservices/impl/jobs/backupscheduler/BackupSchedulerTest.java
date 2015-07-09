@@ -56,6 +56,7 @@ public class BackupSchedulerTest {
     };
 
     @Test
+    @SuppressWarnings("squid:S1848") // to avoid sonar errors on TestProductName
     public void testScheduling() throws Exception {
         new TestProductName();
 
@@ -92,6 +93,7 @@ public class BackupSchedulerTest {
     }
 
     @Test
+    @SuppressWarnings("squid:S1848") // to avoid sonar errors on TestProductName
     public void testUpload() throws Exception {
         new TestProductName();
 
@@ -148,6 +150,7 @@ public class BackupSchedulerTest {
     }
 
     @Test
+    @SuppressWarnings("squid:S1848") // to avoid sonar errors on TestProductName
     public void testTagCleanup() throws Exception {
         new TestProductName();
 

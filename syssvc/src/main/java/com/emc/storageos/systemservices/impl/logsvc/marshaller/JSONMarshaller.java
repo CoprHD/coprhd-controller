@@ -44,7 +44,7 @@ public class JSONMarshaller extends Marshaller {
     private static final byte[] TIME = "time".getBytes();
     private static final byte[] TIME_MS = "time_ms".getBytes();
 
-    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     JSONMarshaller(OutputStream outputStream) {
         super(outputStream);
@@ -64,10 +64,11 @@ public class JSONMarshaller extends Marshaller {
 
     @Override
     public void marshall(LogMessage log) throws IOException {
-        if (firstLog)
+        if (firstLog) {
             firstLog = false;
-        else
+        } else {
             outputStream.write(COMMA);
+        }
 
         final byte[] firstLine = log.getFirstLine();
 
@@ -103,8 +104,9 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(COMMA);
         if (log.getTimeBytesOffset() == -1 || log.getTimeBytesLen() == 0) {
             writeFakeTimeStr(log);
-        } else
+        } else {
             writeEntry(TIME, firstLine, log.getTimeBytesOffset(), log.getTimeBytesLen(), true);
+        }
         outputStream.write(COMMA);
         writeEntry(TIME_MS, String.valueOf(log.getTime()).getBytes(), false);
         outputStream.write(RETURN);
@@ -114,10 +116,11 @@ public class JSONMarshaller extends Marshaller {
 
     @Override
     public void marshall(String msg, LogMessage prevMsg) throws IOException {
-        if (firstLog)
+        if (firstLog) {
             firstLog = false;
-        else
+        } else {
             outputStream.write(COMMA);
+        }
 
         outputStream.write(RETURN);
         outputStream.write(TAB);
@@ -145,11 +148,13 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(QUOTE);
         outputStream.write(COLON);
         outputStream.write(SPACE);
-        if (isStr)
+        if (isStr) {
             outputStream.write(QUOTE);
+        }
         outputStream.write(value);
-        if (isStr)
+        if (isStr) {
             outputStream.write(QUOTE);
+        }
     }
 
     private void writeFakeTimeStr(LogMessage log) throws IOException {
@@ -176,14 +181,17 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(QUOTE);
         outputStream.write(COLON);
         outputStream.write(SPACE);
-        if (isStr)
+        if (isStr) {
             outputStream.write(QUOTE);
-        if (valueOffset == -1 || valueLength == 0)
+        }
+        if (valueOffset == -1 || valueLength == 0) {
             outputStream.write(isStr ? "null".getBytes() : "-1".getBytes());
-        else
+        } else {
             outputStream.write(firstLine, valueOffset, valueLength);
-        if (isStr)
+        }
+        if (isStr) {
             outputStream.write(QUOTE);
+        }
     }
 
     /**
@@ -225,8 +233,9 @@ public class JSONMarshaller extends Marshaller {
                 mark = i + 1;
             }
         }
-        if (mark == msg.length)
+        if (mark == msg.length) {
             return;
+        }
         outputStream.write(msg, mark, msg.length - mark);
     }
 }

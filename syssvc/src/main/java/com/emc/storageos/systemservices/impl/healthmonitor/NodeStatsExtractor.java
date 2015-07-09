@@ -90,7 +90,7 @@ public class NodeStatsExtractor implements StatConstants {
         }
 
         //Ordering service stats
-        if (availableServices == null || availableServices.size() == 0) {
+        if (availableServices == null || availableServices.isEmpty()) {
             _log.warn("List of available services is null or empty: {}",
                     availableServices);
             return new ArrayList<ServiceStats>(tempServiceStatsMap.values());
@@ -228,16 +228,6 @@ public class NodeStatsExtractor implements StatConstants {
             // If values are wrapped, adding max val to it and subtracting
             _log.debug("New value is wrapped. newVal: {} oldVal: {}", newVal, oldVal);
             return newVal + (Long.MAX_VALUE - oldVal);
-        }
-    }
-
-    private static UnsignedLong diff(UnsignedLong newVal, UnsignedLong oldVal) {
-        if (newVal.compareTo(oldVal) >= 0) {
-            return newVal.minus(oldVal);
-        } else {
-            // If values are wrapped, adding max val to it and subtracting
-            _log.debug("New value is wrapped. newVal: {} oldVal: {}", newVal, oldVal);
-            return UnsignedLong.MAX_VALUE.minus(oldVal).plus(newVal);
         }
     }
 

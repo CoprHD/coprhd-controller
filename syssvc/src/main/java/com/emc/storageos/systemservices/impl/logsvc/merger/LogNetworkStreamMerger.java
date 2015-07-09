@@ -141,10 +141,11 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
 
         LogMessage msg;
         while ((msg = readNextMergedLogMessage()) != null) {
-            if (msg.getTime() == batchTime)
+            if (msg.getTime() == batchTime) {
                 logBatch.add(msg);
-            else
+            } else {
                 return msg;
+            }
         }
         // msg == null, i.e., no more logs to read
         return null;
@@ -154,19 +155,20 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
         List<NodeInfo> nodeInfo;
         List<LogNetworkReader> logNetworkStreams = new ArrayList<>();
         // Getting all nodes information
-        if (request.getNodeIds().size() == 0) {
+        if (request.getNodeIds().isEmpty()) {
             logger.info("No nodes specified, getting all nodes");
             nodeInfo = ClusterNodesUtil.getClusterNodeInfo();
         } else {
             nodeInfo = getClusterNodesWithIds(request.getNodeIds());
         }
-        if (nodeInfo.size() == 0) {
+        if (nodeInfo.isEmpty()) {
             throw APIException.internalServerErrors.noNodeAvailableError("collect logs info");
         }
         List<String> failedNodes = ClusterNodesUtil.getUnavailableControllerNodes();            
-        if(request.getNodeIds().size() > 0)
+        if(! request.getNodeIds().isEmpty()) {
             failedNodes.retainAll(request.getNodeIds());
-        if(failedNodes.size() > 0) {
+        }
+        if(! failedNodes.isEmpty()) {
             logger.error("Cannot collect logs from unavailable nodes: {}", failedNodes.toString());
         }
         

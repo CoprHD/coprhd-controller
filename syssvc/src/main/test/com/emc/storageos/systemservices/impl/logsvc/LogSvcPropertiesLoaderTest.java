@@ -56,6 +56,7 @@ public class LogSvcPropertiesLoaderTest {
             URL url = ClassLoader.getSystemResource(PROP_FILE_NAME);
             s_logsvcProps.load(url.openStream());
         } catch (Exception e) {
+            ;
         }
     }
 

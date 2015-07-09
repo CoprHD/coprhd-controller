@@ -33,7 +33,7 @@ import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.systemservices.impl.util.LocalPasswordHandler;
 
 
-
+@SuppressWarnings("squid:S2068") //suppress the sonar errors on hard-coded password.
 public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
 
     private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
@@ -122,7 +122,7 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
     		    storedPassword = _encryptionProvider.decrypt(Base64.decodeBase64(_passwordProps.getProperty(
     					String.format(SYSTEM_ENCPASSWORD_FORMAT, username)).getBytes("UTF-8")));
     		} catch (UnsupportedEncodingException e) {
-
+                ;
     		}
             Assert.assertTrue(storedPassword.equals(password));          
     	}

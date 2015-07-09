@@ -16,7 +16,6 @@
 package com.emc.storageos.systemservices.impl.ipreconfig;
 
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.model.property.PropertyConstants;
@@ -58,7 +57,7 @@ public class IpReconfigManager implements Runnable {
     private ClusterIpInfo newIpinfo = null;     // new ip info
     private Integer localNodeId;                // local node id (1~5)
     private Integer nodeCount;
-    private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
+    private long expirationTime = 0L;         // ipreconfig would fail if not finished at this time
 
     @Autowired
     private CoordinatorClientExt _coordinator;
@@ -70,13 +69,15 @@ public class IpReconfigManager implements Runnable {
 
     private IpReconfigListener ipReconfigListener = null;
 
-    private static Properties ovfProperties;    // local ovfenv properties
+    private static volatile Properties ovfProperties;    // local ovfenv properties
     public static void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
     public static Map<String, String> getOvfProperties() {
         return (Map)ovfProperties;
     }
+
+    private static boolean sleep;
 
     /**
      * Responds to connection drops / reconnects.
@@ -184,8 +185,8 @@ public class IpReconfigManager implements Runnable {
             return;
         }
 
-        expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
-        if(System.currentTimeMillis() >= expiration_time) {
+        expirationTime = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
+        if(System.currentTimeMillis() >= expirationTime) {
             // set procedure failed when it is expired
             setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
             return;
@@ -221,15 +222,15 @@ public class IpReconfigManager implements Runnable {
         log.info("driving ipreconfig state machine ...");
 
         // Start to handle ip reconfig procedure if it is started and not expired.
-        String localnode_status_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, localNodeId);
-        IpReconfigConstants.NodeStatus localnode_status = IpReconfigConstants.NodeStatus.valueOf(config.getConfig(localnode_status_key));
-        IpReconfigConstants.NodeStatus target_nodestatus = null;
+        String localNodeStatusKey = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, localNodeId);
+        IpReconfigConstants.NodeStatus localNodeStatus = IpReconfigConstants.NodeStatus.valueOf(config.getConfig(localNodeStatusKey));
+        IpReconfigConstants.NodeStatus targetNodeStatus = null;
 
-        String base64Encoded_newipinfo = config.getConfig(IpReconfigConstants.CONFIG_IPINFO_KEY);
-        newIpinfo = ClusterIpInfo.deserialize(Base64.decodeBase64(base64Encoded_newipinfo.getBytes(UTF_8)));
+        String base64EncodedNewipinfo = config.getConfig(IpReconfigConstants.CONFIG_IPINFO_KEY);
+        newIpinfo = ClusterIpInfo.deserialize(Base64.decodeBase64(base64EncodedNewipinfo.getBytes(UTF_8)));
         if (!newIpinfo.equals(localIpinfo)) {
             // NewIP has not been applied yet, in the process of syncing among all nodes.
-            switch (localnode_status) {
+            switch (localNodeStatus) {
                 case None:
                     // NewIP is just set in ZK.
                     IpReconfigUtil.writeIpinfoFile(localIpinfo, IpReconfigConstants.OLDIP_PATH);
@@ -238,44 +239,44 @@ public class IpReconfigManager implements Runnable {
                     String strExpirationTime = config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY);
                     FileUtils.writeObjectToFile(strExpirationTime, IpReconfigConstants.NEWIP_EXPIRATION);
 
-                    target_nodestatus = IpReconfigConstants.NodeStatus.LOCALAWARE_LOCALPERSISTENT;
-                    setNodeStatus(target_nodestatus.toString());
+                    targetNodeStatus = IpReconfigConstants.NodeStatus.LOCALAWARE_LOCALPERSISTENT;
+                    setNodeStatus(targetNodeStatus.toString());
                     break;
                 case LOCALAWARE_LOCALPERSISTENT:
                     // Local node persists the NewIP, while it has no idea of other nodes' status.
-                    target_nodestatus = IpReconfigConstants.NodeStatus.LOCALAWARE_CLUSTERPERSISTENT;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
-                        setNodeStatus(target_nodestatus.toString());
+                    targetNodeStatus = IpReconfigConstants.NodeStatus.LOCALAWARE_CLUSTERPERSISTENT;
+                    if(isReadyForNextStatus(localNodeStatus, targetNodeStatus)) {
+                        setNodeStatus(targetNodeStatus.toString());
                     }
                     break;
                 case LOCALAWARE_CLUSTERPERSISTENT:
                     // Local node is aware of NewIP is persisted in cluster domain, but has no idea if other nodes know the fact.
-                    target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTERACK_CLUSTERPERSISTENT;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
-                        setNodeStatus(target_nodestatus.toString());
+                    targetNodeStatus = IpReconfigConstants.NodeStatus.CLUSTERACK_CLUSTERPERSISTENT;
+                    if(isReadyForNextStatus(localNodeStatus, targetNodeStatus)) {
+                        setNodeStatus(targetNodeStatus.toString());
                     }
                     break;
                 case CLUSTERACK_CLUSTERPERSISTENT:
                     // Every node knows the new IPs has been persisted in cluster domain and get the same acknowledgement from others.
-                    target_nodestatus = IpReconfigConstants.NodeStatus.LOCAL_SUCCEED;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                    targetNodeStatus = IpReconfigConstants.NodeStatus.LOCAL_SUCCEED;
+                    if(isReadyForNextStatus(localNodeStatus, targetNodeStatus)) {
                         // After all nodes are in ClusterACK_ClusterPersistent, we will
                         // 1. powoff cluster
                         // 2. commit new IP during next reboot
                         // 3. set local node status to "Local_Succed"
                         // 4. set total status to "Succeed" when all nodes are "Local_Succeed".
-                        halt_node(config.getConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY));
+                        haltNode(config.getConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY));
                     }
                     break;
                 default:
-                    log.error("unexpected node status before reboot: {}", localnode_status);
+                    log.error("unexpected node status before reboot: {}", localNodeStatus);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
                     break;
             }
         } else {
             // newIP has taken effect, we need to set procedure status SUCCEED after all nodes got new IP.
-            switch (localnode_status) {
+            switch (localNodeStatus) {
                 case LOCALAWARE_CLUSTERPERSISTENT:
                     // The current node confirms there are quorum nodes are using new IPs and then
                     // adopt the newIPs during bootstrap.  We need to jump it to ClusterACK_ClusterPersistent status
@@ -290,13 +291,13 @@ public class IpReconfigManager implements Runnable {
                     break;
                 case LOCAL_SUCCEED:
                     // New IP has taken effect in local node, set total status to "Succeed" when all nodes are "Local_Succeed".
-                    target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                    targetNodeStatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
+                    if(isReadyForNextStatus(localNodeStatus, targetNodeStatus)) {
                         setSucceed();
                     }
                     break;
                 default:
-                    log.error("unexpected node status after reboot: {}", localnode_status);
+                    log.error("unexpected node status after reboot: {}", localNodeStatus);
                     // if installer is used before the procedure finished, we will get unexpected node status
                     setFailed(IpReconfigConstants.ERRSTR_MANUAL_CONFIGURED);
                     break;
@@ -313,9 +314,9 @@ public class IpReconfigManager implements Runnable {
     private boolean isReadyForNextStatus(IpReconfigConstants.NodeStatus currNodeStatus, IpReconfigConstants.NodeStatus targetNodeStatus) {
         boolean bReadyForNextStatus = true;
         for (int i=1; i<=nodeCount; i++) {
-            String node_status_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
-            IpReconfigConstants.NodeStatus node_status = IpReconfigConstants.NodeStatus.valueOf(config.getConfig(node_status_key));
-            if (node_status.ordinal() < currNodeStatus.ordinal()) {
+            String nodeStatusKey = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
+            IpReconfigConstants.NodeStatus nodeStatus = IpReconfigConstants.NodeStatus.valueOf(config.getConfig(nodeStatusKey));
+            if (nodeStatus.ordinal() < currNodeStatus.ordinal()) {
                 bReadyForNextStatus = false;
                 log.info("local node is not ready to step into next status: {}", targetNodeStatus);
                 break;
@@ -344,8 +345,8 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void persistZKNodeStatus(String nodestatus) throws Exception{
-        String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, localNodeId);
-        config.setConfig(nodestatus_key, nodestatus);
+        String nodeStatusKey = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, localNodeId);
+        config.setConfig(nodeStatusKey, nodestatus);
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);
     }
 
@@ -465,18 +466,22 @@ public class IpReconfigManager implements Runnable {
     }
 
     private synchronized void await() throws InterruptedException {
-        this.wait();
+        sleep = true;
+        while (sleep) {
+            this.wait();
+        }
     }
 
     private synchronized void wakeup() {
+        sleep = false;
         this.notifyAll();
     }
 
     /**
      * Poweroff/Reboot the node
      */
-    public void halt_node(String postOperation) throws Exception {
-        Thread.sleep(6*1000);
+    public void haltNode(String postOperation) throws Exception {
+        Thread.sleep(6 * 1000);
         if (postOperation.equals("poweroff")) {
             localRepository.poweroff();
         } else {
@@ -491,8 +496,9 @@ public class IpReconfigManager implements Runnable {
      * @throws Exception
      */
     private void startPollExecutor() throws Exception {
-        if(_pollExecutor != null && !_pollExecutor.isTerminated())
+        if(_pollExecutor != null && !_pollExecutor.isTerminated()) {
             return;
+        }
 
         log.info("starting polling executor ...");
         _pollExecutor = new NamedThreadPoolExecutor(IpReconfigManager.class.getSimpleName() + "_Polling", 1);
@@ -505,8 +511,8 @@ public class IpReconfigManager implements Runnable {
                             // Check if procedure expired periodically, set failed and exit polling thread.
                             config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
                             if (config != null && isStarted(config)) {
-                                expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
-                                if (expiration_time < System.currentTimeMillis()) {
+                                expirationTime = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
+                                if (expirationTime < System.currentTimeMillis()) {
                                     setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
                                     return;
                                 }
@@ -546,9 +552,9 @@ public class IpReconfigManager implements Runnable {
     private boolean isRollback(){
         try {
             if(FileUtils.exists(IpReconfigConstants.NODESTATUS_PATH)) {
-                IpReconfigConstants.NodeStatus localnode_status =
+                IpReconfigConstants.NodeStatus localNodeStatus =
                         IpReconfigConstants.NodeStatus.valueOf(IpReconfigUtil.readNodeStatusFile());
-                if (localnode_status == IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK) {
+                if (localNodeStatus == IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK) {
                     log.info("User is trying to rollback last ip reconfiguration.");
                     setFailed(IpReconfigConstants.ERRSTR_ROLLBACK);
                     FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
@@ -668,7 +674,7 @@ public class IpReconfigManager implements Runnable {
      * @param postOperation
      * @throws Exception
      */
-    private void initIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception{
+    private synchronized void initIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception{
         ClusterIpInfo ipinfo = new ClusterIpInfo(clusterIpInfo.getIpv4Setting(), clusterIpInfo.getIpv6Setting());
         log.info("Initiating ip reconfiguraton procedure {}", ipinfo.toString());
 
@@ -678,8 +684,8 @@ public class IpReconfigManager implements Runnable {
         cfg.setConfig(IpReconfigConstants.CONFIG_IPINFO_KEY, new String(Base64.encodeBase64(ipinfo.serialize()), UTF_8));
         cfg.setConfig(IpReconfigConstants.CONFIG_STATUS_KEY, ClusterNetworkReconfigStatus.Status.STARTED.toString());
         for(int i=1; i<=ipinfo.getIpv4Setting().getNetworkAddrs().size(); i++) {
-            String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
-            cfg.setConfig(nodestatus_key, IpReconfigConstants.NodeStatus.None.toString());
+            String nodeStatusKey = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
+            cfg.setConfig(nodeStatusKey, IpReconfigConstants.NodeStatus.None.toString());
         }
 
         // Set ip reconfiguration timeout to 1 day
@@ -688,9 +694,9 @@ public class IpReconfigManager implements Runnable {
         //    Later we should extend API for user to set desired expiration time
         // 2. For directly reboot case, it would be better to set longer timeout as well to cover
         //    underlying unexpected node bootstrap issue which needs manual recovery etc.
-        expiration_time = System.currentTimeMillis() + IPRECONFIG_TIMEOUT;
+        expirationTime = System.currentTimeMillis() + IPRECONFIG_TIMEOUT;
 
-        cfg.setConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY, String.valueOf(expiration_time));
+        cfg.setConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY, String.valueOf(expirationTime));
         cfg.setConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY, postOperation);
         config = cfg;
 

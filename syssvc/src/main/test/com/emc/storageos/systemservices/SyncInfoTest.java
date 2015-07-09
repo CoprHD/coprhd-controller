@@ -63,6 +63,7 @@ public class SyncInfoTest {
     }
 
     @Test
+    @SuppressWarnings("squid:S1848") // to avoid sonar errors on TestProductName
     public void testLocal() throws Exception {
         new TestProductName();
         // tests getLeaderSyncInfo

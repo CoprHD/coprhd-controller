@@ -55,7 +55,7 @@ public class ConfigServiceTest {
         try {
             email.setStartTls("no");
         } catch (Exception e) {
-           
+            ;
         }
      
         PropertyInfoUpdate propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
@@ -83,14 +83,14 @@ public class ConfigServiceTest {
         try {
             email.setSmtpAuthType("login");
         } catch(Exception e) {
-            
+            ;
         }
 
         PropertyInfoUpdate propInfo = null;
         try {
             propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
         } catch (APIException ise) {
-            
+            ;
         }
         
         Assert.assertNull(propInfo);

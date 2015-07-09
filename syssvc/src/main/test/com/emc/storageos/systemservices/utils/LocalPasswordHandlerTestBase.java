@@ -66,19 +66,19 @@ public class LocalPasswordHandlerTestBase {
     }
     
     public void setPropsMetaData() {    	
-    	PropertyMetadata proxyuser_metadata = setPropMetaData("Encrypted password for the 'proxyuser' account", "Encrypted (SHA-512) password for the local 'proxyuser' account.",
+    	PropertyMetadata proxyuserMetadata = setPropMetaData("Encrypted password for the 'proxyuser' account", "Encrypted (SHA-512) password for the local 'proxyuser' account.",
     			"encryptedstring", 255, "Security", true, true, false, true, false, "", true);
-    	PropertyMetadata sysmonitor_metadata = setPropMetaData("Encrypted password for the 'sysmonitor' account", "Encrypted password for the 'sysmonitor' account.",
+    	PropertyMetadata sysmonitorMetadata = setPropMetaData("Encrypted password for the 'sysmonitor' account", "Encrypted password for the 'sysmonitor' account.",
     			"string", 255, "Security", true, true, false, true, false, "$6$BIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0", true);
-    	PropertyMetadata root_metadata = setPropMetaData("Encrypted password for the 'root' account", "Encrypted (SHA-512) password for the local 'root' account.",
+    	PropertyMetadata rootMetadata = setPropMetaData("Encrypted password for the 'root' account", "Encrypted (SHA-512) password for the local 'root' account.",
     			"string", 255, "Security", true, true, false, true, false, "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0", false);
-    	PropertyMetadata svcuser_metadata = setPropMetaData("Encrypted password for the 'svcuser' account", "Encrypted (SHA-512) password for the local 'svcuser' account.",
+    	PropertyMetadata svcuserMetadata = setPropMetaData("Encrypted password for the 'svcuser' account", "Encrypted (SHA-512) password for the local 'svcuser' account.",
     			"string", 255, "Security", true, true, false, true, false, "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0", false);
     	
-    	_propsMetadata.put("system_proxyuser_encpassword", proxyuser_metadata);
-    	_propsMetadata.put("system_sysmonitor_encpassword", sysmonitor_metadata);
-    	_propsMetadata.put("system_root_encpassword", root_metadata);
-    	_propsMetadata.put("system_svcuser_encpassword", svcuser_metadata);
+    	_propsMetadata.put("system_proxyuser_encpassword", proxyuserMetadata);
+    	_propsMetadata.put("system_sysmonitor_encpassword", sysmonitorMetadata);
+    	_propsMetadata.put("system_root_encpassword", rootMetadata);
+    	_propsMetadata.put("system_svcuser_encpassword", svcuserMetadata);
     }
     
     public PropertyMetadata setPropMetaData(String label, String description, String type, int maxLen, String tag, Boolean advanced, 

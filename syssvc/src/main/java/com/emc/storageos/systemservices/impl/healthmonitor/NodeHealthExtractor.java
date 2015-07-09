@@ -96,7 +96,6 @@ public class NodeHealthExtractor implements StatConstants {
             // Check service beacon to know service status. make it work for dbsvc/geodbsvc first, then rest of other
             // after we unified beacon format
             String svcVersion = coordinator.getTargetDbSchemaVersion();
-            String endpointName = null;
             List<Service> svcs;
             try {
                 svcs = coordinator.locateAllServices(svcName, svcVersion, null, null);
@@ -109,7 +108,8 @@ public class NodeHealthExtractor implements StatConstants {
             // because we still see its process as GOOD
             Status status = Status.DEGRADED;
             for (Service svc : svcs) {
-                if (svc.getEndpoint(null).getHost().equals(nodeId) || svc.getEndpoint(endpointName).getHost().equals(nodeIP)) { // Found our service
+                String endpointHost = svc.getEndpoint(null).getHost();
+                if (endpointHost.equals(nodeId) || endpointHost.equals(nodeIP)) { // Found our service
                     status = Status.GOOD;
                 }
             }

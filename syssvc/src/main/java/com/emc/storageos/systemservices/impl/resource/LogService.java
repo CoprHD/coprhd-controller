@@ -31,7 +31,6 @@ import javax.ws.rs.core.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.management.jmx.logging.LoggingOps;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -46,8 +45,6 @@ import com.emc.storageos.systemservices.impl.logsvc.LogRequestParam;
 import com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil;
 import com.emc.storageos.systemservices.impl.resource.util.NodeInfo;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.common.Service;
 import com.emc.vipr.model.sys.logging.LogLevelRequest;
 import com.emc.vipr.model.sys.logging.LogLevels;
 import com.emc.vipr.model.sys.logging.LogRequest;
@@ -60,28 +57,19 @@ import com.emc.vipr.model.sys.logging.SetLogLevelParam;
  */
 @Path("/logs/")
 public class LogService extends BaseLogSvcResource {
-
-    // A reference to the coordinator client for retrieving the registered
-    // Bourne nodes.
-    private static CoordinatorClient s_coordinator;
-
-    // A reference to the service for getting Bourne cluster information.
-    private static Service s_service;
-
     // Logger reference.
     private static final Logger _log = LoggerFactory.getLogger(LogService.class);
     public final static int MAX_THREAD_COUNT = 10;
     public static AtomicInteger runningRequests = new AtomicInteger(0);
 
-    // FIXME: I have no idea how to register logging MBean to these two services now
-    private static List<String> _exemptLogSvcs = new ArrayList<String>();
+    // FIXME: I have no idea how to register logging MBean to vasasvc
+    private List<String> _exemptLogSvcs = new ArrayList<>();
     private static final List<LogSeverity> VALID_LOG4J_SEVS = Arrays.asList(
             LogSeverity.FATAL, LogSeverity.ERROR, LogSeverity.WARN, LogSeverity.INFO,
             LogSeverity.DEBUG, LogSeverity.TRACE);
-    private static final List<String> VALID_LOG4J_SEV_STRS = new ArrayList<String>();
+    private static final List<String> VALID_LOG4J_SEV_STRS = new ArrayList<>();
     private static final int MAX_LOG_LEVEL_EXPIR = 2880; // two days
-        
-    @Autowired
+
     private CoordinatorClientExt _coordinatorClientExt;
 
     static {
@@ -101,25 +89,6 @@ public class LogService extends BaseLogSvcResource {
     }
 
     /**
-     * Setter for the coordinator client reference.
-     *
-     * @param coordinator A reference to the coordinator client.
-     */
-    public void setCoordinator(CoordinatorClient coordinator) {
-        s_coordinator = coordinator;
-    }
-
-    /**
-     * Setter for the service for getting Bourne cluster information.
-     *
-     * @param service A reference to the service for getting Bourne cluster
-     *                information.
-     */
-    public void setService(Service service) {
-        s_service = service;
-    }
-
-    /**
      * Setter for the services not eligible for dynamic log level control.
      *
      * @param services A list of service names not eligible for dynamic log level
@@ -127,6 +96,10 @@ public class LogService extends BaseLogSvcResource {
      */
     public void setExemptLoggerService(List<String> services) {
         _exemptLogSvcs = services;
+    }
+
+    public void setCoordinatorClientExt(CoordinatorClientExt coordinatorClientExt) {
+        _coordinatorClientExt = coordinatorClientExt;
     }
 
     /**
@@ -236,12 +209,12 @@ public class LogService extends BaseLogSvcResource {
         
         if(dryRun) {
             List<NodeInfo> clusterNodesInfo = ClusterNodesUtil.getClusterNodeInfo();
-            if (clusterNodesInfo.size() == 0) {
+            if (clusterNodesInfo.isEmpty()) {
                 _log.error("No nodes available for collecting logs");
                 throw APIException.internalServerErrors.noNodeAvailableError("no nodes available for collecting logs");
             }
             List<NodeInfo> matchingNodes = null;
-            if (nodeIds.size() == 0) {
+            if (nodeIds.isEmpty()) {
                 matchingNodes = clusterNodesInfo;
             }
             else {
@@ -263,8 +236,9 @@ public class LogService extends BaseLogSvcResource {
                 failedNodes = _coordinatorClientExt.getUnavailableControllerNodes();
             }
 
-            if(nodeIds.size() > 0)
+            if (! nodeIds.isEmpty()) {
                 failedNodes.retainAll(nodeIds);
+            }
             String baseNodeURL;
             SysClientFactory.SysClient sysClient;                
             for (final NodeInfo node : matchingNodes) {
@@ -527,10 +501,11 @@ public class LogService extends BaseLogSvcResource {
                     _log.debug("log level of service {} has been set to {}", logName, level);
                 }
             } catch (IllegalStateException e) {
-                if (isGetReq) 
+                if (isGetReq) {
                     _log.error("Failed to get log level from service {}:", logName, e);
-                else
+                } else {
                     _log.error("Failed to set log level of service {}:", logName, e);
+                }
             }
         }
         
@@ -549,17 +524,17 @@ public class LogService extends BaseLogSvcResource {
      private void validateNodeIds(List<String> nodeIds) {
         // Get the cluster node information and validate that there is
         // a cluster node with each of the requested ids.
-        if (nodeIds == null || nodeIds.size() == 0) {
+        if (nodeIds == null || nodeIds.isEmpty()) {
             return;
         }
         List<NodeInfo> nodeInfoList = ClusterNodesUtil.getClusterNodeInfo();
-        List<String> validNodeIds = new ArrayList<String>(nodeInfoList.size());
+        List<String> validNodeIds = new ArrayList<>(nodeInfoList.size());
         for (NodeInfo node : nodeInfoList) {
             validNodeIds.add(node.getId());
         }
-        List<String> nodeIdsClone = new ArrayList<String>(nodeIds);
+        List<String> nodeIdsClone = new ArrayList<>(nodeIds);
         nodeIdsClone.removeAll(validNodeIds);
-        if (nodeIdsClone.size() > 0) {
+        if (! nodeIdsClone.isEmpty()) {
             throw APIException.badRequests.parameterIsNotValid("node id");
         }
     }
@@ -573,14 +548,14 @@ public class LogService extends BaseLogSvcResource {
      * @throws APIException if the list contains an invalid node id.
      */
     private void validateNodeServices(List<String> logNames) {
-        if (logNames == null || logNames.size() == 0) {
+        if (logNames == null || logNames.isEmpty()) {
             return;
         }
-        List<String> logNamesClone = new ArrayList<String>(logNames);
+        List<String> logNamesClone = new ArrayList<>(logNames);
         // both control and extra node services are valid service names
         logNamesClone.removeAll(ServicesMetadata.getControlNodeServiceNames());
         logNamesClone.removeAll(ServicesMetadata.getExtraNodeServiceNames());
-        if (logNamesClone.size() > 0) {
+        if (! logNamesClone.isEmpty()) {
             throw APIException.badRequests.parameterIsNotValid("log name");
         }
     }
@@ -597,8 +572,9 @@ public class LogService extends BaseLogSvcResource {
             return null;
         }
         String scopeLevel = LogScopeEnum.getName(scope);
-        if (scopeLevel == null) 
+        if (scopeLevel == null) {
             throw APIException.badRequests.parameterIsNotValid("log scope value:" + scope);
+        }
 
         return scopeLevel;
     }

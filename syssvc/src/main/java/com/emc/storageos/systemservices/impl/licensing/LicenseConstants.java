@@ -65,46 +65,51 @@ public final class LicenseConstants {
         
     public static String getModelId(LicenseType licenseType)
     {
-        if(licenseType.equals(LicenseType.CONTROLLER))
-            return VIPR_CONTROLLER;
-        else if(licenseType.equals(LicenseType.OBJECT))
-            return VIPR_OBJECT;
-        else if(licenseType.equals(LicenseType.HDFS))
-            return VIPR_HDFS;
-        else if(licenseType.equals(LicenseType.OBJECTHDFS))
-            return VIPR_OBJECTHDFS;        
-        else if(licenseType.equals(LicenseType.UNSTRUCTURED))
-            return VIPR_UNSTRUCTURED;
-        else if(licenseType.equals(LicenseType.CAS))
-            return VIPR_CAS;
-        else if(licenseType.equals(LicenseType.BLOCK))
-            return VIPR_BLOCK;
-        else if(licenseType.equals(LicenseType.COMMODITY))
-            return VIPR_COMMODITY;
-        else if(licenseType.equals(LicenseType.ECS))
-            return VIPR_ECS;
-        else
-            return "";		
+        switch(licenseType) {
+            case CONTROLLER:
+                return VIPR_CONTROLLER;
+            case OBJECT:
+                return VIPR_OBJECT;
+            case HDFS:
+                return VIPR_HDFS;
+            case OBJECTHDFS:
+                return VIPR_OBJECTHDFS;
+            case UNSTRUCTURED:
+                return VIPR_UNSTRUCTURED;
+            case CAS:
+                return VIPR_CAS;
+            case BLOCK:
+                return VIPR_BLOCK;
+            case COMMODITY:
+                return VIPR_COMMODITY;
+            case ECS:
+                return VIPR_ECS;
+            default:
+                return "";
+        }
     }
     
     public static LicenseType getLicenseType(String modelId)
     {
-    	if(modelId.compareToIgnoreCase(VIPR_CONTROLLER) ==0)
-    		return LicenseType.CONTROLLER;
-    	else if(modelId.compareToIgnoreCase(VIPR_OBJECT) ==0)
-    		return LicenseType.OBJECT;
-    	else if(modelId.compareToIgnoreCase(VIPR_HDFS) ==0)
-    		return LicenseType.HDFS;
-    	else if(modelId.compareToIgnoreCase(VIPR_UNSTRUCTURED) ==0)
-    		return LicenseType.UNSTRUCTURED;
-    	else if(modelId.compareToIgnoreCase(VIPR_CAS) ==0)
-    		return LicenseType.CAS;
-    	else if(modelId.compareToIgnoreCase(VIPR_BLOCK) ==0)
-    		return LicenseType.BLOCK;
-    	else if(modelId.compareToIgnoreCase(VIPR_COMMODITY) ==0)
-    		return LicenseType.COMMODITY;
-    	else if(modelId.compareToIgnoreCase(VIPR_ECS) ==0)
-    		return LicenseType.ECS;
-        return null;
+    	switch(modelId) {
+            case VIPR_CONTROLLER:
+                return LicenseType.CONTROLLER;
+            case VIPR_OBJECT:
+                return LicenseType.OBJECT;
+            case VIPR_HDFS:
+                return LicenseType.HDFS;
+            case VIPR_UNSTRUCTURED:
+                return LicenseType.UNSTRUCTURED;
+            case VIPR_CAS:
+                return LicenseType.CAS;
+            case VIPR_BLOCK:
+                return LicenseType.BLOCK;
+            case VIPR_COMMODITY:
+                return LicenseType.COMMODITY;
+            case VIPR_ECS:
+                return LicenseType.ECS;
+            default:
+                return null;
+        }
     }
 }

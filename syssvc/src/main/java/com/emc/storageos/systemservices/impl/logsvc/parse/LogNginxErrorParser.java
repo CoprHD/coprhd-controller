@@ -38,7 +38,7 @@ public class LogNginxErrorParser extends LogParser{
 
     private static final Logger logger = LoggerFactory.getLogger(LogNginxErrorParser.class);
 
-    private final int TIME_LENGTH = 19;
+    private static final int TIME_LENGTH = 19;
 
     @Override
     public LogMessage parseLine(String line, LogRequest info) {

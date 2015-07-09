@@ -143,9 +143,7 @@ public class LocalRepository {
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_INSTALL, file.getPath() };
         final String[] images = exec(prefix, cmd);
 
-        if (images == null) {
-            throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. Null output");
-        } else if (images.length != 1) {
+        if (images.length != 1) {
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. No results.");
         }
 
@@ -179,9 +177,7 @@ public class LocalRepository {
         final String[] images = exec(prefix, cmd);
         _log.debug(prefix + "images=" + Strings.repr(images));
         
-        if (images == null) {
-            throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. Null output");
-        } else if (images.length == 0) {
+        if (images.length == 0) {
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. No results.");
         }
 
@@ -430,9 +426,7 @@ public class LocalRepository {
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_IS_APPLIANCE };
         final String[] ret = exec(prefix, cmd);
 
-        if (ret == null) {
-            throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. Null output");
-        } else if (ret.length != 1) {
+        if (ret.length != 1) {
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Internal error. No results.");
         }
 

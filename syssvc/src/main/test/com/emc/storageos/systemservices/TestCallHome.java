@@ -31,7 +31,7 @@ import static org.junit.Assert.assertTrue;
 
 public class TestCallHome {
     public static final String TMP_VERSION_FILE = "/opt/storageos/conf/version.properties";
-    private static Client client = null;
+    private Client client = null;
 
     @Before
     public void setUp() {

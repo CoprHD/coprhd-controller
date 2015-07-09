@@ -63,11 +63,11 @@ public class SoftwareUpdate {
         
     }
     
-    public void setCatalogServerHostNames(List<String> catalogServerHostNames) {
+    public static void setCatalogServerHostNames(List<String> catalogServerHostNames) {
         _catalogServerHostNames = catalogServerHostNames;        
     }
     
-    public void setCatalogName(final String catalogName) {
+    public static void setCatalogName(final String catalogName) {
         String[] catalogParts = catalogName.split("\\.");
         if( catalogParts.length < 4) {
             throw APIException.internalServerErrors.invalidObject("catalog name");
@@ -77,7 +77,7 @@ public class SoftwareUpdate {
         _catalogLanguage = catalogParts[2];
         _catalogEnvironment = catalogParts[3];
     }
-    public void setEncryptionProvider( EncryptionProvider encryptionProvider ) {
+    public static void setEncryptionProvider( EncryptionProvider encryptionProvider ) {
         _encryptionProvider = encryptionProvider;
     }
     public static boolean isCatalogServer(final URL url) {

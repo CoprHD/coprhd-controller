@@ -51,7 +51,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UpgradeManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(UpgradeManager.class);
 
-    private static final String dbNoEncryptFlagFile = "/data/db/no_db_encryption";
+    private String dbNoEncryptFlagFile;
 
     // max number of tries of connecting remote repository
     private final static int MAX_REPO_RETRIES = 3;
@@ -67,7 +67,7 @@ public class UpgradeManager extends AbstractManager {
     private RepositoryInfo localInfo;
     private RepositoryInfo targetInfo;
 
-    private static boolean isValidRepo;
+    private boolean isValidRepo;
 
     // current number of tries of connecting remote repository
     private int tryRepoCnt = 0;
@@ -80,6 +80,10 @@ public class UpgradeManager extends AbstractManager {
 
     public RemoteRepository getRemoteRepository() {
         return remoteRepository;
+    }
+
+    public void setDbNoEncryptFlagFile(String dbNoEncryptFlagFile) {
+        this.dbNoEncryptFlagFile = dbNoEncryptFlagFile;
     }
 
     @Override
@@ -353,8 +357,9 @@ public class UpgradeManager extends AbstractManager {
         for (Entry<String, NodeState> entry: nodestates.entrySet()) {
             if (!entry.getKey().equals(coordinator.getMyNodeName())) {
                 previousVersion = entry.getValue().getCurrent();
-                if (previousVersion != null)
+                if (previousVersion != null) {
                     return previousVersion;
+                }
             }
         }
 
@@ -371,8 +376,9 @@ public class UpgradeManager extends AbstractManager {
         String currentDbVersion = coordinator.getCurrentDbSchemaVersion();
         if (currentDbVersion.startsWith("1.") || // Vipr 1.x
             currentDbVersion.startsWith("2.0") || // Vipr 2.0.x
-            currentDbVersion.startsWith("2.1")) // Vipr 2.1.x
+            currentDbVersion.startsWith("2.1")) { // Vipr 2.1.x
             return false;
+        }
 
         return true;
     }
@@ -479,7 +485,7 @@ public class UpgradeManager extends AbstractManager {
                 // do nothing, wait nodeInSync to complete download
                 log.info("Step3a: Wait nodeInSync to finish download");
             }
-        } else if (controlNodeInSync != null) {
+        } else {
             //  both control node and extra node can sync with controlNodeInSync if it's not null
             try {
                 if (syncToNodeInSync(localInfo, targetInfo, controlNodeInSync, syncinfo)) {
@@ -509,7 +515,7 @@ public class UpgradeManager extends AbstractManager {
             throws RemoteRepositoryException, LocalRepositoryException {
 
         // Step1 - if something to install, install
-        if (syncinfo.getToInstall() != null && syncinfo.getToInstall().size() > 0) {
+        if (syncinfo.getToInstall() != null && ! syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
             if (toInstall != null && (image = getRemoteImage(toInstall)) == null) {
@@ -525,7 +531,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // Step2 - if something to remove, remove
-        if (syncinfo.getToRemove() != null && syncinfo.getToRemove().size() > 0) {
+        if (syncinfo.getToRemove() != null && ! syncinfo.getToRemove().isEmpty()) {
             for (SoftwareVersion v : syncinfo.getToRemove()) {
                 localRepository.removeVersion(v);
             }
@@ -538,7 +544,7 @@ public class UpgradeManager extends AbstractManager {
                                      final SyncInfo syncinfo)
             throws SysClientException, LocalRepositoryException {
         // Step1 - if something to install, install
-        if (syncinfo.getToInstall() != null && syncinfo.getToInstall().size() > 0) {
+        if (syncinfo.getToInstall() != null && ! syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
             if (toInstall != null && (image = getLeaderImage(toInstall, leader)) == null) {
@@ -554,7 +560,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // Step2 - if something to remove, remove
-        if (syncinfo.getToRemove() != null && syncinfo.getToRemove().size() > 0) {
+        if (syncinfo.getToRemove() != null && ! syncinfo.getToRemove().isEmpty()) {
             for (SoftwareVersion v : syncinfo.getToRemove()) {
                 localRepository.removeVersion(v);
             }
@@ -581,7 +587,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // return nodeId which is synced
-        if (candidates.size() > 0) {
+        if (! candidates.isEmpty()) {
             return candidates.get(new Random().nextInt(candidates.size()));
         }
 

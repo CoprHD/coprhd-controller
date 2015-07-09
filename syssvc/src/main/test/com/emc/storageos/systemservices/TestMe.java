@@ -46,6 +46,7 @@ public class TestMe {
         try {
             shellIn.close();
         } catch (IOException ignoreMe) {
+            ;
         }
     }
     public static void main(String[] args) {

@@ -26,17 +26,47 @@
     <task:annotation-driven executor="taskExecutor" scheduler="taskScheduler"/>
     <util:properties id="logsvcProperties" location="classpath:logsvc.properties" />
 
-    <bean id="softwareUpdate" class="com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate">
-        <property name="catalogServerHostNames" >
-	        <list>
-		        <value>colu.emc.com</value>
-		        <value>colu-test.emc.com</value>
-	        </list>
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate"/>
+        <property name="targetMethod" value="setCatalogServerHostNames"/>
+        <property name="arguments">
+            <list>
+                <value>colu.emc.com</value>
+                <value>colu-test.emc.com</value>
+            </list>
         </property>
-        <property name="catalogName" value="VIPR.SOFTWARE.EN_US.PRODUCTION"/>
-        <property name="encryptionProvider" ref="encryptionProvider"/>
     </bean>
-    
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate"/>
+        <property name="targetMethod" value="setCatalogName"/>
+        <property name="arguments" value="VIPR.SOFTWARE.EN_US.PRODUCTION"/>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate"/>
+        <property name="targetMethod" value="setEncryptionProvider"/>
+        <property name="arguments" ref="encryptionProvider"/>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil"/>
+        <property name="targetMethod" value="setCoordinator"/>
+        <property name="arguments" ref="coordinator"/>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil"/>
+        <property name="targetMethod" value="setService"/>
+        <property name="arguments" ref="serviceinfo"/>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil"/>
+        <property name="targetMethod" value="setCoordinatorExt"/>
+        <property name="arguments" ref="coordinatorclientext"/>
+    </bean>
+
     <bean id="internalLogoutClient" class="com.emc.storageos.security.authentication.InternalLogoutClient" />
 
     <bean id="localRepository" class="com.emc.storageos.systemservices.impl.upgrade.LocalRepository">
@@ -44,9 +74,8 @@
     </bean>
 
     <bean id="logService" class="com.emc.storageos.systemservices.impl.resource.LogService">
-        <property name="coordinator" ref="coordinator" />
-        <property name="service" ref="serviceinfo" />
-        <property name="exemptLoggerService" >
+        <property name="coordinatorClientExt" ref="coordinatorclientext" />
+        <property name="exemptLoggerService">
             <list>
                 <value>vasasvc</value>
             </list>
@@ -61,6 +90,7 @@
     </bean>
     
     <bean id="upgradeManager" class="com.emc.storageos.systemservices.impl.upgrade.UpgradeManager">
+        <property name="dbNoEncryptFlagFile" value="/data/db/no_db_encryption" />
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />   
         <property name="nodeCount" ref="nodeCount" />   
@@ -119,11 +149,6 @@
                     <property name="localUsers" ref="localUserMap"/>
                     <property name="notificationManager" ref="notificationManager"/>
                 </bean>
-                <bean class="com.emc.storageos.systemservices.impl.resource.util.ClusterNodesUtil" >
-                    <property name="coordinator" ref="coordinator" />
-                    <property name="service" ref="serviceinfo" />
-                    <property name="coordinatorExt" ref="coordinatorclientext" />
-                </bean>
                 <ref bean="backupService" />
             </set>
         </property>
@@ -134,7 +159,6 @@
         <property name="localUsers" ref="localUserMap"/>
         <property name="configService" ref="passwordConfigService"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>
-        <property name="dbClient" ref="dbclient"/>
     </bean>
     
     <bean id="passwordConfigService" class="com.emc.storageos.systemservices.impl.resource.ConfigService">

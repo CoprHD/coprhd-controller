@@ -22,8 +22,6 @@ import com.emc.storageos.systemservices.impl.logsvc.util.LogUtil;
 import com.emc.vipr.model.sys.logging.LogRequest;
 
 public abstract class LogParser {
-    protected static Calendar logDate = Calendar.getInstance();
-
     public abstract LogMessage parseLine(String line, LogRequest info);
 
     // test if log entry match level filter
@@ -49,6 +47,7 @@ public abstract class LogParser {
     // return -1 --later than end time
     protected int inTimeRange(int year, int month, int days, int hours, int mins,
                             int secs, int msecs, LogRequest request) {
+        Calendar logDate = Calendar.getInstance();
         logDate.set(year, (month - 1), days, hours, mins, secs);
         logDate.set(Calendar.MILLISECOND, msecs);
         return LogUtil.timeInRange(logDate.getTime(), request.getStartTime(),
@@ -58,6 +57,7 @@ public abstract class LogParser {
     // Returns the number of milliseconds
     protected long getTime(int year, int month, int days, int hours, int mins,
                          int secs, int msecs) {
+        Calendar logDate = Calendar.getInstance();
         logDate.set(year, (month - 1), days, hours, mins, secs);
         logDate.set(Calendar.MILLISECOND, msecs);
         Date date = logDate.getTime();

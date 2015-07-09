@@ -29,6 +29,7 @@ public class SoftwareVersionMetadataTest {
 	static Random ran = new Random();
 	
 	@Test
+	@SuppressWarnings("squid:S1848") // to avoid sonar errors on TestProductName
 	public void testSoftwareVersionMetadata() throws Exception {
 		new TestProductName();
 		SoftwareVersionMetadata.setimageFileTemplate(template);

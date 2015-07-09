@@ -117,7 +117,7 @@ public class LogStreamTest {
      */
     @Test
     @Ignore
-    public void testGetFilePath_TimeFilter() {
+    public void testGetFilePathTimeFilter() {
         String svcName = "controllersvc";
         List<File> files = new ArrayList<File>();
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140110-231105.gz"));
@@ -157,7 +157,7 @@ public class LogStreamTest {
      */
     @Test
     @Ignore
-    public void testGetFilePath_NullTimeFilters() {
+    public void testGetFilePathNullTimeFilters() {
     	String svcName = "controllersvc";
         List<File> files = new ArrayList<File>();
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140110-231105.gz"));
@@ -198,31 +198,31 @@ public class LogStreamTest {
      */
     @Test
     @Ignore
-    public void testReadLine_NoFilter() throws Exception {
+    public void testReadLineNoFilter() throws Exception {
         String svcName = "dbsvc-";
         // dbsvc-0.log + dbsvc-1.log + dbsvc-2.log
-        final long LINE_NUMBER = 500000 + 500000 + 10; 
+        final long lineNumber = 500000 + 500000 + 10;
         File f1 = new File(HARD_CODE_PATH + "/src/main/data/streamData/dbsvc-0.log");
         File f2 = new File(HARD_CODE_PATH + "/src/main/data/streamData/dbsvc-1.log");
         File f3 = new File(HARD_CODE_PATH + "/src/main/data/streamData/dbsvc-2.log");
-        List<File> files = new ArrayList<File>();
+        List<File> files = new ArrayList<>();
         files.add(f1);
         files.add(f2);
         files.add(f3);
-        final long TOTAL_BYTES = f1.length() + f2.length() + f3.length();
+        final long totalBytes = f1.length() + f2.length() + f3.length();
         LogStatusInfo status = new LogStatusInfo();
         LogRequest req = new LogRequest.Builder().build();
         LogFileStream stream = new LogFileStream(svcName,files, req, status);
         // file count
-        final int FILE_NUMBER = stream.getLogPaths().size();
+        final int fileNumber = stream.getLogPaths().size();
         while (true) {
             LogMessage log = stream.readNextLogMessage();
             if (log == null) {
-                assertEquals("Total logs number should match", LINE_NUMBER,
+                assertEquals("Total logs number should match", lineNumber,
                         stream.getTotalLogCount());
-                assertEquals("Total file size should match", TOTAL_BYTES,
+                assertEquals("Total file size should match", totalBytes,
                         stream.getTotalSizeCount());
-                assertEquals("Total file number should match", FILE_NUMBER,
+                assertEquals("Total file number should match", fileNumber,
                         stream.getFileCount());
                 break;
             }
@@ -236,8 +236,8 @@ public class LogStreamTest {
      */
     @Test
     @Ignore
-    public void testReadNextLog_MaxCountFilter_lessThan_MAXCOUNT_OVERFLOW() throws Exception {
-        List<File> files = new ArrayList<File>();
+    public void testReadNextLogMaxCountFilterLessThanMAXCOUNTOVERFLOW() throws Exception {
+        List<File> files = new ArrayList<>();
         files.add(new File(timeStampFilePath));
         long maxCount = 1; // should get 5 log Messages
         int count = 0;
@@ -261,7 +261,7 @@ public class LogStreamTest {
      */
     @Test
     @Ignore
-    public void testReadNextLog_MaxCountFilter_greaterThan_MAXCOUNT_OVERFLOW() throws Exception {
+    public void testReadNextLogMaxCountFilterGreaterThanMAXCOUNTOVERFLOW() throws Exception {
     	List<File> files = new ArrayList<File>();
         files.add(new File(timeStampFilePath));
         long maxCount = 10; // should get 16 log Messages
@@ -284,7 +284,7 @@ public class LogStreamTest {
      * Test if logs read from one file are in time range specified in LogRequest
      */
     @Test
-    public void testSmallFile_TimeRangeFilter() throws Exception {
+    public void testSmallFileTimeRangeFilter() throws Exception {
     	File file = new File(timeRangeFilePath);
     	List<File> files = new ArrayList<File>();
         files.add(file);        
@@ -320,7 +320,7 @@ public class LogStreamTest {
      */
     @Test
     @Ignore
-    public void testMultipleFiles_TimeRangeFilter() throws Exception {
+    public void testMultipleFilesTimeRangeFilter() throws Exception {
     	List<File> files = new ArrayList<File>();
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140110-231105.gz"));
         files.add(new File(HARD_CODE_PATH + "/src/main/data/streamData/controllersvc.log.20140114-151216.gz"));
@@ -356,7 +356,7 @@ public class LogStreamTest {
      * LogRequest
      */
     @Test
-    public void testSmallFile_PatternFilter() throws Exception {
+    public void testSmallFilePatternFilter() throws Exception {
     	File file = new File(timeRangeFilePath);
     	List<File> files = new ArrayList<File>();
     	files.add(file);
@@ -378,7 +378,7 @@ public class LogStreamTest {
      * Test if logs read from LogStream match level specified in LogRequest
      */
     @Test
-    public void testSmallFile_LevelFilter() throws Exception {
+    public void testSmallFileLevelFilter() throws Exception {
     	File file = new File(timeRangeFilePath);
     	List<File> files = new ArrayList<File>();
     	files.add(file);

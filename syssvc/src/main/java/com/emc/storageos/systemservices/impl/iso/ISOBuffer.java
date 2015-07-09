@@ -41,18 +41,11 @@ public class ISOBuffer {
         creationDate = new Date();
         // Start adding use data from the 20th extent
         currentExtent = START_EXTENT;
-        directoryRecords = new ArrayList<DirectoryRecord>();
-        fileRecords = new ArrayList<DirectoryRecord>();
-        fileDataList = new ArrayList<byte[]>();
+        directoryRecords = new ArrayList<>();
+        fileRecords = new ArrayList<>();
+        fileDataList = new ArrayList<>();
         dataStartPosition = 0;
         dataEndPosition = 0;
-    }
-    
-    /**
-     * Allocate the byte buffer and add the required root directory, volume descriptor and path table
-     */
-    private void initializeISO() {
-        initializeISO(ISOConstants.VOLUME_IDENTIFIER);
     }
 
     private void initializeISO(String identifier) {

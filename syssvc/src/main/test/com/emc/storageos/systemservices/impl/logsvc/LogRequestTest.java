@@ -71,7 +71,7 @@ public class LogRequestTest {
     }
     
     @Test
-    public void testMarshal_UnMarshal()  throws Exception {
+    public void testMarshalUnMarshal()  throws Exception {
         System.out.println("Entering testMarshl_UnMarshal()");
         LogRequest req = new LogRequest();
         List<String> baseNames = new ArrayList<String>();

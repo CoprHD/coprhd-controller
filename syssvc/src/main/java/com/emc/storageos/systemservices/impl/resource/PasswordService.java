@@ -71,7 +71,10 @@ public class PasswordService {
     private static final Logger _logger = LoggerFactory.getLogger(PasswordService.class);
     private static final String EVENT_SERVICE_TYPE = "password";
     private static final String CRYPT_SHA_512 = "$6$";
-    private static SimpleDateFormat _format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    // don't declare it as static since DateFormats are inherently unsafe for multithreaded use.
+    // See http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6231579 and
+    // http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6178997
+    private final SimpleDateFormat _format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Autowired
     private AuditLogManager _auditMgr;
@@ -317,7 +320,7 @@ public class PasswordService {
         }
 
         if (expireTime == null) {
-            throw APIException.badRequests.invalidParameter("expire_time", expireTime);
+            throw APIException.badRequests.invalidParameter("expire_time", "null");
         }
 
         Date date = null;

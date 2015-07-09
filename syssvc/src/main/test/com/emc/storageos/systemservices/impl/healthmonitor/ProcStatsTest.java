@@ -26,7 +26,7 @@ import java.util.Map;
 
 public class ProcStatsTest implements StatConstants {
     private static final String INVALID_PID = "0";
-    private static String validPID = null;
+    private volatile static String validPID = null;
 
     @BeforeClass
     public static void getValidPID() {
@@ -44,6 +44,7 @@ public class ProcStatsTest implements StatConstants {
                     break;
                 }
             } catch (Exception e) {
+                ;
             }
         }
         Assert.assertNotNull(validPID);
@@ -75,6 +76,7 @@ public class ProcStatsTest implements StatConstants {
             ProcStats.getServiceName(INVALID_PID);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 

@@ -3,21 +3,11 @@
  * All Rights Reserved
  */
 package com.emc.storageos.systemservices.impl.audit;
-import java.net.*;
-import java.io.*;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.RandomAccessFile;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.Enumeration;
@@ -25,17 +15,19 @@ import java.sql.Timestamp;
 import java.net.NetworkInterface;
 import java.net.InetAddress;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.security.audit.AuditLogManager;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.services.OperationTypeEnum;
 
 public class SystemAudit implements Runnable {
     private static final Logger _log = LoggerFactory.getLogger(SystemAudit.class);
     private static final String EVENT_SERVICE_TYPE = "SystemAudit";
-    private static String _auditlogfile = "/var/log/auth";
-    private static String _auditlogCPfile = "/var/log/auth.checkpoint";
-    private static int _scanInterval = 120 * 1000; // 2m
+    private static final String AUDIT_LOG_FILE = "/var/log/auth";
+    private static final String AUDIT_LOG_CP_FILE = "/var/log/auth.checkpoint";
+    private static final int SCAN_INTERVAL = 120 * 1000; // 2m
 
     /* Here are pattern of system logs we are going to audit.
        There are only one kind of auditlog we recorded for now.  
@@ -45,7 +37,7 @@ public class SystemAudit implements Runnable {
        For incorrect pkcs key
        "2013-08-01 05:12:04 [auth] err sshd[22030]: error: key_read: uudecode aaaAAAAB3NzaC1yc2EAA...BMQfrbasOGYeu1Kjv root@lglw2020\n failed"
     */
-    private static Pattern auditlogPattern = Pattern.compile("([0-9-:\\s]{19}) (\\[auth\\]) (info|err) (sshd.*:|logger.*:) (Accepted.*|error.*|[0-9-:\\s]{19}.*) (for|key_read: uudecode \\S+) (.*)( from |@)([\\p{Alnum}\\.]+)[\\p{Alnum}\\s]*");
+    private static final Pattern AUDIT_LOG_PATTERN = Pattern.compile("([0-9-:\\s]{19}) (\\[auth\\]) (info|err) (sshd.*:|logger.*:) (Accepted.*|error.*|[0-9-:\\s]{19}.*) (for|key_read: uudecode \\S+) (.*)( from |@)([\\p{Alnum}\\.]+)[\\p{Alnum}\\s]*");
 
     private AuditLogManager _auditMgr = null;
 
@@ -54,10 +46,6 @@ public class SystemAudit implements Runnable {
 
         _auditMgr = new AuditLogManager();
         _auditMgr.setDbClient(dbClient);        
-    }
-
-    public void setScanInterval(int interval) {
-        _scanInterval = interval;
     }
 
     public void run() {
@@ -70,12 +58,16 @@ public class SystemAudit implements Runnable {
                 Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
                 while (interfaces.hasMoreElements()){
                     NetworkInterface current = interfaces.nextElement();
-                    if (!current.isUp() || current.isLoopback() || current.isVirtual()) continue;
+                    if (!current.isUp() || current.isLoopback() || current.isVirtual()) {
+                        continue;
+                    }
                     Enumeration<InetAddress> addresses = current.getInetAddresses();
                     while (addresses.hasMoreElements()){
-                        InetAddress current_addr = addresses.nextElement();
-                        if (current_addr.isLoopbackAddress()) continue;
-                        host = current_addr.getHostAddress();
+                        InetAddress currentAddr = addresses.nextElement();
+                        if (currentAddr.isLoopbackAddress()) {
+                            continue;
+                        }
+                        host = currentAddr.getHostAddress();
                     }
                 }
             } catch (Exception e) {
@@ -83,19 +75,18 @@ public class SystemAudit implements Runnable {
                 host = "localhost";
             }
 
-            RandomAccessFile logCPfile = null;
-            BufferedReader br = null;
-            try {
+            try (RandomAccessFile logCPfile = new RandomAccessFile(AUDIT_LOG_CP_FILE, "rw");
+                 BufferedReader br = new BufferedReader(new FileReader(AUDIT_LOG_FILE))) {
+
                 _log.info("Scanning log message for system audit in {} seconds ...", 
-                        _scanInterval/1000);
-                Thread.sleep(_scanInterval);
+                        SCAN_INTERVAL /1000);
+                Thread.sleep(SCAN_INTERVAL);
 
                 // 1. read last audited log from checkpoint file
-                logCPfile = new RandomAccessFile(_auditlogCPfile, "rw");
                 long lastAuditedlogTime = 0;
                 String lastAuditedlog = logCPfile.readLine();
                 if(lastAuditedlog != null) {
-                    Matcher m = auditlogPattern.matcher(lastAuditedlog);
+                    Matcher m = AUDIT_LOG_PATTERN.matcher(lastAuditedlog);
                     if (m.find()){
                         Timestamp lastAuditedlogTimestamp = Timestamp.valueOf(m.group(1));
                         lastAuditedlogTime = lastAuditedlogTimestamp.getTime(); 
@@ -103,15 +94,11 @@ public class SystemAudit implements Runnable {
                 }
 
                 // 2. scan auditlog file to insert qualified logs to cassandra
-                br = new BufferedReader(new FileReader(_auditlogfile));
-                String line = null;
-                Matcher m = null;
-
-                Timestamp currlogTimestamp = null;
+                String line;
                 while ((line = br.readLine()) != null) {
-                    m = auditlogPattern.matcher(line);
+                    Matcher m = AUDIT_LOG_PATTERN.matcher(line);
                     if (m.find()){
-                        currlogTimestamp = Timestamp.valueOf(m.group(1));
+                        Timestamp currlogTimestamp = Timestamp.valueOf(m.group(1));
                         if (currlogTimestamp.getTime() < lastAuditedlogTime) {
                             continue;
                         } else if (currlogTimestamp.getTime() == lastAuditedlogTime) {
@@ -143,13 +130,6 @@ public class SystemAudit implements Runnable {
                 _log.error("Failed to open system log file: {}", e.toString());
             } catch (Exception e) {
                 _log.error("Problem scanning system log file: {}", e.toString());
-            } finally {
-                try {
-                    br.close();
-                    logCPfile.close();
-                } catch(Exception e) {
-                    _log.warn("Problem while releasing file resources", e.toString());
-                }
             }
         }
     }

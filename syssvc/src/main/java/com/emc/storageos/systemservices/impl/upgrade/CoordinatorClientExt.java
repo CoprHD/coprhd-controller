@@ -449,7 +449,6 @@ public class CoordinatorClientExt {
             // get target repository and configVersion
             final RepositoryInfo        targetRepository = _coordinator.getTargetInfo(RepositoryInfo.class);
             final PropertyInfoExt targetProperty = _coordinator.getTargetInfo(PropertyInfoExt.class);
-            final PowerOffState      targetPowerOffState = _coordinator.getTargetInfo(PowerOffState.class);
 
             // get control nodes' repository and configVersion info
             final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN);

@@ -51,11 +51,11 @@ public class SyncInfoBuilder {
                 target.getVersions() :  new ArrayList<SoftwareVersion>();
 
         // Basic validations
-        if (localCurrent == null || localVersions == null || localVersions.size() == 0) {
+        if (localCurrent == null || localVersions.isEmpty()) {
             log.error("inconsistent local repository state");
             return new SyncInfo();
         }
-        if (targetCurrent == null || targetVersions == null || targetVersions.size() == 0) {
+        if (targetCurrent == null || targetVersions.isEmpty()) {
             log.error("inconsistent target repository state");
             return new SyncInfo();    
         }
@@ -67,7 +67,7 @@ public class SyncInfoBuilder {
 
         // Special case 1 - current on remote is not same as current on local, make sure they are still upgradable
         // Set force to true as we already did the version check during set_target call
-        if (targetCurrent != null && !targetCurrent.equals(localCurrent) && !localVersions.contains(targetCurrent)) {
+        if (!targetCurrent.equals(localCurrent) && !localVersions.contains(targetCurrent)) {
             try {
 				if (!localCurrent.isSwitchableTo(targetCurrent)) {
 				    // we are not expecting this case - don't change anything, wait for help!
@@ -80,7 +80,7 @@ public class SyncInfoBuilder {
         }
 
         // To Install - what version do the target state have that I don't have
-        List<SoftwareVersion> toInstallCandidates = new ArrayList<SoftwareVersion>(targetVersions);
+        List<SoftwareVersion> toInstallCandidates = new ArrayList<>(targetVersions);
         Collections.sort(toInstallCandidates);
         for (SoftwareVersion version: toInstallCandidates) {
             if (localVersions.contains(version)) {
@@ -92,13 +92,13 @@ public class SyncInfoBuilder {
         // if we are here, we didn't find anything to install - see if we need to remove any
         // To Remove - what versions do I have that the target does not have
         // Set force to true as we already did the version check during set_target call
-        List<SoftwareVersion> toRemoveCandidates = new ArrayList<SoftwareVersion>();
+        List<SoftwareVersion> toRemoveCandidates = new ArrayList<>();
 		try {
 			toRemoveCandidates = findToRemove(localVersions, localCurrent, null, null, true);
 		} catch (IOException e) {
 			log.error("Error occured when extracting version metadata from the image file", e);
 		}
-        List<SoftwareVersion> toRemove = new ArrayList<SoftwareVersion>();
+        List<SoftwareVersion> toRemove = new ArrayList<>();
         for (SoftwareVersion version: toRemoveCandidates) {
             if (targetVersions.contains(version)) {
                 continue;
@@ -122,8 +122,8 @@ public class SyncInfoBuilder {
                 localVersions.size(), MAX_SOFTWARE_VERSIONS, localCurrent, Strings.repr(localVersions));
         final String prefix = "getUpgradeableRemoteVersions(): " + args + " : ";
         log.info("Getting remote new versions: " + prefix);
-	    List<SoftwareVersion> tempList = new ArrayList<SoftwareVersion>();
-	    List<SoftwareVersion> toInstallCandidates = new ArrayList<SoftwareVersion>(remoteVersions.keySet());
+	    List<SoftwareVersion> tempList = new ArrayList<>();
+	    List<SoftwareVersion> toInstallCandidates = new ArrayList<>(remoteVersions.keySet());
 	    Collections.sort(toInstallCandidates);
 	    Collections.reverse(toInstallCandidates);
 	    log.debug("Test if a version is upgradeable");
@@ -210,14 +210,16 @@ public class SyncInfoBuilder {
     }
         }
         
-        if (upgradeFromVersionList.size()==0 || upgradeToVersionList.size()==0) {
+        if (upgradeFromVersionList.isEmpty() || upgradeToVersionList.isEmpty()) {
             return true; // If no version can upgrade to the target version or no version can be upgrade from the target version, target version is removable
         }
         
         OUTLOOP: for(SoftwareVersion v: upgradeToVersionList) {
             int position = versions.indexOf(v);
             for(int i=0; i<position; i++){
-                if(i!=index && versions.get(i).isSwitchableTo(v)) continue OUTLOOP; 
+                if(i!=index && versions.get(i).isSwitchableTo(v)) {
+                    continue OUTLOOP;
+                }
                 // If this version can be upgrade from a version other than the target continue to test the next version
             }
             return false; // If this version doesn't have any version to upgrade from, false should be returned

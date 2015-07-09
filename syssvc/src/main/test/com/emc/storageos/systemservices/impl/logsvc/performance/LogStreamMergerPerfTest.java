@@ -31,7 +31,7 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogStreamMergerPerfTest {
 
-    private static LogSvcPropertiesLoader propertiesLoader;
+    private volatile static LogSvcPropertiesLoader propertiesLoader;
 
     @BeforeClass
     public static void setup() {
@@ -48,7 +48,7 @@ public class LogStreamMergerPerfTest {
     
     @Test
     @Ignore
-    public void testMergePerformance_TimeRangeFilter() throws Exception{
+    public void testMergePerformanceTimeRangeFilter() throws Exception{
         List<String> svcs = new ArrayList<String>() {{
             add("controllersvc");
             add("coordinatorsvc");
@@ -84,7 +84,7 @@ public class LogStreamMergerPerfTest {
 
     @Test
     @Ignore
-    public void testMergePerformance_MultipleFilters() throws Exception{
+    public void testMergePerformanceMultipleFilters() throws Exception{
     	 List<String> svcs = new ArrayList<String>() {{
              add("controllersvc");
              add("coordinatorsvc");

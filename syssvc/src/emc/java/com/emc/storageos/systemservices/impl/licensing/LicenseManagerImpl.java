@@ -432,9 +432,10 @@ public class LicenseManagerImpl implements LicenseManager{
         for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
             LicenseType licenseType = LicenseConstants.getLicenseType(
                     licenseFeature.getModelId());
-            if(licenseType == null)
+            if(licenseType == null) {
                 throw APIException.internalServerErrors.licenseInfoNotFoundForType(
-                         "invalid license model id" + licenseFeature.getModelId());
+                        "invalid license model id" + licenseFeature.getModelId());
+            }
 
             LicenseInfoExt licenseInfo = new LicenseInfoExt();
             licenseInfo.setLicenseType(licenseType);
@@ -446,15 +447,16 @@ public class LicenseManagerImpl implements LicenseManager{
             licenseInfo.setLicenseTypeIndicator(licenseFeature.getLicenseIdIndicator());                    
             licenseInfo.setVersion(licenseFeature.getVersion());
             licenseInfo.setNotice(licenseFeature.getNotice());
-            if(licenseFeature.isTrialLicense())
+            if(licenseFeature.isTrialLicense()) {
                 licenseInfo.setTrialLicense(true);
+            }
             licenseInfoList.add(licenseInfo);
         }
         if(licenseInfoList.size() > 0) {
     	    licenseList = new LicenseInfoListExt(licenseInfoList);            	    
     	    _coordinator.setTargetInfo(licenseList, checkClusterUpgradable);
         }
-        }
+    }
         
     /**
      * Update Coordinator Service with the customers actual raw license file text.
@@ -513,13 +515,13 @@ public class LicenseManagerImpl implements LicenseManager{
         double licenseCapacity = Double.parseDouble(licenseInfo.getStorageCapacity());
         try{
             //if (licenseInfo.getModelId().equalsIgnoreCase(LicenseConstants.getModelId(LicenseType.CONTROLLER))) 
-            if(licenseInfo.getLicenseType().equals(LicenseType.CONTROLLER))
-            {
+            if(licenseInfo.getLicenseType().equals(LicenseType.CONTROLLER)) {
                 // Get capacity from apisvc
                 currentCapacityUsed = getTotalControllerCapacity();
             }
-            else
+            else {
                 return false;
+            }
             Object[] args = new Object[] {licenseInfo.getModelId(), currentCapacityUsed, licenseCapacity};
             _log.info("Capacity currently used by {}: {}, licensed capacity: {}", args);
             return currentCapacityUsed > licenseCapacity;

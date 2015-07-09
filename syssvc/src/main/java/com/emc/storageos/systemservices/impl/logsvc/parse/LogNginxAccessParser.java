@@ -35,7 +35,7 @@ public class LogNginxAccessParser extends LogParser {
 
     private static final Logger logger = LoggerFactory.getLogger(LogNginxAccessParser.class);
 
-    private final int TIME_LENGTH = 20;
+    private static final int TIME_LENGTH = 20;
 
     @Override
     public LogMessage parseLine(String line, LogRequest info) {
@@ -70,10 +70,12 @@ public class LogNginxAccessParser extends LogParser {
 
         int logOffset = line.indexOf(splitLine[5]);
         int timeBytesStartIndex = line.indexOf(splitLine[3]);
-        if (logOffset > Short.MAX_VALUE)
+        if (logOffset > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
-        if (timeBytesStartIndex + 1 > Short.MAX_VALUE)
+        }
+        if (timeBytesStartIndex + 1 > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
+        }
 
         LogMessage log = new LogMessage(date.getTime(), line.getBytes());
         log.setLogOffset(logOffset);

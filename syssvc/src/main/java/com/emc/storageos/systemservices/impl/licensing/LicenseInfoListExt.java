@@ -39,7 +39,7 @@ import com.emc.storageos.coordinator.exceptions.DecodingException;
  */
 public class LicenseInfoListExt implements CoordinatorSerializable {
 	
-    private List<LicenseInfoExt> _licenseList = new ArrayList<LicenseInfoExt>();
+    private List<LicenseInfoExt> _licenseList = new ArrayList<>();
 	
     // default constructor
     public LicenseInfoListExt() {        
@@ -79,8 +79,9 @@ public class LicenseInfoListExt implements CoordinatorSerializable {
     @Override
     public LicenseInfoListExt decodeFromString(String infoStr) throws DecodingException
     {
-        if (infoStr == null)
-            return null;                
+        if (infoStr == null) {
+            return null;
+        }
         String[] licenseStrs= infoStr.split(LicenseInfo.LICENSE_SEPARATOR);
         for(String licenseStr : licenseStrs) {
     	    getLicenseList().add((new LicenseInfoExt().decodeFromString(licenseStr)));

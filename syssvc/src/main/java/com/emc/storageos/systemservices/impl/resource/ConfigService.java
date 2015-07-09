@@ -74,7 +74,7 @@ import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toCluste
 public class ConfigService {
     //keys used in returning properties
     public static final String VERSION="-clusterversion";
-    public static final Map<String, String> propertyToParameters = new HashMap() {{
+    public static final Map<String, String> propertyToParameters = new HashMap<String, String>() {{
             put("node_count", "-nodecount");
 
             put("network_vip", "-vip");
@@ -114,8 +114,8 @@ public class ConfigService {
     private CoordinatorClientExt _coordinator = null;
     private PropertiesMetadata _propsMetadata = null;
     private PropertiesConfigurationValidator _propertiesConfigurationValidator;
-    private static Properties defaultProperties;
-    private static Properties ovfProperties;
+    private Properties defaultProperties;
+    private Properties ovfProperties;
     private PropertyHandlers _propertyHandlers;
 
     @Context
@@ -159,7 +159,7 @@ public class ConfigService {
         _propertiesConfigurationValidator = propertiesConfigurationValidator;
     }
     
-    public static void setDefaultProperties(Properties defaults) {
+    public void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }
 
@@ -172,11 +172,11 @@ public class ConfigService {
      * @return  map containing key, value pair
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static Map<String, String> getPropertiesDefaults() {
+    public Map<String, String> getPropertiesDefaults() {
         return (Map)defaultProperties;
     }
 
-    public static void setOvfProperties(Properties ovfProps) {
+    public void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
     
@@ -185,7 +185,7 @@ public class ConfigService {
      * @return  map containing key, value pair
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static Map<String, String> getOvfProperties() {
+    public Map<String, String> getOvfProps() {
         return (Map)ovfProperties;
     }
     
@@ -194,8 +194,7 @@ public class ConfigService {
      * @return  map containing key, value pair
      */
     public Map<String, String> getConfigProperties() {
-        Map<String,String> mergedProps = mergeProps(getPropertiesDefaults(), getMutatedProps());
-        return mergedProps;
+        return mergeProps(getPropertiesDefaults(), getMutatedProps());
     }
 
     /**
@@ -203,9 +202,8 @@ public class ConfigService {
      * @return  map containing key, value pair
      */
     public Map<String, String> getObsoleteProperties() {
-        Map<String, String> obsoletes = new HashMap<String, String>();
-    	Map<String, String> overrides = new HashMap<String, String>();
-		overrides = getMutatedProps();
+        Map<String, String> obsoletes = new HashMap<>();
+    	Map<String, String> overrides = getMutatedProps();
         Set<String> obsoleteKeys = overrides.keySet();
         obsoleteKeys.removeAll(defaultProperties.keySet());
     	for(String obsoleteKey : obsoleteKeys) {
@@ -234,14 +232,14 @@ public class ConfigService {
 	    case CONFIG:
 	        return new PropertyInfoRestRep(getConfigProperties());    
         case OVF:
-        	return new PropertyInfoRestRep(getOvfProperties());
+        	return new PropertyInfoRestRep(getOvfProps());
         case REDEPLOY:
-            Map<String, String> props = getOvfProperties();
+            Map<String, String> props = getOvfProps();
 
             props.remove(MODE);
             props.remove(NODE_ID);
 
-            Map<String, String> clusterInfo = new HashMap();
+            Map<String, String> clusterInfo = new HashMap<>();
             Set<Map.Entry<String, String>> ovfProps = props.entrySet();
             for (Map.Entry<String, String> ovfProp : ovfProps) {
                 String parameter = propertyToParameters.get(ovfProp.getKey());
@@ -261,8 +259,9 @@ public class ConfigService {
 	    	return new PropertyInfoRestRep(getMutatedProps());
         case SECRETS:
             StorageOSUser user = getUserFromContext();
-            if (! user.getRoles().contains(Role.SECURITY_ADMIN.toString()))
+            if (! user.getRoles().contains(Role.SECURITY_ADMIN.toString())) {
                 throw APIException.forbidden.onlySecurityAdminsCanGetSecrets();
+            }
             return getTargetPropsCommon(false);
         case OBSOLETE:
             return new PropertyInfoRestRep(getObsoleteProperties());
@@ -427,7 +426,7 @@ public class ConfigService {
         }
 
         InputStream isoStream = new ByteArrayInputStream(CreateISO.getBytes
-                (getOvfProperties(),getMutatedProps()));
+                (getOvfProps(),getMutatedProps()));
 
         return Response.ok(isoStream).header("content-disposition","attachment; filename = config.iso").build();
     }
@@ -450,7 +449,7 @@ public class ConfigService {
         PropertyInfoExt targetPropInfo = new PropertyInfoExt();
         try {
             targetPropInfo.setProperties(mergeProps(getPropertiesDefaults(), getMutatedProps(maskSecretsProperties)));
-            targetPropInfo.getProperties().putAll(getOvfProperties());
+            targetPropInfo.getProperties().putAll(getOvfProps());
         } catch (Exception e) {
             throw APIException.internalServerErrors.getObjectFromError("target property", "coordinator", e);
         }
@@ -481,16 +480,18 @@ public class ConfigService {
             return new TreeMap<>();
         }
 
-        if (!maskSecretsProperties)
+        if (!maskSecretsProperties) {
             return overrides;
+        }
 
         // Mask out the secrets properties
         Map<String, String> ret = new TreeMap<>();
         for (Map.Entry<String, String> entry : overrides.entrySet()) {
-            if (PropertyInfoExt.isSecretProperty(entry.getKey()))
+            if (PropertyInfoExt.isSecretProperty(entry.getKey())) {
                 ret.put(entry.getKey(), HIDDEN_TEXT_MASK);
-            else
+            } else {
                 ret.put(entry.getKey(), entry.getValue());
+            }
         }
 
         return ret;
@@ -601,8 +602,9 @@ public class ConfigService {
         try {
             return toClusterResponse(clusterInfo);
         } finally {
-            if (doSetTarget)
+            if (doSetTarget) {
                 propertyManager.wakeup();
+            }
         }
     }
 

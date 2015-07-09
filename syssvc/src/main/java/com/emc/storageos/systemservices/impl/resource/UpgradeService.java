@@ -145,8 +145,9 @@ public class UpgradeService {
         if(FORCE.equals(forceGeoUpgrade)){
         	 _log.info("Force option supplied, skipping all multi-VDC pre-checks");
         } else {
-        	for (UpgradeVoter voter : _upgradeVoters)
-        		voter.isOKForUpgrade(current.toString(), version);
+        	for (UpgradeVoter voter : _upgradeVoters) {
+                voter.isOKForUpgrade(current.toString(), version);
+            }
         }	
         try {
             _coordinator.setTargetInfo(new RepositoryInfo(targetVersion,
@@ -518,8 +519,9 @@ public class UpgradeService {
     @POST
     @Path("internal/wakeup/")
     public Response wakeupManager(@QueryParam("type") String managerType) {
-        if (managerType == null)
+        if (managerType == null) {
             managerType = "all";
+        }
 
         switch (managerType) {
             case "upgrade":
@@ -597,7 +599,7 @@ public class UpgradeService {
             file = uploader.startUpload(request.getInputStream(), version);
             
             // install image
-            if (file == null || file != null && !file.exists()) {
+            if (file == null || ! file.exists()) {
                 throw APIException.internalServerErrors.targetIsNullOrEmpty("Uploaded file");
             }
             version = _upgradeManager.getLocalRepository().installImage(file);

@@ -33,9 +33,9 @@ public class LogServiceParser extends LogParser {
     private static Calendar logDate = Calendar.getInstance();
 
     // length of the time 2013-11-20 13:56:48,063 [
-    private final int TIME_LENGTH = 25;
+    private static final int TIME_LENGTH = 25;
     // milliseconds since epoch, will remain 13 digits for another 2 hundred years
-    private final int HEADER_TIMESTAMP_LENGTH = 13;
+    private static final int HEADER_TIMESTAMP_LENGTH = 13;
     /**
      * Parse line from file to LogMessage
      * If line does not match log format(it
@@ -125,7 +125,6 @@ public class LogServiceParser extends LogParser {
         if (ms < 0) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
-        String timeStr = line.substring(0, TIME_LENGTH - 2);
 
         final int endBracket = line.indexOf("]", TIME_LENGTH);
         if (endBracket < 0) {
@@ -207,8 +206,9 @@ public class LogServiceParser extends LogParser {
             // in which case the first line is ""
             messageStartIndex = lineLength;
         }
-        if (messageStartIndex > Short.MAX_VALUE)
+        if (messageStartIndex > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
+        }
 
         // test time filter
         // int inTime = inTimeRange(partsInt[0], partsInt[1], partsInt[2],
@@ -225,8 +225,9 @@ public class LogServiceParser extends LogParser {
         }
 
         final int lineNumberStartIndex = line.indexOf(' ', fileNameEndIndex + 1) + 1;
-        if (lineNumberStartIndex > Short.MAX_VALUE || rightParentheseIndex - lineNumberStartIndex > Short.MAX_VALUE)
+        if (lineNumberStartIndex > Short.MAX_VALUE || rightParentheseIndex - lineNumberStartIndex > Short.MAX_VALUE) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
+        }
 
         LogMessage log = new LogMessage(getTime(year, month, day, hour, min, sec, ms), line.getBytes());
         log.setLogOffset(messageStartIndex); 

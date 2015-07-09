@@ -42,15 +42,15 @@ public class ClusterNodesUtil {
 
     private static CoordinatorClientExt _coordinatorExt;
     
-    public void setCoordinator(CoordinatorClient coordinator) {
+    public static void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
-    public void setCoordinatorExt(CoordinatorClientExt coordinatorExt) {
+    public static void setCoordinatorExt(CoordinatorClientExt coordinatorExt) {
         _coordinatorExt = coordinatorExt;
     }
 
-    public void setService(Service service) {
+    public static void setService(Service service) {
         _service = service;
     }
 
@@ -67,7 +67,7 @@ public class ClusterNodesUtil {
         List<NodeInfo> nodeInfoList = new ArrayList<NodeInfo>();
         List<String> validNodeIds = new ArrayList<String>();
         try {
-            if( nodeNames != null && nodeNames.size() > 0 ){
+            if( nodeNames != null && ! nodeNames.isEmpty() ){
                 _log.info("Getting cluster node info for ids: {}", nodeNames);
             }
             else{
@@ -82,7 +82,7 @@ public class ClusterNodesUtil {
             for (Service svc : svcList) {
                 _log.debug("Got service with node id " + svc.getNodeName());
                 // if there are node ids requested
-                if (nodeNames != null && nodeNames.size() > 0 &&
+                if (nodeNames != null && ! nodeNames.isEmpty() &&
                         !nodeNames.contains(svc.getNodeName())) {
                     continue;
                 }
@@ -100,7 +100,7 @@ public class ClusterNodesUtil {
         }
 
         //validate if all requested node ids information is retrieved
-        if(nodeNames != null && nodeNames.size() > 0 &&
+        if(nodeNames != null && ! nodeNames.isEmpty() &&
                 !validNodeIds.containsAll(nodeNames)){
             nodeNames.removeAll(validNodeIds);
             throw APIException.badRequests.parameterIsNotValid("node id(s): "+nodeNames);

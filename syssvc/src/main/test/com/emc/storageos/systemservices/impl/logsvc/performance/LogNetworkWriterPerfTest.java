@@ -28,7 +28,7 @@ import com.emc.storageos.systemservices.impl.logsvc.LogNetworkWriter;
 import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogNetworkWriterPerfTest {
-    private static LogSvcPropertiesLoader propertiesLoader;
+    private volatile static LogSvcPropertiesLoader propertiesLoader;
 
     @BeforeClass
     public static void setup() {

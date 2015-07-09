@@ -136,8 +136,9 @@ public abstract class AbstractManager implements Runnable {
         String mySvcId = coordinator.getMySvcId();
         String localDbSvcId = "db" + mySvcId.substring(mySvcId.lastIndexOf("-"));
         for (Service activeDbsvc : allActiveDbsvcs) {
-            if (! localDbSvcId.equals(activeDbsvc.getId())) // exclude the local dbsvc instance
+            if (! localDbSvcId.equals(activeDbsvc.getId())) {// exclude the local dbsvc instance
                 otherActiveDbsvcIds.add(activeDbsvc.getId());
+            }
         }
         log.info("List of active dbsvc instances on other nodes: {}, expect {} instances to maintain quorum",
                 otherActiveDbsvcIds, quorumNodeCnt);
@@ -187,10 +188,11 @@ public abstract class AbstractManager implements Runnable {
     }
 
     protected void longSleep() {
-        if(shortSleep)
+        if(shortSleep) {
             retrySleep();
-        else
+        } else {
             sleep(loopInterval);
+        }
     }
 
     protected void sleep(final long ms) {

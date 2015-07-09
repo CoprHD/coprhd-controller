@@ -160,8 +160,10 @@ public class ClusterInfoMapper {
                 }
             }
             List<SoftwareVersion> removableVersions = SyncInfoBuilder.findToRemove(targetRepoInfo.getVersions(), targetRepoInfo.getCurrentVersion(), null, null, force);
-            if (removableVersions.isEmpty()) return;
-            List<String> removableVersionString =new ArrayList<String>();
+            if (removableVersions.isEmpty()) {
+                return;
+            }
+            List<String> removableVersionString =new ArrayList<>();
             for(SoftwareVersion v: removableVersions) {
             	removableVersionString.add(v.toString());
             }

@@ -23,6 +23,7 @@ import java.util.List;
 
 import com.emc.vipr.model.sys.logging.LogSeverity;
 
+@SuppressWarnings({"pmd:ArrayIsStoredDirectly","pmd:MethodReturnsInternalArray"})
 public class LogMessage {
 
     private Status status;
@@ -95,8 +96,9 @@ public class LogMessage {
     }
 
     public byte[] getNodeId() {
-        if (nodeId == null)
+        if (nodeId == null) {
             return NULL_BYTES;
+        }
 
         return nodeId;
     }
@@ -110,8 +112,9 @@ public class LogMessage {
     }
 
     public byte[] getService() {
-        if (service == null)
+        if (service == null) {
             return NULL_BYTES;
+        }
 
         return this.service;
     }
@@ -185,38 +188,43 @@ public class LogMessage {
     }
 
     public byte[] getFileName() {
-        if (fileNameOffset == -1 || fileNameLen == 0)
+        if (fileNameOffset == -1 || fileNameLen == 0) {
             return NULL_BYTES;
+        }
 
         return Arrays.copyOfRange(firstLine, fileNameOffset, fileNameOffset + fileNameLen);
     }
 
     public byte[] getThreadName() {
-        if (threadNameOffset == -1 || threadNameLen == 0)
+        if (threadNameOffset == -1 || threadNameLen == 0) {
             return NULL_BYTES;
+        }
 
         return Arrays.copyOfRange(firstLine, threadNameOffset, threadNameOffset +
                 threadNameLen);
     }
 
     public byte[] getLevel() {
-        if (level < 0 || level >= LogSeverity.MAX_LEVEL)
+        if (level < 0 || level >= LogSeverity.MAX_LEVEL) {
             return NULL_BYTES;
+        }
 
         return LogSeverity.values()[level].name().getBytes();
     }
 
     public byte[] getLineNumber() {
-        if (lineNumberOffset == -1 || lineNumberLen == 0)
+        if (lineNumberOffset == -1 || lineNumberLen == 0) {
             return "-1".getBytes();
+        }
 
         return Arrays.copyOfRange(firstLine, lineNumberOffset, lineNumberOffset +
                 lineNumberLen);
     }
 
     public byte[] getTimeBytes(){
-        if (timeBytesOffset == -1 || timeBytesLen == 0)
+        if (timeBytesOffset == -1 || timeBytesLen == 0) {
             return NULL_BYTES;
+        }
 
         return Arrays.copyOfRange(firstLine, timeBytesOffset, timeBytesOffset +
                 timeBytesLen);
@@ -233,8 +241,9 @@ public class LogMessage {
     private byte[] getLogContent(int offset) {
         int sum = 0;
 
-        if (firstLine != null)
+        if (firstLine != null) {
             sum = firstLine.length - offset;
+        }
         if (followingLines != null && !followingLines.isEmpty()) {
             for (byte[] line : followingLines) {
                 // trailing \n
@@ -247,8 +256,9 @@ public class LogMessage {
         if (firstLine != null && offset < firstLine.length) {
             sum = firstLine.length - offset;
             System.arraycopy(firstLine, offset, result, 0, firstLine.length - offset);
-        } else
+        } else {
             sum = 0;
+        }
         if (followingLines != null && !followingLines.isEmpty()) {
             for (byte[] line : followingLines) {
                 result[sum++] = (byte) '\n';
@@ -268,11 +278,13 @@ public class LogMessage {
     }
 
     public void appendMessage(byte[] msg) {
-        if (msg == null || msg.length == 0)
+        if (msg == null || msg.length == 0) {
             return;
+        }
 
-        if (followingLines == null)
+        if (followingLines == null) {
             followingLines = new ArrayList<>();
+        }
 
         followingLines.add(msg);
     }
@@ -399,11 +411,6 @@ public class LogMessage {
         }
 
         return entry;
-    }
-    
-    public String toStringForTest() {
-        return "[" + getThreadName() + "]" + " " + getLevel() + " "
-                + getFileName() + " " + getLineNumber() + " " + getLogContent();
     }
 
     /**

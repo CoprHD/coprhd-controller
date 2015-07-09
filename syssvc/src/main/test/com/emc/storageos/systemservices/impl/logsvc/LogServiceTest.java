@@ -54,8 +54,8 @@ public class LogServiceTest {
     private static final String LOGIN_URI = "https://localhost:4443/login";
     private static final String SYSADMIN = EnvConfig.get("sanity", "syssvc.LogServiceTest.sysAdmin");
     private static final String SYSADMIN_PASSWORD = EnvConfig.get("sanity", "syssvc.LogServiceTest.sysAdminPassword");
-    private static String AUTH_TOKEN_HEADER = "X-SDS-AUTH-TOKEN";
-    private static String authToken;    
+    private static final String AUTH_TOKEN_HEADER = "X-SDS-AUTH-TOKEN";
+    private volatile static String authToken;
     
     private static final String INVALID_NODE_ID = "2";
     private static final String INVALID_SEVERITY = "11";
@@ -72,7 +72,7 @@ public class LogServiceTest {
     /**
      * Tests the dry run of getLogs method when no args are passed.
      */
-    public void testGetLogs_NoArgs_dryRun() {            
+    public void testGetLogsNoArgsDryRun() {
         Client client = Client.create();
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
         resourceBuilder.append("?");
@@ -92,7 +92,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid node id is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidNode_dryRun() {
+    public void testGetLogsInvalidNodeDryRun() {
         Client client = Client.create();
 
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -121,7 +121,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid severity is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidSeverity_dryRun() {        
+    public void testGetLogsInvalidSeverityDryRun() {
         Client client = Client.create();
 
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -150,7 +150,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid timestamp is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidTimestamp_dryRun() {
+    public void testGetLogsInvalidTimestampDryRun() {
         Client client = Client.create();
         
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -179,7 +179,7 @@ public class LogServiceTest {
      * Tests the getLogs method when the passed end date is before the passed 
      * start date.
      */
-    public void testGetLogs_InvalidTimeWindow_dryRun() {
+    public void testGetLogsInvalidTimeWindowDryRun() {
         // Create start and end dates for the time window such that the end date
         // is before the start date.
         Date startDate = new Date();
@@ -223,7 +223,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid node id is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidNode() {          
+    public void testGetLogsInvalidNode() {
         Client client = Client.create();
         
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -248,7 +248,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid severity is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidSeverity() {        
+    public void testGetLogsInvalidSeverity() {
         Client client = Client.create();
         
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -273,7 +273,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid timestamp is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidTimestamp() {        
+    public void testGetLogsInvalidTimestamp() {
         Client client = Client.create();
 
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -299,7 +299,7 @@ public class LogServiceTest {
      * Tests the getLogs method when the passed end date is before the passed 
      * start date.
      */
-    public void testGetLogs_InvalidTimeWindow() {
+    public void testGetLogsInvalidTimeWindow() {
         // Create start and end dates for the time window such that the end date
         // is before the start date.
         Date startDate = new Date();
@@ -340,7 +340,7 @@ public class LogServiceTest {
     /**
      * Tests the getLogs method when no args are passed.
      */
-    public void testGetLogs_NoArgs() {    
+    public void testGetLogsNoArgs() {
         
         // Make the request.
         Client client = Client.create();
@@ -355,13 +355,17 @@ public class LogServiceTest {
         String line = null;
         try {
             while ((line = reader.readLine()) != null) {
-                
+                ;
             }
         } catch (Exception e) {
-            
+            ;
         }
         finally {
-            try {reader.close();} catch (Exception e){}
+            try {
+                reader.close();
+            } catch (Exception e){
+                ;
+            }
         }        
     }
     
@@ -411,7 +415,9 @@ public class LogServiceTest {
             sc.init(null, trustAllCerts, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
-        } catch (final Exception e) {}
+        } catch (final Exception e) {
+            ;
+        }
     }
     
 }

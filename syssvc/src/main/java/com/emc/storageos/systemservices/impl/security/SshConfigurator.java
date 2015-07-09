@@ -102,7 +102,9 @@ public class SshConfigurator {
      */
     private boolean sshKeyGenRequired() throws Exception {
         String currentVersion = getCurrentVersion();
-        if (currentVersion == null) return true;
+        if (currentVersion == null) {
+            return true;
+        }
         return getCurrentVersion().equals(getDefaultVersion());
     }
 

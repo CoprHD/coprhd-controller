@@ -20,15 +20,17 @@ import com.emc.vipr.model.sys.logging.LogSeverity;
 
 public class SysLogReaderTest {
 
+	private static final int WARN = 5;
+
 	/**
 	 * Test if readMessage() can read and parse syssvc file which has different
 	 * format logs correctly
 	 */
 	@Test
-	public void testAllLogFormat_SmallFile_NoFilter_SysParser()
+	public void testAllLogFormatSmallFileNoFilterSysParser()
 			throws Exception {
 		System.out
-				.println("starting testAllLogFormat_SmallFile_NoFilter_SysParser");
+				.println("starting testAllLogFormatSmallFileNoFilterSysParser");
 		LogStatusInfo status = new LogStatusInfo();
 		String filePath = "src/main/data/testReaderData/testSyslogParser.log";
 		LogReader reader = null;
@@ -48,17 +50,16 @@ public class SysLogReaderTest {
 		}
 		br.close();
 		System.out
-				.println("done testAllLogFormat_SmallFile_NoFilter_SysParser");
+				.println("done testAllLogFormatSmallFileNoFilterSysParser");
 	}
 
 	/**
 	 * Test if reader could recognize the correct count of system logs
 	 */
 	@Test
-	public void testLogCount_SysParser() throws Exception {
-		System.out.println("starting testLogCount_SysParser");
+	public void testLogCountSysParser() throws Exception {
+		System.out.println("starting testLogCountSysParser");
 		LogStatusInfo status = new LogStatusInfo();
-		final int WARN = 5;
 		// four kinds of different patterns in file
 		String filePath = "src/main/data/testReaderData/testSyslogParser.log";
 		long logCount = 47;
@@ -73,7 +74,7 @@ public class SysLogReaderTest {
 				break;
 			}
 		}
-		System.out.println("done testLogCount_SysParser");
+		System.out.println("done testLogCountSysParser");
 	}
 
 	/**

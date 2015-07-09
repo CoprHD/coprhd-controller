@@ -163,9 +163,10 @@
         <property name="crit" value="" />
         <property name="ok" value="#{T(java.util.Arrays).asList('OK')}" />
     </bean>
-    <bean id="diagTestsMetadata"
-          class="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestsMetadata">
-        <property name="metadata">
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="com.emc.storageos.systemservices.impl.healthmonitor.beans.DiagTestsMetadata"/>
+        <property name="targetMethod" value="setMetadata"/>
+        <property name="arguments">
             <map>
                 <entry key="#{networkInterface.name}" value-ref="networkInterface" />
                 <entry key="#{networkRouting.name}" value-ref="networkRouting" />

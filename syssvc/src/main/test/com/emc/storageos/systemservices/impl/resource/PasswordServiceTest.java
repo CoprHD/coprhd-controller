@@ -73,7 +73,7 @@ public class PasswordServiceTest {
     public PropertyInfoExt _passwordProps = new PropertyInfoExt();
     public PropertiesMetadata _propertiesMetadata = new PropertiesMetadata();
     private DummyEncryptionProvider provider;
-    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
+    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword"; //NOSONAR
     Map<String, String> propertiesMap;
 
     /**
@@ -162,19 +162,19 @@ public class PasswordServiceTest {
     }
     public Map<String, PropertyMetadata> getPropsMetaData() {
         Map<String, PropertyMetadata> metadata = new TreeMap();
-    	PropertyMetadata proxyuser_metadata = setPropMetaData("Encrypted password for the 'proxyuser' account", "Encrypted (SHA-512) password for the local 'proxyuser' account.",
+    	PropertyMetadata proxyuserMetadata = setPropMetaData("Encrypted password for the 'proxyuser' account", "Encrypted (SHA-512) password for the local 'proxyuser' account.",
     			"encryptedstring", 255, "Security", true, true, false, true, false, "", true);
-    	PropertyMetadata sysmonitor_metadata = setPropMetaData("Encrypted password for the 'sysmonitor' account", "Encrypted password for the 'sysmonitor' account.",
+    	PropertyMetadata sysmonitorMetadata = setPropMetaData("Encrypted password for the 'sysmonitor' account", "Encrypted password for the 'sysmonitor' account.",
     			"string", 255, "Security", true, true, false, true, false, "$6$BIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0", true);
-    	PropertyMetadata root_metadata = setPropMetaData("Encrypted password for the 'root' account", "Encrypted (SHA-512) password for the local 'root' account.",
+    	PropertyMetadata rootMetadata = setPropMetaData("Encrypted password for the 'root' account", "Encrypted (SHA-512) password for the local 'root' account.",
     			"string", 255, "Security", true, true, false, true, false, "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0", false);
-    	PropertyMetadata svcuser_metadata = setPropMetaData("Encrypted password for the 'svcuser' account", "Encrypted (SHA-512) password for the local 'svcuser' account.",
+    	PropertyMetadata svcuserMetadata = setPropMetaData("Encrypted password for the 'svcuser' account", "Encrypted (SHA-512) password for the local 'svcuser' account.",
     			"string", 255, "Security", true, true, false, true, false, "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0", false);
     	
-    	metadata.put("system_proxyuser_encpassword", proxyuser_metadata);
-    	metadata.put("system_sysmonitor_encpassword", sysmonitor_metadata);
-    	metadata.put("system_root_encpassword", root_metadata);
-    	metadata.put("system_svcuser_encpassword", svcuser_metadata);
+    	metadata.put("system_proxyuser_encpassword", proxyuserMetadata);
+    	metadata.put("system_sysmonitor_encpassword", sysmonitorMetadata);
+    	metadata.put("system_root_encpassword", rootMetadata);
+    	metadata.put("system_svcuser_encpassword", svcuserMetadata);
 
         return metadata;
     }
@@ -241,7 +241,6 @@ public class PasswordServiceTest {
 
         LocalPasswordHandler ph = getDummyLocalPasswordHandler();
         ph.setLocalUsers(createLocalUsers());
-        ph.setDbClient(new DummyDbClient());
 
         ph.setEncryptionProvider(provider);
         passwordResource.setPasswordHandler(ph);
@@ -595,7 +594,8 @@ public class PasswordServiceTest {
             zkConn.build();
 
             client.setZkConnection(zkConn);
-        }catch (URISyntaxException | IOException e) {
+        } catch (URISyntaxException | IOException e) {
+            ;
         }
 
         return client;

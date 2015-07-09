@@ -66,7 +66,7 @@ public class LogUtil {
         for(File f : files) {
         	logger.debug("file path: " + f.getAbsolutePath());
         }
-        if (files.size() > 0) {
+        if (! files.isEmpty()) {
             Collections.sort(files, new LogFileComparator());
             for (File file : files) {
                 if (fileInTimeRange(file, start, end) < 0) {
@@ -167,16 +167,17 @@ public class LogUtil {
      */
 
     public static boolean permitNextLogBatch(long maxCount, long currentLogSize, int nextBatchSize) {
-        if (maxCount == 0)
+        if (maxCount == 0) {
             // no maxCount limit
             return true;
-        else if (nextBatchSize == 1)
+        } else if (nextBatchSize == 1) {
             // next timestamp is unique, strictly follow the maxCount limit
             return currentLogSize < maxCount;
-        else
+        } else {
             // either within MAXCOUNT_OVERFLOW, or there's only one timestamp
             return (currentLogSize + nextBatchSize <= maxCount + LogConstants.MAXCOUNT_OVERFLOW) ||
                     (currentLogSize == 0);
+        }
     }
 
     // Earlier than start date reutrn -1;
@@ -229,14 +230,16 @@ public class LogUtil {
     }
 
     public static byte[] stringToBytes(String str) {
-        if (str == null)
+        if (str == null) {
             return null;
+        }
         return str.getBytes();
     }
 
     public static String bytesToString(byte[] bytes) {
-        if (bytes == null)
+        if (bytes == null) {
             return null;
+        }
         return new String(bytes);
     }
 

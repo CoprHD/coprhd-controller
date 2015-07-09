@@ -53,7 +53,7 @@ public class LogStreamMerger extends AbstractLogStreamMerger {
         Map<String, List<File>> groupedLogFiles = fileFinder.findFilesGroupedByBaseName();
 
         List<String> groups = req.getBaseNames();
-        if (groups == null || groups.size() == 0) { // default set to all kinds of svcs
+        if (groups == null || groups.isEmpty()) { // default set to all kinds of svcs
             groups = new ArrayList<>(groupedLogFiles.keySet());
         }
 
@@ -85,8 +85,9 @@ public class LogStreamMerger extends AbstractLogStreamMerger {
 
     public LogFileStream[] getStreamList() {
         LogFileStream[] logFileStreams = new LogFileStream[logStreamList.length];
-        for (int i = 0; i < logStreamList.length; i++)
+        for (int i = 0; i < logStreamList.length; i++) {
             logFileStreams[i] = (LogFileStream) logStreamList[i];
+        }
         return logFileStreams;
     }
 

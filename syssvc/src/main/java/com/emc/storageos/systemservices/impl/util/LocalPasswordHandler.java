@@ -43,10 +43,17 @@ public class LocalPasswordHandler {
 
     private static final Logger _log = LoggerFactory.getLogger(LocalPasswordHandler.class);
 
-    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
+    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword"; //NOSONAR
     private static final String SYSTEM_AUTHORIZEDKEY2_FORMAT = "system_%s_authorizedkeys2";
 
     private static final String CRYPT_SHA_512 = "$6$";
+
+    // number of Base64 characters for salt is dependent on the number of salt bytes
+    private static final int SALT_LENGTH = 16;
+
+    // valid chars as part of salt acceptable by commons-codec
+    private static final String SALT_BASE_CHARS =
+            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ./";
 
     private Map<String, StorageOSUser> _localUsers;
 
@@ -66,23 +73,12 @@ public class LocalPasswordHandler {
         _localUsers = localUsers;
     }
 
-    private DbClient _dbClient;
-
-    public void setDbClient(DbClient dbClient) {
-        _dbClient = dbClient;
-    }
-
     private PasswordUtils _passwordUtils;
     public void setPasswordUtils(PasswordUtils passwordUtils) {
         _passwordUtils = passwordUtils;
     }
     public PasswordUtils getPasswordUtils() {
         return _passwordUtils;
-    }
-
-    private static CoordinatorClient _coordinator;
-    public void setCoordinator(CoordinatorClient coordinator) {
-        _coordinator = coordinator;
     }
 
     
@@ -292,16 +288,9 @@ public class LocalPasswordHandler {
      * Generate a random salt
      */
     static private String generateSalt() {
-
-        // number of Base64 characters for salt is dependent on the number of salt bytes
-        final int SALT_LENGTH = 16;
-        
-        // valid chars as part of salt acceptable by commons-codec
-        final String SALT_BASE_CHARS =
-            "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ./";
-        // create the salt of random bytes
         SecureRandom random = new SecureRandom();
 
+        // create the salt of random bytes
         StringBuilder salt = new StringBuilder(SALT_LENGTH);
         for (int i=0; i<SALT_LENGTH; i++) {
             salt.append(SALT_BASE_CHARS.charAt(

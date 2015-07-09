@@ -53,7 +53,7 @@ public class IpReconfigUtil{
 
     public static void cleanupLocalFiles() throws Exception {
         File ipreconfigdir = new File(IpReconfigConstants.IPRECONFIG_PATH);
-        if (ipreconfigdir != null && ipreconfigdir.exists()) {
+        if (ipreconfigdir.exists()) {
             org.apache.commons.io.FileUtils.deleteDirectory(ipreconfigdir);
             log.info("Succeed to remove local ipreconfig dir {}", IpReconfigConstants.IPRECONFIG_PATH);
         }

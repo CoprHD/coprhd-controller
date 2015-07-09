@@ -25,9 +25,9 @@ import java.util.Map;
  */
 public class DiagTestsMetadata {
 
-    private static Map<String, DiagTestMetadata> _metadata = null;
+    private static volatile Map<String, DiagTestMetadata> _metadata = null;
 
-    public void setMetadata(LinkedHashMap<String, DiagTestMetadata> metadata){
+    public static void setMetadata(LinkedHashMap<String, DiagTestMetadata> metadata){
         if (_metadata == null) {
             _metadata = ImmutableMap.copyOf(metadata);
         }

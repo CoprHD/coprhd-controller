@@ -75,8 +75,9 @@ public class LogReader implements LogStream {
             reader = new BufferedReader(new FileReader(path));
         }
         request = req;
-        if (req.getRegex() != null)
-            pattern = Pattern.compile(req.getRegex(), Pattern.DOTALL|Pattern.MULTILINE);
+        if (req.getRegex() != null) {
+            pattern = Pattern.compile(req.getRegex(), Pattern.DOTALL | Pattern.MULTILINE);
+        }
         this.status = status;
         this.filePath = path;
         this.service = service;
@@ -159,16 +160,18 @@ public class LogReader implements LogStream {
 
                         // in case of multiple adjacent header logs
                         // skip all but the last one
-                        if (returnedLog.isHeader() && currentLog.isHeader())
+                        if (returnedLog.isHeader() && currentLog.isHeader()) {
                             continue;
+                        }
 
                         if (matchRegex(returnedLog)) {
                             incrementLogCount(returnedLog);
                             return returnedLog;
                         }
                         // else read the next line
-                    } else
+                    } else {
                         currentLog = nextLog;
+                    }
                 }
             }
         } catch (IOException e) {
@@ -178,8 +181,9 @@ public class LogReader implements LogStream {
     }
 
     private void incrementLogCount(LogMessage returnedLog) {
-        if (!returnedLog.isHeader())
+        if (!returnedLog.isHeader()) {
             logCount++;
+        }
     }
 
     private void close() {
@@ -188,17 +192,20 @@ public class LogReader implements LogStream {
                 reader.close();
             }
         } catch (Exception e) {
+            logger.error("failed to close BufferedReader:", e);
         } finally {
             reader = null;
         }
     }
 
     private boolean matchRegex(LogMessage message) {
-        if (pattern == null)
+        if (pattern == null) {
             return true;
+        }
 
-        if (message == null)
+        if (message == null) {
             return false;
+        }
 
         return pattern.matcher(new String(message.getLogContent())).matches();
     }

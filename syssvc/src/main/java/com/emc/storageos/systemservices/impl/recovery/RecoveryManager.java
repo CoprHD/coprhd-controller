@@ -189,13 +189,16 @@ public class RecoveryManager implements Runnable {
                 log.info("status map entry: {}-{}", statusEntry.getKey(), statusEntry.getValue());
                 String nodeId = statusEntry.getKey();
                 if (statusEntry.getValue().equals(Boolean.TRUE)) {
-                    if (!aliveNodes.contains(nodeId))
+                    if (!aliveNodes.contains(nodeId)) {
                         aliveNodes.add(nodeId);
+                    }
                 } else {
-                    if (!corruptedNodes.contains(nodeId))
+                    if (!corruptedNodes.contains(nodeId)) {
                         corruptedNodes.add(nodeId);
-                    if (aliveNodes.contains(nodeId))
+                    }
+                    if (aliveNodes.contains(nodeId)) {
                         aliveNodes.remove(nodeId);
+                    }
                 }
             }
         }
@@ -832,7 +835,7 @@ public class RecoveryManager implements Runnable {
         	} else if (geoDbState.getStatus() == Status.IN_PROGRESS) {
         		log.info("geo db repair is in progress");
         		repairStatus = getSingleProgressStatus(geoDbState, localDbState, nodeRecovery, true);
-        	} else if (localDbState.getStatus()==Status.FAILED || localDbState.getStatus()==Status.FAILED) {
+        	} else if (localDbState.getStatus()==Status.FAILED || geoDbState.getStatus()==Status.FAILED) {
         		log.info("local or geo db repair failed");
         		repairStatus = new DbRepairStatus(Status.FAILED); 
         	} else if (localDbState.getStatus()==Status.SUCCESS && geoDbState.getStatus()==Status.SUCCESS) {

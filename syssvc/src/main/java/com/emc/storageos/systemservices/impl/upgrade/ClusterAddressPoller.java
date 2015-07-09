@@ -44,9 +44,8 @@ public class ClusterAddressPoller implements Runnable {
     private long pollInterval;
 
     static private final int DEFAULT_SVC_PORT = 9998;
-
-    String ADDRESSV4_FORMAT = "network_%1$s_ipaddr";
-    String ADDRESSV6_FORMAT = "network_%1$s_ipaddr6";
+    static private final String ADDRESSV4_FORMAT = "network_%1$s_ipaddr";
+    static private final String ADDRESSV6_FORMAT = "network_%1$s_ipaddr6";
     
 
     @Autowired
@@ -247,8 +246,9 @@ public class ClusterAddressPoller implements Runnable {
                 throw e;
             }
         }
-        else
+        else {
             _log.info("vip not changed");
+        }
 
         // Cache the last known valid vip client, whether vip changed or not
         // so that it can be used for the next poll interval

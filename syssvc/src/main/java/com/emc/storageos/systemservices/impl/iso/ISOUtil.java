@@ -61,7 +61,7 @@ public class ISOUtil {
         int hour = cal.get(Calendar.HOUR_OF_DAY);
         int minute = cal.get(Calendar.MINUTE);
         int second = cal.get(Calendar.SECOND);
-        int gmt_offset = cal.get(Calendar.ZONE_OFFSET) / (15 * 60 * 1000);
+        int gmtOffset = cal.get(Calendar.ZONE_OFFSET) / (15 * 60 * 1000);
         // Create ISO9660 date
         byteBuffer.put((byte) year);
         byteBuffer.put((byte) month);
@@ -69,9 +69,9 @@ public class ISOUtil {
         byteBuffer.put((byte) hour);
         byteBuffer.put((byte) minute);
         byteBuffer.put((byte) second);
-        if(gmt_offset > 0)
+        if(gmtOffset > 0)
         {
-            byteBuffer.put((byte) gmt_offset);
+            byteBuffer.put((byte) gmtOffset);
         }
         else {
             byteBuffer.put((byte) 0);
@@ -88,8 +88,8 @@ public class ISOUtil {
         int hour = cal.get(Calendar.HOUR_OF_DAY);
         int minute = cal.get(Calendar.MINUTE);
         int second = cal.get(Calendar.SECOND);
-        int hundredth_sec = cal.get(Calendar.MILLISECOND) / 10;
-        int gmt_offset = cal.get(Calendar.ZONE_OFFSET) / (15 * 60 * 1000);
+        int hundredthSec = cal.get(Calendar.MILLISECOND) / 10;
+        int gmtOffset = cal.get(Calendar.ZONE_OFFSET) / (15 * 60 * 1000);
         // Create ISO9660 date
         byteBuffer.put(padIntToString(year, 4).getBytes());
         byteBuffer.put(padIntToString(month, 2).getBytes());
@@ -97,9 +97,9 @@ public class ISOUtil {
         byteBuffer.put(padIntToString(hour, 2).getBytes());
         byteBuffer.put(padIntToString(minute, 2).getBytes());
         byteBuffer.put(padIntToString(second, 2).getBytes());
-        byteBuffer.put(padIntToString(hundredth_sec, 2).getBytes());
-        if(gmt_offset > 0){
-            byteBuffer.put((byte) gmt_offset);
+        byteBuffer.put(padIntToString(hundredthSec, 2).getBytes());
+        if(gmtOffset > 0){
+            byteBuffer.put((byte) gmtOffset);
         }
         else{
             byteBuffer.put((byte) 0);

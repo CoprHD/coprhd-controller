@@ -86,6 +86,7 @@ public class SoftwareVersionTest {
     }
     
     @Test
+    @SuppressWarnings("squid:S1848") // to avoid sonar errors on TestProductName and SoftwareVersion
     public void testSoftwareVersion() throws Exception {
         new TestProductName();
         // Positive tests

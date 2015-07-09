@@ -16,8 +16,10 @@ package com.emc.storageos.systemservices.impl.validate;
 
 import static com.emc.storageos.model.property.PropertyConstants.*;
 
-import java.net.*;
-import java.util.ArrayList;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.URL;
+import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -25,22 +27,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import com.google.common.net.InetAddresses;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyMetadata;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-
 import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.systemservices.exceptions.SyssvcException;
-import com.emc.storageos.systemservices.exceptions.SyssvcInternalException;
-import com.emc.storageos.services.util.Exec;
-import com.google.common.net.InetAddresses;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PropertiesConfigurationValidator {
-    private static final Logger _log = LoggerFactory.getLogger
+    private static final Logger log = LoggerFactory.getLogger
         (PropertiesConfigurationValidator.class);
 
     private static List<String> PROPERTIES_ALLOW_EMPTY_VALUE =
@@ -61,7 +59,7 @@ public class PropertiesConfigurationValidator {
             + "[A-Za-z0-9-]+(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$";
 
     // valid pattern for an individual label in a full hostname string.
-    private static String VALID_HOST_NAME_LABEL_PATTERN = "^[a-z0-9-]+";
+    private static final String VALID_HOST_NAME_LABEL_PATTERN = "^[a-z0-9-]+";
 
     static {
         pattern = Pattern.compile(EMAIL_PATTERN);
@@ -254,7 +252,7 @@ public class PropertiesConfigurationValidator {
     /**
      * Remove spaces and newlines from ip list
      * 
-     * @param iplist
+     * @param list
      * @return
      */
     private static String formatList(String list) {
@@ -439,7 +437,7 @@ public class PropertiesConfigurationValidator {
     public static boolean validateEmailList(String value) {
         String[] emails = value.split(",");
         for(String email : emails) {
-            if(validateEmail(email.trim()) == false) {
+            if(! validateEmail(email.trim())) {
                 return false;
             }
         }
@@ -453,9 +451,8 @@ public class PropertiesConfigurationValidator {
      * @return
      */
     public static boolean validateUrl(String value) {
-
         try {
-            URL url = new URL((String) value);
+            new URL(value);
         } catch (MalformedURLException e) {
             return false;
         }
@@ -472,7 +469,7 @@ public class PropertiesConfigurationValidator {
         String[] ips = iplist.split(",");
         try {
             for (String ip : ips) {
-            	ip=ip.trim();
+            	ip = ip.trim();
             	if (ip.contains("/")) {
                 // Handle subnet specification
                     String[] ipcomps = ip.split("/");
@@ -483,7 +480,9 @@ public class PropertiesConfigurationValidator {
                     	// We have to put the test on maskBits in a separate try block otherwise a non-integer will cause problem.
                     	try { 
                     		int maskBits = Integer.parseInt(ipcomps[1].trim()); 
-                    		if ( maskBits > 32 || maskBits < 0 ) return false; 
+                    		if ( maskBits > 32 || maskBits < 0 ) {
+                                return false;
+                            }
                         } catch(NumberFormatException e) { 
                             return false; 
                         }                	                  		

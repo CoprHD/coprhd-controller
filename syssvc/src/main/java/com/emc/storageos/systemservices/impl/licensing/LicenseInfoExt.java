@@ -163,8 +163,9 @@ public class LicenseInfoExt extends LicenseInfo implements CoordinatorSerializab
         if (infoStr != null && !infoStr.isEmpty()) {
             for (String licenseProps : infoStr.split(ENCODING_SEPARATOR)) {
                 String[] licenseProp = licenseProps.split(ENCODING_EQUAL);
-                if(licenseProp.length < 2)
-                	continue;
+                if(licenseProp.length < 2) {
+                    continue;
+                }
                 if (licenseProp[0].equalsIgnoreCase(LICENSE_TYPE)) {
                 	LicenseType licenseType = LicenseType.findByValue(licenseProp[1]);                    
                     this.setLicenseType(licenseType);

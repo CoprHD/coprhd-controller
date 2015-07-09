@@ -30,7 +30,7 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogStreamMergerTest {
 	
-    private static LogSvcPropertiesLoader propertiesLoader;
+    private volatile static LogSvcPropertiesLoader propertiesLoader;
     private static final Logger logger = LoggerFactory.getLogger(LogStreamMergerTest.class);
     
     @BeforeClass

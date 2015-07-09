@@ -116,8 +116,9 @@ public class LogFileStream implements LogStream {
                 sizeCounter.addAndGet(f.length());
             }
 
-            if (currentLog != null)
+            if (currentLog != null) {
                 prevLogTime = currentLog.getTime();
+            }
 
             currentLog = reader.readNextLogMessage();
             if (currentLog != null) {
@@ -125,8 +126,9 @@ public class LogFileStream implements LogStream {
                 currentLog.setService(LogUtil.serviceToBytes(basename));
                 // we cannot determine until the current log message has been read out
                 if (!LogUtil.permitCurrentLog(request.getMaxCount(), logCounter.get(),
-                        currentLog.getTime(), prevLogTime))
+                        currentLog.getTime(), prevLogTime)) {
                     break;
+                }
 
                 return currentLog;
             } else {

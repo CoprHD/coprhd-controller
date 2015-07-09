@@ -92,8 +92,9 @@ public class PropertyInfoTest {
         int len = chars.length;
         int count = 0;
         for (int i = 0; i < len; i++) {
-            if (chars[i] == '=')
+            if (chars[i] == '=') {
                 count++;
+            }
         }
         Assert.assertTrue(count == 5);
 

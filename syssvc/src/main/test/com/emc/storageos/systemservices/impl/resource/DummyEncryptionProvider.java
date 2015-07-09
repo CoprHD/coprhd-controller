@@ -19,7 +19,7 @@ import java.nio.charset.Charset;
 public class DummyEncryptionProvider implements EncryptionProvider {
 
     private static final String ALGO = "AES";
-    private Charset UTF_8 = Charset.forName("UTF-8");
+    private static final Charset UTF_8 = Charset.forName("UTF-8");
     private static final byte ENC_PROVIDER_VERSION = 0x01;
     private SecretKey _key;
     private Cipher _cipher;

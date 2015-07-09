@@ -25,7 +25,7 @@ import com.emc.vipr.model.sys.logging.LogSeverity;
  *
  */
 public class LogSyslogParser extends LogParser {
-    private final int TIME_LENGTH = 21;
+    private static final int TIME_LENGTH = 21;
     /**
      * Parse line from file to LogMessage If line does not match log format(it
      * is the message part for multiple lines log), return
@@ -76,8 +76,6 @@ public class LogSyslogParser extends LogParser {
         if (sec < 0) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
-
-        String timeStr = line.substring(0, TIME_LENGTH - 2);
 
         final int endBracket = line.indexOf("]", TIME_LENGTH);
         if (endBracket < 0 || endBracket - TIME_LENGTH > Short.MAX_VALUE) {

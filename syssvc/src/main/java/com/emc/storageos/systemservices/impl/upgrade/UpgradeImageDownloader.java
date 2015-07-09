@@ -112,7 +112,9 @@ public class UpgradeImageDownloader {
     
     private static void tryClose(final InputStream in) {
         try {
-            if (in != null) in.close();
+            if (in != null) {
+                in.close();
+            }
         } catch(Exception e) {
             ;
         }
@@ -120,7 +122,9 @@ public class UpgradeImageDownloader {
     
     private static void tryClose(final OutputStream out) {
         try { 
-            if (out != null) out.close(); 
+            if (out != null) {
+                out.close();
+            }
         } catch(Exception e) {
             ;
         }

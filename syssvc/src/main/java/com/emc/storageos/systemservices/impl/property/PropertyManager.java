@@ -70,7 +70,7 @@ public class PropertyManager extends AbstractManager {
     private PropertyInfoExt localVdcPropInfo;
     private PropertyInfoExt targetVdcPropInfo;
 
-    public static HashSet<String> poweroffAgreementsKeeper = new HashSet<>();
+    public HashSet<String> poweroffAgreementsKeeper = new HashSet<>();
 
     public HashSet<String> getPoweroffAgreementsKeeper(){
         return poweroffAgreementsKeeper;
@@ -94,7 +94,9 @@ public class PropertyManager extends AbstractManager {
         svcIds.remove(mySvcId);
         Set<String> controlerSyssvcIdSet = new HashSet<String>();
         for (String svcId : svcIds){
-        	if (svcId.matches("syssvc-\\d")) controlerSyssvcIdSet.add(svcId);
+        	if (svcId.matches("syssvc-\\d")) {
+                controlerSyssvcIdSet.add(svcId);
+            }
         }
 
         log.info("Tell other node it's ready to power off");
@@ -397,8 +399,8 @@ public class PropertyManager extends AbstractManager {
         if ( localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE)  == null ) {
             localRepository.setVdcPropertyInfo(targetVdcPropInfo);
             localVdcPropInfo = localRepository.getVdcPropertyInfo();
-            String vdc_ids= targetVdcPropInfo.getProperty(VDC_IDS_KEY);
-            String[] vdcIds = vdc_ids.split(",");
+            String vdcIdsStr= targetVdcPropInfo.getProperty(VDC_IDS_KEY);
+            String[] vdcIds = vdcIdsStr.split(",");
             if ( vdcIds.length > 1) {
                 log.info("More than one Vdc, so set reboot flag");
                 shouldReboot=true;
@@ -417,9 +419,9 @@ public class PropertyManager extends AbstractManager {
         	coordinator.removeTargetInfo(targetPropInfo, true);
         }
         PropertyInfoExt diffProperties = new PropertyInfoExt(targetPropInfo.getDiffProperties(localTargetPropInfo));
-        PropertyInfoExt override_properties = new PropertyInfoExt(localRepository.getOverrideProperties().getAllProperties());
-        log.info("Step3a: Updating User Changed properties file: {}", override_properties);
-        PropertyInfoExt updatedUserChangedProps = combineProps(override_properties, diffProperties);
+        PropertyInfoExt overrideProperties = new PropertyInfoExt(localRepository.getOverrideProperties().getAllProperties());
+        log.info("Step3a: Updating User Changed properties file: {}", overrideProperties);
+        PropertyInfoExt updatedUserChangedProps = combineProps(overrideProperties, diffProperties);
         if (diffProperties.hasRebootProperty()) {
             if (! getPropertyLock(svcId)) {
                 retrySleep();
@@ -487,8 +489,9 @@ public class PropertyManager extends AbstractManager {
             log.info("Step3a: Calling notifier {}", notifierTag);
             try {
                 Notifier notifier = Notifier.getInstance(notifierTag);
-                if (notifier != null)
+                if (notifier != null) {
                     notifier.doNotify();
+                }
             } catch (Exception e) {
                 log.error("Step3a: Fail to invoke notifier {}", notifierTag, e);
             }
@@ -630,7 +633,7 @@ public class PropertyManager extends AbstractManager {
      * Reset target power off state back to NONE
      */
     private void resetTargetPowerOffState() {
-        poweroffAgreementsKeeper = new HashSet<String>();
+        poweroffAgreementsKeeper = new HashSet<>();
         while (true) {
             try {
                 if (coordinator.isControlNode()) {

@@ -41,18 +41,20 @@ public abstract class Notifier {
     private static final String SSL_NOTIFIER = "ssl";
     private static final String DNS_NOTIFIER = "dns";
     private static final String SSH_AUTH_KEY_NOTIFIER = "ssh_auth_key";
-    private static final String PASSWORD_NOTIFIER = "password";
+    private static final String PASSWORD_NOTIFIER = "password"; //NOSONAR
     private static final String BACKUPSCHEDULER_NOTIFIER = "backupscheduler";
     private static final String UPGRADE_NOTIFIER = "upgrade";
 
     public abstract void doNotify() throws Exception;
 
     public static Notifier getInstance(String notifierType) {
-        if (notifierType == null)
+        if (notifierType == null) {
             return null;
+        }
 
-        if (notifierMap.containsKey(notifierType))
+        if (notifierMap.containsKey(notifierType)) {
             return notifierMap.get(notifierType);
+        }
 
         Notifier notifier = null;
         switch(notifierType) {

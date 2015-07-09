@@ -92,17 +92,14 @@ public class BackupService{
     @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     public BackupSets listBackup() {
-        List<BackupSetInfo> backupList = new ArrayList<BackupSetInfo>();
-
         log.info("Received list backup request");
         try {
-            backupList = backupOps.listBackup();
+            List<BackupSetInfo> backupList = backupOps.listBackup();
+            return toBackupSets(backupList);
         } catch (BackupException e) {
             log.error("Failed to list backup sets, e=", e);
             throw APIException.internalServerErrors.getObjectError("Backup info", e);
         }
-
-        return toBackupSets(backupList);
     }
 
     private BackupSets toBackupSets(List<BackupSetInfo> backupList) {
@@ -162,8 +159,9 @@ public class BackupService{
     @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
     public Response deleteBackup(@QueryParam("tag") String backupTag) {
         log.info("Received delete backup request, backup tag={}", backupTag);
-        if (backupTag == null)
-            throw APIException.badRequests.parameterIsNotValid(backupTag);
+        if (backupTag == null) {
+            throw APIException.badRequests.parameterIsNotValid("tag");
+        }
         try {
             backupOps.deleteBackup(backupTag);
         } catch (BackupException e) {
@@ -190,7 +188,7 @@ public class BackupService{
         log.info("Received download backup request, backup tag={}", backupTag);
         try {
             final BackupFileSet files = getDownloadList(backupTag);
-            if (files.size() == 0) {
+            if (files.isEmpty()) {
                 throw APIException.internalServerErrors.createObjectError(
                         String.format("can not find target backup set '%s'.", backupTag),
                         null);
@@ -272,7 +270,6 @@ public class BackupService{
     }
 
     public void collectData(BackupFileSet files, OutputStream outStream) throws IOException{
-        ZipOutputStream zos = new ZipOutputStream(outStream);
         String backupTag = files.first().tag;
 
         Set<String> uniqueNodes = files.uniqueNodes();
@@ -292,35 +289,35 @@ public class BackupService{
 
         URI postUri = SysClientFactory.URI_NODE_BACKUPS_DOWNLOAD;
         boolean propertiesFileFound = false;
-        for (final NodeInfo node : nodes) {
-            String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
-                    node.getIpAddress(), node.getPort());
-            log.debug("processing node: {}", baseNodeURL);
-            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
-                    URI.create(baseNodeURL));
-            for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {
-                String fullFileName = backupTag + File.separator + fileName;
-                InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
-                newZipEntry(zos, in, fileName);
+
+        try (ZipOutputStream zos = new ZipOutputStream(outStream)) {
+            for (final NodeInfo node : nodes) {
+                String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
+                        node.getIpAddress(), node.getPort());
+                log.debug("processing node: {}", baseNodeURL);
+                SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
+                        URI.create(baseNodeURL));
+                for (String fileName : getFileNameList(files.subsetOf(null, null, node.getId()))) {
+                    String fullFileName = backupTag + File.separator + fileName;
+                    InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
+                    newZipEntry(zos, in, fileName);
+                }
+
+                try {
+                    String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
+                    String fullFileName = backupTag + File.separator + fileName;
+                    InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
+                    newZipEntry(zos, in, fileName);
+                    propertiesFileFound = true;
+                } catch (SysClientException ex) {
+                    log.info("info.properties file is not found on node {}, exception {}", node.getId(), ex.getMessage());
+                }
             }
 
-            try {
-                String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
-                String fullFileName = backupTag + File.separator + fileName;
-                InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
-                newZipEntry(zos, in, fileName);
-                propertiesFileFound = true;
-            } catch (SysClientException ex) {
-                log.info("info.properties file is not found on node {}, exception {}", node.getId(), ex.getMessage());
+            if (!propertiesFileFound) {
+                throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
             }
         }
-
-        if (!propertiesFileFound) {
-            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
-        }
-
-        // We only close ZIP stream when everything is OK, or the package will be extractable but missing files.
-        zos.close();
 
         log.info("Successfully generated ZIP package");
     }

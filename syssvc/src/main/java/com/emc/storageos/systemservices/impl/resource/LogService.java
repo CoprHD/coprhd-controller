@@ -236,12 +236,12 @@ public class LogService extends BaseLogSvcResource {
         
         if(dryRun) {
             List<NodeInfo> clusterNodesInfo = ClusterNodesUtil.getClusterNodeInfo();
-            if (clusterNodesInfo.size() == 0) {
+            if (clusterNodesInfo.isEmpty()) {
                 _log.error("No nodes available for collecting logs");
                 throw APIException.internalServerErrors.noNodeAvailableError("no nodes available for collecting logs");
             }
             List<NodeInfo> matchingNodes = null;
-            if (nodeIds.size() == 0) {
+            if (nodeIds.isEmpty()) {
                 matchingNodes = clusterNodesInfo;
             }
             else {
@@ -263,7 +263,7 @@ public class LogService extends BaseLogSvcResource {
                 failedNodes = _coordinatorClientExt.getUnavailableControllerNodes();
             }
 
-            if(nodeIds.size() > 0)
+            if(! nodeIds.isEmpty())
                 failedNodes.retainAll(nodeIds);
             String baseNodeURL;
             SysClientFactory.SysClient sysClient;                
@@ -549,7 +549,7 @@ public class LogService extends BaseLogSvcResource {
      private void validateNodeIds(List<String> nodeIds) {
         // Get the cluster node information and validate that there is
         // a cluster node with each of the requested ids.
-        if (nodeIds == null || nodeIds.size() == 0) {
+        if (nodeIds == null || nodeIds.isEmpty()) {
             return;
         }
         List<NodeInfo> nodeInfoList = ClusterNodesUtil.getClusterNodeInfo();
@@ -559,7 +559,7 @@ public class LogService extends BaseLogSvcResource {
         }
         List<String> nodeIdsClone = new ArrayList<String>(nodeIds);
         nodeIdsClone.removeAll(validNodeIds);
-        if (nodeIdsClone.size() > 0) {
+        if (! nodeIdsClone.isEmpty()) {
             throw APIException.badRequests.parameterIsNotValid("node id");
         }
     }
@@ -573,14 +573,14 @@ public class LogService extends BaseLogSvcResource {
      * @throws APIException if the list contains an invalid node id.
      */
     private void validateNodeServices(List<String> logNames) {
-        if (logNames == null || logNames.size() == 0) {
+        if (logNames == null || logNames.isEmpty()) {
             return;
         }
         List<String> logNamesClone = new ArrayList<String>(logNames);
         // both control and extra node services are valid service names
         logNamesClone.removeAll(ServicesMetadata.getControlNodeServiceNames());
         logNamesClone.removeAll(ServicesMetadata.getExtraNodeServiceNames());
-        if (logNamesClone.size() > 0) {
+        if (! logNamesClone.isEmpty()) {
             throw APIException.badRequests.parameterIsNotValid("log name");
         }
     }

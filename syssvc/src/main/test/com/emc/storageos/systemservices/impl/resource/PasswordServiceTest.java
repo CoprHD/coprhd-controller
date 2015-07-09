@@ -73,7 +73,7 @@ public class PasswordServiceTest {
     public PropertyInfoExt _passwordProps = new PropertyInfoExt();
     public PropertiesMetadata _propertiesMetadata = new PropertiesMetadata();
     private DummyEncryptionProvider provider;
-    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
+    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
     Map<String, String> propertiesMap;
 
     /**

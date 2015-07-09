@@ -509,7 +509,7 @@ public class UpgradeManager extends AbstractManager {
             throws RemoteRepositoryException, LocalRepositoryException {
 
         // Step1 - if something to install, install
-        if (syncinfo.getToInstall() != null && syncinfo.getToInstall().size() > 0) {
+        if (syncinfo.getToInstall() != null && ! syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
             if (toInstall != null && (image = getRemoteImage(toInstall)) == null) {
@@ -525,7 +525,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // Step2 - if something to remove, remove
-        if (syncinfo.getToRemove() != null && syncinfo.getToRemove().size() > 0) {
+        if (syncinfo.getToRemove() != null && ! syncinfo.getToRemove().isEmpty()) {
             for (SoftwareVersion v : syncinfo.getToRemove()) {
                 localRepository.removeVersion(v);
             }
@@ -538,7 +538,7 @@ public class UpgradeManager extends AbstractManager {
                                      final SyncInfo syncinfo)
             throws SysClientException, LocalRepositoryException {
         // Step1 - if something to install, install
-        if (syncinfo.getToInstall() != null && syncinfo.getToInstall().size() > 0) {
+        if (syncinfo.getToInstall() != null && ! syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
             if (toInstall != null && (image = getLeaderImage(toInstall, leader)) == null) {
@@ -554,7 +554,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // Step2 - if something to remove, remove
-        if (syncinfo.getToRemove() != null && syncinfo.getToRemove().size() > 0) {
+        if (syncinfo.getToRemove() != null && ! syncinfo.getToRemove().isEmpty()) {
             for (SoftwareVersion v : syncinfo.getToRemove()) {
                 localRepository.removeVersion(v);
             }
@@ -581,7 +581,7 @@ public class UpgradeManager extends AbstractManager {
         }
 
         // return nodeId which is synced
-        if (candidates.size() > 0) {
+        if (! candidates.isEmpty()) {
             return candidates.get(new Random().nextInt(candidates.size()));
         }
 

@@ -90,7 +90,7 @@ public class NodeStatsExtractor implements StatConstants {
         }
 
         //Ordering service stats
-        if (availableServices == null || availableServices.size() == 0) {
+        if (availableServices == null || availableServices.isEmpty()) {
             _log.warn("List of available services is null or empty: {}",
                     availableServices);
             return new ArrayList<ServiceStats>(tempServiceStatsMap.values());

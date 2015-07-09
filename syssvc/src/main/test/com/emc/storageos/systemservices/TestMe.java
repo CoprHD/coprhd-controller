@@ -48,13 +48,9 @@ public class TestMe {
         } catch (IOException ignoreMe) {
         }
     }
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         TestMe test =  new TestMe();
-        try {
-            test.testname(args[0]);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+
+        test.testname(args[0]);
     }
 }

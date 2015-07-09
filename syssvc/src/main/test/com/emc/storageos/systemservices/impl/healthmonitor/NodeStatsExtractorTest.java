@@ -52,13 +52,13 @@ public class NodeStatsExtractorTest extends NodeStatsExtractor {
     @Test
     public void testDiskStatsWithInterval() {
         List<DiskStats> diskStatsList = getDiskStats(2);
-        Assert.assertTrue(diskStatsList != null && diskStatsList.size() > 0);
+        Assert.assertTrue(diskStatsList != null && ! diskStatsList.isEmpty());
     }
 
     @Test
     public void testDiskStatsWithoutInterval() {
         List<DiskStats> diskStatsList = getDiskStats(0);
-        Assert.assertTrue(diskStatsList != null && diskStatsList.size() > 0);
+        Assert.assertTrue(diskStatsList != null && ! diskStatsList.isEmpty());
     }
 
     @Test

@@ -86,7 +86,7 @@ public class RemoteRepository {
     private final static String SYSTEM_UPDATE_REPO = "system_update_repo";
     private final static String SYSTEM_UPDATE_PROXY = "system_update_proxy";    
     private final static String SYSTEM_UPDATE_USERNAME = "system_update_username";
-    private final static String SYSTEM_UPDATE_PASSWORD = "system_update_password";    
+    private final static String SYSTEM_UPDATE_PASSWORD = "system_update_password"; //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
     private final static String SYSTEM_UPDATE_CHECK_FREQUENCY_HOURS = "system_update_check_frequency_hours";
     // connect + read timeout constant
     private final static int SYSTEM_UPDATE_REPO_TIMEOUT = 30000;
@@ -209,6 +209,11 @@ public class RemoteRepository {
         } else if (!_repo.equals(other._repo))
             return false;
         return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(_proxy, _repo);
     }
 
 /***

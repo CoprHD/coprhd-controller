@@ -51,10 +51,10 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
     }
 
     private void verifyNodeStats(NodeStats nodeStats){
-        Assert.assertTrue(nodeStats.getDiskStatsList() != null && nodeStats
-                .getDiskStatsList().size() > 0);
-        Assert.assertTrue(nodeStats.getServiceStatsList() != null && nodeStats
-                .getServiceStatsList().size() > 0);
+        Assert.assertTrue(nodeStats.getDiskStatsList() != null && ! nodeStats
+                .getDiskStatsList().isEmpty());
+        Assert.assertTrue(nodeStats.getServiceStatsList() != null && ! nodeStats
+                .getServiceStatsList().isEmpty());
 
         //service stats
         for (ServiceStats serviceStats : nodeStats.getServiceStatsList()) {
@@ -103,10 +103,10 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
     public void testNodeStatsWithNoAvailableServices() {
         NodeStats nodeStats = getNodeStats(NODE_ID, NODE_IP, 0,
                 null);
-        Assert.assertTrue(nodeStats.getDiskStatsList() != null && nodeStats
-                .getDiskStatsList().size() > 0);
-        Assert.assertTrue(nodeStats.getServiceStatsList() != null && nodeStats
-                .getServiceStatsList().size() > 0);
+        Assert.assertTrue(nodeStats.getDiskStatsList() != null && ! nodeStats
+                .getDiskStatsList().isEmpty());
+        Assert.assertTrue(nodeStats.getServiceStatsList() != null && ! nodeStats
+                .getServiceStatsList().isEmpty());
 
         //service stats
         for (ServiceStats serviceStats : nodeStats.getServiceStatsList()) {

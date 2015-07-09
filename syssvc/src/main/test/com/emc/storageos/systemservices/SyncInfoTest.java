@@ -43,7 +43,7 @@ public class SyncInfoTest {
         Assert.assertFalse(result.isEmpty());
         Assert.assertTrue("toInstall " + result.getToInstall() + " not same as expected",
                 (!toInstall.isEmpty()) ? (result.getToInstall().get(0).equals(new SoftwareVersion(toInstall))):
-                        (result.getToInstall() == null || result.getToInstall().size() == 0));
+                        (result.getToInstall() == null || result.getToInstall().isEmpty()));
         Assert.assertTrue("toRemove not same", result.getToRemove().size() == toRemove.length);
         for (String version: toRemove) {
             Assert.assertTrue("toRemove not same", result.getToRemove().contains(new SoftwareVersion(version)));

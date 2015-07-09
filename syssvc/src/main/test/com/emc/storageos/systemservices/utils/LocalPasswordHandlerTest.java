@@ -36,7 +36,7 @@ import com.emc.storageos.systemservices.impl.util.LocalPasswordHandler;
 
 public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
 
-    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
+    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
 
     /**
      * local user sysmonitor
@@ -86,7 +86,7 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
     @Test
     public void testSetAndVerifyUserPassword() throws CoordinatorClientException, LocalRepositoryException {
 
-        String newPassword = "newPassword123";
+        String newPassword = "newPassword123";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
         
         LocalPasswordHandler ph  = getPasswordHandler();
         
@@ -98,7 +98,7 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
     @Test
     public void testResetUserPassword() throws CoordinatorClientException, LocalRepositoryException {
 
-        String resetPassword = "freshPassword123";
+        String resetPassword = "freshPassword123";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
         
         LocalPasswordHandler ph  = getPasswordHandler();
         
@@ -117,7 +117,7 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
     	}
     	else if (security.equals("encrypted")) {
     		ph.setUserEncryptedPassword(LOCAL_PROXYUSER, password, false);
-            String storedPassword = "";
+            String storedPassword = "";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
             try {
     		    storedPassword = _encryptionProvider.decrypt(Base64.decodeBase64(_passwordProps.getProperty(
     					String.format(SYSTEM_ENCPASSWORD_FORMAT, username)).getBytes("UTF-8")));

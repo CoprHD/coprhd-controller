@@ -273,7 +273,7 @@ public class RemoteRepositoryTest {
         Assert.assertTrue(remoteVersions != null);
         Assert.assertTrue(!remoteVersions.isEmpty());  
         SoftwareVersion v = remoteVersions.get(0);       
-        password = "badpassword";
+        password = "badpassword"; //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
         _repo = RemoteRepository.getInstance();
         try {
             _repo.checkVersionDownloadable(remoteVersions.get(0));

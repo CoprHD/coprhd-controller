@@ -43,7 +43,7 @@ public class LocalPasswordHandler {
 
     private static final Logger _log = LoggerFactory.getLogger(LocalPasswordHandler.class);
 
-    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
+    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword"; //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
     private static final String SYSTEM_AUTHORIZEDKEY2_FORMAT = "system_%s_authorizedkeys2";
 
     private static final String CRYPT_SHA_512 = "$6$";

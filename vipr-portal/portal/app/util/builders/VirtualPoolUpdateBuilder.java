@@ -17,7 +17,6 @@ import models.StorageSystemTypes;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
-import org.jsoup.select.Evaluator.IsEmpty;
 
 import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
 import com.emc.storageos.model.pools.VirtualArrayAssignments;

@@ -8,7 +8,7 @@
  *
  * <div doc-module-components="fields"></div>
  */
-angular.module('fields', ['vipr']).directive({
+angular.module('fields', ['vipr']).directive({  //NOSONAR
     /**
      * @ngdoc directive
      * @name fields.directive:vField

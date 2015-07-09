@@ -308,8 +308,8 @@ public class VasaServiceTest extends junit.framework.TestCase {
 
 		String keyStoreFileURL = "file:"
 				+ _prop.getProperty(ClientConfig.KEYSTORE_PATH);
-		keystore = createKeyStore(new URL(keyStoreFileURL), "JKS",
-				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD)); //NOSONAR
+		keystore = createKeyStore(new URL(keyStoreFileURL), "JKS", //NOSONAR ("Lazy initialization of "static" fields should be "synchronized" : Synchronize this lazy initialization of 'keystore'")
+				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD)); 
 
 		String certificate = getCertificate(keystore,
 				_prop.getProperty(ClientConfig.CERT_ALIAS), true);

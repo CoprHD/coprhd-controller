@@ -35,11 +35,13 @@ import com.emc.storageos.security.resource.UserInfoPage.UserTenantList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.ClientResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
+
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -253,15 +255,17 @@ public class Validator {
         return false;
     }
 
-
+    @SuppressWarnings({"squid:S2444"})
     public static void setAuthSvcEndPointLocator(AuthSvcEndPointLocator authSvcEndPointLocator ) {
         _authSvcEndPointLocator = authSvcEndPointLocator;
     }
 
+    @SuppressWarnings({"squid:S2444"})
     public static void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
+    @SuppressWarnings({"squid:S2444"})
     public static void setStorageOSUserRepository(StorageOSUserRepository repo) {
         _repository = repo;
     }

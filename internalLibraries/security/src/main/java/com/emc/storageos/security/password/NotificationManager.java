@@ -32,6 +32,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,9 @@ public class NotificationManager {
     private final ScheduledExecutorService _scheduler = Executors.newScheduledThreadPool(1);
 
     private static CoordinatorClient _coordinator;
-    public void setCoordinator(CoordinatorClient coordinator) {
+    
+   @SuppressWarnings({"squid:S2444"})
+   public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
@@ -97,7 +100,7 @@ public class NotificationManager {
      * to be expired.
      */
     private class PasswordExpireMailNotifier implements Runnable {
-        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock";
+        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; // NOSONAR
 
         @Override
         public void run() {

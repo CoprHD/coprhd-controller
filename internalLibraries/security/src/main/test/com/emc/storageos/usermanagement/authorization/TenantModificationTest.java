@@ -14,6 +14,7 @@ import com.emc.storageos.usermanagement.setup.TenantMode;
 import com.emc.storageos.usermanagement.util.ViPRClientHelper;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -30,6 +31,7 @@ public class TenantModificationTest extends TenantMode {
     static ViPRCoreClient secAdminClient;
 
     @BeforeClass
+    @SuppressWarnings({"squid:S2444"})
     public static void  setupTest() throws Exception{
         String rootTenantAdmin = getUserByRole(rootTenantID, RoleOrAcl.TenantAdmin);
         tenantAdminClient = new ViPRCoreClient(controllerNodeEndpoint, true).withLogin(rootTenantAdmin, PASSWORD);

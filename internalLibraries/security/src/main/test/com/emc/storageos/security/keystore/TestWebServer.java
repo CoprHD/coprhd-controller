@@ -45,7 +45,7 @@ public class TestWebServer {
     private SslSelectChannelConnector _securedConnector = null;
     public static final int _securePort = 9930;
     public final KeyCertificateEntry _keyAndCert;
-    public static final String _keystorePassword = "changeit";
+    public static final String _keystorePassword = "changeit"; //NOSONAR
     private Server _server;
     private final Application _app = new TestApplication();
     private final String[] _ciphers = { "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",

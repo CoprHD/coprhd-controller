@@ -11,6 +11,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -32,6 +33,7 @@ public class XmlUtil {
      *          The Class instance which will be marshaled
      * @return string of content
      */
+    @SuppressWarnings({"squid:S1148"})
     public synchronized static <T> String marshal(T t) {
         StringWriter stringWriter = new StringWriter();
         String str = "";
@@ -58,6 +60,7 @@ public class XmlUtil {
      *          Class identifier of desired type
      * @return instance of desired type
      */
+    @SuppressWarnings({"squid:S1148"})
     public synchronized static <T> T unmarshal(String content, Class<T> tClass) {
 
         StringReader stringReader = new StringReader(content);
@@ -81,6 +84,7 @@ public class XmlUtil {
      *          Class identifier of desired type
      * @return instance of desired type
      */
+    @SuppressWarnings({"squid:S1148"})
     public synchronized static <T> T unmarshal(InputStream inputStream, Class<T> tClass) {
         try {
             JAXBContext jaxbContext = JAXBContext.newInstance(tClass);

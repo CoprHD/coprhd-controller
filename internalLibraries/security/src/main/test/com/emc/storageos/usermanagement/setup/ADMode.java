@@ -31,7 +31,7 @@ public class ADMode extends LocalUserMode {
 
     protected static AuthnProviderRestRep authnProviderRestRep;
     protected static ADClient adClient;
-    protected static String PASSWORD = "Password1";
+    protected static String PASSWORD = "Password1";  //NOSONAR
 
     protected static String superUser;
     protected static String superUserPassword;

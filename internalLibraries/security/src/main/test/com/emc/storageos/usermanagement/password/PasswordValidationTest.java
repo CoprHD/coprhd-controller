@@ -18,8 +18,8 @@ public class PasswordValidationTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordValidationTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String svcuserOldPassword = "ChangeMe";
-    private static String svcuserPassword = "Emc2@southborough";
+    private static String svcuserOldPassword = "ChangeMe"; // NOSONAR
+    private static String svcuserPassword = "Emc2@southborough"; // NOSONAR
 
     @BeforeClass
     public static void setupPasswordValidation() throws Exception {

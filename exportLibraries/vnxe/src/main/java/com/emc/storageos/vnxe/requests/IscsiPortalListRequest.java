@@ -50,7 +50,7 @@ public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal>{
         List<VNXeIscsiPortal> result = new ArrayList<VNXeIscsiPortal>();
         List<VNXeIscsiPortal> portals = get();
         
-        if (portals != null && portals.size()>0) {
+        if (portals != null && !portals.isEmpty()) {
             for (VNXeIscsiPortal portal : portals) {
                 //get iscsiNode, so that we could get iqn name for each iscsi port
                 VNXeIscsiNode node = portal.getIscsiNode();
@@ -81,7 +81,7 @@ public class IscsiPortalListRequest extends KHRequests<VNXeIscsiPortal>{
         VNXeIscsiPortal result = null;
         List<VNXeIscsiPortal> portalList = get();
         //it should just return 1
-        if (portalList!= null && portalList.size()>0) {
+        if (portalList!= null && !portalList.isEmpty()) {
             result =portalList.get(0);
         } else {
             _logger.info("No iscsiPortal found using the iscsiNode Id: {}", nodeId);

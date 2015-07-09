@@ -147,7 +147,7 @@ public static Boolean createFS(String fsName, String aggregate, String size){
 	        netAppFacade.addNFSShare(mountPath, exportPath, anonymousUid, roHosts, 
 	        		roAddAll, rwHosts, rwAddAll, rootHosts, rootAddAll, securityStyle);
 	        System.out.println("Shares: ");
-		    if(share.size() < 1) {
+		    if(share.isEmpty()) {
 		        return SuccessStatus;
 		    }
 	   }
@@ -192,11 +192,11 @@ public static Boolean exportFS(List<String> endpointsList, String permissions, S
             }
         }
 
-        if (roHosts.size() == 0) {
+        if (roHosts.isEmpty()) {
             roHosts = null;
         }
 
-        if (rwHosts.size() == 0) {
+        if (rwHosts.isEmpty()) {
             rwHosts = null;
         }
         
@@ -214,7 +214,7 @@ public static Boolean exportFS(List<String> endpointsList, String permissions, S
 		String exportPath = "/" + fsName;
 		
 		List<String> FsList = netAppFacade.addNFSShare(mountPath, exportPath, rootMappingUid, roHosts, roAddAll, rwHosts, rwAddAll, rootHosts, rootAddAll, secruityStyleList);
-		if(FsList.size() < 1) {
+		if(FsList.isEmpty()) {
 		        return false;
 		}
 		return true;
@@ -223,7 +223,7 @@ public static Boolean exportFS(List<String> endpointsList, String permissions, S
 
 public static Boolean deleteExportRules(String exportPath) {
 	List<String> FsList = netAppFacade.deleteNFSShare(exportPath, false);
-	if(FsList.size() < 1) {
+	if(FsList.isEmpty()) {
 	        return false;
 	}
 	return true;
@@ -231,7 +231,7 @@ public static Boolean deleteExportRules(String exportPath) {
 
 public static Boolean exportNewFS(String exportPath, List<ExportRule> exportRules) {
 	List<String> FsList = netAppFacade.addNewNFSShare(exportPath, exportRules);
-	if(FsList.size() < 1) {
+	if(FsList.isEmpty()) {
 	        return false;
 	}
 	return true;
@@ -240,7 +240,7 @@ public static Boolean exportNewFS(String exportPath, List<ExportRule> exportRule
 
 public static Boolean exportModifyFS(String exportPath, List<ExportRule> exportRules) {
 	List<String> FsList = netAppFacade.modifyNFSShare(exportPath, exportRules);
-	if(FsList.size() < 1) {
+	if(FsList.isEmpty()) {
 	        return false;
 	}
 	return true;
@@ -248,7 +248,7 @@ public static Boolean exportModifyFS(String exportPath, List<ExportRule> exportR
 
 public static Boolean deleteNFSExport(String exportPath) {
 	List<String> FsList = netAppFacade.deleteNFSShare(exportPath, false);
-	if(FsList.size() < 1) {
+	if(FsList.isEmpty()) {
 	        return false;
 	}
 	return true;
@@ -272,7 +272,7 @@ public static Boolean unexportFS(List<String> endpointsList, String permissions,
       securityStyle.add(NFSSecurityStyle.sys);
 		
 	  List<String> FsList = netAppFacade.addNFSShare(mountPath, exportPath, -1, roHosts, roAddAll, rwHosts, rwAddAll, rootHosts, rootAddAll, securityStyle);
-	  if(FsList.size() < 1) {
+	  if(FsList.isEmpty()) {
 		        return false;
 	  }
 	  return true;

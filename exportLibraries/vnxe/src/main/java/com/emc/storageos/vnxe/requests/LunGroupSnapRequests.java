@@ -143,7 +143,7 @@ public class LunGroupSnapRequests extends KHRequests<VNXeLunGroupSnap> {
         VNXeLunGroupSnap result = null;
         List<VNXeLunGroupSnap> snapList = getDataForObjects(VNXeLunGroupSnap.class);
         //it should just return 1
-        if (snapList!= null && snapList.size()>0) {
+        if (snapList!= null && !snapList.isEmpty()) {
             result =snapList.get(0);
         } else {
             _logger.info("No lun group snapshot found using the name: " +name);

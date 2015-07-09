@@ -66,7 +66,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
     	VNXeNfsShare result = null;
     	List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);
     	//it should just return 1
-    	if (shareList!= null && shareList.size()>0) {
+    	if (shareList!= null && !shareList.isEmpty()) {
     		result =shareList.get(0);
     	} else {
     		_logger.info("No file system found using the fs id: {}, nfsShare name: {} ", fsId, shareName);
@@ -86,7 +86,7 @@ public class NfsShareRequests extends KHRequests<VNXeNfsShare> {
         VNXeNfsShare result = null;
         List<VNXeNfsShare> shareList = getDataForObjects(VNXeNfsShare.class);
         //it should just return 1
-        if (shareList!= null && shareList.size()>0) {
+        if (shareList!= null && !shareList.isEmpty()) {
             result =shareList.get(0);
         } else {
             _logger.info("No file system found using the fs id: {}, nfsShare name: {} ", snapId, shareName);

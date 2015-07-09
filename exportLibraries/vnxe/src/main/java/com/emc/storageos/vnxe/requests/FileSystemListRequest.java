@@ -57,7 +57,7 @@ public class FileSystemListRequest extends KHRequests<VNXeFileSystem>{
     	VNXeFileSystem result = null;
     	List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);
     	//it should just return 1
-    	if (fsList!= null && fsList.size()>0) {
+    	if (fsList!= null && !fsList.isEmpty()) {
     		result =fsList.get(0);
     	} else {
     		_logger.info("No file system found using the storage resource id: " +storageResourceId);
@@ -77,7 +77,7 @@ public class FileSystemListRequest extends KHRequests<VNXeFileSystem>{
     	VNXeFileSystem result = null;
     	List<VNXeFileSystem> fsList = getDataForObjects(VNXeFileSystem.class);
     	//it should just return 1
-    	if (fsList!= null && fsList.size()>0) {
+    	if (fsList!= null && !fsList.isEmpty()) {
     		result =fsList.get(0);
     	} else {
     		_logger.info("No file system found using the name: " +fsName);

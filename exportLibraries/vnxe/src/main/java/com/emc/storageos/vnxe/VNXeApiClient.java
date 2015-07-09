@@ -405,7 +405,7 @@ public class VNXeApiClient {
     		}
     		NFSShareDefaultAccessEnum nfsShareDefaultAccess = nfsShareFound.getDefaultAccess();
     		if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.ROOT)) {
-    			if(hosts.size() > 0)
+    			if(!hosts.isEmpty())
     				shareParm.setRootAccessHosts(hosts);
     			else
     				shareParm.setRootAccessHosts(null);
@@ -414,7 +414,7 @@ public class VNXeApiClient {
     			shareParm.setReadOnlyHosts(null);
     		}
     		else if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
-    			if(hosts.size() > 0)
+    			if(!hosts.isEmpty())
     				shareParm.setReadOnlyHosts(hosts);
     			else
     				shareParm.setReadOnlyHosts(null);
@@ -423,7 +423,7 @@ public class VNXeApiClient {
     			shareParm.setRootAccessHosts(null);
     		}
     		else if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
-    			if(hosts.size() > 0)
+    			if(!hosts.isEmpty())
     				shareParm.setReadWriteHosts(hosts);
     			else
     				shareParm.setReadWriteHosts(null);
@@ -432,7 +432,7 @@ public class VNXeApiClient {
     			shareParm.setRootAccessHosts(null);
     		}
     		else if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
-    			if(hosts.size() > 0)
+    			if(!hosts.isEmpty())
     				shareParm.setNoAccessHosts(hosts);
     			else
     				shareParm.setNoAccessHosts(null);
@@ -711,7 +711,7 @@ public class VNXeApiClient {
         cifsCreate.setPath(path);
         _logger.info("Creating VNXe CIFS share by name: {} for path: {}", cifsName, path);
         List<VNXeCifsServer> cifsServers = getCifsServers(fs.getNasServer().getId());
-        if (cifsServers == null || cifsServers.size() ==0) {
+        if (cifsServers == null || cifsServers.isEmpty()) {
             throw VNXeException.exceptions.vnxeCommandFailed("The nasServer is not configured to support CIFS");
         }
         VNXeBase cifsServer = new VNXeBase();
@@ -769,7 +769,7 @@ public class VNXeApiClient {
     public VNXeCifsShare findCifsShareByName(String shareName) {
         CifsShareRequests req = new CifsShareRequests(_khClient);
         List<VNXeCifsShare> shares = req.getCifsShareByName(shareName);
-        if (shares != null && shares.size() >0 ) {
+        if (shares != null && !shares.isEmpty()) {
             return shares.get(0);
         }else {
             return null;
@@ -878,7 +878,7 @@ public class VNXeApiClient {
                 	hosts.addAll(nfsShareFound.getReadOnlyHosts());
         		}
         		if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.ROOT)) {
-        			if(hosts.size() > 0)
+        			if(!hosts.isEmpty())
         				nfsModifyParam.setRootAccessHosts(hosts);
         			else
         				nfsModifyParam.setRootAccessHosts(null);
@@ -887,7 +887,7 @@ public class VNXeApiClient {
         			nfsModifyParam.setReadOnlyHosts(null);
         		}
         		else if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READONLY)) {
-        			if(hosts.size() > 0)
+        			if(!hosts.isEmpty())
         				nfsModifyParam.setReadOnlyHosts(hosts);
         			else
         				nfsModifyParam.setReadOnlyHosts(null);
@@ -896,7 +896,7 @@ public class VNXeApiClient {
         			nfsModifyParam.setRootAccessHosts(null);
         		}
         		else if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.READWRITE)) {
-        			if(hosts.size() > 0)
+        			if(!hosts.isEmpty())
         				nfsModifyParam.setReadWriteHosts(hosts);
         			else
         				nfsModifyParam.setReadWriteHosts(null);
@@ -905,7 +905,7 @@ public class VNXeApiClient {
         			nfsModifyParam.setRootAccessHosts(null);
         		}
         		else if(nfsShareDefaultAccess.equals(NFSShareDefaultAccessEnum.NONE)) {
-        			if(hosts.size() > 0)
+        			if(!hosts.isEmpty())
         				nfsModifyParam.setNoAccessHosts(hosts);
         			else
         				nfsModifyParam.setNoAccessHosts(null);
@@ -948,7 +948,7 @@ public class VNXeApiClient {
     public List<VNXeIscsiNode> getAllIscsiPorts() {
         IscsiNodeRequests nodeReq = new IscsiNodeRequests(_khClient);
         List<VNXeIscsiNode> nodes = nodeReq.getAllNodes();
-        if (nodes != null && nodes.size() >0) {
+        if (nodes != null && !nodes.isEmpty()) {
             for (VNXeIscsiNode node : nodes) {
                 VNXeEthernetPort eport = node.getEthernetPort();
                 if (eport != null ) {
@@ -1251,7 +1251,7 @@ public class VNXeApiClient {
          } else {
              BlockLunRequests lunReq = new BlockLunRequests(_khClient);
              List<VNXeLun> luns = lunReq.getLunsInLunGroup(lunGroupId);
-             if (luns != null && luns.size()>0) {
+             if (luns != null && !luns.isEmpty()) {
                  List<String>lunIds = new ArrayList<String>();
                  for (VNXeLun lun : luns) {
                      lunIds.add(lun.getId());
@@ -1382,7 +1382,7 @@ public class VNXeApiClient {
              }
              changedHostAccessList.add(hostAccess);
          }
-         if (changedHostAccessList.size() == 0) {
+         if (changedHostAccessList.isEmpty()) {
              //the removing hosts are not exported
              _logger.info("The unexport hosts were not exported.") ;
              return;
@@ -1544,7 +1544,7 @@ public class VNXeApiClient {
              }
              changedHostAccessList.add(hostAccess);
          }
-         if (changedHostAccessList.size() == 0) {
+         if (changedHostAccessList.isEmpty()) {
              //the removing hosts are not exported
              _logger.info("The unexport hosts were not exported.") ;
              return;
@@ -1597,7 +1597,7 @@ public class VNXeApiClient {
      public boolean isFASTVPEnabled() {
          FastVPRequest req = new FastVPRequest(_khClient);
          List<FastVP> fastVP =  req.get();
-         if (fastVP != null && fastVP.size() >0) {
+         if (fastVP != null && !fastVP.isEmpty()) {
             return true;
          } else {
              return false;

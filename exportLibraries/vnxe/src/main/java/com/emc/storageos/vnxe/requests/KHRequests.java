@@ -91,12 +91,12 @@ public class KHRequests <T> {
         
         builder = builder.header(CLIENT_HEADER,"true");
         Set<NewCookie> cookies = null;
-        if (_requestCookies.size() > 0 ) {	
+        if (!_requestCookies.isEmpty()) {	
         	cookies = _requestCookies;
         } else {
         	cookies = _client.get_cookie();
         }
-        if (cookies != null && cookies.size()>0) {
+        if (cookies != null && !cookies.isEmpty()) {
 
             StringBuilder buildCookies = new StringBuilder();
             int n = 0;
@@ -407,7 +407,7 @@ public class KHRequests <T> {
 	    checkResponse(response, GET_REQUEST);
 	    
 	    List<NewCookie> cookies = response.getCookies();
-        if (cookies != null && cookies.size()>0) {
+        if (cookies != null && !cookies.isEmpty()) {
             _requestCookies.addAll(cookies);
         }
 	    saveClientCookies();
@@ -421,7 +421,7 @@ public class KHRequests <T> {
     private WebResource handelRedirect(ClientResponse response) {
     	URI url = response.getLocation();
     	List<NewCookie> cookies = response.getCookies();
-    	if (cookies != null && cookies.size()>0) {
+    	if (cookies != null && !cookies.isEmpty()) {
     		_requestCookies.addAll(cookies);
     	} else {
     		_logger.debug("no cookies");
@@ -497,7 +497,7 @@ public class KHRequests <T> {
      * save cookies in KHClient for next request
      */
     private void saveClientCookies() {
-        if (_requestCookies.size()>0) {
+        if (!_requestCookies.isEmpty()) {
         	_client.set_cookie(_requestCookies);
         }
     }

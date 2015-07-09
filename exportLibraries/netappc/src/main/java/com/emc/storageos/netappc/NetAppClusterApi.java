@@ -185,7 +185,7 @@ public class NetAppClusterApi {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, true, _svmName);
             List<Qtree> qtrees = netAppClusterFacade.listQtrees(volName);
-            if(qtrees != null && qtrees.size() > 0) {
+            if(qtrees != null && !qtrees.isEmpty()) {
             	for(Qtree qtree : qtrees ){
             		qtreeName = qtree.getQtree();
             		// Skip the unnamed Qtree.
@@ -260,7 +260,7 @@ public class NetAppClusterApi {
     		}
 
     		List<ExportsRuleInfo> exportRules = listNFSExportRules(volName);
-    		if (exportRules.size() < 1) {
+    		if (exportRules.isEmpty()) {
     			_logger.info("Export doesn't exist on the array to delete {}", exportPath);
     			return true;
     		}
@@ -530,7 +530,7 @@ public class NetAppClusterApi {
     				_password, _https, true, _svmName);
     		List<String> snapshots = (List<String>) netAppClusterFacade
     				.listSnapshots(volumeName);
-    		if ((null != snapshots) && (snapshots.size() > 0)) {
+    		if ((null != snapshots) && (!snapshots.isEmpty())) {
     			if (snapshots.toString().contains(snapshotName)) {
     				return netAppClusterFacade.deleteVolumeSnapshot(volumeName, snapshotName);
     			}
@@ -844,13 +844,13 @@ public class NetAppClusterApi {
 		dest.setExportPath(orig.getExportPath());
 		dest.setSecFlavor(orig.getSecFlavor());
 		dest.setAnon(orig.getAnon());
-		if (orig.getReadOnlyHosts()!=null && orig.getReadOnlyHosts().size() > 0){
+		if (orig.getReadOnlyHosts()!=null && !orig.getReadOnlyHosts().isEmpty()){
 			dest.setReadOnlyHosts(orig.getReadOnlyHosts());
 		}
-		if (orig.getReadWriteHosts()!=null && orig.getReadWriteHosts().size() > 0){
+		if (orig.getReadWriteHosts()!=null && !orig.getReadWriteHosts().isEmpty()){
 			dest.setReadWriteHosts(orig.getReadWriteHosts());
 		}
-		if (orig.getRootHosts()!=null && orig.getRootHosts().size() > 0){
+		if (orig.getRootHosts()!=null && !orig.getRootHosts().isEmpty()){
 			dest.setRootHosts((orig.getRootHosts()));
 		}
 

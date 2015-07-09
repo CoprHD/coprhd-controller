@@ -259,7 +259,7 @@ public class NetAppApi {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
             List<Qtree> qtrees = netAppFacade.listQtrees(volName);
-            if(qtrees != null && qtrees.size() > 0) {
+            if(qtrees != null && !qtrees.isEmpty()) {
             	for(Qtree qtree : qtrees ){
             		qtreeName = qtree.getQtree();
             		// Skip the unnamed Qtree.
@@ -287,7 +287,7 @@ public class NetAppApi {
         	}
 
 			List<ExportsRuleInfo> exportRules = listNFSExportRules(volName);
-			if (exportRules.size() < 1) {
+			if (exportRules.isEmpty()) {
 				_logger.info("Export doesn't exist on the array delete {}", exportPath);
 				return true;
 			}
@@ -383,7 +383,7 @@ public class NetAppApi {
 						rootMappingUid, roHosts, roAddAll, rwHosts, rwAddAll,
 						rootHosts, rootAddAll, secruityStyleList);
 
-				if (FsList.size() < 1) {
+				if (FsList.isEmpty()) {
 					return false;
 				}
 
@@ -542,7 +542,7 @@ public class NetAppApi {
 					_password, _https);
 			List<String> snapshots = (List<String>) netAppFacade
 					.listSnapshots(volumeName);
-			if ((null != snapshots) && (snapshots.size() > 0)) {
+			if ((null != snapshots) && (!snapshots.isEmpty())) {
 				if (snapshots.toString().contains(snapshotName)) {
 					return netAppFacade.deleteVolumeSnapshot(volumeName, snapshotName);
 				}
@@ -908,7 +908,7 @@ public class NetAppApi {
 			}
 			
 			fsList = netAppFacade.addNewNFSShare(exportPath, netAppCompatableRules);
-			if (fsList.size() < 1) {
+			if (fsList.isEmpty()) {
 				return false;
 			}
 
@@ -1012,13 +1012,13 @@ public class NetAppApi {
 		dest.setExportPath(orig.getExportPath());
 		dest.setSecFlavor(orig.getSecFlavor());
 		dest.setAnon(orig.getAnon());
-		if (orig.getReadOnlyHosts()!=null && orig.getReadOnlyHosts().size() > 0){
+		if (orig.getReadOnlyHosts()!=null && !orig.getReadOnlyHosts().isEmpty()){
 			dest.setReadOnlyHosts(orig.getReadOnlyHosts());
 		}
-		if (orig.getReadWriteHosts()!=null && orig.getReadWriteHosts().size() > 0){
+		if (orig.getReadWriteHosts()!=null && !orig.getReadWriteHosts().isEmpty()){
 			dest.setReadWriteHosts(orig.getReadWriteHosts());
 		}
-		if (orig.getRootHosts()!=null && orig.getRootHosts().size() > 0){
+		if (orig.getRootHosts()!=null && !orig.getRootHosts().isEmpty()){
 			dest.setRootHosts((orig.getRootHosts()));
 		}
 

@@ -28,7 +28,7 @@ public class VNXFileConstants {
     public static final String STATS = "Stats";
     public static final String FILE = "file";
     public static final String USERNAME = "username";
-    public static final String PASSWORD = "password";
+    public static final String USER_PASSWORD = "password";
     public static final String AUTHURI = "authuri";
     public static final String COOKIE = "Cookie";
     public static final String CELERRA_SESSION = "CelerraConnector-Sess";

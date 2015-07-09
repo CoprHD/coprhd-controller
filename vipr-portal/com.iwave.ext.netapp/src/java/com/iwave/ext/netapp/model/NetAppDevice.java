@@ -22,6 +22,7 @@ public class NetAppDevice implements Serializable {
     public static final String USR_KEY = "device.usr";
     public static final String PWD_KEY = "device.pwd";
     public static final String SECURE_KEY = "device.secure";
+    public static final String PASS_WD = "***";
 
     private String label;
     private String host;
@@ -86,7 +87,7 @@ public class NetAppDevice implements Serializable {
         builder.append("port", port);
         builder.append("secure", secure);
         builder.append("username", username);
-        builder.append("password", "***");
+        builder.append("password", PASS_WD);
         return builder.toString();
     }
 

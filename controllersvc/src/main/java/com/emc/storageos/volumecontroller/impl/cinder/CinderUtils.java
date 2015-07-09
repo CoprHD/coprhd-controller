@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;
@@ -110,12 +111,12 @@ public class CinderUtils
 
             dbClient.persistObject(storagePool);
         } 
-        catch (Throwable th) 
+        catch (DatabaseException ex) 
         {
             _log.error(
                     String.format("Failed to update capacity of storage pool after volume provisioning operation."
                     					+ " \n  Storage system: %s, storage pool %s .",
-                    					storageSystem.getId(), storagePool.getId()), th);
+                    					storageSystem.getId(), storagePool.getId()), ex);
         }
 
     }

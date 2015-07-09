@@ -131,7 +131,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         for (Volume volume : volumes) 
         {
             logMsgBuilder
-                    .append(String.format("\nVolume:%s", volume.getLabel()));
+                    .append(String.format("%nVolume:%s", volume.getLabel()));
             String tenantName = "";
             try 
             {
@@ -222,7 +222,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         						storagePool.getNativeGuid()));
         for (Volume volume : volumes) 
         {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());
 
@@ -310,7 +310,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         	
             for (Volume volume : volumes) 
             {
-                logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 
                 try
                 {
@@ -369,7 +369,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         
         for (Volume volume : volumes) 
         {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());		
 
@@ -647,7 +647,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
             snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotList.get(0));
             Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
             
-            logMsgBuilder.append(String.format("\nSnapshot:%s for Volume %s", 
+            logMsgBuilder.append(String.format("%nSnapshot:%s for Volume %s", 
             		snapshot.getLabel(), volume.getLabel()));
             
             log.info(logMsgBuilder.toString());

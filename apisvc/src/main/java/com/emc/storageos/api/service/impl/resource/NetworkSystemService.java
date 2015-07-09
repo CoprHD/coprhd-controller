@@ -621,7 +621,7 @@ public class NetworkSystemService extends TaskResourceService {
 	            List<URI> registeredNetworkSystems = NetworkService.getRegisteredNetworkSystems(network, _dbClient);
                     registeredNetworkSystems.remove(networkSystem.getId());
                     // Only unregister Network if it is not managed by other registered NetworkSystems
-                    if (registeredNetworkSystems.size() == 0) {
+                    if (registeredNetworkSystems.isEmpty()) {
                         network.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
                         _dbClient.persistObject(network);
                         auditOp(OperationTypeEnum.DEREGISTER_NETWORK, true, null, id.toString());

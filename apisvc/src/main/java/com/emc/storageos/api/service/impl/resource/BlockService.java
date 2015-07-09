@@ -2538,7 +2538,7 @@ public class BlockService extends TaskResourceService {
                             "Expected SRDF Target R2 volume, instead R1 {0} is being passed, hence cannot proceed with failover or failback.",
                             new Object[] { copyVolume.getNativeGuid() });
                 } else if (copyVolume.getSrdfTargets() == null
-                        || copyVolume.getSrdfTargets().size() == 0) {
+                        || copyVolume.getSrdfTargets().isEmpty()) {
                     throw new ServiceCodeException(
                             ServiceCode.IO_ERROR,
                             "Target Volume Empty for a given source R1 {0}, hence cannot proceed with failover or failback.",
@@ -3692,9 +3692,9 @@ public class BlockService extends TaskResourceService {
                             // For distributed volume getMirrors will get mirror if any
                             // on source or HA side.
                             StringSet mirrorURIs = volume.getMirrors();
-                            if(mirrorURIs != null && mirrorURIs.size() != 0){
+                            if(mirrorURIs != null && !mirrorURIs.isEmpty()){
                                 List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class, StringSetUtil.stringSetToUriList(mirrorURIs));
-                                if(mirrors != null && mirrors.size() != 0 ){
+                                if(mirrors != null && !mirrors.isEmpty() ){
                                     throw APIException.badRequests
                                     .volumeForVpoolChangeHasMirrors(volume.getId().toString(), volume.getLabel());
                                 }
@@ -3754,7 +3754,7 @@ public class BlockService extends TaskResourceService {
                     }
                 }
             } else if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())
-                    || (volume.getSrdfTargets() != null && volume.getSrdfTargets().size() > 0)) {
+                    || (volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty())) {
                 // Cannot move SRDF Volume to non SRDF VPool
                 throw APIException.badRequests.srdfVolumeVPoolChangeToNonSRDFVPoolNotSupported(volume.getId());
             } else if (VirtualPool.vPoolSpecifiesMirrors(newVpool, _dbClient)) {

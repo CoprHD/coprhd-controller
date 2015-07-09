@@ -56,7 +56,7 @@ public class VCenterConnectionValidator {
             }
             
         }
-        catch (Throwable e) {
+        catch (Exception e) {
             return getVcenterAPIMessage(e);
         }
         

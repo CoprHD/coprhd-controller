@@ -217,7 +217,7 @@ public class ClusterService extends TaskResourceService {
                 _dbClient, ExportGroup.class, 
                 AlternateIdConstraint.Factory.getConstraint(
                         ExportGroup.class, "clusters", cluster.getId().toString()));
-        return exportGroups.size() > 0;
+        return !exportGroups.isEmpty();
     }
 
 	/**     

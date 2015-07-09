@@ -46,7 +46,7 @@ public class LinuxHostConnectionValidator extends HostConnectionValidator {
             cli.listMountPoints();
             return true;
         }
-        catch (Throwable e) {
+        catch (Exception e) {
             log.info(String.format("Error Validating Host %s", hostParam.getName()),e);
         }
         return false;

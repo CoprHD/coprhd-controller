@@ -406,7 +406,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         List<URI> staticallyAssignedComputeElements = findAllStaticallyAssignedComputeElements();
         List<URI> poolUris = toUriList(computeVirtualPool.getMatchedComputeElements());
 
-        if(poolUris.size() > 0 && staticallyAssignedComputeElements.size() > 0) {
+        if(!poolUris.isEmpty() && !staticallyAssignedComputeElements.isEmpty()) {
             _log.debug("Remove " + poolUris.size()+ " previously assigned compute elements from list of " + staticallyAssignedComputeElements.size() + " static elements");
             for(URI computeElementId : poolUris) {
                 boolean removed = staticallyAssignedComputeElements.remove(computeElementId);
@@ -704,7 +704,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         boolean changeToStaticAssignment = false;
         boolean changeToDynamicAssignment = false;
         Collection<ComputeElement> staticElements = new HashSet<ComputeElement>();
-        if(!cvp.getUseMatchedElements() && cvp.getMatchedComputeElements() != null && cvp.getMatchedComputeElements().size() > 0) {
+        if(!cvp.getUseMatchedElements() && cvp.getMatchedComputeElements() != null && !cvp.getMatchedComputeElements().isEmpty()) {
             staticElements.addAll(_dbClient.queryObject(ComputeElement.class, toUriList(cvp.getMatchedComputeElements())));
             _log.debug("static elements count:"+staticElements.size());
         }
@@ -765,7 +765,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
             getMatchingCEsforCVPAttributes(cvp);
         }
 
-        if(changeToDynamicAssignment && staticElements.size() > 0) { // Release static assignments and update other pools dynamic matches to possibly include them
+        if(changeToDynamicAssignment && !staticElements.isEmpty()) { // Release static assignments and update other pools dynamic matches to possibly include them
             for(ComputeElement computeElement : staticElements) {
                 if(!isAvailable(computeElement)) {
                     _log.error("Cannot change to dynamic matching because statically assigned compute element(s) have been used in pool " + cvp.getId());
@@ -785,7 +785,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         	//VCP is not in use. So check if there are statically assigned members that need to be removed from vcp membership
         	_log.info("VCP is not in use. So check if there are statically assigned members that need to be removed from vcp membership");
         	
-        	if (!cvp.getUseMatchedElements() && staticElements.size()>0 ){
+        	if (!cvp.getUseMatchedElements() && !staticElements.isEmpty() ){
         		Set<ComputeElement> cesNotMeetingCriteria = new HashSet<ComputeElement>();
                 Collection<ComputeElement> computeElements = _dbClient.queryObject(ComputeElement.class, getURIs(staticElements));
                 for(ComputeElement element: computeElements) {
@@ -952,7 +952,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 Set<String> addSet = new HashSet<String>(addVArrays);
                 Set<String> removeSet = new HashSet<String>(removeVArrays);
                 addSet.retainAll(removeSet);
-                if (addSet.size() != 0) {
+                if (!addSet.isEmpty()) {
                     _log.error("Request specifies the same virtual array(s) in both the add and remove lists {}", addSet);
                     throw APIException.badRequests.sameVirtualArrayInAddRemoveList();
                 }
@@ -1245,7 +1245,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
                 Set<String> addSet = new HashSet<String>(addSpts);
                 Set<String> removeSet = new HashSet<String>(removeSpts);
                 addSet.retainAll(removeSet);
-                if (addSet.size() != 0) {
+                if (!addSet.isEmpty()) {
                     _log.error("Request specifies the same service profile templates (s) in both the add and remove lists {}", addSet);
                     //TODO: add more specific exception
                     throw APIException.badRequests.sameVirtualArrayInAddRemoveList();
@@ -1416,8 +1416,8 @@ public class ComputeVirtualPoolService extends TaggedResource {
         /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
-        } catch (Throwable th) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.", description, th);
+        } catch (Exception ex) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.", description, ex);
         }
     }
 

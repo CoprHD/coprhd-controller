@@ -1026,7 +1026,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Get the varray for the volume.
         URI volumeVarrayURI = volume.getVirtualArray();
         StringSet newVirtualPoolVarrays = newVirtualPool.getVirtualArrays();
-        if ((newVirtualPoolVarrays != null) && (newVirtualPoolVarrays.size() != 0)
+        if ((newVirtualPoolVarrays != null) && !newVirtualPoolVarrays.isEmpty()
             && (!newVirtualPoolVarrays.contains(volumeVarrayURI.toString()))) {
             // The VirtualPool is not allowed because it is not available in the
             // volume varray.
@@ -1975,9 +1975,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // For distributed volume getMirrors will get mirror if any
             // on source or HA side.
             StringSet mirrorURIs = volume.getMirrors();
-            if (mirrorURIs != null && mirrorURIs.size() != 0){
+            if (mirrorURIs != null && !mirrorURIs.isEmpty()){
                 List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class, StringSetUtil.stringSetToUriList(mirrorURIs));
-                if (mirrors != null && mirrors.size() != 0 ){
+                if (mirrors != null && !mirrors.isEmpty() ){
                     throw APIException.badRequests
                     .volumeForVarrayChangeHasMirrors(volume.getId().toString(), volume.getLabel());
                 }

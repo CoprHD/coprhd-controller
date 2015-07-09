@@ -8,7 +8,7 @@
  *
  * <div doc-module-components="fields"></div>
  */
-angular.module('fields', ['vipr']).directive({  //NOSONAR
+angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar violation of Avoid trailing comma in array and object literals”)
     /**
      * @ngdoc directive
      * @name fields.directive:vField

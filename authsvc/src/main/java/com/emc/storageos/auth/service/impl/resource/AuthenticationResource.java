@@ -78,6 +78,8 @@ public class AuthenticationResource {
     private static final String AUTH_FORM_LOGIN_PAGE_ACTION = "action=\"";
     public static final  String AUTH_REALM_NAME = "ViPR";
     private static final String FORM_LOGIN_DOC_PATH = "storageos-authsvc/docs/login.html";
+
+    // Variable NAME contains substring "password", but no sensitive information in the value.
     @SuppressWarnings("squid:S2068")
     private static final String FORM_CHANGE_PASSWORD_DOC_PATH = "storageos-authsvc/docs/changePassword.html";
 
@@ -86,6 +88,8 @@ public class AuthenticationResource {
     private static final String FORM_SUCCESS_ENT = "<div class=\"alert alert-success\">{0}</div>";
     private static final String FORM_INFO_ENT = "<div class=\"alert alert-info\">{0}</div>";
     private static final String FORM_LOGIN_BAD_CREDS_ERROR = "Invalid Username or Password";
+
+    // Variable NAME contains substring "password", but no sensitive information in the value.
     @SuppressWarnings("squid:S2068")
     private static final String FORM_NOT_MATCH_CONFIRM_PASSWORD = "password don't match confirm password";
     private static final String FORM_INVALID_LOGIN_LIMIT_ERROR = "Exceeded invalid login limit";

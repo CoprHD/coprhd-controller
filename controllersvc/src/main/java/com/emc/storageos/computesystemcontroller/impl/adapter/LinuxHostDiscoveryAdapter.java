@@ -92,7 +92,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 return version;
             }
         }
-        return versions.size() > 0 ? versions.get(0) : new LinuxVersion(LinuxDistribution.UNKNOWN, "");
+        return !versions.isEmpty() ? versions.get(0) : new LinuxVersion(LinuxDistribution.UNKNOWN, "");
     }
 
     private void checkMultipathSoftwareCompatibility(Host host) {

@@ -255,7 +255,7 @@ public class ComputeSystemHelper {
             return true;
         }
 
-        return findExportsByHost(dbClient, hostId.toString()).size() > 0;
+        return !findExportsByHost(dbClient, hostId.toString()).isEmpty();
 	}
 
     /**
@@ -269,7 +269,7 @@ public class ComputeSystemHelper {
         		dbClient, ExportGroup.class, 
                 AlternateIdConstraint.Factory.getConstraint(
                         ExportGroup.class, "clusters", cluster.toString()));
-        return exportGroups.size() > 0;
+        return !exportGroups.isEmpty();
     }
 
     /**
@@ -282,7 +282,7 @@ public class ComputeSystemHelper {
                 dbClient, ExportGroup.class, 
                 AlternateIdConstraint.Factory.getConstraint(
                         ExportGroup.class, "initiators", iniId));
-        return exportGroups.size() > 0;
+        return !exportGroups.isEmpty();
     }
     
     /**

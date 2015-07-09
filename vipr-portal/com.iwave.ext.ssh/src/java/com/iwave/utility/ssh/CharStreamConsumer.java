@@ -122,6 +122,7 @@ public class CharStreamConsumer {
             }
         }
         catch (IOException e) {
+        	logger.error(e.getMessage(), e);
         }
         trace("Finished");
     }

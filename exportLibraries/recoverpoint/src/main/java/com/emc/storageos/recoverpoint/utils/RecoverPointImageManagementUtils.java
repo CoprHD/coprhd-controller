@@ -89,7 +89,7 @@ public class RecoverPointImageManagementUtils {
 
 			if (waitForLinkState) {
 				// Make sure the CG is ready for enable
-				waitForCGLinkState(impl, cgCopy.getGroupUID(), cgCopy, PipeState.ACTIVE);
+				waitForCGLinkState(impl, cgCopy.getGroupUID(), PipeState.ACTIVE);
 			}
 
 			if (bookmarkName == null){
@@ -350,7 +350,7 @@ public class RecoverPointImageManagementUtils {
 			logger.info("Restore the image to copy name: " + cgCopyName + " for CG Name: " + cgName);
 			recoverProductionAndWait(impl, cgCopyUID);
         	// For restore, just wait for link state of the copy being restored
-			waitForCGLinkState(impl, cgCopyUID.getGroupUID(), cgCopyUID, PipeState.ACTIVE);
+			waitForCGLinkState(impl, cgCopyUID.getGroupUID(), PipeState.ACTIVE);
 			logger.info("Successful restore to copy name: " + cgCopyName + " for CG Name: " + cgName);
 		} catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
@@ -894,7 +894,7 @@ public class RecoverPointImageManagementUtils {
 	 * 
 	 * @throws RecoverPointException, FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, InterruptedException
 	 **/
-	public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, ConsistencyGroupCopyUID cgCopyUID, PipeState desiredPipeState) throws RecoverPointException {
+	public void waitForCGLinkState(FunctionalAPIImpl impl, ConsistencyGroupUID cgUID, PipeState desiredPipeState) throws RecoverPointException {
 		
 		int numRetries = 0;		
 		String cgName = null;
@@ -917,14 +917,7 @@ public class RecoverPointImageManagementUtils {
 				// Lets assume all links are in desired state and use boolean AND operation to concatenate the results 
 				// to get a cumulative status on all the links. 
 				//allLinksInDesiredState = true;
-				for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {						
-					if (cgCopyUID != null) {
-						if (!(RecoverPointUtils.cgCopyEqual(linkstate.getGroupLinkUID().getFirstCopy(), cgCopyUID.getGlobalCopyUID()) ||
-						   (RecoverPointUtils.cgCopyEqual(linkstate.getGroupLinkUID().getSecondCopy(), cgCopyUID.getGlobalCopyUID())))) {
-							// Looking for link state to/from a certain copy, and this isn't it
-							continue;
-						}
-					}
+				for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {					
 					PipeState pipeState = linkstate.getPipeState();
 					logger.info("CG link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
 

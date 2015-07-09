@@ -148,7 +148,7 @@ public class RecoverPointUtils {
         impl.enableConsistencyGroup(cgUID, true);
         // Make sure the CG is ready
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        imageManager.waitForCGLinkState(impl, cgUID, null, PipeState.ACTIVE);
+        imageManager.waitForCGLinkState(impl, cgUID, PipeState.ACTIVE);
         logger.info("End enableNewConsistencyGroup.");
     }
 

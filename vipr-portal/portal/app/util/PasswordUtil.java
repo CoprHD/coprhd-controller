@@ -182,7 +182,7 @@ public class PasswordUtil {
     }
 
     
-    public static String getPasswordValidPromptRules(String[][] PASSWORD_VALID_PROMPT) { //NOSONAR
+    public static String getPasswordValidPromptRules(String[][] PASSWORD_VALID_PROMPT) { //NOSONAR ("Suppressing Sonar violation of Field name should comply with naming convention”)
     	ViPRSystemClient client = BourneUtil.getSysClient();
         List<String> promptRules = new ArrayList<String>();
         StringBuilder promptString = new StringBuilder();
@@ -209,10 +209,10 @@ public class PasswordUtil {
     
     private static String generateSalt() {
         // number of Base64 characters for salt is dependent on the number of salt bytes
-        final int SALT_LENGTH = 16;//NOSONAR
+        final int SALT_LENGTH = 16;//NOSONAR ("Suppressing Sonar violation of Field name should comply with naming convention”)
 
         // valid chars as part of salt acceptable by commons-codec
-        final String SALT_BASE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ./";//NOSONAR
+        final String SALT_BASE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ./";//NOSONAR ("Suppressing Sonar violation of Field name should comply with naming convention”)
         // create the salt of random bytes
         SecureRandom random = new SecureRandom();
 

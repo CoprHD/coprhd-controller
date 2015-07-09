@@ -42,7 +42,7 @@ public class DocUtils {
     private static String getDocumentationTopic() {
         if (docTopics == null) {
             VirtualFile file = Play.getVirtualFile("conf/documentation.topics");
-            docTopics = IO.readUtf8Properties(file.inputstream());//NOSONAR
+            docTopics = IO.readUtf8Properties(file.inputstream());//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for docTopics”)
         }
 
         Http.Request request = Http.Request.current();

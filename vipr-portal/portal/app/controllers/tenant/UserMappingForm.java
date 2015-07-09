@@ -123,7 +123,7 @@ public class UserMappingForm {
             return true;
         }
 
-        if (!left.getDomain().equals(right.getDomain())) { //NOSONAR
+        if (!left.getDomain().equals(right.getDomain())) { //NOSONAR ("Suppressing Sonar violation of Possible null pointer deference of left")
             return false;
         }
 

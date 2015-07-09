@@ -74,7 +74,7 @@ public class StorageOsPlugin extends PlayPlugin {
      */
     @Override
     public void onApplicationStart() {
-        instance = this;//NOSONAR
+        instance = this;//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for field instance”)
         if (!isEnabled()) {
             return;
         }
@@ -89,7 +89,7 @@ public class StorageOsPlugin extends PlayPlugin {
 
             Logger.info("Connected to Coordinator Service");
 
-            if (context == null) {//NOSONAR
+            if (context == null) {//NOSONAR ("Suppressing Sonar violation of nullcheck value known to be null”)
                 Logger.error("Spring configuration file %s cannot be found on classpath", getContextFileName());
                 shutdown();
             }

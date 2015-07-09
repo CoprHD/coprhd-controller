@@ -16,7 +16,7 @@ public class CreationTimeComparator implements Comparator<DataObjectRestRep> {
     
     private static final String CREATION_TIME = "creationTime";
     
-    private ComparatorChain COMPARATOR;//NOSONAR
+    private ComparatorChain COMPARATOR;//NOSONAR ("Suppressing Sonar violation of Field name should comply with naming convention”)
     
     private boolean reverseOrder = false;
     

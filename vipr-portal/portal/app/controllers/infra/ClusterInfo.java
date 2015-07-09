@@ -99,7 +99,7 @@ public class ClusterInfo extends Controller {
 	    		}
     		}
     	}
-    	vip = ipReconfigForm.selectVipforStatusQuery();//NOSONAR
+    	vip = ipReconfigForm.selectVipforStatusQuery();//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for vip”)
     	loadRenderArgs();
     	render(ipReconfigForm);
     }
@@ -171,6 +171,7 @@ public class ClusterInfo extends Controller {
 		return isEnabled;
 	}
 	
+	//"Suppressing Sonar violation of Field names should comply with naming convention”
 	@SuppressWarnings("squid:S00116")
     public static class ClusterIpInfoForm {
     	
@@ -309,7 +310,7 @@ public class ClusterInfo extends Controller {
 		        	network_netmask = getClusterIpInfo.getIpv4Setting().getNetworkNetmask();
 		        	network_gateway = getClusterIpInfo.getIpv4Setting().getNetworkGateway();
 		        	
-		        	if (getClusterIpInfo.getIpv4Setting().getNetworkAddrs().size() >= 1) { //NOSONAR
+		        	if (getClusterIpInfo.getIpv4Setting().getNetworkAddrs().size() >= 1) { //NOSONAR ("Suppressing Sonar violation of Use isEmpty() to check whether the collection is empty. No empty check required”)
 		        		ipv4_network_addrs1 = getClusterIpInfo.getIpv4Setting().getNetworkAddrs().get(0);
 		        	}
 		        	if (getClusterIpInfo.getIpv4Setting().getNetworkAddrs().size() >= 2) {
@@ -341,7 +342,7 @@ public class ClusterInfo extends Controller {
 		        	network_prefix_length = getClusterIpInfo.getIpv6Setting().getNetworkPrefixLength();
 		        	network_gateway6 = getClusterIpInfo.getIpv6Setting().getNetworkGateway6();
 		        	
-		        	if(getClusterIpInfo.getIpv6Setting().getNetworkAddrs().size() >= 1) { //NOSONAR
+		        	if(getClusterIpInfo.getIpv6Setting().getNetworkAddrs().size() >= 1) { //NOSONAR ("Suppressing Sonar violation of Use isEmpty() to check whether the collection is empty. No empty check required”)
 		        		ipv6_network_addrs1 = getClusterIpInfo.getIpv6Setting().getNetworkAddrs().get(0);
 		        	}
 		        	if(getClusterIpInfo.getIpv6Setting().getNetworkAddrs().size() >= 2) {
@@ -417,7 +418,7 @@ public class ClusterInfo extends Controller {
             	}
             }
             
-            if (ipInfo != null) { //NOSONAR
+            if (ipInfo != null) { //NOSONAR ("Suppressing Sonar violation of Redundant null check of ipInfo”)
             	if(ipInfo.getIpv4Setting() != null && !ipInfo.getIpv4Setting().isDefault()) {
             		if (!ipInfo.getIpv4Setting().isOnSameNetworkIPv4()) {
             			Validation.addError(null, "validation.notOnSameNwIpv4");

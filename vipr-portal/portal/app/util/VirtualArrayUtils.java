@@ -169,7 +169,7 @@ public class VirtualArrayUtils {
         // cycle through the available attributes, adding them to the allAttributes list
         Map<String, Set<String>> allAttributes = Maps.newTreeMap();
         for (URI varrayId : availableAttributes.keySet()) {
-            List<VirtualPoolAvailableAttributesResourceRep> attributes = availableAttributes.get(varrayId);//NOSONAR
+            List<VirtualPoolAvailableAttributesResourceRep> attributes = availableAttributes.get(varrayId);//NOSONAR ("Suppressing Sonar violation of Inefficient use of keySet iterator instead of entrySet”)
             for (VirtualPoolAvailableAttributesResourceRep attribute : attributes) {
                 String attributesName = attribute.getName();
                 Set<String> values = allAttributes.get(attributesName);

@@ -347,7 +347,7 @@ public class ComputeVirtualPools extends ViprResourceController {
         }
 
         for (String comp: csTemplatesMap.keySet()){
-            Set<String> compTemplates = csTemplatesMap.get(comp); //NOSONAR
+            Set<String> compTemplates = csTemplatesMap.get(comp); //NOSONAR ("Suppressing Sonar violation of Inefficient use of keySet iterator instead of entrySet")
             if (compTemplates!=null && !compTemplates.isEmpty()){
                 String systemName = ComputeSystemTypes.getDisplayValue(ComputeSystemTypes.UCS) + " " + computeSystemsMap.get(comp);
                 computeVirtualPool.systems.add(new StringOption(comp,systemName));
@@ -923,7 +923,7 @@ public class ComputeVirtualPools extends ViprResourceController {
         if (computeVirtualPool == null) {
             renderJSON(Collections.emptyList());
         }
-        renderJSON(computeVirtualPool.getVirtualPoolAttributes());//NOSONAR
+        renderJSON(computeVirtualPool.getVirtualPoolAttributes());//NOSONAR ("Suppressing Sonar violation of Possible null pointer deference of computeVirtualPool")
     }
 
 

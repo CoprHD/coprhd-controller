@@ -88,6 +88,7 @@ public class ComputeSystemElementDataTable extends DataTable {
 
         }
         
+      //Suppressing Sonar violation of Method name FormatSpeed should comply with naming convention
         @SuppressWarnings("squid:S00100")
         public String FormatSpeed(String speed) {
             String returnSpeed = Messages.get("computeSystemElements.Unspecified");

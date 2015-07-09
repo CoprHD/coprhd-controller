@@ -231,7 +231,7 @@ public class Security extends Controller {
             return Deadbolt.hasRoles(roles);
         }
         // I'm not sure why deadbolt throws this
-        catch (Throwable t) { //NOSONAR
+        catch (Throwable t) { //NOSONAR ("Suppressing Sonar violation Catch Exception instead of Throwable as the above method throws Throwable ")
             throw new RuntimeException(t);
         }
     }

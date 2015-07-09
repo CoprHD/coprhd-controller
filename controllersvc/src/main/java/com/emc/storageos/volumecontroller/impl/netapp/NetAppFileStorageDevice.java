@@ -352,23 +352,23 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         // TODO: Revisit once new Data Model for Exports is implemented.
         Map<String, List<String>> existingHosts = null;
 
-        if ((null != existingExportList) && (existingExportList.size() > 0)) {
+        if ((null != existingExportList) && !existingExportList.isEmpty()) {
             existingHosts = sortHostsFromCurrentExports(existingExportList);
         }
 
         if (null != existingHosts) {
             if ((null != existingHosts.get(ROOT_HOSTS))
-                    && (existingHosts.get(ROOT_HOSTS).size() > 0)) {
+                    && !existingHosts.get(ROOT_HOSTS).isEmpty()) {
                 addNewHostsOnly(rootHosts, existingHosts.get(ROOT_HOSTS));
             }
 
             if ((null != existingHosts.get(RW_HOSTS))
-                    && (existingHosts.get(RW_HOSTS).size() > 0)) {
+                    && !existingHosts.get(RW_HOSTS).isEmpty()) {
                 addNewHostsOnly(rwHosts, existingHosts.get(RW_HOSTS));
             }
 
             if ((null != existingHosts.get(RO_HOSTS))
-                    && (existingHosts.get(RO_HOSTS).size() > 0)) {
+                    && !existingHosts.get(RO_HOSTS).isEmpty()) {
                 addNewHostsOnly(roHosts, existingHosts.get(RO_HOSTS));
             }
         }
@@ -481,7 +481,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         Map<String, List<String>> currentHostsList = new HashMap<String, List<String>>();
         for (FileExport curExport : curExpList) {
             if ((null != curExport.getClients())
-                    && (curExport.getClients().size() > 0)) {
+                    && !curExport.getClients().isEmpty()) {
                 if (curExport.getPermissions().toString().equals(ROOT_PERM)) {
                     currentHostsList.put(ROOT_HOSTS, curExport.getClients());
                 } else if (curExport.getPermissions().toString()
@@ -501,7 +501,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     private void sortNewEndPoints(List<String> rootHosts, List<String> rwHosts,
             List<String> roHosts, List<String> endPointList, String permission) {
         for (String endPoint : endPointList) {
-            if ((null != endPointList) && (endPointList.size() > 0)) {
+            if ((null != endPointList) && !endPointList.isEmpty()) {
                 if (permission.equals(ROOT_PERM)
                         && !(rootHosts.contains(endPoint))) {
                     rootHosts.add(endPoint);

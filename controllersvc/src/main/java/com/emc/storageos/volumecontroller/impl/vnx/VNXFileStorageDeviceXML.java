@@ -329,7 +329,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
 
  		//Handle Modified export Rules and add rules
         //If there are no Export rules and add is allowed
- 		if (exportsToprocess.size() > 0 || (exportAdd != null && exportAdd.size() > 0)) {
+		if (!exportsToprocess.isEmpty() || (exportAdd != null && !exportAdd.isEmpty())) {
  			for (ExportRule existingRule : exportsToprocess) {
  				for (ExportRule modifiedrule : exportModify) {
  					if (modifiedrule.getSecFlavor().equals(
@@ -344,7 +344,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
  			}
 
  			// Handle Add export Rules
- 			if (exportAdd != null && exportAdd.size() > 0) {
+ 			if (exportAdd != null && !exportAdd.isEmpty()) {
  				for (ExportRule newExport : exportAdd) {
  					_log.info("Adding Export Rule {}", newExport);
  					exportsToAdd.add(newExport);
@@ -352,7 +352,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
  			}
 
  			// Handle Delete export Rules
- 			if (exportDelete != null && exportDelete.size() > 0) {
+ 			if (exportDelete != null && !exportDelete.isEmpty()) {
  				for (ExportRule existingRule : exportsToprocess) {
  					for (ExportRule oldExport : exportDelete) {
  						if (oldExport.getSecFlavor().equals(
@@ -436,7 +436,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
 	            
 	            // When all the export rules removed, add one rule manually to meet the requirments of 
 	            // existing VNXComm API. This is required to read the subsequent information down the line. 
-	            if((exportList!=null && exportList.isEmpty()) && ( exportsToRemove!=null && exportsToRemove.size()>0)) {
+	            if((exportList!=null && exportList.isEmpty()) && ( exportsToRemove!=null && !exportsToRemove.isEmpty())) {
 	            	_log.info("Requested to remove all export rules");
 	            	VNXFileExport vnxExp = new VNXFileExport(new ArrayList<String>() ,
 	            	    dm.getName(), exportPath,

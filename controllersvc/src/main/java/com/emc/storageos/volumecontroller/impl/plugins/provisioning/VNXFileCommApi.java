@@ -543,7 +543,7 @@ public class VNXFileCommApi {
 
                             _log.info("{} Snapshots found with native guid : {} ",snapShotUris.size(), nativeGuid);
 
-                            if(snapShotUris.size() > 0) {
+                            if(!snapShotUris.isEmpty()) {
                                 _log.info("Retriving Snapshot using URI : {} ", snapShotUris.get(0));
                                 snapshot = _dbClient.queryObject(Snapshot.class, snapShotUris.get(0));
                             }
@@ -636,7 +636,7 @@ public class VNXFileCommApi {
     	try{
 	    	//Process for quota dir delete on this file share.
 	        List<TreeQuota> quotaDirs = (List<TreeQuota>)_provExecutor.get_keyMap().get(VNXFileConstants.QUOTA_DIR_LIST);
-	        if(quotaDirs != null && quotaDirs.size() > 0 && dataMover != null){
+	        if(quotaDirs != null && !quotaDirs.isEmpty() && dataMover != null){
 	        	_log.info("Number of quota dirs found {} for a file system {}", quotaDirs.size(), fs.getName());
 	        	// In the process of delete file system, we are unmounting the FileSystem.
 	        	// In order to delete Quota Directory, file system should be mounted.
@@ -911,7 +911,7 @@ public class VNXFileCommApi {
 
             List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
 
-            if(cifsServers == null || cifsServers.size() == 0) {
+            if(cifsServers == null || cifsServers.isEmpty()) {
                 _log.info("No CIFS Servers retrieved for mover {} with id {}", moverOrVdmName, moverOrVdmId);
             } else {
                 for(VNXCifsServer cifsServer:cifsServers) {
@@ -927,7 +927,7 @@ public class VNXFileCommApi {
             for (String newPath: newPaths) {
                 String netBios = null;
                 //Only set netbios for VDM CIFS exports
-                if(cifsServers != null && cifsServers.size() > 0 && dataMover.getVirtual()) {
+                if(cifsServers != null && !cifsServers.isEmpty() && dataMover.getVirtual()) {
                     netBios = cifsServers.get(0).getName();
                 }
                 for(VNXFileExport export: exports) {
@@ -1233,13 +1233,13 @@ public class VNXFileCommApi {
                 _log.info("CIFServer:"+ cifsServer.toString());
             }
 
-            if(cifsServers == null || cifsServers.size() == 0) {
+            if(cifsServers == null || cifsServers.isEmpty()) {
                 _log.info("No CIFS Servers retrieved for mover {} with id {}", moverOrVdmName, moverOrVdmId);
             }
 
             String netBios = null;
             //Only set netbios for VDM CIFS exports
-            if(cifsServers != null && cifsServers.size() > 0 && moverOrVdm.getVirtual()) {
+            if(cifsServers != null && !cifsServers.isEmpty() && moverOrVdm.getVirtual()) {
                 netBios = cifsServers.get(0).getName();
             }
 
@@ -1422,7 +1422,7 @@ public class VNXFileCommApi {
 
         reqAttributeMap.put(VNXFileConstants.DEVICETYPE, system.getSystemType());
         reqAttributeMap.put(VNXFileConstants.USERNAME, system.getUsername());
-        reqAttributeMap.put(VNXFileConstants.PASSWORD, system.getPassword());
+        reqAttributeMap.put(VNXFileConstants.USER_PASSWORD, system.getPassword());
         reqAttributeMap.put(VNXFileConstants.PORTNUMBER, system.getPortNumber());
 
         reqAttributeMap.put(VNXFileConstants.URI,  getServerUri(system));

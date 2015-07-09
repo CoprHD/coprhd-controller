@@ -826,14 +826,14 @@ public class NetAppFileCommunicationInterface extends
             markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
             _logger.info("New unmanaged Netapp file systems count: {}", newFileSystemsCount);
             _logger.info("Update unmanaged Netapp file systems count: {}", existingFileSystemsCount);
-            if(unManagedFileSystems.size() > 0) {
+            if(!unManagedFileSystems.isEmpty()) {
                 //Add UnManagedFileSystem
                 _partitionManager.insertInBatches(unManagedFileSystems,
                         Constants.DEFAULT_PARTITION_SIZE, _dbClient,
                         UNMANAGED_FILESYSTEM);
             }
 
-            if(existingUnManagedFileSystems.size() > 0) {
+            if(!existingUnManagedFileSystems.isEmpty()) {
                 //Update UnManagedFilesystem
                 _partitionManager.updateInBatches(existingUnManagedFileSystems,
                         Constants.DEFAULT_PARTITION_SIZE, _dbClient,
@@ -1017,7 +1017,7 @@ public class NetAppFileCommunicationInterface extends
                 }
             }
             
-            if (existingUnManagedFileSystems.size() > 0) {
+            if (!existingUnManagedFileSystems.isEmpty()) {
                 // Update UnManagedFilesystem
                 _partitionManager.updateInBatches(existingUnManagedFileSystems,
                         Constants.DEFAULT_PARTITION_SIZE, _dbClient,
@@ -1093,7 +1093,7 @@ public class NetAppFileCommunicationInterface extends
 
         List<String> clientList = new ArrayList<String>();
         UnManagedFSExport tempUnManagedFSExport = null;
-        if ((null != typeHosts) && (typeHosts.size() > 0)) {
+        if ((null != typeHosts) && !typeHosts.isEmpty()) {
 
             for (ExportsHostnameInfo client : typeHosts) {
                 if ((null != client.getName() && !(clientList.contains(client
@@ -1208,7 +1208,7 @@ public class NetAppFileCommunicationInterface extends
             if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
                     SUPPORTED_VPOOL_LIST.toString())) {
 
-                if (null != matchedVPools && matchedVPools.size() == 0) {
+                if (null != matchedVPools && matchedVPools.isEmpty()) {
                     // replace with empty string set doesn't work, hence added explicit code to remove all
                     unManagedFileSystemInformation.get(
                             SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
@@ -1343,7 +1343,7 @@ public class NetAppFileCommunicationInterface extends
             filesystemUris.add(unFileSystemtURI);
         }
 
-        if (filesystemUris.size() > 0)
+        if (!filesystemUris.isEmpty())
             filesystemInfo = _dbClient.queryObject(UnManagedFileSystem.class,
                     filesystemUris.get(0));
         return filesystemInfo;
@@ -1393,11 +1393,11 @@ public class NetAppFileCommunicationInterface extends
             Map<String, List<StorageHADomain>> groups = discoverPortGroups(storageSystem, vFilers);
             _logger.info("No of newly discovered groups {}", groups.get(NEW).size());
             _logger.info("No of existing discovered groups {}", groups.get(EXISTING).size());
-            if(groups.get(NEW).size() > 0){
+            if(!groups.get(NEW).isEmpty()){
                 _dbClient.createObject(groups.get(NEW));
             }
 
-            if(groups.get(EXISTING).size() > 0){
+            if(!groups.get(EXISTING).isEmpty()){
                 _dbClient.persistObject(groups.get(EXISTING));
             }
             
@@ -1406,12 +1406,12 @@ public class NetAppFileCommunicationInterface extends
             Map<String, List<StoragePool>> pools = discoverStoragePools(storageSystem, poolsToMatchWithVpool);
             _logger.info("No of newly discovered pools {}", pools.get(NEW).size());
             _logger.info("No of existing discovered pools {}", pools.get(EXISTING).size());
-            if(pools.get(NEW).size() > 0){
+            if(!pools.get(NEW).isEmpty()){
                 allPools.addAll(pools.get(NEW));
                 _dbClient.createObject(pools.get(NEW));
             }
             
-            if(pools.get(EXISTING).size() > 0){
+            if(!pools.get(EXISTING).isEmpty()){
                 allPools.addAll(pools.get(EXISTING));
                 _dbClient.persistObject(pools.get(EXISTING));
             }
@@ -1427,12 +1427,12 @@ public class NetAppFileCommunicationInterface extends
             Map<String, List<StoragePort>> ports = discoverPorts(storageSystem, vFilers, groups.get(NEW));
             _logger.info("No of newly discovered port {}", ports.get(NEW).size());
             _logger.info("No of existing discovered port {}", ports.get(EXISTING).size());
-            if(ports.get(NEW).size() > 0){
+            if(!ports.get(NEW).isEmpty()){
                 allPorts.addAll(ports.get(NEW));
                 _dbClient.createObject(ports.get(NEW));
             }
             
-            if(ports.get(EXISTING).size() > 0){
+            if(!ports.get(EXISTING).isEmpty()){
                 allPorts.addAll(ports.get(EXISTING));
                 _dbClient.persistObject(ports.get(EXISTING));
             }
@@ -1509,7 +1509,7 @@ public class NetAppFileCommunicationInterface extends
         List<URI> poolURIs = _dbClient
                 .queryByConstraint(AlternateIdConstraint.Factory
                         .getStoragePoolByNativeGuidConstraint(nativeGuid));
-        if (poolURIs.size() > 0)
+        if (!poolURIs.isEmpty())
             pool = _dbClient.queryObject(StoragePool.class, poolURIs.get(0));
         return pool;
     }
@@ -2133,7 +2133,7 @@ public class NetAppFileCommunicationInterface extends
 
 					// Validate Rules Compatible with ViPR - Same rules should
 					// apply as per API SVC Validations.
-					if(unManagedExportRules.size() > 0) {
+					if(!unManagedExportRules.isEmpty()) {
 						boolean isAllRulesValid = validationUtility
 								.validateUnManagedExportRules(unManagedExportRules);
 						if (isAllRulesValid) {
@@ -2163,7 +2163,7 @@ public class NetAppFileCommunicationInterface extends
 				}
 			}
 
-			if (newUnManagedExportRules.size() > 0) {
+			if (!newUnManagedExportRules.isEmpty()) {
 				_logger.info("Saving Number of UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
 				_partitionManager.updateInBatches(newUnManagedExportRules,
 						Constants.DEFAULT_PARTITION_SIZE, _dbClient,

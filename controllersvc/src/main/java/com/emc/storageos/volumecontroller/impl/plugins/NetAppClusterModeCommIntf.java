@@ -325,14 +325,14 @@ public class NetAppClusterModeCommIntf extends
     		markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
     		_logger.info("New unmanaged NetappC file systems count: {}", newFileSystemsCount);
     		_logger.info("Update unmanaged NetappC file systems count: {}", existingFileSystemsCount);
-    		if(unManagedFileSystems.size() > 0) {
+    		if(!unManagedFileSystems.isEmpty()) {
     			//Add UnManagedFileSystem
     			_partitionManager.insertInBatches(unManagedFileSystems,
     					Constants.DEFAULT_PARTITION_SIZE, _dbClient,
     					UNMANAGED_FILESYSTEM);
     		}
 
-    		if(existingUnManagedFileSystems.size() > 0) {
+    		if(!existingUnManagedFileSystems.isEmpty()) {
     			//Update UnManagedFilesystem
     			_partitionManager.updateInBatches(existingUnManagedFileSystems,
     					Constants.DEFAULT_PARTITION_SIZE, _dbClient,
@@ -487,7 +487,7 @@ public class NetAppClusterModeCommIntf extends
 
 						// Validate Rules Compatible with ViPR - Same rules should
 						// apply as per API SVC Validations.
-						if(unManagedExportRules.size() > 0) {
+						if(!unManagedExportRules.isEmpty()) {
 							boolean isAllRulesValid = validationUtility
 									.validateUnManagedExportRules(unManagedExportRules);
 							if (isAllRulesValid) {
@@ -527,14 +527,14 @@ public class NetAppClusterModeCommIntf extends
 				}
 			}
 			
-			if(unManagedExportRulesInsert.size() > 0) {
+			if(!unManagedExportRulesInsert.isEmpty()) {
 				//Add UnManagedFileSystem
 				_partitionManager.insertInBatches(unManagedExportRulesInsert,
 						Constants.DEFAULT_PARTITION_SIZE, _dbClient, UNMANAGED_EXPORT_RULE);
 				unManagedExportRulesInsert.clear();
 			}
 
-			if(unManagedExportRulesUpdate.size() > 0) {
+			if(!unManagedExportRulesUpdate.isEmpty()) {
 				//Update UnManagedFilesystem
 				_partitionManager.updateInBatches(unManagedExportRulesUpdate,
 						Constants.DEFAULT_PARTITION_SIZE, _dbClient, UNMANAGED_EXPORT_RULE);
@@ -623,11 +623,11 @@ public class NetAppClusterModeCommIntf extends
             Map<String, List<StorageHADomain>> groups = discoverPortGroups(storageSystem, svms);
             _logger.info("No of newly discovered groups {}", groups.get(NEW).size());
             _logger.info("No of existing discovered groups {}", groups.get(EXISTING).size());
-            if(groups.get(NEW).size() > 0){
+            if(!groups.get(NEW).isEmpty()){
                 _dbClient.createObject(groups.get(NEW));
             }
 
-            if(groups.get(EXISTING).size() > 0){
+            if(!groups.get(EXISTING).isEmpty()){
                 _dbClient.persistObject(groups.get(EXISTING));
             }
             
@@ -636,12 +636,12 @@ public class NetAppClusterModeCommIntf extends
             Map<String, List<StoragePool>> pools = discoverStoragePools(storageSystem, poolsToMatchWithVpool);
             _logger.info("No of newly discovered pools {}", pools.get(NEW).size());
             _logger.info("No of existing discovered pools {}", pools.get(EXISTING).size());
-            if(pools.get(NEW).size() > 0){
+            if(!pools.get(NEW).isEmpty()){
                 allPools.addAll(pools.get(NEW));
                 _dbClient.createObject(pools.get(NEW));
             }
             
-            if(pools.get(EXISTING).size() > 0){
+            if(!pools.get(EXISTING).isEmpty()){
                 allPools.addAll(pools.get(EXISTING));
                 _dbClient.persistObject(pools.get(EXISTING));
             }
@@ -657,12 +657,12 @@ public class NetAppClusterModeCommIntf extends
             Map<String, List<StoragePort>> ports = discoverPorts(storageSystem, svms, groups.get(NEW));
             _logger.info("No of newly discovered port {}", ports.get(NEW).size());
             _logger.info("No of existing discovered port {}", ports.get(EXISTING).size());
-            if(ports.get(NEW).size() > 0){
+            if(!ports.get(NEW).isEmpty()){
                 allPorts.addAll(ports.get(NEW));
                 _dbClient.createObject(ports.get(NEW));
             }
             
-            if(ports.get(EXISTING).size() > 0){
+            if(!ports.get(EXISTING).isEmpty()){
                 allPorts.addAll(ports.get(EXISTING));
                 _dbClient.persistObject(ports.get(EXISTING));
             }
@@ -1229,7 +1229,7 @@ public class NetAppClusterModeCommIntf extends
                         List<UnManagedCifsShareACL> tempUnManagedCifsShareAclList =
                                 getACLs(unManagedSMBFileShareHashSet, netAppCApi, storageSystem, unManagedFs.getId());
                         if (!tempUnManagedCifsShareAclList.isEmpty() &&
-                                tempUnManagedCifsShareAclList.size() > 0) {
+                                !tempUnManagedCifsShareAclList.isEmpty()) {
                             for(UnManagedCifsShareACL unManagedCifsShareACL: tempUnManagedCifsShareAclList) {
                                 // Check whether the CIFS share ACL was present in ViPR DB.
                                 existingACL = checkUnManagedFsCifsACLExistsInDB(_dbClient,
@@ -1249,7 +1249,7 @@ public class NetAppClusterModeCommIntf extends
 
                         //store or update the FS object into DB
                         if (!unManagedSMBFileShareHashSet.isEmpty() &&
-                                        unManagedSMBFileShareHashSet.size() > 0){
+                                        !unManagedSMBFileShareHashSet.isEmpty()){
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Shares and their Count is {}",
                                     unManagedFs.getId(), tempUnManagedSMBShareMap.size());
@@ -1282,7 +1282,7 @@ public class NetAppClusterModeCommIntf extends
             }
 
             if (!unManagedCifsShareACLList.isEmpty() &&
-                    unManagedCifsShareACLList.size() > 0) {
+                    !unManagedCifsShareACLList.isEmpty()) {
                 _logger.info("Saving Number of New UnManagedCifsShareACL(s) {}",
                                                             unManagedCifsShareACLList.size());
                 _partitionManager.insertInBatches(unManagedCifsShareACLList,
@@ -1291,7 +1291,7 @@ public class NetAppClusterModeCommIntf extends
                 unManagedCifsShareACLList.clear();
             }
             if (!oldunManagedCifsShareACLList.isEmpty() &&
-                    oldunManagedCifsShareACLList.size() > 0) {
+                    !oldunManagedCifsShareACLList.isEmpty()) {
                 _logger.info("Saving Number of Old UnManagedCifsShareACL(s) {}",
                                                     oldunManagedCifsShareACLList.size());
                 _partitionManager.updateInBatches(oldunManagedCifsShareACLList,
@@ -1544,7 +1544,7 @@ public class NetAppClusterModeCommIntf extends
             filesystemUris.add(unFileSystemtURI);
         }
 
-        if (filesystemUris.size() > 0)
+        if (!filesystemUris.isEmpty())
             filesystemInfo = _dbClient.queryObject(UnManagedFileSystem.class,
                     filesystemUris.get(0));
         return filesystemInfo;
@@ -1726,7 +1726,7 @@ public class NetAppClusterModeCommIntf extends
             if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
                     SUPPORTED_VPOOL_LIST.toString())) {
 
-                if (null != matchedVPools && matchedVPools.size() == 0) {
+                if (null != matchedVPools && matchedVPools.isEmpty()) {
                     // replace with empty string set doesn't work, hence added explicit code to remove all
                     unManagedFileSystemInformation.get(
                             SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
@@ -1927,7 +1927,7 @@ public class NetAppClusterModeCommIntf extends
     			}
     			expRule.setAnon(anon);
     			if ((null != deviceSecurityRule.getRoot())
-    					&& (deviceSecurityRule.getRoot()).size() > 0) {
+    					&& !(deviceSecurityRule.getRoot()).isEmpty()) {
     				StringSet rootHosts = new StringSet();
     				for (ExportsHostnameInfo exportHost : deviceSecurityRule
     						.getRoot()) {
@@ -1943,7 +1943,7 @@ public class NetAppClusterModeCommIntf extends
     				expRule.setRootHosts(rootHosts);
     			}
     			if ((null != deviceSecurityRule.getReadWrite())
-    					&& (deviceSecurityRule.getReadWrite()).size() > 0) {
+    					&& !(deviceSecurityRule.getReadWrite()).isEmpty()) {
     				StringSet readWriteHosts = new StringSet();
     				for (ExportsHostnameInfo exportHost : deviceSecurityRule
     						.getReadWrite()) {
@@ -1965,7 +1965,7 @@ public class NetAppClusterModeCommIntf extends
     				expRule.setReadWriteHosts(readWriteHosts);
     			}
     			if ((null != deviceSecurityRule.getReadOnly())
-    					&& (deviceSecurityRule.getReadOnly()).size() > 0) {
+    					&& !(deviceSecurityRule.getReadOnly()).isEmpty()) {
     				StringSet readOnlyHosts = new StringSet();
     				for (ExportsHostnameInfo exportHost : deviceSecurityRule
     						.getReadOnly()) {
@@ -2013,7 +2013,7 @@ public class NetAppClusterModeCommIntf extends
 
     	List<String> clientList = new ArrayList<String>();
     	UnManagedFSExport tempUnManagedFSExport = null;
-    	if ((null != typeHosts) && (typeHosts.size() > 0)) {
+    	if ((null != typeHosts) && (!typeHosts.isEmpty())) {
 
     		for (ExportsHostnameInfo client : typeHosts) {
     			boolean negate = false;

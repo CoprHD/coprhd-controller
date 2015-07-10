@@ -74,7 +74,7 @@ public class ArgValidator {
 
     public static void checkUrl(final String url, final String fieldName) {
     	try {
-			new URL(url);
+			new URL(url);//NOSONAR creating the object to validate the url
 		} catch (MalformedURLException e) {
 			throw APIException.badRequests.invalidUrl(fieldName, url);
 		}

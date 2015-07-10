@@ -414,7 +414,7 @@ public class HDSApiClient {
     	if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
     		Error error = result.getBean(Error.class);
     		String errorMessage = String
-    				.format("Async task failed for messageID %1$s due to %2$s with error code: %3$s",
+    				.format("Async task failed for messageID %1$s due to %2$s with error code: %3$d",
     						new Object[] { messageID, error.getDescription(),
     						error.getCode() });
     		log.error(errorMessage);

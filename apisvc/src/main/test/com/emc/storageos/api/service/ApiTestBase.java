@@ -73,13 +73,13 @@ public class ApiTestBase {
     protected static final String ROOTTENANT_NAME = "Root Provider Tenant";
 
     protected static final String SYSADMIN = "root";
-    protected static final String SYSADMIN_PASSWORD = "ChangeMe";
+    protected static final String SYSADMIN_PASSWORD = "ChangeMe";//NOSONAR Not a secret password
     
     protected static final String SYSMONITOR = "sysmonitor";
-    protected static final String SYSMONITOR_PASSWORD = "ChangeMe1!";
+    protected static final String SYSMONITOR_PASSWORD = "ChangeMe1!";//NOSONAR Not a secret password
     
     protected static final String SVCUSER = "svcuser";
-    protected static final String SVCUSER_PASSWORD = "ChangeMe1!";
+    protected static final String SVCUSER_PASSWORD = "ChangeMe1!";//NOSONAR Not a secret password
     
     protected static final String PROXY_USER = "proxyuser";
     protected static final String PROXY_USER_PWD = "ChangeMe1!";
@@ -132,7 +132,7 @@ public class ApiTestBase {
     // LDAPS Configuration
 
     protected static final String LDAPS_USER = "user1@secureldap.com";
-    protected static final String LDAPS_PASSWORD = "password";
+    protected static final String LDAPS_PASSWORD = "password";//NOSONAR Not a secret password
 
     protected static final Logger _log = LoggerFactory.getLogger(ApiTest.class);
 
@@ -459,7 +459,7 @@ public class ApiTestBase {
 
         //Initialize proxyuser password to ChangeMe
         String usernames[] = {"sysmonitor", "proxyuser"};
-        String password = "ChangeMe1!";
+        String password = "ChangeMe1!";//NOSONAR Not a secret password
         ClientResponse resp = null;
 
         for (String username : usernames) {

@@ -13,6 +13,8 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -23,6 +25,7 @@ import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 
 public class RecoverPointSchedulerTest extends Assert {
 
+    private static final Logger _log = LoggerFactory.getLogger(PlacementTests.class);
 	static StoragePool pool1;
 	static StoragePool pool2;
 	static StoragePool pool3;
@@ -454,7 +457,7 @@ public class RecoverPointSchedulerTest extends Assert {
 			Boolean returnBool = (Boolean) ret;
             toRet = returnBool.booleanValue();
 		} catch (Exception e) {
-			e.printStackTrace();
+			_log.error(e.toString());
 			Assert.fail();
 		}
 		

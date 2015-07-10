@@ -2281,7 +2281,7 @@ public class ApiTest extends ApiTestBase {
         // prepare tenant roles and project ownership
         // also assign TenantAdmin to superuser, so it can be used to verify afterwards
         boolean bRootHasProviderTenantAdmin = true;
-        if (info.getHomeTenantRoles().size() == 0) {
+        if (info.getHomeTenantRoles().isEmpty()) {
             bRootHasProviderTenantAdmin = false;
             resp = assignTenantRole(rootTenantId, SYSADMIN, "TENANT_ADMIN");
             Assert.assertEquals(200, resp.getStatus());

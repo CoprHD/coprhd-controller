@@ -390,7 +390,7 @@ public class ExportGroupService extends TaskResourceService {
      * @return
      */
     private boolean hasItems (Collection<? extends Object> col) {
-        return col !=null && col.size() > 0;
+        return col !=null && col.isEmpty();
     }
     
     /**
@@ -1331,7 +1331,7 @@ public class ExportGroupService extends TaskResourceService {
                 throw APIException.badRequests.uniqueLunsOrNoLunValue();           
         } else  {
             // luns is either empty or have something that is assigned
-            if (luns.size() > 0) {
+            if (luns.isEmpty()) {
                 // if the previous ones were assigned, this one should be assigned
                 // and have a different lun id from the others
                 if (luns.contains(lun) || lun.equals(ExportGroup.LUN_UNASSIGNED))
@@ -1795,7 +1795,7 @@ public class ExportGroupService extends TaskResourceService {
             VirtualArray varray, Collection<URI> volumes, List<URI> allHosts) {
 
         Set<URI> vplexStorageSystemURIs = new HashSet<URI>();
-        if (allHosts.size() != 0) {
+        if (allHosts.isEmpty()) {
             for (URI uri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, uri);
                 if (blockObject == null)
@@ -1810,7 +1810,7 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         ExportGroupServiceApi exportGroupServiceApi = null;
-        if (vplexStorageSystemURIs.size() != 0) {
+        if (vplexStorageSystemURIs.isEmpty()) {
             exportGroupServiceApi = getExportGroupServiceImpl(DiscoveredDataObject.Type.vplex
                     .name());
         } else {
@@ -1875,7 +1875,7 @@ public class ExportGroupService extends TaskResourceService {
     private void validateVolumeLunIdParam(List<VolumeParam> volumes) {
         int numDeviceNumbers = 0;
         int volumeListSize = 0;
-        if (volumes != null && volumes.size() > 0) {
+        if (volumes != null && volumes.isEmpty()) {
             volumeListSize = volumes.size();
             for (VolumeParam volParam : volumes) {
                 if (volParam.getLun() != ExportGroup.LUN_UNASSIGNED) {

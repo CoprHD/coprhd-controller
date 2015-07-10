@@ -3694,7 +3694,7 @@ public class BlockService extends TaskResourceService {
                             StringSet mirrorURIs = volume.getMirrors();
                             if(mirrorURIs != null && mirrorURIs.size() != 0){
                                 List<VplexMirror> mirrors = _dbClient.queryObject(VplexMirror.class, StringSetUtil.stringSetToUriList(mirrorURIs));
-                                if(mirrors != null && mirrors.size() != 0 ){
+                                if(mirrors != null && mirrors.isEmpty() ){
                                     throw APIException.badRequests
                                     .volumeForVpoolChangeHasMirrors(volume.getId().toString(), volume.getLabel());
                                 }

@@ -26,11 +26,13 @@ public class XtremIOInitiatorsInfo {
     private XtremIOInitiatorInfo[] initiators;
 
     public XtremIOInitiatorInfo[] getInitiators() {
-        return initiators;
+        return initiators != null ? initiators.clone() : initiators;
     }
 
     public void setInitiators(XtremIOInitiatorInfo[] initiators) {
-        this.initiators = initiators;
+    	if(initiators != null){
+    		this.initiators = initiators.clone();
+    	}
     }
 
 }

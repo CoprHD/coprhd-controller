@@ -44,7 +44,7 @@ public interface HDSConstants {
     String UNDERSCORE_OPERATOR = "_";
     String DOT_OPERATOR = ".";
     String USER_NAME_HEADER = "Username";
-    String PASSWORD_HEADER = "Password";
+    String PASS_WORD_HEADER = "Password";
     String HDS = "HDS";
     String DUMMY_HSD = "ViPR-Dummy-HSD";
     

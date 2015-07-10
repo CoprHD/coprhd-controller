@@ -127,7 +127,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         		// Pick a port if possible
         		for (StoragePort port : allocatablePorts.get(networkURI)) {
         			// Do not choose a port that has already been chosen
-        			if (usedPorts.contains(port.getPortName())) continue;
+        			if (usedPorts.contains(port.getPortName())) {
+        			    continue;
+        			}
         			if (!cpusUsed.contains(port.getPortGroup())){
         				// Choose this port, it has a new cpu.
         				cpusUsed.add(port.getPortGroup());
@@ -147,7 +149,10 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         // If not, emit a warning and do not use the filtered port configuration.
         boolean useFilteredPorts = true;
         for (URI networkURI : orderedNetworks) {
-        	if (useablePorts.get(networkURI).size() == 0) { useFilteredPorts = false; break; }
+            if (useablePorts.get(networkURI).isEmpty()) { 
+                useFilteredPorts = false; 
+                break; 
+            }
         }
         if (useFilteredPorts) {
         	_log.info("Using filtered ports: " + usedPorts.toString());
@@ -162,8 +167,12 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         int minPorts = Integer.MAX_VALUE;
         for (URI networkURI : allocatablePorts.keySet()) {
             int numPorts = allocatablePorts.get(networkURI).size();
-            if (numPorts > MAX_PORTS_PER_NETWORK) numPorts = MAX_PORTS_PER_NETWORK;
-            if (numPorts < minPorts) minPorts = numPorts;
+            if (numPorts > MAX_PORTS_PER_NETWORK) {
+                numPorts = MAX_PORTS_PER_NETWORK;
+            }
+            if (numPorts < minPorts) {
+                minPorts = numPorts;
+            }
         }
         
         // Figure out the number of ports in each network per port group (PG).
@@ -184,13 +193,21 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         // It is best practice if each network has at least two ports, favoring fewer port groups.
         // But if "morePortGroups" is set, will make additional portGroups if there are fewer ports.
         if (morePortGroups) {		// This can be set true for testing environments
-        	if (minPorts >= 4) portsPerNetPerPG = 2;	// Makes at least two Port Groups if there are two ports
+        	if (minPorts >= 4) {
+        	    portsPerNetPerPG = 2;	// Makes at least two Port Groups if there are two ports
+        	}
         } else {
-        	if (minPorts >= 2) portsPerNetPerPG = 2;	// Default is to require at least two ports per Port Group
+        	if (minPorts >= 2) {
+        	    portsPerNetPerPG = 2;	// Default is to require at least two ports per Port Group
+        	}
         }
         if (!moreThanTwoNetworks) {
-        	if (minPorts >= 9) portsPerNetPerPG = 3;
-        	if (minPorts >= 16) portsPerNetPerPG = 4;
+        	if (minPorts >= 9) {
+        	    portsPerNetPerPG = 3;
+        	}
+        	if (minPorts >= 16) {
+        	    portsPerNetPerPG = 4;
+        	}
         }
         int numPG = minPorts / portsPerNetPerPG;
         _log.info(String.format("Number Port Groups %d Per Network Ports Per Group %d", numPG, portsPerNetPerPG));
@@ -204,7 +221,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             Integer nports = allocatablePorts.get(netURI).size() / numPG;
             // Don't allow this network to have more than twice the number of
             // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
-            if (nports > (2*portsPerNetPerPG)) nports = 2*portsPerNetPerPG;
+            if (nports > (2*portsPerNetPerPG)) {
+                nports = 2*portsPerNetPerPG;
+            }
             portsAllocatedPerNetwork.put(netURI,  nports);
         }
         
@@ -241,7 +260,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     	Map<Integer, Set<URI>> numPortsToNetworkSet = new HashMap<Integer, Set<URI>>();
         for (URI networkURI : allocatablePorts.keySet()) {
             int numPorts = allocatablePorts.get(networkURI).size();
-            if (numPorts > MAX_PORTS_PER_NETWORK) numPorts = MAX_PORTS_PER_NETWORK;
+            if (numPorts > MAX_PORTS_PER_NETWORK) {
+                numPorts = MAX_PORTS_PER_NETWORK;
+            }
             if (numPortsToNetworkSet.get(numPorts) == null) {
                 numPortsToNetworkSet.put(numPorts, new HashSet<URI>());
             }
@@ -250,7 +271,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
         
         for (Integer numPorts = 1; numPorts < MAX_PORTS_PER_NETWORK; numPorts++) {
         	Set<URI> networkURIs = numPortsToNetworkSet.get(numPorts);
-            if (networkURIs == null) continue;
+            if (networkURIs == null) {
+                continue;
+            }
             for (URI networkURI : networkURIs) {
             	orderedNetworks.add(networkURI);
             }
@@ -319,7 +342,9 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
                     StringSet ports = new StringSet();
                     ports.add(storagePort.getId().toString());
                     zoningMap.put(initiator.getId().toString(), ports);
-                    if (++index >= portGroup.get(networkURI).size()) index = 0;
+                    if (++index >= portGroup.get(networkURI).size()) {
+                        index = 0;
+                    }
                     networkIndexes.put(networkURI, index);
                 }
             }
@@ -433,14 +458,18 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
             
             // Make sure the completer will complete the workflow. This happens on rollback case.
-            if (! completer.getOpId().equals(stepId)) completer.setOpId(stepId);
+            if (! completer.getOpId().equals(stepId)) {
+                completer.setOpId(stepId);
+            }
             
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device , exportMask);
 
             // Determine if we're deleting the last volume.
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            if (exportMask.getVolumes() != null) {
+                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }

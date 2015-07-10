@@ -124,7 +124,7 @@ public class ComputeVirtualPoolTest extends ApiTestBase {
         // Get list of virtual pools
         ComputeVirtualPoolList cvpResp = rSys.path("/compute/vpools").get(ComputeVirtualPoolList.class);
         List<NamedRelatedResourceRep> cvpList = cvpResp.getComputeVirtualPool();
-        Assert.assertTrue(cvpList.size() > 0);
+        Assert.assertTrue(!cvpList.isEmpty());
 
         // Get details of newly created Compute Virtual Pool
         ComputeVirtualPoolRestRep cvpGetResp = rSys.path("/compute/vpools/" + newId.toString()).get(
@@ -135,7 +135,7 @@ public class ComputeVirtualPoolTest extends ApiTestBase {
         System.out.println("name - " + cvpGetResp.getName());
         System.out.println("description - " + cvpGetResp.getDescription());
         List<RelatedResourceRep> vArrayResp = cvpGetResp.getVirtualArrays();
-        Assert.assertTrue(vArrayResp.size() > 0);
+        Assert.assertTrue(!vArrayResp.isEmpty());
 
         // Get Matching Compute Elements
         ClientResponse ceResp = rSys.path("/compute/vpools/" + newId.toString() + "/matched-compute-elements").get(

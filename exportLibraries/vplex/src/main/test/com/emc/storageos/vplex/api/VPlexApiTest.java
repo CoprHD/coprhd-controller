@@ -457,7 +457,7 @@ public class VPlexApiTest {
             VPlexVirtualVolumeInfo vvInfo = createSimpleVirtualVolume();
             Assert.assertNotNull(vvInfo);
             Map<String, Integer> vvMap = new HashMap<String, Integer>();
-            vvMap.put(vvInfo.getName(), new Integer(VPlexApiConstants.LUN_UNASSIGNED));
+            vvMap.put(vvInfo.getName(), Integer.valueOf(VPlexApiConstants.LUN_UNASSIGNED));
 
             // Create the storage view
             VPlexStorageViewInfo storageViewInfo = _client.createStorageView(
@@ -512,7 +512,7 @@ public class VPlexApiTest {
             VPlexVirtualVolumeInfo vvInfo = createSimpleVirtualVolume();
             Assert.assertNotNull(vvInfo);
             Map<String, Integer> vvMap = new HashMap<String, Integer>();
-            vvMap.put(vvInfo.getName(), new Integer(VPlexApiConstants.LUN_UNASSIGNED));
+            vvMap.put(vvInfo.getName(), Integer.valueOf(VPlexApiConstants.LUN_UNASSIGNED));
 
             // Create the storage view
             VPlexStorageViewInfo storageViewInfo = _client.createStorageView(
@@ -562,7 +562,7 @@ public class VPlexApiTest {
             VPlexVirtualVolumeInfo vvInfo = createSimpleVirtualVolume();
             Assert.assertNotNull(vvInfo);
             Map<String, Integer> vvMap = new HashMap<String, Integer>();
-            vvMap.put(vvInfo.getName(), new Integer(VPlexApiConstants.LUN_UNASSIGNED));
+            vvMap.put(vvInfo.getName(), Integer.valueOf(VPlexApiConstants.LUN_UNASSIGNED));
             
             // Add the virtual volume to the storage view.
             _client.addVirtualVolumesToStorageView(storageViewName, vvMap);
@@ -602,7 +602,7 @@ public class VPlexApiTest {
             VPlexVirtualVolumeInfo vvInfo = createSimpleVirtualVolume();
             Assert.assertNotNull(vvInfo);
             Map<String, Integer> vvMap = new HashMap<String, Integer>();
-            vvMap.put(vvInfo.getName(), new Integer(VPlexApiConstants.LUN_UNASSIGNED));
+            vvMap.put(vvInfo.getName(), Integer.valueOf(VPlexApiConstants.LUN_UNASSIGNED));
 
             // Create the storage view
             VPlexStorageViewInfo storageViewInfo = _client.createStorageView(

@@ -315,7 +315,7 @@ public class Networks extends ViprResourceController {
 
     @Util
     public static void registerNetworks(List<URI> ids) {
-        if ((ids != null) && (ids.size() > 0)) {
+        if ((ids != null) && (!ids.isEmpty())) {
             for (NetworkRestRep network : NetworkUtils.getNetworks(ids)) {
                 if (RegistrationStatus.isUnregistered(network.getRegistrationStatus())) {
                     NetworkUtils.register(network.getId());
@@ -331,7 +331,7 @@ public class Networks extends ViprResourceController {
 
     @Util
     public static void deregisterNetworks(List<URI> ids) {
-        if ((ids != null) && (ids.size() > 0)) {
+        if ((ids != null) && (!ids.isEmpty())) {
             for (NetworkRestRep network : NetworkUtils.getNetworks(ids)) {
                 if (RegistrationStatus.isRegistered(network.getRegistrationStatus())) {
                     NetworkUtils.deregister(network.getId());
@@ -346,7 +346,7 @@ public class Networks extends ViprResourceController {
                 String[] decodeIds = decodeIds(ids);
                 if (decodeIds.length > 0) {
                     List<String> hostEndpoints = NetworkUtils.getHostEndpoints(Arrays.asList(decodeIds));
-                    if (hostEndpoints.size() > 0) {
+                    if (!hostEndpoints.isEmpty()) {
                         NetworkUtils.removeEndpoints(id, hostEndpoints);
                     }
                     for (String storagePortId : NetworkUtils.getStoragePortEndpoints(Arrays.asList(decodeIds))) {
@@ -388,10 +388,10 @@ public class Networks extends ViprResourceController {
                     }
                 }
             }
-            if (endpoints.size() > 0) {
+            if (!endpoints.isEmpty()) {
                 NetworkUtils.addEndpoints(id, endpoints);
             }
-            if (invalidEndpoints.size() > 0) {
+            if (!invalidEndpoints.isEmpty()) {
                 flash.error(MessagesUtils.get("network.ports.add.error.invalid", invalidEndpoints));
             }
         }
@@ -535,10 +535,10 @@ public class Networks extends ViprResourceController {
             Set<String> removed = getRemovedVirtualArrays(oldNetwork);
 
             VirtualArrayAssignmentChanges changes = new VirtualArrayAssignmentChanges();
-            if (added.size() > 0) {
+            if (!added.isEmpty()) {
                 changes.setAdd(new VirtualArrayAssignments(added));
             }
-            if (removed.size() > 0) {
+            if (!removed.isEmpty()) {
                 changes.setRemove(new VirtualArrayAssignments(removed));
             }
 

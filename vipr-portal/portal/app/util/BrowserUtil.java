@@ -14,7 +14,7 @@ public class BrowserUtil {
 
     public static boolean supportsCSSRotate() {
         double ieVersion = getIEVersion();
-        return ieVersion == -1 || ieVersion >= 10;
+        return ieVersion == -1 || ieVersion >= 10;//NOSONAR ("Suppressing Sonar violation of Floating point comparision check")
     }
 
     public static double getIEVersion() {

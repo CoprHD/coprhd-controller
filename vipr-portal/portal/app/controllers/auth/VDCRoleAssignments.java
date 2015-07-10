@@ -240,7 +240,7 @@ public class VDCRoleAssignments extends Controller {
                 List<RoleAssignmentEntry> vdcRolesToAdd = Lists.newArrayList();
                 List<RoleAssignmentEntry> vdcRolesToRemove = Lists.newArrayList();
                 writeVdcRoleChangesTo(roleAssignmentEntry, vdcRolesToAdd, vdcRolesToRemove);
-                if (vdcRolesToAdd.size() > 0 || vdcRolesToRemove.size() > 0) {
+                if (!vdcRolesToAdd.isEmpty() || !vdcRolesToRemove.isEmpty()) {
                     putVdcRoleAssignmentChanges(vdcRolesToAdd, vdcRolesToRemove);
                 }
             }

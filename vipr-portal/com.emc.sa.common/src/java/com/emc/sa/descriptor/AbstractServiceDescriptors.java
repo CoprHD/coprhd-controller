@@ -5,6 +5,7 @@
 package com.emc.sa.descriptor;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -17,11 +18,11 @@ public abstract class AbstractServiceDescriptors implements ServiceDescriptors {
     protected abstract ServiceDefinition getServiceDefinition(String serviceId);
 
     public String[] getBundleNames() {
-        return bundleNames;
+        return Arrays.copyOf(bundleNames, bundleNames.length);
     }
 
     public void setBundleNames(String[] bundleNames) {
-        this.bundleNames = bundleNames;
+        this.bundleNames = Arrays.copyOf(bundleNames, bundleNames.length);
     }
 
     protected ClassLoader getClassLoader() {

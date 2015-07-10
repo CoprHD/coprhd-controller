@@ -21,6 +21,7 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -462,11 +463,11 @@ public class CreateComputeClusterService extends ViPRService {
     }
 
     public FqdnToIpTable[] getFqdnToIps() {
-        return fqdnToIps;
+        return Arrays.copyOf(fqdnToIps, fqdnToIps.length);
     }
 
     public void setFqdnToIps(FqdnToIpTable[] fqdnToIps) {
-        this.fqdnToIps = fqdnToIps;
+        this.fqdnToIps = Arrays.copyOf(fqdnToIps, fqdnToIps.length);
     }
 
     public URI getVcenterId() {

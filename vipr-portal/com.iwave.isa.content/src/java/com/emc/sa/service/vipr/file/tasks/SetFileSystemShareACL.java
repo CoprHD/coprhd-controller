@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file.tasks;
 
 import java.net.URI;
+import java.util.Arrays;
 
 import com.emc.sa.service.vipr.file.FileStorageUtils;
 import com.emc.sa.service.vipr.file.FileStorageUtils.FileSystemACLs;
@@ -22,7 +23,7 @@ public class SetFileSystemShareACL extends WaitForTask<FileShareRestRep> {
     public SetFileSystemShareACL(URI fileSystemId, String shareName, FileSystemACLs[] acls) {
         this.shareName = shareName;
         this.fileSystemId = fileSystemId;
-        this.acls = acls;
+        this.acls = Arrays.copyOf(acls, acls.length);
         provideDetailArgs(fileSystemId, shareName);
     }
 

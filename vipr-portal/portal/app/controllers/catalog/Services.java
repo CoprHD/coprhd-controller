@@ -279,6 +279,6 @@ public class Services extends Controller {
      */
     private static boolean hasExecutionWindows() {
         List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows();
-        return (executionWindows != null && executionWindows.size() > 0);
+        return (executionWindows != null && !executionWindows.isEmpty());
     }
 }

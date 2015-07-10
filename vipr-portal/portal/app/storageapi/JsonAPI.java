@@ -191,7 +191,7 @@ public class JsonAPI {
                 catch (RuntimeException e) {
                     handleAPIException(e);
                 }
-                catch (Throwable e) {
+                catch (Exception e) {
                     handleAPIException(e);                   
                 }
             }

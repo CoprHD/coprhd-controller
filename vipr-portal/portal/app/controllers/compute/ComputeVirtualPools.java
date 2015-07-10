@@ -347,7 +347,7 @@ public class ComputeVirtualPools extends ViprResourceController {
         }
 
         for (String comp: csTemplatesMap.keySet()){
-            Set<String> compTemplates = csTemplatesMap.get(comp);
+            Set<String> compTemplates = csTemplatesMap.get(comp); //NOSONAR ("Suppressing Sonar violation of Inefficient use of keySet iterator instead of entrySet")
             if (compTemplates!=null && !compTemplates.isEmpty()){
                 String systemName = ComputeSystemTypes.getDisplayValue(ComputeSystemTypes.UCS) + " " + computeSystemsMap.get(comp);
                 computeVirtualPool.systems.add(new StringOption(comp,systemName));
@@ -355,7 +355,7 @@ public class ComputeVirtualPools extends ViprResourceController {
                 templateOptions.add(new StringOption("NONE",""));
                 for (String template : compTemplates){
                     templateOptions.add(new StringOption(template,templatesMap.get(template)));
-                    if (temps.size() > 0){
+                    if (!temps.isEmpty()){
                         for (String templateId : temps){
                             if (templateId.contains(template)){
                                 templateList.add(new StringOption(comp,template));
@@ -369,7 +369,7 @@ public class ComputeVirtualPools extends ViprResourceController {
         }
        
         computeVirtualPool.selectedTemplates = "{}";
-        if (templateList.size()>0) {
+        if (!templateList.isEmpty()) {
             String jsonString = "{\"" ;
             
             for (int index = 0; index < templateList.size(); index++) {
@@ -557,7 +557,7 @@ public class ComputeVirtualPools extends ViprResourceController {
                 }
             }
 
-            if (tenants.size() > 0) {
+            if (!tenants.isEmpty()) {
                 this.enableTenants = true;
             }
         }
@@ -605,10 +605,10 @@ public class ComputeVirtualPools extends ViprResourceController {
             Set<String> add = Sets.newHashSet(CollectionUtils.subtract(newArrays, oldArrays));
             Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(oldArrays, newArrays));
             VirtualArrayAssignmentChanges changes = new VirtualArrayAssignmentChanges();
-            if (add.size() > 0) {
+            if (!add.isEmpty()) {
                 changes.setAdd(new VirtualArrayAssignments(add));
             }
-            if (remove.size() > 0) {
+            if (!remove.isEmpty()) {
                 changes.setRemove(new VirtualArrayAssignments(remove));
             }
             param.setVarrayChanges(changes);
@@ -639,10 +639,10 @@ public class ComputeVirtualPools extends ViprResourceController {
             Set<String> addSPT = Sets.newHashSet(CollectionUtils.subtract(templates, oldTemplates));
             Set<String> removeSPT = Sets.newHashSet(CollectionUtils.subtract(oldTemplates, templates));
             ServiceProfileTemplateAssignmentChanges sptChanges = new ServiceProfileTemplateAssignmentChanges();
-            if (addSPT.size() > 0) {
+            if (!addSPT.isEmpty()) {
                 sptChanges.setAdd(new ServiceProfileTemplateAssignments(addSPT));
             }
-            if (removeSPT.size() > 0) {
+            if (!removeSPT.isEmpty()) {
                 sptChanges.setRemove(new ServiceProfileTemplateAssignments(removeSPT));
             }
             param.setSptChanges(sptChanges);
@@ -923,7 +923,7 @@ public class ComputeVirtualPools extends ViprResourceController {
         if (computeVirtualPool == null) {
             renderJSON(Collections.emptyList());
         }
-        renderJSON(computeVirtualPool.getVirtualPoolAttributes());
+        renderJSON(computeVirtualPool.getVirtualPoolAttributes());//NOSONAR ("Suppressing Sonar violation of Possible null pointer deference of computeVirtualPool")
     }
 
 

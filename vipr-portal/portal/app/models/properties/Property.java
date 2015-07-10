@@ -248,7 +248,7 @@ public class Property {
 
         // Check the allowed values
         Set<String> allowedValues = getAllowedValues();
-        if ((allowedValues != null) && (allowedValues.size() > 0)) {
+        if ((allowedValues != null) && (!allowedValues.isEmpty())) {
             if (!allowedValues.contains(value)) {
                 String values = StringUtils.join(allowedValues, ",");
                 Validation.addError(fieldName, "configProperties.error.allowedValues", values);

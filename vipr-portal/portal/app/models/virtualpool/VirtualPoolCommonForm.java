@@ -200,7 +200,7 @@ public abstract class VirtualPoolCommonForm<T extends VirtualPoolCommonRestRep> 
             }
         }
 
-        enableTenants = tenants.size() > 0;
+        enableTenants = !tenants.isEmpty();
     }
 
     /**

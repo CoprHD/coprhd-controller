@@ -82,7 +82,7 @@ public class CatalogSearchBuilder {
      * @return Service matching the built path.
      */
     public CatalogServiceRestRep service() {
-        if (segments.size() < 1) {
+        if (segments.isEmpty()) {
             return null;
         }
 

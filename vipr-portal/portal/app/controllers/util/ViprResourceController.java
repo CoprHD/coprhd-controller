@@ -295,7 +295,7 @@ public class ViprResourceController extends Controller {
         List<OperationResult<T, V>> results = perform(values, operation);
         List<OperationResult<T, V>> success = getSuccessResults(results);
 
-        if (success.size() > 0) {
+        if (!success.isEmpty()) {
             flash.success(MessagesUtils.get(successKey, success.size(), results.size()));
         }
     }

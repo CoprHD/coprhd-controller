@@ -74,10 +74,10 @@ public class Logs {
      */
     public List<LogLevel> getLogLevels(Collection<String> nodeIds, Collection<String> logNames) {
         UriBuilder builder = client.uriBuilder(PathConstants.LOG_LEVELS_URL);
-        if ((nodeIds != null) && (nodeIds.size() > 0)) {
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             builder.queryParam(NODE_ID, nodeIds.toArray());
         }
-        if ((logNames != null) && (logNames.size() > 0)) {
+        if ((logNames != null) && (!logNames.isEmpty())) {
             builder.queryParam(LOG_NAME, logNames.toArray());
         }
         LogLevels response = client.getURI(LogLevels.class, builder.build());
@@ -113,10 +113,10 @@ public class Logs {
     public void setLogLevels(int severity, Collection<String> nodeIds, Collection<String> logNames) {
         SetLogLevelParam param = new SetLogLevelParam();
         param.setSeverity(severity);
-        if ((nodeIds != null) && (nodeIds.size() > 0)) {
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             param.setNodeIds(new ArrayList<String>(nodeIds));
         }
-        if ((logNames != null) && (logNames.size() > 0)) {
+        if ((logNames != null) && (!logNames.isEmpty())) {
             param.setLogNames(new ArrayList<String>(logNames));
         }
         setLogLevels(param);
@@ -294,10 +294,10 @@ public class Logs {
     private URI getURI(Collection<String> nodeIds, Collection<String> logNames, Integer severity, String startTime,
             String endTime, String regex, Integer maxCount) {
         UriBuilder builder = client.uriBuilder(PathConstants.LOGS_URL);
-        if ((nodeIds != null) && (nodeIds.size() > 0)) {
+        if ((nodeIds != null) && (!nodeIds.isEmpty())) {
             builder.queryParam(NODE_ID, nodeIds.toArray());
         }
-        if ((logNames != null) && (logNames.size() > 0)) {
+        if ((logNames != null) && (!logNames.isEmpty())) {
             builder.queryParam(LOG_NAME, logNames.toArray());
         }
         if (severity != null) {

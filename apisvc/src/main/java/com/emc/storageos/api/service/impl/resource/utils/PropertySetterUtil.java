@@ -17,6 +17,9 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.lang.reflect.Method;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
@@ -33,6 +36,8 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMB
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 
 public class PropertySetterUtil {
+	
+	private static final Logger _logger = LoggerFactory.getLogger(PropertySetterUtil.class);
     
     /**
      * Mapping between Key present in VolumeInfo's StringSetMap
@@ -211,7 +216,9 @@ public class PropertySetterUtil {
                   return value;
               }
           }
-      } catch (Exception e) {}
+      } catch (Exception e) {
+    	  _logger.error(e.getMessage(), e);
+      }
       return null;
   }
    
@@ -233,7 +240,9 @@ public class PropertySetterUtil {
               }
           }
           return returnSet;
-      } catch (Exception e) {}
+      } catch (Exception e) {
+    	  _logger.error(e.getMessage(), e);
+      }
       return null;
   }
 

@@ -153,7 +153,7 @@ public class ExportGroupService extends TaskResourceService {
     private static final int MAX_VOLUME_COUNT = 100;
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
     
-    private static BlockStorageScheduler _blockStorageScheduler;
+    private static volatile BlockStorageScheduler _blockStorageScheduler;
     public void setBlockStorageScheduler( BlockStorageScheduler blockStorageScheduler) {
         if ( _blockStorageScheduler == null) {
             _blockStorageScheduler = blockStorageScheduler;
@@ -188,7 +188,7 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     // Block service implementations
-    static private Map<String, ExportGroupServiceApi> _exportGroupServiceApis;
+    static volatile private Map<String, ExportGroupServiceApi> _exportGroupServiceApis;
 
     static public void setExportGroupServiceApis(
             Map<String, ExportGroupServiceApi> serviceInterfaces) {

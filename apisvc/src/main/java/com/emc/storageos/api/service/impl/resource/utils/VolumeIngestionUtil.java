@@ -1420,19 +1420,19 @@ public class VolumeIngestionUtil {
 
         }
         if (totalPorts < pathParams.getMinPaths()) {
-            _logger.error(String.format("Host %s (%s) has fewer ports assigned %s than min_paths %s", 
+            _logger.error(String.format("Host %s (%s) has fewer ports assigned %d than min_paths %d", 
                     new Object[] {hostName, hostURI, totalPorts, pathParams.getMinPaths()}));
             throw IngestionException.exceptions.hostZoningHasFewerPorts(hostName, 
                     String.valueOf(totalPorts), String.valueOf(pathParams.getMinPaths()));
         }
         if (totalPorts > pathParams.getMaxPaths()) {
-            _logger.error(String.format("Host %s (%s) has more ports assigned %s than max_paths %s", 
+            _logger.error(String.format("Host %s (%s) has more ports assigned %d than max_paths %d", 
                     new Object[] {hostName, hostURI, totalPorts, pathParams.getMaxPaths()}));
             throw IngestionException.exceptions.hostZoningHasMorePorts(hostName, 
                     String.valueOf(totalPorts), String.valueOf(pathParams.getMaxPaths()));
         }
         if (unassignedInitiators > 0) {
-            _logger.info(String.format("Host %s (%s) has %s unassigned initiators", 
+            _logger.info(String.format("Host %s (%s) has %d unassigned initiators", 
                     new Object[] {hostName, hostURI, unassignedInitiators}));
         }
         return true;

@@ -65,10 +65,10 @@ public class VPlexApiTest {
     private static Properties _properties = new Properties();
     
     // Factory used to create and manage client connections;
-    private static VPlexApiFactory _apiFactory = null;
+    private static volatile VPlexApiFactory _apiFactory = null;
 
     // The VPlex API client used to make http requests to the VPlex.
-    private static VPlexApiClient _client = null;
+    private static volatile VPlexApiClient _client = null;
     
     // The native guids for the arrays attached to the VPlex
     private static final List<String> _attachedStorageSystems = new ArrayList<String>();
@@ -234,7 +234,7 @@ public class VPlexApiTest {
         try {
             List<VPlexStorageSystemInfo> storageSystemInfoList = _client
                 .getStorageSystemInfo();
-            Assert.assertTrue(storageSystemInfoList.size() != 0);
+            Assert.assertTrue(!storageSystemInfoList.isEmpty());
             List<String> storageSystemNativeGuids = new ArrayList<String>();
             for (VPlexStorageSystemInfo storageSystemInfo : storageSystemInfoList) {
                 storageSystemNativeGuids.add(storageSystemInfo.getUniqueId());
@@ -255,7 +255,7 @@ public class VPlexApiTest {
      * of the VPlex.
      */
     @Test
-    public void testCreateVirtualVolume_Simple() {
+    public void testCreateVirtualVolumeSimple() {
         boolean wasException = false;
         try {
             // Create the virtual volume.
@@ -289,7 +289,7 @@ public class VPlexApiTest {
      * VPlex.
      */
     @Test
-    public void testCreateVirtualVolume_Distributed() {
+    public void testCreateVirtualVolumeDistributed() {
         boolean wasException = false;
         try {
             // Create the distributed virtual volume.
@@ -328,7 +328,7 @@ public class VPlexApiTest {
      * Tests the API createStorageView when the view name is not specified.
      */
     @Test
-    public void testCreateStorageView_NoViewName() {
+    public void testCreateStorageViewNoViewName() {
 
         // Get the target ports
         List<PortInfo> targetPortInfoList = new ArrayList<PortInfo>();
@@ -344,7 +344,7 @@ public class VPlexApiTest {
         // Test with a null view name.
         boolean wasException = false;
         try {
-            Assert.assertTrue(targetPortInfoList.size() > 0);
+            Assert.assertTrue(!targetPortInfoList.isEmpty());
             _client.createStorageView(null, targetPortInfoList, null, null);
         } catch (VPlexApiException vae) {
             wasException = true;
@@ -354,7 +354,7 @@ public class VPlexApiTest {
         // Test with a blank view name.
         wasException = false;
         try {
-            Assert.assertTrue(targetPortInfoList.size() > 0);
+            Assert.assertTrue(!targetPortInfoList.isEmpty());
             _client.createStorageView("", targetPortInfoList, null, null);
         } catch (VPlexApiException vae) {
             wasException = true;
@@ -364,7 +364,7 @@ public class VPlexApiTest {
         // Test with a view name consisting only of white space.
         wasException = false;
         try {
-            Assert.assertTrue(targetPortInfoList.size() > 0);
+            Assert.assertTrue(!targetPortInfoList.isEmpty());
             _client.createStorageView(" ", targetPortInfoList, null, null);
         } catch (VPlexApiException vae) {
             wasException = true;
@@ -376,7 +376,7 @@ public class VPlexApiTest {
      * Tests the API createStorageView when no targets are specified.
      */
     @Test
-    public void testCreateStorageView_NoTargets() {
+    public void testCreateStorageViewNoTargets() {
 
         // Get the storage view name
         String storageViewName = _properties.getProperty(STORAGE_VIEW_NAME_PROP_KEY);
@@ -399,7 +399,7 @@ public class VPlexApiTest {
      * in the request.
      */
     @Test
-    public void testCreateStorageView_TargetsOnly() {
+    public void testCreateStorageViewTargetsOnly() {
         boolean wasException = false;
         try {
             // Get the storage view name
@@ -436,7 +436,7 @@ public class VPlexApiTest {
      * volumes are passed in the request.
      */
     @Test
-    public void testCreateStorageView_WithVolumes() {
+    public void testCreateStorageViewWithVolumes() {
         boolean wasException = false;
         try {
             // Get the storage view name
@@ -480,7 +480,7 @@ public class VPlexApiTest {
      * virtual volumes are passed in the request.
      */
     @Test
-    public void testCreateStorageView_WithInitiatorsAndVolumes() {
+    public void testCreateStorageViewWithInitiatorsAndVolumes() {
         boolean wasException = false;
         try {
             // Get the storage view name
@@ -731,7 +731,7 @@ public class VPlexApiTest {
      * Tests the API migrateVirtualVolume for a simple virtual volume.
      */
     @Test
-    public void testMigrateVirtualVolume_Simple() {
+    public void testMigrateVirtualVolumeSimple() {
 
         boolean wasException = false;
         try {
@@ -801,7 +801,7 @@ public class VPlexApiTest {
      * Tests the API migrateVirtualVolume for a distributed virtual volume.
      */
     @Test
-    public void testMigrateVirtualVolume_Distributed() {
+    public void testMigrateVirtualVolumeDistributed() {
 
         boolean wasException = false;
         try {
@@ -912,6 +912,9 @@ public class VPlexApiTest {
                     _client.deleteVirtualVolume(vvInfo.getName(), true, false);
                 }
             } catch (Exception exx) {
+                // ignoring exceptions
+                System.out.println("an ignorable exception was encountered: " 
+                        + exx.getLocalizedMessage());
             }
         }
     }

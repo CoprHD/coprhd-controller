@@ -125,7 +125,7 @@ public class FileStorageUtils {
         }
         
         // Delete all export rules for filesystem and all sub-directories
-        if (getFileSystemExportRules(fileSystemId, true, null).size() > 0) {
+        if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
             deactivateFileSystemExport(fileSystemId, true, null);
         }
         
@@ -140,7 +140,7 @@ public class FileStorageUtils {
 
     public static void deleteFileSnapshot(URI fileSnapshotId) {
         // Deactivate Snapshot Exports
-        if (getFileSnapshotExportRules(fileSnapshotId, true, null).size() > 0) {
+        if (!getFileSnapshotExportRules(fileSnapshotId, true, null).isEmpty()) {
             deactivateSnapshotExport(fileSnapshotId, true, null);
         }
         

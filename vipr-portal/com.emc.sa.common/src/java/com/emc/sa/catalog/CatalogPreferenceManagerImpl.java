@@ -24,7 +24,7 @@ public class CatalogPreferenceManagerImpl implements CatalogPreferenceManager {
 
     public TenantPreferences getPreferencesByTenant(String tenantId) {
         List<TenantPreferences> list = client.tenantPreferences().findAll(tenantId);
-        if (list != null && list.size() > 0) {
+        if (list != null && !list.isEmpty()) {
             return list.get(0);
         }
 

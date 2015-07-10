@@ -110,12 +110,12 @@ public class CinderUtils
 
             dbClient.persistObject(storagePool);
         } 
-        catch (Throwable th) 
+        catch (Exception ex) 
         {
             _log.error(
                     String.format("Failed to update capacity of storage pool after volume provisioning operation."
-                    					+ " \n  Storage system: %s, storage pool %s .",
-                    					storageSystem.getId(), storagePool.getId()), th);
+                    					+ "%n  Storage system: %s, storage pool %s .",
+                    					storageSystem.getId(), storagePool.getId()), ex);
         }
 
     }

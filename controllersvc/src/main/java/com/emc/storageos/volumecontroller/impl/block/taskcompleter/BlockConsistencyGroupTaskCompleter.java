@@ -54,10 +54,10 @@ public abstract class BlockConsistencyGroupTaskCompleter extends TaskCompleter {
         try {
             eventManager.recordEvents(event);
             _log.info("Bourne {} event recorded", evtType.name());
-        } catch (Throwable t) {
+        } catch (Exception ex) {
             _log.error(
                     "Failed to record event. Event description: {}. Error: ",
-                    evtType.name(), t);
+                    evtType.name(), ex);
         }
     }
 

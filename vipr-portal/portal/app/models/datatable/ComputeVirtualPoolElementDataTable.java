@@ -75,6 +75,8 @@ public class ComputeVirtualPoolElementDataTable extends DataTable {
             this.numberOfCores = computeElement.getNumOfCores();
         }
         
+        //Suppressing Sonar violation of Method name FormatSpeed should comply with naming convention
+        @SuppressWarnings("squid:S00100")
         public String FormatSpeed(String speed) {
             Float newSpeed=Float.parseFloat(speed);
 

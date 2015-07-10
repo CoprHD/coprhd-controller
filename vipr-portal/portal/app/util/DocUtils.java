@@ -22,7 +22,7 @@ public class DocUtils {
     // GUID of documentation document. This should not change
     public static final String guid = "GUID-59FAE703-DF72-4FF8-81D2-4DE332A9C927";
 
-    private static Properties docTopics;
+    private static Properties docTopics = null;
 
     public static String getDocumentationLink() {
         return linkForTopic(getDocumentationTopic());
@@ -42,7 +42,7 @@ public class DocUtils {
     private static String getDocumentationTopic() {
         if (docTopics == null) {
             VirtualFile file = Play.getVirtualFile("conf/documentation.topics");
-            docTopics = IO.readUtf8Properties(file.inputstream());
+            docTopics = IO.readUtf8Properties(file.inputstream());//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for docTopics")
         }
 
         Http.Request request = Http.Request.current();

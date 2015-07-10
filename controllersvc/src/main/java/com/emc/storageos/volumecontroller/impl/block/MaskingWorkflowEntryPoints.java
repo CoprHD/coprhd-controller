@@ -59,7 +59,7 @@ import com.google.common.base.Joiner;
 public class MaskingWorkflowEntryPoints implements Controller {
     private static final Logger _log =
             LoggerFactory.getLogger(MaskingWorkflowEntryPoints.class);
-    private static String _beanName;
+    private static volatile String _beanName;
     private NetworkDeviceController _networkDeviceController;
     private Map<String, BlockStorageDevice> _devices;
     private DbClient _dbClient;
@@ -508,7 +508,7 @@ public class MaskingWorkflowEntryPoints implements Controller {
                     initiators, removeTargets ? targetPorts : null, taskCompleter);
             
             // TODO - move this to the completer
-            if (targetPorts != null && targetPorts.size() > 0) {
+            if (targetPorts != null && !targetPorts.isEmpty()) {
                 for (URI targetPort : targetPorts) {
                     exportMask.removeTarget(targetPort);
                 }

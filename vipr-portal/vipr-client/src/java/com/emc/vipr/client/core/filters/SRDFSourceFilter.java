@@ -15,7 +15,7 @@ public class SRDFSourceFilter extends DefaultResourceFilter<VolumeRestRep> {
     public boolean accept(VolumeRestRep item) {
         if ((item.getProtection() != null) && (item.getProtection().getSrdfRep() != null)) {
             SRDFRestRep srdf = item.getProtection().getSrdfRep();
-            return (srdf.getSRDFTargetVolumes() != null) && (srdf.getSRDFTargetVolumes().size() > 0);
+            return (srdf.getSRDFTargetVolumes() != null) && (!srdf.getSRDFTargetVolumes().isEmpty());
         }
         else {
             return false;

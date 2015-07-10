@@ -54,7 +54,7 @@ public class HDSUtils {
 
         try {
             storageSystem = dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
-            log.info(String.format("Old storage pool capacity data for \n  pool %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            log.info(String.format("Old storage pool capacity data for %n  pool %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePool.getId(),
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));
@@ -70,7 +70,7 @@ public class HDSUtils {
             // @TODO need to see how to get subscribed capacity of the hds pool
             // storagePool.setSubscribedCapacity(ControllerUtils.convertBytesToKBytes(subscribedCapacity));
 
-            log.info(String.format("New storage pool capacity data for pool \n  %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            log.info(String.format("New storage pool capacity data for pool \n  %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePool.getId(),
                     storagePool.getFreeCapacity(),
                     storagePool.getSubscribedCapacity()));
@@ -78,7 +78,7 @@ public class HDSUtils {
             dbClient.persistObject(storagePool);
         } catch (Exception ex) {
             log.error(
-                    String.format("Failed to update capacity of storage pool after volume provisioning operation. \n  Storage system: %s, storage pool %s .",
+                    String.format("Failed to update capacity of storage pool after volume provisioning operation. %n  Storage system: %s, storage pool %s .",
                     storageSystem.getId(), storagePool.getId()), ex);
         }
 
@@ -174,7 +174,7 @@ public class HDSUtils {
     public static URI getHDSServerManagementServerInfo(AccessProfile accessProfile) throws URISyntaxException {
 
     	String protocol = HDSConstants.HTTP_URL;
-        if (Boolean.TRUE.equals(accessProfile.getSslEnable())) {
+        if (Boolean.parseBoolean(accessProfile.getSslEnable())) {
         	protocol = HDSConstants.HTTPS_URL;
         }
 

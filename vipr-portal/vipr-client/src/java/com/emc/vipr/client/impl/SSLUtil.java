@@ -12,6 +12,7 @@ import java.security.SecureRandom;
 /**
  * SSL Utilities such as trusting all SSL Certificates.
  */
+@SuppressWarnings("squid:S2444")
 public class SSLUtil {
     private static Logger log = LoggerFactory.getLogger(SSLUtil.class);
     

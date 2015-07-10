@@ -511,6 +511,8 @@ public class StorageSystems extends ViprResourceController {
         }
     }
 
+    //Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
+    @SuppressWarnings("squid:S2068")
     public static class StorageSystemForm {
         public String id;
 

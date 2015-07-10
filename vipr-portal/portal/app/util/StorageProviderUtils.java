@@ -56,7 +56,7 @@ public class StorageProviderUtils {
 
     public static boolean hasStorageSystems(URI id) {
         List<StorageSystemRestRep> storageSystems = getViprClient().storageSystems().getBySmisProvider(id);
-        return storageSystems.size() > 0;
+        return !storageSystems.isEmpty();
     }
 
     public static boolean hasStorageSystems(List<URI> ids) {

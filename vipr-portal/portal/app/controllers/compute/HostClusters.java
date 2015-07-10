@@ -177,7 +177,7 @@ public class HostClusters extends Controller {
         
         // If we have existing hosts in the cluster, limit to that host type
         List<HostRestRep> existingHosts = ClusterUtils.getHosts(uri(id));
-        if (existingHosts.size() > 0) {
+        if (!existingHosts.isEmpty()) {
         	FilterChain<HostRestRep> hostTypeFilter = new FilterChain<HostRestRep>(new HostTypeFilter(existingHosts.get(0).getType()));
       
 	        hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), hostTypeFilter.and(defaultHostResourceFilter));

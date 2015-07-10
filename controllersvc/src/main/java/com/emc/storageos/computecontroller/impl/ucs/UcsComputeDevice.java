@@ -206,7 +206,7 @@ public class UcsComputeDevice implements ComputeDevice {
         }
         computeElement.setAvailable(false);
 
-        if (lsServer.getContent() != null && lsServer.getContent().size() > 0) {
+        if (lsServer.getContent() != null && !lsServer.getContent().isEmpty()) {
 
             for (Serializable contentElement : lsServer.getContent()) {
                 if (contentElement instanceof JAXBElement<?>) {
@@ -233,7 +233,7 @@ public class UcsComputeDevice implements ComputeDevice {
 
         }
 
-        if (computeElementHBAs.size() > 0) {
+        if (!computeElementHBAs.isEmpty()) {
             dbClient.createObject(computeElementHBAs);
         }
 
@@ -252,7 +252,7 @@ public class UcsComputeDevice implements ComputeDevice {
             return null;
         }
 
-        if (vnicFc.getContent() != null && vnicFc.getContent().size() > 0) {
+        if (vnicFc.getContent() != null && !vnicFc.getContent().isEmpty()) {
             for (Serializable contentElement : vnicFc.getContent()) {
                 if (contentElement instanceof JAXBElement<?>) {
                     if (((JAXBElement) contentElement).getValue() instanceof VnicFcIf) {
@@ -275,7 +275,7 @@ public class UcsComputeDevice implements ComputeDevice {
         int vhbaCount = 0;
         int vnicCount = 0;
 
-        if (spt.getContent() != null && spt.getContent().size() > 0) {
+        if (spt.getContent() != null && !spt.getContent().isEmpty()) {
             for (Serializable element : spt.getContent()) {
                 if (element instanceof JAXBElement<?>) {
                     if (((JAXBElement) element).getValue() instanceof LsRequirement) {

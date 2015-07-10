@@ -443,14 +443,14 @@ public class VPlexUtil {
     	// log a message indicating unconnected hosts
     	String whichVarray = (srcVarray == null ? "high availability" :
     		(haVarray == null ? "source" : "source or high availability"));
-    	if (unconnectedHostNames.size() > 0) {
+    	if (!unconnectedHostNames.isEmpty()) {
     		_log.info(String.format("The following initiators are not connected to the %s varrays: %s", 
     			whichVarray, unconnectedHostNames.toString()));
     	}
     	
     	// If both varrays are present and there are any unconnected hosts, fail.
     	if (srcVarray != null && haVarray != null) {
-    		if (unconnectedHostNames.size() > 0) {
+    		if (!unconnectedHostNames.isEmpty()) {
     			throw VPlexApiException.exceptions.exportCreateAllHostsNotConnected(
     					unconnectedHostNames.toString());
     		}

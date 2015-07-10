@@ -108,12 +108,13 @@ public class Workflow implements Serializable {
         /** URI of Cassandra logging record. */
         URI workflowStepURI;
 
-        public boolean equals(Object x, Object y) {
-            if (x instanceof Step && y instanceof Step
-                    && ((Step) x).stepId == ((Step) y).stepId) {
-                return true;
-            }
-            return false;
+        public boolean equals(Object o) {
+        	if(o == null || !(o instanceof Step)){
+        		return false;
+        	}
+        	
+        	Step other = (Step)o;
+        	return this.stepId.equalsIgnoreCase(other.stepId);
         }
 
         // Rollback steps are in the rollback step group.
@@ -248,6 +249,7 @@ public class Workflow implements Serializable {
                 try {
                     this.wait(600000); // 600 seconds, or 10 minutes
                 } catch (InterruptedException ex) {
+                	_log.error(ex.getMessage(),ex);
                 }
             }
         }
@@ -512,9 +514,13 @@ public class Workflow implements Serializable {
             WorkflowRollbackHandler rollbackHandler, Object[] rollbackHandlerArgs)
             throws WorkflowException {
         this._callbackHandler = callbackHandler;
-        this._callbackHandlerArgs = callbackHandlerArgs;
+        if (callbackHandlerArgs != null){
+        	this._callbackHandlerArgs = callbackHandlerArgs.clone();
+        }
         this._rollbackHandler = rollbackHandler;
-        this._rollbackHandlerArgs = rollbackHandlerArgs;
+        if(rollbackHandlerArgs != null){
+        	this._rollbackHandlerArgs = rollbackHandlerArgs.clone();
+        }
         this._taskCompleter = completer;
         this._successMessage = successMessage;
         _service.executePlan(this);
@@ -727,11 +733,11 @@ public class Workflow implements Serializable {
     public void setWorkflowURI(URI _workflowURI) {
         this._workflowURI = _workflowURI;
     }
-    public WorkflowService get_service() {
+    public WorkflowService getService() {
         return _service;
     }
 
-    public void set_service(WorkflowService _service) {
+    public void setService(WorkflowService _service) {
         this._service = _service;
     }
 

@@ -12,6 +12,7 @@ import java.security.SecureRandom;
 /**
  * SSL Utilities such as trusting all SSL Certificates.
  */
+@SuppressWarnings("squid:S2444")
 public class SSLUtil {
     private static Logger log = LoggerFactory.getLogger(SSLUtil.class);
     
@@ -32,7 +33,7 @@ public class SSLUtil {
         setSSLSocketFactory(getTrustAllSslSocketFactory());
         trustAllEnabled = true;
     }
-    @SuppressWarnings("squid:S2444")
+
     public static void trustAllHostnames() {
         if (nullHostnameVerifier == null) {
             nullHostnameVerifier = getNullHostnameVerifier();
@@ -40,7 +41,6 @@ public class SSLUtil {
         }
     }
 
-    @SuppressWarnings("squid:S2444")
     public static NullHostNameVerifier getNullHostnameVerifier() {
         if (nullHostnameVerifier == null) {
             nullHostnameVerifier = new NullHostNameVerifier();
@@ -48,7 +48,6 @@ public class SSLUtil {
         return nullHostnameVerifier;
     }
 
-    @SuppressWarnings("squid:S2444")
     public static SSLSocketFactory getTrustAllSslSocketFactory() {
         if (trustAllSslSocketFactory == null) {
             SSLContext sc = getTrustAllContext();
@@ -57,7 +56,6 @@ public class SSLUtil {
         return trustAllSslSocketFactory;
     }
 
-    @SuppressWarnings("squid:S2444")
     public static SSLContext getTrustAllContext() {
         if (trustAllContext == null) {
             try {

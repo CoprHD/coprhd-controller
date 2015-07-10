@@ -58,6 +58,7 @@ public class SRDFStorageSyncProcessor extends StorageProcessor {
                 try {
                     client.closeEnumeration(Constants.SYNC_PATH, synchronizedInstancePathChunks.getContext());
                 } catch (Exception e) {
+                    _log.warn("Exception occurred while closing enumeration", e);
                 }
             }
         }

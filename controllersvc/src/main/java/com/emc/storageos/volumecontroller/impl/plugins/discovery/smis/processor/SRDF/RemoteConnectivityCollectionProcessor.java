@@ -73,11 +73,11 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             updateRemoteConnectedStorageSystems(device, remoteConnectedStorageSystems);
             _dbClient.persistObject(device);
             
-            if (newlyAddedGroups.size() > 0) {
+            if (!newlyAddedGroups.isEmpty()) {
                 _dbClient.createObject(newlyAddedGroups);
             }
             
-            if (modifiedGroups.size() > 0) {
+            if (!modifiedGroups.isEmpty()) {
                 _dbClient.persistObject(modifiedGroups);
             }
             
@@ -108,7 +108,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             Set<String> remoteConnectedStorageSystems) {
       
         if (null == device.getRemotelyConnectedTo()
-                || device.getRemotelyConnectedTo().size() == 0) {
+                || device.getRemotelyConnectedTo().isEmpty()) {
             device.setRemotelyConnectedTo(new StringSet(remoteConnectedStorageSystems));
         } else {
             device.getRemotelyConnectedTo().replace(remoteConnectedStorageSystems);
@@ -232,7 +232,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
             }
             _log.debug("Remote Array Native Guid {}", remoteArrayNativeGuid);
             List<URI> remoteSystemuris =  _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageSystemByNativeGuidConstraint(remoteArrayNativeGuid));
-            if (remoteSystemuris.size() > 0) {
+            if (!remoteSystemuris.isEmpty()) {
                 return remoteSystemuris.get(0);
             }
             return NullColumnValueGetter.getNullURI();

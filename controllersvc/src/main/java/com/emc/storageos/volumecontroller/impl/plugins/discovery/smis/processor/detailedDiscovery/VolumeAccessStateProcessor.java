@@ -92,7 +92,7 @@ public class VolumeAccessStateProcessor extends StorageProcessor {
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation);
             }
-            if (null != _unManagedVolumesUpdate && _unManagedVolumesUpdate.size() > 0) {
+            if (null != _unManagedVolumesUpdate && !_unManagedVolumesUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedVolumesUpdate,
                         getPartitionSize(keyMap), _dbClient, "UnManagedVolume");
             }

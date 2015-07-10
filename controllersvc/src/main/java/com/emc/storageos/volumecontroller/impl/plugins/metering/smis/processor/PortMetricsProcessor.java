@@ -74,8 +74,8 @@ import com.google.common.collect.Sets;
 public class PortMetricsProcessor {
     static final private Logger _log = LoggerFactory.getLogger(PortMetricsProcessor.class);
     
-    private static DbClient _dbClient;
-    private static CoordinatorClient _coordinator;
+    private static volatile DbClient _dbClient;
+    private static volatile CoordinatorClient _coordinator;
     @Autowired
     private static CustomConfigHandler customConfigHandler;
     

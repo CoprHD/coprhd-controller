@@ -173,17 +173,17 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation, pool, system, exportedVolumes,
                         existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes);
             }
-            if (null != _unManagedVolumesUpdate && _unManagedVolumesUpdate.size() > 0) {
+            if (null != _unManagedVolumesUpdate && !_unManagedVolumesUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedVolumesUpdate, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_VOLUME);
             }
 
-            if (null != _unManagedVolumesInsert && _unManagedVolumesInsert.size() > 0) {
+            if (null != _unManagedVolumesInsert && !_unManagedVolumesInsert.isEmpty()) {
                 _partitionManager.insertInBatches(_unManagedVolumesInsert, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_VOLUME);
             }
 
-            if (null != _unManagedExportMasksUpdate && _unManagedExportMasksUpdate.size() > 0) {
+            if (null != _unManagedExportMasksUpdate && !_unManagedExportMasksUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedExportMasksUpdate, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_EXPORT_MASK);
             }
@@ -202,6 +202,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 try {
                     client.closeEnumeration(storagePoolPath, volumeInstanceChunks.getContext());
                 } catch (Exception e) {
+                    _logger.warn("Exception occurred while closing enumeration", e);
                 }
             }
 
@@ -308,7 +309,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                             Object o = keyMap.get(Constants.UNMANAGED_VPLEX_BACKEND_MASKS_SET);
                             if (o != null) {
                                 Set<String> unmanagedVplexBackendMasks = (Set<String>) o;
-                                if (unmanagedVplexBackendMasks.size() > 0) {
+                                if (!unmanagedVplexBackendMasks.isEmpty()) {
                                     if (unmanagedVplexBackendMasks.contains(uem.getId().toString())) {
                                         _logger.info("unmanaged volume {} is a vplex backend volume", unManagedVolume.getLabel());
                                         unManagedVolume.putVolumeCharacterstics(
@@ -460,7 +461,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolumesReturnedFromProvider);
 
         _logger.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
-        if (onlyAvailableinDB.size() > 0) {
+        if (!onlyAvailableinDB.isEmpty()) {
             List<UnManagedVolume> unManagedVolumeTobeDeleted = new ArrayList<UnManagedVolume>();
             Iterator<UnManagedVolume> unManagedVolumes = _dbClient.queryIterativeObjects(
                     UnManagedVolume.class, new ArrayList<URI>(onlyAvailableinDB));
@@ -477,7 +478,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 volume.setInactive(true);
                 unManagedVolumeTobeDeleted.add(volume);
             }
-            if (unManagedVolumeTobeDeleted.size() > 0) {
+            if (!unManagedVolumeTobeDeleted.isEmpty()) {
                 _partitionManager.updateAndReIndexInBatches(unManagedVolumeTobeDeleted, 1000, _dbClient,
                         "UnManagedVolume");
             }
@@ -720,7 +721,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                 rmObj.getTargetVolumenativeGuids());
                     } else {
                         if (null == rmObj.getTargetVolumenativeGuids()
-                                || rmObj.getTargetVolumenativeGuids().size() == 0) {
+                                || rmObj.getTargetVolumenativeGuids().isEmpty()) {
                             unManagedVolumeInformation.get(
                                     SupportedVolumeInformation.REMOTE_MIRRORS.toString()).clear();
                         } else {
@@ -926,7 +927,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         .toString())) {
 
                     _logger.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-                    if (null != matchedVPools && matchedVPools.size() == 0) {
+                    if (null != matchedVPools && matchedVPools.isEmpty()) {
                         // replace with empty string set doesn't work, hence
                         // added explicit code to remove all
                         unManagedVolumeInformation.get(

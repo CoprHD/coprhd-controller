@@ -83,7 +83,7 @@ public class VNXFastVolumesProcessor extends StorageProcessor{
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), tierPolicypath, keyMap, operation);
             }
-            if (_unManagedVolumesUpdate.size() > 0) {
+            if (!_unManagedVolumesUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedVolumesUpdate,
                         getPartitionSize(keyMap), _dbClient, "VOLUME");
                 _unManagedVolumesUpdate.clear();

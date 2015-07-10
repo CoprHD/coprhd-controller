@@ -100,7 +100,6 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
             _logger.debug("# Pools used in invoking PoolMatcher during StorageProtoclEndPoint {}", Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
         } catch (Exception e) {
             _logger.error("SCSI End Point Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

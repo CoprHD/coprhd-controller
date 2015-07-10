@@ -23,6 +23,9 @@ import java.util.List;
 
 import com.emc.vipr.model.sys.logging.LogSeverity;
 
+// Suppress the following two sonar warnings per Olaf
+// passing byte arrays directly for performance considerations
+@SuppressWarnings({"pmd:ArrayIsStoredDirectly","pmd:MethodReturnsInternalArray"})
 public class LogMessage {
 
     private Status status;

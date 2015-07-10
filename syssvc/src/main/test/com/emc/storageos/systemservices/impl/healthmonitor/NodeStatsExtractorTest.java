@@ -26,10 +26,10 @@ import java.util.List;
 public class NodeStatsExtractorTest extends NodeStatsExtractor {
 
     private static final String INVALID_PID = "0";
-    private static String validPID = null;
+    private static volatile String validPID = null;
 
     @BeforeClass
-    public static void getValidPID() {
+    public static void getValidPID() throws Exception {
         File procDir = new File(PROC_DIR);
         File[] procFiles = procDir.listFiles();
         String sname = null;
@@ -38,12 +38,9 @@ public class NodeStatsExtractorTest extends NodeStatsExtractor {
             if (validPID.equalsIgnoreCase(SELF_DIR)) {
                 continue;
             }
-            try {
-                sname = ProcStats.getServiceName(validPID);
-                if (sname != null && !sname.isEmpty() && !"monitor".equals(sname)) {
-                    break;
-                }
-            } catch (Exception e) {
+            sname = ProcStats.getServiceName(validPID);
+            if (sname != null && !sname.isEmpty() && !"monitor".equals(sname)) {
+                break;
             }
         }
         Assert.assertNotNull(validPID);
@@ -64,7 +61,7 @@ public class NodeStatsExtractorTest extends NodeStatsExtractor {
     @Test
     public void testNegDeltaMS() {
         double delta = getCPUTimeDeltaMS(null, null);
-        Assert.assertTrue(delta == 0);
+        Assert.assertFalse(delta > 0);
     }
 
     @Test
@@ -76,6 +73,6 @@ public class NodeStatsExtractorTest extends NodeStatsExtractor {
     @Test
     public void testNegPerSec() {
         double persec = getRate(23, 0);
-        Assert.assertTrue(persec == 0);
+        Assert.assertFalse(persec > 0);
     }
 }

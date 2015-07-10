@@ -16,7 +16,6 @@
 package com.emc.storageos.systemservices.impl.ipreconfig;
 
 import com.emc.storageos.coordinator.client.service.NodeListener;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.model.property.PropertyConstants;
@@ -70,11 +69,13 @@ public class IpReconfigManager implements Runnable {
 
     private IpReconfigListener ipReconfigListener = null;
 
-    private static Properties ovfProperties;    // local ovfenv properties
-    public static void setOvfProperties(Properties ovfProps) {
+    private Properties ovfProperties;    // local ovfenv properties
+    public void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
-    public static Map<String, String> getOvfProperties() {
+    // this shouldn't be named the same as the default getter, since the return type
+    // is different with the argument type of the setter.
+    public Map<String, String> getOvfProps() {
         return (Map)ovfProperties;
     }
 
@@ -110,7 +111,7 @@ public class IpReconfigManager implements Runnable {
      * Load local ovfenv properties
      */
     private void loadLocalOvfProps() {
-        Map<String, String> ovfprops = getOvfProperties();
+        Map<String, String> ovfprops = getOvfProps();
         localIpinfo = new ClusterIpInfo();
         localIpinfo.loadFromPropertyMap(ovfprops);
 
@@ -264,7 +265,7 @@ public class IpReconfigManager implements Runnable {
                         // 2. commit new IP during next reboot
                         // 3. set local node status to "Local_Succed"
                         // 4. set total status to "Succeed" when all nodes are "Local_Succeed".
-                        halt_node(config.getConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY));
+                        haltNode(config.getConfig(IpReconfigConstants.CONFIG_POST_OPERATION_KEY));
                     }
                     break;
                 default:
@@ -475,7 +476,7 @@ public class IpReconfigManager implements Runnable {
     /**
      * Poweroff/Reboot the node
      */
-    public void halt_node(String postOperation) throws Exception {
+    public void haltNode(String postOperation) throws Exception {
         Thread.sleep(6*1000);
         if (postOperation.equals("poweroff")) {
             localRepository.poweroff();

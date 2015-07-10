@@ -51,12 +51,9 @@ public class LogSvcPropertiesLoaderTest {
      * Loads the log service properties before executing any tests.
      */
     @BeforeClass
-    public static void loadProperties() {
-        try {
-            URL url = ClassLoader.getSystemResource(PROP_FILE_NAME);
-            s_logsvcProps.load(url.openStream());
-        } catch (Exception e) {
-        }
+    public static void loadProperties() throws Exception {
+        URL url = ClassLoader.getSystemResource(PROP_FILE_NAME);
+        s_logsvcProps.load(url.openStream());
     }
 
     /**

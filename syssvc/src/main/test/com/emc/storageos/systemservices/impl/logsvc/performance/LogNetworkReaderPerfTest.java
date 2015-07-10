@@ -36,7 +36,7 @@ import com.emc.vipr.model.sys.logging.LogRequest;
 public class LogNetworkReaderPerfTest {
     private static final Logger log = LoggerFactory.getLogger(LogNetworkReaderPerfTest.class);
 
-    private static LogSvcPropertiesLoader propertiesLoader;
+    private static volatile LogSvcPropertiesLoader propertiesLoader;
 
     @BeforeClass
     public static void setup() {

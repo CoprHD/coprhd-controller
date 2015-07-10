@@ -583,20 +583,17 @@ public class PasswordServiceTest {
     	}
     }
 
-    private CoordinatorClient getCoordinatorClient() {
+    private CoordinatorClient getCoordinatorClient() throws Exception {
         DummyCoordinatorClient client = new DummyCoordinatorClient();
 
-        try {
-            ZkConnection zkConn = new ZkConnection();
-            List<URI> uris = new ArrayList();
-            uris.add(new URI("coordinator://localhost:2181"));
-            zkConn.setServer(uris);
-            zkConn.setTimeoutMs(10000);
-            zkConn.build();
+        ZkConnection zkConn = new ZkConnection();
+        List<URI> uris = new ArrayList();
+        uris.add(new URI("coordinator://localhost:2181"));
+        zkConn.setServer(uris);
+        zkConn.setTimeoutMs(10000);
+        zkConn.build();
 
-            client.setZkConnection(zkConn);
-        }catch (URISyntaxException | IOException e) {
-        }
+        client.setZkConnection(zkConn);
 
         return client;
     }

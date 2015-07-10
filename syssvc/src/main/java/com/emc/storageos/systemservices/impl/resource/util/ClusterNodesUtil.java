@@ -35,12 +35,12 @@ public class ClusterNodesUtil {
 
     // A reference to the coordinator client for retrieving the registered
     // Bourne nodes.
-    private static CoordinatorClient _coordinator;
+    private static volatile CoordinatorClient _coordinator;
 
     // A reference to the service for getting Bourne cluster information.
-    private static Service _service;
+    private static volatile Service _service;
 
-    private static CoordinatorClientExt _coordinatorExt;
+    private static volatile CoordinatorClientExt _coordinatorExt;
     
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;

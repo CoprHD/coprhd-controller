@@ -79,8 +79,8 @@ public class RemoteRepository {
     private String _ctsession;
     private SSLSocketFactory _sslSocketFactory;
     private final int MAXIMUM_REDIRECT_ALLOWED = 10;
-    private static CoordinatorClientExt _coordinator;
-    private static RemoteRepositoryCacheUpdate _remoteRepositoryCacheUpdate;
+    private static volatile CoordinatorClientExt _coordinator;
+    private static volatile RemoteRepositoryCacheUpdate _remoteRepositoryCacheUpdate;
     
     // constants for remote repository
     private final static String SYSTEM_UPDATE_REPO = "system_update_repo";

@@ -80,11 +80,6 @@ public class LocalPasswordHandler {
         return _passwordUtils;
     }
 
-    private static CoordinatorClient _coordinator;
-    public void setCoordinator(CoordinatorClient coordinator) {
-        _coordinator = coordinator;
-    }
-
     
     /**
      * Check whether the local user name exists in configuration.

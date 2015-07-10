@@ -45,7 +45,7 @@ public class TestMe {
         // close the stream
         try {
             shellIn.close();
-        } catch (IOException ignoreMe) {
+        } catch (IOException ignoreMe) { //NOSONAR ("squid:S00108 empty block of code. The exception is meant to be ignored")
         }
     }
     public static void main(String[] args) throws Exception {

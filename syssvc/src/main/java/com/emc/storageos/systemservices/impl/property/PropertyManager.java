@@ -70,7 +70,7 @@ public class PropertyManager extends AbstractManager {
     private PropertyInfoExt localVdcPropInfo;
     private PropertyInfoExt targetVdcPropInfo;
 
-    public static HashSet<String> poweroffAgreementsKeeper = new HashSet<>();
+    private HashSet<String> poweroffAgreementsKeeper = new HashSet<>();
 
     public HashSet<String> getPoweroffAgreementsKeeper(){
         return poweroffAgreementsKeeper;

@@ -61,20 +61,13 @@ import com.emc.vipr.model.sys.logging.SetLogLevelParam;
 @Path("/logs/")
 public class LogService extends BaseLogSvcResource {
 
-    // A reference to the coordinator client for retrieving the registered
-    // Bourne nodes.
-    private static CoordinatorClient s_coordinator;
-
-    // A reference to the service for getting Bourne cluster information.
-    private static Service s_service;
-
     // Logger reference.
     private static final Logger _log = LoggerFactory.getLogger(LogService.class);
     public final static int MAX_THREAD_COUNT = 10;
     public static AtomicInteger runningRequests = new AtomicInteger(0);
 
     // FIXME: I have no idea how to register logging MBean to these two services now
-    private static List<String> _exemptLogSvcs = new ArrayList<String>();
+    private List<String> _exemptLogSvcs = new ArrayList<>();
     private static final List<LogSeverity> VALID_LOG4J_SEVS = Arrays.asList(
             LogSeverity.FATAL, LogSeverity.ERROR, LogSeverity.WARN, LogSeverity.INFO,
             LogSeverity.DEBUG, LogSeverity.TRACE);
@@ -98,25 +91,6 @@ public class LogService extends BaseLogSvcResource {
      * Default constructor.
      */
     public LogService() {
-    }
-
-    /**
-     * Setter for the coordinator client reference.
-     *
-     * @param coordinator A reference to the coordinator client.
-     */
-    public void setCoordinator(CoordinatorClient coordinator) {
-        s_coordinator = coordinator;
-    }
-
-    /**
-     * Setter for the service for getting Bourne cluster information.
-     *
-     * @param service A reference to the service for getting Bourne cluster
-     *                information.
-     */
-    public void setService(Service service) {
-        s_service = service;
     }
 
     /**

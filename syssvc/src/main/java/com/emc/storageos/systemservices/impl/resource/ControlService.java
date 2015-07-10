@@ -157,7 +157,7 @@ public class ControlService {
                                 lock.wait();
 
                             } catch (InterruptedException e){
-
+                                _log.warn("Control thread interrupted", e);
                             }
                         }
                     }

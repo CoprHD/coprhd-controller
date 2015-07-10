@@ -30,7 +30,9 @@ public class SoftwareVersionMetadataTest {
 	
 	@Test
 	public void testSoftwareVersionMetadata() throws Exception {
-		new TestProductName();
+		new TestProductName(); //NOSONAR ("squid:S1848
+		                                // suppress sonar warning objects shouldn't be dropped without being used.
+		                                // the constructor is called to set static fields")
 		SoftwareVersionMetadata.setimageFileTemplate(template);
 		
 		String dataString200 = "upgrade_from:vipr-1.1.0.0.*\ndowngrade_to:vipr-1.1.0.0.*\nversion:vipr-2.0.0.0.200";

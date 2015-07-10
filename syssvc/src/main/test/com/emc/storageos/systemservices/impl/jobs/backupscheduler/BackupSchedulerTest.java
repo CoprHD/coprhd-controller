@@ -45,6 +45,9 @@ import java.util.TimeZone;
 /**
  * Unit test class for Backup Scheduler
  */
+// suppress sonar warning objects shouldn't be dropped without being used.
+// the TestProductName constructor is called to set static fields
+@SuppressWarnings("squid:S1848")
 public class BackupSchedulerTest {
     private static final String[] aliveBackupsAt20141231 = new String[]{
         // DAY: 1

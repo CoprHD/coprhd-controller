@@ -47,15 +47,15 @@ public class UpgradeCoordinatorClientTest {
     private static final String SERVICE_BEAN = "syssvcserver";
     private static final String COORDINATOR_BEAN = "coordinatorclientext";
     private static final String SERVICEINFO = "serviceinfo";
-    private static SysSvcImpl sysservice;
-    private static CoordinatorClientExt _coordinator;
-    private static ServiceImpl _serviceinfo;
+    private static volatile SysSvcImpl sysservice;
+    private static volatile CoordinatorClientExt _coordinator;
+    private static volatile ServiceImpl _serviceinfo;
     private final int NUMCLIENTS = 2;
     private final int NUMRUNS = 1;
-    private static String nodeid1;
-    private static String nodeid2;
-    private static String targetVersion1;
-    private static String targetVersion2;
+    private static volatile String nodeid1;
+    private static volatile String nodeid2;
+    private static volatile String targetVersion1;
+    private static volatile String targetVersion2;
     private static final String DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK = "controlNodeUpgradeLock";
 
     @BeforeClass

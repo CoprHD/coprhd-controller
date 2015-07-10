@@ -86,7 +86,6 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
             }
         } catch (Exception e) {
             _logger.error("Pool Capabilities Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

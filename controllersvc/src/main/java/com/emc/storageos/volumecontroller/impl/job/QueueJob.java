@@ -13,7 +13,7 @@ import java.util.Map;
 /**
  * A job that resides in the job queue
  */
-public class QueueJob {
+public class QueueJob implements Serializable {
 
     protected Map<String, Object> _map = new HashMap<String, Object>();
     private static final String JOB_NAME = "job";

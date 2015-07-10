@@ -136,9 +136,10 @@ public class StorageAdapterProcessor extends Processor {
         List<URI> adapterURIs = _dbClient
                 .queryByConstraint(AlternateIdConstraint.Factory
                         .getStorageHADomainByNativeGuidConstraint(adapterNativeGuid));
-        if (adapterURIs.size() > 0)
+        if (!adapterURIs.isEmpty()) {
             adapter = _dbClient.queryObject(StorageHADomain.class,
                     adapterURIs.get(0));
+        }
         return adapter;
     }
 

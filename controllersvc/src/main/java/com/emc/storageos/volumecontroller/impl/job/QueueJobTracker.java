@@ -103,15 +103,16 @@ public class QueueJobTracker extends DistributedQueueConsumer<QueueJob> implemen
                             stopTrackingJob(jobWrapper);
                             completedJobs.add(result.getJobId());
                         }
-                    } catch (Throwable th) {
-                        _logger.error("Tracker: Unexpected exception.", th);
+                    } catch (Exception ex) {
+                        _logger.error("Tracker: Unexpected exception.", ex);
                     }
                 }
                 if (!jobProgressMap.isEmpty()) {
-                    _logger.info(String.format("Progress of jobs - \n %s", jobProgressMap.toString()));
+                    _logger.info(String.format("Progress of jobs - %n %s", jobProgressMap.toString()));
                 }
                 removeCompletedJobProgressItems(jobProgressMap, completedJobs);
             } catch (InterruptedException ie) {
+                _logger.info("Tracker: Unexpected Interrupted exception.", ie);
             } catch (Exception e) {
                 _logger.info("Tracker: Unexpected exception.", e);
             }

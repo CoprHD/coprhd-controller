@@ -458,9 +458,9 @@ public class StoragePoolProcessor extends PoolProcessor {
         try {
             eventManager.recordEvents(event);
             _logger.info("ViPR {} event recorded. Description: {}", event.getType(), event.getDescription());
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _logger.error(String.format("Failed to record event %s. Event description: %s.",
-                    event.getType(), event.getDescription()), th);
+                    event.getType(), event.getDescription()), ex);
         }
 
     }
@@ -480,8 +480,7 @@ public class StoragePoolProcessor extends PoolProcessor {
     			if(diskDriveType != null){driveTypes.add(diskDriveType);}
     		}
     	} catch (WBEMException e) {
-    		_logger.error("Error getting VirtualProvisioningPools ");
-    		e.printStackTrace();
+    		_logger.error("Error getting VirtualProvisioningPools", e);
     	} finally{
     		if(virtualProvisioningPoolItr != null){
     			virtualProvisioningPoolItr.close();

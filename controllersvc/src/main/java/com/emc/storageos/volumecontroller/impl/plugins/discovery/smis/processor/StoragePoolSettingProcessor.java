@@ -245,8 +245,9 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
         List<URI> settingURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getStoragePoolSettingByIDConstraint(settingInstance.getPropertyValue(
                         INSTANCEID).toString()));
-        if (settingURIs.size() > 0)
+        if (!settingURIs.isEmpty()) {
             setting = _dbClient.queryObject(StoragePoolSetting.class, settingURIs.get(0));
+        }
         return setting;
     }
 

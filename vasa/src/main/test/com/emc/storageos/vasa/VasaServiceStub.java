@@ -17,7 +17,7 @@
         *  VasaServiceStub java implementation
         */
 
-        
+        @SuppressWarnings("all") //suppressing as this is a auto-generated code
         public class VasaServiceStub extends org.apache.axis2.client.Stub
         {
         protected org.apache.axis2.description.AxisOperation[] _operations;

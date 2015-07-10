@@ -572,7 +572,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VPlexController controller = getController();
             controller.deactivateMirror(vplexStorageSystem.getId(), mirror.getId(), descriptors, taskId);
         } catch (ControllerException e) {
-            String errorMsg = format("Failed to deactivate continuous copy", mirror.getId());
+            String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
             s_logger.error(errorMsg, e);
             _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
         }
@@ -1026,7 +1026,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Get the varray for the volume.
         URI volumeVarrayURI = volume.getVirtualArray();
         StringSet newVirtualPoolVarrays = newVirtualPool.getVirtualArrays();
-        if ((newVirtualPoolVarrays != null) && !newVirtualPoolVarrays.isEmpty()
+        if ((newVirtualPoolVarrays != null) && (!newVirtualPoolVarrays.isEmpty())
             && (!newVirtualPoolVarrays.contains(volumeVarrayURI.toString()))) {
             // The VirtualPool is not allowed because it is not available in the
             // volume varray.

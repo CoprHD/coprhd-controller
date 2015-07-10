@@ -125,7 +125,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 // the visibility and cluster info for the CG is
                 // correct.
                 nextStep = workflow.createStep(SET_CG_PROPERTIES_STEP, String.format(
-                    "Setting consistency group %s properties", vplexURI, cgURI), nextStep,
+                    "Setting consistency group %s properties", cgURI), nextStep,
                     vplexURI, vplexSystem.getSystemType(), this.getClass(),
                     createSetCGPropertiesMethod(vplexURI, cgURI, volumeList), 
                     rollbackMethodNullMethod(), null);
@@ -541,14 +541,14 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             
             // First remove any volumes to be removed.
             int removeVolumeCount = 0;
-            if ((removeVolumesList != null) && (removeVolumesList.size() != 0)) {
+            if ((removeVolumesList != null) && !removeVolumesList.isEmpty()) {
                 removeVolumeCount = removeVolumesList.size();
                 addStepForRemoveVolumesFromCG(workflow, waitFor, vplexSystem,
                     removeVolumesList, cgURI);
             }
 
             // Now create a step to add volumes to the CG.
-            if ((addVolumesList != null) && (addVolumesList.size() != 0)) {
+            if ((addVolumesList != null) && !addVolumesList.isEmpty()) {
                 // See if the CG contains no volumes. If so, we need to 
                 // make sure the visibility and storage cluster info for
                 // the VPLEX CG is correct for these volumes we are adding.
@@ -567,11 +567,12 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                     // we just removed all the volumes. The properties are reset
                     // back to those appropriate for the removed volumes before
                     // they get added back in.
-                    Workflow.Method rollbackSetPropsMethod = (removeVolumesList != null && removeVolumesList
-                        .size() != 0) ? createSetCGPropertiesMethod(vplexURI, cgURI,
-                        removeVolumesList) : rollbackMethodNullMethod();
+                    Workflow.Method rollbackSetPropsMethod = 
+                        (removeVolumesList != null && !removeVolumesList.isEmpty()) ? 
+                            createSetCGPropertiesMethod(vplexURI, cgURI, removeVolumesList) : 
+                                rollbackMethodNullMethod();
                     waitFor = workflow.createStep(SET_CG_PROPERTIES_STEP, String.format(
-                        "Setting consistency group %s properties", vplexURI, cgURI), waitFor,
+                        "Setting consistency group %s properties", cgURI), waitFor,
                         vplexURI, vplexSystem.getSystemType(), this.getClass(),
                         setPropsMethod, rollbackSetPropsMethod, null);
                     log.info("Created step for setting consistency group properties.");

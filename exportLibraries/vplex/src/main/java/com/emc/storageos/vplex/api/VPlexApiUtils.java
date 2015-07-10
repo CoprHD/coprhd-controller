@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
@@ -188,17 +189,17 @@ public class VPlexApiUtils {
         try {
             Map<String, Object> resourceAtts = getAttributesFromResponse(responseStr);
             List<String> attributeFilters = resourceInfo.getAttributeFilters();
-            Iterator<String> attsIter = resourceAtts.keySet().iterator();
+            Iterator<Entry<String, Object>> attsIter = resourceAtts.entrySet().iterator();
             while (attsIter.hasNext()) {
-                String attName = attsIter.next();
+                Entry<String, Object> entry = attsIter.next();
 
                 // Skip attributes we are not interested in.
                 if ((attributeFilters != null) && (!attributeFilters.isEmpty())
-                    && (!attributeFilters.contains(attName))) {
+                    && (!attributeFilters.contains(entry.getKey()))) {
                     continue;
                 }
                 Class[] parameterTypes;
-                Object attValObj = resourceAtts.get(attName);
+                Object attValObj = entry.getValue();
                 if (attValObj instanceof JSONArray) {
                     parameterTypes = new Class[] { List.class };
                     JSONArray attValArray = (JSONArray) attValObj;
@@ -212,7 +213,7 @@ public class VPlexApiUtils {
                     attValObj = attValObj.toString();
                 }
 
-                String setterName = resourceInfo.getAttributeSetterMethodName(attName);
+                String setterName = resourceInfo.getAttributeSetterMethodName(entry.getKey());
                 Method m = resourceInfo.getClass().getMethod(setterName, parameterTypes);
                 m.invoke(resourceInfo, attValObj);
             }
@@ -236,15 +237,15 @@ public class VPlexApiUtils {
         try {
             StringBuilder argsBuilder = new StringBuilder();
             if (argsMap != null) {
-                Iterator<String> argsIter = argsMap.keySet().iterator();
+                Iterator<Entry<String, String>> argsIter = argsMap.entrySet().iterator();
                 while (argsIter.hasNext()) {
-                    String arg = argsIter.next();
+                    Entry<String, String> entry = argsIter.next();
                     if (argsBuilder.length() != 0) {
                         argsBuilder.append(" ");
                     }
-                    argsBuilder.append(arg);
+                    argsBuilder.append(entry.getKey());
                     argsBuilder.append(" ");
-                    argsBuilder.append(argsMap.get(arg));
+                    argsBuilder.append(entry.getValue());
                 }
             }
 
@@ -316,8 +317,6 @@ public class VPlexApiUtils {
      */
     static String getCauseOfFailureFromResponse(String response) {
         
-        final String CAUSE_DELIM = "cause:";
-
         // There is often multiple "cause:" in the response, and the last 
         // is the one that supplies the specific details that are most useful.
         // For example, the first cause might be "Command Failed". The next
@@ -327,7 +326,7 @@ public class VPlexApiUtils {
         StringBuilder result = new StringBuilder();
         String exceptionMessage = getExceptionMessageFromResponse(response);
         if (exceptionMessage != null) {
-            String[] causes = exceptionMessage.split(CAUSE_DELIM);
+            String[] causes = exceptionMessage.split(VPlexApiConstants.CAUSE_DELIM);
             if (causes != null && causes.length > 0) {
                 String cause = causes[causes.length-1];
                 String[] lines = cause.split("\n");

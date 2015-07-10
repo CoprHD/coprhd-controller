@@ -330,8 +330,12 @@ public class VPlexBackendManager {
             ExportMask lowestCountMask = null;
             for (ExportMask mask : maskSet.values()) {
                 Integer volumeCount = 0;
-                if (mask.getVolumes() != null) volumeCount += mask.getVolumes().size();
-                if (mask.getExistingVolumes() != null) volumeCount += mask.getExistingVolumes().size();
+                if (mask.getVolumes() != null) {
+                    volumeCount += mask.getVolumes().size();
+                }
+                if (mask.getExistingVolumes() != null) {
+                    volumeCount += mask.getExistingVolumes().size();
+                }
                 if (volumeCount < lowestVolumeCount) {
                     lowestVolumeCount = volumeCount;
                     lowestCountMask = mask;
@@ -400,7 +404,10 @@ public class VPlexBackendManager {
         if (mask.getStoragePorts() != null) {
             for (String portId : mask.getStoragePorts()) {
                 StoragePort port = _dbClient.queryObject(StoragePort.class, URI.create(portId));
-                if (port == null || port.getInactive() || NullColumnValueGetter.isNullURI(port.getNetwork())) continue;
+                if (port == null || port.getInactive() 
+                        || NullColumnValueGetter.isNullURI(port.getNetwork())) {
+                    continue;
+                }
                 // Validate port network overlaps Initiators and port is tagged for Varray
                 StringSet taggedVarrays = port.getTaggedVirtualArrays();
                 if (ConnectivityUtil.checkNetworkConnectedToAtLeastOneNetwork(port.getNetwork(), initiatorPortMap.keySet(), _dbClient)
@@ -443,7 +450,9 @@ public class VPlexBackendManager {
         }
         
         int volumeCount = (mask.getVolumes() != null) ? mask.getVolumes().size() : 0;
-        if (mask.getExistingVolumes() != null) volumeCount += mask.getExistingVolumes().keySet().size();
+        if (mask.getExistingVolumes() != null) {
+            volumeCount += mask.getExistingVolumes().keySet().size();
+        }
         if (passed) {
             _log.info(String.format("Validation of ExportMask %s passed; it has %d volumes", 
                 mask.getMaskName(), volumeCount));
@@ -545,11 +554,14 @@ public class VPlexBackendManager {
         int initiatorCount = 0;
         outter:
         for (URI networkURI : vplexInitiatorMap.keySet()) {
-            if (ConnectivityUtil.checkNetworkConnectedToAtLeastOneNetwork(networkURI, arrayTargetMap.keySet(), _dbClient)) {
+            if (ConnectivityUtil.checkNetworkConnectedToAtLeastOneNetwork(
+                    networkURI, arrayTargetMap.keySet(), _dbClient)) {
                initiatorMap.put(networkURI, new ArrayList<StoragePort>());
                for (StoragePort port : vplexInitiatorMap.get(networkURI)) {
                    initiatorMap.get(networkURI).add(port);
-                   if (++initiatorCount >= initiatorLimit) break outter;
+                   if (++initiatorCount >= initiatorLimit) {
+                       break outter;
+                   }
                }
             }
         }
@@ -677,7 +689,9 @@ public class VPlexBackendManager {
             if (arrayTargetMap.get(networkURI) != null) {
                 int pathsInNetwork = arrayTargetMap.get(networkURI).size() / portsPerPath;
                 int initiatorsInNetwork = initiatorPortMap.get(networkURI).size();
-                if (pathsInNetwork > initiatorsInNetwork) pathsInNetwork = initiatorsInNetwork;
+                if (pathsInNetwork > initiatorsInNetwork) {
+                    pathsInNetwork = initiatorsInNetwork;
+                }
                 _log.info(String.format("Network %s has %s paths", networkURI, pathsInNetwork));
                 numPaths += pathsInNetwork;
             } else {
@@ -772,7 +786,9 @@ public class VPlexBackendManager {
         Map<String, List<URI>> maskToVolumes = new HashMap<String, List<URI>>();
         for (String maskId : exportGroup.getExportMasks()) {
             ExportMask mask = _dbClient.queryObject(ExportMask.class, URI.create(maskId));
-            if (mask == null || mask.getInactive()) continue;
+            if (mask == null || mask.getInactive()) {
+                continue;
+            }
             exportMasks.put(maskId, mask);
             maskToVolumes.put(maskId, new ArrayList<URI>());
         }
@@ -1083,7 +1099,9 @@ public class VPlexBackendManager {
         for (Map<URI,List<StoragePort>> portGroup : portGroups) {
             String maskName = clusterName.replaceAll("[^A-Za-z0-9_]", "_");
             _log.info("Generating ExportMask: " + maskName);
-            if (!igIterator.hasNext()) igIterator = initiatorGroups.iterator();
+            if (!igIterator.hasNext()) {
+                igIterator = initiatorGroups.iterator();
+            }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
             StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap);
             ExportMask exportMask = generateExportMask(array.getId(), maskName, portGroup, initiatorGroup, zoningMap);
@@ -1164,7 +1182,9 @@ public class VPlexBackendManager {
        for (ExportGroup group : exportGroups.values()) {
            List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, group, array.getId());
            for (ExportMask mask : masks) {
-               if (mask.getInactive() || mask.getCreatedBySystem() == false) continue;
+               if (mask.getInactive() || mask.getCreatedBySystem() == false) {
+                   continue;
+               }
                if (empty == false || (group.getVolumes() == null || group.getVolumes().isEmpty())) {
                    returnedMasks.put(mask,  group);
                }
@@ -1261,7 +1281,9 @@ public class VPlexBackendManager {
        }
        // Make the return set.
        initiatorGroups.add(ig1);
-       if (dualIG) initiatorGroups.add(ig2);
+       if (dualIG) {
+           initiatorGroups.add(ig2);
+       }
        return initiatorGroups;
    }
   
@@ -1287,9 +1309,13 @@ public class VPlexBackendManager {
                URIQueryResultList queryResult = new URIQueryResultList();
                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMasksByPort(portId), queryResult);
                for (URI uri : queryResult) {
-                   if (uri.equals(mask.getId())) continue;  // Don't match on same mask
+                   if (uri.equals(mask.getId())) {
+                       continue;  // Don't match on same mask
+                   }
                    ExportMask dbMask = _dbClient.queryObject(ExportMask.class, uri);
-                   if (dbMask == null || dbMask.getInactive()) continue;
+                   if (dbMask == null || dbMask.getInactive()) {
+                       continue;
+                   }
                    // Look for a match between existing volumes on the hardware mask
                    // vs. existingVolumes or userAddedVolumes on the db mask.
                    StringSet extVols = StringSetUtil.getStringSetFromStringMapKeySet(

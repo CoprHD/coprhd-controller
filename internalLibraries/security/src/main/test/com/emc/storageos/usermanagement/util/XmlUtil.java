@@ -33,7 +33,6 @@ public class XmlUtil {
      *          The Class instance which will be marshaled
      * @return string of content
      */
-    @SuppressWarnings({"squid:S1148"})
     public synchronized static <T> String marshal(T t) {
         StringWriter stringWriter = new StringWriter();
         String str = "";
@@ -46,7 +45,6 @@ public class XmlUtil {
             str = stringWriter.toString();
         } catch (JAXBException je) {
             _log.error("Unable to construct XML content.", je);
-            je.printStackTrace();
         }
 
         return str;
@@ -60,7 +58,6 @@ public class XmlUtil {
      *          Class identifier of desired type
      * @return instance of desired type
      */
-    @SuppressWarnings({"squid:S1148"})
     public synchronized static <T> T unmarshal(String content, Class<T> tClass) {
 
         StringReader stringReader = new StringReader(content);
@@ -71,7 +68,6 @@ public class XmlUtil {
             return tClass.cast(unMarshaller.unmarshal(stringReader));
         } catch (JAXBException je) {
             _log.error("Unable to parse XML content.", je);
-            je.printStackTrace();
         }
         return null;
     }
@@ -84,7 +80,6 @@ public class XmlUtil {
      *          Class identifier of desired type
      * @return instance of desired type
      */
-    @SuppressWarnings({"squid:S1148"})
     public synchronized static <T> T unmarshal(InputStream inputStream, Class<T> tClass) {
         try {
             JAXBContext jaxbContext = JAXBContext.newInstance(tClass);
@@ -100,7 +95,6 @@ public class XmlUtil {
                 }
             } catch (IOException ioe) {
                 _log.error("Unable to close input stream "+ioe.getMessage(), ioe);
-                ioe.printStackTrace();
             }
         }
         return null;

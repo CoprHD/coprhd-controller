@@ -15,9 +15,10 @@ import com.emc.vipr.client.ViPRCoreClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+
 
 
 import java.io.InputStream;
@@ -38,7 +39,7 @@ public class ADMode extends LocalUserMode {
     protected static ViPRCoreClient superUserClient;
 
     @BeforeClass
-    public static void setup_ADModeBaseClass() throws Exception {
+    public synchronized static void setup_ADModeBaseClass() throws Exception {
 
         //get super user from parameter, better be AD user
         superUser = System.getProperty("SUPER_USER");
@@ -74,7 +75,7 @@ public class ADMode extends LocalUserMode {
     }
 
     @AfterClass
-    public static void teardown_ADModeBaseClass() throws Exception {
+    public synchronized static void teardown_ADModeBaseClass() throws Exception {
         adClient = null;
 
         if (!bAuthnProviderExisted) {

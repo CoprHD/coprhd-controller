@@ -19,17 +19,17 @@ package com.emc.storageos.security.password;
 public class Constants {
 
     // keys in storageos-properties-config.def
-    public static final String PASSWORD_CHANGE_INTERVAL = "password_change_interval";
-    public static final String PASSWORD_MIN_LENGTH = "password_min_length";
-    public static final String PASSWORD_LOWERCASE_NUMBER = "password_lowercase_alphabet";
-    public static final String PASSWORD_UPPERCASE_NUMBER = "password_uppercase_alphabet";
-    public static final String PASSWORD_NUMERIC_NUMBER = "password_numeric_character";
-    public static final String PASSWORD_SPECIAL_NUMBER = "password_special_character";
-    public static final String PASSWORD_REPEATING_NUMBER = "password_repeating_character";
-    public static final String PASSWORD_CHANGED_NUMBER = "password_changed_character";
-    public static final String PASSWORD_PREVENT_DICTIONARY = "password_dictionary_rule";
-    public static final String PASSWORD_REUSE_NUMBER = "password_history_rule";
-    public static final String PASSWORD_EXPIRE_DAYS = "password_expire_days";
+    public static final String PASSWORD_CHANGE_INTERVAL = "password_change_interval"; // NOSONAR just attribute name
+    public static final String PASSWORD_MIN_LENGTH = "password_min_length"; // NOSONAR just attribute name
+    public static final String PASSWORD_LOWERCASE_NUMBER = "password_lowercase_alphabet"; // NOSONAR just attribute name
+    public static final String PASSWORD_UPPERCASE_NUMBER = "password_uppercase_alphabet"; // NOSONAR just attribute name
+    public static final String PASSWORD_NUMERIC_NUMBER = "password_numeric_character"; // NOSONAR just attribute name
+    public static final String PASSWORD_SPECIAL_NUMBER = "password_special_character"; // NOSONAR just attribute name
+    public static final String PASSWORD_REPEATING_NUMBER = "password_repeating_character"; // NOSONAR just attribute name
+    public static final String PASSWORD_CHANGED_NUMBER = "password_changed_character"; // NOSONAR just attribute name
+    public static final String PASSWORD_PREVENT_DICTIONARY = "password_dictionary_rule"; // NOSONAR just attribute name
+    public static final String PASSWORD_REUSE_NUMBER = "password_history_rule"; // NOSONAR just attribute name
+    public static final String PASSWORD_EXPIRE_DAYS = "password_expire_days"; // NOSONAR just attribute name
     public static final String ROOT_EXPIRY_DAYS = "system_root_expiry_date";
     public static final String SVCUSER_EXPIRY_DAYS = "system_svcuser_expiry_date";
     public static final String SYSTEM_UPDATE_CHECK_FREQUENCY_HOURS = "system_update_check_frequency_hours";
@@ -84,6 +84,6 @@ public class Constants {
     // send notify mail at the following days before password expire
     public static final int[] NOTIFICATION_DAYS = new int[] {14,7,6,5,4,3,2,1};
 
-    public static final String SYSTEM_PASSWORD_EXPIRY_FORMAT = "system_%s_expiry_date";
+    public static final String SYSTEM_PASSWORD_EXPIRY_FORMAT = "system_%s_expiry_date"; // NOSONAR
 
 }

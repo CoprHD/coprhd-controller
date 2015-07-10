@@ -16,6 +16,7 @@ import static org.junit.Assert.*;
 public class RequestAuditFilterTest {
 
     private static final Logger _log = LoggerFactory.getLogger(RequestAuditFilterTest.class);
+    // default password for vipr
     @SuppressWarnings({"squid:S2068"})
     public static final String PASSWORD_IN_REQUEST =
             "GET - https://10.145.23.155:4443/formlogin - username=root&password=ChangeMe from 10.33.108.208";

@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 public class ChangePasswordApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordPolicyConfigTest.class);
-    private String oldPassword="ChangeMe";
-    private String newValidPassword = "Vipr1@emc.com";
+    private String oldPassword="ChangeMe";  // NOSONAR
+    private String newValidPassword = "Vipr1@emc.com";  // NOSONAR
 
     @Test
     public void nonLocalUser() throws Exception {

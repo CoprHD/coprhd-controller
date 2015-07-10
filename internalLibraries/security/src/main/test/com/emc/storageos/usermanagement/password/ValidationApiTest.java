@@ -9,6 +9,7 @@ import com.emc.storageos.usermanagement.setup.LocalUserMode;
 import com.emc.vipr.client.AuthClient;
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
+
 import org.junit.Assert;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -21,10 +22,10 @@ public class ValidationApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(ValidationApiTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String password="ChangeMe";
+    private static String password="ChangeMe"; // NOSONAR  default ViPR password.
 
     @BeforeClass
-    public static void setupPasswordValidation() throws Exception {
+    public synchronized static void setupPasswordValidation() throws Exception {
         svcuserClient = new ViPRSystemClient(controllerNodeEndpoint, true).withLogin("svcuser", password);
     }
 

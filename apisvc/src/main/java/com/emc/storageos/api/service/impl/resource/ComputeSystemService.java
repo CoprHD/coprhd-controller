@@ -202,7 +202,7 @@ public class ComputeSystemService extends TaskResourceService {
    	 
 		List<ComputeBootDef> bootDefs = _dbClient.queryObject(ComputeBootDef.class,bootDefUris,true);
    		 
-		if (bootDefs.size()>0){
+		if (!bootDefs.isEmpty()){
 			_log.debug("has boot def");
 			bootDef = bootDefs.get(0);
 			valid = isSPTBootDefinitionValid(serviceProfileTemplate,bootDef);
@@ -459,7 +459,7 @@ public class ComputeSystemService extends TaskResourceService {
    	 
 		List<ComputeBootDef> bootDefs = _dbClient.queryObject(ComputeBootDef.class,bootDefUris,true);
    		 
-		if (bootDefs.size()>0){
+		if (!bootDefs.isEmpty()){
 			_log.debug("has boot def");
 			bootDef = bootDefs.get(0);
 			URIQueryResultList uriSanBoot = new URIQueryResultList();
@@ -519,7 +519,7 @@ public class ComputeSystemService extends TaskResourceService {
        	 		portWWPNs.add(portWWPN);
        	 		
        	 	}
-       	 	if (portWWPNs.size()!=0){
+       	 	if (!portWWPNs.isEmpty()){
        	 		isValid = isSanBootTargetValidForVarrays(varrayIds,portWWPNs);
        	 		if (!isValid){
        	 			return isValid;
@@ -1132,7 +1132,7 @@ public class ComputeSystemService extends TaskResourceService {
                 /* Operational Status Descriptions*/"");
         try {
         	_evtMgr.recordEvents(event);
-        } catch (Throwable th) {
+        } catch (Exception th) {
             _log.error("Failed to record event. Event description: {}. Error: {}.",
             		typeEnum.getDescription(), th);
         }

@@ -214,7 +214,7 @@ public class BlockFullCopyUtils {
         if (Volume.isSRDFProtectedTargetVolume(volume)) {
             if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
                 StringSet targetIds = volume.getSrdfTargets();
-                if ((null != targetIds) && (targetIds.size() > 0)) {
+                if ((null != targetIds) && (!targetIds.isEmpty())) {
                     for (String targetId : targetIds) {
                         Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(targetId));
                         return targetVolume.getSrdfCopyMode();

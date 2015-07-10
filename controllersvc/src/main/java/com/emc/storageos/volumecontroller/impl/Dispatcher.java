@@ -407,7 +407,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         } catch (final ClientControllerException e) {
             throw ClientControllerException.retryables.queueToBusy();
         } catch (final KeeperException e) {
-            e.printStackTrace();
+            _log.error("Exception occurred while queueing item", e);
             throw ClientControllerException.fatals.unableToQueueJob(deviceURI);
         } catch (final Exception e) {
             throw ClientControllerException.fatals.unableToQueueJob(deviceURI, e);

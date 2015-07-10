@@ -75,6 +75,7 @@ public class StreamConsumer {
             }
             catch (InterruptedException e) {
                 // Ignore
+            	log.error(e.getMessage(), e);
             }
         }
         
@@ -82,8 +83,8 @@ public class StreamConsumer {
             buffer.close();
         }
         catch (IOException e) {
+        	// Ignore
         	log.error(e.getMessage(), e);
-            // Ignore
         }
     }
     
@@ -109,7 +110,7 @@ public class StreamConsumer {
             buffer.close();
         }
         catch (IOException e) {
-        	
+        	log.error(e.getMessage(), e);
         }
     }
     

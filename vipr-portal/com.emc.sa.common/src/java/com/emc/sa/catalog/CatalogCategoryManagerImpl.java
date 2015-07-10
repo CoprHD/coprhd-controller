@@ -158,7 +158,7 @@ public class CatalogCategoryManagerImpl implements CatalogCategoryManager {
         if (newCategory.services != null) {
             for (com.emc.sa.catalog.ServiceDef newService : newCategory.services) {
                 List<CatalogService> matchingServices = findServices(services, newService.baseService);
-                if (matchingServices != null && matchingServices.size() > 0) {
+                if (matchingServices != null && !matchingServices.isEmpty()) {
                     updateMatchingServices(currentCategory, matchingServices, newService);
                 }
                 else {

@@ -167,8 +167,8 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                     Workflow.Method rollbackDeleteCGMethod = new Workflow.Method(
                         CREATE_CONSISTENCY_GROUP_METHOD_NAME, localSystemUri, cgURI);
                     workflow.createStep(DELETE_LOCAL_CG_STEP, String.format(
-                        "Deleting Consistency Group {} on local system {}", localCgName,
-                        localSystemUri), null, localSystemUri, localSystem.getSystemType(),
+                        "Deleting Consistency Group %s on local system %s", localCgName,
+                        localSystemUri.toString()), null, localSystemUri, localSystem.getSystemType(),
                         BlockDeviceController.class, deleteCGMethod, rollbackDeleteCGMethod, null);
                     localCGsDeleted = true;
                 }
@@ -488,7 +488,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
         Workflow.Method vplexExecuteMethod = new Workflow.Method(
             DELETE_CG_METHOD_NAME, vplexSystemURI, cgURI, cgName, clusterName, setInactive);
         workflow.createStep(DELETE_CG_STEP, String.format(
-            "Deleting Consistency Group {} on VPlex system {}", cgName, vplexSystemURI),
+            "Deleting Consistency Group %s on VPLEX system %s", cgName, vplexSystemURI.toString()),
             waitFor, vplexSystemURI, vplexSystem.getSystemType(), getClass(),
             vplexExecuteMethod, rollbackMethod, stepId);
         log.info("Created step for delete CG {} on VPLEX {}", clusterName + ":" + cgName, vplexSystemURI);

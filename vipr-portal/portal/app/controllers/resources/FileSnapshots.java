@@ -190,7 +190,7 @@ public class FileSnapshots extends ResourceController {
     			Task<FileSnapshotRestRep> task = client.fileSnapshots().deactivate(id);
     			tasks.add(task);
     		}
-    		if (tasks.size() > 0) {
+    		if (!tasks.isEmpty()) {
     			flash.put("info", MessagesUtils.get("resources.filesnapshots.deactivate", tasks.size()));
     		}
     	}

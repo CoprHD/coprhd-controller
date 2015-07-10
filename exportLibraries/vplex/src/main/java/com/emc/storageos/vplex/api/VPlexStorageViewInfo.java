@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 /**
@@ -177,8 +178,9 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
     public Map<String, Integer> getWwnToHluMap() {
         Map<String, Integer> map = new HashMap<String, Integer>();
         
-        for (String volumeName : virtualVolumeWWNMap.keySet()) {
-            map.put(virtualVolumeWWNMap.get(volumeName).toUpperCase(), virtualVolumeHLUMap.get(volumeName));
+        for (Entry<String, String> entry : virtualVolumeWWNMap.entrySet()) {
+            String volumeName = entry.getKey();
+            map.put(volumeName.toUpperCase(), virtualVolumeHLUMap.get(volumeName));
         }
         
         return map;

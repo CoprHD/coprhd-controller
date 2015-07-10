@@ -488,7 +488,7 @@ public class Tenants extends ViprResourceController {
                 List<RoleAssignmentEntry> tenantRolesToAdd = Lists.newArrayList();
                 List<RoleAssignmentEntry> tenantRolesToRemove = Lists.newArrayList();
                 writeTenantRoleChangesTo(roleAssignmentEntry, tenantRolesToAdd, tenantRolesToRemove);
-                if (tenantRolesToAdd.size() > 0 || tenantRolesToRemove.size() > 0) {
+                if (!tenantRolesToAdd.isEmpty() || !tenantRolesToRemove.isEmpty()) {
                     putTenantRoleAssignmentChanges(tenantId, tenantRolesToAdd, tenantRolesToRemove);
                 }
             }

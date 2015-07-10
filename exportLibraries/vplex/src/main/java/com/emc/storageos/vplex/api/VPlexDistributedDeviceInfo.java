@@ -50,7 +50,7 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
      * @return The id of the cluster for the distributed device.
      */
     public String getClusterId() throws VPlexApiException {
-        if (localDeviceInfoList.size() != 0) {
+        if (!localDeviceInfoList.isEmpty()) {
             return localDeviceInfoList.get(0).getClusterId();
         } else {
             throw new VPlexApiException(String.format(

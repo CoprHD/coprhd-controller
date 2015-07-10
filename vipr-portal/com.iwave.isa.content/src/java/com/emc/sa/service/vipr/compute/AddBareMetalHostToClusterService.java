@@ -66,7 +66,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.no.cluster.exists"));
         }
 
-        if (hostNames == null || hostNames.size() == 0 ) {
+        if (hostNames == null || hostNames.isEmpty() ) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.osinstall.host.required") + "  ");
         }
@@ -79,7 +79,7 @@ public class AddBareMetalHostToClusterService extends ViPRService {
             }
         }
         
-        if (hostNamesInCluster!= null && hostNamesInCluster.size() > 0 && existingHostNames.size() > 0 && hostNamesInCluster.containsAll(existingHostNames)) {                
+        if (hostNamesInCluster!= null && !hostNamesInCluster.isEmpty() && !existingHostNames.isEmpty() && hostNamesInCluster.containsAll(existingHostNames)) {                
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
         }        

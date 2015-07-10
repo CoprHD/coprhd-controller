@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 import org.codehaus.jettison.json.JSONObject;
@@ -743,15 +744,16 @@ public class VPlexApiVirtualVolumeManager {
         throws VPlexApiException {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_CLAIM_VOLUME);
         s_logger.info("Claim storage volumes URI is {}", requestURI.toString());
-        Iterator<VolumeInfo> volumeIter = storageVolumeInfoMap.keySet().iterator();
+        Iterator<Entry<VolumeInfo, VPlexStorageVolumeInfo>> volumeIter = storageVolumeInfoMap.entrySet().iterator();
         List<String> storageVolumeContextPaths = new ArrayList<String>();
         while (volumeIter.hasNext()) {
             ClientResponse response = null;
-            VolumeInfo volumeInfo = volumeIter.next();
+            Entry<VolumeInfo, VPlexStorageVolumeInfo> entry = volumeIter.next();
+            VolumeInfo volumeInfo = entry.getKey();
             String volumeName = volumeInfo.getVolumeName();
             s_logger.info("Claiming volume {}", volumeInfo.getVolumeWWN());
             try {
-                VPlexStorageVolumeInfo storageVolumeInfo = storageVolumeInfoMap.get(volumeInfo);
+                VPlexStorageVolumeInfo storageVolumeInfo = entry.getValue();
                 Map<String, String> argsMap = new HashMap<String, String>();
                 argsMap.put(VPlexApiConstants.ARG_DASH_D, storageVolumeInfo.getPath());
                 argsMap.put(VPlexApiConstants.ARG_DASH_N, volumeName);
@@ -1958,7 +1960,9 @@ public class VPlexApiVirtualVolumeManager {
         				break;
         			}
         		}
-        		if(sourceDevicePath != null && mirrorDevicePath != null) break;
+        		if(sourceDevicePath != null && mirrorDevicePath != null) {
+        		    break;
+        		}
         	}
 
             // Throw an exception if we can't find device component

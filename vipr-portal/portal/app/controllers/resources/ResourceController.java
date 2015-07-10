@@ -53,7 +53,7 @@ public class ResourceController extends Controller {
         String activeProjectId = session.get(ACTIVE_PROJECT_ID);
         if (validateActiveProjectId(activeProjectId) == false) {
             List<ProjectRestRep> projects = getProjects(tenantId);
-            if (projects.size() > 0) {
+            if (!projects.isEmpty()) {
                 activeProjectId = id(projects.get(0)).toString();
                 setActiveProjectId(activeProjectId);
             }

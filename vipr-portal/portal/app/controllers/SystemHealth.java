@@ -210,7 +210,7 @@ public class SystemHealth extends Controller {
         
         if (nodeHealth != null) {
             List<ServiceHealth> serviceHealthList = nodeHealth.getServiceHealthList();
-            if (serviceHealthList.size() > 0) {
+            if (!serviceHealthList.isEmpty()) {
                 renderArgs.put("dataTable", new NodeServicesDataTable());
                 angularRenderArgs().put("nodeStatus", nodeHealth.getStatus());
                 angularRenderArgs().put("serviceCount", serviceHealthList.size());

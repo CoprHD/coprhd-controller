@@ -37,7 +37,7 @@ public class MailSettingsValidator {
         try {
             email.setFrom(settings.fromAddress);
         }
-        catch (Throwable e) {
+        catch (Exception e) {
             Logger.error(e, "Failed to parse From email address [%s]", settings.fromAddress);
             Validation.addError(null, "MailSettings.failedToParseAddress", settings.fromAddress);
         }

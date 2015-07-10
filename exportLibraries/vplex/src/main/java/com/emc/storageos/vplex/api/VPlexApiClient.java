@@ -700,7 +700,7 @@ public class VPlexApiClient {
         }
         
         // Targets are required to create a storage view.
-        if (targetPortInfo.size() == 0) {
+        if (targetPortInfo.isEmpty()) {
             throw new VPlexApiException(
                 "Target ports are required to create a storage view");
         }

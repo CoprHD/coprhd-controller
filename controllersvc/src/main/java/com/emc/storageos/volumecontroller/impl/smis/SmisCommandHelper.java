@@ -1480,7 +1480,7 @@ public class SmisCommandHelper implements SmisConstants {
                  * Groups associated with this Policy, hence, this storage Group can be reused
                  * during this export operation to different initiator set.
                  */
-                if (diff.size() == 0) {
+                if (diff.isEmpty()) {
                     // check whether this storage group is part of any existing parent group
                     // if its not part of any group, then select this
                     // even though this group is part of existing expected parent group, we need to
@@ -1516,13 +1516,13 @@ public class SmisCommandHelper implements SmisConstants {
                 _log.debug("Remaining volumes which doesn't fit into existing storage groups {}", Joiner.on("\t").join(remainingVolumes));
                 // volumes which are not part of selected Storage Groups from
                 // expected list
-                if (remainingVolumes.size() != 0) {
+                if (!remainingVolumes.isEmpty()) {
                     // volumes which are already part of storage group.
                     _log.debug("Trying to find , if any of the remaining volumes is present in existing storage groups");
                     remainingVolumes.retainAll(volumesInExistingGroups);
                     // there are volumes which are present in existing storage
                     // groups.
-                    if (remainingVolumes.size() > 0) {
+                    if (!remainingVolumes.isEmpty()) {
                         throw DeviceControllerException.exceptions.volumesAlreadyPartOfStorageGroups(Joiner.on("\t").join(remainingVolumes));
                     }
                 }
@@ -3537,7 +3537,7 @@ public class SmisCommandHelper implements SmisConstants {
                         _log.debug("Volumes not part of any Existing Storage Groups {}", Joiner.on("\t").join(volumesNotPartOfAnyGroup));
                         // create a new group for volumes, which doesn't have
                         // right storage groups
-                        if (volumesNotPartOfAnyGroup.size() > 0) {
+                        if (!volumesNotPartOfAnyGroup.isEmpty()) {
                             _log.info("Creating an new Volume Group for these Volumes");
                             VolumeURIHLU[] volumeURIHLU = ControllerUtils.constructVolumeUriHLUs(
                                     volumesNotPartOfAnyGroup, expectedVolumeHluMap);
@@ -3795,7 +3795,9 @@ public class SmisCommandHelper implements SmisConstants {
             if (names.hasNext()) {
                 return true;
             }
-        } catch (WBEMException e) {}
+        } catch (WBEMException e) {
+        	_log.error("findReplicationGroupPartOfSRDFRelationShip -- WBEMException: ", e);
+        	}
         finally {
             closeCIMIterator(names);
         }

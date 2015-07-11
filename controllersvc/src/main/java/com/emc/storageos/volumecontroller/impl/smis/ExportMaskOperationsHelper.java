@@ -92,7 +92,7 @@ public class ExportMaskOperationsHelper {
                                                      TaskCompleter taskCompleter) throws DeviceControllerException {
         long startTime = System.currentTimeMillis();
         boolean hasNullHLU = volumeURIHLUsHasNullHLU(volumeURIHLUs);
-        if (!hasNullHLU || protocolControllers.size() == 0) {
+        if (!hasNullHLU || protocolControllers.isEmpty()) {
             return;
         }
         try {

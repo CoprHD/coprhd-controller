@@ -122,8 +122,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Executor to execute the operations.
      */
-    private VNXFileExecutor _executor;
-    private NamespaceList _namespaces;
+    private VNXFileExecutor executor;
+    private NamespaceList namespaces;
 
     private VNXFileDiscExecutor _discExecutor;
     private NamespaceList       _discNamespaces;
@@ -152,8 +152,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 + Constants._File;
         _keyMap.put(Constants._globalCacheKey, globalCacheKey);
         _keyMap.put(Constants.PROPS, accessProfile.getProps());
-        if(_executor != null){
-            _executor.setKeyMap(_keyMap);
+        if(executor != null){
+            executor.setKeyMap(_keyMap);
             _logger.debug("Map set on executor....");
         }
     }
@@ -210,7 +210,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * @return the _executor
      */
     public VNXFileExecutor getExecutor() {
-        return _executor;
+        return executor;
     }
 
     /**
@@ -220,7 +220,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      *            the _executor to set
      */
     public void setExecutor(final VNXFileExecutor executor) {
-        _executor = executor;
+        this.executor = executor;
     }
 
     @Override
@@ -233,7 +233,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // to execute operations & process the result.
             populateMap(accessProfile);
             // Read the operations and execute them.
-            _executor.execute((Namespace) _namespaces.getNsList().get(METERINGFILE));
+            executor.execute((Namespace) namespaces.getNsList().get(METERINGFILE));
             dumpStatRecords();
             injectStats();
             _logger.info("End collecting statistics for ip address {}",
@@ -247,16 +247,16 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * releaseResources
      */
     private void releaseResources() {
-        _executor = null;
-        _namespaces = null;
+        executor = null;
+        namespaces = null;
     }
 
-    public void set_namespaces(NamespaceList namespaces) {
-        _namespaces = namespaces;
+    public void setNamespaces(NamespaceList namespaces) {
+        this.namespaces = namespaces;
     }
     
-    public NamespaceList get_namespaces() {
-        return _namespaces;
+    public NamespaceList getNamespaces() {
+        return namespaces;
     }
 
     /**

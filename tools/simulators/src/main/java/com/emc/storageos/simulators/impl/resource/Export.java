@@ -66,7 +66,7 @@ public class Export extends BaseResource {
             IsilonExport exp = new Gson().fromJson(obj, IsilonExport.class);
 
             // if map_all and map_root both set, returns error
-            if (exp.getMap_all() != null && exp.getMap_root() != null)
+            if (exp.getMapAll() != null && exp.getMapRoot() != null)
                 return Response.serverError().entity(StandardResponse.getErrorResponse("invalid parameters")).build();
 
             String id =  _objectStore.createExport(exp);

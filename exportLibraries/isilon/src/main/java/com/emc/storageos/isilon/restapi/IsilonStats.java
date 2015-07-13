@@ -195,7 +195,7 @@ public class IsilonStats {
          * @return
          */
         public String getClientAddr() {
-            return  remoteA	ddr;
+            return  remoteAddr;
         }
     }
 }

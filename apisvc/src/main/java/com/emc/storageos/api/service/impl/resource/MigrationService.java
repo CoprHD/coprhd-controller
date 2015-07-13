@@ -477,21 +477,36 @@ public class MigrationService extends TaskResourceService {
         } 
         String status = migration.getMigrationStatus();
         String migrationName = migration.getLabel();
-        if (status != null && !status.isEmpty() && 
-            (!status.equals(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name()) ||
-             !status.equals(VPlexMigrationInfo.MigrationStatus.QUEUED.name()))) {
-            throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
-        }
         URI volId = migration.getVolume();
         Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
-        
-        // Create a unique task id.
+     // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
+        Operation op = _dbClient.createTaskOpStatus(Volume.class,
+                volId, taskId, ResourceOperationTypeEnum.RESUME_MIGRATION);
+        TaskResourceRep task = toTask(vplexVol, taskId, op);
+        if (status != null && !status.isEmpty() && 
+            (status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name()) ||
+             status.equals(VPlexMigrationInfo.MigrationStatus.PARTIALLY_CANCELLED.name()))) {
+            //it has been cancelled
+            s_logger.info("Migration {} has been cancelled", id);
+            op.ready();
+            vplexVol.getOpStatus().createTaskStatus(taskId, op);
+            _dbClient.persistObject(vplexVol);
+            return task;
+        }
+                        
+        if (status != null && !status.isEmpty() && 
+            (!status.equals(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name()) ||
+             !status.equals(VPlexMigrationInfo.MigrationStatus.QUEUED.name()) ||
+             !status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.name()) ||
+             !status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.name()) ||
+             !status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.name()))) {
+            throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
+        }
+        
         // Create a task for the virtual volume being migrated and set the 
         // initial task state to pending.
-        Operation op = _dbClient.createTaskOpStatus(Volume.class,
-            volId, taskId, ResourceOperationTypeEnum.RESUME_MIGRATION);
-        TaskResourceRep task = toTask(vplexVol, taskId, op);
+        
 
         try {
             VPlexController controller = _vplexBlockServiceApi.getController();

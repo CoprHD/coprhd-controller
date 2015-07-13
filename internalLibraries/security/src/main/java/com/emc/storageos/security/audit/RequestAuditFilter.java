@@ -138,7 +138,7 @@ public class RequestAuditFilter implements Filter {
         }
     }
 
-    // password here is just a key name
+    // Suppressing Sonar violation of Removeing this hard-coded password since it is just a key name
     @SuppressWarnings({"squid:S2068"})
     public static String stripCookieToken(String str) {
         Pattern p = Pattern.compile("(?s).*(X-SDS-\\S*:|password=)\\s*([^\\r]*)\\s*\\r?\\n?");

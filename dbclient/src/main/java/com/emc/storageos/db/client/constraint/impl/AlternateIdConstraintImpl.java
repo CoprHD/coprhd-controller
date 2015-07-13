@@ -37,35 +37,37 @@ import com.emc.storageos.db.client.model.DataObject;
  * Alternate ID constraint implementation
  */
 public class AlternateIdConstraintImpl extends ConstraintImpl implements AlternateIdConstraint {
-    private final ColumnFamily<String, IndexColumnName> altIdCf;
-    private final String altId;
-    private final Class<? extends DataObject> entryType;
-    private Keyspace keyspace;
+    private static final Logger log = LoggerFactory.getLogger(AlternateIdConstraintImpl.class);
+
+    private final ColumnFamily<String, IndexColumnName> _altIdCf;
+    private final String _altId;
+    private final Class<? extends DataObject> _entryType;
+    private Keyspace _keyspace;
 
     public AlternateIdConstraintImpl(ColumnField field, String altId) {
         super(field, altId);
 
-        this.altIdCf = field.getIndexCF();
-        this.altId = altId;
-        this.entryType = field.getDataObjectType();
+        _altIdCf = field.getIndexCF();
+        _altId = altId;
+        _entryType = field.getDataObjectType();
     }
 
     @Override
     public void setKeyspace(Keyspace keyspace) {
-        this.keyspace = keyspace;
+        _keyspace = keyspace;
     }
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        queryOnePageWithoutAutoPaginate(genQuery(), entryType.getSimpleName(), result);
+        queryOnePageWithoutAutoPaginate(genQuery(), _entryType.getSimpleName(), result);
     }
 
     @Override
     protected RowQuery<String, IndexColumnName> genQuery() {
-        RowQuery<String, IndexColumnName> query = keyspace.prepareQuery(altIdCf).getKey(altId)
+        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_altIdCf).getKey(_altId)
                 .withColumnRange(CompositeColumnNameSerializer.get().buildRange()
-                        .greaterThanEquals(entryType.getSimpleName())
-                        .lessThanEquals(entryType.getSimpleName())
+                        .greaterThanEquals(_entryType.getSimpleName())
+                        .lessThanEquals(_entryType.getSimpleName())
                         .limit(pageCount));
         return query;
     }
@@ -82,6 +84,6 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
 
     @Override
     public Class<? extends DataObject> getDataObjectType() {
-        return entryType;
+        return _entryType;
     }
 }

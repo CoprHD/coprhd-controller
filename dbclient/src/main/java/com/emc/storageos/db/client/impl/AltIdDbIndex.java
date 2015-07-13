@@ -8,8 +8,11 @@ package com.emc.storageos.db.client.impl;
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
+import java.net.URI;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Column;
@@ -59,17 +62,15 @@ public class AltIdDbIndex extends DbIndex {
     }
 
     String getRowKey(CompositeColumnName column, Object value) {
-        if (indexByKey) {
-        	return column.getTwo();
-        }
+        if (indexByKey)
+            return column.getTwo();
 
          return value.toString();
     }
 
     String getRowKey(Column<CompositeColumnName> column) {
-        if (indexByKey) {
-        	return column.getName().getTwo();
-        }
+        if (indexByKey)
+            return column.getName().getTwo();
 
          return column.getStringValue();
     }

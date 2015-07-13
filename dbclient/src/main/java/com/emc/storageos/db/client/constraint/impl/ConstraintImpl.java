@@ -65,13 +65,11 @@ public abstract class ConstraintImpl implements Constraint {
         }
 
         //TODO: remove this once TimeConstraintImpl has been reworked to work over geo-queries
-        if (this instanceof TimeConstraintImpl) {
+        if (this instanceof TimeConstraintImpl)
         	return;
-        }
 
-        if (field == null) {
+        if (field == null)
         	throw new IllegalArgumentException("ColumnField should be in the constructor arguments");
-        }
 
 
         String dataObjClassName = field.getDataObjectType().getName();
@@ -91,17 +89,15 @@ public abstract class ConstraintImpl implements Constraint {
     }
 
     public void setStartId(URI startId) {
-        if (startId != null) {
+        if (startId != null)
         	this.startId = startId.toString();
-        }
 
         this.returnOnePage = true;
     }
 
     public void setPageCount(int pageCount) {
-        if (pageCount > 0) {
+        if (pageCount > 0)
             this.pageCount = pageCount;
-        }
     }
 
     @Override
@@ -183,9 +179,8 @@ public abstract class ConstraintImpl implements Constraint {
 
         for (Column<IndexColumnName> col : columns) {
             T obj = createQueryHit(result, col);
-            if (!ids.contains(obj)) {
+            if (!ids.contains(obj))
                 ids.add(createQueryHit(result, col));
-            }
         }
 
         result.setResult(ids.iterator());
@@ -215,14 +210,12 @@ public abstract class ConstraintImpl implements Constraint {
         while (count < pageCount) {
             columns = query.execute().getResult();
 
-            if (columns.isEmpty()) {
+            if (columns.isEmpty())
             	break; // reach the end
-            }
 
             for (Column<IndexColumnName> col : columns) {
-                if (startId == null){
+                if (startId == null)
                     start = true;
-                }
                 else if (startId.equals(getURI(col).toString())) {
                     start = true;
                     continue;
@@ -230,9 +223,8 @@ public abstract class ConstraintImpl implements Constraint {
 
                 if (start) {
                     T obj = createQueryHit(result, col);
-                    if (!ids.contains(obj)) {
+                    if (!ids.contains(obj))
                     	ids.add(obj);
-                    }
                     count++;
                 }
             }

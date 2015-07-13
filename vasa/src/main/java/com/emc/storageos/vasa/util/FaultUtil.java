@@ -90,17 +90,17 @@ public class FaultUtil {
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent() { //NOSONAR
-      com.vmware.vim.vasa._1_0.LostEvent e = new com.vmware.vim.vasa._1_0.LostEvent();
-      wrap(e);
-      return e;
-   }
+	public static com.vmware.vim.vasa._1_0.LostEvent LostEvent() {
+		com.vmware.vim.vasa._1_0.LostEvent e = new com.vmware.vim.vasa._1_0.LostEvent();
+		wrap(e);
+		return e;
+	}
 
    /**
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.LostEvent e = new com.vmware.vim.vasa._1_0.LostEvent(message, cause);
       wrap(e);
       return e;
@@ -109,21 +109,21 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.LostEvent(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(Throwable cause) { //NOSONAR - ("xsd defined methods") 
       return FaultUtil.LostEvent("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidArgument e = new com.vmware.vim.vasa._1_0.InvalidArgument();
       wrap(e);
       return e;
@@ -133,7 +133,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidArgument e = new com.vmware.vim.vasa._1_0.InvalidArgument(message, cause);
       wrap(e);
       return e;
@@ -142,21 +142,21 @@ public class FaultUtil {
    /**
     * @param error string
     */ 
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidArgument(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidArgument("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidCertificate e = new com.vmware.vim.vasa._1_0.InvalidCertificate();
       wrap(e);
       return e;
@@ -166,7 +166,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidCertificate e = new com.vmware.vim.vasa._1_0.InvalidCertificate(message, cause);
       wrap(e);
       return e;
@@ -175,21 +175,21 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidCertificate(message, null); 
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidCertificate("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.NotFound e = new com.vmware.vim.vasa._1_0.NotFound();
       wrap(e);
       return e;
@@ -199,7 +199,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.NotFound e = new com.vmware.vim.vasa._1_0.NotFound(message, cause);
       wrap(e);
       return e;
@@ -208,21 +208,21 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.NotFound(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.NotFound("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.NotImplemented e = new com.vmware.vim.vasa._1_0.NotImplemented();
       wrap(e);
       return e;
@@ -232,7 +232,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.NotImplemented e = new com.vmware.vim.vasa._1_0.NotImplemented(message, cause);
       wrap(e);
       return e;
@@ -241,21 +241,21 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.NotImplemented(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.NotImplemented("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.StorageFault e = new com.vmware.vim.vasa._1_0.StorageFault();
       wrap(e);
       return e;
@@ -265,7 +265,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.StorageFault e = new com.vmware.vim.vasa._1_0.StorageFault(message, cause);
       wrap(e);
       return e;
@@ -274,21 +274,21 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.StorageFault(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.StorageFault("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.LostAlarm e = new com.vmware.vim.vasa._1_0.LostAlarm();
       wrap(e);
       return e;
@@ -298,7 +298,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.LostAlarm e = new com.vmware.vim.vasa._1_0.LostAlarm(message, cause);
       wrap(e);
       return e;
@@ -307,21 +307,21 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.LostAlarm(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.LostAlarm("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidLogin e = new com.vmware.vim.vasa._1_0.InvalidLogin();
       wrap(e);
       return e;
@@ -331,7 +331,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidLogin e = new com.vmware.vim.vasa._1_0.InvalidLogin(message, cause);
       wrap(e);
       return e;
@@ -340,21 +340,21 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidLogin(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidLogin("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession() { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession() { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidSession e = new com.vmware.vim.vasa._1_0.InvalidSession();
       wrap(e);
       return e;
@@ -364,7 +364,7 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message, Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message, Throwable cause) { //NOSONAR - ("xsd defined methods")
       com.vmware.vim.vasa._1_0.InvalidSession e = new com.vmware.vim.vasa._1_0.InvalidSession(message, cause);
       wrap(e);
       return e;
@@ -373,14 +373,14 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidSession(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(Throwable cause) { //NOSONAR
+   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(Throwable cause) { //NOSONAR - ("xsd defined methods")
       return FaultUtil.InvalidSession("", cause);
    }
 }

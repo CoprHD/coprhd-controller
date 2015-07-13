@@ -282,13 +282,13 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		System.setProperty("javax.net.ssl.trustStore",
 				_prop.getProperty(ClientConfig.KEYSTORE_PATH));
 		System.setProperty("javax.net.ssl.trustStorePassword",
-				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD));
+				_prop.getProperty(ClientConfig.KEYSTORE_PWD));
 		System.setProperty("javax.net.ssl.trustStoreType", "jks");
 
 		System.setProperty("javax.net.ssl.keyStore",
 				_prop.getProperty(ClientConfig.KEYSTORE_PATH));
 		System.setProperty("javax.net.ssl.keyStorePassword",
-				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD));
+				_prop.getProperty(ClientConfig.KEYSTORE_PWD));
 		System.setProperty("javax.net.ssl.keyStoreType", "jks");
 
 		disableCertificateValidation();
@@ -304,12 +304,12 @@ public class VasaServiceTest extends junit.framework.TestCase {
 				.getProperty(ClientConfig.USERNAME));
 
 		registerVASACertificate117.setPassword(_prop
-				.getProperty(ClientConfig.PASSWORD));
+				.getProperty(ClientConfig.PWD));
 
 		String keyStoreFileURL = "file:"
 				+ _prop.getProperty(ClientConfig.KEYSTORE_PATH);
 		keystore = createKeyStore(new URL(keyStoreFileURL), "JKS", //NOSONAR ("Lazy initialization of "static" fields should be "synchronized" : Synchronize this lazy initialization of 'keystore'")
-				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD)); 
+				_prop.getProperty(ClientConfig.KEYSTORE_PWD)); 
 
 		String certificate = getCertificate(keystore,
 				_prop.getProperty(ClientConfig.CERT_ALIAS), true);

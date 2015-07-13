@@ -58,7 +58,8 @@ public class SessionContext {
 		}
 	}
 
-	public boolean equals(Object o) { //NOSONAR
+	@Override
+	public boolean equals(Object o) { 
 		SessionContext sc = (SessionContext) o;
 		return this.getSessionId().equals(sc.getSessionId());
 	}

@@ -56,7 +56,7 @@ public class ContextManagerImpl implements ContextManager {
 	private SSLUtil _sslUtil;
 	private SOSManager _sosManager;
 
-	private final String CATALOG_CONTEXT_URI = "/storageos-vasasvc/catalog/"; //NOSONAR
+	private final String _CATALOG_CONTEXT_URI = "/storageos-vasasvc/catalog/"; //NOSONAR
 
 	public static synchronized ContextManagerImpl getInstance() {
 		if (_instance == null) {
@@ -173,7 +173,7 @@ public class ContextManagerImpl implements ContextManager {
 					}
 
 					// Catalog URI
-					String catalogURI = CATALOG_CONTEXT_URI + catalogLocale
+					String catalogURI = _CATALOG_CONTEXT_URI + catalogLocale
 							+ "/" + catalog.getName();
 					mc.setCatalogUri(catalogURI);
 

@@ -61,7 +61,7 @@ public class Volume {
 	private AssociatedCoS cos;
 
 	@XmlElement(name = "wwn")
-	private String WWN; //NOSONAR
+	private String _WWN; 
 
 	private Itls exports;
 
@@ -115,7 +115,7 @@ public class Volume {
 	}
 
 	public String getWWN() {
-		return WWN;
+		return _WWN;
 	}
 
 	public double getRequestedCapacityInGB() {
@@ -150,7 +150,7 @@ public class Volume {
 		builder.append(", cos=");
 		builder.append(cos);
 		builder.append(", WWN=");
-		builder.append(WWN);
+		builder.append(_WWN);
 		builder.append(", exports=");
 		builder.append(exports);
 		builder.append(", associatedPool=");

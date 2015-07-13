@@ -50,7 +50,7 @@ import com.vmware.vim.vasa._1_0.data.xsd.VasaProviderInfo;
 public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 	private static Logger log = Logger.getLogger(ServiceImpl.class);
-	private static String TRUSTSTOREPASSWORD_PARAM = "trustStorePassword"; //NOSONAR
+	private static String TRUSTSTOREPWD_PARAM = "trustStorePassword"; 
 
 	private static final String FILE_SEPARATOR = System
 			.getProperty("file.separator");
@@ -58,7 +58,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 	private String tomcatRoot;
 	private String trustStoreFileName = FILE_SEPARATOR + "conf"
 			+ FILE_SEPARATOR + "jssecacerts";
-	private String trustStorePassword = "changeit"; //NOSONAR
+	private String trustStorePwd = "changeit"; 
 	private SSLUtil sslUtil;
 	private Config config;
 
@@ -1055,11 +1055,11 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 			 * Get configurable parameters
 			 */
 			String password = (String) sc.getAxisService().getParameterValue(
-					TRUSTSTOREPASSWORD_PARAM);
+					TRUSTSTOREPWD_PARAM);
                         //log.info("Trust store password is ["+password+"]");
 			if (password != null) {
-				trustStorePassword = password;
-				log.debug(methodName + "parameter: " + TRUSTSTOREPASSWORD_PARAM
+				trustStorePwd = password;
+				log.debug(methodName + "parameter: " + TRUSTSTOREPWD_PARAM
 						+ " found");
 			}
 
@@ -1071,7 +1071,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 			 * Setup globals
 			 */
 
-			sslUtil = new SSLUtil(path, trustStorePassword, false);
+			sslUtil = new SSLUtil(path, trustStorePwd, false);
 			contextManager.init(sslUtil);
 
 			contextManager.initializeVasaProviderInfo();

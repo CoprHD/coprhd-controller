@@ -203,7 +203,7 @@ public class CassandraTokenValidator implements TokenValidator {
         _dbClient.removeObject(token);
         List<Token> tokens = getTokensForUserId(userId);
         List<ProxyToken> pTokens = getProxyTokensForUserId(userId);
-        if (CollectionUtils.isEmpty(tokens)) {
+        if (CollectionUtils.isEmpty(tokens) && CollectionUtils.isEmpty(pTokens)) {
             _log.info("There are no more tokens referring to the user id {}, marking it inactive");
             StorageOSUserDAO userDAO = _dbClient.queryObject(StorageOSUserDAO.class, userId);
             _dbClient.markForDeletion(userDAO);

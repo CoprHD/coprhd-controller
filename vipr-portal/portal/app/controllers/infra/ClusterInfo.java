@@ -171,7 +171,7 @@ public class ClusterInfo extends Controller {
 		return isEnabled;
 	}
 	
-	//"Suppressing Sonar violation of Field names should comply with naming convention”
+	//"Suppressing Sonar violation of Field names should comply with naming convention"
 	@SuppressWarnings("squid:S00116")
     public static class ClusterIpInfoForm {
     	

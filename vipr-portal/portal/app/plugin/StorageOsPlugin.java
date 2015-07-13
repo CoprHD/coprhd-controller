@@ -89,7 +89,7 @@ public class StorageOsPlugin extends PlayPlugin {
 
             Logger.info("Connected to Coordinator Service");
 
-            if (context == null) {//NOSONAR ("Suppressing Sonar violation of nullcheck value known to be null”)
+            if (context == null) {//NOSONAR ("Suppressing Sonar violation of redundant nullcheck value known to be null. context need not be always null")
                 Logger.error("Spring configuration file %s cannot be found on classpath", getContextFileName());
                 shutdown();
             }

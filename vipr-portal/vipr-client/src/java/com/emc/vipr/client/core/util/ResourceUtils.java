@@ -409,6 +409,8 @@ public class ResourceUtils {
      *        the second ID.
      * @return true if and only if the IDs are non-null and equal.
      */
+    //Methods named "equals" should override Object.equals(Object) or rename.
+    //hence suppressing SONAR violation
     @SuppressWarnings("squid:S1201")
     public static boolean equals(URI first, URI second) {
         if ((first != null) && (second != null)) {

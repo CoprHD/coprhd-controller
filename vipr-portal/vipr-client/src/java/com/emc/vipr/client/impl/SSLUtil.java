@@ -12,7 +12,6 @@ import java.security.SecureRandom;
 /**
  * SSL Utilities such as trusting all SSL Certificates.
  */
-@SuppressWarnings("squid:S2444")
 public class SSLUtil {
     private static Logger log = LoggerFactory.getLogger(SSLUtil.class);
     
@@ -36,22 +35,34 @@ public class SSLUtil {
 
     public static void trustAllHostnames() {
         if (nullHostnameVerifier == null) {
-            nullHostnameVerifier = getNullHostnameVerifier();
-            HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier);
+            synchronized (NullHostNameVerifier.class) {//fixing violation of lazy initialization of "static" fields
+                if (nullHostnameVerifier == null) {
+                    nullHostnameVerifier = getNullHostnameVerifier();
+                    HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier);
+                }
+            }
         }
     }
 
     public static NullHostNameVerifier getNullHostnameVerifier() {
         if (nullHostnameVerifier == null) {
-            nullHostnameVerifier = new NullHostNameVerifier();
+            synchronized (NullHostNameVerifier.class) {//fixing violation of lazy initialization of "static" fields
+                if (nullHostnameVerifier == null) {
+                    nullHostnameVerifier = new NullHostNameVerifier();
+                }
+            }
         }
         return nullHostnameVerifier;
     }
 
     public static SSLSocketFactory getTrustAllSslSocketFactory() {
         if (trustAllSslSocketFactory == null) {
-            SSLContext sc = getTrustAllContext();
-            trustAllSslSocketFactory = sc.getSocketFactory();
+            synchronized (SSLSocketFactory.class) {//fixing violation of lazy initialization of "static" fields
+                if (trustAllSslSocketFactory == null) {
+                    SSLContext sc = getTrustAllContext();
+                    trustAllSslSocketFactory = sc.getSocketFactory();
+                }
+            }
         }
         return trustAllSslSocketFactory;
     }
@@ -59,9 +70,13 @@ public class SSLUtil {
     public static SSLContext getTrustAllContext() {
         if (trustAllContext == null) {
             try {
-                SSLContext sc = SSLContext.getInstance("SSL");
-                sc.init(null, newTrustManagers(), new SecureRandom());
-                trustAllContext = sc;
+                synchronized (SSLContext.class) {//fixing violation of lazy initialization of "static" fields
+                    if (trustAllContext == null) {
+                        SSLContext sc = SSLContext.getInstance("SSL");
+                        sc.init(null, newTrustManagers(), new SecureRandom());
+                        trustAllContext = sc;
+                    }
+                }
             }
             catch (Exception e) {
                 log.error("Unable to register SSL TrustManager to trust all SSL Certificates", e);

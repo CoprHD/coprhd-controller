@@ -118,7 +118,7 @@ public class CifsShareUtility {
 		String opName = ShareACLOperationType.DELETE.name();
 		// Report Add ACL Errors
 		ShareACLs shareAcls = param.getAclsToDelete();
-		if (shareAcls == null || shareAcls.getShareACLs().size() == 0)
+		if (shareAcls == null || shareAcls.getShareACLs().isEmpty())
 			return;
 
 		List<ShareACL> shareAclList = shareAcls.getShareACLs();
@@ -182,7 +182,7 @@ public class CifsShareUtility {
 		String opName = ShareACLOperationType.MODIFY.name();
 		// Report Add ACL Errors
 		ShareACLs shareAcls = param.getAclsToModify();
-		if (shareAcls == null || shareAcls.getShareACLs().size() == 0)
+		if (shareAcls == null || shareAcls.getShareACLs().isEmpty())
 			return;
 
 		List<ShareACL> shareAclList = shareAcls.getShareACLs();

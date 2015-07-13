@@ -406,7 +406,7 @@ public class ComputeVirtualPoolService extends TaggedResource {
         List<URI> staticallyAssignedComputeElements = findAllStaticallyAssignedComputeElements();
         List<URI> poolUris = toUriList(computeVirtualPool.getMatchedComputeElements());
 
-        if(poolUris.size() > 0 && staticallyAssignedComputeElements.isEmpty()) {
+        if(!poolUris.isEmpty() && staticallyAssignedComputeElements.isEmpty()) {
             _log.debug("Remove " + poolUris.size()+ " previously assigned compute elements from list of " + staticallyAssignedComputeElements.size() + " static elements");
             for(URI computeElementId : poolUris) {
                 boolean removed = staticallyAssignedComputeElements.remove(computeElementId);

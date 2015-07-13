@@ -3431,7 +3431,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     return value;
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        	_logger.error(e.getMessage());
+        }
         return null;
     }
 

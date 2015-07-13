@@ -1455,7 +1455,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
      		_log.info("Number of existng Rules found {}", exportsToprocess.size());
 
      		//Handle Modified export Rules
-     		if (exportsToprocess.size() > 0) {
+     		if (exportsToprocess != null && !exportsToprocess.isEmpty()) {
      			for (ExportRule existingRule : exportsToprocess) {
      				for (ExportRule modifiedrule : exportModify) {
      					if (modifiedrule.getSecFlavor().equals(
@@ -1470,7 +1470,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
      			}
 
      			// Handle Add export Rules
-     			if (exportAdd != null && exportAdd.size() > 0) {
+     			if (exportAdd != null && !exportAdd.isEmpty()) {
      				for (ExportRule newExport : exportAdd) {
      					_log.info("Adding Export Rule {}", newExport);
      					exportsToAdd.add(newExport);
@@ -1478,7 +1478,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
      			}
 
      			// Handle Delete export Rules
-     			if (exportDelete != null && exportDelete.size() > 0) {
+     			if (exportDelete != null && !exportDelete.isEmpty()) {
      				for (ExportRule existingRule : exportsToprocess) {
      					for (ExportRule oldExport : exportDelete) {
      						if (oldExport.getSecFlavor().equals(
@@ -1498,7 +1498,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     			// Since NetApp will remove the export itself when we removed all the export rules, 
     			// adding a default rule will keep the export alive.
     			
-    			if(exportsToprocess.isEmpty() && exportsToRemove.size() >= 1){
+    			if(exportsToprocess.isEmpty() && !exportsToRemove.isEmpty()){
     				// If all exports rules deleted, export will get deleted too. So set back to its defaults
     				ExportRule rule = new ExportRule();
     				rule.setSecFlavor("sys");
@@ -1617,7 +1617,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
         private void addShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToAdd) {
 
-        	if(aclsToAdd.size() < 1)
+        	if(aclsToAdd == null || aclsToAdd.isEmpty())
         		return;
 
         	List<CifsAcl> acls = new ArrayList<CifsAcl>();  
@@ -1661,7 +1661,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
         }
         private void deleteShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToDelete) {
 
-        	if(aclsToDelete.size() < 1)
+        	if(aclsToDelete == null || aclsToDelete.isEmpty())
         		return;
 
         	List<CifsAcl> acls = new ArrayList<CifsAcl>();  
@@ -1722,7 +1722,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
         private void forceDeleteShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToDelete) {
 
-        	if(aclsToDelete.size() < 1)
+        	if(aclsToDelete == null || aclsToDelete.isEmpty())
         		return;
 
         	List<CifsAcl> acls = new ArrayList<CifsAcl>();  
@@ -1758,7 +1758,7 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
         private void forceAddShareAcl(NetAppApi nApi, String shareName,List<ShareACL> aclsToAdd) {
 
-        	if(aclsToAdd.size() < 1)
+        	if(aclsToAdd == null || aclsToAdd.isEmpty())
         		return;
 
         	List<CifsAcl> acls = new ArrayList<CifsAcl>();  

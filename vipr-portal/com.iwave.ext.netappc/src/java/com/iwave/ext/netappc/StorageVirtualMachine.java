@@ -34,6 +34,7 @@ public class StorageVirtualMachine {
         NaElement intfElem = new NaElement("net-interface-get-iter");
         String tag = null;
         if (!listAll) {
+        	log.info("listAll" + listAll );
         }
         
         NaElement svmResult = null;

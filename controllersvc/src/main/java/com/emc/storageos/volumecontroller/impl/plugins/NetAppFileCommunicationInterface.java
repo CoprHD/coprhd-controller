@@ -1960,14 +1960,12 @@ public class NetAppFileCommunicationInterface extends
             }
 
             //
-            if (!unManagedCifsShareACLList.isEmpty() &&
-                    unManagedCifsShareACLList.size() > 0) {
+            if (!unManagedCifsShareACLList.isEmpty()) {
                 _logger.info("Saving Number of New UnManagedCifsShareACL(s) {}",
                                                         unManagedCifsShareACLList.size());
                 _dbClient.createObject(unManagedCifsShareACLList);
             }
-            if (!oldunManagedCifsShareACLList.isEmpty() &&
-                    oldunManagedCifsShareACLList.size() > 0) {
+            if (!oldunManagedCifsShareACLList.isEmpty() ) {
                 _logger.info("Saving Number of Old UnManagedCifsShareACL(s) {}",
                         oldunManagedCifsShareACLList.size());
                 _dbClient.persistObject(oldunManagedCifsShareACLList);
@@ -2244,7 +2242,7 @@ public class NetAppFileCommunicationInterface extends
 			expRule.setAnon(anon);
 
 			if ((null != deviceSecurityRule.getReadOnly())
-					&& (deviceSecurityRule.getReadOnly()).size() > 0) {
+					&& !deviceSecurityRule.getReadOnly().isEmpty()) {
 				StringSet readOnlyHosts = new StringSet();
 				for (ExportsHostnameInfo exportHost : deviceSecurityRule
 						.getReadOnly()) {
@@ -2256,7 +2254,7 @@ public class NetAppFileCommunicationInterface extends
 			}
 
 			if ((null != deviceSecurityRule.getReadWrite())
-					&& (deviceSecurityRule.getReadWrite()).size() > 0) {
+					&& !deviceSecurityRule.getReadWrite().isEmpty()) {
 				StringSet readWriteHosts = new StringSet();
 				for (ExportsHostnameInfo exportHost : deviceSecurityRule
 						.getReadWrite()) {
@@ -2268,7 +2266,7 @@ public class NetAppFileCommunicationInterface extends
 			}
 
 			if ((null != deviceSecurityRule.getRoot())
-					&& (deviceSecurityRule.getRoot()).size() > 0) {
+					&& !deviceSecurityRule.getRoot().isEmpty() ) {
 				StringSet rootHosts = new StringSet();
 				for (ExportsHostnameInfo exportHost : deviceSecurityRule
 						.getRoot()) {

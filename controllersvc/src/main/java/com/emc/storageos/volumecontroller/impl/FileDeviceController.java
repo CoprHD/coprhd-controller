@@ -2040,7 +2040,7 @@ public class FileDeviceController implements FileController {
 		exportRules = param.getExportRulesToDelete();
 		if(exportRules!=null){
 			rules = exportRules.getExportRules();
-			if(rules!=null && rules.size() > 0){
+			if(rules!=null && !rules.isEmpty()){
 				for (ExportRule exportRule : rules) {
 					FileExportRule rule = new FileExportRule();
 					copyPropertiesToSave(rule, exportRule, fs, args); 
@@ -2099,15 +2099,6 @@ public class FileDeviceController implements FileController {
             		root.addAll(fExports.get(i).getRootHosts());
             		//clients.addAll(fExports.get(i).getRootHosts());
             	}
-                /*for (int j=0; j < clients.size(); j++) {
-                    strBuilder.append(clients.get(j));
-                    if (j < clients.size() - 1) {
-                        strBuilder.append(",");
-                    }
-                }
-                if (clients.size() > 0 && (i < fExports.size() - 1)) {
-                    strBuilder.append(",");
-                }*/
             }
             StringBuilder allROhosts=new StringBuilder("ReadOnly Hosts : [");
             for(String roClient:ro){
@@ -2485,7 +2476,7 @@ public class FileDeviceController implements FileController {
 			shareAcls = param.getAclsToDelete();
 			if(shareAcls != null) {
 				shareAclList = shareAcls.getShareACLs();
-				if(shareAclList != null && shareAclList.size() > 0) {
+				if(shareAclList != null && !shareAclList.isEmpty()) {
 					for(ShareACL acl : shareAclList) {
 						CifsShareACL dbShareAcl = new CifsShareACL();
 						copyPropertiesToSave(acl, dbShareAcl, fs, args);

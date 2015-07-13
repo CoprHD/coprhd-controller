@@ -889,7 +889,7 @@ private Logger log = Logger.getLogger(getClass());
 
 			result = server.invokeElem(volumeElem);
 			log.info("Failure list size " + result.getChildByName("failure-list").getChildren().size());
-			if(result.getChildByName("failure-list").getChildren().size() > 0) {
+			if(!result.getChildByName("failure-list").getChildren().isEmpty()) {
 				log.error("Failed to modify Export Policy of File System : " + fsName);
 			}
 		} catch (IllegalArgumentException e) {

@@ -19,12 +19,12 @@ import java.util.ArrayList;
 public class IsilonSmartConnectInfoV2 {
 
     public static class IsilonSmartZone {
-        private String service_ip;
+        private String serviceIp;
         private ArrayList<String> zones;
 
         public String toString() {
             StringBuilder str = new StringBuilder();
-            str.append("service_ip: " + service_ip);
+            str.append("service_ip: " + serviceIp);
             if(zones != null)str.append(", zones: " + zones.toString());
             return str.toString();
         }
@@ -41,7 +41,7 @@ public class IsilonSmartConnectInfoV2 {
         }
 
         public String getServiceIp() {
-            return service_ip;
+            return serviceIp;
         }
     }
 

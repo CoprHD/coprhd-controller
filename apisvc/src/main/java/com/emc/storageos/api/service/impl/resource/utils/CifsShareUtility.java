@@ -54,10 +54,10 @@ public class CifsShareUtility {
 	private String shareName;
 	private String missingRequestParameterErrorString;
 	private List<String> userGroupList;
-	public final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type";
-	public final String REQUEST_PARAM_PERMISSION = "permission";
-	public final String REQUEST_PARAM_USER = "user";
-	public final String REQUEST_PARAM_GROUP = "group";
+	public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type"; //NOSONAR
+	public static final String REQUEST_PARAM_PERMISSION = "permission";			  //NOSONAR
+	public static final String REQUEST_PARAM_USER = "user";						  //NOSONAR
+	public static final String REQUEST_PARAM_GROUP = "group";					  //NOSONAR
 	
 
 	public CifsShareUtility(DbClient dbClient, FileShare fs, Snapshot snapshot,

@@ -49,11 +49,11 @@ public class IsilonClusterInfo {
     private String name;
     private String guid;
     private String description;
-    private OnefsVersion onefs_version_info;
+    private OnefsVersion onefsVersionInfo;
     private LogOn logon;
     
     public void setVersion(String versionStr){
-        onefs_version_info = new Gson().fromJson(versionStr, OnefsVersion.class);
+        onefsVersionInfo = new Gson().fromJson(versionStr, OnefsVersion.class);
     }
 
     public String toString() {
@@ -62,7 +62,7 @@ public class IsilonClusterInfo {
         str.append(", guid: " + guid);
         str.append(", description: " + description);
         str.append(", logon: " + logon.toString());
-        str.append(", version: " + ((onefs_version_info != null) ? onefs_version_info.toString() : ""));
+        str.append(", version: " + ((onefsVersionInfo != null) ? onefsVersionInfo.toString() : ""));
         return str.toString();
     }
     

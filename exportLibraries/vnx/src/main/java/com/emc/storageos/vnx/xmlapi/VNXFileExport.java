@@ -126,7 +126,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setClients(List<String> clients) {
-        if(clients == null) clients = new ArrayList<String>();
+        if(clients == null) {
+        	clients = new ArrayList<String>();
+        }
         this.clients = clients;
     }
 
@@ -135,7 +137,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setStoragePortName(String port) {
-        if(port == null) port = "";
+        if(port == null) {
+        	port = "";
+        }
         this.storagePortName = port;
     }
 
@@ -144,7 +148,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setMountPoint(String mountpoint) {
-        if(mountpoint == null) mountpoint = "";
+        if(mountpoint == null) {
+        	mountpoint = "";
+        }
         this.mountPoint = mountpoint;
     }
 
@@ -153,7 +159,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setSecurityType(String securityType){
-        if(securityType == null) securityType = "";
+        if(securityType == null) {
+        	securityType = "";
+        }
         this.securityType = securityType;
     }
 
@@ -162,7 +170,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setPermissions(String permissions){
-        if(permissions == null) permissions = "";
+        if(permissions == null) {
+        	permissions = "";
+        }
         this.permissions = permissions;
     }
 
@@ -171,7 +181,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setProtocol(String protocol){
-        if(protocol == null) protocol = "";
+        if(protocol == null) {
+        	protocol = "";
+        }
         this.protocol = protocol;
     }
 
@@ -180,7 +192,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setRootUserMapping(String rootUserMapping){
-        if(rootUserMapping == null) rootUserMapping = "";
+        if(rootUserMapping == null) {
+        	rootUserMapping = "";
+        }
         this.rootUserMapping = rootUserMapping;
     }
 
@@ -189,7 +203,9 @@ public class VNXFileExport extends VNXBaseClass {
     }
 
     public void setStoragePort(String storagePort){
-        if(storagePort == null) storagePort = "";
+        if(storagePort == null) {
+        	storagePort = "";
+        }
         this.storagePort = storagePort;
     }
     

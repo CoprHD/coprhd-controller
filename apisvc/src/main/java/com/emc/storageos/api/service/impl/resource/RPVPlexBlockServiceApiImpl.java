@@ -465,56 +465,54 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 ///////// SECONDARY SOURCE JOURNAL ///////////                
                 // If MetroPoint is enabled we need to create the secondary journal volume
                 if (metroPointEnabled) {     
-                	if (secondarySourceJournalVolume == null) {
-	                	if (secondaryRecommendation instanceof VPlexProtectionRecommendation) {
-	                		VPlexProtectionRecommendation secondaryProtectionRecommendation = (VPlexProtectionRecommendation) secondaryRecommendation;	                		
-		                	String secondarySourceJournalVolumeName = new StringBuilder(newVolumeLabel).append(SECONDARY_SRC_JOURNAL_SUFFIX).toString(); 
-		                	String secondarySourceJournalInternalSiteName = ((RPProtectionRecommendation) secondaryProtectionRecommendation).getSourceInternalSiteName();
-		                	// Get the HA varray
-		                	haVarray = _dbClient.queryObject(VirtualArray.class, secondaryProtectionRecommendation.getVirtualArray());
-		                	// Check to see if we need to add a secondary journal or not
-		                	if (isChangeVpool || cgSourceVolumes.isEmpty() || isAdditionalJournalRequired) {
-		                		String journalSize = String.valueOf(RPHelper.getJournalSizeGivenPolicy(param.getSize(), vpool.getJournalSize(), volumeCountInRec));
-		                	    VirtualArray standbyJournalVarray = _dbClient.queryObject(VirtualArray.class, secondaryRecommendation.getStandbySourceJournalVarray());
-		                    	VirtualPool standbyJournalVpool = _dbClient.queryObject(VirtualPool.class, secondaryRecommendation.getStandbySourceJournalVpool());
-		                    	URI journalStoragePoolUri = secondaryRecommendation.getSourceJournalStoragePool();
-		                    	if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
-		                    		_log.info("Create VPLEX Source Journal For Standby");
-		                    		secondarySourceJournalVolume = createJournalVolume(secondaryRecommendation, task, taskList, param, project, 
-	   	                															   secondaryRecommendation.getVPlexStorageSystem(), standbyJournalVarray, standbyJournalVpool, 
-	   														                		   secondarySourceJournalVolumeName, capabilities, descriptors, consistencyGroup, metroPointEnabled ? standbySourceCopyName : srcCopyName, 
-	   														                		   secondarySourceJournalInternalSiteName, secondaryRecommendation.getSourceDevice(), 
-	   														                		   journalStoragePoolUri, journalSize);			   	
-		                    	} else {
-		   		        	    	_log.info("Create non-VPLEX Source Journal for Standby");				   		        	    	
-		   		        	    	secondarySourceJournalVolume = rpBlockServiceApiImpl.prepareJournalVolume(project, standbyJournalVarray, standbyJournalVpool, 
-					   	                                                                               journalSize, secondaryRecommendation, journalStoragePoolUri,
-					   	                                                                               secondarySourceJournalVolumeName, consistencyGroup, task, false, 
-					   	                                                                               secondaryRecommendation.getProtectionDevice(), 
-					   	                                                                               Volume.PersonalityTypes.METADATA,
-					   	                                                                               rsetName, secondarySourceJournalInternalSiteName, metroPointEnabled ? standbySourceCopyName : srcCopyName, 
-					   	                                                                               sourceVolume.getId());    			   		        	 			   		        	
-		   		        		}
-			
-			            		_log.info("Secondary source journal volume = " + secondarySourceJournalVolume.getId().toASCIIString() + " controller = " + 
-			            						secondarySourceJournalVolume.getStorageController().toString());
-			            		volumeURIs.add(secondarySourceJournalVolume.getId());
-			            		
-			            		if (sourceVolume != null) {
-			            			// associate the journal with the source volume
-			            			if (secondarySourceJournalVolume != null) {
-			                            sourceVolume.setSecondaryRpJournalVolume(secondarySourceJournalVolume.getId());
-			                            _dbClient.persistObject(sourceVolume);
-			            			}
-			            		}
-		                	} else {
-		                		_log.info(String.format("Re-using existing journal on stand-by site - %s", secondarySourceJournalInternalSiteName));
-		                		secondarySourceJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(_rpHelper.getCgVolumes(consistencyGroup.getId(), 
-		                											Volume.PersonalityTypes.SOURCE.toString()), true);
-					        	sourceVolume.setSecondaryRpJournalVolume(secondarySourceJournalVolume.getId());
-					        	_dbClient.persistObject(sourceVolume);
-		                	}
-	                	}
+                	if (secondarySourceJournalVolume == null) {	                	
+                		VPlexProtectionRecommendation secondaryProtectionRecommendation = (VPlexProtectionRecommendation) secondaryRecommendation;	                		
+                		String secondarySourceJournalVolumeName = new StringBuilder(newVolumeLabel).append(SECONDARY_SRC_JOURNAL_SUFFIX).toString(); 
+                		String secondarySourceJournalInternalSiteName = ((RPProtectionRecommendation) secondaryProtectionRecommendation).getSourceInternalSiteName();
+                		// Get the HA varray
+                		haVarray = _dbClient.queryObject(VirtualArray.class, secondaryProtectionRecommendation.getVirtualArray());
+                		// Check to see if we need to add a secondary journal or not
+                		if (isChangeVpool || cgSourceVolumes.isEmpty() || isAdditionalJournalRequired) {
+                			String journalSize = String.valueOf(RPHelper.getJournalSizeGivenPolicy(param.getSize(), vpool.getJournalSize(), volumeCountInRec));
+                			VirtualArray standbyJournalVarray = _dbClient.queryObject(VirtualArray.class, secondaryRecommendation.getStandbySourceJournalVarray());
+                			VirtualPool standbyJournalVpool = _dbClient.queryObject(VirtualPool.class, secondaryRecommendation.getStandbySourceJournalVpool());
+                			URI journalStoragePoolUri = secondaryRecommendation.getSourceJournalStoragePool();
+                			if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
+                				_log.info("Create VPLEX Source Journal For Standby");
+                				secondarySourceJournalVolume = createJournalVolume(secondaryRecommendation, task, taskList, param, project, 
+                						secondaryRecommendation.getVPlexStorageSystem(), standbyJournalVarray, standbyJournalVpool, 
+                						secondarySourceJournalVolumeName, capabilities, descriptors, consistencyGroup, metroPointEnabled ? standbySourceCopyName : srcCopyName, 
+                								secondarySourceJournalInternalSiteName, secondaryRecommendation.getSourceDevice(), 
+                								journalStoragePoolUri, journalSize);			   	
+                			} else {
+                				_log.info("Create non-VPLEX Source Journal for Standby");				   		        	    	
+                				secondarySourceJournalVolume = rpBlockServiceApiImpl.prepareJournalVolume(project, standbyJournalVarray, standbyJournalVpool, 
+                						journalSize, secondaryRecommendation, journalStoragePoolUri,
+                						secondarySourceJournalVolumeName, consistencyGroup, task, false, 
+                						secondaryRecommendation.getProtectionDevice(), 
+                						Volume.PersonalityTypes.METADATA,
+                						rsetName, secondarySourceJournalInternalSiteName, metroPointEnabled ? standbySourceCopyName : srcCopyName, 
+                								sourceVolume.getId());    			   		        	 			   		        	
+                			}
+
+                			_log.info("Secondary source journal volume = " + secondarySourceJournalVolume.getId().toASCIIString() + " controller = " + 
+                					secondarySourceJournalVolume.getStorageController().toString());
+                			volumeURIs.add(secondarySourceJournalVolume.getId());
+
+                			if (sourceVolume != null) {
+                				// associate the journal with the source volume
+                				if (secondarySourceJournalVolume != null) {
+                					sourceVolume.setSecondaryRpJournalVolume(secondarySourceJournalVolume.getId());
+                					_dbClient.persistObject(sourceVolume);
+                				}
+                			}
+                		} else {
+                			_log.info(String.format("Re-using existing journal on stand-by site - %s", secondarySourceJournalInternalSiteName));
+                			secondarySourceJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(_rpHelper.getCgVolumes(consistencyGroup.getId(), 
+                					Volume.PersonalityTypes.SOURCE.toString()), true);
+                			sourceVolume.setSecondaryRpJournalVolume(secondarySourceJournalVolume.getId());
+                			_dbClient.persistObject(sourceVolume);
+                		}
                 	} else {                		
                 		// We enter this case when multiple volumes are requested in this request, just re-use the one we have already created/identified
                 		if (sourceVolume != null) {	            		
@@ -727,7 +725,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 	                        Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, primaryRecommendation.getVpoolChangeVolume());
 	                        Volume alreadyProvisionedTarget = RPHelper.findAlreadyProvisionedTargetVolume(changeVpoolVolume, tgtVirtualArrayURI, _dbClient);
 	                        if (alreadyProvisionedTarget != null) {           
-	                            _log.info(String.format("Existing target volume [%s] found for varray [%s]."), alreadyProvisionedTarget.getLabel(), tgtVirtualArray.getLabel());
+	                            _log.info(String.format("Existing target volume [%s] found for varray [%s].", alreadyProvisionedTarget.getLabel(), tgtVirtualArray.getLabel()));
 	                                                            
 	                            // No need to go further, continue on to the next target varray
 	                            continue;
@@ -910,19 +908,19 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     private void logVolumeInfo(Volume volume) {		
 		if (null != volume && !NullColumnValueGetter.isNullURI(volume.getId())) {
 			StringBuilder buff =  new StringBuilder();
-			buff.append(String.format("\nPreparing Volume:\n"));
-			buff. append(String.format("\t VolumePersonality : [%s]\n", volume.getPersonality()));
-			buff.append(String.format("\t Volume Internal Site : [%s]\n", volume.getInternalSiteName()));
-			buff.append(String.format("\t URI : [%s] - Name : [%s]\n", volume.getId(), volume.getLabel()));
+			buff.append(String.format("%nPreparing Volume:%n"));
+			buff. append(String.format("\t VolumePersonality : [%s]%n", volume.getPersonality()));
+			buff.append(String.format("\t Volume Internal Site : [%s]%n", volume.getInternalSiteName()));
+			buff.append(String.format("\t URI : [%s] - Name : [%s]%n", volume.getId(), volume.getLabel()));
 			if (!NullColumnValueGetter.isNullURI(volume.getStorageController())) {
 				StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-				buff.append(String.format("\t StorageSystem : [%s]\n", storageSystem.getLabel()));
+				buff.append(String.format("\t StorageSystem : [%s]%n", storageSystem.getLabel()));
 				
 			}
 		
 			if (!NullColumnValueGetter.isNullURI(volume.getPool())) {		 
 				StoragePool pool = _dbClient.queryObject(StoragePool.class, volume.getPool());
-				buff.append(String.format("\t StoragePool : [%s]\n", pool.getLabel()));
+				buff.append(String.format("\t StoragePool : [%s]%n", pool.getLabel()));
 			}	
 			
 			_log.info(buff.toString());
@@ -1110,7 +1108,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         										null, capabilities, volume.getCapacity());
         		descriptors.add(desc);        	
         	}
-        	_log.info(String.format("\n\nAdding volume descriptor \n\t [%s] - [%s] \n\t type [%s]\n", desc.toString(), volume.getLabel(), volume.getPersonality()));
+        	_log.info(String.format("\n\nAdding volume descriptor \n\t [%s] - [%s] %n\t type [%s]%n", desc.toString(), volume.getLabel(), volume.getPersonality()));
         }
         return descriptors;
     } 
@@ -1235,7 +1233,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 Long requestedVolumeCapactity = 0L;
                 for (URI volumeURI : volumeURIs) {
                     Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                    if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE)) {
+                    if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
                         requestedVolumeCapactity = volume.getCapacity();
                         break;
                     }
@@ -1265,7 +1263,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         					Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMsg);
         					_dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
         							.getId(), task, statusUpdate);
-        					if (volume.getPersonality() != null && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE)) {
+        					if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
         						taskList.getTaskList().add(volumeTask);
         					}
         				}
@@ -1879,7 +1877,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         // Get the varray for the volume.
         URI volumeVarrayURI = volume.getVirtualArray();
         StringSet newVirtualPoolVarrays = newVpool.getVirtualArrays();
-        if ((newVirtualPoolVarrays != null) && (newVirtualPoolVarrays.size() != 0)
+        if ((newVirtualPoolVarrays != null) && (!newVirtualPoolVarrays.isEmpty())
             && (!newVirtualPoolVarrays.contains(volumeVarrayURI.toString()))) {
             // The VirtualPool is not allowed because it is not available in the
             // volume varray.

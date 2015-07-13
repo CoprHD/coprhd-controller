@@ -235,7 +235,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
 	private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
  
-    private static DbClient      _dbClient;
+    private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
     private Map<String, BlockStorageDevice> _devices;
     private NameGenerator _nameGenerator;
@@ -335,8 +335,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         _devices = deviceInterfaces;
     }
 
-    public void setDbClient(DbClient dbClient) {
-        _dbClient = dbClient;
+    public static synchronized void setDbClient(DbClient dbClient) {
+        if (_dbClient == null) {
+        	_dbClient = dbClient;
+        }
     }
 
     private BlockStorageDevice getDevice(String deviceType) {
@@ -795,7 +797,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         cgParams.cgPolicy.copyMode = copyMode;
         cgParams.cgPolicy.rpoType = rpoType;
         cgParams.cgPolicy.rpoValue = rpoValue;
-        _log.info(String.format("CG Request param complete:\n %s", cgParams));
+        _log.info(String.format("CG Request param complete:%n %s", cgParams));
         return cgParams;
     }
 
@@ -1094,9 +1096,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     			// export group.
     			StringBuilder buffer = new StringBuilder();
     			if (!addExportGroupToDB) {
-    				buffer.append(String.format("Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]\n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
-    				buffer.append(String.format("Export Group name is : [%s]\n", exportGroup.getGeneratedName()));
-    				buffer.append(String.format("Export Group will have these volumes added: [%s]\n", Joiner.on(',').join(volumes)));
+    				buffer.append(String.format("Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
+    				buffer.append(String.format("Export Group name is : [%s]%n", exportGroup.getGeneratedName()));
+    				buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
     				_log.info(buffer.toString());
 
     				waitFor = _exportWfUtils.
@@ -1107,10 +1109,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     				_log.info("Added Export Group add volumes step in workflow");
     			}
     			else {
-    				buffer.append(String.format("Creating new Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]\n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
-    				buffer.append(String.format("Export Group name is: [%s]\n", exportGroup.getGeneratedName()));
-    				buffer.append(String.format("Export Group will have these initiators: [%s]\n", Joiner.on(',').join(initiatorSet)));
-    				buffer.append(String.format("Export Group will have these volumes added: [%s]\n", Joiner.on(',').join(volumes)));
+    				buffer.append(String.format("Creating new Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
+    				buffer.append(String.format("Export Group name is: [%s]%n", exportGroup.getGeneratedName()));
+    				buffer.append(String.format("Export Group will have these initiators: [%s]%n", Joiner.on(',').join(initiatorSet)));
+    				buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
     				_log.info(buffer.toString());
 
     				String exportStep = workflow.createStepId();
@@ -3861,7 +3863,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
           	  	volume = Volume.fetchVplexVolume(_dbClient, volume);
             }
         
-            if (protectionSet==null || !protectionSet.getId().equals(volume.getProtectionSet())) {
+            if (protectionSet==null || !protectionSet.getId().equals(volume.getProtectionSet().getURI())) {
                 protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
             }
             

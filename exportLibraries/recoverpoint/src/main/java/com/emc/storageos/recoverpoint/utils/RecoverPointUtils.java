@@ -228,7 +228,7 @@ public class RecoverPointUtils {
 				logger.info("Volume : " 
 					+ RecoverPointUtils.getGuidBufferAsString(userVolume.getVolumeInfo().getRawUids(), false) 
 					+ " is of type " + userVolume.getVolumeType());
-				if (userVolume.getAttachedSplitters().size() == 0) {
+				if (userVolume.getAttachedSplitters().isEmpty()) {
 					String volumeWWN = RecoverPointUtils.getGuidBufferAsString(userVolume.getVolumeInfo().getRawUids(), false);
 					logger.warn("Volume " + volumeWWN + " is not attached to any splitters");
 					Set<SplitterUID> splittersToAttachTo = getSplittersToAttachToForVolume(impl, userVolume.getClusterUID(), userVolume.getVolumeInfo().getVolumeID());

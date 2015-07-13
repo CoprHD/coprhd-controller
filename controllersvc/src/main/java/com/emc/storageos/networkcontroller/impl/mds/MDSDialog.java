@@ -706,7 +706,9 @@ public class MDSDialog extends SSHDialog {
                     _log.info("Devias alias database is busy or locked, will retry after " + defaultTimeout/1000 + " seconds..."); 
                     try {
                         Thread.sleep(defaultTimeout);
-                    } catch (InterruptedException ex) { }                    
+                    } catch (InterruptedException ex) {
+                    	_log.error(ex.getLocalizedMessage());
+                    }                    
                 }
             }
         }   
@@ -921,7 +923,9 @@ public class MDSDialog extends SSHDialog {
     				_log.info("Zone session lock is busy, will retry after " + defaultTimeout/1000 + " seconds..."); 
     				try {
     				Thread.sleep(defaultTimeout);
-    				} catch (InterruptedException ex) { }
+    				} catch (InterruptedException ex) {
+    					_log.error(ex.getLocalizedMessage());
+    				}
     				return true;
     			}
     			_log.error("Zone session lock is busy, gave up after " + sessionLockRetryMax + " retries!");
@@ -1238,7 +1242,9 @@ public class MDSDialog extends SSHDialog {
     	for (int retrys = 0; !completed && retrys < retryAttempts; retrys++) {
     		try {
     			Thread.sleep(MDSDialogProperties.SLEEP_TIME_PER_RETRY);
-    		} catch (Exception ex) { }
+    		} catch (Exception ex) {
+    			_log.error(ex.getLocalizedMessage());
+    		}
     		lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
     		String[] lines = getLines(buf);
     		for (String line : lines) {
@@ -1621,7 +1627,9 @@ public class MDSDialog extends SSHDialog {
         for (int i=0; i < defaultTimeout && completed == false; i += 1000) {
             try {
                 Thread.sleep(1000);         // sleep one second
-            } catch (Exception ex) { }
+            } catch (Exception ex) {
+            	_log.error(ex.getLocalizedMessage());
+            }
             lastPrompt = sendWaitFor(payload, defaultTimeout, prompts, buf);
             String[] lines = getLines(buf);
             for (String line : lines) {

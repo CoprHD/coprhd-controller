@@ -65,7 +65,7 @@ public class NetworkDiscoveryWorker {
     // Properties controllering expiration of FCEndpoints
     // Here Awol means "Absent Without Leave", i.e. since we last saw it in a sample.
     private Integer _minAwolSamples=3;
-    private Long _minAwolTime=60000l;
+    private Long _minAwolTime=60000L;
 
     private RecordableEventManager _evtMgr;
 
@@ -684,7 +684,7 @@ public class NetworkDiscoveryWorker {
         this._device = _device;
     }
 
-    public void set_dbClient(DbClient _dbClient) {
+    public void setDbClient(DbClient _dbClient) {
         this._dbClient = _dbClient;
     }
 
@@ -710,8 +710,8 @@ public class NetworkDiscoveryWorker {
 
         try {
             _evtMgr.recordEvents(event);
-        } catch(Throwable th ) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, th);
+        } catch(Exception ex ) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, ex);
         }
     }
 

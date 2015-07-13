@@ -62,8 +62,8 @@ public class IsilonExport {
 
     private boolean             all_dirs;
     private boolean             read_only;
-    private IsilonIdentity      map_all;
-    private IsilonIdentity      map_root;
+    private IsilonIdentity      mapAll;
+    private IsilonIdentity      mapRoot;
 
 
     private ArrayList<String>              security_flavors;   // security type
@@ -190,20 +190,20 @@ public class IsilonExport {
     // for now, fix this, till we figure out how to deal with this
     public  void setMapRoot(String user) {
         ArrayList<String> groups = new ArrayList<String>();
-        map_root = new IsilonIdentity(user, groups);
+        mapRoot = new IsilonIdentity(user, groups);
     }
 
-    public IsilonIdentity getMap_root() {
-        return map_root;
+    public IsilonIdentity getMapRoot() {
+        return mapRoot;
     }
 
     public  void setMapAll(String user) {
         ArrayList<String> groups = new ArrayList<String>();
-        map_all = new IsilonIdentity(user, groups);
+        mapAll = new IsilonIdentity(user, groups);
     }
 
-    public IsilonIdentity getMap_all() {
-        return map_all;
+    public IsilonIdentity getMapAll() {
+        return mapAll;
     }
 
     public void setComment(String comm) {
@@ -234,8 +234,8 @@ public class IsilonExport {
         str.append(", security: " + security_flavors);
         str.append(", read_only: " + read_only);
         str.append(", all_dirs: " + all_dirs);
-        str.append(", map_root: " + ((map_root!=null) ? map_root.toString(): ""));
-        str.append(", map_all: " + ((map_all!=null) ? map_all.toString(): ""));
+        str.append(", map_root: " + ((mapRoot!=null) ? mapRoot.toString(): ""));
+        str.append(", map_all: " + ((mapAll!=null) ? mapAll.toString(): ""));
         str.append(")");
         return str.toString();
     }

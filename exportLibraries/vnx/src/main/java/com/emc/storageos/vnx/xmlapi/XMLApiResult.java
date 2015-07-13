@@ -104,7 +104,9 @@ public class XMLApiResult {
                     for(int j=0; j < probChildren.getLength(); j++){
                         Node probChild = probChildren.item(j);
 
-                        if( !DESCRIPTION.equals(probChild.getNodeName()))continue;
+                        if( !DESCRIPTION.equals(probChild.getNodeName())) {
+                        	continue;
+                        }
                         if (probChild.getFirstChild() != null) {
                             errorMsg = errorMsg + ":" + probChild.getFirstChild().getNodeValue();
                         }

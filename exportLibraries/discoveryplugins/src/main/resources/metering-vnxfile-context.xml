@@ -7,7 +7,7 @@
 	<bean id="vnxfile"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VNXFileCommunicationInterface">
 		<property name="executor" ref="vnxfileexecutor" />
-		<property name="_namespaces" ref="namespaces" />
+		<property name="namespaces" ref="namespaces" />
 		<property name="partitionManager" ref="partitionManager"/>
 		<property name="xmlDumpGenerator" ref="fileXMLDumpgenerator"/>
 	</bean>

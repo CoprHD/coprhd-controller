@@ -65,7 +65,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public final Object getStorageDeviceGroupObjectPath_CIMWrapper(
+    public final Object getStorageDeviceGroupObjectPathCIMWrapper(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         Object value = getStorageDeviceGroupObjectPath(argument, keyMap, index);
         if (null != value) {
@@ -143,7 +143,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public Object getFASTPolicyAssociatedWithDeviceGroup_CIMWrapper(
+    public Object getFASTPolicyAssociatedWithDeviceGroupCIMWrapper(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         CIMObjectPath fastPolicyPath = getFASTPolicyAssociatedWithDeviceGroup(argument,
                 keyMap, index);
@@ -215,7 +215,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public final Object generateDeviceGroup_InElements_CIMWrapper(
+    public final Object generateDeviceGroupInElementsCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         @SuppressWarnings("unchecked")
         List<CIMObjectPath> deviceGroupPaths = (List<CIMObjectPath>) keyMap.get(arg
@@ -235,7 +235,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public final Object getBourneCreatedDeviceGroupName_CIMWrapper(
+    public final Object getBourneCreatedDeviceGroupNameCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         String value = (String) getBourneCreatedDeviceGroupName(arg, keyMap, index);
         if (null != value) {

@@ -462,7 +462,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 } catch (Exception ex) {
                     _logger.error(
                             String.format(
-                                    "Error while updating unmanaged volume discovery status for system {}",
+                                    "Error while updating unmanaged volume discovery status for system %s",
                                     storageSystem.getId()), ex);
                 }
             }

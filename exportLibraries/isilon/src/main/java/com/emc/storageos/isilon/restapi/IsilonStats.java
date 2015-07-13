@@ -63,10 +63,10 @@ public class IsilonStats {
 
     public static class StatKey {
         private AggregationType aggregation; // aggregation-type
-        private String base_name; //base-name
-        private String default_cache_time; //default-cache-time
+        private String baseName; //base-name
+        private String defaultCacheTime; //default-cache-time
         private String desc;
-        private String real_name; // real-name
+        private String realName; // real-name
         private Scope scope;
         private Type type;
         private String units;
@@ -121,22 +121,22 @@ public class IsilonStats {
     private static final String OP_CLASS_READ = "read";
 
     public static class StatsClientProto {
-        protected String client_id;
-        protected String local_addr;
-        protected String remote_addr;
+        protected String clientId;
+        protected String localAddr;
+        protected String remoteAddr;
         public static class OpClassValue {
-            protected String class_name;
-            protected long in_max;
-            protected long in_min;
-            protected float in_rate;
-            protected long op_count;
-            protected float op_rate;
-            protected long out_max;
-            protected long out_min;
-            protected float out_rate;
-            protected float time_avg;
-            protected long time_max;
-            protected long time_min;
+            protected String className;
+            protected long inMax;
+            protected long inMin;
+            protected float inRate;
+            protected long opCount;
+            protected float opRate;
+            protected long outMax;
+            protected long outMin;
+            protected float outRate;
+            protected float timeAvg;
+            protected long timeMax;
+            protected long timeMin;
         }
         protected ArrayList<OpClassValue> op_class_values;
 
@@ -147,7 +147,7 @@ public class IsilonStats {
         public float getOutBW() {
             float val = 0;
             for (OpClassValue value: op_class_values) {
-                val += value.out_rate;
+                val += value.outRate;
             }
             return val;
         }
@@ -159,7 +159,7 @@ public class IsilonStats {
         public float getInBW() {
             float val = 0;
             for (OpClassValue value: op_class_values) {
-                val += value.in_rate;
+                val += value.inRate;
             }
             return val;
         }
@@ -170,8 +170,8 @@ public class IsilonStats {
          */
         public long getReadOps() {
             for (OpClassValue value: op_class_values) {
-                if (value.class_name.equals(OP_CLASS_READ)) {
-                    return value.op_count;
+                if (value.className.equals(OP_CLASS_READ)) {
+                    return value.opCount;
                 }
             }
             return 0;
@@ -183,8 +183,8 @@ public class IsilonStats {
          */
         public long getWriteOps() {
             for (OpClassValue value: op_class_values) {
-                if (value.class_name.equals(OP_CLASS_WRITE)) {
-                    return value.op_count;
+                if (value.className.equals(OP_CLASS_WRITE)) {
+                    return value.opCount;
                 }
             }
             return 0;
@@ -195,7 +195,7 @@ public class IsilonStats {
          * @return
          */
         public String getClientAddr() {
-            return  remote_addr;
+            return  remoteA	ddr;
         }
     }
 }

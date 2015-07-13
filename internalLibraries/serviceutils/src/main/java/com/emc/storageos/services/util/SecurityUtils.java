@@ -10,9 +10,12 @@
  */
 package com.emc.storageos.services.util;
 
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.json.JsonSanitizer;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
 import org.owasp.esapi.ESAPI;
@@ -24,6 +27,20 @@ import org.owasp.esapi.ESAPI;
  */
 public class SecurityUtils {
 	private static final Logger log = LoggerFactory.getLogger(SecurityUtils.class);
+
+    /**
+     * The sanitizer fixes missing punctuation, end quotes, and mismatched or missing close brackets.
+     * If an input contains only white-space then the valid JSON string null is substituted.
+     * @param value
+     * @return
+     */
+    public static String sanitizeJsonString(String value) {
+        if (value == null)
+                return null;
+        value = JsonSanitizer.sanitize(value);
+
+        return value;
+    }
 
 	/**
 	 * Removes any potential XSS threats from the value.
@@ -41,6 +58,24 @@ public class SecurityUtils {
         value = Jsoup.clean( value, Whitelist.none() );
         
         return value;
+    }
+
+	/**
+	 * Uses stripXSS method to sanitize a map of Strings
+	 * 
+	 * @param Map data to be cleaned
+	 * @return cleaned map data
+	 */
+    public static Map<String, String> stripMapXSS(Map <String, String> valueMap) {
+        if (valueMap == null)
+              return null;
+        
+        for (String key: valueMap.keySet()){
+        	stripXSS(key);
+        	stripXSS(valueMap.get(key));
+        }
+
+        return valueMap;
     }
 
 }

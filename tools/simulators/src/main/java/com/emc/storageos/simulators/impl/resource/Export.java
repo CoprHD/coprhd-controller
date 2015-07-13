@@ -15,6 +15,7 @@
 package com.emc.storageos.simulators.impl.resource;
 
 import com.emc.storageos.isilon.restapi.IsilonExport;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,7 +64,7 @@ public class Export extends BaseResource {
     @Produces({MediaType.APPLICATION_JSON})
     public Response createExport(String obj) {
         try {
-            IsilonExport exp = new Gson().fromJson(obj, IsilonExport.class);
+            IsilonExport exp = new Gson().fromJson(SecurityUtils.sanitizeJsonString(obj), IsilonExport.class);
 
             // if map_all and map_root both set, returns error
             if (exp.getMap_all() != null && exp.getMap_root() != null)
@@ -100,7 +101,7 @@ public class Export extends BaseResource {
     @Produces({MediaType.APPLICATION_JSON})
     public Response modifyExport(@PathParam("id") String id, String obj) {
         try {
-            IsilonExport exp = new Gson().fromJson(obj, IsilonExport.class);
+            IsilonExport exp = new Gson().fromJson(SecurityUtils.sanitizeJsonString(obj), IsilonExport.class);
             _objectStore.modifyExport(id, exp);
 
             _log.info("Export modify: " + id + " obj: " + obj);

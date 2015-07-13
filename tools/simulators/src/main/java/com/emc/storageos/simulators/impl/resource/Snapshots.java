@@ -15,6 +15,7 @@
 package com.emc.storageos.simulators.impl.resource;
 
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +46,7 @@ public class Snapshots extends BaseResource {
     @Produces({MediaType.APPLICATION_JSON})
     public Response createSnapshot(String obj) {
         try{
-            IsilonSnapshot snap = new Gson().fromJson(obj, IsilonSnapshot.class);
+            IsilonSnapshot snap = new Gson().fromJson(SecurityUtils.sanitizeJsonString(obj), IsilonSnapshot.class);
             String id = _objectStore.createSnapshot(snap.getName(), snap.getPath());
 
             _log.info("Snapshot create: " + id + " obj: " + obj);

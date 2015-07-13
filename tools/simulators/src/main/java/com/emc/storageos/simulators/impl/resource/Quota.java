@@ -15,6 +15,7 @@
 package com.emc.storageos.simulators.impl.resource;
 
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.google.gson.Gson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +98,7 @@ public class Quota extends BaseResource {
     @Produces({MediaType.APPLICATION_JSON})
     public Response createQuota(String obj) {
         try{
-            IsilonSmartQuota quota = new Gson().fromJson(obj, IsilonSmartQuota.class);
+            IsilonSmartQuota quota = new Gson().fromJson(SecurityUtils.sanitizeJsonString(obj), IsilonSmartQuota.class);
             String id = _objectStore.createQuota(quota.getPath(), quota.getThresholds().getHard());
 
             _log.info("Quota create: " + id + " obj: " + obj);

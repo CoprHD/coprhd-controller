@@ -625,7 +625,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                         matchingInitiators.add(port);
                     }
                 }
-                builder.append(String.format("XM:%s I:{%s}\n", name, Joiner.on(',').join(initiatorPorts)));
+                builder.append(String.format("XM:%s I:{%s}%n", name, Joiner.on(',').join(initiatorPorts)));
                 if (!matchingInitiators.isEmpty()) {
                     // Look up ExportMask by deviceId/name and storage URI
                     boolean foundMaskInDb = false;
@@ -680,14 +680,14 @@ public class XIVExportOperations implements ExportMaskOperations {
                     // Get volumes for the masking instance
                     Map<String, Integer> volumeWWNs = _helper
                             .getVolumesFromScsiProtocolController(storage, controllerPath);
-                    builder.append(String.format("XM:%s V:{%s}\n", name, Joiner.on(',').join(volumeWWNs.keySet())));
+                    builder.append(String.format("XM:%s V:{%s}%n", name, Joiner.on(',').join(volumeWWNs.keySet())));
 
                     // Update the tracking containers
                     exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
                     exportMask
                             .addToExistingInitiatorsIfAbsent(matchingInitiators);
                     builder.append(String.format(
-                            "XM %s is matching. " + "EI: { %s }, EV: { %s }\n",
+                            "XM %s is matching. " + "EI: { %s }, EV: { %s }%n",
                             name,
                             Joiner.on(',').join(
                                     exportMask.getExistingInitiators()),
@@ -767,7 +767,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                                 .on(',').join(existingVolumes)));
 
                 builder.append(String.format(
-                        "XM discovered: %s I:{%s} V:{%s}\n", name,
+                        "XM discovered: %s I:{%s} V:{%s}%n", name,
                         Joiner.on(',').join(discoveredPorts), Joiner.on(',')
                                 .join(discoveredVolumes.keySet())));
 
@@ -839,11 +839,11 @@ public class XIVExportOperations implements ExportMaskOperations {
                 }
 
                 builder.append(String.format(
-                        "XM refresh: %s initiators; add:{%s} remove:{%s}\n",
+                        "XM refresh: %s initiators; add:{%s} remove:{%s}%n",
                         name, Joiner.on(',').join(initiatorsToAdd),
                         Joiner.on(',').join(initiatorsToRemove)));
                 builder.append(String.format(
-                        "XM refresh: %s volumes; add:{%s} remove:{%s}\n", name,
+                        "XM refresh: %s volumes; add:{%s} remove:{%s}%n", name,
                         Joiner.on(',').join(volumesToAdd.keySet()),
                         Joiner.on(',').join(volumesToRemove)));
 

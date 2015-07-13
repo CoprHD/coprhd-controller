@@ -48,7 +48,9 @@ public class SmisMaskingViewAddVolumeJob extends SmisJob
                                        TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "AddVolumeToMaskingView");
         _exportMaskURI = exportMaskURI;
-        _volumeURIHLUs = volumeURIHLUs;
+        if (volumeURIHLUs != null) {
+            _volumeURIHLUs = volumeURIHLUs.clone();        	
+        }
         _newCreatedGroup = newCreatedGroup;
     }
     

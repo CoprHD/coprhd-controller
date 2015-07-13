@@ -261,7 +261,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     }
                 }
 
-                addPath(keyMap, operation.get_result(), volumeViewInstance.getObjectPath());
+                addPath(keyMap, operation.getResult(), volumeViewInstance.getObjectPath());
                 String unManagedVolumeNativeGuid = getUnManagedVolumeNativeGuid(
                         volumeViewInstance.getObjectPath(), keyMap);
 

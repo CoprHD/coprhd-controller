@@ -148,8 +148,7 @@ public class CommunicationInterfaceTest {
             _executor.execute((Namespace) _nsList.getNsList().get("metering"));
            
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	_logger.error(e.getMessage(), e);
         } finally {
             _wbemClient.close();
         }

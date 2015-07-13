@@ -117,7 +117,7 @@ public class StoragePoolProcessor extends PoolProcessor {
                     if (null != poolClassNameAndSupportedVolumeTypes) {
                         String instanceID = getCIMPropertyValue(poolInstance,
                                 Constants.INSTANCEID);
-                        addPath(keyMap, operation.get_result(),
+                        addPath(keyMap, operation.getResult(),
                                 poolInstance.getObjectPath());
                         StoragePool pool = checkStoragePoolExistsInDB(
                                 getNativeIDFromInstance(instanceID), _dbClient, device);

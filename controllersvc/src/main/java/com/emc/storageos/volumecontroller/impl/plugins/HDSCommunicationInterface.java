@@ -153,7 +153,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             initMap(accessProfile);
             Namespace namespace = (Namespace) namespaces.getNsList().get(METERING);
             _logger.info("HDS CIMClient initialized successfully");
-            executor.set_keyMap(_keyMap);
+            executor.setKeyMap(_keyMap);
             executor.execute(namespace);
             _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();

@@ -92,7 +92,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             Namespace _ns = null;
             _ns = (Namespace) _namespaces.getNsList().get(METERING);
             _logger.info("CIMClient initialized successfully");
-            _executor.set_keyMap(_keyMap);
+            _executor.setKeyMap(_keyMap);
             _executor.execute(_ns);
             _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
@@ -224,11 +224,11 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         }
     }
 
-    public void set_executor(SMIExecutor executor) {
+    public void setExecutor(SMIExecutor executor) {
         _executor = executor;
     }
 
-    public SMIExecutor get_executor() {
+    public SMIExecutor getExecutor() {
         return _executor;
     }
 
@@ -236,11 +236,11 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         debug = debugValue;
     }
 
-    public void set_namespaces(NamespaceList namespaces) {
+    public void setNamespaces(NamespaceList namespaces) {
         _namespaces = namespaces;
     }
 
-    public NamespaceList get_namespaces() {
+    public NamespaceList getNamespaces() {
         return _namespaces;
     }
 
@@ -275,7 +275,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             _keyMap.put(Constants._InteropNamespace, accessProfile.getInteropNamespace());
             _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
             _keyMap.put(Constants.SYSTEMCACHE, accessProfile.getCache());
-            _executor.set_keyMap(_keyMap);
+            _executor.setKeyMap(_keyMap);
             _executor.execute((Namespace) _namespaces.getNsList().get(SCAN));
 
             // scan succeeds
@@ -354,7 +354,7 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
                 initEMCDiscoveryKeyMap(accessProfile);                
             }
              
-            _executor.set_keyMap(_keyMap);
+            _executor.setKeyMap(_keyMap);
             _executor.execute((Namespace) _namespaces.getNsList().get(DISCOVER));
 
         } catch (Exception e) {

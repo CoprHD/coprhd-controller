@@ -150,7 +150,7 @@ public class StoragePortProcessor extends StorageProcessor {
                         }
                         _logger.debug("Adding iSCSI Port instance {} to keyMap", deviceId);
                         keyMap.put(deviceId, port);
-                        addPath(keyMap, operation.get_result(), portInstance.getObjectPath());
+                        addPath(keyMap, operation.getResult(), portInstance.getObjectPath());
                     } else if ("4".equalsIgnoreCase(getCIMPropertyValue(portInstance, LINKTECHNOLOGY))) {
                         port = checkStoragePortExistsInDB(portInstance, device, _dbClient);
                         checkProtocolAlreadyExists(protocols, FC);

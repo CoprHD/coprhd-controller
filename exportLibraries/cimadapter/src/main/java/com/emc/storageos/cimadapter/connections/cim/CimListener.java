@@ -270,8 +270,8 @@ public class CimListener implements IndicationListener {
                         return;
                     }
                 }
-            } catch (Throwable t) {
-                s_logger.error("Error discarding statiustical data update", t);
+            } catch (Exception ex) {
+                s_logger.error("Error discarding statiustical data update", ex);
                 return;
             }
 

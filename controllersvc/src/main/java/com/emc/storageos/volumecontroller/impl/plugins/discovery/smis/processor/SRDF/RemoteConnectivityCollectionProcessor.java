@@ -66,7 +66,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
                 remoteRAGroup = createRAGroup(instance, remoteRAGroup, device);
                 raGroupIds.add(remoteRAGroup.getNativeGuid());
                 addRemoteConnectedStorageSystems(instance, device, remoteConnectedStorageSystems) ;
-                addPath(keyMap, operation.get_result(), instance.getObjectPath());
+                addPath(keyMap, operation.getResult(), instance.getObjectPath());
             }
             
             updateSupportedCopyModes(srdfSupported, device);

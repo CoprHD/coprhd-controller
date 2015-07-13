@@ -187,7 +187,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(storageSystem, volumes.get(0), storagePool);
 
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s , IsThinlyProvisioned: %s",
+            logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s",
                     volume.getLabel(), volume.getThinlyProvisioned()));
             // We don't need a label when we are to create more than
             // one volume. In fact we can't set the label in this
@@ -278,7 +278,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         logMsgBuilder = new StringBuilder(String.format("Create Volumes End - Array:%s, Pool:%s",
                 storageSystem.getSerialNumber(), storagePool.getNativeGuid()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         _log.info(logMsgBuilder.toString());
     }
@@ -290,11 +290,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                                     final MetaVolumeRecommendation recommendation, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Create Meta Volumes Start - Array:%s, Pool:%s \n",
+                "Create Meta Volumes Start - Array:%s, Pool:%s %n",
                 storageSystem.getSerialNumber(), storagePool.getNativeId()));
         StringBuilder volumesMsg = new StringBuilder();
         for (Volume volume : volumes) {
-            volumesMsg.append(String.format("   Volume: %s, id: %s \n",
+            volumesMsg.append(String.format("   Volume: %s, id: %s %n",
                     volume.getLabel(), volume.getId()));
         }
         _log.info(logMsgBuilder.toString()+volumesMsg.toString());
@@ -317,7 +317,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     volume.getLabel(), volume.getNativeId(), volume.getNativeId()));
         }
         logMsgBuilder = new StringBuilder(String.format(
-                "Create Meta Volume End - Array:%s, Pool:%s\n",
+                "Create Meta Volume End - Array:%s, Pool:%s%n",
                 storageSystem.getSerialNumber(), storagePool.getNativeId()));
         _log.info(logMsgBuilder.toString()+volumesMsg.toString());
     }
@@ -330,7 +330,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                                    final MetaVolumeRecommendation recommendation, final VolumeCreateCompleter taskCompleter)
             throws DeviceControllerException {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Create Meta Volume Start - Array:%s, Pool:%s \n    Volume: %s, id: %s",
+                "Create Meta Volume Start - Array:%s, Pool:%s %n    Volume: %s, id: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), volume.getLabel(),
                 volume.getId()));
         _log.info(logMsgBuilder.toString());
@@ -377,7 +377,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         // Get updated volume ( we need to know its nativeId) which was set in Step 1.
         volume = _dbClient.queryObject(Volume.class, volume.getId());
         logMsgBuilder = new StringBuilder(String.format(
-                "Create Meta Volume End - Array:%s, Pool:%s\n    Volume: %s, id: %s, nativeID: %s",
+                "Create Meta Volume End - Array:%s, Pool:%s%n    Volume: %s, id: %s, nativeID: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), volume.getLabel(),
                 volume.getId(), volume.getNativeId()));
         _log.info(logMsgBuilder.toString());
@@ -394,7 +394,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         // volume as its meta head.
         // If input volume is already a meta volume, we need to add new meta members to this volume.
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Expand Meta Volume Start - Array:%s, Pool:%s \n    Volume: %s, id: %s",
+                "Expand Meta Volume Start - Array:%s, Pool:%s %n    Volume: %s, id: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), volume.getLabel(),
                 volume.getId()));
         _log.info(logMsgBuilder.toString());
@@ -507,7 +507,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             ));
         }
         logMsgBuilder = new StringBuilder(String.format(
-                "Expand Volume End - Array:%s, Pool:%s\n    Volume: %s, id: %s",
+                "Expand Volume End - Array:%s, Pool:%s%n    Volume: %s, id: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), volume.getLabel(),
                 volume.getId()));
         _log.info(logMsgBuilder.toString());
@@ -563,7 +563,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             Set<CIMInstance> parkingSLOStorageGroups = new HashSet<>();
             Set<Volume> cloneVolumes = new HashSet<Volume>();
             for (Volume volume : volumes) {
-                logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 if (storageSystem.checkIfVmax3()) {
                     // Flag to indicate whether or not we need to use the EMCForce flag on this operation.
                     // We currently use this flag when dealing with RP Volumes as they are tagged for RP and the
@@ -670,7 +670,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             // execute SMI-S Call , only if any Volumes left for deletion.
             if (!multiVolumeTaskCompleter.isVolumeTaskCompletersEmpty()) {
-                if (cloneVolumes.size() > 0) {
+                if (!cloneVolumes.isEmpty()) {
                     processClonesBeforeDeletion(storageSystem, cloneVolumes);
                 }
                 CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
@@ -719,7 +719,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete Volume End - Array: %s", storageSystem.getSerialNumber()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         _log.info(logMsgBuilder.toString());
     }
@@ -1628,7 +1628,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
             if (metaMembers != null && !metaMembers.isEmpty()) {
                 _log.info(String.format(
-                        "doCleanupMetaMembers: Members stored for meta volume: \n   %s",
+                        "doCleanupMetaMembers: Members stored for meta volume: %n   %s",
                         metaMembers));
                 // Check if volumes still exist in array and if it is not composite member (already
                 // added to the meta volume)
@@ -1654,7 +1654,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _log.info("doCleanupMetaMembers: No meta members to cleanup in array.");
                 } else {
                     _log.info(String
-                            .format("doCleanupMetaMembers: Members to cleanup in array: \n   %s",
+                            .format("doCleanupMetaMembers: Members to cleanup in array: %n   %s",
                                     volumeIds));
                     String[] nativeIds = volumeIds.toArray(new String[0]);
                     // Prepare parameters and call method to delete meta members from array

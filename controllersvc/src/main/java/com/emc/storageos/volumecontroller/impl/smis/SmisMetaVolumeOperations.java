@@ -102,7 +102,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                                      VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
         String label;
         _log.info(String.format(
-                "Create Meta Volume Head Start - Array: %s, Pool: %s, \n   Head: %s, IsThinlyProvisioned: %s, Capacity: %s",
+                "Create Meta Volume Head Start - Array: %s, Pool: %s, %n   Head: %s, IsThinlyProvisioned: %s, Capacity: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), metaHead.getLabel(), metaHead.getThinlyProvisioned(), capacity));
 
         String tenantName = "";
@@ -156,7 +156,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
             throw e;
         } finally {
             _log.info(String.format(
-                    "Create Meta Volume Head End - Array:%s, Pool: %s, \n   Head: %s",
+                    "Create Meta Volume Head End - Array:%s, Pool: %s, %n   Head: %s",
                     storageSystem.getSerialNumber(), storagePool.getNativeId(), metaHead.getLabel()));
         }
     }
@@ -177,7 +177,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
     public List<String> createMetaVolumeMembers(StorageSystem storageSystem, StoragePool storagePool, Volume metaHead, int memberCount,
                                                 long memberCapacity, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
         _log.info(String.format(
-                "Create Meta Volume Members Start - Array: %s, Pool: %s, \n   Volume: %s, Count:%s, Member capacity: %s",
+                "Create Meta Volume Members Start - Array: %s, Pool: %s, %n   Volume: %s, Count:%s, Member capacity: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), metaHead.getLabel(), memberCount, memberCapacity));
 
         try {
@@ -213,7 +213,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
             throw e;
         } finally {
             _log.info(String.format(
-                    "Create Meta Volume Members End - Array: %s, Pool: %s, \n   Volume: %s",
+                    "Create Meta Volume Members End - Array: %s, Pool: %s, %n   Volume: %s",
                     storageSystem.getSerialNumber(), storagePool.getNativeId(), metaHead.getLabel()));
         }
     }
@@ -252,7 +252,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
             Boolean isLastJob = isBound;
 
             _log.info(String.format(
-                    "Create Meta Volume Start - Array: %s, Head: %s, Type: %s \n   Members:%s, isLastJob: %s",
+                    "Create Meta Volume Start - Array: %s, Head: %s, Type: %s %n   Members:%s, isLastJob: %s",
                     storageSystem.getSerialNumber(), metaHead.getLabel(), metaType, metaMembers, isLastJob));
 
             CIMArgument[] inArgs;
@@ -289,7 +289,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         }
 
         _log.info(String.format(
-                "Create Meta Volume End - Array:%s, Head:%s, \n  Head device ID: %s, Members:%s",
+                "Create Meta Volume End - Array:%s, Head:%s, %n  Head device ID: %s, Members:%s",
                 storageSystem.getSerialNumber(),  metaHead.getLabel(), metaHead.getNativeId(), metaMembers));
     }
 
@@ -402,7 +402,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
     StringBuilder logMsgBuilder = new StringBuilder(String.format("Create meta volumes End - Array:%s, Pool:%s",
                                       storageSystem.getSerialNumber(), storagePool.getNativeGuid()));
     for (Volume vol : volumes) {
-        logMsgBuilder.append(String.format("\nVolume:%s", vol.getLabel()));
+        logMsgBuilder.append(String.format("%nVolume:%s", vol.getLabel()));
     }
     _log.info(logMsgBuilder.toString());
 
@@ -424,7 +424,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
            String label = null;
 
            _log.info(String.format(
-                   "Expand Volume as  Meta Volume Start - Array: %s, Head: %s, Recommended meta type: %s \n   Members:%s",
+                   "Expand Volume as  Meta Volume Start - Array: %s, Head: %s, Recommended meta type: %s %n   Members:%s",
                    storageSystem.getSerialNumber(), metaHead.getLabel(), metaType, metaMembers));
 
            label = metaHead.getLabel();
@@ -461,7 +461,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
            }
 
            _log.info(String.format(
-                   "Expand Volume as  Meta Volume End - Array:%s, Head:%s, \n  Head device ID: %s, Members:%s",
+                   "Expand Volume as  Meta Volume End - Array:%s, Head:%s, %n  Head device ID: %s, Members:%s",
                    storageSystem.getSerialNumber(),  metaHead.getLabel(), metaHead.getNativeId(), metaMembers));
        }
 
@@ -478,7 +478,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                                  Volume metaHead, List<String> newMetaMembers, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws DeviceControllerException {
 
         _log.info(String.format(
-                "Expand Meta Volume Start - Array: %s, Head: %s, \n   New members:%s",
+                "Expand Meta Volume Start - Array: %s, Head: %s, %n   New members:%s",
                 storageSystem.getSerialNumber(), metaHead.getLabel(), newMetaMembers));
 
         try {
@@ -513,7 +513,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         }
 
         _log.info(String.format(
-                "Expand Meta Volume End - Array:%s, Head:%s, \n  Head device ID: %s, New members:%s",
+                "Expand Meta Volume End - Array:%s, Head:%s, %n  Head device ID: %s, New members:%s",
                 storageSystem.getSerialNumber(),  metaHead.getLabel(), metaHead.getNativeId(), newMetaMembers));
     }
 
@@ -527,7 +527,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         }
 
         _log.info(String.format(
-                "Bind Meta Volume to Pool Start - Array: %s, Pool: %s, \n   Volume: %s, ThinMetaVolumePreAllocateSize: %s, isLastJob: %s",
+                "Bind Meta Volume to Pool Start - Array: %s, Pool: %s, %n   Volume: %s, ThinMetaVolumePreAllocateSize: %s, isLastJob: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), volume.getNativeId(), thinMetaVolumePreAllocateSize, isLastJob));
 
         try {
@@ -560,7 +560,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
             throw e;
         } finally {
             _log.info(String.format(
-                    "Bind Meta Volume to Pool End - Array:%s, Pool: %s, \n   Volume: %s",
+                    "Bind Meta Volume to Pool End - Array:%s, Pool: %s, %n   Volume: %s",
                     storageSystem.getSerialNumber(), storagePool.getNativeId(), volume.getNativeId()));
         }
     }

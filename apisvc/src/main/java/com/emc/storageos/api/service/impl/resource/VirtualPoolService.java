@@ -319,7 +319,7 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
             //Error if the varrays have vpool resources 
             Set<String> resourceVArrays = getVArraysWithVPoolResources(vpool, removedVarrays, _dbClient);
-            if(resourceVArrays.size() >0){
+            if(!resourceVArrays.isEmpty()){
         		throw APIException.badRequests.cannotRemoveVArrayWithVPoolResources(resourceVArrays);
         	}
 	    }
@@ -398,7 +398,7 @@ public abstract class VirtualPoolService extends TaggedResource {
             }
             // Check if we are removing any existing protocol
             if (null != protocolChanges && null != protocolChanges.getRemove()) {
-                if (Sets.intersection(protocols, protocolChanges.getRemove().getProtocols()).size() > 0) {
+                if (!Sets.intersection(protocols, protocolChanges.getRemove().getProtocols()).isEmpty()) {
                     isModified = true;
                 }
             }
@@ -517,7 +517,7 @@ public abstract class VirtualPoolService extends TaggedResource {
       	}
       	Set<String> resourcePools = getPoolsWithVPoolResources(vpool, poolsToCheck, dbClient);    	
     	
-    	if(resourcePools.size() > 0){
+    	if(!resourcePools.isEmpty()){
     		Set<String> poolNames = new StringSet();
     		for(String poolUri : resourcePools) {
     			StoragePool pool = dbClient.queryObject(StoragePool.class, URI.create(poolUri));
@@ -1026,8 +1026,8 @@ public abstract class VirtualPoolService extends TaggedResource {
         /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
-        } catch (Throwable th) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.", description, th);
+        } catch (Exception e) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.", description, e);
         }
     }
 

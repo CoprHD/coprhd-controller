@@ -1049,7 +1049,7 @@ public class SRDFScheduler implements Scheduler {
             _log.warn(String
                     .format("SRDF RA Group Placement: Project name is longer than the number of characters allowed by VMAX for an RA group name.  This will cause an issue if you have multiple projects that start with %s",
                             project.getLabel().substring(0,
-                                    RDF_GROUP_NAME_MAX_LENGTH - RDF_GROUP_PREFIX.length())));//NOSONAR ("Suppressing Sonar violation of 1st argument is not used.  User needs warning message”)
+                                    RDF_GROUP_NAME_MAX_LENGTH - RDF_GROUP_PREFIX.length())));//NOSONAR ("Suppressing Sonar violation of 1st argument is not used.  User needs warning message")
         }
         
         _dbClient.queryByConstraint(ContainmentConstraint.Factory

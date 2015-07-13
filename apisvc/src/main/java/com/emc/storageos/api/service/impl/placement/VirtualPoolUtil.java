@@ -171,7 +171,7 @@ public class VirtualPoolUtil {
             raidLevelsAdded.removeAll(expectedRaidLevels);
             // if raid Levels Added contains entries, then it means, we are trying to add new items into list,
             // hence return true.
-            if (raidLevelsAdded.size() > 0)
+            if (!raidLevelsAdded.isEmpty())
                 return true;
         }
         /**
@@ -190,7 +190,7 @@ public class VirtualPoolUtil {
             raidLevelsRemoved.retainAll(expectedRaidLevels);
             // if raid Levels Removed contains entries, then it means, we are trying to add remove existing
             // items from list, hence return true.
-            if (raidLevelsRemoved.size() > 0)
+            if (!raidLevelsRemoved.isEmpty())
                 return true;
         }
         return false;
@@ -288,7 +288,7 @@ public class VirtualPoolUtil {
      */
     public static boolean checkVirtualPoolProtocols(
         VirtualPool cos, HashSet<String> protocols, boolean matchAll) {
-        if ((protocols != null) && (protocols.size() > 0)) {
+        if ((protocols != null) && (!protocols.isEmpty())) {
             StringSet cosProtocols = cos.getProtocols();
             if ((matchAll) && (!cosProtocols.containsAll(protocols))) {
                 _log.info("vpool does not support all requested protocol(s): {}", protocols);

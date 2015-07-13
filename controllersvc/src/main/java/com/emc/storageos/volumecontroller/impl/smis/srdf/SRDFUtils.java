@@ -81,6 +81,7 @@ public class SRDFUtils implements SmisConstants {
         try {
             return helper.checkExists(sourceSystem, path, false, false);
         } catch (Exception e) {
+        	log.info("Problmem in getInstance: ", e);
         }
         return null;
     }
@@ -354,7 +355,7 @@ public class SRDFUtils implements SmisConstants {
             }
             return result;
         } catch (WBEMException e) {
-            e.printStackTrace();
+        	log.info("getVolumePathsInRemoteGroup WBEMException : ", e);
         } finally {
             if (volumePaths != null) {
                 volumePaths.close();

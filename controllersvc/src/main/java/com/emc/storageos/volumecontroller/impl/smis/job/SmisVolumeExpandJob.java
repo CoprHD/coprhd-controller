@@ -135,10 +135,10 @@ public class SmisVolumeExpandJob extends SmisJob {
                         }
                     }
                 }
-                logMsgBuilder.append(String.format("\n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s", volume.getCapacity(), volume.getProvisionedCapacity(),
+                logMsgBuilder.append(String.format("%n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s", volume.getCapacity(), volume.getProvisionedCapacity(),
                         volume.getAllocatedCapacity()));
                 if (volume.getIsComposite()) {
-                    logMsgBuilder.append(String.format("\n   Is Meta: %s, Total meta member capacity: %s, Meta member count %s, Meta member size: %s",
+                    logMsgBuilder.append(String.format("%n   Is Meta: %s, Total meta member capacity: %s, Meta member count %s, Meta member size: %s",
                             volume.getIsComposite(), volume.getTotalMetaMemberCapacity(), volume.getMetaMemberCount(), volume.getMetaMemberSize()));
                 }
 

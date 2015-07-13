@@ -262,7 +262,7 @@ public class TrustStoreTest extends ApiTestBase {
         nExistedCert = certs.getTrustedCertificates().size();
 
         // should have ca certificates by default
-        Assert.assertTrue(certs.getTrustedCertificates().size() > 0);
+        Assert.assertTrue(!certs.getTrustedCertificates().isEmpty());
 
         TrustedCertificateChanges changes = new TrustedCertificateChanges();
         List<String> add = new ArrayList<String>();

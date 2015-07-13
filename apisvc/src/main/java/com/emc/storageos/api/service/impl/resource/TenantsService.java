@@ -802,7 +802,7 @@ public class TenantsService extends TaggedResource {
                 /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             if (th instanceof RuntimeException) {
                 // CQ604367 --
                 // print full stack trace of error. Problem is intermittent
@@ -810,10 +810,10 @@ public class TenantsService extends TaggedResource {
                 // is getting thrown. This will code will help identify in
                 // apisvc.log exactly where that occurs when it does.
                 _log.error("Failed to record event. Event description: " + description
-                        + ". Error: .", th);
+                        + ". Error: .", ex);
             } else {
                 _log.error("Failed to record event. Event description: {}. Error: {}.",
-                        description, th);
+                        description, ex);
             }
         }
         _log.info("opType: {} detail: {}", opType.toString(), type + ':' + description);
@@ -1242,11 +1242,11 @@ public class TenantsService extends TaggedResource {
             return true;
 
         List<UserMappingParam> list = param.getUserMappingChanges().getAdd();
-        if (list != null && list.size() != 0)
+        if (list != null && !list.isEmpty())
             return false;
 
         list = param.getUserMappingChanges().getRemove();
-        if (list != null && list.size() != 0)
+        if (list != null && !list.isEmpty())
             return false;
 
         return true;

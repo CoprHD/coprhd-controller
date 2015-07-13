@@ -96,7 +96,7 @@ public abstract class TaggedResource extends ResourceService {
             tagSet = new ScopedLabelSet();
             object.setTag(tagSet);
         }
-        if (assignment.getAdd() != null && assignment.getAdd().size() > 0) {
+        if (assignment.getAdd() != null && !assignment.getAdd().isEmpty()) {
             Iterator<String> it = assignment.getAdd().iterator();
             while (it.hasNext()) {
                 String tagName = it.next();
@@ -107,7 +107,7 @@ public abstract class TaggedResource extends ResourceService {
                 tagSet.add(tagLabel);
             }
         }
-        if (assignment.getRemove() != null && assignment.getRemove().size() > 0) {
+        if (assignment.getRemove() != null && !assignment.getRemove().isEmpty()) {
             Iterator<String> it = assignment.getRemove().iterator();
             while (it.hasNext()) {
                 String tagName = it.next();

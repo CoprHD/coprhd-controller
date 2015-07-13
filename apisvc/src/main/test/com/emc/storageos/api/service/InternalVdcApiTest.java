@@ -65,7 +65,7 @@ public class InternalVdcApiTest extends ApiTestBase{
     	VirtualDataCenterList vdcResp = rSys.path("/vdc")
                 .get(VirtualDataCenterList.class);
     	List<NamedRelatedResourceRep> vdcList = vdcResp.getVirtualDataCenters();
-    	Assert.assertTrue(vdcList.size() > 0);
+    	Assert.assertTrue(!vdcList.isEmpty());
     	URI vdcId = vdcList.get(0).getId();
     	VirtualDataCenterRestRep vdcFromInternalApi = internalVdcClient.getVdc(vdcId);
     	Assert.assertTrue(vdcFromInternalApi != null);
@@ -82,7 +82,7 @@ public class InternalVdcApiTest extends ApiTestBase{
         VirtualDataCenterList vdcListFromInternalApi = internalVdcClient.listVdc();
         Assert.assertTrue(vdcListFromInternalApi != null);
         Assert.assertEquals(vdcList.size(), vdcListFromInternalApi.getVirtualDataCenters().size());
-        Assert.assertTrue(vdcList.size() > 0);
+        Assert.assertTrue(!vdcList.isEmpty());
         URI vdcId = vdcList.get(0).getId();
         URI vdcIdFromInternalApi = vdcListFromInternalApi.getVirtualDataCenters().get(0).getId();
         Assert.assertEquals(vdcId, vdcIdFromInternalApi);
@@ -93,7 +93,7 @@ public class InternalVdcApiTest extends ApiTestBase{
     	VirtualDataCenterList vdcResp = rSys.path("/vdc")
                 .get(VirtualDataCenterList.class);
     	List<NamedRelatedResourceRep> vdcList = vdcResp.getVirtualDataCenters();
-    	Assert.assertTrue(vdcList.size() > 0);
+    	Assert.assertTrue(!vdcList.isEmpty());
     	URI vdcId = vdcList.get(0).getId();
     	ClientResponse resp = internalVdcClient.setVdcInUse(vdcId, true);
     	Assert.assertEquals(resp.getClientResponseStatus(), ClientResponse.Status.OK);

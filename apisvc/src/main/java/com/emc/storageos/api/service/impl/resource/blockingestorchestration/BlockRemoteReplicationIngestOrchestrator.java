@@ -203,7 +203,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         if (RemoteMirrorObject.Types.SOURCE.toString().equalsIgnoreCase(type)) {
             StringSet targetUnManagedVolumeGuids = unManagedVolumeInformation.get(SupportedVolumeInformation.REMOTE_MIRRORS
                     .toString());
-            if (null != targetUnManagedVolumeGuids && targetUnManagedVolumeGuids.size() > 0) {
+            if (null != targetUnManagedVolumeGuids && !targetUnManagedVolumeGuids.isEmpty()) {
                 StringSet targetVolumeNativeGuids = VolumeIngestionUtil.getListofVolumeIds(targetUnManagedVolumeGuids);
                 List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, _dbClient);
                 if (null == targetUris || targetUris.isEmpty()) {
@@ -249,7 +249,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         // find whether all targets are ingested
         StringSet targetUnManagedVolumeGuids = unManagedVolumeInformation.get(SupportedVolumeInformation.REMOTE_MIRRORS
                 .toString());
-        if (null != targetUnManagedVolumeGuids && targetUnManagedVolumeGuids.size() > 0) {
+        if (null != targetUnManagedVolumeGuids && !targetUnManagedVolumeGuids.isEmpty()) {
             StringSet targetVolumeNativeGuids = VolumeIngestionUtil.getListofVolumeIds(targetUnManagedVolumeGuids);
             // check whether target exists
             List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, _dbClient);
@@ -289,7 +289,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
                 VolumeIngestionUtil.VOLUME);
         List<URI> sourceUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeNativeGuidConstraint(sourceVolumeId));
-        if (sourceUris.size() == 0) {
+        if (sourceUris.isEmpty()) {
             _logger.info("Source {} Not found for target {}", sourceVolumeId, unManagedVolume.getNativeGuid());
         } else {
             // if source volume is ingested, then

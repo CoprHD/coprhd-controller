@@ -483,7 +483,7 @@ public class ExportVerificationUtility {
 		String opName = ExportOperationType.ADD.name();
 		// Report Add Export Errors
 		ExportRules listExportRules = param.getExportRulesToAdd();
-		if (listExportRules == null || listExportRules.getExportRules().size() == 0)
+		if (listExportRules == null || listExportRules.getExportRules().isEmpty())
 			return;
 		
 		List<ExportRule> listExportRule = listExportRules.getExportRules();
@@ -553,7 +553,7 @@ public class ExportVerificationUtility {
 		String opName = ExportOperationType.MODIFY.name();
 		// Report Modify Export Errors
 		ExportRules listExportRules = param.getExportRulesToModify();
-		if (listExportRules == null || listExportRules.getExportRules().size() == 0)
+		if (listExportRules == null || listExportRules.getExportRules().isEmpty())
 			return;
 		
 		
@@ -622,7 +622,7 @@ public class ExportVerificationUtility {
 		String opName = ExportOperationType.DELETE.name();
 		// Report Delete Export Errors
 		ExportRules listExportRules = param.getExportRulesToDelete();
-		if (listExportRules == null || listExportRules.getExportRules().size() == 0)
+		if (listExportRules == null || listExportRules.getExportRules().isEmpty())
 			return;
 
 		List<ExportRule> listExportRule = listExportRules.getExportRules();
@@ -677,7 +677,7 @@ public class ExportVerificationUtility {
 		
 		if(snapshot!=null){
 			// snapshot specific validation - ro permission - can't export - per old code. So adding this validation here.
-			if ((exportRule.getReadWriteHosts()!=null && exportRule.getReadWriteHosts().size() > 0) || (exportRule.getRootHosts()!=null && exportRule.getRootHosts().size() > 0))
+			if ((exportRule.getReadWriteHosts()!=null && !exportRule.getReadWriteHosts().isEmpty()) || (exportRule.getRootHosts()!=null && !exportRule.getRootHosts().isEmpty()))
 			{
 				exportRule.setIsToProceed(false, ExportOperationErrorType.SNAPSHOT_EXPORT_SHOULD_BE_READ_ONLY);
 				_log.info("Snapshot export permission should be read only");

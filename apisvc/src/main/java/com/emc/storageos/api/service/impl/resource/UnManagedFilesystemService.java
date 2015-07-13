@@ -430,7 +430,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                           List<UnManagedFileExportRule> exports = queryDBFSExports(unManagedFileSystem);
                           _logger.info("Number of Exports Found : {} for UnManaged Fs path : {}", exports.size(), unManagedFileSystem.getMountPath());
                           
-                          if (!exports.isEmpty()){
+                          if (exports != null && !exports.isEmpty()){
                         	  for(UnManagedFileExportRule rule : exports){
                                   // Step 2 : Convert them to File Export Rule
                                   // Step 3 : Keep them as a list to store in db, down the line at a shot
@@ -538,6 +538,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 ++i;
                 _logger.info("{} --> Saving New Cifs ACL to DB {}", i, acl);
             }
+            
             if(!fsCifsShareAcls.isEmpty() && !fsCifsShareAcls.isEmpty()) {
                 _dbClient.createObject(fsCifsShareAcls);
             }
@@ -820,7 +821,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             matchedPorts = returnAllPortsforStgArrayAndVArray(system, storagePortsForVArray);
         }
         
-        if(!matchedPorts.isEmpty()) {
+        if(matchedPorts != null && !matchedPorts.isEmpty() ) {
             //Shuffle Storageports and return the first one.            
             Collections.shuffle(matchedPorts);            
             sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));

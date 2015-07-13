@@ -9564,4 +9564,70 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             throw VPlexApiException.exceptions.addStepsForChangeVirtualPoolFailed(ex);
         }
     }
+    @Override
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            client.pauseMigrations(Arrays.asList(migration.getLabel()));
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.PAUSED.name());
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (VPlexApiException vae) {
+            _log.error("Exception pausing migration: " + vae.getMessage(), vae);
+            WorkflowStepCompleter.stepFailed(opId, vae);
+        } catch (Exception ex) {
+            _log.error("Exception pausing migration: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.PAUSE_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+            
+    }
+    
+    @Override
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            client.resumeMigrations(Arrays.asList(migration.getLabel()));
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name());
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (VPlexApiException vae) {
+            _log.error("Exception resuming migration: " + vae.getMessage(), vae);
+            WorkflowStepCompleter.stepFailed(opId, vae);
+        } catch (Exception ex) {
+            _log.error("Exception resuming migration: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.RESUME_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
+    
+    @Override
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
+            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            client.cancelMigrations(Arrays.asList(migration.getLabel()), true, true);
+            migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.CANCELLED.name());
+            _dbClient.persistObject(migration);
+            WorkflowStepCompleter.stepSucceded(opId);
+        } catch (VPlexApiException vae) {
+            _log.error("Exception resuming migration: " + vae.getMessage(), vae);
+            WorkflowStepCompleter.stepFailed(opId, vae);
+        } catch (Exception ex) {
+            _log.error("Exception resuming migration: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.CANCEL_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
+    }
 }

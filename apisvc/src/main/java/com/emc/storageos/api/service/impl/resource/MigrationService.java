@@ -71,6 +71,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.vplex.api.VPlexMigrationInfo;
 import com.emc.storageos.vplexcontroller.VPlexController;
 import com.google.common.base.Function;
 
@@ -310,7 +311,7 @@ public class MigrationService extends TaskResourceService {
     }
 
     /**
-     * Pause a migration that is in progress. Not yet implemented.
+     * Pause a migration that is in progress.
      *      
      * 
      * @prereq none
@@ -325,7 +326,52 @@ public class MigrationService extends TaskResourceService {
     @Path("/{id}/pause")
     @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep pauseMigration(@PathParam("id") URI id) {
-        throw APIException.methodNotAllowed.notSupported();
+        ArgValidator.checkFieldUriType(id, Migration.class, "id");
+        Migration migration = queryResource(id);
+        if (!BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+            getUserFromContext(), _permissionsHelper)) {
+            StorageOSUser user = getUserFromContext();
+            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+        } 
+        String status = migration.getMigrationStatus();
+        String migrationName = migration.getLabel();
+        if (status != null && !status.isEmpty() && 
+                (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.name()) ||
+                 status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.name()) ||
+                 status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.name())) ||
+                 status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name())) {
+            throw APIException.badRequests.migrationCantBePaused(migrationName, status);
+        }
+        URI volId = migration.getVolume();
+        Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
+        
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the virtual volume being migrated and set the 
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(Volume.class,
+            volId, taskId, ResourceOperationTypeEnum.PAUSE_MIGRATION);
+        TaskResourceRep task = toTask(vplexVol, taskId, op);
+
+        try {
+            VPlexController controller = _vplexBlockServiceApi.getController();
+            String successMsg = String.format("Pause migration %s succeeded",
+                migrationName);
+            String failMsg = String.format("Pause migration %s failed",
+                migrationName);
+            controller.pauseMigration(vplexVol.getStorageController(), id, taskId);
+
+        } catch (InternalException e) {
+            s_logger.error("Controller Error", e);
+            String errMsg = String.format("Controller Error: %s", e.getMessage());
+            task.setState(Operation.Status.error.name());
+            task.setMessage(errMsg);
+            op.error(e);
+            vplexVol.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.persistObject(vplexVol);
+        }
+
+        return task;
     }
 
     /**
@@ -344,7 +390,47 @@ public class MigrationService extends TaskResourceService {
     @Path("/{id}/resume")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
     public TaskResourceRep resumeMigration(@PathParam("id") URI id) {
-        throw APIException.methodNotAllowed.notSupported();
+       ArgValidator.checkFieldUriType(id, Migration.class, "id");
+       Migration migration = queryResource(id);
+       if (!BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+           getUserFromContext(), _permissionsHelper)) {
+           StorageOSUser user = getUserFromContext();
+           throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+       } 
+       String status = migration.getMigrationStatus();
+       String migrationName = migration.getLabel();
+       if (status != null && !status.isEmpty() && 
+           !status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.name())) {
+           throw APIException.badRequests.migrationCantBeResumed(migrationName, status);
+       }
+       URI volId = migration.getVolume();
+       Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
+       
+       // Create a unique task id.
+       String taskId = UUID.randomUUID().toString();
+       // Create a task for the virtual volume being migrated and set the 
+       // initial task state to pending.
+       Operation op = _dbClient.createTaskOpStatus(Volume.class,
+           volId, taskId, ResourceOperationTypeEnum.RESUME_MIGRATION);
+       TaskResourceRep task = toTask(vplexVol, taskId, op);
+
+       try {
+           VPlexController controller = _vplexBlockServiceApi.getController();
+          
+           controller.resumeMigration(vplexVol.getStorageController(), id, taskId);
+
+       } catch (InternalException e) {
+           s_logger.error("Controller Error", e);
+           String errMsg = String.format("Controller Error: %s", e.getMessage());
+           task.setState(Operation.Status.error.name());
+           task.setMessage(errMsg);
+           op.error(e);
+           vplexVol.getOpStatus().updateTaskStatus(taskId, op);
+           _dbClient.persistObject(vplexVol);
+
+       }
+
+       return task;
     }
 
     /**
@@ -382,7 +468,48 @@ public class MigrationService extends TaskResourceService {
     @Path("/{id}/cancel")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
     public TaskResourceRep cancelMigration(@PathParam("id") URI id) {
-        throw APIException.methodNotAllowed.notSupported();
+        ArgValidator.checkFieldUriType(id, Migration.class, "id");
+        Migration migration = queryResource(id);
+        if (!BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
+            getUserFromContext(), _permissionsHelper)) {
+            StorageOSUser user = getUserFromContext();
+            throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
+        } 
+        String status = migration.getMigrationStatus();
+        String migrationName = migration.getLabel();
+        if (status != null && !status.isEmpty() && 
+            (!status.equals(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name()) ||
+             !status.equals(VPlexMigrationInfo.MigrationStatus.QUEUED.name()))) {
+            throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
+        }
+        URI volId = migration.getVolume();
+        Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
+        
+        // Create a unique task id.
+        String taskId = UUID.randomUUID().toString();
+        // Create a task for the virtual volume being migrated and set the 
+        // initial task state to pending.
+        Operation op = _dbClient.createTaskOpStatus(Volume.class,
+            volId, taskId, ResourceOperationTypeEnum.RESUME_MIGRATION);
+        TaskResourceRep task = toTask(vplexVol, taskId, op);
+
+        try {
+            VPlexController controller = _vplexBlockServiceApi.getController();
+           
+            controller.cancelMigration(vplexVol.getStorageController(), id, taskId);
+
+        } catch (InternalException e) {
+            s_logger.error("Controller Error", e);
+            String errMsg = String.format("Controller Error: %s", e.getMessage());
+            task.setState(Operation.Status.error.name());
+            task.setMessage(errMsg);
+            op.error(e);
+            vplexVol.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.persistObject(vplexVol);
+
+        }
+
+        return task;
     }
     
     /**

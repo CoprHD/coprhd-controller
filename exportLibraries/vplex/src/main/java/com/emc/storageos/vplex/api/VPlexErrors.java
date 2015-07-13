@@ -236,4 +236,8 @@ public interface VPlexErrors {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public ServiceError createBackendExportMaskDeleted(String maskURI, String deviceURI);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public ServiceError operateMigrationFailed(final String opName,
+            final Throwable cause);
 }

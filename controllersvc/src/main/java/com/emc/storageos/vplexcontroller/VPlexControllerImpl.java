@@ -152,4 +152,22 @@ public class VPlexControllerImpl extends AbstractDiscoveredSystemController impl
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber) {
         return VPlexDeviceController.getInstance().validateStorageProviderConnection(ipAddress, portNumber);
     }
+
+    @Override
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("pauseMigration", vplexURI, migrationURI, opId);
+        
+    }
+
+    @Override
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("resumeMigration", vplexURI, migrationURI, opId);
+        
+    }
+    
+    @Override
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
+        queueRequest("cancelMigration", vplexURI, migrationURI, opId);
+        
+    }
 }

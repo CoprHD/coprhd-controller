@@ -248,5 +248,30 @@ public interface VPlexController extends Controller {
      * @return true if the Storage Provider connection is valid
      */
     public boolean validateStorageProviderConnection(String ipAddress, Integer portNumber);
+    
+    /**
+     * Pause a migration that is in progress.
+     * 
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param migrationURI The URI of the migration.
+     * @param opId the opId for the operation
+     */
+    public void pauseMigration(URI vplexURI, URI migrationURI, String opId);
+    
+    /**
+     * Resume a migration that is paused.
+     * @param vplexURI
+     * @param migrationURI
+     * @param opId
+     */
+    public void resumeMigration(URI vplexURI, URI migrationURI, String opId);
+    
+    /**
+     * Cancel a migration
+     * @param vplexURI The URI of the VPLEX storage system.
+     * @param migrationURI The URI of the migration.
+     * @param opId the opId for the operation
+     */
+    public void cancelMigration(URI vplexURI, URI migrationURI, String opId);
 
 }

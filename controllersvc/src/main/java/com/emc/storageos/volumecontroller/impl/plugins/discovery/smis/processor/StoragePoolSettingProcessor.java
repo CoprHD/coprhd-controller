@@ -115,7 +115,7 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
                     if (isVmax3) {
                         processVMAX3SLO(device, settingInstance);
                     }
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             settingInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("Pool Setting Discovery failed for {}-->{}",

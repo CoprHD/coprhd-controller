@@ -42,7 +42,7 @@ public class CimConnection {
     protected String _user = "";
 
     // The password for the user.
-    protected String _password = "";
+    protected String _pass_word = "";
 
     // The interop namespace for the CIMOM.
     protected String _interopNS = "";
@@ -92,7 +92,7 @@ public class CimConnection {
         _host = connectionInfo.getConnectionParameter(CimConstants.CIM_HOST);
         _port = Integer.parseInt(connectionInfo.getConnectionParameter(CimConstants.CIM_PORT));
         _user = connectionInfo.getConnectionParameter(CimConstants.CIM_USER);
-        _password = connectionInfo.getConnectionParameter(CimConstants.CIM_PW);
+        _pass_word = connectionInfo.getConnectionParameter(CimConstants.CIM_PW);
         _interopNS = connectionInfo.getConnectionParameter(CimConstants.CIM_INTEROP_NS);
         _implNS = connectionInfo.getConnectionParameter(CimConstants.CIM_IMPL_NS);
         _useSSL = Boolean.parseBoolean(connectionInfo.getConnectionParameter(CimConstants.CIM_USE_SSL));
@@ -225,7 +225,7 @@ public class CimConnection {
         try {
             Subject subject = new Subject();
             subject.getPrincipals().add(new UserPrincipal(_user));
-            subject.getPrivateCredentials().add(new PasswordCredential(_password));
+            subject.getPrivateCredentials().add(new PasswordCredential(_pass_word));
             _cimClient = WBEMClientFactory.getClient(CimConstants.CIM_CLIENT_PROTOCOL);
 
             // Operations block by default, so a timeout must be set in case the

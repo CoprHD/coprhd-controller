@@ -17,7 +17,7 @@ public abstract class ExecutionTask<T> {
         try {
             provideDetailArgs();            
         }
-        catch (Throwable t) {
+        catch (Exception t) {
             log.debug("Unable to set default detail message for "+this.getClass().getCanonicalName());
         }
     }
@@ -27,7 +27,7 @@ public abstract class ExecutionTask<T> {
         try {
             provideDetailArgs();            
         }
-        catch (Throwable t) {
+        catch (Exception t) {
             log.debug("Unable to set default detail message for "+this.getClass().getCanonicalName());
         }
     }

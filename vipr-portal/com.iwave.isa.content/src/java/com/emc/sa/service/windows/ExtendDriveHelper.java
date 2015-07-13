@@ -90,7 +90,7 @@ public class ExtendDriveHelper {
         if (detail == null) {
             return false;
         }
-        if ((detail.getVolumes() == null) || (detail.getVolumes().size() == 0)) {
+        if ((detail.getVolumes() == null) || (detail.getVolumes().isEmpty())) {
             return false;
         }
         if (detail.getVolumes().size() > 1) {
@@ -123,7 +123,7 @@ public class ExtendDriveHelper {
         if (detail == null) {
             ExecutionUtils.fail("failTask.ExtendDriveHelper.couldNotDetailDisk", disk.getNumber(), disk.getNumber());
         }
-        if ((detail.getVolumes() == null) || (detail.getVolumes().size() == 0)) {
+        if ((detail.getVolumes() == null) || (detail.getVolumes().isEmpty())) {
             ExecutionUtils.fail("failTask.ExtendDriveHelper.noVolumes", disk.getNumber(), disk.getNumber());
         }
         if (detail.getVolumes().size() > 1) {

@@ -441,7 +441,8 @@ public class CimIndicationSet {
                     CIMObjectPath path = null;
                     try {
                         path = CimObjectPathCreator.createInstance(value);
-                    } catch (Throwable e) {
+                    } catch (Exception e) {
+                    	s_logger.error(e.getMessage(), e);
                     }
                     if (path != null) {
                         processObjectPath(name, path);

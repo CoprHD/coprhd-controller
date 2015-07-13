@@ -66,7 +66,7 @@ public class RemoveComputeClusterService extends ViPRService {
         List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(hostURIs);
         
         // fail order if no hosts removed
-        if(successfulHostIds.size() == 0) {           
+        if(successfulHostIds.isEmpty()) {           
             throw new IllegalStateException(ExecutionUtils.getMessage("computeutils.deactivatehost.deactivate.failure",""));
         }
         

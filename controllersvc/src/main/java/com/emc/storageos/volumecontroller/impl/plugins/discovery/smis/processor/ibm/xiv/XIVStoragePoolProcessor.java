@@ -104,7 +104,7 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             while (it.hasNext()) {
                 CIMInstance poolInstance = it.next();
                 try {
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             poolInstance.getObjectPath());
                     
                     String hardSizeStr = getCIMPropertyValue(poolInstance,

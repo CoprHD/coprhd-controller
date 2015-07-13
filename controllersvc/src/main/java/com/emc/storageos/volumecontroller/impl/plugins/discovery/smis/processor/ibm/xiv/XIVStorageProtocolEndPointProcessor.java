@@ -72,7 +72,7 @@ public class XIVStorageProtocolEndPointProcessor extends StorageEndPointProcesso
                     URI portID = createEthernetStoragePort(keyMap, port, name,
                             portInstanceID, newPorts, existingPorts);
                     keyMap.put(endPointInstance.getObjectPath().toString(), portID);
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             endPointInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("SCSI End Point Discovery failed for {}-->{}", "",

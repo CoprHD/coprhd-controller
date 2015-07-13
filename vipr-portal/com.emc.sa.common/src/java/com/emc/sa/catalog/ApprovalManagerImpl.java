@@ -49,7 +49,7 @@ public class ApprovalManagerImpl implements ApprovalManager {
     
     public ApprovalRequest findFirstApprovalsByOrderId(URI orderId) {
         List<ApprovalRequest> apporvalRequests = client.approvalRequests().findByOrderId(orderId);
-        if (apporvalRequests != null && apporvalRequests.size() > 0) {
+        if (apporvalRequests != null && !apporvalRequests.isEmpty()) {
             return apporvalRequests.get(0);
         }
         return null;

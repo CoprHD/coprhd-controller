@@ -1601,10 +1601,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         }
         newExport.setSecurityFlavors(exp.getSecurityFlavors());
         
-        if(exp.getMap_all().getUser() != null && !exp.getMap_all().getUser().isEmpty())
-        	newExport.setMapAll(exp.getMap_all().getUser());
-        if(exp.getMap_root().getUser() != null && !exp.getMap_root().getUser().isEmpty())
-        	newExport.setMapRoot(exp.getMap_root().getUser());
+        if(exp.getMapAll().getUser() != null && !exp.getMapAll().getUser().isEmpty())
+        	newExport.setMapAll(exp.getMapAll().getUser());
+        if(exp.getMapRoot().getUser() != null && !exp.getMapRoot().getUser().isEmpty())
+        	newExport.setMapRoot(exp.getMapRoot().getUser());
         
         return newExport;
     }

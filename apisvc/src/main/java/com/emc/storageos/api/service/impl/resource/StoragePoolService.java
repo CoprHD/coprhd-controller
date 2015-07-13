@@ -496,9 +496,9 @@ public class StoragePoolService extends TaggedResource {
         /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error("Failed to record event. Event description: {}. Error: {}.",
-                    description, th);
+                    description, ex);
         }
     }
 
@@ -519,7 +519,7 @@ public class StoragePoolService extends TaggedResource {
             }
             
             _log.debug("validate pool of type {} for limit of {}.", resType, thinPoolSubscriptionPercentageLimit);
-            if (resType.equals(StoragePool.SupportedResourceTypes.THICK_ONLY)) {
+            if (resType.equals(StoragePool.SupportedResourceTypes.THICK_ONLY.name())) {
                 return false;
             }
         }

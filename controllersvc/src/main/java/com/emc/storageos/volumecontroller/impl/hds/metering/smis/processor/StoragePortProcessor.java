@@ -43,7 +43,7 @@ public class StoragePortProcessor extends Processor {
 				CIMInstance storagePortInstance = it.next();
 				if ("4".equalsIgnoreCase(getCIMPropertyValue(
 						storagePortInstance, LINKTECHNOLOGY))) {
-					addPath(keyMap, operation.get_result(),
+					addPath(keyMap, operation.getResult(),
 							storagePortInstance.getObjectPath());
 				}
 			}

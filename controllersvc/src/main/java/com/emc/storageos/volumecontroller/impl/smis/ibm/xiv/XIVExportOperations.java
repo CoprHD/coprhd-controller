@@ -762,7 +762,7 @@ public class XIVExportOperations implements ExportMaskOperations {
                 Set existingVolumes = (mask.getExistingVolumes() != null) ? mask
                         .getExistingVolumes().keySet() : Collections.emptySet();
 
-                builder.append(String.format("\nXM object: %s I{%s} V:{%s}\n",
+                builder.append(String.format("%nXM object: %s I{%s} V:{%s}%n",
                         name, Joiner.on(',').join(existingInitiators), Joiner
                                 .on(',').join(existingVolumes)));
 

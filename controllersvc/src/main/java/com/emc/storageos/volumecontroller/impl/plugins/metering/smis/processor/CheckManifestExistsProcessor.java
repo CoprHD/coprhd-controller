@@ -48,7 +48,7 @@ public class CheckManifestExistsProcessor extends Processor {
                     String manifestName = getCIMPropertyValue(manifestInstance, Constants.ELEMENTNAME);
                     if (null != manifestName && Constants.MANIFEST_COLLECTION_NAME.equalsIgnoreCase(manifestName)) {
                         _logger.info("Found manifest in provider {}", manifestName);
-                        addPath(keyMap, operation.get_result(), manifestInstance.getObjectPath());
+                        addPath(keyMap, operation.getResult(), manifestInstance.getObjectPath());
                         List<String> manifestCollectionList = (List<String>) keyMap.get(Constants.MANIFEST_EXISTS);
                         manifestCollectionList.remove(Constants.MANIFEST_COLLECTION_NAME);
                         break;

@@ -21,12 +21,17 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Job for Discover.
  */
 public class DataCollectionDiscoverJob extends DataCollectionJob implements Serializable {
 
     private static final long serialVersionUID = -4345688816281981819L;
+    private static final Logger logger = LoggerFactory
+            .getLogger(DataCollectionDiscoverJob.class);
     private final DataCollectionTaskCompleter _completer;
     private String _namespace;
 
@@ -84,7 +89,9 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
         try {
             sys = getCompleter().getId().toString();
         }
-        catch (Exception ex) {}
+        catch (Exception ex) {
+            logger.error("Exception occurred while geting system id from completer", ex);
+        }
         return sys;
     }
 

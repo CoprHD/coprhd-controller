@@ -31,7 +31,7 @@ public class TagUtils {
     }    
     
     public static String getTagValue(DataObjectRestRep dataObject, String tagName) {
-        if (dataObject == null || (dataObject != null && dataObject.getTags() == null)) {
+        if (dataObject == null || (dataObject.getTags() == null)) {
             return null;
         }
 

@@ -63,7 +63,6 @@ public class XIVStorageIPProtocolEndPointProcessor extends StorageEndPointProces
             }
         } catch (Exception e) {
             _logger.error("Port IP End Point Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

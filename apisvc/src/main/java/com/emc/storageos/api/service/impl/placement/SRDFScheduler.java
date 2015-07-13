@@ -1003,9 +1003,8 @@ public class SRDFScheduler implements Scheduler {
             cgName = cgObj.getLabel();
         }
         for (RemoteDirectorGroup raGroup : groups) {
-            if (null != raGroup.getSourceReplicationGroupName()
-                    && (raGroup.getSourceReplicationGroupName().contains(cgName) || raGroup
-                            .getSourceReplicationGroupName().contains(cgName))) {
+            if ((null != raGroup.getSourceReplicationGroupName() && raGroup.getSourceReplicationGroupName().contains(cgName)) 
+            		|| (null != raGroup.getTargetReplicationGroupName() && raGroup.getSourceReplicationGroupName().contains(cgName))) {
                 _log.info(
                         "Found the RDF Group {}  which contains the CG {}. Processing the RDF Group for other validations.",
                         raGroup.getId(), cgObj.getId());
@@ -1110,7 +1109,7 @@ public class SRDFScheduler implements Scheduler {
             // decision to come.
             if (raGroup.getSupportedCopyMode() == null) {
                 _log.warn(String
-                        .format("SRDF RA Group Placement: Copy Mode not set on RA Group, probably an unsupported SRDF Deployment: ",
+                        .format("SRDF RA Group Placement: Copy Mode not set on RA Group %s, probably an unsupported SRDF Deployment: ",
                                 raGroup.getLabel()));
             }
             

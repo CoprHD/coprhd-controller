@@ -190,7 +190,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             _logger.info("Left over unManaged masks {} to process", unManagedMasks.size());
             
             List<UnManagedExportMask> eligibleMasks = null;
-            if (unManagedMasks.size() > 0) {
+            if (!unManagedMasks.isEmpty()) {
                 if (null != param.getCluster()) {
                     _logger.info("Processing Cluster {} with label {}", cluster.getId(), cluster.getLabel());
                     cluster = _dbClient.queryObject(Cluster.class, param.getCluster());
@@ -241,7 +241,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForHost(blockObject, unManagedMasks, initiatorSet,
                             iniByProtocol, _dbClient, param.getVarray(), param.getVpool(), hostPartOfCluster,
                             getInitiatorsOfCluster(host.getCluster(), hostPartOfCluster), null);
-                    if (eligibleMasks.size() > 0) {
+                    if (!eligibleMasks.isEmpty()) {
                         _logger.info("Eligible masks {} found for Host {}", Joiner.on(",").join(eligibleMasks), host.getId());
                     } else {
                         _logger.info("No eligible unmanaged export masks found for Host {}", host.getId());

@@ -72,7 +72,7 @@ import org.apache.curator.utils.ZKPaths;
  */
 public class WorkflowService {
     private static final Logger _log = LoggerFactory.getLogger(WorkflowService.class);
-    private static WorkflowService _instance = null;
+    private static volatile WorkflowService _instance = null;
     private DbClient _dbClient;
     private CoordinatorClient _coordinator;
     private DistributedDataManager _dataManager;
@@ -173,7 +173,7 @@ public class WorkflowService {
             _dataManager.setListener(null);
             _dataManager.setConnectionStateListener(null);
         } catch (Exception ex) {
-
+        	_log.error(ex.getMessage(), ex);
         }
     }
 
@@ -987,6 +987,7 @@ public class WorkflowService {
                     logWorkflow.setCompletionState(state.name());
                     logWorkflow.setCompletionMessage(errorMessage[0]);
                 } catch (WorkflowException ex) {
+                	_log.error(ex.getMessage(), ex);
                 }
             }
             if( created ){
@@ -1183,6 +1184,7 @@ public class WorkflowService {
                 return true;
             }
         } catch (Exception ex) {
+        	_log.error(ex.getMessage(), ex);
         }
         return false;
     }

@@ -61,8 +61,8 @@ public class BlockMirrorTaskCompleter extends TaskCompleter {
         try {
             eventManager.recordEvents(event);
             _log.info("Bourne {} event recorded", evtType);
-        } catch (Throwable t) {
-            _log.error("Failed to record event. Event description: {}. Error: ", evtType, t);
+        } catch (Exception ex) {
+            _log.error("Failed to record event. Event description: {}. Error: ", evtType, ex);
         }
     }
 

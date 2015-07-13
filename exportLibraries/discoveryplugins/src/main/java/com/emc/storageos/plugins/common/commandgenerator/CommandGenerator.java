@@ -69,7 +69,7 @@ public class CommandGenerator {
      */
     protected int getMaxLength(final Operation operation, final Map<String, Object> keyMap)
             throws BaseCollectionException {
-        final List<Object> argobjects = operation.get_arguments();
+        final List<Object> argobjects = operation.getArguments();
         int size = 1;
         StringBuilder sb = new StringBuilder();
         sb.append("Commands Objects to get Generated for Path : ");
@@ -81,8 +81,8 @@ public class CommandGenerator {
         } else {
         for (Object argobj : argobjects) {
             Argument arg = (Argument) argobj;
-            if (arg.get_method().contains("Reference")) {
-                String objectpath = (String) arg.get_value();
+            if (arg.getMethod().contains("Reference")) {
+                String objectpath = (String) arg.getValue();
                 if (keyMap.containsKey(objectpath)) {
                     sb.append(objectpath);
                     Object resultObj = keyMap.get(objectpath);
@@ -127,7 +127,7 @@ public class CommandGenerator {
         final CommandImpl commandobj = new CommandImpl();
         commandobj.setInputArgs(_util.returnInputArgs(operation, componentMap, index));
         final Object instance = _util.returnInstanceToRun(operation, componentMap, index);
-        commandobj.setMethod(_util.getMethod(operation, operation.get_method(), instance,
+        commandobj.setMethod(_util.getMethod(operation, operation.getMethod(), instance,
                 Util.ENDPOINTS.OPERATION.toString()));
         commandobj.setInstance(instance);
         commandobj.setCommandIndex(index);

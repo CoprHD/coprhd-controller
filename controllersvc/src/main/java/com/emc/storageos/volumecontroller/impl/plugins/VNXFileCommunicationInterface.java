@@ -122,8 +122,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Executor to execute the operations.
      */
-    private VNXFileExecutor _executor;
-    private NamespaceList _namespaces;
+    private VNXFileExecutor executor;
+    private NamespaceList namespaces;
 
     private VNXFileDiscExecutor _discExecutor;
     private NamespaceList       _discNamespaces;
@@ -140,7 +140,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         _keyMap.put(VNXFileConstants.DEVICETYPE, accessProfile.getSystemType());
         _keyMap.put(VNXFileConstants.DBCLIENT, _dbClient);
         _keyMap.put(VNXFileConstants.USERNAME, accessProfile.getUserName());
-        _keyMap.put(VNXFileConstants.USER_PASSWORD, accessProfile.getPassword());
+        _keyMap.put(VNXFileConstants.USER_PASS_WORD, accessProfile.getPassword());
         _keyMap.put(VNXFileConstants.URI, getServerUri(accessProfile));
         _keyMap.put(VNXFileConstants.PORTNUMBER, accessProfile.getPortNumber());
         _keyMap.put(Constants._Stats, new LinkedList<Stat>());
@@ -152,8 +152,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 + Constants._File;
         _keyMap.put(Constants._globalCacheKey, globalCacheKey);
         _keyMap.put(Constants.PROPS, accessProfile.getProps());
-        if(_executor != null){
-            _executor.set_keyMap(_keyMap);
+        if(executor != null){
+            executor.setKeyMap(_keyMap);
             _logger.debug("Map set on executor....");
         }
     }
@@ -210,7 +210,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * @return the _executor
      */
     public VNXFileExecutor getExecutor() {
-        return _executor;
+        return executor;
     }
 
     /**
@@ -220,7 +220,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      *            the _executor to set
      */
     public void setExecutor(final VNXFileExecutor executor) {
-        _executor = executor;
+        this.executor = executor;
     }
 
     @Override
@@ -233,7 +233,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // to execute operations & process the result.
             populateMap(accessProfile);
             // Read the operations and execute them.
-            _executor.execute((Namespace) _namespaces.getNsList().get(METERINGFILE));
+            executor.execute((Namespace) namespaces.getNsList().get(METERINGFILE));
             dumpStatRecords();
             injectStats();
             _logger.info("End collecting statistics for ip address {}",
@@ -247,16 +247,16 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * releaseResources
      */
     private void releaseResources() {
-        _executor = null;
-        _namespaces = null;
+        executor = null;
+        namespaces = null;
     }
 
-    public void set_namespaces(NamespaceList namespaces) {
-        _namespaces = namespaces;
+    public void setNamespaces(NamespaceList namespaces) {
+        this.namespaces = namespaces;
     }
     
-    public NamespaceList get_namespaces() {
-        return _namespaces;
+    public NamespaceList getNamespaces() {
+        return namespaces;
     }
 
     /**
@@ -2347,9 +2347,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // Retrieve list of File Systems from the VNX file device.
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_SELECTED_FS));
-            fileSystems = (List<VNXFileSystem>) _discExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEMS);
+            fileSystems = (List<VNXFileSystem>) _discExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEMS);
             if ((fileSystems != null) && !(fileSystems.isEmpty())) {
                 _logger.info("Number of file systems found: {}", fileSystems.size());
                 fileSystem = fileSystems.get(0);
@@ -2403,13 +2403,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
             _logger.info("{}", _discExecutor);
             
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _logger.info("{}",(Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePool"));
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePool"));
             storagePools = (ArrayList<VNXStoragePool>) _discExecutor
-                    .get_keyMap().get(VNXFileConstants.STORAGEPOOLS);
+                    .getKeyMap().get(VNXFileConstants.STORAGEPOOLS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get control station op failed", e);
         }
@@ -2424,11 +2424,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileControlStation"));
             
-            station = (VNXControlStation) _discExecutor.get_keyMap().get(
+            station = (VNXControlStation) _discExecutor.getKeyMap().get(
                     VNXFileConstants.CONTROL_STATION_INFO);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get control station op failed", e);
@@ -2444,10 +2444,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePortGroup"));
-            dataMovers = (ArrayList<VNXDataMover>) _discExecutor.get_keyMap()
+            dataMovers = (ArrayList<VNXDataMover>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.STORAGE_PORT_GROUPS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get Port Groups op failed", e);
@@ -2465,10 +2465,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             reqAttributeMap.put(VNXFileConstants.MOVER_ID, Integer.toString(mover.getId()));
             reqAttributeMap.put(VNXFileConstants.ISVDM, "false");
 
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_CIFS_CONFIG));
 
-            cifsSupported = (Boolean)_discExecutor.get_keyMap().get(VNXFileConstants.CIFS_SUPPORTED);
+            cifsSupported = (Boolean)_discExecutor.getKeyMap().get(VNXFileConstants.CIFS_SUPPORTED);
 
         } catch (BaseCollectionException e) {
             throw new VNXException("check CIFS Enabled op failed", e);
@@ -2486,10 +2486,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverId);
             reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
 
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_CIFS_CONFIG));
 
-            cifsServers = (List<VNXCifsServer>)_discExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            cifsServers = (List<VNXCifsServer>)_discExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
 
         } catch (BaseCollectionException e) {
             throw new VNXException("Get CifServers op failed", e);
@@ -2504,10 +2504,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
 
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_CIFS_CONFIG));
 
-            cifsServers = (List<VNXCifsServer>)_discExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            cifsServers = (List<VNXCifsServer>)_discExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
 
         } catch (BaseCollectionException e) {
             throw new VNXException("Get CifServers op failed", e);
@@ -2523,10 +2523,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePort"));
-            dataMovers = (ArrayList<VNXDataMoverIntf>) _discExecutor.get_keyMap()
+            dataMovers = (ArrayList<VNXDataMoverIntf>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.STORAGE_PORTS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get Port op failed", e);
@@ -2542,10 +2542,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileVdm"));
-            vdms = (ArrayList<VNXVdm>) _discExecutor.get_keyMap()
+            vdms = (ArrayList<VNXVdm>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.VDM_INFO);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get Vdm Port Groups op failed", e);
@@ -2564,10 +2564,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePort"));
-            dataMoverInterfaces = (ArrayList<VNXDataMoverIntf>) _discExecutor.get_keyMap()
+            dataMoverInterfaces = (ArrayList<VNXDataMoverIntf>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.STORAGE_PORTS);
             //Make map
             for(VNXDataMoverIntf intf:dataMoverInterfaces){
@@ -2616,11 +2616,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileSystem"));
 
-            fileSystems = (ArrayList<VNXFileSystem>) _discExecutor.get_keyMap()
+            fileSystems = (ArrayList<VNXFileSystem>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.FILESYSTEMS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get FileSystems op failed", e);
@@ -3158,7 +3158,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         reqAttributeMap.put(VNXFileConstants.DEVICETYPE, system.getSystemType());
         reqAttributeMap.put(VNXFileConstants.DBCLIENT, _dbClient);
         reqAttributeMap.put(VNXFileConstants.USERNAME, system.getUsername());
-        reqAttributeMap.put(VNXFileConstants.USER_PASSWORD, system.getPassword());
+        reqAttributeMap.put(VNXFileConstants.USER_PASS_WORD, system.getPassword());
         reqAttributeMap.put(VNXFileConstants.PORTNUMBER, system.getPortNumber());
 
         AccessProfile profile = new AccessProfile();

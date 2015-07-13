@@ -622,7 +622,7 @@ public class ExportVerificationUtility {
 		String opName = ExportOperationType.DELETE.name();
 		// Report Delete Export Errors
 		ExportRules listExportRules = param.getExportRulesToDelete();
-		if (listExportRules == null || listExportRules.getExportRules().size() == 0)
+		if (listExportRules == null || listExportRules.getExportRules().isEmpty())
 			return;
 
 		List<ExportRule> listExportRule = listExportRules.getExportRules();

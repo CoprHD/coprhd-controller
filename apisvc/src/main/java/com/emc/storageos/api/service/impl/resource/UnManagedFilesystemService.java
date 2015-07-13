@@ -468,7 +468,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                          List<UnManagedCifsShareACL> cifsACLs = queryDBCifsShares(unManagedFileSystem);
                           _logger.info("Number of Cifs ACL Found : {} for UnManaged Fs path : {}", cifsACLs.size(), unManagedFileSystem.getMountPath());
                           
-                          if (!cifsACLs.isEmpty()){
+                          if (!cifsACLs.isEmpty() && !cifsACLs.isEmpty()){
                         	  for(UnManagedCifsShareACL umCifsAcl : cifsACLs){
                                   // Step 2 : Convert them to Cifs Share ACL
                                   // Step 3 : Keep them as a list to store in db, down the line at a shot
@@ -538,7 +538,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 ++i;
                 _logger.info("{} --> Saving New Cifs ACL to DB {}", i, acl);
             }
-            if(!fsCifsShareAcls.isEmpty()) {
+            
+            if(!fsCifsShareAcls.isEmpty() && !fsCifsShareAcls.isEmpty()) {
                 _dbClient.createObject(fsCifsShareAcls);
             }
 

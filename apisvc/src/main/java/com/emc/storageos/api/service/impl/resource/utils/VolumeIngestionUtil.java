@@ -262,7 +262,7 @@ public class VolumeIngestionUtil {
      */
     public static boolean checkVPoolValidForExportInitiatorProtocols(
             VirtualPool vpool, UnManagedVolume unManagedVolume, DbClient dbClient) {
-        if (unManagedVolume.getInitiatorUris().size() == 0) {
+        if (unManagedVolume.getInitiatorUris().isEmpty()) {
             _logger.info("unmanaged volume {} has no initiators, so no need to verify vpool protocols", 
                     unManagedVolume.getNativeGuid());
             return true;
@@ -312,7 +312,7 @@ public class VolumeIngestionUtil {
         List<URI> targetUriList = new ArrayList<URI>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
-            if (null != targetUris && targetUris.size() > 0) {
+            if (null != targetUris && !targetUris.isEmpty()) {
                 targetUriList.addAll(targetUris);
             } else {
                 _logger.info("Volume not ingested yet {}", targetId);
@@ -325,7 +325,7 @@ public class VolumeIngestionUtil {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
-            if (null != targetUris && targetUris.size() > 0) {
+            if (null != targetUris && !targetUris.isEmpty()) {
                 targetUriList.add((BlockObject)dbClient.queryObject(targetUris.get(0)));
             } else {
                 _logger.info("Clone not ingested yet {}. Checking in the created object map", targetId);
@@ -344,7 +344,7 @@ public class VolumeIngestionUtil {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getMirrorByNativeGuid(targetId));
-            if (null != targetUris && targetUris.size() > 0) {
+            if (null != targetUris && !targetUris.isEmpty()) {
                 targetUriList.add((BlockObject)dbClient.queryObject(targetUris.get(0)));
             } else {
                 _logger.info("Mirror not ingested yet {}", targetId);
@@ -363,7 +363,7 @@ public class VolumeIngestionUtil {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(targetId));
-            if (null != targetUris && targetUris.size() > 0) {
+            if (null != targetUris && !targetUris.isEmpty()) {
                 targetUriList.add((BlockObject)dbClient.queryObject(targetUris.get(0)));
             } else {
                 _logger.info("Snap not ingested yet {}", targetId);
@@ -390,7 +390,7 @@ public class VolumeIngestionUtil {
         List<URI> targetUriList = new ArrayList<URI>();
         for (String targetId : targets) {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeInfoNativeIdConstraint(targetId));
-            if (null != targetUris && targetUris.size() > 0) {
+            if (null != targetUris && !targetUris.isEmpty()) {
                 targetUriList.addAll(targetUris);
             } else {
                 _logger.info("UnManagedVolume not yet ingested {}", targetId);
@@ -802,7 +802,7 @@ public class VolumeIngestionUtil {
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, 
                         unManagedVolume.getStorageSystemUri());
                 
-                if (groups.size() > 0) {
+                if (!groups.isEmpty()) {
                     for (BlockConsistencyGroup cg : groups) {
                         // need to check for several matching properties
                         URI storageControllerUri = cg.getStorageController();
@@ -967,7 +967,7 @@ public class VolumeIngestionUtil {
         Set<String> storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
                 CommonTransformerFunctions.FCTN_URI_TO_STRING)));
         SetView<String> diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
-        if (diff.size() != 0) {
+        if (!diff.isEmpty()) {
             _logger.warn("Storage Ports {} in unmanaged mask {} is not available in VArray {}", new Object[] {
                     Joiner.on(",").join(diff), mask.getMaskName(), varray });
             if (volume instanceof Volume) {
@@ -982,7 +982,7 @@ public class VolumeIngestionUtil {
                     storagePortUriStr = new HashSet<String>((Collections2.transform(storagePortUris,
                             CommonTransformerFunctions.FCTN_URI_TO_STRING)));
                     diff = Sets.difference(portsInUnManagedMask, storagePortUriStr);
-                    if (diff.size() != 0) {
+                    if (!diff.isEmpty()) {
                         _logger.warn("Storage Ports {} in unmanaged mask {} are not available in high "
                                 + "availability varray {}, matching fails",
                                 new Object[] { Joiner.on(",").join(diff), mask.getMaskName(), haVarray });
@@ -1120,7 +1120,7 @@ public class VolumeIngestionUtil {
                 itr.remove();
                 continue;
             }
-            if (null != mask.getKnownInitiatorUris() && mask.getKnownInitiatorUris().size() > 0) {
+            if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
             	
             	  _logger.info("Group initiators by protocol {}",
                           Joiner.on(",").join(iniByProtocol.entrySet()));
@@ -1142,7 +1142,7 @@ public class VolumeIngestionUtil {
                         Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(entry.getValue(),
                                 mask.getKnownInitiatorUris());
 
-                        if (ViPRDiscToExistingKnownInisDiff.size() == 0) {
+                        if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
 
                             // check whether remaining existing initiators on
                             // mask are part of the cluster
@@ -1169,7 +1169,7 @@ public class VolumeIngestionUtil {
                             Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
                                     entry.getValue());
 
-                            if (existingknownInisToViprDiscDiff.size() == 0) {
+                            if (existingknownInisToViprDiscDiff.isEmpty()) {
                                 _logger.info("Matched Mask Found {}, as existing ViPR known initiators are a complete subset of ViPR discovered.",
                                         mask.getMaskName());
                                 if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(), 
@@ -1190,7 +1190,7 @@ public class VolumeIngestionUtil {
                         Set<String> existingknownInisToViprDiscDiff = Sets.difference(mask.getKnownInitiatorUris(),
                                 entry.getValue());
 
-                        if (existingknownInisToViprDiscDiff.size() == 0) {
+                        if (existingknownInisToViprDiscDiff.isEmpty()) {
                             _logger.info("Matched Mask Found after Grouping by Protocol {}", mask.getMaskName());
                             if (verifyNumPath(Collections.singletonList(initiatorUris), mask.getZoningMap(), 
                                     volume, vPoolURI, dbClient)) {
@@ -1247,7 +1247,7 @@ public class VolumeIngestionUtil {
             
                 // if required initiators are available in the mask, then choose it,
                 // irrespective of actual initiators on the MV on Array
-                if (null != mask.getKnownInitiatorUris() && mask.getKnownInitiatorUris().size() > 0) {
+                if (null != mask.getKnownInitiatorUris() && !mask.getKnownInitiatorUris().isEmpty()) {
                     
                     for (Entry<String,Set<String>> entry : clusterIniByProtocol.entrySet()) {
                         _logger.info("Processing Initiators by Protocol {} Group", entry.getValue());
@@ -1261,7 +1261,7 @@ public class VolumeIngestionUtil {
                          * case 2:  I1,I2                     I1,I2,I3       -- mask selected
                          * case 3:  I1,I3                     I1,I2       -- not selected
                          */
-                        if (existingknownInisToViprDiscDiff.size() == 0) {
+                        if (existingknownInisToViprDiscDiff.isEmpty()) {
                             _logger.info("Mask Found {}, as existing ViPR known initiators are a complete subset of ViPR discovered. try to find whether the subset is actually corresponds to 1" +
                             		"Node in a cluster, if yes then skip this, as the existing mask is meant for Exclusive mode exports.",
                                     mask.getMaskName());
@@ -1278,7 +1278,7 @@ public class VolumeIngestionUtil {
                             _logger.info("Existing ViPR known Initiators are not a complete subset of ViPR discovered, check whether ViPR discovered are a subset of existing");
                             Set<String> ViPRDiscToExistingKnownInisDiff = Sets.difference(entry.getValue(),
                                     mask.getKnownInitiatorUris());
-                            if (ViPRDiscToExistingKnownInisDiff.size() == 0) {
+                            if (ViPRDiscToExistingKnownInisDiff.isEmpty()) {
                                 _logger.info("Mask Found {} with a subset of ViPR initiators in existing mask.",mask.getMaskName());
                                 if (verifyNumPath(initiatorUris, mask.getZoningMap(), volume, vPoolURI, dbClient)) {
                                     eligibleMasks.add(mask);
@@ -1314,7 +1314,7 @@ public class VolumeIngestionUtil {
         }
         
         
-        if (maskErrorMessages.size() > 0) {
+        if (!maskErrorMessages.isEmpty()) {
             String message = maskErrorMessages.size() + " of " + unManagedMasks.size() + " unmanaged export mask(s) failed zoning checks: ";
             String messages = Joiner.on("; ").join(maskErrorMessages);
             _logger.error(message + messages);
@@ -1401,7 +1401,7 @@ public class VolumeIngestionUtil {
         for (Initiator initiator : initiators) {
             if (initiator.getHostName() != null) hostName = initiator.getHostName();
             StringSet ports = zoningMap.get(initiator.getId().toString());
-            if (ports == null || ports.size() == 0) {
+            if (ports == null || ports.isEmpty()) {
                 unassignedInitiators++;
                 _logger.info("Initiator {} of host {} is not assigned to any ports.", 
                         new Object[] {initiator.getInitiatorPort(), hostName});
@@ -1420,19 +1420,19 @@ public class VolumeIngestionUtil {
 
         }
         if (totalPorts < pathParams.getMinPaths()) {
-            _logger.error(String.format("Host %s (%s) has fewer ports assigned %s than min_paths %s", 
+            _logger.error(String.format("Host %s (%s) has fewer ports assigned %d than min_paths %d", 
                     new Object[] {hostName, hostURI, totalPorts, pathParams.getMinPaths()}));
             throw IngestionException.exceptions.hostZoningHasFewerPorts(hostName, 
                     String.valueOf(totalPorts), String.valueOf(pathParams.getMinPaths()));
         }
         if (totalPorts > pathParams.getMaxPaths()) {
-            _logger.error(String.format("Host %s (%s) has more ports assigned %s than max_paths %s", 
+            _logger.error(String.format("Host %s (%s) has more ports assigned %d than max_paths %d", 
                     new Object[] {hostName, hostURI, totalPorts, pathParams.getMaxPaths()}));
             throw IngestionException.exceptions.hostZoningHasMorePorts(hostName, 
                     String.valueOf(totalPorts), String.valueOf(pathParams.getMaxPaths()));
         }
         if (unassignedInitiators > 0) {
-            _logger.info(String.format("Host %s (%s) has %s unassigned initiators", 
+            _logger.info(String.format("Host %s (%s) has %d unassigned initiators", 
                     new Object[] {hostName, hostURI, unassignedInitiators}));
         }
         return true;
@@ -1475,12 +1475,12 @@ public class VolumeIngestionUtil {
         for (Initiator initiator : existingInitiators) {
             //get All unmanaged masks
             List<URI> unManagedMaskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getUnManagedExportMaskKnownInitiatorConstraint(initiator.getInitiatorPort()));
-            if (null == unManagedMaskUris || unManagedMaskUris.size() == 0) {
+            if (null == unManagedMaskUris || unManagedMaskUris.isEmpty()) {
                 _logger.info("UnManaged Masks Empty, adding initiator {}..{} to userAddedList", initiator.getId(),initiator.getInitiatorPort());
                 userAddedInis.add(initiator);   
             } else {
                 unManagedMaskUris.remove(excludeUnmanagedMask);
-                if (unManagedMaskUris.size() == 0) {
+                if (unManagedMaskUris.isEmpty()) {
                     userAddedInis.add(initiator);
                     
                 }
@@ -1548,7 +1548,7 @@ public class VolumeIngestionUtil {
         List<URI> exportGroupUris = dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectExportGroupConstraint(project));
         List<ExportGroup> exportGroups = dbClient.queryObject(ExportGroup.class,exportGroupUris);
         
-        if (null == exportGroups || exportGroups.size() == 0) return null;
+        if (null == exportGroups || exportGroups.isEmpty()) return null;
         for (ExportGroup exportGroup : exportGroups) {
         	if (exportGroup.getVirtualArray().equals(vArray)) {
         	    
@@ -1622,7 +1622,7 @@ public class VolumeIngestionUtil {
             if (unmanagedVolume == null || unmanagedVolume.getInactive() == true) continue;
             Set<String> inisOfunManagedMask = getInitiatorsOfUnmanagedExportMask(unmanagedVolume, cache, dbClient);
             Set<String> interSection = Sets.intersection(clusterInis, inisOfunManagedMask);
-            if (interSection.size() == 0) {
+            if (interSection.isEmpty()) {
                 unmanagedVolumes.add(unmanagedVolume);
                 _logger.info("   volume: " + unmanagedVolume.getLabel() + " nativeGuid: " + unmanagedVolume.getNativeGuid());
             } else {
@@ -1631,7 +1631,7 @@ public class VolumeIngestionUtil {
             
         }
             
-        if (unmanagedVolumes.size() <= 0) {
+        if (unmanagedVolumes.isEmpty()) {
             _logger.info("   did not find any unmanaged volumes for this host");
         }
         
@@ -1751,7 +1751,7 @@ public class VolumeIngestionUtil {
             uems.add(uem);
             _logger.info("   maskName: " + uem.getMaskName() + " nativeGuid: " + uem.getNativeGuid() );
         }
-        if (uems.size() <= 0) {
+        if (uems.isEmpty()) {
             _logger.info("   did not find any unmanaged export masks for this host");
         }
         
@@ -1823,7 +1823,7 @@ public class VolumeIngestionUtil {
      */
     public static boolean canDeleteUnManagedVolume(UnManagedVolume unManagedVolume) {
         return null == unManagedVolume.getUnmanagedExportMasks()
-                || unManagedVolume.getUnmanagedExportMasks().size() == 0;
+                || unManagedVolume.getUnmanagedExportMasks().isEmpty();
     }
     
     /**
@@ -1958,7 +1958,7 @@ public class VolumeIngestionUtil {
         String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
         List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
         List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
-        if(unManagedVolumes != null && unManagedVolumes.size() > 0) {
+        if(unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
             UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
             // Get the exportGroupType from the unManagedVolume
             String exportGroupType = unManagedVolume.getVolumeCharacterstics().get(SupportedVolumeCharacterstics.EXPORTGROUP_TYPE.toString());
@@ -2040,21 +2040,21 @@ public class VolumeIngestionUtil {
         BlockObject blockObject = null;
         _logger.info("Checking for unmanagedvolume {} [Volume] ingestion status.", nativeGUID);
         List<URI> blockObjectUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGUID));
-        if (blockObjectUris.size() > 0) {
+        if (!blockObjectUris.isEmpty()) {
             _logger.info("Found volume {} ingested.", nativeGUID);
             return BlockObject.fetch(dbClient, blockObjectUris.get(0));
         }
         _logger.info("Checking for unmanagedvolume {} [Snap] ingestion status", nativeGUID);
          blockObjectUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(nativeGUID));
             
-        if (blockObjectUris.size() > 0) {
+        if (!blockObjectUris.isEmpty()) {
             _logger.info("Found snapshot {} ingested.", nativeGUID);
             return BlockObject.fetch(dbClient, blockObjectUris.get(0));
         }
         
         _logger.info("Checking for unmanagedvolume {} [Mirror] ingestion status", nativeGUID);
         blockObjectUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getMirrorByNativeGuid(nativeGUID));
-        if (blockObjectUris.size() > 0) {
+        if (!blockObjectUris.isEmpty()) {
             _logger.info("Found mirror {} ingested.", nativeGUID);
             return BlockObject.fetch(dbClient, blockObjectUris.get(0));
         }

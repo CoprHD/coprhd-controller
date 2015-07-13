@@ -557,6 +557,7 @@ public class VNXFileSshApi {
                 try {
                     in.close();
                 } catch (IOException ignored) {
+                	_log.error(ignored.getMessage(), ignored);
                 }
             }
 

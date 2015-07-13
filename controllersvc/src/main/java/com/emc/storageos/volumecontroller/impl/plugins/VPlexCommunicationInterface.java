@@ -641,7 +641,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             
         } catch (Exception ex) {
             s_logger.error("An error occurred during VPLEX unmanaged volume discovery", ex);
-            ex.printStackTrace();
             String vplexLabel = vplexUri.toString();
             if (null != vplex) {
                 vplexLabel = vplex.getLabel();
@@ -870,7 +869,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         if (unManagedVolumeInformation
                 .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
 
-            if (null != matchedVPools && matchedVPools.size() == 0) {
+            if (null != matchedVPools && matchedVPools.isEmpty()) {
                 // replace with empty string set doesn't work, hence added explicit code to remove all
                 unManagedVolumeInformation.get(
                         SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
@@ -979,7 +978,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
         SetView<URI> onlyAvailableinDB = Sets.difference(unManagedVolumesInDBSet, allUnmanagedVolumes);
 
-        if (onlyAvailableinDB != null && onlyAvailableinDB.size() > 0) {
+        if (onlyAvailableinDB != null && !onlyAvailableinDB.isEmpty()) {
             s_logger.info("UnManagedVolumes to be Removed : " + Joiner.on("\t").join(onlyAvailableinDB));
             List<UnManagedVolume> volumesToBeDeleted = new ArrayList<UnManagedVolume>();
             Iterator<UnManagedVolume> unManagedVolumes =  _dbClient.queryIterativeObjects(UnManagedVolume.class, 
@@ -997,7 +996,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 volumesToBeDeleted.add(volume);
             }
             
-            if (volumesToBeDeleted.size() > 0 ) {
+            if (!volumesToBeDeleted.isEmpty()) {
                 _partitionManager.updateAndReIndexInBatches(volumesToBeDeleted, 
                         Constants.DEFAULT_PARTITION_SIZE, _dbClient, UNMANAGED_VOLUME);
             }
@@ -1123,7 +1122,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 s_logger.info("now discovering storage ports in storage view " + storageView.getName());
                 List<String> storagePorts = storageView.getPorts();
                 
-                if (storagePorts.size() == 0) {
+                if (storagePorts.isEmpty()) {
                     s_logger.info("no storage ports found in storage view " + storageView.getName());
                     // continue;  ?
                 }
@@ -1284,7 +1283,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         SetView<URI> onlyAvailableinDB =  Sets.difference(allMasksInDatabase, allCurrentUnManagedExportMaskUris);
         
-        if (onlyAvailableinDB.size() > 0) {
+        if (!onlyAvailableinDB.isEmpty()) {
             s_logger.info("these UnManagedExportMasks are orphaned and will be cleaned up:" 
                     + Joiner.on("\t").join(onlyAvailableinDB));
 
@@ -1304,7 +1303,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 uem.setInactive(true);
                 unManagedExportMasksToBeDeleted.add(uem);
             }
-            if (unManagedExportMasksToBeDeleted.size() > 0 ) {
+            if (!unManagedExportMasksToBeDeleted.isEmpty()) {
                 _partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, BATCH_SIZE,
                         _dbClient, UNMANAGED_EXPORT_MASK);
             }

@@ -409,6 +409,7 @@ public class ResourceUtils {
      *        the second ID.
      * @return true if and only if the IDs are non-null and equal.
      */
+    @SuppressWarnings("squid:S1201")
     public static boolean equals(URI first, URI second) {
         if ((first != null) && (second != null)) {
             return first.equals(second);

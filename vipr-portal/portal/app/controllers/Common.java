@@ -111,9 +111,9 @@ public class Common extends Controller {
     @Before(priority=0)
     public static void xssCheck() {
     	String[] data = params.getAll("name");
-    	if (data == null)
+    	if (data == null) {
     		return;
-    	
+    	}
     	for (String val : data) {
     		val = SecurityUtils.stripXSS(val);
     	}
@@ -309,7 +309,9 @@ public class Common extends Controller {
             if (!StringUtils.isBlank(query)) {
                 cleanUrl += "?" + query;
             }
-        } catch (URISyntaxException ignore) {
+        } 
+        catch (URISyntaxException ignore) {
+        	Logger.error(ignore.getMessage());
         }
 
         return cleanUrl;

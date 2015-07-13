@@ -199,7 +199,7 @@ public class Security extends Controller {
     }
 
     public static boolean hasOneOfRoles(List<String> roles) {
-        if (roles == null || roles.size() == 0) {
+        if (roles == null || roles.isEmpty()) {
             return true;
         }
         for (String role : roles) {
@@ -231,7 +231,7 @@ public class Security extends Controller {
             return Deadbolt.hasRoles(roles);
         }
         // I'm not sure why deadbolt throws this
-        catch (Throwable t) {
+        catch (Throwable t) { //NOSONAR ("Suppressing Sonar violation Catch Exception instead of Throwable as the above method throws Throwable ")
             throw new RuntimeException(t);
         }
     }

@@ -130,7 +130,7 @@ AbstractExportGroupServiceApiImpl {
                     
                     // Ports should only be either in intersection1 or intersection2,
                     //if we have ports in both then its a mix ports from cluster 1 and cluster 2
-                    if (intersection1.size() != 0 && intersection2.size() != 0) {
+                    if (!intersection1.isEmpty() && !intersection2.isEmpty()) {
                         Map<URI, String> cluster1Ports = new HashMap<URI, String>();
                         Map<URI, String> cluster2Ports = new HashMap<URI, String>();
                         // Get port information so that we can print in log cluster 1 and cluster 2 ports 

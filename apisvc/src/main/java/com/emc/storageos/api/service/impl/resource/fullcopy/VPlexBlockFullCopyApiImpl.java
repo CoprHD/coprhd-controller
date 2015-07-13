@@ -180,7 +180,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        if (fcSourceObjList.size() > 0) {
+        if (!fcSourceObjList.isEmpty()) {
             URI fcSourceObjURI = fcSourceObjList.get(0).getId();
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
                 // Currently you cannot create a full copy of a VPLEX snapshot.
@@ -353,7 +353,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Prepare a new VPLEX volume for each copy.
                 Volume vplexCopyPrimaryVolume = vplexCopyPrimaryVolumes.get(i);
                 Volume vplexCopyHAVolume = null;
-                if (vplexCopyHAVolumes.size() != 0) {
+                if (!vplexCopyHAVolumes.isEmpty()) {
                     vplexCopyHAVolume = vplexCopyHAVolumes.get(i);
                 }
                 Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, count, i, size,

@@ -61,7 +61,7 @@ public class ACLUtils {
     public static boolean validateAuthProviderDomain(String name) {
     	String domain = extractDomainName(name);
     	List<AuthnProviderRestRep> authnProviderRestReps = AuthnProviderUtils.getAuthProvidersByDomainName(domain);
-    	return authnProviderRestReps != null && authnProviderRestReps.size() > 0;
+    	return authnProviderRestReps != null && !authnProviderRestReps.isEmpty();
     }
     
     private static Pattern[] getCompiledPatterns(Set<String> valueSet) {

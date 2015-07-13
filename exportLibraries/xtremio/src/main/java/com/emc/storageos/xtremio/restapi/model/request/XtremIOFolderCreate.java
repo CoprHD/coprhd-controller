@@ -28,11 +28,13 @@ public class XtremIOFolderCreate {
 	private XtremIOResponseContent[] volumeFolders;
 
     public XtremIOResponseContent[] getVolumeFolders() {
-        return volumeFolders;
+        return volumeFolders!=null ? volumeFolders.clone() : volumeFolders;
     }
 
     public void setVolumeFolders(XtremIOResponseContent[] volumeFolders) {
-        this.volumeFolders = volumeFolders;
+    	if(volumeFolders!=null){
+    		this.volumeFolders = volumeFolders.clone();
+    	}
     }
 
 }

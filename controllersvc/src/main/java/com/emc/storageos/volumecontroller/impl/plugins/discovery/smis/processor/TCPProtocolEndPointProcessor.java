@@ -64,7 +64,6 @@ public class TCPProtocolEndPointProcessor extends StorageEndPointProcessor {
             }
         } catch (Exception e) {
             _logger.error("Port TCP End Point Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

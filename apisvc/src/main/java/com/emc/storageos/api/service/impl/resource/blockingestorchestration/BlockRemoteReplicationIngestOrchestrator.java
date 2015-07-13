@@ -203,7 +203,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         if (RemoteMirrorObject.Types.SOURCE.toString().equalsIgnoreCase(type)) {
             StringSet targetUnManagedVolumeGuids = unManagedVolumeInformation.get(SupportedVolumeInformation.REMOTE_MIRRORS
                     .toString());
-            if (null != targetUnManagedVolumeGuids && targetUnManagedVolumeGuids.size() > 0) {
+            if (null != targetUnManagedVolumeGuids && !targetUnManagedVolumeGuids.isEmpty()) {
                 StringSet targetVolumeNativeGuids = VolumeIngestionUtil.getListofVolumeIds(targetUnManagedVolumeGuids);
                 List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, _dbClient);
                 if (null == targetUris || targetUris.isEmpty()) {
@@ -249,7 +249,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         // find whether all targets are ingested
         StringSet targetUnManagedVolumeGuids = unManagedVolumeInformation.get(SupportedVolumeInformation.REMOTE_MIRRORS
                 .toString());
-        if (null != targetUnManagedVolumeGuids && targetUnManagedVolumeGuids.size() > 0) {
+        if (null != targetUnManagedVolumeGuids && !targetUnManagedVolumeGuids.isEmpty()) {
             StringSet targetVolumeNativeGuids = VolumeIngestionUtil.getListofVolumeIds(targetUnManagedVolumeGuids);
             // check whether target exists
             List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, _dbClient);
@@ -289,7 +289,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
                 VolumeIngestionUtil.VOLUME);
         List<URI> sourceUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeNativeGuidConstraint(sourceVolumeId));
-        if (sourceUris.size() == 0) {
+        if (sourceUris.isEmpty()) {
             _logger.info("Source {} Not found for target {}", sourceVolumeId, unManagedVolume.getNativeGuid());
         } else {
             // if source volume is ingested, then
@@ -300,7 +300,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             VirtualPool sourceVPool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
             Map<URI, VpoolRemoteCopyProtectionSettings> settings = sourceVPool.getRemoteProtectionSettings(sourceVPool,
                     _dbClient);
-            if (null == settings || settings.size() == 0 || !settings.containsKey(virtualArray.getId())) {
+            if (null == settings || settings.isEmpty() || !settings.containsKey(virtualArray.getId())) {
                 _logger.info(
                         "Target Volume's VArray {} is not matching already ingested source volume virtual pool's remote VArray ",
                         virtualArray.getId());

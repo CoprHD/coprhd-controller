@@ -66,7 +66,7 @@ public class ManagedCapacityImpl implements Runnable {
                         AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
                                 "resourceType",
                                 type.toString()));
-                    if (dataResourcesURI.size() > 0) {
+                    if (!dataResourcesURI.isEmpty()) {
                         resource.setId(dataResourcesURI.get(0));
                         resource.setCreationTime(Calendar.getInstance());
                         dbClient.updateAndReindexObject(resource);
@@ -102,7 +102,7 @@ public class ManagedCapacityImpl implements Runnable {
 
             logMessage.append("|                 |                |                                   |\n");
             logMessage.append(
-                    String.format("|  %13s  |   %10d   |  %30s   |\n", cap.getType(),
+                    String.format("|  %13s  |   %10d   |  %30s   |%n", cap.getType(),
                             cap.getNumResources(), Double.toString(cap.getResourceCapacity())
                     ));
             logMessage.append("|                 |                |                                   |\n");
@@ -111,7 +111,7 @@ public class ManagedCapacityImpl implements Runnable {
         logMessage.append("------------------------------------------------------------------------\n");
         logMessage.append("|                 |                |                                   |\n");
         logMessage.append(
-                String.format("|   TOTAL         |                |  %30s   |\n",Double.toString(total)));
+                String.format("|   TOTAL         |                |  %30s   |%n",Double.toString(total)));
         logMessage.append("|                 |                |                                   |\n");
         logMessage.append("------------------------------------------------------------------------\n");
         logMessage.append('\n');

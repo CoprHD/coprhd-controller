@@ -51,7 +51,7 @@ import com.emc.vipr.model.sys.healthmonitor.StatsRestRep;
 import com.google.common.collect.Sets;
 
 public class SupportPackageCreator {
-    private static final SimpleDateFormat TIMESTAMP = new SimpleDateFormat("ddMMyy-HHmm");
+    private static final String TIMESTAMP = "ddMMyy-HHmm";
 
     private static final String VIPR_LOG_DATE_FORMAT = "yyyy-MM-dd_HH:mm:ss";
     private static final Integer LOG_MINTUES_PREVIOUSLY = 60;
@@ -117,7 +117,8 @@ public class SupportPackageCreator {
     }
 
     public static String formatTimestamp(Calendar cal) {
-        return cal != null ? TIMESTAMP.format(cal.getTime()) : "UNKNOWN";
+    	final SimpleDateFormat TIME = new SimpleDateFormat(TIMESTAMP);
+        return cal != null ? TIME.format(cal.getTime()) : "UNKNOWN";
     }
 
     private ViPRSystemClient api() {

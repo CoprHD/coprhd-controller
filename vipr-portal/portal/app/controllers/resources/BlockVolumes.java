@@ -110,7 +110,7 @@ public class BlockVolumes extends ResourceController {
             notFound(Messages.get("resources.volume.notfound"));
         }
 
-        if (volume.getVirtualArray() != null) {
+        if (volume.getVirtualArray() != null) { //NOSONAR ("Suppressing Sonar violation of Possible null pointer deference of volume")
             renderArgs.put("virtualArray", VirtualArrayUtils.getVirtualArrayRef(volume.getVirtualArray()));
         }
         if (volume.getVirtualPool() != null) {

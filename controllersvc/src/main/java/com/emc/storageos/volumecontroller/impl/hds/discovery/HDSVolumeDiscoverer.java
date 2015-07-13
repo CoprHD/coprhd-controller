@@ -281,7 +281,7 @@ public class HDSVolumeDiscoverer {
                 .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
 
             log.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-            if (null != matchedVPools && matchedVPools.size() == 0) {
+            if (null != matchedVPools && matchedVPools.isEmpty()) {
                 // replace with empty string set doesn't work, hence added
                 // explicit code to remove all
                 unManagedVolumeInformation.get(

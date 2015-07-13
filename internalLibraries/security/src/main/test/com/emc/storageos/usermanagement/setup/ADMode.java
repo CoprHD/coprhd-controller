@@ -8,6 +8,7 @@ package com.emc.storageos.usermanagement.setup;
 
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
+import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.usermanagement.util.ad.ADClient;
 import com.emc.storageos.usermanagement.util.ViPRClientHelper;
 import com.emc.storageos.usermanagement.util.XmlUtil;
@@ -32,8 +33,7 @@ public class ADMode extends LocalUserMode {
 
     protected static AuthnProviderRestRep authnProviderRestRep;
     protected static ADClient adClient;
-    protected static String PASSWORD = "Password1";  //NOSONAR
-
+    protected static String PASSWORD = EnvConfig.get("sanity", "ad.manager.password");
     protected static String superUser;
     protected static String superUserPassword;
     protected static ViPRCoreClient superUserClient;

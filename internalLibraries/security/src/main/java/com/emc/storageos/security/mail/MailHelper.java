@@ -44,7 +44,7 @@ public class MailHelper {
     public static final String SMTP_ENABLE_TLS = "system_connectemc_smtp_enabletls";
     public static final String SMTP_AUTH_TYPE = "system_connectemc_smtp_authtype";
     public static final String SMTP_USERNAME = "system_connectemc_smtp_username";
-    public static final String SMTP_PASSWORD = "system_connectemc_smtp_password"; // NOSONAR just the name of attribute
+    public static final String SMTP_PASSWORD = "system_connectemc_smtp_password"; //NOSONAR ("just the name of attribute")
     public static final String SMTP_FROM_ADDRESS = "system_connectemc_smtp_from";
 
     private String smtpServer;

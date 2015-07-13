@@ -22,7 +22,7 @@ public class ValidationApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(ValidationApiTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String password="ChangeMe"; // NOSONAR  default ViPR password.
+    private static String password="ChangeMe"; //NOSONAR ("default ViPR password.")
 
     @BeforeClass
     public synchronized static void setupPasswordValidation() throws Exception {

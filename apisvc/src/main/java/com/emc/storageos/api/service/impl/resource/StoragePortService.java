@@ -636,7 +636,7 @@ public class StoragePortService extends TaggedResource {
             _log.info("The port is of type FC or iscsi. Checking if in use by an export group.");
             List<ExportMask> masks = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, ExportMask.class,
                     "storagePorts", storagePort.getId().toString());
-            if (masks != null && masks.size() > 0) {
+            if (masks != null && !masks.isEmpty()) {
                 _log.info("The port is in use by {} masks. Checking the masks virtual arrays.", masks.size());
                 for (ExportMask mask : masks) {
                     if (!mask.getInactive()) {
@@ -717,7 +717,7 @@ public class StoragePortService extends TaggedResource {
                 Set<String> addSet = new HashSet<String>(addVArrays);
                 Set<String> removeSet = new HashSet<String>(removeVArrays);
                 addSet.retainAll(removeSet);
-                if (addSet.size() != 0) {
+                if (!addSet.isEmpty()) {
                     _log.error("Request specifies the same virtual array(s) in both the add and remove lists {}", addSet);
                     throw APIException.badRequests.sameVirtualArrayInAddRemoveList();
                 }
@@ -781,9 +781,9 @@ public class StoragePortService extends TaggedResource {
         /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error("Failed to record event. Event description: {}. Error: {}.",
-                description, th);
+                description, ex);
         }
     }
 

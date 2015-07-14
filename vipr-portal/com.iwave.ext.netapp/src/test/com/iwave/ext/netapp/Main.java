@@ -16,7 +16,10 @@ import com.iwave.ext.netapp.utils.ExportRule;
 import netapp.manage.NaElement;
 import netapp.manage.NaServer;
 
-
+@SuppressWarnings({"squid:S2444","findbugs:RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
+/*
+ * Cannot change the static reference just before release
+ */
 public class Main {
 
 	static private NetAppFacade netAppFacade = null;

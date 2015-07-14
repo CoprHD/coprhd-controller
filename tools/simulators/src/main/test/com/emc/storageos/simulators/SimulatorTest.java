@@ -220,8 +220,8 @@ public class SimulatorTest {
         assertEquals("/ifs/abc", read_export.getPaths().get(0));
         assertEquals("10.1.1.1", read_export.getClients().get(0));
         assertTrue(read_export.getReadOnly());
-        assertEquals("usr001", read_export.getMap_all().getUser());
-        assertNull(read_export.getMap_root());
+        assertEquals("usr001", read_export.getMapAll().getUser());
+        assertNull(read_export.getMapRoot());
 
         // modify export
         IsilonExport new_export = new IsilonExport();

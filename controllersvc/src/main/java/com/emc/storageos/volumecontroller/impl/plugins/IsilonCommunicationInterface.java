@@ -399,7 +399,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.isilon.toString(),
                     clusterConfig.getGuid());
             storageSystem.setNativeGuid(nativeGuid);
-            String clusterReleaseVersion = clusterConfig.getOnefs_version_info().getReleaseVersionNumber();
+            String clusterReleaseVersion = clusterConfig.getOnefs_Version().getReleaseVersionNumber();
             storageSystem.setFirmwareVersion(clusterReleaseVersion);
 
             String minimumSupportedVersion = VersionChecker.getMinimumSupportedVersion(Type.valueOf(storageSystem.getSystemType()));
@@ -1703,10 +1703,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             //Get User
             String rootUserMapping = "";
             String mapAllUserMapping = "";
-            if(exp.getMap_root() != null && exp.getMap_root().getUser() != null) {
-                rootUserMapping = exp.getMap_root().getUser();
-            } else if (exp.getMap_all() != null && exp.getMap_all().getUser() != null) {
-                mapAllUserMapping = exp.getMap_all().getUser();
+            if(exp.getMapRoot() != null && exp.getMapRoot().getUser() != null) {
+                rootUserMapping = exp.getMapRoot().getUser();
+            } else if (exp.getMapAll() != null && exp.getMapAll().getUser() != null) {
+                mapAllUserMapping = exp.getMapAll().getUser();
             }
 
             String resolvedUser = (rootUserMapping != null && (!rootUserMapping.isEmpty())) ? rootUserMapping : mapAllUserMapping;
@@ -1761,7 +1761,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         generatedExportCount++;
                     } else {
                         //Not read Only case
-                        if(exp.getMap_all() != null && exp.getMap_all().getUser() != null && exp.getMap_all().getUser().equalsIgnoreCase(ROOT)) {
+                        if(exp.getMapAll() != null && exp.getMapAll().getUser() != null && exp.getMapAll().getUser().equalsIgnoreCase(ROOT)) {
                             //All hosts with root permission
                             UnManagedFSExport unManagedROOTFSExport = new UnManagedFSExport(
                                     exp.getClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
@@ -1772,7 +1772,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             exportMap.put(unManagedROOTFSExport.getFileExportKey(), unManagedROOTFSExport);
                             generatedExportCount++;
 
-                        } else if(exp.getMap_all() != null) {
+                        } else if(exp.getMapAll() != null) {
                             //All hosts with RW permission
                             UnManagedFSExport unManagedRWFSExport = new UnManagedFSExport(
                                     exp.getClients(), storagePort.getPortName(), storagePort.getPortName() + ":" + path,
@@ -1855,10 +1855,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             //Get User
             String rootUserMapping = "";
             String mapAllUserMapping = "";
-            if(exp.getMap_root() != null && exp.getMap_root().getUser() != null) {
-                rootUserMapping = exp.getMap_root().getUser();
-            } else if (exp.getMap_all() != null && exp.getMap_all().getUser() != null) {
-                mapAllUserMapping = exp.getMap_all().getUser();
+            if(exp.getMapRoot() != null && exp.getMapRoot().getUser() != null) {
+                rootUserMapping = exp.getMapRoot().getUser();
+            } else if (exp.getMapAll() != null && exp.getMapAll().getUser() != null) {
+                mapAllUserMapping = exp.getMapAll().getUser();
             }
 
             String resolvedUser = (rootUserMapping != null && (!rootUserMapping.isEmpty())) ? rootUserMapping : mapAllUserMapping;
@@ -1893,11 +1893,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     	expRule.setReadOnlyHosts(new StringSet(exp.getClients()));
                     } else {
                         //Not read Only case
-                        if(exp.getMap_all() != null && exp.getMap_all().getUser() != null && exp.getMap_all().getUser().equalsIgnoreCase(ROOT)) {
+                        if(exp.getMapAll() != null && exp.getMapAll().getUser() != null && exp.getMapAll().getUser().equalsIgnoreCase(ROOT)) {
                             //All hosts with root permission
                         	expRule.setRootHosts(new StringSet(exp.getClients()));
 
-                        } else if(exp.getMap_all() != null) {
+                        } else if(exp.getMapAll() != null) {
                             //All hosts with RW permission
                         	expRule.setReadWriteHosts(new StringSet(exp.getClients()));
                         }

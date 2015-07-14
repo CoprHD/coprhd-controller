@@ -18,7 +18,7 @@ We are still working out some details and plan on having our engineers utilize t
 
 Main Home Page
 ----------
-[Coprhd.org] (http://coprHD.github.io)
+[CoprHD Project Page] (http://coprHD.github.io)
 
 
 Support

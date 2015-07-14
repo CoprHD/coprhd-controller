@@ -160,9 +160,8 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
         // filter out non config ZNodes: 2.0 and global
         for (Configuration config : configs) {
-            if (isConfigZNode(config)) {
+            if (isConfigZNode(config))
                 result.add(config);
-            }
         }
         return result;
     }

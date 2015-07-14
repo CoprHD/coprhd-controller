@@ -138,6 +138,7 @@ public class DBClient {
 
         } catch (Exception e) {
         	System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
     }
 
@@ -367,6 +368,7 @@ public class DBClient {
         @Override
         public void error(Throwable e) {
             System.err.println("Error callback" + e);
+            log.error("Error callback ", e);
         }
     }
 
@@ -399,6 +401,7 @@ public class DBClient {
         @Override
         public void error(Throwable e) {
             System.err.println("Error callback" + e);
+            log.error("Error callback ", e);
         }
     }
 
@@ -431,6 +434,7 @@ public class DBClient {
         @Override
         public void error(Throwable e) {
             System.err.println("Error callback " + e);
+            log.error("Error callback ", e);
         }
     }
 
@@ -448,6 +452,7 @@ public class DBClient {
             return;
         } catch (DatabaseException e) {
             System.err.println("Exception Query " + e);
+            log.error("Exception Query ", e);
         }
     }
 
@@ -465,6 +470,7 @@ public class DBClient {
             return;
         } catch (DatabaseException e) {
             System.err.println("Exception Query " + e);
+            log.error("Exception Query ", e);
         }
     }
 
@@ -482,6 +488,7 @@ public class DBClient {
             return;
         } catch (DatabaseException e) {
             System.err.println("Exception Query " + e);
+            log.error("Exception Query ", e);
         }
     }
 
@@ -641,6 +648,7 @@ public class DBClient {
                     " dumped to file " + dumpFilename);
         } catch (IOException e) {
             System.err.println("Caught IOException: " + e);
+            log.error("Caught IOException: ", e);
         }
     }
     

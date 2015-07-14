@@ -101,6 +101,7 @@ public class DbCli {
 
         } catch (Exception e) {
         	System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
     }
 
@@ -481,6 +482,7 @@ public class DbCli {
             builder = dbf.newDocumentBuilder();
         } catch (Exception e) {
         	System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
         doc = builder.newDocument();
         Element root = doc.createElement("dbschemas");

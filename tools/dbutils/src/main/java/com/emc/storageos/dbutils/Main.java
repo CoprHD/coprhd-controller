@@ -252,6 +252,7 @@ public class Main {
             handler.process(_client);
         } catch (Exception e) {
             System.err.println("Exception e=" + e);
+            log.error("Exception e=", e);
             usage();
         } finally {
             stop();

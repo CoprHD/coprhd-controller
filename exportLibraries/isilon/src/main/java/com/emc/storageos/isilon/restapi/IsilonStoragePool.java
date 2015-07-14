@@ -44,7 +44,7 @@ public class IsilonStoragePool {
         return diskUsage;
     }
 
-    public String getEntry_id(){
+    public String getEntryId(){
         return entryId;
     }
     public String getName() {

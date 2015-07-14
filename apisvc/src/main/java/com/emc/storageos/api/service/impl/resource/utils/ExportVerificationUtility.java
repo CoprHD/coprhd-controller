@@ -44,9 +44,9 @@ public class ExportVerificationUtility {
 	private FileShare fs;
 	private Snapshot snapshot;
 	private FileExportUpdateParams param;
-	public static final String SEC_TYPE = "secType";     //NOSONAR
-	public static final String ANON_TYPE = "anon";       //NOSONAR
-	public static final String NO_HOSTS_FOUND = "hosts"; //NOSONAR
+	public static final String SEC_TYPE = "secType";     //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String ANON_TYPE = "anon";       //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String NO_HOSTS_FOUND = "hosts"; //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
 	
 	private List<String> secFlavorsFound = new ArrayList<>();
 	private String invalidXMLElementErrorToReport;

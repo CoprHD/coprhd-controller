@@ -286,6 +286,7 @@ public class BackupOps {
         for (int retryCnt = 0; retryCnt < BackupConstants.RETRY_MAX_CNT; retryCnt++) {
             List<String> errorList = new ArrayList<String>();
             Throwable result = null;
+            boolean isCauseWrapped = false;
             try {
                 List<BackupProcessor.BackupTask<Void>> backupTasks =
                         (new BackupProcessor(getHosts(), ports, backupTag))
@@ -320,28 +321,34 @@ public class BackupOps {
                                 ? cause : result;
                     }
                 }
-                if (result != null)
-                    throw new Exception(result);
+                if (result != null) {
+                    if (result instanceof Exception) {
+                        throw (Exception) result;
+                    } else {
+                        isCauseWrapped = true;
+                        throw new Exception(result);
+                    }
+                }
                 log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
                 return;
             } catch (Exception e) {
-                Throwable t = e.getCause();
-                boolean retry = (t instanceof RetryableBackupException) &&
+                Throwable cause = isCauseWrapped ? e.getCause() : e;
+                boolean retry = (cause instanceof RetryableBackupException) &&
                         (retryCnt < BackupConstants.RETRY_MAX_CNT - 1);
                 if (retry) {
                     deleteBackupWithoutLock(backupTag, true);
                     log.info("Retry to create backup...");
                     continue;
                 }
-                boolean exist = (t instanceof BackupException) &&
-                        (((BackupException)t).getServiceCode() == ServiceCode.BACKUP_CREATE_EXSIT);
+                boolean exist = (cause instanceof BackupException) &&
+                        (((BackupException)cause).getServiceCode() == ServiceCode.BACKUP_CREATE_EXSIT);
                 if (exist) {
-                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), t);
+                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), cause);
                 }
                 if (!checkCreateResult(backupTag, errorList, force)) {
                     deleteBackupWithoutLock(backupTag, true);
-                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), t);
+                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), cause);
                 }
                 break;
             }
@@ -501,6 +508,7 @@ public class BackupOps {
      */
     private void deleteBackupWithoutLock(final String backupTag, final boolean ignore) {
         List<String> errorList = new ArrayList<String>();
+        boolean isCauseWrapped = false;
         try {
             List<BackupProcessor.BackupTask<Void>> backupTasks =
                     (new BackupProcessor(getHosts(), Arrays.asList(ports.get(0)), backupTag))
@@ -527,11 +535,17 @@ public class BackupOps {
                     errorList.add(task.getRequest().getHost());
                 }
             }
-            if (result != null) 
-                throw new Exception(result);
+            if (result != null) {
+                if (result instanceof Exception) {
+                    throw (Exception) result;
+                } else {
+                    isCauseWrapped = true;
+                    throw new Exception(result);
+                }
+            }
             log.info("Delete backup(name={}) success", backupTag);
         } catch (Exception ex) {
-            Throwable t = ex.getCause();
+            Throwable cause = isCauseWrapped ? ex.getCause() : ex;
             List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
             for (String host : newErrList) {
                 for (int i = 1; i < ports.size(); i++) {
@@ -551,9 +565,9 @@ public class BackupOps {
                 if (ignore) {
                     log.warn(String.format(
                         "Delete backup({%s}) on nodes(%s) failed, but ignore ingnore the errors", 
-                        backupTag, errorList.toString()), t);
+                        backupTag, errorList.toString()), cause);
                 } else {
-                    throw BackupException.fatals.failedToDeleteBackup(backupTag, errorList.toString(), t);
+                    throw BackupException.fatals.failedToDeleteBackup(backupTag, errorList.toString(), cause);
                 }
             } else {
                 log.info("Delete backup(name={}) success", backupTag);
@@ -631,6 +645,7 @@ public class BackupOps {
     public BackupFileSet listRawBackup(final boolean ignore) {
         BackupFileSet clusterBackupFiles = new BackupFileSet(this.quorumSize);
         List<String> errorList = new ArrayList<>();
+        boolean isCauseWrapped = false;
         try {
             List<BackupProcessor.BackupTask<List<BackupSetInfo>>> backupTasks =
                     (new BackupProcessor(getHosts(), Arrays.asList(ports.get(0)), null))
@@ -659,11 +674,17 @@ public class BackupOps {
                     errorList.add(task.getRequest().getNode());
                 }
             }
-            if (result != null)
-                throw new Exception(result);
+            if (result != null) {
+                if (result instanceof Exception) {
+                    throw (Exception) result;
+                } else {
+                    isCauseWrapped = true;
+                    throw new Exception(result);
+                }
+            }
         } catch (Exception e) {
-            Throwable t = e.getCause();
-            log.error("Exception when listing backups", t);
+            Throwable cause = isCauseWrapped ? e.getCause() : e;
+            log.error("Exception when listing backups", cause);
             List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
             for (String node : newErrList) {
                 List<BackupSetInfo> nodeBackupFileList = retryListBackupWithOtherPorts(getHosts().get(node));
@@ -675,9 +696,9 @@ public class BackupOps {
             if (!errorList.isEmpty()) {
                 if (ignore) {
                     log.warn("List backup on nodes({}) failed, but ignore the errors",
-                            errorList.toString(), t);
+                            errorList.toString(), cause);
                 } else {
-                    throw BackupException.fatals.failedToListBackup(errorList.toString(), t);
+                    throw BackupException.fatals.failedToListBackup(errorList.toString(), cause);
                 }
             }
         }

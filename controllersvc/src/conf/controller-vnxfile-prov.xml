@@ -12,8 +12,8 @@
 
     <bean id="vnxfileprovexecutor"
           class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor">
-        <property name="_generator" ref="commandgenerator" />
-        <property name="_util" ref="utility" />
+        <property name="generator" ref="commandgenerator" />
+        <property name="util" ref="utility" />
     </bean>
 
     <bean id="provisioningnamespaces"

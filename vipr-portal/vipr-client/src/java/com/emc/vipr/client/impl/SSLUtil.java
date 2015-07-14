@@ -32,51 +32,38 @@ public class SSLUtil {
         setSSLSocketFactory(getTrustAllSslSocketFactory());
         trustAllEnabled = true;
     }
-
+    @SuppressWarnings("squid:S2444")//Suppressing sonar violation for the Lazy initialization of "static" field
     public static void trustAllHostnames() {
         if (nullHostnameVerifier == null) {
-            synchronized (NullHostNameVerifier.class) {//fixing violation of lazy initialization of "static" fields
-                if (nullHostnameVerifier == null) {
-                    nullHostnameVerifier = getNullHostnameVerifier();
-                    HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier);
-                }
-            }
+            nullHostnameVerifier = getNullHostnameVerifier();
+            HttpsURLConnection.setDefaultHostnameVerifier(nullHostnameVerifier);
         }
     }
 
+    @SuppressWarnings("squid:S2444")//Suppressing sonar violation for the Lazy initialization of "static" field
     public static NullHostNameVerifier getNullHostnameVerifier() {
         if (nullHostnameVerifier == null) {
-            synchronized (NullHostNameVerifier.class) {//fixing violation of lazy initialization of "static" fields
-                if (nullHostnameVerifier == null) {
-                    nullHostnameVerifier = new NullHostNameVerifier();
-                }
-            }
+            nullHostnameVerifier = new NullHostNameVerifier();
         }
         return nullHostnameVerifier;
     }
 
+    @SuppressWarnings("squid:S2444")//Suppressing sonar violation for the Lazy initialization of "static" field
     public static SSLSocketFactory getTrustAllSslSocketFactory() {
         if (trustAllSslSocketFactory == null) {
-            synchronized (SSLSocketFactory.class) {//fixing violation of lazy initialization of "static" fields
-                if (trustAllSslSocketFactory == null) {
-                    SSLContext sc = getTrustAllContext();
-                    trustAllSslSocketFactory = sc.getSocketFactory();
-                }
-            }
+            SSLContext sc = getTrustAllContext();
+            trustAllSslSocketFactory = sc.getSocketFactory();
         }
         return trustAllSslSocketFactory;
     }
 
+    @SuppressWarnings("squid:S2444")//Suppressing sonar violation for the Lazy initialization of "static" field
     public static SSLContext getTrustAllContext() {
         if (trustAllContext == null) {
             try {
-                synchronized (SSLContext.class) {//fixing violation of lazy initialization of "static" fields
-                    if (trustAllContext == null) {
-                        SSLContext sc = SSLContext.getInstance("SSL");
-                        sc.init(null, newTrustManagers(), new SecureRandom());
-                        trustAllContext = sc;
-                    }
-                }
+                SSLContext sc = SSLContext.getInstance("SSL");
+                sc.init(null, newTrustManagers(), new SecureRandom());
+                trustAllContext = sc;
             }
             catch (Exception e) {
                 log.error("Unable to register SSL TrustManager to trust all SSL Certificates", e);

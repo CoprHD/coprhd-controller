@@ -28,10 +28,10 @@ public class IPInterface implements Serializable {
     public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
     }
-    public String getMACAddress() {
+    public String getMacAddress() {
         return macAddress;
     }
-    public void setMACAddress(String macAddress) {
+    public void setMacAddress(String macAddress) {
         this.macAddress = macAddress;
     }
     public String getNetMask() {

@@ -27,7 +27,11 @@ public class SubmitCommandOperation extends WinRMInvokeOperation<String> {
         super(target, WinRSConstants.WINRS_CMD_URI, WinRSConstants.WINRS_COMMAND_URI);
         setSelector(WinRSConstants.SHELL_ID, shellId);
         this.command = command;
-        this.arguments = Arrays.copyOf(arguments, arguments.length);
+        if (arguments == null) {
+        	this.arguments = new String[0];
+        } else {
+        	this.arguments = Arrays.copyOf(arguments, arguments.length);
+        }
         setOption("WINRS_CONSOLE_MODE_STDIN", "TRUE");
     }
 

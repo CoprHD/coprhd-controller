@@ -10,9 +10,9 @@ import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
+import static com.emc.sa.util.ArrayUtil.safeArray;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -221,11 +221,11 @@ public class CreateBareMetalClusterService extends ViPRService {
     }
 
     public FqdnTable[] getFqdnValues() {
-        return Arrays.copyOf(fqdnValues, fqdnValues.length);
+        return safeArray(fqdnValues);
     }
 
     public void setFqdnValues(FqdnTable[] fqdnValues) {
-        this.fqdnValues = Arrays.copyOf(fqdnValues, fqdnValues.length);
+        this.fqdnValues = safeArray(fqdnValues);
     }
 
     public Cluster getCluster() {

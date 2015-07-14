@@ -4,8 +4,9 @@
  */
 package com.emc.sa.descriptor;
 
+import static com.emc.sa.util.ArrayUtil.safeArray;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -18,11 +19,11 @@ public abstract class AbstractServiceDescriptors implements ServiceDescriptors {
     protected abstract ServiceDefinition getServiceDefinition(String serviceId);
 
     public String[] getBundleNames() {
-        return Arrays.copyOf(bundleNames, bundleNames.length);
+    	return safeArray(bundleNames);
     }
 
     public void setBundleNames(String[] bundleNames) {
-        this.bundleNames = Arrays.copyOf(bundleNames, bundleNames.length);
+        this.bundleNames = safeArray(bundleNames);
     }
 
     protected ClassLoader getClassLoader() {

@@ -19,9 +19,9 @@ import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VCENTER;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
+import static com.emc.sa.util.ArrayUtil.safeArray;
 
 import java.net.URI;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,13 +33,11 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.compute.ComputeUtils.FqdnToIpTable;
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.model.compute.OsInstallParam;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
-import com.emc.vipr.client.core.ComputeVirtualPools;
 import com.google.common.collect.Lists;
 
 
@@ -463,11 +461,11 @@ public class CreateComputeClusterService extends ViPRService {
     }
 
     public FqdnToIpTable[] getFqdnToIps() {
-        return Arrays.copyOf(fqdnToIps, fqdnToIps.length);
+        return safeArray(fqdnToIps);
     }
 
     public void setFqdnToIps(FqdnToIpTable[] fqdnToIps) {
-        this.fqdnToIps = Arrays.copyOf(fqdnToIps, fqdnToIps.length);
+        this.fqdnToIps = safeArray(fqdnToIps);
     }
 
     public URI getVcenterId() {

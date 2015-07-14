@@ -320,7 +320,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Set diff = new HashSet<String>();
         Sets.difference(volumes, new HashSet<String>(group.getVolumes()))
                 .copyInto(diff);
-        if (diff.size() > 0) {
+        if (!diff.isEmpty()) {
             // throw Exception rediscover source and target arrays.
             log.warn("RDF Group {} out of sync with Array", group.getNativeGuid());
             List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);

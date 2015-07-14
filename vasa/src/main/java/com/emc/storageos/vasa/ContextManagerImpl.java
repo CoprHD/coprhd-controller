@@ -56,7 +56,7 @@ public class ContextManagerImpl implements ContextManager {
 	private SSLUtil _sslUtil;
 	private SOSManager _sosManager;
 
-	private final String CATALOG_CONTEXT_URI = "/storageos-vasasvc/catalog/"; //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for xxx”)
+	private final String CATALOG_CONTEXT_URI = "/storageos-vasasvc/catalog/"; //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized")
 
 	public static synchronized ContextManagerImpl getInstance() {
 		if (_instance == null) {

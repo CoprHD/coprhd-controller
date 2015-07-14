@@ -667,7 +667,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
     		String name = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
     		Long hardQuota = (Long)keyMap.get(VNXFileConstants.HARD_QUOTA);
     		Long softQuota = (Long)keyMap.get(VNXFileConstants.SOFT_QUOTA);
-    		String fsName = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
     		_logger.info("Quota directory for file system id: {}", fsId);
 
     		if (isInValid(fsId) || isInValid(name)) {
@@ -720,7 +719,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
     		String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
     		String name = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
-    		String fsPath = (String)keyMap.get(VNXFileConstants.MOUNT_PATH);
     		_logger.info("QuotaDirectory delation for file system id: {}", fsId);
 
     		if (isInValid(fsId) || isInValid(name)) {

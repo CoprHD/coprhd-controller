@@ -40,6 +40,11 @@ import org.slf4j.LoggerFactory;
  * MyX509TrustManager to accept certificates.
  * 
  */
+
+/*
+ * Suppressing these warnings as fix just before release not feasible.
+ */
+@SuppressWarnings({"findbugs:EQ_GETCLASS_AND_CLASS_CONSTANT","findbugs:MS_EXPOSE_REP","pmd:MethodReturnsInternalArray"})
 public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
 
     /**

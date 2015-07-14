@@ -67,7 +67,7 @@ public class InstallCert {
 		char[] passphrase;
 		host = prop.getProperty(ClientConfig.SERVICE_HOST);
 		port = 9083;
-		String p = prop.getProperty(ClientConfig.KEYSTORE_PWD);
+		String p = prop.getProperty(ClientConfig.KEYSTORE_PASSWORD);
 		// String p = (args.length == 1) ? "changeit" : args[1];
 		passphrase = p.toCharArray();
 

@@ -54,10 +54,10 @@ public class CifsShareUtility {
 	private String shareName;
 	private String missingRequestParameterErrorString;
 	private List<String> userGroupList;
-	public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type"; //NOSONAR
-	public static final String REQUEST_PARAM_PERMISSION = "permission";			  //NOSONAR
-	public static final String REQUEST_PARAM_USER = "user";						  //NOSONAR
-	public static final String REQUEST_PARAM_GROUP = "group";					  //NOSONAR
+	public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type"; //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String REQUEST_PARAM_PERMISSION = "permission";			  //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String REQUEST_PARAM_USER = "user";						  //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String REQUEST_PARAM_GROUP = "group";					  //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
 	
 
 	public CifsShareUtility(DbClient dbClient, FileShare fs, Snapshot snapshot,

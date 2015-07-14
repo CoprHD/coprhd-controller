@@ -179,7 +179,7 @@ public class ImplicitPoolMatcher {
      *            : dbClient.
      */
     private static void persistUpdatedVpoolList(List<VirtualPool> updatedVpoolList, DbClient dbClient) {
-        if (!updatedVpoolList.isEmpty())) {
+        if (!updatedVpoolList.isEmpty()) {
             dbClient.updateAndReindexObject(updatedVpoolList);
         }
     }

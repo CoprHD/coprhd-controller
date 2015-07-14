@@ -467,7 +467,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.ready(dbClient);
             _log.info("SnapShot Deletion..... End");
         } catch (Exception e) {
-            _log.error(String.format("Delete Snapshot Operations failed  %s", "", e));
+            _log.error(String.format("Delete Snapshot Operations failed ", e));
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(dbClient, serviceError);
         }

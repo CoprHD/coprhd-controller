@@ -80,7 +80,7 @@ public class VNXeCreateFileSystemSnapshotJob extends VNXeJob{
                 logMsgBuilder.append(event);
 
             } else {
-                logMsgBuilder.append(String.format("Could not find the snapshot:", snapId));
+                logMsgBuilder.append(String.format("Could not find the snapshot:%s", snapId));
             }
             _logger.info(logMsgBuilder.toString());
             FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_SNAPSHOT, _isSuccess,

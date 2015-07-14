@@ -16,7 +16,7 @@ import com.iwave.ext.netapp.model.ExportsRuleInfo;
 
 @SuppressWarnings({"squid:S2444"})
 /*
- * Cannot change the static reference just before release
+ * Change to static reference will be made in the future release
  */
 public class Main2 {
 

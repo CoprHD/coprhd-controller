@@ -321,7 +321,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                     Set<String> lunMaps = new HashSet<String>();
                     String volId = xtremIOVolume.getVolInfo().get(2);
 
-                    if (xtremIOVolume.getLunMaps().size() == 0) {
+                    if (xtremIOVolume.getLunMaps().isEmpty()) {
                         // handle scenarios where volumes gets unexported already
                         _log.info("Volume  {} doesn't have any existing export available on Array, unexported already.",xtremIOVolume.toString());
                         exportMask.removeFromUserCreatedVolumes(blockObj);
@@ -554,7 +554,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             // then we consider that it's already created
             igNames = new HashSet<String>();
             igNames.addAll(groupInitiatorsByIG.keySet());
-            if (initiatorsToBeCreated.size() > 0) {
+            if (!initiatorsToBeCreated.isEmpty()) {
                 // create new initiator and add to IG; add IG to IG folder
                 addInitiatorToInitiatorGroup(client, clusterName, hostName, initiatorsToBeCreated,
                         igNames, exportMask, storage);

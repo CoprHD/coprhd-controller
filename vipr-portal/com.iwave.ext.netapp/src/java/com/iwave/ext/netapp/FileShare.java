@@ -33,6 +33,9 @@ import com.iwave.ext.netapp.utils.ExportRule;
  *
  */
 @SuppressWarnings({"findbugs:WMI_WRONG_MAP_ITERATOR"})
+/*
+ * Code change for iterator will be made in future release 
+ */
 public class FileShare {
 
 private Logger log = Logger.getLogger(getClass());

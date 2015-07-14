@@ -63,6 +63,10 @@ import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
 
+/*
+ * Suppressing these warnings as fix will be made in future release.
+ */
+@SuppressWarnings({"findbugs:RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE","findbugs:NP_NULL_ON_SOME_PATH"})
 public class VNXFileStorageDeviceXML implements FileStorageDevice {
 
     private static final Logger _log = LoggerFactory.getLogger(VNXFileStorageDeviceXML.class);
@@ -457,7 +461,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
 	            }
 	            
 	            if (result.isCommandSuccess()) {
-	               
+	               _log.info("updateExportRules result.isCommandSuccess true");
 	            }
 	        } catch (VNXException e) {
 	            throw VNXException.exceptions.createExportFailed("VNX File Export Failed", e);

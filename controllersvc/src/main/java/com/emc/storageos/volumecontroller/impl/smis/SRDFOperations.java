@@ -635,7 +635,7 @@ public class SRDFOperations implements SmisConstants {
         try {
             return helper.checkExists(sourceSystem, path, false, false);
         } catch (Exception e) {
-        	log.info("Exception in getInstance", e);
+        	log.error("Exception in getInstance", e);
         }
         return null;
     }

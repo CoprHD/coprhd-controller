@@ -66,11 +66,11 @@ public class VcenterTaskMonitor {
             }
             _log.error(taskInfo.getName() + " task timed out at state " + taskInfo.getState());
             return TaskStatus.TIMED_OUT;
-        } catch(Throwable t) {
-            _log.error("Error occurred in task monitor " + t);
+        } catch(Exception ex) {
+            _log.error("Error occurred in task monitor ", ex);
             _log.info("task " + task);
             _log.info("taskInfo " + taskInfo);
-            throw new Exception("Error occurred in task monitor " + t);
+            throw new Exception("Error occurred in task monitor " + ex);
         }
     }
 
@@ -87,11 +87,11 @@ public class VcenterTaskMonitor {
                 taskInfo = task.getTaskInfo();
                 count = count + 1;
             }
-        } catch(Throwable t) {
-            _log.error("Error occurred in task waitForTask " + t);
+        } catch(Exception ex) {
+            _log.error("Error occurred in task waitForTask ", ex);
             _log.info("task " + task);
             _log.info("taskInfo " + taskInfo);
-            throw new Exception("Error occurred in task monitor waitForTask " + t);
+            throw new Exception("Error occurred in task monitor waitForTask " + ex);
         }
     }
 

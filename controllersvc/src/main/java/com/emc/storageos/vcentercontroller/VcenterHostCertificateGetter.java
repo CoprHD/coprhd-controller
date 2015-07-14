@@ -49,7 +49,7 @@ import java.security.cert.X509Certificate;
 
     private HttpResponse executeRequest(String host, Integer port, String certificatePath, String username, String password, Integer timeout) throws Exception {
         if(host == null || host.equals("")) throw new IllegalArgumentException("Invalid host " + host);
-        if(port == null || port.equals("")) throw new IllegalArgumentException("Invalid port " + port);
+        if(port == null) throw new IllegalArgumentException("Invalid port " + port);
         if(username == null) throw new IllegalArgumentException("Invalid username " + username);
         if(password == null) throw new IllegalArgumentException("Invalid password " + password);
         if(timeout == null) throw new IllegalArgumentException("Invalid timeout " + timeout);
@@ -86,8 +86,8 @@ import java.security.cert.X509Certificate;
                         httpclient.getConnectionManager().shutdown();
                     }
                 }
-            } catch(Throwable t) {
-                _log.info("Ignore httpclient.getConnectionManager().shutdown() exception " + t);
+            } catch(Exception ex) {
+                _log.info("Ignore httpclient.getConnectionManager().shutdown() exception ", ex);
             }
         }
         if(response == null) {
@@ -102,9 +102,9 @@ import java.security.cert.X509Certificate;
         // First, make sure can execute the request successfully
         try {
             response = executeRequest(host, port, certificatePath, username, password, timeout);
-        } catch(Throwable t) {
-            _log.error("Error in executeRequest " + t);
-            if(t instanceof java.net.UnknownHostException) {
+        } catch(Exception ex) {
+            _log.error("Error in executeRequest ", ex);
+            if(ex instanceof java.net.UnknownHostException) {
                 _log.info("Host " + host + " is unknown");
                 return HostConnectionStatus.UNKNOWN;
             } else {
@@ -138,8 +138,8 @@ import java.security.cert.X509Certificate;
         HttpResponse response = null;
         try {
             response = executeRequest(host, port, certificatePath, username, password, timeout);
-        } catch(Throwable t) {
-            _log.error("Unexepected error executing request https://" + host + ":" + port + certificatePath + t);
+        } catch(Exception ex) {
+            _log.error("Unexepected error executing request https://{}", host + ":" + port + certificatePath, ex);
             throw new Exception("Unexepected error executing request https://" + host + ":" + port + certificatePath);
         }
 
@@ -156,8 +156,8 @@ import java.security.cert.X509Certificate;
                 cert = cert.replaceAll("-----BEGIN CERTIFICATE-----", "").replaceAll("-----END CERTIFICATE-----", "");
                 _log.info("Certificate extracted " + cert);
             }
-        } catch(Throwable t) {
-            _log.error("Unexepected error extracting content from response " + response.getEntity().getContent() + t);
+        } catch(Exception ex) {
+            _log.error("Unexepected error extracting content from response {} ", response.getEntity().getContent(), ex);
             throw new Exception("Unexepected error extracting content from response " + response.getEntity().getContent());
         }
         if(cert == null || cert.equals("")) {
@@ -175,8 +175,8 @@ import java.security.cert.X509Certificate;
             Base64 base64 = new Base64();
             byteArrayInputStream = new ByteArrayInputStream(base64.decode(cert));
             _log.info("Base64 decoded"); // DO NOT PRINT THE byte[] since it breaks the next step - Could not parse certificate: java.io.IOException: DerInputStream.getLength(): lengthTag=127, too big.
-        } catch(Throwable t) {
-            _log.error("Unexepected error decode base64 encoded certificate " + t);
+        } catch(Exception ex) {
+            _log.error("Unexepected error decode base64 encoded certificate ", ex);
             throw new Exception("Unexepected error decode base64 encoded certificate");
         }
         if(byteArrayInputStream == null) {
@@ -191,8 +191,8 @@ import java.security.cert.X509Certificate;
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             certificate = (X509Certificate) cf.generateCertificate(byteArrayInputStream);
             _log.info("X509 certificate created " + certificate);
-        } catch(Throwable t) {
-            _log.error("Unexepected error creating x509 certificate " + t);
+        } catch(Exception ex) {
+            _log.error("Unexepected error creating x509 certificate ", ex);
             throw new Exception("Unexepected error creating x509 certificate");
         }
         if(certificate == null) {
@@ -209,8 +209,8 @@ import java.security.cert.X509Certificate;
             md.update(der);
             digest = md.digest();
             _log.info("SHA-1 hash created " + digest);
-        } catch(Throwable t) {
-            _log.error("Unexepected error SHA-1 hashing certificate " + t);
+        } catch(Exception ex) {
+            _log.error("Unexepected error SHA-1 hashing certificate ", ex);
             throw new Exception("Unexepected error SHA-1 hashing certificate");
         }
         if(digest == null) {
@@ -226,8 +226,8 @@ import java.security.cert.X509Certificate;
 //			thumbprint = bigInt.toString(16)
             thumbprint = getHex(digest);
             _log.info("Hex created " + thumbprint);
-        } catch(Throwable t) {
-            _log.error("Unexepected error converting SSL thumbprint to hex " + t);
+        } catch(Exception ex) {
+            _log.error("Unexepected error converting SSL thumbprint to hex ", ex);
             throw new Exception("Unexepected error converting SSL thumbprint to hex");
         }
         if(thumbprint == null || thumbprint.equals("")) {
@@ -248,8 +248,8 @@ import java.security.cert.X509Certificate;
             }
             hash = buf.toString();
             _log.info("Hash string formatted " + hash);
-        } catch(Throwable t) {
-            _log.error("Unexepected error splicing colons into SSL thumbprint " + t);
+        } catch(Exception ex) {
+            _log.error("Unexepected error splicing colons into SSL thumbprint ", ex);
             throw new Exception("Unexepected error splicing colons into SSL thumbprint");
         }
         if(hash == null || hash.equals("")) {

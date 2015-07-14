@@ -822,7 +822,7 @@ public class NetworkDeviceController implements NetworkController {
 	}
 
 	public void rollbackZoneForAVolume(ExportGroup exportGroup,URI volUri, List<NetworkFCZoneInfo> fabricInfos) throws Exception {
-	    if (fabricInfos != null && fabricInfos.size() > 0) {
+	    if (fabricInfos != null && !fabricInfos.isEmpty()) {
 	    	for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
 	    		rollbackZoneForAVolumeInitiator(exportGroup, volUri, fabricInfo);
 	    	}
@@ -1570,8 +1570,8 @@ public class NetworkDeviceController implements NetworkController {
 
         try {
             _eventManager.recordEvents(event);
-        } catch(Throwable th ) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, th);
+        } catch(Exception ex ) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, ex);
         }
     }
 
@@ -1877,7 +1877,7 @@ public class NetworkDeviceController implements NetworkController {
         wwnToZones = selectZonesForInitiatorsAndPorts(wwnToZones, initiatorPortsMap);
         
         // if we successfully retrieved the zones
-        if (networkSystem != null && wwnToZones.size() > 0) {
+        if (networkSystem != null && !wwnToZones.isEmpty()) {
             ZoneInfo info = null; 
             Initiator initiator = null;
             for (Map.Entry<String,List<Zone>> entry : wwnToZones.entrySet()) {
@@ -1995,7 +1995,7 @@ public class NetworkDeviceController implements NetworkController {
         Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
         Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
-            if (entry.getValue().size() > 0) {
+            if (!entry.getValue().isEmpty()) {
                 zonesMap.putAll(getInitiatorsInNetworkZones(entry.getKey(), entry.getValue()));
             }
         }
@@ -2032,7 +2032,7 @@ public class NetworkDeviceController implements NetworkController {
                     }
                 }
             }
-            if (set != null && set.size() > 0) {
+            if (set != null && !set.isEmpty()) {
                 map.put(initiator.getId().toString(), set);
             }
         }
@@ -2328,7 +2328,9 @@ public class NetworkDeviceController implements NetworkController {
                             ref.setZoneName(zoneInfo.getZoneName());
                             ref.setExistingZone(true);
                         }
-                        if (zoneInfo.getNetworkSystemId() != null && !zoneInfo.getNetworkSystemId().equals(ref.getNetworkSystemUri())) {
+                        if (zoneInfo.getNetworkSystemId() != null && 
+                        		(ref.getNetworkSystemUri() == null || 
+                        		!zoneInfo.getNetworkSystemId().equals(ref.getNetworkSystemUri().toString()))) {
                             ref.setNetworkSystemUri(URI.create(zoneInfo.getNetworkSystemId()));
                         }
                         if (zoneInfo.getFabricId() != null && !zoneInfo.getFabricId().equals(ref.getFabricId())) {

@@ -264,7 +264,7 @@ public abstract class StartupMode {
                         log.info("Wait on recovery status");
                     Thread.sleep(STATE_CHECK_INTERVAL);
                 } catch (InterruptedException ex) {
-                	log.error("Thread is interrupted during refresh recovery status", ex);
+                	log.warn("Thread is interrupted during refresh recovery status", ex);
                 }
             }
         }

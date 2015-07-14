@@ -298,7 +298,7 @@ public class SchemaUtil {
             try {
                 Thread.sleep(retryIntervalSecs * 1000);
             } catch (InterruptedException ex) {
-            	_log.error("Thread is interrupted during wait for retry", ex);
+            	_log.warn("Thread is interrupted during wait for retry", ex);
             }    
         }
     }
@@ -895,7 +895,7 @@ public class SchemaUtil {
                 try {
                     Thread.sleep(retryIntervalSecs * 1000);
                 } catch (InterruptedException ex) {
-                	_log.error("Thread is interrupted during wait for retry", ex);
+                	_log.warn("Thread is interrupted during wait for retry", ex);
                 }
             }
         }

@@ -323,7 +323,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             log.info("Waiting for {} sec before retrying ...", WAIT_TIME_BEFORE_RETRY_MSEC / 1000);
             Thread.sleep(WAIT_TIME_BEFORE_RETRY_MSEC);
         } catch (InterruptedException ex) {
-        	log.error("Thread is interrupted during wait for retry", ex);
+        	log.warn("Thread is interrupted during wait for retry", ex);
         }
     	
     }

@@ -172,6 +172,7 @@ public class DbCli {
             log.info("Load from file: {} successfully", fileName);
         } catch(Exception e){
         	System.err.println("Caught Exception: " + e);
+        	log.error("Caught Exception: ", e);
         }
     }
 
@@ -186,6 +187,7 @@ public class DbCli {
             log.info("Load and create from file: {} successfully", fileName);
         } catch(Exception e){
         	System.err.println("Caught Exception: " + e);
+        	log.error("Caught Exception: ", e);
         }
     }
 
@@ -504,6 +506,7 @@ public class DbCli {
             log.info("Dump into file: {} successfully", outFileName);
         } catch (Exception e) {
         	System.err.println("Caught Exception: " + e);
+        	log.error("Caught Exception: ", e);
         }
     }
     
@@ -718,8 +721,10 @@ public class DbCli {
             xformer.transform(source, result);
         } catch (TransformerConfigurationException e) {
         	System.err.println("Caught TransformerConfigurationException" + e);
+        	log.error("Caught TransformerConfigurationException: ", e);
         } catch (TransformerException e) {
         	System.err.println("Caught TransformerException" + e);
+        	log.error("Caught TransformerException: ", e);
         }
     }
 
@@ -735,6 +740,7 @@ public class DbCli {
                 delete(id, cfName, force);
             } catch(Exception e){
             	System.err.println("Caught exception" + e);
+            	log.error("Caught Exception: ", e);
             }
         }
     }

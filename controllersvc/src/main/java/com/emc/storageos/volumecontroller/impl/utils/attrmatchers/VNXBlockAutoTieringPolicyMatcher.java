@@ -188,7 +188,7 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
                 filteredPoolList.add(pool);
             }
         }
-        if (filteredPoolList.size() == 0) {
+        if (filteredPoolList.isEmpty()) {
             _logger.info(
                     " None of the Pools matching the Drive Type {}-->returning all Pools{}:",
                     driveType, Joiner.on("\t").join(getNativeGuidFromPools(initialPools)));
@@ -204,11 +204,11 @@ public class VNXBlockAutoTieringPolicyMatcher extends AttributeMatcher {
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>();
         for (StoragePool pool : initialPools) {
             if (null != pool.getSupportedDriveTypes()
-                    && pool.getSupportedDriveTypes().size() > 0) {
+                    && !pool.getSupportedDriveTypes().isEmpty()) {
                 filteredPoolList.add(pool);
             }
         }
-        if (filteredPoolList.size() == 0) {
+        if (filteredPoolList.isEmpty()) {
             _logger.info(
                     "Auto Tiering Policy Matcher Ended : None of the Pools have more than 1 Tier, returning all Pools: {}-->{}",
                     autoTierPolicyName, Joiner.on("\t").join(getNativeGuidFromPools(initialPools)));

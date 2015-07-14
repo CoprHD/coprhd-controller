@@ -355,11 +355,7 @@ public class SRDFUtils implements SmisConstants {
             }
             return result;
         } catch (WBEMException e) {
-<<<<<<< HEAD
-        	log.warn("getVolumePathsInRemoteGroup WBEMException : ", e);
-=======
         	log.error("getVolumePathsInRemoteGroup WBEMException : ", e);
->>>>>>> 7b323cadd79bc31c9b4199f0c1dec4938025a397
         } finally {
             if (volumePaths != null) {
                 volumePaths.close();

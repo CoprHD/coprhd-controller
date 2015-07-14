@@ -914,7 +914,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 }
 
                 Map<String, String> vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
-                Set<String> intfs = vdmIntfs.keySet();
+                Set<String> intfs = null;
+                if(vdmIntfs != null){
+                	intfs = vdmIntfs.keySet();
+                }
                 //if NFS Interfaces are not there ignore this..
                 if(vdmIntfs == null || intfs.isEmpty()) {
                     //There are no interfaces for this VDM via nas_server command

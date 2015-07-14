@@ -803,7 +803,7 @@ public class TenantsService extends TaggedResource {
         try {
             _evtMgr.recordEvents(event);
         } catch (Exception ex) {
-            if (th instanceof RuntimeException) {
+            if (ex instanceof RuntimeException) {
                 // CQ604367 --
                 // print full stack trace of error. Problem is intermittent
                 // and can not be reproduced easily. A NullPointerException

@@ -46,7 +46,9 @@ public class IsilonApiTest {
 
     @BeforeClass
     public static void setup() throws Exception {
+    	if(_factory == null) {
         _factory = new IsilonApiFactory();
+    	}
         _factory.init();
         _client = _factory.getRESTClient(URI.create(uri), userName, password);    // 7.0 BETA 3
     }
@@ -213,6 +215,7 @@ public class IsilonApiTest {
                 }
             }
         } catch (IsilonException ex) {
+        	Assert.assertTrue("deleted snapshot still exists is failed", false);
         }
             /* snapshot tests - done  */
 
@@ -222,6 +225,7 @@ public class IsilonApiTest {
             clientError.existsDir(_test_path);  // expected to throw
             Assert.assertTrue("Attempt to use dummy client succeeded.", false);
         } catch (Exception ex) {
+        	Assert.assertTrue("Attempt to use dummy client is failed", false);
         }
 
         _client.deleteDir(_test_path, true);
@@ -302,6 +306,7 @@ public class IsilonApiTest {
             quota = _client.getQuota(qid);
             Assert.assertTrue("deleted quota still gettable", false);
         } catch (IsilonException ex) {
+        	Assert.assertTrue("deleted quota still gettable is failed", false);
         }
 
         _client.deleteQuota(qid_acc);
@@ -309,6 +314,7 @@ public class IsilonApiTest {
             quota = _client.getQuota(qid_acc);
             Assert.assertTrue("deleted quota still gettable", false);
         } catch (IsilonException ex) {
+        	Assert.assertTrue("deleted quota still gettable failed", false);
         }
 
         _client.deleteDir(_test_path, true);
@@ -456,6 +462,7 @@ public class IsilonApiTest {
             _client.getExport(export1Id);
             Assert.assertTrue("Deleted export still gettable", false);
         } catch (IsilonException ex) {
+        	Assert.assertTrue("Deleted export still gettable is failed", false);
         }
 
         // delete export
@@ -463,7 +470,9 @@ public class IsilonApiTest {
         try {
             _client.getExport(export2Id);
             Assert.assertTrue("Deleted export still gettable", false);
+            
         } catch (IsilonException ex) {
+        	Assert.assertTrue("Deleted export still gettable is failed", false);
         }
 
         // - delete snap

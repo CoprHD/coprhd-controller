@@ -243,7 +243,7 @@ public class IsilonFileStorageDeviceTest {
 
         Assert.assertTrue("doUnexport failed", _isi.doUnexport(_device, args, Arrays.asList(export3))
                 .getCommandStatus().equals(Operation.Status.ready.name()));
-        Assert.assertTrue("doUnexport failed, export not deleted from FS", fs.getFsExports().keySet().size() == 0);
+        Assert.assertTrue("doUnexport failed, export not deleted from FS", fs.getFsExports().keySet().isEmpty() == true);
 
         // delete
         Assert.assertTrue("doDeleteFs failed", _isi.doDeleteFS(_device, args)
@@ -488,7 +488,7 @@ public class IsilonFileStorageDeviceTest {
 
         Assert.assertTrue("doUnexport failed", _isi.doUnexport(_device, args, Arrays.asList(export3))
                 .getCommandStatus().equals(Operation.Status.ready.name()));
-        Assert.assertTrue("doUnexport failed, export not deleted from snapshot", snap.getFsExports().keySet().size() == 0);
+        Assert.assertTrue("doUnexport failed, export not deleted from snapshot", snap.getFsExports().keySet().isEmpty() == true);
 
         // delete snap
         Assert.assertTrue("doDeleteSnapshot failed", _isi.doDeleteSnapshot(_device, args)

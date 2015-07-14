@@ -18,7 +18,7 @@ import netapp.manage.NaServer;
 
 @SuppressWarnings({"squid:S2444","findbugs:RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
 /*
- * Cannot change the static reference just before release
+ * Change to static reference will be made in the future release
  */
 public class Main {
 

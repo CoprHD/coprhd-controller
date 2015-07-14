@@ -26,6 +26,14 @@ import java.util.concurrent.TimeUnit;
 /**
  * Class for Isilon event type.
  */
+
+@SuppressWarnings({"findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","squid:S2175"})
+/*
+ * Following Jiras raised for tracking, as fix just before release not feasible.
+ * Jira COP-32 -Change static netAppFascade in future, can't change now 
+ * Jira COP-33 - Change the code for Inappropriate Collection call
+ */
+
 @XmlAccessorType(XmlAccessType.FIELD)
 public class IsilonEvent {
     @XmlAccessorType(XmlAccessType.FIELD)

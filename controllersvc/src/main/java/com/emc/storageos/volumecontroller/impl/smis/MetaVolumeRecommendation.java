@@ -64,16 +64,17 @@ public class MetaVolumeRecommendation {
         this._metaVolumeType = _metaVolumeType;
     }
 
-    public boolean equals(MetaVolumeRecommendation recommendation) {
-        if (this == recommendation) {
-            return true;
-        } else if (recommendation != null) {
-            return (isCreateMetaVolumes() == recommendation.isCreateMetaVolumes() &&
-                    getMetaMemberSize() == recommendation.getMetaMemberSize() &&
-                    getMetaMemberCount() == recommendation.getMetaMemberCount() &&
-                    getMetaVolumeType().equals(recommendation.getMetaVolumeType()));
-        } else {
-            return false;
-        }
+    
+    public boolean equals(Object o) {
+    	if (o == null || !(o instanceof MetaVolumeRecommendation)) {
+    		return false;
+    	}
+
+    	MetaVolumeRecommendation other = (MetaVolumeRecommendation)o;
+
+    	return (isCreateMetaVolumes() == other.isCreateMetaVolumes() &&
+    			getMetaMemberSize() == other.getMetaMemberSize() &&
+    			getMetaMemberCount() == other.getMetaMemberCount() &&
+    			getMetaVolumeType().equals(other.getMetaVolumeType()));
     }
 }

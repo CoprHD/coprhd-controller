@@ -457,7 +457,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
 	            }
 	            
 	            if (result.isCommandSuccess()) {
-	               
+	               _log.info("updateExportRules result.isCommandSuccess true");
 	            }
 	        } catch (VNXException e) {
 	            throw VNXException.exceptions.createExportFailed("VNX File Export Failed", e);

@@ -616,7 +616,7 @@ public class VNXeUnManagedObjectDiscoverer {
                 }
             }
         } catch (Exception e) {
-        	log.info("extractValueFromStringSet Exception: ", e);
+        	log.error("extractValueFromStringSet Exception: ", e);
         }
         return null;
     }

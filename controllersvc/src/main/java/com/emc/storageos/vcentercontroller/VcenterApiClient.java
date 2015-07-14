@@ -275,7 +275,7 @@ public class VcenterApiClient {
                     }
                 }
             }
-            if(hosts.size() < 1) {
+            if(hosts.isEmpty()) {
                 _log.info("Host " + hostname + " not found");
             } else if(hosts.size() > 1) {
                 _log.info("Host " + hostname + " search returned ambiguous result set of many hosts");

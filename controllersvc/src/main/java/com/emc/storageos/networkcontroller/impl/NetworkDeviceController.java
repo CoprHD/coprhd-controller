@@ -2328,7 +2328,9 @@ public class NetworkDeviceController implements NetworkController {
                             ref.setZoneName(zoneInfo.getZoneName());
                             ref.setExistingZone(true);
                         }
-                        if (zoneInfo.getNetworkSystemId() != null && !zoneInfo.getNetworkSystemId().equals(ref.getNetworkSystemUri().toString())) {
+                        if (zoneInfo.getNetworkSystemId() != null && 
+                        		(ref.getNetworkSystemUri() == null || 
+                        		!zoneInfo.getNetworkSystemId().equals(ref.getNetworkSystemUri().toString()))) {
                             ref.setNetworkSystemUri(URI.create(zoneInfo.getNetworkSystemId()));
                         }
                         if (zoneInfo.getFabricId() != null && !zoneInfo.getFabricId().equals(ref.getFabricId())) {

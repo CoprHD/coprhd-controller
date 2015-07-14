@@ -26,8 +26,8 @@ import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 
 /*
- * Following Jiras raised for tracking, as fix just before release not feasible.
- * Jira COP-32 -Change static netAppClusterFacade in future, can't change now 
+ * Following Jiras raised for tracking. The fix will be made in the future release.
+ * Jira COP-32 -Change static netAppClusterFacade in future
  * Jira COP-33 - Change the code for Inappropriate Collection call
  */
 @SuppressWarnings({"findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","squid:S2444","squid:S2175"})

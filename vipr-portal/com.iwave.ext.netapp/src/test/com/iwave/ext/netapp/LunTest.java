@@ -22,7 +22,7 @@ import com.emc.storageos.services.util.EnvConfig;
 
 @SuppressWarnings({"squid:S2444"})
 /*
- * Static field suppress, can't change the static reference just before release
+ * Static field suppress, the fix will be made in the future release
  */
 public class LunTest {
 

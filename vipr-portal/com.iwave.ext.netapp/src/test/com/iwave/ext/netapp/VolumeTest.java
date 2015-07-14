@@ -25,7 +25,7 @@ import com.emc.storageos.services.util.EnvConfig;
 
 @SuppressWarnings({"squid:S2444"})
 /*
- * Cannot change the static reference just before release
+ * Change to static reference will be made in the future release
  */
 public class VolumeTest {
 

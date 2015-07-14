@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.lang.reflect.Type;
 
@@ -346,11 +347,11 @@ public class ComputeVirtualPools extends ViprResourceController {
             }
         }
 
-        for (String comp: csTemplatesMap.keySet()){
-            Set<String> compTemplates = csTemplatesMap.get(comp); //NOSONAR ("Suppressing Sonar violation of Inefficient use of keySet iterator instead of entrySet")
+        for (Entry<String, Set<String>> comp: csTemplatesMap.entrySet()){
+            Set<String> compTemplates = comp.getValue();
             if (compTemplates!=null && !compTemplates.isEmpty()){
                 String systemName = ComputeSystemTypes.getDisplayValue(ComputeSystemTypes.UCS) + " " + computeSystemsMap.get(comp);
-                computeVirtualPool.systems.add(new StringOption(comp,systemName));
+                computeVirtualPool.systems.add(new StringOption(comp.getKey(),systemName));
                 List<StringOption> templateOptions = Lists.newArrayList();
                 templateOptions.add(new StringOption("NONE",""));
                 for (String template : compTemplates){
@@ -358,12 +359,12 @@ public class ComputeVirtualPools extends ViprResourceController {
                     if (!temps.isEmpty()){
                         for (String templateId : temps){
                             if (templateId.contains(template)){
-                                templateList.add(new StringOption(comp,template));
+                                templateList.add(new StringOption(comp.getKey(),template));
                             }
                         }
                     }
                 }
-                computeVirtualPool.systemOptions.put(comp, templateOptions);
+                computeVirtualPool.systemOptions.put(comp.getKey(), templateOptions);
             }
 
         }

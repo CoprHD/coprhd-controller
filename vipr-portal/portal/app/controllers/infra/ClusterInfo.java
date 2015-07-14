@@ -99,7 +99,7 @@ public class ClusterInfo extends Controller {
 	    		}
     		}
     	}
-    	vip = ipReconfigForm.selectVipforStatusQuery();//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for vip")
+    	vip = ipReconfigForm.selectVipforStatusQuery();//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for vip. vip only fetches network info. Sync not needed.")
     	loadRenderArgs();
     	render(ipReconfigForm);
     }

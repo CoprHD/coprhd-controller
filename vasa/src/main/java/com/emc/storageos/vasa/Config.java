@@ -41,13 +41,10 @@ public class Config {
 			_configParser.loadFile(CONFIG_FILE_PATH);
 		} catch (ParserConfigurationException e) {
 			_log.error(methodName + "Unable to parse XML content ", e);
-			//e.printStackTrace();
 		} catch (SAXException e) {
 			_log.error(methodName + "Unable to parse XML content ", e);
-			//e.printStackTrace();
 		} catch (IOException e) {
 			_log.error(methodName + "Unable to load file: " + CONFIG_FILE_PATH, e);
-			//e.printStackTrace();
 		}
 	}
 
@@ -68,7 +65,6 @@ public class Config {
 			value = _configParser.getString(configName, null);
 		} catch (XPathExpressionException e) {
 			_log.error(methodName + "Unable to resolve XPath: " + configName, e);
-			//e.printStackTrace();
 		}
 		return value;
 	}

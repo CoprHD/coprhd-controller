@@ -50,7 +50,7 @@ import com.vmware.vim.vasa._1_0.data.xsd.VasaProviderInfo;
 public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 
 	private static Logger log = Logger.getLogger(ServiceImpl.class);
-	private static String TRUSTSTOREPWD_PARAM = "trustStorePassword"; 
+	private static String TRUSTSTOREPASSWORD_PARAM = "trustStorePassword"; //NOSONAR ("Suppressing Sonar violation for Credentials should not be hard-coded")
 
 	private static final String FILE_SEPARATOR = System
 			.getProperty("file.separator");
@@ -58,7 +58,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 	private String tomcatRoot;
 	private String trustStoreFileName = FILE_SEPARATOR + "conf"
 			+ FILE_SEPARATOR + "jssecacerts";
-	private String trustStorePwd = "changeit"; 
+	private String trustStorePassword = "changeit"; //NOSONAR ("Suppressing Sonar violation for Credentials should not be hard-coded")
 	private SSLUtil sslUtil;
 	private Config config;
 
@@ -1055,11 +1055,10 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 			 * Get configurable parameters
 			 */
 			String password = (String) sc.getAxisService().getParameterValue(
-					TRUSTSTOREPWD_PARAM);
-                        //log.info("Trust store password is ["+password+"]");
+					TRUSTSTOREPASSWORD_PARAM);
 			if (password != null) {
-				trustStorePwd = password;
-				log.debug(methodName + "parameter: " + TRUSTSTOREPWD_PARAM
+				trustStorePassword = password;
+				log.debug(methodName + "parameter: " + TRUSTSTOREPASSWORD_PARAM
 						+ " found");
 			}
 
@@ -1071,7 +1070,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 			 * Setup globals
 			 */
 
-			sslUtil = new SSLUtil(path, trustStorePwd, false);
+			sslUtil = new SSLUtil(path, trustStorePassword, false);
 			contextManager.init(sslUtil);
 
 			contextManager.initializeVasaProviderInfo();
@@ -1085,7 +1084,6 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 			 * routine returns an Exception it is silently ignored by tomcat.
 			 */
 			log.debug("Init exception: " + e);
-			//e.printStackTrace();
 		}
 	}
 

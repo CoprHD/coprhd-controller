@@ -59,6 +59,7 @@ public class SessionContext {
 	}
 
 	@Override
+	@SuppressWarnings("squid:S1206") //"equals(Object obj)" and "hashCode()" should be overridden in pairs 
 	public boolean equals(Object o) { 
 		SessionContext sc = (SessionContext) o;
 		return this.getSessionId().equals(sc.getSessionId());
@@ -276,8 +277,8 @@ public class SessionContext {
 		removeFromList(SessionContext.lookupSessionBySessionId(sessionId,
 				false, null, null));
 	}
-	
-	public static boolean IsPreviouslyUsed(String sessionId) { //NOSONAR
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for Method names should comply with a naming convention")
+	public static boolean IsPreviouslyUsed(String sessionId) {
 		return sessionIdList.contains(sessionId);
 	}
 }

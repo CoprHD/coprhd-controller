@@ -58,7 +58,7 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 	private String tomcatRoot;
 	private String trustStoreFileName = FILE_SEPARATOR + "conf"
 			+ FILE_SEPARATOR + "jssecacerts";
-	private String trustStorePassword = "changeit"; //NOSONAR ("Suppressing Sonar violation for Credentials should not be hard-coded")
+	private String trustStorePassword;
 	private SSLUtil sslUtil;
 	private Config config;
 
@@ -1060,6 +1060,9 @@ public class ServiceImpl implements VasaServiceSkeletonInterface, Lifecycle {
 				trustStorePassword = password;
 				log.debug(methodName + "parameter: " + TRUSTSTOREPASSWORD_PARAM
 						+ " found");
+			}
+			else {
+				trustStorePassword = new String("");
 			}
 
 			contextManager = ContextManagerImpl.getInstance();

@@ -51,7 +51,7 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
 
     private static final Logger _logger = LoggerFactory
             .getLogger(AttributeMatcherFramework.class);
-    private static ApplicationContext _context;
+    private static volatile ApplicationContext _context;
 
     @Override
     public void setApplicationContext(ApplicationContext appContext)
@@ -84,12 +84,12 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
             ObjectLocalCache cache = new ObjectLocalCache(dbClient);
             for (AttributeMatcher matcher : attrMatcherList) {
                 int poolSizeAtTheStart = matchedPools.size();
-                if (0 < matchedPools.size()) {
+                if (!matchedPools.isEmpty()) {
                     _logger.debug("passing {} pools to match", matchedPools.size());
                     matcher.setObjectCache(cache);
                     matcher.setCoordinatorClient(coordinator);
                     matchedPools = matcher.runMatchStoragePools(matchedPools, attributeMap);
-                    if (matchedPools.size() == 0) {
+                    if (matchedPools.isEmpty()) {
                         _logger.info(String.format("Failed to find match because of %s",
                                 matcher.getClass().getSimpleName()));
                     } else if (matchedPools.size() < poolSizeAtTheStart) {

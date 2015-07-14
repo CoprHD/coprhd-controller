@@ -1258,7 +1258,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
                     } else {
                         aliasUpdateResults.put(alias.getName(), NO_CHANGE);
                     }
-                } catch ( Throwable ex) {
+                } catch ( Exception ex) {
                     if (ex instanceof InvocationTargetException) ex=((InvocationTargetException) ex).getTargetException();
                     aliasUpdateResults.put(alias.getName(), ERROR + " : " + ex.getMessage());
                     _log.info("Exception was encountered but will try the rest of the batch. " +

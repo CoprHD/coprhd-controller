@@ -45,7 +45,7 @@ public class Task extends DataObject {
 
     // enumeration of status value
     public enum Status {
-        queued, pending, ready, error;
+        queued, pending, ready, error, suspended;
 
         public static Status toStatus(String status) {
             try {

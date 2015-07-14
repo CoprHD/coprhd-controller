@@ -23,6 +23,7 @@ public class WorkflowTaskCompleter extends TaskCompleter {
 	@Override
 	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
 			throws DeviceControllerException {
+	    updateWorkflowStatus(status, coded);
 		Operation update = new Operation();
 		switch (status) {
 		case ready: 

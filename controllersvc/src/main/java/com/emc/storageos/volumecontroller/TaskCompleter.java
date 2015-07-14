@@ -221,6 +221,14 @@ public abstract class TaskCompleter implements Serializable {
                     }
                 }
                 break;
+            case suspended:
+                for (URI id : _ids) {
+                    if(message == null)
+                        dbClient.suspended(_clazz, id, _opId);
+                    else
+                        dbClient.suspended(_clazz, id, _opId, message);
+                }
+                break;
             default:
                 if (message != null) {
                     for (URI id : _ids) {

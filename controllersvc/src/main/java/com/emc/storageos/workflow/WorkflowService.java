@@ -397,7 +397,9 @@ public class WorkflowService implements WorkflowController {
             lock = lockWorkflow(workflow);
             // Load the entire workflow state including the steps
             workflow = loadWorkflow(workflow);
-            assert (workflow != null);
+            if (workflow == null) {
+                throw WorkflowException.exceptions.workflowNotFound(workflowPath);
+            }
             synchronized (workflow) {
                 // Update the StepState structure
                 StepStatus status = workflow.getStepStatus(stepId);
@@ -741,8 +743,7 @@ public class WorkflowService implements WorkflowController {
      * This method sets up the workflow from ZK data if the workflow already exists.
      * The state for each of the Steps is loaded from ZK.
      * This is called from updateStepStatus().
-     * 
-     * @param workflow
+     * @param workflow, or null if nothing could be loaded from ZK
      */
     private Workflow loadWorkflow(Workflow workflow) throws WorkflowException {
         try {
@@ -1522,6 +1523,56 @@ public class WorkflowService implements WorkflowController {
         return releasedLocks;
     }
 
+    @Override
+	public void suspendWorkflowStep(URI workflow, URI stepId, String taskId)
+			throws ControllerException {
+		_log.info(String.format("Suspend request workflow: %s step: %s", workflow, stepId));
+	}
+
+	@Override
+	public void resumeWorkflow(URI uri, String taskId)
+			throws ControllerException {
+		WorkflowTaskCompleter completer = new WorkflowTaskCompleter(uri, taskId);
+		try {
+			_log.info(String.format("Resume request workflow: %s", uri));
+			Workflow workflow = loadWorkflowFromUri(uri);
+			if (workflow == null) {
+			    // Cannot resume non-existent workflow
+			    throw WorkflowException.exceptions.workflowNotFound(uri.toString());
+			}
+			removeRollbackSteps(workflow);
+			queueResumeSteps(workflow);
+			completer.ready(_dbClient);
+		} catch(WorkflowException ex) {
+			completer.error(_dbClient, ex);;
+		}
+	}
+	
+	@Override
+	public void rollbackWorkflow(URI uri, String taskId)
+			throws ControllerException {
+		WorkflowTaskCompleter completer = new WorkflowTaskCompleter(uri, taskId);
+		try {
+			_log.info(String.format("Rollback requested workflow: %s", uri));
+			Workflow workflow = loadWorkflowFromUri(uri);
+			if (workflow == null) {
+			    throw WorkflowException.exceptions.workflowNotFound(uri.toString());
+			}
+			removeRollbackSteps(workflow);
+			boolean rollBackStarted = initiateRollback(workflow);
+			if (rollBackStarted) {
+                // Return now, wait until the rollback completions come here again.
+            	workflow.setWorkflowState(WorkflowState.ROLLING_BACK);
+            	persistWorkflow(workflow);
+            	logWorkflow(workflow, true);
+            	_log.info(String.format("Rollback initiated workflow %s" ,workflow.getWorkflowURI() ));
+			}
+			completer.ready(_dbClient);
+		} catch (WorkflowException ex) {
+			completer.error(_dbClient, ex);
+		}
+	}
+	
     /**
      * This call will rollback a child workflow given the parent's workflow URI and the step-id
      * of the parent step which is the child workflow's orchestration task id.
@@ -1549,8 +1600,7 @@ public class WorkflowService implements WorkflowController {
             Workflow childWorkflow = loadWorkflowFromUri(childURI);
             if (childWorkflow == null) {
                 _log.info("Could not locate child workflow %s (%s), possibly it was already deleted");
-                ServiceCoded coded = WorkflowException.exceptions.workflowNotFound(childURI.toString());
-                WorkflowStepCompleter.stepFailed(stepId, coded);
+    			WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
             // TODO: This is a short-term fix for 12858. A more appropriate fix would be to detect that the zk copy of the WF does not

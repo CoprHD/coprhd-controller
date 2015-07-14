@@ -380,6 +380,22 @@ public interface DbClient {
     Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message);
 
     /**
+     * Sets operation status to suspended. This means that it is not currently executing, but
+     * has been suspended because of an error.
+     * @param clazz
+     * @param id
+     * @param opId
+     * @param message
+     * @return
+     * @throws DatabaseException
+     */
+    public Operation suspended(Class<? extends DataObject> clazz, URI id, String opId, String message)
+            throws DatabaseException;
+    
+    public Operation suspended(Class<? extends DataObject> clazz, URI id, String opId)
+            throws DatabaseException;
+
+    /**
      * Convenience method for setting operation status to error for given object
      * 
      * @param clazz

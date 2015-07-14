@@ -35,7 +35,7 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
 
     // enumeration of status value
     public enum Status {
-        pending, ready, error;
+        pending, ready, error, suspended;
 
         public static Status toStatus(String status) {
             try {
@@ -111,6 +111,15 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
         setMessage(message);
         setProgress(100);
         updateStatus(Status.ready.name());
+    }
+    
+    public void suspended() {
+        suspended("Operation has been suspended");
+    }
+    
+    public void suspended(String message) {
+        setMessage(message);
+        updateStatus(Status.suspended.name());
     }
 
     /**

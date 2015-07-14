@@ -28,8 +28,8 @@ import com.iwave.ext.netapp.model.Qtree;
 
 @SuppressWarnings({"findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","squid:S2175","squid:S2444"})
 /*
- * Following Jiras raised for tracking, as fix just before release not feasible.
- * Jira COP-32 -Change static netAppFascade in future, can't change now 
+ * Following Jiras raised for tracking. The fix will be made in the future release
+ * Jira COP-32 -Change static netAppFascade in future 
  * Jira COP-33 - Change the code for Inappropriate Collection call
  */
 

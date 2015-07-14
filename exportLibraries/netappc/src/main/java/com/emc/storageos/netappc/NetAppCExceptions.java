@@ -99,7 +99,7 @@ public interface NetAppCExceptions {
             final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
-    public NetAppCException StatisticsCollectionfailed(final URI storageSystemId, final Throwable e); //NOSONAR(Fix in future release)
+    public NetAppCException StatisticsCollectionfailed(final URI storageSystemId, final Throwable e); //NOSONAR(Fix will be made in future release)
     
     @DeclareServiceCode(ServiceCode.NETAPPC_ERROR)
     public NetAppCException listFileSystems(final String ip, final String message);

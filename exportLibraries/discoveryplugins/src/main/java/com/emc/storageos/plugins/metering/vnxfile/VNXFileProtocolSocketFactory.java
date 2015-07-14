@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  */
 
 /*
- * Suppressing these warnings as fix just before release not feasible.
+ * Suppressing these warnings as fix will be made in future release.
  */
 @SuppressWarnings({"findbugs:EQ_GETCLASS_AND_CLASS_CONSTANT","findbugs:MS_EXPOSE_REP","pmd:MethodReturnsInternalArray"})
 public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {

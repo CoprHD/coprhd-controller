@@ -64,7 +64,7 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
 
 /*
- * Suppressing these warnings as fix just before release not feasible.
+ * Suppressing these warnings as fix will be made in future release.
  */
 @SuppressWarnings({"findbugs:RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE","findbugs:NP_NULL_ON_SOME_PATH"})
 public class VNXFileStorageDeviceXML implements FileStorageDevice {

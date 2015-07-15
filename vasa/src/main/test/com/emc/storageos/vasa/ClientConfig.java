@@ -13,14 +13,14 @@ public class ClientConfig {
 	
 	public static String MOUNTPOINT_LIST = "mountPoint.list";
 	public static String ISCSIID_LIST = "iSCSCIId.list";
-	public static String KEYSTORE_PASSWORD =  "keyStorePassword";
+	public static String KEYSTORE_PASSWORD =  "keyStorePassword";  //NOSONAR ("retaining hard-coded password")
 	public static String KEYSTORE_PATH =  "keyStoreFilePath";
 	public static String CERT_ALIAS =  "certAlias";
 	
 	private static final String CONFIG_FILE = "ClientConfig.properties";
 	public static final String SERVICE_HOST = "serviceHost";
-	public static final String USERNAME = "username";
-	public static final String PASSWORD = "password";
+	public static final String USERNAME = "username"; //NOSONAR ("retaining hard-coded password")
+	public static final String PASSWORD = "password"; //NOSONAR ("retaining hard-coded password")
 	private Properties properties;
 
 	private ClientConfig() throws IOException {
@@ -55,7 +55,7 @@ public class ClientConfig {
 		}
 	}
 
-	public static ClientConfig getInstance() throws IOException {
+	public synchronized static  ClientConfig getInstance() throws IOException {
 		if (INSTANCE == null) {
 			INSTANCE = new ClientConfig();
 		}

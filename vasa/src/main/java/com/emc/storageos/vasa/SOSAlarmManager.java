@@ -98,8 +98,9 @@ public class SOSAlarmManager {
 
 	public boolean isItAlarm(Event alarm) {
 		if (alarm.getRecordType() != null
-				& alarm.getRecordType().equals("Alert"))
+				& alarm.getRecordType().equals("Alert")) {
 			return true;
+		}
 
 		return false;
 	}
@@ -109,8 +110,9 @@ public class SOSAlarmManager {
 		if (alarmType != null) {
 			if (alarmType.startsWith("SystemError")
 					|| alarmType.startsWith("AlertIndication")
-					|| alarmType.startsWith("ArrayGeneric"))
+					|| alarmType.startsWith("ArrayGeneric")) {
 				return true;
+			}
 		}
 
 		return false;
@@ -124,8 +126,9 @@ public class SOSAlarmManager {
 	 */
 	public String getVasaAlarmType(String alarmType) {
 
-		if (alarmType == null)
+		if (alarmType == null) {
 			return "";
+		}
 
 		return "OBJECT_ALARM";
 
@@ -140,23 +143,30 @@ public class SOSAlarmManager {
 	 */
 	public String getAlarmObjectType(String alarmType) {
 		String objectTypeString = "";
-		if (alarmType.startsWith("SystemError"))
+		if (alarmType.startsWith("SystemError")) {
 			objectTypeString = "SystemError";
-		else if (alarmType.startsWith("AlertIndication"))
+		}
+		else if (alarmType.startsWith("AlertIndication")) {
 			objectTypeString = "AlertIndication";
-		else if (alarmType.startsWith("FileShare")
-				|| alarmType.startsWith("FileSystem"))
+		}
+		else if (alarmType.startsWith("FileShare") 
+				|| alarmType.startsWith("FileSystem")) {
 			objectTypeString = EntityTypeEnum.StorageFileSystem.getValue();
+		}
 		else if (alarmType.startsWith("Volume")
-				|| alarmType.startsWith("storagevolume"))
+				|| alarmType.startsWith("storagevolume")) {
 			objectTypeString = EntityTypeEnum.StorageLun.getValue();
-		else if (alarmType.startsWith("StoragePort"))
+		}
+		else if (alarmType.startsWith("StoragePort")) {
 			objectTypeString = EntityTypeEnum.StoragePort.getValue();
-		else if (alarmType.startsWith("ArrayGeneric"))
+		}
+		else if (alarmType.startsWith("ArrayGeneric")) {
 			objectTypeString = "ArrayGeneric";
-		else
+		}
+		else {
 			log.warn("Unknown alarm type: " + alarmType
 					+ "in getAlarmObjectType()");
+		}
 
 		return objectTypeString;
 
@@ -183,8 +193,9 @@ public class SOSAlarmManager {
 			String alarmId = alarm.getEventId().toString();
 			for (NameValuePair nvp : nvpList) {
 				if (nvp.getParameterName().equalsIgnoreCase("SOSAlarmId")
-						&& nvp.getParameterValue().equalsIgnoreCase(alarmId))
+						&& nvp.getParameterValue().equalsIgnoreCase(alarmId)) {
 					return true;
+				}
 
 			}
 		}
@@ -195,24 +206,31 @@ public class SOSAlarmManager {
 
 	public String getAlarmObjectTypeId(String alarmType) {
 		String objectTypeIdString = "";
-		if (alarmType.startsWith("FileShare")
-				|| alarmType.startsWith("FileSystem"))
+		if (alarmType.startsWith("FileShare") || alarmType.startsWith("FileSystem")) {
 			objectTypeIdString = EntityTypeEnum.StorageFileSystem.getValue();
-		else if (alarmType.startsWith("Volume"))
+		}
+		else if (alarmType.startsWith("Volume")) {
 			objectTypeIdString = EntityTypeEnum.StorageLun.getValue();
-		else if (alarmType.startsWith("Cos"))
+		}
+		else if (alarmType.startsWith("Cos")) {
 			objectTypeIdString = EntityTypeEnum.StorageCapability.getValue();
-		else if (alarmType.startsWith("StorageArray"))
+		}
+		else if (alarmType.startsWith("StorageArray")) {
 			objectTypeIdString = EntityTypeEnum.StorageArray.getValue();
-		else if (alarmType.startsWith("StorageProcessor"))
+		}
+		else if (alarmType.startsWith("StorageProcessor")) {
 			objectTypeIdString = EntityTypeEnum.StorageProcessor.getValue();
-		else if (alarmType.startsWith("StoragePort"))
+		}
+		else if (alarmType.startsWith("StoragePort")) {
 			objectTypeIdString = EntityTypeEnum.StoragePort.getValue();
-		else if (alarmType.startsWith("ArrayGeneric"))
+		}
+		else if (alarmType.startsWith("ArrayGeneric")) {
 			objectTypeIdString = "ArrayGeneric";
-		else
+		}
+		else {
 			log.warn("Unknown alarm type: " + alarmType
 					+ "in getAlarmObjectTypeId()");
+		}
 
 		return objectTypeIdString;
 
@@ -228,8 +246,9 @@ public class SOSAlarmManager {
 
 	public String getMessageIdForAlarm(String alarmType) {
 
-		if (alarmType == null)
+		if (alarmType == null) {
 			return "";
+		}
 
 		return ("StorageOS." + alarmType);
 
@@ -243,15 +262,19 @@ public class SOSAlarmManager {
 		}
 		if (severity.contains("MAJOR") || severity.contains("CRITICAL")
 				|| severity.contains("FATAL") || severity.contains("NOTICE")
-				|| severity.contains("EMERGENCY"))
+				|| severity.contains("EMERGENCY")) {
 			status = "RED";
-		else if (severity.contains("WARNING") || severity.contains("MINOR"))
+		}
+		else if (severity.contains("WARNING") || severity.contains("MINOR")) {
 			status = "YELLOW";
-		else if (severity.contains("UNKNOWN") || severity.contains("OTHER")
-				|| severity.contains("INFORMATION"))
+		}
+		else if (severity.contains("UNKNOWN") || severity.contains("OTHER") 
+				|| severity.contains("INFORMATION")) {
 			status = "GREEN";
-		else
+		}
+		else {
 			log.warn("Unknown severity : " + severity + "in getAlertStatus()");
+		}
 
 		return status;
 
@@ -378,9 +401,10 @@ public class SOSAlarmManager {
 				AssociatedPool associatedPool = manager
 						.fetchAssociatedPoolOfVolume(haVol.getId());
 
-				if (log.isTraceEnabled())
+				if (log.isTraceEnabled()) {
 					log.trace(methodName + haVol.getId()
 							+ " is associated with " + associatedPool);
+				}
 
 				storagePool = manager.fetchStoragePoolByHref(associatedPool
 						.getStoragepool().getLink().getHref());
@@ -437,7 +461,7 @@ public class SOSAlarmManager {
 		String resourceId = null;
 		String resourceType = null;
 
-		if (volumeList != null && volumeList.size() > 0) {
+		if (volumeList != null && !volumeList.isEmpty()) {
 			for (Volume volume : volumeList) {
 
 				resourceId = volume.getId();

@@ -54,6 +54,7 @@ import com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator
 import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexBackEndMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.VplexCinderMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VplexXtremIOMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskAddVolumeCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskOnlyRemoveVolumeCompleter;
@@ -147,19 +148,33 @@ public class VPlexBackendManager {
      * @return VPlexBackEndMaskingOrchestrator
      * @throws DeviceControllerException
      */
-    private VplexBackEndMaskingOrchestrator getOrch(StorageSystem system) throws DeviceControllerException {
-        if (system.getSystemType().equals(SystemType.vmax.name())) {
+    private VplexBackEndMaskingOrchestrator getOrch(StorageSystem system) throws DeviceControllerException
+    {
+        if (system.getSystemType().equals(SystemType.vmax.name()))
+        {
             return new VPlexVmaxMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
-        if (system.getSystemType().equals(SystemType.vnxblock.name())) {
+        
+        if (system.getSystemType().equals(SystemType.vnxblock.name()))
+        {
             return new VPlexVnxMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
-        if (system.getSystemType().equals(SystemType.xtremio.name())) {
+        
+        if (system.getSystemType().equals(SystemType.xtremio.name()))
+        {
             return new VplexXtremIOMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
-        if (system.getSystemType().equals(SystemType.hds.name())) {
+        
+        if (system.getSystemType().equals(SystemType.hds.name()))
+        {
             return new VPlexHDSMaskingOrchestrator(_dbClient, _blockDeviceController);
         }
+        
+        if (system.getSystemType().equals(SystemType.openstack.name()))
+        {
+            return new VplexCinderMaskingOrchestrator(_dbClient, _blockDeviceController);
+        }
+        
         throw DeviceControllerException.exceptions.unsupportedVPlexArray(
                 system.getSystemType(), system.getLabel());
     }

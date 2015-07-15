@@ -70,7 +70,7 @@ public class HDSUtils {
             // @TODO need to see how to get subscribed capacity of the hds pool
             // storagePool.setSubscribedCapacity(ControllerUtils.convertBytesToKBytes(subscribedCapacity));
 
-            log.info(String.format("New storage pool capacity data for pool \n  %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
+            log.info(String.format("New storage pool capacity data for pool %n  %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePool.getId(),
                     storagePool.getFreeCapacity(),
                     storagePool.getSubscribedCapacity()));

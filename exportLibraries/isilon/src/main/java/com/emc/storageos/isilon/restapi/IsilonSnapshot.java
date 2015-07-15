@@ -27,11 +27,11 @@ public class IsilonSnapshot {
     private String  expires;    /* timestamp */
     private String  path;
     private String  size;       /* bytes as int */
-    private String  pctFilesystem; /* <float 0.0 - 100.0> */
-    private String  pctReserve;    /* <float 0.0 - 100.0> */
+    private String  pct_filesystem; /* <float 0.0 - 100.0> */
+    private String  pct_reserve;    /* <float 0.0 - 100.0> */
     private String  alias;
-    private String  aliasTarget;   /* int */
-    private Boolean hasLocks;
+    private String  alias_target;   /* int */
+    private Boolean has_locks;
 
     public IsilonSnapshot() {    }
 

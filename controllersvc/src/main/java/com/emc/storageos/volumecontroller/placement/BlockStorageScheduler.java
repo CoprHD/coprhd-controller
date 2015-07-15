@@ -666,6 +666,11 @@ public class BlockStorageScheduler {
         NetworkUsage(URI network, long metric) {
             this.network = network; this.metric = metric;
         }
+        
+        //Suppressing Sonar violation: This class overrides "equals()" and should therefore also override "hashCode()
+        //CTRL-12976
+        @SuppressWarnings("squid:S1206")
+        
         @Override
         public boolean equals(Object obj) {
             if (! (obj instanceof NetworkUsage)) return false;

@@ -33,7 +33,7 @@ public class XtremIOProvUtils {
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
-            _log.info(String.format("Old storage pool capacity data for \n  pool %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            _log.info(String.format("Old storage pool capacity data for %n  pool %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePool.getId(),
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));
@@ -45,7 +45,7 @@ public class XtremIOProvUtils {
             		break;
             	}
             }
-            _log.info(String.format("New storage pool capacity data for \n  pool %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            _log.info(String.format("New storage pool capacity data for %n  pool %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePool.getId(),
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));

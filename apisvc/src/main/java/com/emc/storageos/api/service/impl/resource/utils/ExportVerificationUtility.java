@@ -44,9 +44,9 @@ public class ExportVerificationUtility {
 	private FileShare fs;
 	private Snapshot snapshot;
 	private FileExportUpdateParams param;
-	public static final String SEC_TYPE = "secType";     //NOSONAR
-	public static final String ANON_TYPE = "anon";       //NOSONAR
-	public static final String NO_HOSTS_FOUND = "hosts"; //NOSONAR
+	public static final String SEC_TYPE = "secType";
+	public static final String ANON_TYPE = "anon";
+	public static final String NO_HOSTS_FOUND = "hosts";
 	
 	private List<String> secFlavorsFound = new ArrayList<>();
 	private String invalidXMLElementErrorToReport;

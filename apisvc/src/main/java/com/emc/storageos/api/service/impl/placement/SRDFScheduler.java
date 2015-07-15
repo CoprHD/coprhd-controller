@@ -1004,7 +1004,7 @@ public class SRDFScheduler implements Scheduler {
         }
         for (RemoteDirectorGroup raGroup : groups) {
             if ((null != raGroup.getSourceReplicationGroupName() && raGroup.getSourceReplicationGroupName().contains(cgName)) 
-            		|| (null != raGroup.getTargetReplicationGroupName() && raGroup.getSourceReplicationGroupName().contains(cgName))) {
+            		|| (null != raGroup.getTargetReplicationGroupName() && raGroup.getTargetReplicationGroupName().contains(cgName))) {
                 _log.info(
                         "Found the RDF Group {}  which contains the CG {}. Processing the RDF Group for other validations.",
                         raGroup.getId(), cgObj.getId());

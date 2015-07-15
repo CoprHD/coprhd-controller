@@ -56,7 +56,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 public class NetworkDiscoveryWorker {
 
     private NetworkSystemDevice _device;
-    private DbClient _dbClient;
+    private DbClient dbClient;
     private CoordinatorClient _coordinator;
     private static final String BUNDLE_NAME = "networkdevice"; //$NON-NLS-1$
     private static final String EVENT_SERVICE_TYPE = "Network Discovery";
@@ -65,7 +65,7 @@ public class NetworkDiscoveryWorker {
     // Properties controllering expiration of FCEndpoints
     // Here Awol means "Absent Without Leave", i.e. since we last saw it in a sample.
     private Integer _minAwolSamples=3;
-    private Long _minAwolTime=60000l;
+    private Long _minAwolTime=60000L;
 
     private RecordableEventManager _evtMgr;
 
@@ -87,7 +87,7 @@ public class NetworkDiscoveryWorker {
     public NetworkDiscoveryWorker(NetworkSystemDevice device,
             DbClient dbClient) {
         this._device = device;
-        this._dbClient = dbClient;
+        this.dbClient = dbClient;
         RecordableEventManager evtMgr = 
                 new RecordableEventManager();
         evtMgr.setDbClient(dbClient);
@@ -128,7 +128,7 @@ public class NetworkDiscoveryWorker {
         } finally {
             if (networkDev != null) {
                 try {
-                    _dbClient.persistObject(networkDev);
+                    dbClient.persistObject(networkDev);
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
                 }
@@ -208,7 +208,7 @@ public class NetworkDiscoveryWorker {
                 try {
                     // set detailed message
                     networkDev.setLastDiscoveryStatusMessage(msg);
-                    _dbClient.persistObject(networkDev);
+                    dbClient.persistObject(networkDev);
                     _log.info("Discovery took {}" , (System.currentTimeMillis() - start));
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
@@ -230,11 +230,11 @@ public class NetworkDiscoveryWorker {
         // First, read all the existing connections from the device, and put them into a map
         // keyed by remote wwpn.
         URIQueryResultList uriList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getNetworkSystemFCPortConnectionConstraint(dev.getId()), uriList);
         Map<String, FCEndpoint> existingEndpoints = new HashMap<String, FCEndpoint>();
         for (URI uriold : uriList) {
-            FCEndpoint connection = _dbClient.queryObject(FCEndpoint.class, uriold);
+            FCEndpoint connection = dbClient.queryObject(FCEndpoint.class, uriold);
             if (connection != null) {
                 existingEndpoints.put(connection.getRemotePortName().toUpperCase(), connection);
             }
@@ -286,14 +286,14 @@ public class NetworkDiscoveryWorker {
             if (count >= _minAwolSamples 
                     && (System.currentTimeMillis() - entry.getAwolTime()) > _minAwolTime) {
                 removedCount++;
-                _dbClient.removeObject(entry);
+                dbClient.removeObject(entry);
             } else {
                 updated.add(entry);		// update counters
             }
         }
         // Persist created, modified.
-        _dbClient.createObject(created);
-        _dbClient.updateAndReindexObject(updated);
+        dbClient.createObject(created);
+        dbClient.updateAndReindexObject(updated);
         _log.info(MessageFormat.format("{0} new connections persisted", created.size()).toString());
         _log.info(MessageFormat.format("{0} updated connections persisted", updated.size()).toString());
         _log.info(MessageFormat.format("{0} missing connections", existingEndpoints.values().size()).toString());
@@ -377,15 +377,15 @@ public class NetworkDiscoveryWorker {
     private int removeConflictingEndpoints(String remoteWwpn, String fabricWwn, URI deviceId) throws IOException {
         int removedCount = 0;
         URIQueryResultList uriList = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                 getFCEndpointRemotePortNameConstraint(remoteWwpn), uriList);
         for (URI uri : uriList) {
-            FCEndpoint ep = _dbClient.queryObject(FCEndpoint.class, uri);
+            FCEndpoint ep = dbClient.queryObject(FCEndpoint.class, uri);
             if (ep == null) continue;
             if (ep.getNetworkDevice().equals(deviceId)) continue;
             if (ep.getRemotePortName().equals(remoteWwpn) == false) continue;
             if (ep.getFabricWwn().equals(fabricWwn)) continue;
-            _dbClient.removeObject(ep);
+            dbClient.removeObject(ep);
             removedCount++;
         }
         return removedCount;
@@ -433,7 +433,7 @@ public class NetworkDiscoveryWorker {
             }
             for (Network tzone : results.getModified()) {
                 if (results.getRemovedEndPoints().get(tzone) != null) {
-                    NetworkAssociationHelper.handleEndpointsRemoved(tzone, results.getRemovedEndPoints().get(tzone), _dbClient, _coordinator);
+                    NetworkAssociationHelper.handleEndpointsRemoved(tzone, results.getRemovedEndPoints().get(tzone), dbClient, _coordinator);
                 }
                 if (results.getAddedEndPoints().get(tzone) != null) {
                     handleEndpointsAdded(tzone, results.getAddedEndPoints().get(tzone));
@@ -489,7 +489,7 @@ public class NetworkDiscoveryWorker {
                  }
                  network.setRoutedNetworks(routedNetworks);
             }
-             _dbClient.updateAndReindexObject(network);
+             dbClient.updateAndReindexObject(network);
              _log.info("Updated routed networks for {} to {}", network.getNativeGuid(), routedNetworks);
         }
         // clean up transit networks from any one-way associations.
@@ -519,12 +519,12 @@ public class NetworkDiscoveryWorker {
                 if (updated) {
                     _log.info("Reconciled routed networks for {} to {}", net.getNativeGuid(), routedNetworks);
                     net.setRoutedNetworks(routedNetworks);
-                    _dbClient.updateAndReindexObject(net);
+                    dbClient.updateAndReindexObject(net);
                 }
             }
         }
         for (Network network: allNetworks.values()) {
-            NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, _dbClient);
+            NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, dbClient);
         }
     }
 
@@ -552,25 +552,25 @@ public class NetworkDiscoveryWorker {
     private void handleEndpointsAdded(Network tzone, Collection<String> endpoints) throws IOException {
         // find if the endpoints exit in some old transport zone
         Map<String, Network> transportZoneMap =
-                NetworkAssociationHelper.getNetworksMap(endpoints, _dbClient);
+                NetworkAssociationHelper.getNetworksMap(endpoints, dbClient);
         if (!transportZoneMap.isEmpty()) {
             _log.info("Added endpoints {} to transport zone {}", endpoints.toArray(), tzone.getLabel());
             // before we add the endpoints, they need to be removed from their old transport zones
-            NetworkAssociationHelper.handleRemoveFromOldNetworks(transportZoneMap, tzone, _dbClient, _coordinator);
+            NetworkAssociationHelper.handleRemoveFromOldNetworks(transportZoneMap, tzone, dbClient, _coordinator);
         }
         // now, add the the endpoints
-        NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, _dbClient, _coordinator);
+        NetworkAssociationHelper.handleEndpointsAdded(tzone, endpoints, dbClient, _coordinator);
     }
 
     private Iterator<FCEndpoint> getNetworkSystemEndPoints(NetworkSystem networkSystem) throws IOException {
         URIQueryResultList uriList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getNetworkSystemFCPortConnectionConstraint(networkSystem.getId()), uriList);
         List<URI> uris = new ArrayList<URI>(); 
         while (uriList.iterator().hasNext()) {
             uris.add(uriList.iterator().next());
         }
-        return _dbClient.queryIterativeObjects(FCEndpoint.class, uris);
+        return dbClient.queryIterativeObjects(FCEndpoint.class, uris);
     }
 
     /**
@@ -578,8 +578,8 @@ public class NetworkDiscoveryWorker {
      */
     private List<Network> getCurrentTransportZones() throws Exception {
         List<Network> tzones = new ArrayList<Network>();
-        List<URI> uriTransportList = _dbClient.queryByType(Network.class, true);
-        Iterator<Network> iTZones = _dbClient.queryIterativeObjects(Network.class, uriTransportList);
+        List<URI> uriTransportList = dbClient.queryByType(Network.class, true);
+        Iterator<Network> iTZones = dbClient.queryIterativeObjects(Network.class, uriTransportList);
         while (iTZones.hasNext()) {
             Network transportZone = iTZones.next();
             if (transportZone != null && Transport.FC.toString().equals(transportZone.getTransportType())) {
@@ -610,8 +610,8 @@ public class NetworkDiscoveryWorker {
             if (userCreatedEndPoints.isEmpty() && !tzone.assignedToVarray()) { // delete only if not modified by a user
                 _log.info("Removing network {}", tzone.getLabel());
                 toRemove.addAll(tzone.retrieveEndpoints());
-                NetworkAssociationHelper.handleEndpointsRemoved(tzone, toRemove, _dbClient, _coordinator);
-                _dbClient.markForDeletion(tzone);
+                NetworkAssociationHelper.handleEndpointsRemoved(tzone, toRemove, dbClient, _coordinator);
+                dbClient.markForDeletion(tzone);
                 recordTransportZoneEvent(tzone, OperationTypeEnum.DELETE_NETWORK.getEvType(true),
                         OperationTypeEnum.DELETE_NETWORK.getDescription());
             } else {
@@ -624,16 +624,16 @@ public class NetworkDiscoveryWorker {
                     }
                 }
                 tzone.removeEndpoints(toRemove);
-                NetworkAssociationHelper.handleEndpointsRemoved(tzone, toRemove, _dbClient, _coordinator);
+                NetworkAssociationHelper.handleEndpointsRemoved(tzone, toRemove, dbClient, _coordinator);
                 _log.info("Discovered endpoints removed {}", toRemove.toArray());
-                _dbClient.persistObject(tzone);
+                dbClient.persistObject(tzone);
                 recordTransportZoneEvent(tzone, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                         OperationTypeEnum.UPDATE_NETWORK.getDescription());
             }
         } else {
             _log.info("Removing network {} from network system {}",
                     tzone.getLabel(), uri );
-            _dbClient.persistObject(tzone);
+            dbClient.persistObject(tzone);
             recordTransportZoneEvent(tzone, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                     OperationTypeEnum.UPDATE_NETWORK.getDescription());
         }
@@ -642,12 +642,12 @@ public class NetworkDiscoveryWorker {
 
     private void saveTransportZone(Network network, boolean newTransportZone) throws IOException {
         if (newTransportZone) {
-            _dbClient.createObject(network);
+            dbClient.createObject(network);
             _log.info("Added networks {}", network.getLabel());
             recordTransportZoneEvent(network, OperationTypeEnum.CREATE_NETWORK.getEvType(true),
                     OperationTypeEnum.CREATE_NETWORK.getDescription());
         } else {
-            _dbClient.updateAndReindexObject(network);
+            dbClient.updateAndReindexObject(network);
             _log.info("Updated transport zone {}", network.getLabel());
             recordTransportZoneEvent(network, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                     OperationTypeEnum.UPDATE_NETWORK.getDescription());
@@ -663,7 +663,7 @@ public class NetworkDiscoveryWorker {
     private NetworkSystem getDeviceObject(URI network) throws ControllerException {
         NetworkSystem networkDev = null;
         try {
-            networkDev = _dbClient.queryObject(NetworkSystem.class, network);
+            networkDev = dbClient.queryObject(NetworkSystem.class, network);
         } catch (Exception e) {
             throw NetworkDeviceControllerException.exceptions.getDeviceObjectFailed(
                     network.toString(), e);
@@ -684,8 +684,8 @@ public class NetworkDiscoveryWorker {
         this._device = _device;
     }
 
-    public void set_dbClient(DbClient _dbClient) {
-        this._dbClient = _dbClient;
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
     }
 
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -706,12 +706,12 @@ public class NetworkDiscoveryWorker {
         }
         // TODO fix the bogus user ID once we have AuthZ working
         RecordableBourneEvent event= ControllerUtils.convertToRecordableBourneEvent(tz, type, description,
-                null,_dbClient,EVENT_SERVICE_TYPE,RecordType.Event.name(),EVENT_SERVICE_SOURCE);
+                null,dbClient,EVENT_SERVICE_TYPE,RecordType.Event.name(),EVENT_SERVICE_SOURCE);
 
         try {
             _evtMgr.recordEvents(event);
-        } catch(Throwable th ) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, th);
+        } catch(Exception ex ) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, ex);
         }
     }
 

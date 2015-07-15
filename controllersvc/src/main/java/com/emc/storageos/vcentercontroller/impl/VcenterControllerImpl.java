@@ -250,7 +250,7 @@ public class VcenterControllerImpl implements VcenterController {
                     null);
 
             String lastStep = clusterStep;
-            if(removeHosts.size() > 0) {
+            if(!removeHosts.isEmpty()) {
                 for(Host host : removeHosts) {
                     String hostStep = workflow.createStep("VCENTER_CLUSTER_REMOVE_HOST",
                             String.format("vCenter cluster remove host operation %s", host.getId()), clusterStep,
@@ -263,7 +263,7 @@ public class VcenterControllerImpl implements VcenterController {
                 }
             }
 
-            if(addHosts.size() > 0) {
+            if(!addHosts.isEmpty()) {
                 for(Host host : addHosts) {
                     String hostStep = workflow.createStep("VCENTER_CLUSTER_ADD_HOST",
                             String.format("vCenter cluster add host operation %s", host.getId()), lastStep,
@@ -274,7 +274,7 @@ public class VcenterControllerImpl implements VcenterController {
                             null);
                 }
 
-                if(volumes.size() > 0) {
+                if(!volumes.isEmpty()) {
                     // Once all hosts in cluster select a host to use for shared storage operations
                     String selectHostForStorageOperationsStep = workflow.createStep("VCENTER_CLUSTER_SELECT_HOST",
                             String.format("vCenter cluster select host for storage operations operation vCenter datacenter %s", vcenterDataCenterId), "VCENTER_CLUSTER_ADD_HOST",

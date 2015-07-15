@@ -428,7 +428,7 @@ public class PortMetricsProcessor {
                 }
             }
             
-            storageSystemPortsMetrics = usablePortCount == 0 ? 0.0 : portMetricsSum / usablePortCount;
+            storageSystemPortsMetrics = (Double.compare(usablePortCount, 0 ) == 0 ) ? 0.0 : portMetricsSum / usablePortCount;
             _log.info(String.format("Array %s metric %f", storageDevice.getLabel(), storageSystemPortsMetrics));
             
             // persisted into storage system object for later retrieval

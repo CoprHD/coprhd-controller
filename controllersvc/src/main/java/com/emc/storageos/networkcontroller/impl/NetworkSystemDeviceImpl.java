@@ -126,7 +126,7 @@ public abstract class NetworkSystemDeviceImpl implements NetworkSystemDevice {
 		    Zone zoneInFabric = activeZonesMap.get(zone.getName());
 		    if (zoneInFabric != null) {
 	            boolean match = true;
-		        if (zone.getMembers() != null && zone.getMembers().size() > 0) {
+		        if (zone.getMembers() != null && !zone.getMembers().isEmpty()) {
 		            match = sameMembers(zoneInFabric, zone);
 		        }
                 if (match) {

@@ -26,12 +26,12 @@ public class IsilonClusterConfig {
     private ArrayList<Devices> devices;
     private String encoding;
     private String guid;
-    private String joinMode;
-    private String localDevid;
-    private String localLnn;
-    private String localSerial;
+    private String join_mode;
+    private String local_devid;
+    private String local_lnn;
+    private String local_serial;
     private String name;
-    private OnefsVersion onefsVersion;
+    private OnefsVersion onefs_version;
 
 
     public static class Devices {
@@ -93,7 +93,7 @@ public class IsilonClusterConfig {
 
 
     public void setVersion(String versionStr){
-        onefsVersion = new Gson().fromJson(versionStr, OnefsVersion.class);
+        onefs_version = new Gson().fromJson(versionStr, OnefsVersion.class);
     }
 
     public String toString() {
@@ -102,7 +102,7 @@ public class IsilonClusterConfig {
         str.append(", guid: " + guid);
         str.append(", description: " + description);
         str.append(", devices: " + ((devices != null) ? devices.toString() : ""));
-        str.append(", version: " + ((onefsVersion != null) ? onefsVersion.toString() : ""));
+        str.append(", version: " + ((onefs_version != null) ? onefs_version.toString() : ""));
         return str.toString();
     }
 
@@ -122,28 +122,28 @@ public class IsilonClusterConfig {
            return guid;
        }
 
-       public String getJoinMode() {
-           return joinMode;
+       public String getJoin_mode() {
+           return join_mode;
        }
 
-       public String getLocalDevid() {
-           return localDevid;
+       public String getLocal_devid() {
+           return local_devid;
        }
 
-       public String getLocalLnn() {
-           return localLnn;
+       public String getLocal_lnn() {
+           return local_lnn;
        }
 
-       public String getLocalSerial() {
-           return localSerial;
+       public String getLocal_serial() {
+           return local_serial;
        }
 
        public String getName() {
            return name;
        }
 
-       public OnefsVersion getOnefs_Version() {
-           return onefsVersion;
+       public OnefsVersion getOnefs_version_info() {
+           return onefs_version;
        }
 
 }

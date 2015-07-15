@@ -303,8 +303,8 @@ public class ObjectStoreImplDb implements ObjectStore {
         exportObject.setClients(export.getClients());
         exportObject.setComment(export.getComment());
         exportObject.setPaths(export.getPaths());
-        exportObject.setMap_all(export.getMapAll());
-        exportObject.setMap_root(export.getMapRoot());
+        exportObject.setMap_all(export.getMap_all());
+        exportObject.setMap_root(export.getMap_root());
         exportObject.setRead_only(export.getReadOnly());
         exportObject.setSecurityFlavors(export.getSecurityFlavors());
 
@@ -347,10 +347,10 @@ public class ObjectStoreImplDb implements ObjectStore {
             exportObject.setComment(export.getComment());
         if (export.getPaths() != null)
             exportObject.setPaths(export.getPaths());
-        if (export.getMapAll() != null)
-            exportObject.setMap_all(export.getMapAll());
-        if (export.getMapRoot() != null)
-            exportObject.setMap_root(export.getMapRoot());
+        if (export.getMap_all() != null)
+            exportObject.setMap_all(export.getMap_all());
+        if (export.getMap_root() != null)
+            exportObject.setMap_root(export.getMap_root());
         if (export.getSecurityFlavors() != null)
             exportObject.setSecurityFlavors(export.getSecurityFlavors());
         exportObject.setRead_only(export.getReadOnly());

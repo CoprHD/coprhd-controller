@@ -75,7 +75,8 @@ public class PasswordUtils {
     }
 
     private static Properties defaultProperties;
-    public static void setDefaultProperties(Properties defaults) {
+
+    public synchronized static void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }
 

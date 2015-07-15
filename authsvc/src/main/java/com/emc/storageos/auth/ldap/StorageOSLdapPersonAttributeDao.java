@@ -771,7 +771,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
                 return resolvedGroups;
             } 
             for( List<GroupAttribute> resolvedGroupAttribute : resolvedGroupAttributeList ) {
-                if (resolvedGroupAttribute.size() > 0) {
+                if ( !resolvedGroupAttribute.isEmpty() ) {
                     resolvedGroups.add(resolvedGroupAttribute.get(0).getGroupNameWithDomain());
                 }
             } 

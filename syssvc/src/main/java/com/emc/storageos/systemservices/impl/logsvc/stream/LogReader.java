@@ -188,7 +188,7 @@ public class LogReader implements LogStream {
                 reader.close();
             }
         } catch (Exception e) {
-            logger.error("failed to close LogReader:", e);
+            logger.error("Failed to close LogReader:", e);
         } finally {
             reader = null;
         }

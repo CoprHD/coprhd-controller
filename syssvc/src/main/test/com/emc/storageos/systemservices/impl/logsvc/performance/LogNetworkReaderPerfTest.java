@@ -71,11 +71,11 @@ public class LogNetworkReaderPerfTest {
             long startTime = System.nanoTime();
             new Thread(
                     new Runnable() {
-                        public void run(){
+                        public void run() {
                             try {
                                 writer.write(outputStream);
                             } catch (Exception e) {
-                                log.error("Failed to write:", e);
+                                e.printStackTrace(); //NOSONAR ("squid:S1148 suppress sonar warning on printStackTrace. It's a test case and exceptions are meant to be printed to stdout/stderr")
                             }
                         }
                     }

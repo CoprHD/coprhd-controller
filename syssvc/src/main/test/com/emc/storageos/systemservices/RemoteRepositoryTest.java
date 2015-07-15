@@ -61,8 +61,7 @@ public class RemoteRepositoryTest {
     private EncryptionProvider _encrypter;
     private String newVersionCheckLock = "new_version_check_lock";
 
-    // suppress sonar warning objects shouldn't be dropped without being used.
-    // the constructors are called to set static fields.
+    // Suppress Sonar warning that created objects are never used. The constructors are called to set static fields.
     @SuppressWarnings("squid:S1848")
     @Before
     public void setup() throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {

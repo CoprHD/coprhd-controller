@@ -138,11 +138,11 @@ public abstract class UploadExecutor {
 
         this.cfg.persist();
 
-        if (! succUploads.isEmpty()) {
+        if (!succUploads.isEmpty()) {
             List<String> descParams = this.cli.getDescParams(Strings.join(", ", succUploads.toArray(new String[succUploads.size()])));
             this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         }
-        if (! failureUploads.isEmpty()) {
+        if (!failureUploads.isEmpty()) {
             String failureTags = Strings.join(", ", failureUploads.toArray(new String[failureUploads.size()]));
             List<String> descParams = this.cli.getDescParams(failureTags);
             descParams.add(Strings.join(", ", errMsgs.toArray(new String[errMsgs.size()])));

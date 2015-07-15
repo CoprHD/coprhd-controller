@@ -85,9 +85,7 @@ public class SoftwareVersionTest {
         return new SoftwareVersion(versionStrA).isSwitchableTo(new SoftwareVersion(versionStrB));
     }
 
-    // suppress sonar warning objects shouldn't be dropped without being used.
-    // the TestProductName constructor is called to set static fields.
-    // the SoftwareVersion constructor is called to validate the version string.
+    // Suppress Sonar warning that created objects are never used. The TestProductName constructor is called to set static fields. The SoftwareVersion constructor is called to validate the version string.
     @SuppressWarnings("squid:S1848")
     @Test
     public void testSoftwareVersion() throws Exception {

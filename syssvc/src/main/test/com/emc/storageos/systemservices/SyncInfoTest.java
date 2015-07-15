@@ -64,9 +64,7 @@ public class SyncInfoTest {
 
     @Test
     public void testLocal() throws Exception {
-        new TestProductName(); //NOSONAR ("squid:S1848
-                                        // suppress sonar warning objects shouldn't be dropped without being used.
-                                        // the constructor is called to set static fields")
+        new TestProductName(); //NOSONAR ("squid:S1848 Suppress Sonar warning that created objects are never used. The constructor is called to set static fields")
         // tests getLeaderSyncInfo
         List<SoftwareVersion> localVersions = arrayToList(new String[] {
                 "storageos-1.0.0.0.r500", "storageos-1.0.0.0.r555", "storageos-1.0.0.1.r500" });

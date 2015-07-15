@@ -178,7 +178,7 @@ public abstract class SendEvent {
         ArrayList<String> fileList = genAttachFiles();
         BadRequestException badRequestException = null;
         
-        if (fileList != null && ! fileList.isEmpty()) {
+        if (fileList != null && !fileList.isEmpty()) {
             boolean attachLogs = true;
             try {
                 validateAttachmentSize(fileList);

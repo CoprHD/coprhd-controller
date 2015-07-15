@@ -164,9 +164,9 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
             throw APIException.internalServerErrors.noNodeAvailableError("collect logs info");
         }
         List<String> failedNodes = ClusterNodesUtil.getUnavailableControllerNodes();            
-        if(! request.getNodeIds().isEmpty())
+        if(!request.getNodeIds().isEmpty())
             failedNodes.retainAll(request.getNodeIds());
-        if(! failedNodes.isEmpty()) {
+        if(!failedNodes.isEmpty()) {
             logger.error("Cannot collect logs from unavailable nodes: {}", failedNodes.toString());
         }
         

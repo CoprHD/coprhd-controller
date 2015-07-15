@@ -62,8 +62,7 @@ import java.util.*;
  * Class that provides REST API for node(and its services) health and statistics.
  */
 @Path("/monitor")
-public class
-        HealthMonitorService extends BaseLogSvcResource {
+public class HealthMonitorService extends BaseLogSvcResource {
 
     private static final Logger _log = LoggerFactory.getLogger(HealthMonitorService
             .class);

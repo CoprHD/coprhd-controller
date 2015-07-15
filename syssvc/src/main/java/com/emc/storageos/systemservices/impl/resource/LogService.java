@@ -237,7 +237,7 @@ public class LogService extends BaseLogSvcResource {
                 failedNodes = _coordinatorClientExt.getUnavailableControllerNodes();
             }
 
-            if(! nodeIds.isEmpty())
+            if(!nodeIds.isEmpty())
                 failedNodes.retainAll(nodeIds);
             String baseNodeURL;
             SysClientFactory.SysClient sysClient;                
@@ -533,7 +533,7 @@ public class LogService extends BaseLogSvcResource {
         }
         List<String> nodeIdsClone = new ArrayList<String>(nodeIds);
         nodeIdsClone.removeAll(validNodeIds);
-        if (! nodeIdsClone.isEmpty()) {
+        if (!nodeIdsClone.isEmpty()) {
             throw APIException.badRequests.parameterIsNotValid("node id");
         }
     }
@@ -554,7 +554,7 @@ public class LogService extends BaseLogSvcResource {
         // both control and extra node services are valid service names
         logNamesClone.removeAll(ServicesMetadata.getControlNodeServiceNames());
         logNamesClone.removeAll(ServicesMetadata.getExtraNodeServiceNames());
-        if (! logNamesClone.isEmpty()) {
+        if (!logNamesClone.isEmpty()) {
             throw APIException.badRequests.parameterIsNotValid("log name");
         }
     }

@@ -23,8 +23,6 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 /**
  * A utility class for implementing {@link DataObject} common functions.
  *
- * @author elalih
- *
  */
 public class DataObjectUtils {
     /**
@@ -181,5 +179,27 @@ public class DataObjectUtils {
             objs.add(itr.next());
         }
         return objs;
+    }
+
+    /**
+     * Utility functions that returns a map of a collection of objects
+     * by a selected property. If the property is null for an object, the
+     * object will not be added to the map.
+     * 
+     * @param col the objects collection
+     * @param property the property name
+     * @return a map of object by their property
+     */
+    public static <T extends DataObject> Map<String, T> mapByProperty(Collection<T> col, String property) {
+        Map<String, T> map = new HashMap<String, T>();
+        Object prop = null;
+        for (T t : col ) {
+           prop = getPropertyValue(t.getClass(), t, property);
+           if (prop != null) {
+               map.put(prop.toString(), t);
+           }
+           
+        }
+        return map;
     }
 }

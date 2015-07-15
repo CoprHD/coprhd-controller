@@ -508,7 +508,7 @@ public class ExportMaskUtils {
 	static public ExportMask initializeExportMask(
 	        StorageSystem storage, ExportGroup exportGroup,
 	        List<Initiator> initiators, Map<URI, Integer> volumeMap,
-	        List<URI> targets, Map<URI, List<URI>> zoneAssignments, String maskName, DbClient dbClient) 
+	        List<URI> targets, Map<URI, List<URI>> zoneAssignments, StringSetMap zoningMap, String maskName, DbClient dbClient) 
 	        throws Exception {
 		if(maskName == null) {
 			maskName = ExportMaskUtils.getMaskName(dbClient, initiators, exportGroup, storage);
@@ -532,8 +532,10 @@ public class ExportMaskUtils {
 	    exportMask.setCreatedBySystem(true);
 	    exportMaskUpdate(exportMask, volumeMap, initiators, targets);
 	    if(!exportGroup.getZoneAllInitiators() && null != zoneAssignments){
-	        StringSetMap zoneMap = getZoneMapFromAssignments(zoneAssignments);
-	        if (! zoneMap.isEmpty()) exportMask.setZoningMap(zoneMap);
+	        StringSetMap zoneMap = getZoneMapFromAssignments(zoneAssignments,zoningMap);
+	        if (!zoneMap.isEmpty()) {
+	            exportMask.setZoningMap(zoneMap);
+	        }
 	    }
 	    dbClient.updateAndReindexObject(exportMask);
 	    return exportMask;
@@ -697,8 +699,9 @@ public class ExportMaskUtils {
      * @param assignments Map<URI, List<URI>> of zoning assignments.
      * @return StringSetMap with same information encoded as 
      */
-    static public StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments) {
+    static public StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments, StringSetMap existingZones) {
         StringSetMap zoneMap = new StringSetMap();
+        if (existingZones != null) zoneMap.putAll(existingZones);
         for (URI initiatorURI : assignments.keySet()) {
             StringSet portIds = new StringSet();
             List<URI> portURIs = assignments.get(initiatorURI);

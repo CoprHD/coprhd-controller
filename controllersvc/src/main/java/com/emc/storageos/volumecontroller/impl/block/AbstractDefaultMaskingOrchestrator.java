@@ -2,17 +2,6 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-/*
- * Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
-
 package com.emc.storageos.volumecontroller.impl.block;
 
 import java.io.IOException;
@@ -49,6 +38,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -698,15 +688,17 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
             pathParams.setAllowFewerPorts(true);
         }
         
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, 
+                initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray());
         Map<URI, List<URI>> assignments =
                 _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, null, volumeMap.keySet());
-        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
+                        pathParams, existingZoningMap, volumeMap.keySet());
+        List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
         
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
         
         ExportMask exportMask = ExportMaskUtils.initializeExportMask(storage, exportGroup,
-                initiators, volumeMap, targets, assignments, maskName, _dbClient);
+                initiators, volumeMap, targets, assignments, existingZoningMap, maskName, _dbClient);
         List<BlockObject> vols = new ArrayList<BlockObject>();
         for (URI boURI : volumeMap.keySet()) {
             BlockObject bo = BlockObject.fetch(_dbClient, boURI);
@@ -902,11 +894,13 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
     	if (exportGroup.getType() != null) {
     		pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
     	}
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, initiators, 
+                exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray());
     	Map<URI, List<URI>> assignments =
     			_blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
     					pathParams, exportMask.getZoningMap(), newVolumeURIs);
-    	newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
-    	exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
+    	newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
+    	exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
     	_dbClient.persistObject(exportMask);
 
         String maskingStep = workflow.createStepId();

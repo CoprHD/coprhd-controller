@@ -370,5 +370,16 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         setChanged("discoveryStatus");
     }
     
-    
+    /**
+     * Returns a port name guaranteed to have the director identification.
+     * @param port
+     * @return
+     */
+    public String qualifiedPortName() {
+        if (getPortName().startsWith(getPortGroup())) {
+            return getPortName();
+        } else {
+            return getPortGroup() + ":" + getPortName();
+        }
+    }
 }

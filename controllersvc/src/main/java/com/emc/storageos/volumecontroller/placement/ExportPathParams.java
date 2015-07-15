@@ -52,12 +52,15 @@ public class ExportPathParams {
      */
     Boolean allowFewerPorts = false;
 
-
     public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator) {
+        this(maxPaths, minPaths, pathsPerInitiator,  ExportGroupType.Host);
+    }
+
+    public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator, ExportGroupType type) {
         this.maxPaths = maxPaths;
         this.minPaths = minPaths;
         this.pathsPerInitiator = pathsPerInitiator;
-        this.exportGroupType = ExportGroupType.Host;
+        this.exportGroupType = type;
     }
     
     public Integer getMaxPaths() {

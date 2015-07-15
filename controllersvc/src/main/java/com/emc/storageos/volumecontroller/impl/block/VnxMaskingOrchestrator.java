@@ -2,17 +2,6 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-/*
- * Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
-
 package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
@@ -40,6 +29,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -129,11 +119,13 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	if (exportGroup.getType() != null) {
     		pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
     	}
+        StringSetMap existingZoningMap = _blockScheduler.discoverExistingZonesMap(storage, exportGroup, initiators, 
+                exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray());
     	Map<URI, List<URI>> assignments =
     			_blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-    					pathParams, exportMask.getZoningMap(), null);
-    	newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
-    	exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
+    					pathParams, existingZoningMap, null);
+    	newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingZoningMap);
+    	exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingZoningMap));
     	_dbClient.persistObject(exportMask);
 
     	String maskingStep = workflow.createStepId();

@@ -25,9 +25,9 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
@@ -44,9 +44,11 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Collections2;
+import com.google.common.base.Joiner;
 import com.google.common.collect.TreeMultimap;
 
 public class ExportUtils {
@@ -1083,4 +1085,69 @@ public class ExportUtils {
         
         dbClient.updateAndReindexObject(updatedObjects);
     }
+    
+    /**
+     * Find all the ports in a storage system that can be assigned in a given virtual array. 
+     * @param dbClient an instance of {@link DbClient}
+     * @param storageSystemURI the URI of the storage system
+     * @param varrayURI the virtual array
+     * @return a list of storage ports that are in good operational status and assigned to the virtual array
+     */
+    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, URI varrayURI) {
+        URIQueryResultList sports = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                                    getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
+        Iterator<URI> it = sports.iterator();
+        List<StoragePort> spList = new ArrayList<StoragePort>();
+        List<String> notRegisteredOrOk = new ArrayList<String>();
+        List<String> notInVarray = new ArrayList<String>();
+        while (it.hasNext()) {
+            StoragePort sp = dbClient.queryObject(StoragePort.class, it.next());
+            if (sp.getInactive() || sp.getNetwork() == null
+                || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
+                || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
+                || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
+                || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
+                || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend ) {
+                    _log.debug("Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, " +
+                              "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
+                notRegisteredOrOk.add(sp.qualifiedPortName());
+            } else if (sp.getTaggedVirtualArrays() == null || !sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                _log.debug("Storage port {} not selected because it is not connected " +
+                        "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
+                    notInVarray.add(sp.qualifiedPortName());
+            } else {
+                spList.add(sp);
+            }
+        }
+        if (!notRegisteredOrOk.isEmpty()) _log.info("Ports not selected because they are inactive, have no network assignment, " +
+                "are not registered, bad operational status, or not type front-end: " 
+                + Joiner.on(" ").join(notRegisteredOrOk));
+        if (!notInVarray.isEmpty()) _log.info("Ports not selected because they are not assigned to the requested virtual array: " 
+                + varrayURI + " " + Joiner.on(" ").join(notInVarray));
+        return spList;
+    }
+    
+    public static Map<NetworkLite, List<StoragePort>> mapStoragePortsToNetworks(Collection<StoragePort> ports, 
+            Collection<NetworkLite> networks , DbClient _dbClient) {
+        Map<NetworkLite, List<StoragePort>> localPorts = new HashMap<NetworkLite, List<StoragePort>>();
+        Map<NetworkLite, List<StoragePort>> remotePorts = new HashMap<NetworkLite, List<StoragePort>>();
+        for (NetworkLite network : networks) {
+            for (StoragePort port : ports) {
+                if (port.getNetwork().equals(network.getId())) {
+                    StringMapUtil.addToListMap(localPorts, network, port);
+                } else if (network.hasRoutedNetworks(port.getNetwork())) {
+                    StringMapUtil.addToListMap(remotePorts, network, port);
+                }
+            }
+        }
+        //consolidate local and remote ports
+        for (NetworkLite network : networks) {
+            if (localPorts.get(network) == null && remotePorts.get(network)!= null) {
+                localPorts.put(network, remotePorts.get(network));
+            }
+        }
+        return localPorts;
+    }
+
 }

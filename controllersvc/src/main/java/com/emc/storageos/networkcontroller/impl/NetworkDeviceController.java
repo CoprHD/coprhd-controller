@@ -353,22 +353,21 @@ public class NetworkDeviceController implements NetworkController {
 		// must be recorded for each volume in the FCZoneReference table.
 		HashSet<String> keySet = new HashSet<String>();
 		for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
-			
+            String key = fabricInfo.makeEndpointsKey();
+            if (false == keySet.contains(key)) {
+                keySet.add(key);
+                // neither create nor delete zones found on the switch
+                if (fabricInfo.isExistingZone()) {
+                    _log.info("Zone {} will not be created or removed on {}, as it is not vipr created. ", fabricInfo.getZoneName(),
+                            fabricInfo.toString());
+                    continue; // neither create nor delete zones found on the switch
+                }
             // Don't actually remove the zone if it's not the last reference
             if (doRemove && !fabricInfo._isLastReference) {
                 _log.info("Zone {} will not be removed on {}, as still the zone is used to expose other volumes in export groups ",
                         fabricInfo.getZoneName(), fabricInfo.toString());
                 continue;
             }
-            // neither create nor delete zones found on the switch
-            if (fabricInfo.isExistingZone()) {
-                _log.info("Zone {} will not be created or removed on {}, as it is not vipr created. ", fabricInfo.getZoneName(),
-                        fabricInfo.toString());
-                continue; // neither create nor delete zones found on the switch
-            }
-			String key = fabricInfo.makeEndpointsKey();
-			if (false == keySet.contains(key)) {
-				keySet.add(key);
 				Zone zone = new Zone(fabricInfo.getZoneName());
 				for (String address : fabricInfo.getEndPoints()) {
 					ZoneMember member = new ZoneMember(address, ConnectivityMemberType.WWPN);
@@ -1047,7 +1046,7 @@ public class NetworkDeviceController implements NetworkController {
             List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
             Map<String, List<Zone>> zonesMap = getInitiatorsZones(exportInitiators);
             List<NetworkFCZoneInfo> zones  = _networkScheduler.
-                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap);
+                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap, _dbClient);
             
             context.getZoneInfos().addAll(zones);
             logZones(zones);
@@ -1159,7 +1158,7 @@ public class NetworkDeviceController implements NetworkController {
             // Compute zones that are required.
             Map<String, List<Zone>> zonesMap = getInitiatorsZones(getInitiatorsFromMapExportMasksToInitiators(exportMasksToInitiators));
             List<NetworkFCZoneInfo> zoneInfos =
-                    _networkScheduler.getZoningTargetsForInitiators(exportGroup, exportMasksToInitiators, zonesMap);
+                    _networkScheduler.getZoningTargetsForInitiators(exportGroup, exportMasksToInitiators, zonesMap, _dbClient);
             context.getZoneInfos().addAll(zoneInfos);
             logZones(zoneInfos);
             
@@ -1586,35 +1585,74 @@ public class NetworkDeviceController implements NetworkController {
      * whether a New FCZoneReference was persisted.
      */
     private FCZoneReference addZoneReference(URI exportGroupURI, NetworkFCZoneInfo zoneInfo, String[] newOrExisting) {
-        FCZoneReference ref = null;
-        // Check to see that we don't add multiple references for same Volume/Export Group combination
         String refKey = zoneInfo.makeEndpointsKey();
-        Map<String, FCZoneReference> volRefMap = _networkScheduler.makeExportToReferenceMap(refKey);
-        String volExportKey = make2UriKey(zoneInfo.getVolumeId(), exportGroupURI);
-        if (volRefMap.containsKey(volExportKey)) {
-            ref = volRefMap.get(volExportKey);
-            // If we have an active reference, don't make another
-            if (ref != null && ref.getInactive() == false) {
-                _log.info(String.format("Existing zone reference: vol %s group %s refkey %s", 
-                        zoneInfo.getVolumeId(), exportGroupURI, refKey ));
-                newOrExisting[0] = "Existing";
+        FCZoneReference ref = addZoneReference(exportGroupURI, zoneInfo.getVolumeId(), refKey, zoneInfo.getFabricId(), 
+                zoneInfo.getNetworkDeviceId(), zoneInfo.getZoneName(), zoneInfo.isExistingZone(), newOrExisting);
                 return ref;
             }
-        }
+
+    /**
+     * Add a zone reference for an ExportGroup Zone combination.
+     * This method is careful not to duplicate existing FCZoneReferences matching the same
+     * ExportGroup and Volume. Whether a new reference is persisted or not,
+     * it returns the reference.
+     * @param exportGroupURI
+     * @param volumeURI
+     * @param refKey
+     * @param fabricId
+     * @param NetworkSystemURI
+     * @param zoneName
+     * @param existingZone
+     * @param newOrExisting - OUT param in String[0] puts "New" or "Existing" indicating
+     * whether a New FCZoneReference was persisted.
+     * @return The zone reference instance
+     */
+    private FCZoneReference addZoneReference(URI exportGroupURI, URI volumeURI,
+            String refKey, String fabricId, URI NetworkSystemURI, String zoneName,
+            boolean existingZone, String[] newOrExisting) {
+        // Check to see that we don't add multiple references for same Volume/Export Group combination
+        FCZoneReference ref = findFCZoneReferenceForVolGroupKey(exportGroupURI, volumeURI, refKey, newOrExisting);
+        if (ref == null) {
         ref = new FCZoneReference();
         ref.setPwwnKey(refKey);
-        ref.setFabricId(zoneInfo.getFabricId());
-        ref.setNetworkSystemUri(zoneInfo.getNetworkDeviceId());
-        ref.setVolumeUri(zoneInfo.getVolumeId());
+            ref.setFabricId(fabricId);
+            ref.setNetworkSystemUri(NetworkSystemURI);
+            ref.setVolumeUri(volumeURI);
         ref.setGroupUri(exportGroupURI);
-        ref.setZoneName(zoneInfo.getZoneName());
+            ref.setZoneName(zoneName);
         ref.setId(URIUtil.createId(FCZoneReference.class));
         ref.setInactive(false);
         ref.setLabel(ref.getPwwnKey());
-        ref.setExistingZone(zoneInfo.isExistingZone());
+            ref.setExistingZone(existingZone);
         _dbClient.createObject(ref);
         newOrExisting[0] = "New";
+        }
         return ref;
+    }
+    
+    /**
+     * Looks in the database for a zone for the same volume and export group and key
+     * @param exportGroupURI
+     * @param volumeURI
+     * @param refKey
+     * @param newOrExisting - OUT param in String[0] puts "New" or "Existing" indicating
+     * whether a New FCZoneReference was persisted.
+     * @return The zone reference instance if found, null otherwise
+     */
+    private FCZoneReference findFCZoneReferenceForVolGroupKey(URI exportGroupURI, URI volumeURI, String  refKey, String[] newOrExisting) {
+        Map<String, FCZoneReference> volRefMap = _networkScheduler.makeExportToReferenceMap(refKey);
+        String volExportKey = make2UriKey(volumeURI, exportGroupURI);
+        if (volRefMap.containsKey(volExportKey)) {
+            FCZoneReference ref = volRefMap.get(volExportKey);
+            // If we have an active reference, don't make another
+            if (ref != null && ref.getInactive() == false) {
+                _log.info(String.format("Existing zone reference: vol %s group %s refkey %s", 
+                        volumeURI, exportGroupURI, refKey ));
+                newOrExisting[0] = "Existing";
+        return ref;
+    }
+        }
+        return null;
     }
     
     private void logZones(List<NetworkFCZoneInfo> zones) {
@@ -1869,12 +1907,19 @@ public class NetworkDeviceController implements NetworkController {
      */
     private ZoneInfoMap getInitiatorsInNetworkZoneInfoMap(NetworkLite network, List<Initiator> initiators, Map<String, StoragePort> initiatorPortsMap) {
         ZoneInfoMap map = new ZoneInfoMap();
+        fetchInitiatorsInNetworkZoneInfoMap(network, map, initiators, initiatorPortsMap);
+        return map;
+    }
+
+    
+    private NetworkSystem fetchInitiatorsInNetworkZoneInfoMap(NetworkLite network, ZoneInfoMap map , 
+            List<Initiator> initiators, Map<String, StoragePort> initiatorPortsMap) {
         Map<String, Initiator> wwnToInitiatorMap = wwnToInitiatorMap(initiators);
         
         // retrieve the zones
         Map<String,List<Zone>> wwnToZones = new HashMap<String,List<Zone>>();
         NetworkSystem networkSystem = fetchInitiatorsZones(network, initiators, wwnToZones);
-        wwnToZones = selectZonesForInitiatorsAndPorts(wwnToZones, initiatorPortsMap);
+        wwnToZones = selectZonesForInitiatorsAndPorts(network, wwnToZones, initiatorPortsMap);
         
         // if we successfully retrieved the zones
         if (networkSystem != null && wwnToZones.size() > 0) {
@@ -1902,7 +1947,7 @@ public class NetworkDeviceController implements NetworkController {
                 }
             }
         }
-        return map;
+        return networkSystem;
     }
     
     /**
@@ -1915,14 +1960,14 @@ public class NetworkDeviceController implements NetworkController {
      * @param initiatorPortsMap a map of port-wwn-to-storage-port
      * @return a new map containing the selected zones.
      */
-    private Map<String, List<Zone>> selectZonesForInitiatorsAndPorts(
+    private Map<String, List<Zone>> selectZonesForInitiatorsAndPorts( NetworkLite network,
             Map<String, List<Zone>> wwnToZones, Map<String, StoragePort> initiatorPortsMap) {
         Map<String, List<Zone>> filteredMap = new HashMap<String, List<Zone>>();
         Zone zone = null;
         List<Zone> zones = null;
         for (String initiatorWwn  : wwnToZones.keySet()) {
             for (String portWwn : initiatorPortsMap.keySet()) {
-                zone = _networkScheduler.selectExistingZoneForInitiatorPort(initiatorWwn, portWwn, wwnToZones.get(initiatorWwn));
+                zone = _networkScheduler.selectExistingZoneForInitiatorPort(network, initiatorWwn, portWwn, wwnToZones.get(initiatorWwn));
                 if (zone != null) {
                     zones = filteredMap.get(initiatorWwn);
                     if (zones == null) {
@@ -1976,6 +2021,7 @@ public class NetworkDeviceController implements NetworkController {
         ZoneInfoMap zoningMap = new ZoneInfoMap();
         Map<NetworkLite, List<Initiator>> initiatorsByNetworkMap = NetworkUtil.getInitiatorsByNetwork(initiators, _dbClient);
         for (Map.Entry<NetworkLite, List<Initiator>> entry : initiatorsByNetworkMap.entrySet()) {
+            if (!Transport.FC.toString().equals(entry.getKey().getTransportType())) continue;
             Map<String, StoragePort> initiatorPortsMap = NetworkUtil.getPortsInNetworkMap(entry.getKey(), storagePorts);
             if (initiatorPortsMap.size() > 0) {
                 zoningMap.putAll(getInitiatorsInNetworkZoneInfoMap(entry.getKey(), entry.getValue(), initiatorPortsMap));
@@ -2004,9 +2050,9 @@ public class NetworkDeviceController implements NetworkController {
 
     /**
      * Finds all the zone paths that exists between a list of initiators and storage ports.
-     * 
      * @param initiators the list of initiators
      * @param storagePorts a map of storage port keyed by the port WWN
+     * 
      * @return a zoning map of zones that exists on the network systems 
      */
     public StringSetMap getZoningMap(NetworkLite network, List<Initiator> initiators,
@@ -2014,9 +2060,10 @@ public class NetworkDeviceController implements NetworkController {
         StringSetMap map = new StringSetMap();
         
         // find all the zones for the initiators as a map of initiator WWN to zones
-        Map<String, List<Zone>> initiatorWwnToZonesMap = getInitiatorsInNetworkZones(network, initiators);
+        Map<String,List<Zone>> initiatorWwnToZonesMap = new HashMap<String,List<Zone>>();
         // of the zones retrieved from the network system, select the once 
-        initiatorWwnToZonesMap = selectZonesForInitiatorsAndPorts(initiatorWwnToZonesMap, portsMap);
+        fetchInitiatorsZones(network, initiators, initiatorWwnToZonesMap);
+        initiatorWwnToZonesMap = selectZonesForInitiatorsAndPorts(network, initiatorWwnToZonesMap, portsMap);
         // build the map object
         for (Initiator initiator : initiators) {
             StringSet set = new StringSet();
@@ -2419,9 +2466,21 @@ public class NetworkDeviceController implements NetworkController {
             alwaysRefresh = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
                     _coordinator, "controller_ns_zone_refresh_always"));
         } catch (Exception ex) {
-            _log.warn("Failed to get the values for Zone.refresh.always from resource bundle "
+            _log.warn("Failed to get the values for controller_ns_zone_refresh_always from resource bundle "
                     + ex.getMessage());
         }
         return alwaysRefresh;
+    }
+
+    public boolean portAllocationIgnoreExistingZones() {
+        boolean metricOnlyBasedAllocation = false; // default to true
+        try {
+            metricOnlyBasedAllocation = Boolean.valueOf(ControllerUtils.getPropertyValueFromCoordinator(
+                    _coordinator, "controller_port_alloc_ignore_existing_zones"));
+        } catch (Exception ex) {
+            _log.warn("Failed to get the values for controller_port_alloc_ignore_existing_zones from resource bundle "
+                    + ex.getMessage());
+        }
+        return metricOnlyBasedAllocation;
     }
 }

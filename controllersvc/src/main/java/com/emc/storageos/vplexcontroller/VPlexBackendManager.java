@@ -924,12 +924,13 @@ public class VPlexBackendManager {
      * @return
      */
     public Map<URI, List<StoragePort>> getAllocatablePorts(URI arrayURI, Set<URI> networkURIs, URI varray) {
-        Map<URI, List<StoragePort>> networkToPortsMap = new HashMap<URI, List<StoragePort>>();
-        for (URI networkURI : networkURIs) {
-           List<StoragePort> ports =  _blockStorageScheduler.selectStoragePorts(arrayURI, networkURI, varray);
-           networkToPortsMap.put(networkURI, ports);
+        Collection<NetworkLite> networks = NetworkUtil.queryNetworkLites(networkURIs, _dbClient);
+        Map<URI, List<StoragePort>> map = new HashMap<URI, List<StoragePort>>();
+        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler.selectStoragePortsInNetworks(arrayURI, networks, varray);
+        for (NetworkLite network : tempMap.keySet()) {
+            map.put(network.getId(), tempMap.get(network));
         }
-        return networkToPortsMap;
+        return map;
     }
     
     public ExportMask generateExportMask(URI arrayURI, String namePrefix,

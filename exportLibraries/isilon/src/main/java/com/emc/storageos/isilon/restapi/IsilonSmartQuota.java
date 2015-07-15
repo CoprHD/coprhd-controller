@@ -45,12 +45,12 @@ public class IsilonSmartQuota {
         // All thresholds are optional except "hard" . If threshold is present, should be positive.
         // Have to use "null" values for optional thresholds when not present.
         private Long    hard;
-        private Boolean hardExceeded;
+        private Boolean hard_exceeded;
         private Long    advisory;
-        private Boolean advisoryExceeded;
+        private Boolean advisory_exceeded;
         private Long    soft;
-        private Long    softGrace;
-        private Boolean softExceeded;
+        private Long    soft_grace;
+        private Boolean soft_exceeded;
 
         Thresholds() {}
 
@@ -65,7 +65,7 @@ public class IsilonSmartQuota {
             hard = h;
             advisory = a;
             soft = s;
-            softGrace = sg;
+            soft_grace = sg;
         }
 
         public String toString() {
@@ -73,7 +73,7 @@ public class IsilonSmartQuota {
             str.append(" hard: " + hard);
             str.append(" advisory: " + advisory);
             str.append(" soft: " + soft);
-            str.append(" softGrace: " + softGrace);
+            str.append(" soft_grace: " + soft_grace);
             return str.toString();
         }
 
@@ -90,7 +90,7 @@ public class IsilonSmartQuota {
         }
 
         public Long getSoftGrace() {
-            return softGrace;
+            return soft_grace;
         }
     }
 
@@ -100,7 +100,7 @@ public class IsilonSmartQuota {
     private String      user;
     private String      group;
     private Boolean     include_snapshots;
-    private Boolean     thresholdsIncludeOverhead;
+    private Boolean     thresholds_include_overhead;
     private Boolean     enforced;
     private Boolean     linked;
     private String      notifications; /* <string[default|custom|disabled]> */
@@ -118,7 +118,7 @@ public class IsilonSmartQuota {
         path = p;
         type = "directory";
         include_snapshots = false;              // default
-        thresholdsIncludeOverhead = false;    // default
+        thresholds_include_overhead = false;    // default
         enforced = false;
     }
 
@@ -131,7 +131,7 @@ public class IsilonSmartQuota {
         path = p;
         type = "directory";
         include_snapshots = false;              // default
-        thresholdsIncludeOverhead = false;     // default
+        thresholds_include_overhead = false;     // default
         enforced = true;
         thresholds = new Thresholds( h, null, null, null);
     }
@@ -141,7 +141,7 @@ public class IsilonSmartQuota {
      * @param h     hard limit to be enforced
      */
     public IsilonSmartQuota(long h) {
-    	thresholdsIncludeOverhead = false;     // default
+        thresholds_include_overhead = false;     // default
         enforced = true;
         thresholds = new Thresholds( h, null, null, null);
     }
@@ -158,7 +158,7 @@ public class IsilonSmartQuota {
         path = p;
         type = "directory";
         include_snapshots = bIncludeSnapshots;              // custom value
-        thresholdsIncludeOverhead = bThresholdsIncludeOverhead;     // custom value
+        thresholds_include_overhead = bThresholdsIncludeOverhead;     // custom value
         enforced = true;
         thresholds = new Thresholds( h, null, null, null);
     }
@@ -175,7 +175,7 @@ public class IsilonSmartQuota {
         path = p;
         type = "directory";
         include_snapshots = bIncludeSnapshots;              // custom value
-        thresholdsIncludeOverhead = bThresholdsIncludeOverhead;    // custom value
+        thresholds_include_overhead = bThresholdsIncludeOverhead;    // custom value
         enforced = false;
     }
 
@@ -186,7 +186,7 @@ public class IsilonSmartQuota {
         str.append(" , path: " + path);
         str.append(" , enforced: " + enforced);
         str.append(" , include_snapshots: " + include_snapshots);
-        str.append(" , thresholdsIncludeOverhead: " + thresholdsIncludeOverhead);
+        str.append(" , thresholds_include_overhead: " + thresholds_include_overhead);
         str.append((thresholds != null)? (", thresholds: " + thresholds.toString()):"");
         str.append(" )");
         return str.toString();

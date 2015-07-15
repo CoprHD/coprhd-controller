@@ -22,8 +22,8 @@ public class IsilonStoragePool {
 
     //[{"disk_usage":{"available":15754415955968,"total":16921439059968,"used":94310457344},"entry_id":1,"name":"x200_5.5tb_200gb-ssd_6gb"}]
 
-    private DiskUsage diskUsage;
-    private String entryId;
+    private DiskUsage disk_usage;
+    private String entry_id;
     private String name;
 
     public class DiskUsage {
@@ -41,11 +41,11 @@ public class IsilonStoragePool {
     };
 
     public DiskUsage getDiskUsage() {
-        return diskUsage;
+        return disk_usage;
     }
 
-    public String getEntryId(){
-        return entryId;
+    public String getEntry_id(){
+        return entry_id;
     }
     public String getName() {
         return name;

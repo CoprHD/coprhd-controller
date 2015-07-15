@@ -390,7 +390,7 @@ public class IsilonApiTest {
         Assert.assertTrue(exp1.getId().toString().equals(export1Id));
         //Assert.assertFalse(exp1.getReadOnly());
         Assert.assertTrue(exp1.getSecurityFlavors().get(0).equals("unix"));
-        Assert.assertTrue(exp1.getMapRoot().getUser().equals("nobody"));
+        Assert.assertTrue(exp1.getMap_root().getUser().equals("nobody"));
         System.out.println("Export created: " + exp1);
 
         // Create snap export with default settings: sys.rw.nobody
@@ -409,7 +409,7 @@ public class IsilonApiTest {
         Assert.assertTrue(sExp1.getId().toString().equals(snapExport1Id));
         Assert.assertFalse(sExp1.getReadOnly());
         Assert.assertTrue(sExp1.getSecurityFlavors().get(0).equals("unix"));
-        Assert.assertTrue(sExp1.getMapRoot().getUser().equals("nobody"));
+        Assert.assertTrue(sExp1.getMap_root().getUser().equals("nobody"));
         System.out.println("Snap Export created: " + sExp1);
 
         // delete snap export
@@ -443,7 +443,7 @@ public class IsilonApiTest {
         Assert.assertTrue(exp2.getId().toString().equals(export2Id));
         Assert.assertFalse(exp2.getReadOnly());
         Assert.assertTrue(exp2.getSecurityFlavors().get(0).equals("krb5"));
-        Assert.assertTrue(exp2.getMapAll().getUser().equals("root"));
+        Assert.assertTrue(exp2.getMap_all().getUser().equals("root"));
         System.out.println("Export created: " + exp2);
 
         // modify export

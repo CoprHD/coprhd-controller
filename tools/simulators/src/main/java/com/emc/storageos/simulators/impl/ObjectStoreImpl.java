@@ -316,8 +316,8 @@ public class ObjectStoreImpl implements ObjectStore {
                         export.getPaths(),
                         export.getClients(),
                         export.getReadOnly(),
-                        export.getMapAll(),
-                        export.getMapRoot(),
+                        export.getMap_all(),
+                        export.getMap_root(),
                         export.getSecurityFlavors());
 
         _exports.put(id, exportObject);
@@ -368,10 +368,10 @@ public class ObjectStoreImpl implements ObjectStore {
             exportObj._comment = export.getComment();
         if (export.getPaths() != null)
             exportObj._paths = export.getPaths();
-        if (export.getMapAll() != null)
-            exportObj._map_all = export.getMapAll();
-        if (export.getMapRoot() != null)
-            exportObj._map_root = export.getMapRoot();
+        if (export.getMap_all() != null)
+            exportObj._map_all = export.getMap_all();
+        if (export.getMap_root() != null)
+            exportObj._map_root = export.getMap_root();
         if (export.getSecurityFlavors() != null)
             exportObj._security_flavors = export.getSecurityFlavors();
         exportObj._read_only = export.getReadOnly();

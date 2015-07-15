@@ -1,6 +1,6 @@
 package com.emc.sa.util;
 
-import static com.emc.sa.util.ArrayUtil.safeArray;
+import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
@@ -12,7 +12,7 @@ public class ArrayUtilTests {
 		
 		String[] strings = {"one", "two", "three"};
 		
-		String[] newStrings = safeArray(strings);
+		String[] newStrings = safeArrayCopy(strings);
 		
 		assertNotEquals(strings, newStrings);
 		

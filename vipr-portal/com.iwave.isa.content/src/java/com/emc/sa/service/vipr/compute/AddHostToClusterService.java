@@ -19,7 +19,7 @@ import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VCENTER;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
-import static com.emc.sa.util.ArrayUtil.safeArray;
+import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -273,11 +273,11 @@ public class AddHostToClusterService extends ViPRService {
     }
 
     public FqdnToIpTable[] getFqdnToIps() {
-    	return safeArray(fqdnToIps);
+    	return safeArrayCopy(fqdnToIps);
     }
 
     public void setFqdnToIps(FqdnToIpTable[] fqdnToIps) {
-        this.fqdnToIps = safeArray(fqdnToIps);
+        this.fqdnToIps = safeArrayCopy(fqdnToIps);
     }
 
     private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps,Map<String,URI> hostNameToBootVolumeMap) {

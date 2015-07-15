@@ -7,6 +7,7 @@ package com.emc.storageos.db.client.util;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -73,4 +74,19 @@ public class StringMapUtil {
         return false;
     }
     
+    
+    /**
+     * Implements retainAll behavior on a map
+     * @param map1 the map that will be trimmed
+     * @param map2 the map that has the items to remain
+     */
+    public static void retainAll(Map map1, Map map2)  {
+        Iterator itr = map1.keySet().iterator();
+        while (itr.hasNext()) {
+            Object key = itr.next();
+            if (!map2.containsKey(key)) {
+                itr.remove();
+            }
+        }
+    }
 }

@@ -1571,7 +1571,7 @@ public class NetworkDeviceController implements NetworkController {
         try {
             _eventManager.recordEvents(event);
         } catch(Exception ex ) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, ex);
+            _log.error("Failed to record event. Event description: {}. Error:",  description, ex);
         }
     }
 

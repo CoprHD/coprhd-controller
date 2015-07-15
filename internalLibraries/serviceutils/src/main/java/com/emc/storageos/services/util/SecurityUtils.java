@@ -10,15 +10,16 @@
  */
 package com.emc.storageos.services.util;
 
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.json.JsonSanitizer;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
 import org.owasp.esapi.ESAPI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -70,12 +71,13 @@ public class SecurityUtils {
         if (valueMap == null)
               return null;
         
-        for (String key: valueMap.keySet()){
-        	stripXSS(key);
-        	stripXSS(valueMap.get(key));
-        }
+        Map<String, String> xssMap = new HashMap<String, String>();
+        Set<Map.Entry<String, String>> set = valueMap.entrySet();
 
-        return valueMap;
-    }
+        for (Map.Entry<String, String> entry : set){
+                xssMap.put(stripXSS(entry.getKey()), stripXSS(entry.getValue()));
+        }
+        return xssMap;
+     }
 
 }

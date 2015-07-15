@@ -29,6 +29,7 @@ import com.emc.sa.service.vipr.file.tasks.FindFilesystemWithDatastore;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vmware.block.tasks.CreateVmfsDatastore;
+import com.emc.sa.service.vmware.block.tasks.DetachLunsBackingDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExtendVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.FindHostScsiDiskForLun;
@@ -219,6 +220,10 @@ public class VMwareSupport {
             }
         }
 
+    }
+    
+    public void detachLuns(HostSystem host, Datastore datastore) {
+    	execute( new DetachLunsBackingDatastore(host, datastore) );
     }
 
     /**

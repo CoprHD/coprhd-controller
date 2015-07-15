@@ -48,13 +48,15 @@ public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
        		Datastore datastore = entry.getKey();
     		List<VolumeRestRep> volumes = entry.getValue();
     		
+    		vmware.enterMaintenanceMode(datastore);
+    		
     		vmware.setStorageIOControl(datastore, false);
     		
     		vmware.unmountVmfsDatastore(host, datastore);
     		
     		vmware.detachLuns(host, datastore);
     		
-	        vmware.deleteVmfsDatastore(volumes, hostId, datastore);
+	        //vmware.deleteVmfsDatastore(volumes, hostId, datastore);
 	
 	        if (!volumes.isEmpty()) {
 	            List<URI> volumeList = new ArrayList<URI>();

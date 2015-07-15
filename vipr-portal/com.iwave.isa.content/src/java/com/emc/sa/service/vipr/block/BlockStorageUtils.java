@@ -39,6 +39,7 @@ import com.emc.sa.service.vipr.block.tasks.DeactivateVolume;
 import com.emc.sa.service.vipr.block.tasks.DeactivateVolumes;
 import com.emc.sa.service.vipr.block.tasks.DetachFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ExpandVolume;
+import com.emc.sa.service.vipr.block.tasks.FindBlockVolumeHlus;
 import com.emc.sa.service.vipr.block.tasks.FindExportByCluster;
 import com.emc.sa.service.vipr.block.tasks.FindExportByHost;
 import com.emc.sa.service.vipr.block.tasks.FindExportsContainingCluster;
@@ -228,10 +229,10 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
-    public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host) {
+    public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host, Map<URI, Integer> volumeHlus) {
         String exportName = host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-            host.getHostName(), host.getId(), null));
+            host.getHostName(), host.getId(), null, volumeHlus));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
@@ -245,18 +246,18 @@ public class BlockStorageUtils {
                 volumeIds, hlu, host.getHostName(), host.getId(), null));
     }
 
-    public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster ) {
+    public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster, Map<URI, Integer> volumeHlus) {
         String exportName = cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-                cluster.getLabel(), null, cluster.getId()));
+                cluster.getLabel(), null, cluster.getId(), volumeHlus));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
         return exportId;
     }
 
-    public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId) {
-        Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu));
+    public static void addVolumesToExport(Collection<URI> volumeIds, Integer hlu, URI exportId, Map<URI, Integer> volumeHlus) {
+        Task<ExportGroupRestRep> task = execute(new AddVolumesToExport(exportId, volumeIds, hlu, volumeHlus));
         addRollback(new RemoveBlockResourcesFromExport(exportId, volumeIds));
         addAffectedResource(task);
     }
@@ -414,6 +415,15 @@ public class BlockStorageUtils {
     
     public static void restoreFromFullCopy(URI fullCopyId) {
         execute(new RestoreFromFullCopy(fullCopyId));
+    }    
+    
+    public static Map<URI, Integer> findBlockVolumeHLUs(Collection<URI> volumeIds) {
+        List<ITLRestRep> bulkResponse = execute(new FindBlockVolumeHlus(volumeIds));
+        Map<URI, Integer> volumeHLUs = Maps.newHashMap();
+        for (ITLRestRep export : bulkResponse) {
+            volumeHLUs.put(export.getBlockObject().getId(), export.getHlu());
+        }
+        return volumeHLUs;
     }
 
     public static void resynchronizeFullCopies(Collection<URI> fullCopyIds) {

@@ -2035,14 +2035,17 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doResyncGroupClone(StorageSystem storageDevice,
             List<URI> clone, TaskCompleter completer) throws Exception {
         _cloneOperations.resyncGroupClones(storageDevice, clone, completer);
-        
     }
 
     @Override
     public void doFractureGroupClone(StorageSystem storageDevice, List<URI> clone, 
                                     TaskCompleter completer) throws Exception {
         _cloneOperations.fractureGroupClones(storageDevice, clone, completer);
-        
+    }
+    
+    @Override
+    public void refreshStorageSystem(final URI systemURI) {
+        _srdfOperations.refreshStorageSystem(systemURI);
     }
     
     /**

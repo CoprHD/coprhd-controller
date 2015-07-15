@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -1300,7 +1301,8 @@ public class WorkflowService {
         		WorkflowStepCompleter.stepFailed(stepId, coded);
         		return;
     		}
-    		if (childWorkflow.getOrchTaskId().equals(childOrchestrationTaskId)) {
+    		//TODO: This is a short-term fix for 12858. A more appropriate fix would be to detect that the zk copy of the WF does not exist.
+    		if (!NullColumnValueGetter.isNullValue(childWorkflow.getOrchTaskId()) && childWorkflow.getOrchTaskId().equals(childOrchestrationTaskId)) {
     			// Rolling back the specified workflow.
     			rollbackInnerWorkflow(childWorkflow, stepId);
     			return;

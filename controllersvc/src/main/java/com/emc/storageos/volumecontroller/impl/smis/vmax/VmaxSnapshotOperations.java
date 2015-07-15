@@ -355,12 +355,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             	volumesBySizeMap.put(key, currentVolumes);
 			}
             
-            // For 8.0 providers, no need to create target devices and
+            // For 8.0 providers (except VMAX3), no need to create target devices and
             // target group separately for volumes in CG.
             // They will be created as part of 'CreateGroupReplica' call.
             // For 4.6 providers, target devices and target group will be
             // created separately before 'CreateGroupReplica' call.
-            if (!storage.getUsingSmis80()) {
+            
+            // For VMAX3, we need the target group to tag the setting instance
+            if (storage.checkIfVmax3() || !storage.getUsingSmis80()) {
 	            targetDeviceIds = new ArrayList<String>();
 	            CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, snapVolume, null);
 	            for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {

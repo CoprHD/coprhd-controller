@@ -449,7 +449,8 @@ public class ImageServerControllerImpl implements ImageServerController {
 			d.cd(TMP);
     		
 			log.info("download image");
-			boolean res = d.wget(ci.getImageUrl(), imageName, imageServerConf.getImageImportTimeoutMs());
+			//CTRL-12030: special characters in URL's password cause issues on Image Server.  Adding quotes.
+			boolean res = d.wget("'" + ci.getImageUrl() + "'", imageName, imageServerConf.getImageImportTimeoutMs());
 			
 			if (res) {
 				log.info("downloaded image successfully");

@@ -6,7 +6,9 @@ package com.emc.sa.service.vipr.block.tasks;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 
+import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -21,9 +23,10 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
     private Integer hlu;
     private URI hostId;
     private URI clusterId;
+    private Map<URI, Integer> volumeHlus;
 
     public CreateExport(String name, URI varrayId, URI projectId, List<URI> volumeIds, Integer hlu, String hostName, URI hostId,
-            URI clusterId) {
+            URI clusterId, Map<URI, Integer> volumeHlus) {
         this.name = name;
         this.varrayId = varrayId;
         this.projectId = projectId;
@@ -31,6 +34,7 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         this.hlu = hlu;
         this.hostId = hostId;
         this.clusterId = clusterId;
+        this.volumeHlus = volumeHlus;
         if (clusterId != null) {
         	provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
         }
@@ -50,7 +54,16 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         for (URI volumeId : volumeIds) {
             VolumeParam volume = new VolumeParam(volumeId);
             if (currentHlu != null) {
-                volume.setLun(currentHlu);
+                if (currentHlu.equals(ExportVMwareBlockVolumeHelper.USE_EXISTING_HLU) && volumeHlus != null) {
+                    Integer volumeHlu = volumeHlus.get(volume.getId());
+                    if (volumeHlu == null) {
+                        volume.setLun(-1);
+                    } else {
+                        volume.setLun(volumeHlu);
+                    }
+                } else {
+                    volume.setLun(currentHlu);
+                }
             }
             if ((currentHlu != null) && (currentHlu > -1)) {
                 currentHlu++;

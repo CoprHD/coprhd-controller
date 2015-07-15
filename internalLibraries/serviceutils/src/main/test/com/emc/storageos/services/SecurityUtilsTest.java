@@ -29,6 +29,10 @@ public class SecurityUtilsTest {
     public static void populateServices() throws Exception {
     }
 
+	/**
+	 * Pass a map of asset types and oid's to the stripMapXSS method
+	 * Verify contents of the map are unchanged
+	 */
     @Test
     public void testSanitizedMap(){
         String string1 = "urn:storageos:VirtualPool:4736ce97-87f1-4c2e-a28e-8f2a9efebbd4:vdc1";
@@ -47,11 +51,11 @@ public class SecurityUtilsTest {
         int cntr = 0;
         for(String key : sanitizedMap.keySet()){
             switch (cntr++){
-                case 0: Assert.assertEquals(key, "vipr.blockVirtualPool");
+                case 0: Assert.assertEquals("Sanitized map key should not have changed", key, "vipr.blockVirtualPool");
                         break;
-                case 1: Assert.assertEquals(key, "vipr.project");
+                case 1: Assert.assertEquals("Sanitized map key should not have changed", key, "vipr.project");
                         break;
-                case 2: Assert.assertEquals(key, "vipr.virtualArray");
+                case 2: Assert.assertEquals("Sanitized map key should not have changed", key, "vipr.virtualArray");
                         break;
                 default: Assert.fail();
             }
@@ -59,17 +63,21 @@ public class SecurityUtilsTest {
         cntr = 0;
         for(String value : sanitizedMap.values()){
             switch (cntr++){
-            	case 0: Assert.assertEquals(value, string1);
+            	case 0: Assert.assertEquals("Sanitized map value should not have changed", value, string1);
             		break;
-            	case 1: Assert.assertEquals(value, string2);
+            	case 1: Assert.assertEquals("Sanitized map value should not have changed", value, string2);
             		break;
-            	case 2: Assert.assertEquals(value, string3);
+            	case 2: Assert.assertEquals("Sanitized map value should not have changed", value, string3);
                     break;
                 default: Assert.fail();
             }
         }
     }
-
+	/**
+	 * Pass a map of asset types and oid's that contain <script> to the stripMapXSS method
+	 * Verify contents of the map are unchanged besides removing <script> or 
+	 * discarding the entire string when <script> is at the beginning
+	 */
     @Test
     public void testScriptStrip(){
         String string1 = "urn:storageos:VirtualPool:4736ce97-87f1-4c2e-a28e-8f2a9efebbd4:vdc1";
@@ -90,11 +98,11 @@ public class SecurityUtilsTest {
         int cntr = 0;
         for(String key : sanitizedMap.keySet()){
             switch (cntr++){
-                case 0: Assert.assertEquals(key, "vipr.blockVirtualPool");
+                case 0: Assert.assertEquals("Sanitized map key should not have changed", key, "vipr.blockVirtualPool");
                         break;
-                case 1: Assert.assertEquals(key, "vipr.project");
+                case 1: Assert.assertEquals("Sanitized map key should not have changed", key, "vipr.project");
                         break;
-                case 2: Assert.assertEquals(key, "vipr.virtualArray");
+                case 2: Assert.assertEquals("Sanitized map key should not have changed", key, "vipr.virtualArray");
                         break;
                 default: Assert.fail();
             }
@@ -102,9 +110,9 @@ public class SecurityUtilsTest {
         cntr = 0;
         for(String value : sanitizedMap.values()){
             switch (cntr++){
-                case 0: Assert.assertEquals(value, string1);
+                case 0: Assert.assertEquals("Sanitized map value should not contain the string <script>", value, string1);
                         break;
-                case 1: Assert.assertEquals(value, string2);
+                case 1: Assert.assertEquals("Sanitized map value should not contain the string <script>", value, string2);
                         break;
                 case 2: Assert.assertNotEquals("Entire String should be discarded because <script> is at beginning", value, "<script>" + string3);
                         break;
@@ -113,6 +121,10 @@ public class SecurityUtilsTest {
         }
     }
 
+	/**
+	 * Pass oid type strings to the stripXSS method
+	 * Verify the strings are unchanged
+	 */
     @Test
     public void testStripXSS(){
         String string1 = "urn:storageos:VirtualPool:4736ce97-87f1-4c2e-a28e-8f2a9efebbd4:vdc1";
@@ -125,8 +137,8 @@ public class SecurityUtilsTest {
 
         Assert.assertNotNull(xssString1);
         Assert.assertNotNull(xssString2);
-        Assert.assertEquals(xssString1, string1);
-        Assert.assertEquals(xssString2, string2);
+        Assert.assertEquals("Sanitized string should not have changed", xssString1, string1);
+        Assert.assertEquals("Sanitized string should not have changed", xssString2, string2);
     }
 
 }

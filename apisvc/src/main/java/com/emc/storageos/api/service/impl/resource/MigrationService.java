@@ -335,11 +335,14 @@ public class MigrationService extends TaskResourceService {
         } 
         String status = migration.getMigrationStatus();
         String migrationName = migration.getLabel();
+        if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
+            throw APIException.badRequests.migrationHasntStarted(id.toString());
+        }
         if (status != null && !status.isEmpty() && 
-                (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.name()) ||
-                 status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.name()) ||
-                 status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.name())) ||
-                 status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name())) {
+            (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.name()) ||
+             status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.name()) ||
+             status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.name())) ||
+             status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name())) {
             throw APIException.badRequests.migrationCantBePaused(migrationName, status);
         }
         URI volId = migration.getVolume();
@@ -399,6 +402,9 @@ public class MigrationService extends TaskResourceService {
        } 
        String status = migration.getMigrationStatus();
        String migrationName = migration.getLabel();
+       if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
+           throw APIException.badRequests.migrationHasntStarted(id.toString());
+       }
        if (status != null && !status.isEmpty() && 
            !status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.name())) {
            throw APIException.badRequests.migrationCantBeResumed(migrationName, status);
@@ -482,8 +488,11 @@ public class MigrationService extends TaskResourceService {
      // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class,
-                volId, taskId, ResourceOperationTypeEnum.RESUME_MIGRATION);
+                volId, taskId, ResourceOperationTypeEnum.CANCEL_MIGRATION);
         TaskResourceRep task = toTask(vplexVol, taskId, op);
+        if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
+            throw APIException.badRequests.migrationHasntStarted(id.toString());
+        }
         if (status != null && !status.isEmpty() && 
             (status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name()) ||
              status.equals(VPlexMigrationInfo.MigrationStatus.PARTIALLY_CANCELLED.name()))) {

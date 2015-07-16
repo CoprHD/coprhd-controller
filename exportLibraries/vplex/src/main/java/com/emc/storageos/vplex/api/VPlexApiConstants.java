@@ -180,6 +180,7 @@ public class VPlexApiConstants {
     public static final String UNDERSCORE_OPERATOR = "_";
     public static final String PLUS_OPERATOR = "+";
     public static final String HYPHEN_OPERATOR = "-";
+    public static final String VOLUME_SYSTEM_ID_PREFIX = "VPD83T3:";
     
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";

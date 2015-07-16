@@ -407,7 +407,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 VPlexApiClient client = getVPlexAPIClient(accessProfile);
                 
                 long unManagedStart = new Date().getTime();
-                Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
+                Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(false);
                 Map <String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
                 long unmanagedElapsed = new Date().getTime() - unManagedStart;
                 s_logger.info("TIMER: discovering deep vplex unmanaged volumes took {} ms", unmanagedElapsed);
@@ -575,6 +575,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     if (null == info) {
                         continue;
                     }
+                    
+                    // TODO: remove this, just for dev info
+                    s_logger.info(info.toString());
                     
                     Volume managedVolume = findVirtualVolumeManagedByVipr(info);
                     if (null == managedVolume) {

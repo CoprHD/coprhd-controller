@@ -375,6 +375,9 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         str.append(", blockSize: " + blockSize);
         str.append(", expansionStatus: " + expansionStatus);
         str.append(", supportingDevice: " + supportingDevice);
+        if (supportingDeviceInfo != null) {
+            str.append(", supportingDeviceInfo: " + supportingDeviceInfo.toString());
+        }
         str.append(", serviceStatus: " + serviceStatus);
         str.append(", locality: " + locality);
         str.append(", clusters: " + clusters);

@@ -18,7 +18,6 @@ public class UnmountVmfsDatastore extends ExecutionTask<Void> {
     public UnmountVmfsDatastore(HostSystem host, Datastore datastore) {
         this.host = host;
         this.datastore = datastore;
-        provideDetailArgs(host.getName(), datastore.getName());
     }
 
 

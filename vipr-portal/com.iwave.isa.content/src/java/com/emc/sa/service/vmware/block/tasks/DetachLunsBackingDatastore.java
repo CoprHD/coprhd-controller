@@ -19,9 +19,7 @@ public class DetachLunsBackingDatastore extends ExecutionTask<Void> {
     public DetachLunsBackingDatastore(HostSystem host, Datastore datastore) {
         this.host = host;
         this.datastore = datastore;
-        provideDetailArgs(host.getName(), datastore.getName());
     }
-
 
     @Override
     public void execute() throws Exception {

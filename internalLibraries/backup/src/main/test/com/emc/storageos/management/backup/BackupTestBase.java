@@ -18,10 +18,14 @@ package com.emc.storageos.management.backup;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.services.util.LoggingUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 public abstract class BackupTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(BackupTestBase.class);
 
     protected static ApplicationContext context;
     protected static BackupManager backupManager;
@@ -51,6 +55,7 @@ public abstract class BackupTestBase {
 
         } catch (Exception ex) {
             System.err.println(ex);
+            log.error("Caught Exception when initializing BackupTestBase: ", ex);
         }
     }
 

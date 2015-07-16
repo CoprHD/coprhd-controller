@@ -34,7 +34,6 @@ addProjects(
         "internalLibraries/models",
         "internalLibraries/backup",
         "tools/dbutils",
-        "tools/simulators",
         "tools/zkutils",
         "tools/dbcli",
         "tools/geniso",

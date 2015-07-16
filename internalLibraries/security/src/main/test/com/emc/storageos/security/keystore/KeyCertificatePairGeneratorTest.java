@@ -355,7 +355,7 @@ public class KeyCertificatePairGeneratorTest {
         checkNotBefore(x509Certificate.getNotBefore());
 
         Assert.assertEquals(x509Certificate.getNotAfter().getTime() - x509Certificate.getNotBefore().getTime(),
-                valuesHolder.getCertificateValidityInDays() * 86400000l);
+                valuesHolder.getCertificateValidityInDays() * 86400000L);
         String issuerDN = null;
         if (StringUtils.isNotBlank(localhostName)) {
             issuerDN =

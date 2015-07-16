@@ -24,7 +24,7 @@ public class SecurityUtil {
 
     private static SecurityService securityService;
 
-    public static void setSecurityService(SecurityService secService) {
+    public synchronized static void setSecurityService(SecurityService secService) {
         securityService = secService;
         log.info("{} is injected to SecurityUtil", secService.getClass().getName());
     }

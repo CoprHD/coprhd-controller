@@ -153,9 +153,9 @@ public class AuditLogManager {
                 operationalStatus);
         try {
             recordAuditLogs(auditlog);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error("Failed to record auditlog. Auditlog description id: {}. Error: {}.",
-                    auditType.toString(), th);
+                    auditType.toString(), ex);
         }
     }
 }

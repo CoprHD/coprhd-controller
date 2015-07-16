@@ -270,8 +270,8 @@ public class TokenManagerTests extends DbsvcTestBase {
         }
         executor.shutdown();
         Assert.assertTrue(executor.awaitTermination(60, TimeUnit.SECONDS));
-        Assert.assertTrue(tokens.size() >= 1);
-        Assert.assertTrue(userIds.size() >= 1);
+        Assert.assertTrue(!tokens.isEmpty());
+        Assert.assertTrue(!userIds.isEmpty());
 
         // Test - delete all tokens
         _tokenManager.deleteAllTokensForUser(userDAO.getUserName(), true);

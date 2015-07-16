@@ -24,6 +24,7 @@ public interface ServiceParams {
     public String PROTOCOL = "protocol";
     public String MULTIPATH_POLICY = "multipathPolicy";
     public String STORAGE_IO_CONTROL = "storageIOControl";
+    public String UNMOUNT_AND_DETACH_LUNS = "unmountAndDetachLuns";
 
     public String WINDOWS_DOMAIN = "domain";
     public String VOLUME_NAME = "volumeName";

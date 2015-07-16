@@ -29,6 +29,7 @@ import com.emc.sa.service.vipr.file.tasks.FindFilesystemWithDatastore;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vmware.block.tasks.CreateVmfsDatastore;
+import com.emc.sa.service.vmware.block.tasks.DetachLunsBackingDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExtendVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.FindHostScsiDiskForLun;
@@ -36,6 +37,7 @@ import com.emc.sa.service.vmware.block.tasks.FindLunsBackingDatastore;
 import com.emc.sa.service.vmware.block.tasks.RefreshStorage;
 import com.emc.sa.service.vmware.block.tasks.SetMultipathPolicy;
 import com.emc.sa.service.vmware.block.tasks.SetStorageIOControl;
+import com.emc.sa.service.vmware.block.tasks.UnmountVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.VerifyDatastoreHostMounts;
 import com.emc.sa.service.vmware.file.tasks.CreateNfsDatastore;
 import com.emc.sa.service.vmware.file.tasks.GetEndpoints;
@@ -219,6 +221,14 @@ public class VMwareSupport {
             }
         }
 
+    }
+    
+    public void detachLuns(HostSystem host, Datastore datastore) {
+    	execute( new DetachLunsBackingDatastore(host, datastore) );
+    }
+    
+    public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
+    	execute( new UnmountVmfsDatastore(host, datastore) );
     }
 
     /**

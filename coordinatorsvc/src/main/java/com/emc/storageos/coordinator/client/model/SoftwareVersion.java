@@ -240,7 +240,10 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
      */
     public static boolean isValid(String version) {
         try {
-            new SoftwareVersion(version);
+            // This is used to suppress violation of unused instance
+            // Actually, we just detect whether it would throw Exception when instantiating
+            // Exception would be thrown if version is not valid, then return false
+            new SoftwareVersion(version); //NOSONAR("squid:S1848")
             return true;
         } catch (InvalidSoftwareVersionException e) {
             return false;

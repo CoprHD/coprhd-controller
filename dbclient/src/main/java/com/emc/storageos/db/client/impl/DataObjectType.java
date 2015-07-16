@@ -202,17 +202,17 @@ public class DataObjectType {
                     ColumnField groupField = _columnFieldMap.get(groupByName);
                     // Right now the "group field must have its own index.
                     // The index for this field will be cleared together with the index of the referenced field
-                    if (groupField==null || groupField.getIndex() == null) {
+                    if (groupField==null || groupField.getIndex()==null) {
                         DatabaseException.fatals.invalidAnnotation("AggregateIndex", "property " + groupByName +
                                 " oes not have a valid value or referenced another indexed field");
                     }
                     ((AggregateDbIndex) index).addGroupByField(_columnFieldMap.get(groupByName));
-                    if (groupField.getDependentFields() != null) {
+                    if (groupField != null && groupField.getDependentFields() != null) {
                     	groupField.getDependentFields().add(field);
                     }
                     field.getRefFields().add(groupField);
                 }
-                if(field.getRefFields().size()>0) {
+                if(!field.getRefFields().isEmpty()) {
                     _preprocessedFields.add(field);
                 }
             }

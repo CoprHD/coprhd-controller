@@ -129,11 +129,13 @@ public class BeaconTest extends CoordinatorTestBase {
         try {
             client.locateService(DummyService.class, si.getName(), si.getVersion(), "random", endpointKey);
         } catch (CoordinatorException expected) {
+            // ignore this exception since it's expected
         }
 
         try {
             client.locateService(DummyService.class, si.getName(), si.getVersion(), tag, "random");
         } catch (CoordinatorException expected) {
+            _log.info("CoordinatorException is throwed as we expected", expected);
         }
         service.stopRmiServer();
         service.stop();

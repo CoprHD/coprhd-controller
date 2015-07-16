@@ -96,6 +96,7 @@ public class WorkPoolImpl implements WorkPool {
             try {
                 _zkClient.delete().guaranteed().withVersion(stat.getVersion()).forPath(lockPath);
             } catch (KeeperException.NoNodeException ignore) {
+                _log.debug("Caught exception but ignoring it: " + ignore);
             } catch (KeeperException.BadVersionException ignore) {
                 // someone else took it
                // Ignore exception, don't re-throw

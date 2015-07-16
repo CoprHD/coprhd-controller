@@ -345,6 +345,7 @@ public class DbSvcRunner {
         try {
             Thread.sleep(1000 * seconds);
         } catch (InterruptedException ex) {
+        	//Ignore this exception.
         }
 
     }
@@ -366,7 +367,9 @@ public class DbSvcRunner {
             zkConn.setTimeoutMs(10000);
             zkConn.build();
 
-            coordinator = new CoordinatorClientImpl();
+            //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+            //Junit test will be called in single thread by default, it's safe to ignore this violation
+            coordinator = new CoordinatorClientImpl(); //NOSONAR ("squid:S2444")
             coordinator.setZkConnection(zkConn);
             coordinator.setSysSvcName("syssvc");
             coordinator.setSysSvcVersion("1");
@@ -409,7 +412,7 @@ public class DbSvcRunner {
             try {
                 file.createNewFile();
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("Exception: ", e);
             }
         }
         File file2 = new File("/etc/ovfenv.properties");
@@ -417,7 +420,7 @@ public class DbSvcRunner {
             try {
                 file2.createNewFile();
             } catch (IOException e) {
-                e.printStackTrace();
+            	log.error("Exception: ", e);
             }
         }
     }

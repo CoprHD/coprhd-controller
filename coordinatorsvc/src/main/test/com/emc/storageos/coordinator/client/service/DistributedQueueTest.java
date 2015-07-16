@@ -101,7 +101,11 @@ public class DistributedQueueTest extends CoordinatorTestBase {
      * @param dir
      */
     public static void cleanDirectory(File dir) {
-        for (File file : dir.listFiles()) {
+        File[] files = dir.listFiles();
+        if(files == null || files.length == 0) {
+            return;
+        }
+        for (File file : files) {
             if (file.isDirectory()) {
                 cleanDirectory(file);
             } else {
@@ -280,7 +284,6 @@ public class DistributedQueueTest extends CoordinatorTestBase {
                     Thread.sleep(1000 * 60 * 10);
                 } catch(Exception e) {
                     _logger.error("Failed to start client to monitor queue.", e);
-                } finally {
                 }
             }
         }).start();

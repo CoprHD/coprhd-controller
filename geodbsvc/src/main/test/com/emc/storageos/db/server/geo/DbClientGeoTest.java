@@ -53,6 +53,9 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
 
+//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+//Junit test will be called in single thread by default, it's safe to ignore this violation
+@SuppressWarnings("squid:S2444")
 public class DbClientGeoTest extends DbsvcGeoTestBase {
     private static final Logger _logger = LoggerFactory.getLogger(DbClientGeoTest.class);
     

@@ -57,6 +57,8 @@ public class CoordinatorImpl implements Coordinator {
     *
     * @param config node / cluster config
     */
+   // only called when Spring initialization, or in test case, safe to suppress.
+   @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
    public void setConfig(SpringQuorumPeerConfig config) {
       _config = config;
    }
@@ -90,6 +92,7 @@ public class CoordinatorImpl implements Coordinator {
                                new File(_config.getDataDir()),
                                new File(_config.getDataDir()), _config.getSnapRetainCount());
                     } catch (Exception e) {
+                        _log.debug("Exception is throwed when purging snapshots and logs", e);
                     }
                  }
               },
@@ -158,6 +161,8 @@ public class CoordinatorImpl implements Coordinator {
    }
 
     @Override
+    // This method is provided for shutdown hook thread only, safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public void stop() {
         if (_log.isInfoEnabled()) {
             _log.info("Stopping coordinator service...");

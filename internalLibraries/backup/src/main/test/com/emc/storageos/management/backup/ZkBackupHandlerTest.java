@@ -46,7 +46,7 @@ public class ZkBackupHandlerTest extends BackupTestBase {
         ValidationUtil.validateFile(zkBackupHandler.getZkDir(), FileType.Dir, 
                 NotExistEnum.NOT_EXSIT_CREATE);
 
-        File targetDir = new File(backupManager.getBackupDir(), "ut_test"
+        File targetDir = new File(backupManager.getBackupContext().getBackupDir(), "ut_test"
                 + File.separator + "zk");
         ValidationUtil.validateFile(targetDir, FileType.Dir,
                 NotExistEnum.NOT_EXSIT_CREATE);

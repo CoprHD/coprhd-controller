@@ -24,6 +24,7 @@ import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.service.impl.CoordinatorImpl;
 import com.emc.storageos.coordinator.service.impl.SpringQuorumPeerConfig;
+
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +42,9 @@ import java.util.Properties;
 /**
  * Coordinator unit test base that contains basic startup / teardown utilities
  */
+//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+//There's only one thread initializing and using _dataDir and _coordinator, so it's safe.
+@SuppressWarnings("squid:S2444")
 public class CoordinatorTestBase {
     private static final Logger _logger = LoggerFactory.getLogger(CoordinatorTestBase.class);
 
@@ -53,7 +57,11 @@ public class CoordinatorTestBase {
      * @param dir
      */
     protected static void cleanDirectory(File dir) {
-        for (File file : dir.listFiles()) {
+        File[] files = dir.listFiles();
+        if(files == null || files.length == 0) {
+            return;
+        }
+        for (File file : files) {
             if (file.isDirectory()) {
                 cleanDirectory(file);
             } else {

@@ -15,12 +15,16 @@
 package com.emc.storageos.coordinator.client.service;
 
 import java.net.UnknownHostException;
+
 import org.junit.Test;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 
 public class DualInetAddressTest {
+    private static final Logger log = LoggerFactory.getLogger(DualInetAddressTest.class);
     private static String[] normalizedInet4Addresses = { "10.10.191.52", "10.10.191.0", "255.255.255.255",
             "255.255.255.0", "0.0.0.0", };
     private static String[] invalidInet4Addresses = { null, "10.10.10.10.10", "f0.f0.f0.f0", "999.9.9.9",
@@ -257,18 +261,19 @@ public class DualInetAddressTest {
             Assert.assertTrue(d.getInet4().equals("10.247.97.152"));
             Assert.assertTrue(d.getInet6().equals("2620:0:170:2842::7152"));
         } catch (UnknownHostException e) {
-            e.printStackTrace(System.out);
+            System.err.println(e);
+            log.error("Caught UnknownHostException: ", e);
             Assert.assertTrue(false);
         }
 
         try {
             DualInetAddress d = DualInetAddress.fromHostname("bourne-52.lss.emc.com");
-            //System.out.println(d);
             Assert.assertTrue(d.hasInet4() && !d.hasInet6());
             Assert.assertTrue(d.getInet4().equals("10.10.191.52"));
             Assert.assertTrue(d.getInet6() == null);
         } catch (UnknownHostException e) {
-            e.printStackTrace(System.out);
+            System.err.println(e);
+            log.error("Caught UnknownHostException: ", e);
             Assert.assertTrue(false);
         }
 
@@ -277,7 +282,6 @@ public class DualInetAddressTest {
             System.out.println(d);
             Assert.assertTrue(false);;
         } catch (UnknownHostException e) {
-            //e.printStackTrace(System.out);
             Assert.assertTrue(true);
         }
 
@@ -392,8 +396,7 @@ public class DualInetAddressTest {
             Assert.assertTrue(blank_all.equals(cn));
             
             // Test strings, nulls for equals
-            Assert.assertFalse(cm.equals(c4.getInet4()));
-            Assert.assertFalse(cn.equals(null));            
+            Assert.assertFalse(cn == null);
             
             Assert.assertTrue(cn.equals(cn));
             Assert.assertTrue(sn.equals(sn));
@@ -423,20 +426,12 @@ public class DualInetAddressTest {
             Assert.assertFalse(cm.equals(cn));
             Assert.assertFalse(cm.equals(c4));
             Assert.assertFalse(cm.equals(c6));
-            Assert.assertTrue(cn.hashCode() == cn.hashCode());
-            Assert.assertTrue(sn.hashCode() == sn.hashCode());
             Assert.assertTrue(sn.hashCode() == cn.hashCode());
             Assert.assertTrue(cn.hashCode() == sn.hashCode());
-            Assert.assertTrue(c4.hashCode() == c4.hashCode());
-            Assert.assertTrue(s4.hashCode() == s4.hashCode());
             Assert.assertTrue(s4.hashCode() == c4.hashCode());
             Assert.assertTrue(c4.hashCode() == s4.hashCode());
-            Assert.assertTrue(c6.hashCode() == c6.hashCode());
-            Assert.assertTrue(s6.hashCode() == s6.hashCode());
             Assert.assertTrue(s6.hashCode() == c6.hashCode());
             Assert.assertTrue(c6.hashCode() == s6.hashCode());
-            Assert.assertTrue(cm.hashCode() == cm.hashCode());
-            Assert.assertTrue(sm.hashCode() == sm.hashCode());
             Assert.assertTrue(sm.hashCode() == cm.hashCode());
             Assert.assertTrue(cm.hashCode() == sm.hashCode());
             Assert.assertFalse(cn.hashCode() == c4.hashCode());

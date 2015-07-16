@@ -59,7 +59,7 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
 
             // Sanity check: the input must match the toString() output
             String stringRepresent = this.toString();
-            if (!stringRepresent.equals(versionStr) && stringRepresent.equals(SOFTWARE_VERSION_PREFIX + versionStr)) {
+            if (!stringRepresent.equals(versionStr) && !stringRepresent.equals(SOFTWARE_VERSION_PREFIX + versionStr)) {
                 throw new Exception();
             }
         } catch (Exception e) {

@@ -67,6 +67,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
     
+    public VplexCinderMaskingOrchestrator()
+    {
+    	
+    }
+    
     public VplexCinderMaskingOrchestrator(DbClient dbClient, BlockDeviceController controller)
     {
         this._dbClient = dbClient;

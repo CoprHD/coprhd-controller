@@ -88,11 +88,7 @@ public class StorageOsPlugin extends PlayPlugin {
             context.refresh();
 
             Logger.info("Connected to Coordinator Service");
-
-            if (context == null) {//NOSONAR ("Suppressing Sonar violation of redundant nullcheck value known to be null. context need not be always null")
-                Logger.error("Spring configuration file %s cannot be found on classpath", getContextFileName());
-                shutdown();
-            }
+            
             zkConnection = getBean("zkconn", ZkConnection.class);
             coordinatorClient = getBean("coordinator", CoordinatorClient.class);
             encryptionProvider = getBean("encryptionProvider", EncryptionProvider.class);

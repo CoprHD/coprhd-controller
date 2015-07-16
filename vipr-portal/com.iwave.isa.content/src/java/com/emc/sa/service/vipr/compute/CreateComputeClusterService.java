@@ -116,7 +116,7 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.unknown.host"));
         }
         
-        if (hostNames == null || hostNames.size() == 0 || hostIps == null || hostIps.size() == 0) {
+        if (hostNames == null || hostNames.isEmpty() || hostIps == null || hostIps.isEmpty()) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.osinstall.host.required") + "  ");
         }

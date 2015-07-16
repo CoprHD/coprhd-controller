@@ -44,8 +44,9 @@ public class ExportGroup {
     	s += "\tlabel: "+label+"\n";
     	s += "\tproject: "+project+"\n";
     	s += "\texported: "+Boolean.toString(exported)+"\n";
-    	if (volumes!=null)
+    	if (volumes!=null) {
     		s += "\tvolumes: \n"+volumes.toString();
+    	}
     	s += "\tinitiatorTargetHosts: "+initiatorTargetHosts+"\n";
     	return s;
     }

@@ -85,7 +85,7 @@ public class Preferences extends Controller {
     private static String getRefererRequestHeader() {
         for (String key : request.headers.keySet()) {
             if (StringUtils.equals(key, "referer")) {
-                return request.headers.get(key).value();
+                return request.headers.get(key).value(); //NOSONAR ("Suppressing Sonar violation of Inefficient use of keySet iterator instead of entrySet")
             }
         }
         return null;

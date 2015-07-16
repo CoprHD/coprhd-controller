@@ -123,7 +123,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
         Set<String> cpusUsed = new HashSet<String>();
         for (Integer numPorts = 1; numPorts < MAX_PORTS_PER_NETWORK; numPorts++) {
             Set<URI> networkURIs = numPortsToNetworkSet.get(numPorts);
-            if (networkURIs == null) continue;
+            if (networkURIs == null) {
+                continue;
+            }
             for (URI networkURI : networkURIs) {
                 List<StoragePort> nonConflictedPorts = new ArrayList<StoragePort>();
                 for (StoragePort port : allocatablePorts.get(networkURI)) {
@@ -141,8 +143,12 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
         int minPorts = Integer.MAX_VALUE;
         for (URI networkURI : allocatablePorts.keySet()) {
             int numPorts = allocatablePorts.get(networkURI).size();
-            if (numPorts > MAX_PORTS_PER_NETWORK) numPorts = MAX_PORTS_PER_NETWORK;
-            if (numPorts < minPorts) minPorts = numPorts;
+            if (numPorts > MAX_PORTS_PER_NETWORK) {
+                numPorts = MAX_PORTS_PER_NETWORK;
+            }
+            if (numPorts < minPorts) {
+                minPorts = numPorts;
+            }
         }
         
         // Figure out the number of ports in each network per port group (PG).
@@ -157,8 +163,12 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
         // numPG is the number of Port Groups that will be configured.
         boolean oneNetwork = allocatablePorts.keySet().size() == 1;
         int portsPerPG = oneNetwork ? 2 : 1;
-        if (minPorts >= 8) portsPerPG = 2;
-        if (minPorts >= 18) portsPerPG = 3;
+        if (minPorts >= 8) {
+            portsPerPG = 2;
+        }
+        if (minPorts >= 18) {
+            portsPerPG = 3;
+        }
         int numPG = minPorts / portsPerPG;
         if (numPG == 0) {
             return portGroups;
@@ -171,7 +181,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             Integer nports = allocatablePorts.get(netURI).size() / numPG;
             // Don't allow this network to have more than twice the number of
             // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
-            if (nports > (2*portsPerPG)) nports = 2*portsPerPG;
+            if (nports > (2*portsPerPG)) {
+                nports = 2*portsPerPG;
+            }
             portsAllocatedPerNetwork.put(netURI,  nports);
         }
         
@@ -342,7 +354,9 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
             exportMask = refreshExportMask(array, device , exportMask);
             // Determine if we're deleting the last volume.
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            if (exportMask.getVolumes() != null) {
+                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }

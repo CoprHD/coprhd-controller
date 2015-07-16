@@ -107,7 +107,9 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
         int minPorts = Integer.MAX_VALUE;
         for (URI networkURI : allocatablePorts.keySet()) {
             int numPorts = allocatablePorts.get(networkURI).size();
-            if (numPorts < minPorts) minPorts = numPorts;
+            if (numPorts < minPorts) {
+                minPorts = numPorts;
+            }
         }
         
         // Figure out the number of ports in each network per port group (PG).
@@ -115,7 +117,9 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
         // which will always be one or two.
         boolean oneNetwork = allocatablePorts.keySet().size() == 1;
         int numPG = 1;
-        if (nInitiatorGroups == 2 && minPorts >= 2 && !oneNetwork) numPG = 2;
+        if (nInitiatorGroups == 2 && minPorts >= 2 && !oneNetwork) {
+            numPG = 2;
+        }
         if (numPG == 0) {
             return portGroups;
         }
@@ -233,21 +237,25 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
      * @param portGroup
      * @param networkIndexes
      * @param networkURI
-     * @param SPB
+     * @param spb
      * @return
      */
     private StoragePort getAPort(
             Map<URI, List<StoragePort>> portGroup, Map<URI, Integer> networkIndexes, 
-            URI networkURI, boolean SPB) {
+            URI networkURI, boolean spb) {
         StoragePort storagePort = null;
         int size = portGroup.get(networkURI).size();
-        String groupId = SPB ? "SP_B" : "SP_A";
+        String groupId = spb ? "SP_B" : "SP_A";
         for (int i=0; i < size; i++) {
             Integer index = networkIndexes.get(networkURI);
             storagePort = portGroup.get(networkURI).get(index);
-            if (++index >= size) index = 0;
+            if (++index >= size) {
+                index = 0;
+            }
             networkIndexes.put(networkURI, index);
-            if (storagePort.getPortGroup().equals(groupId)) return storagePort;
+            if (storagePort.getPortGroup().equals(groupId)) {
+                return storagePort;
+            }
         }
         return null;
     }
@@ -360,14 +368,18 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
             
             // Make sure the completer will complete the workflow. This happens on rollback case.
-            if (! completer.getOpId().equals(stepId)) completer.setOpId(stepId);
+            if (!completer.getOpId().equals(stepId)) {
+                completer.setOpId(stepId);
+            }
             
             // Refresh the ExportMask
             exportMask = refreshExportMask(array, device , exportMask);
 
             // Determine if we're deleting the last volume.
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null) remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            if (exportMask.getVolumes() != null) {
+                remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }

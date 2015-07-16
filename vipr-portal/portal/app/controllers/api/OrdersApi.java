@@ -108,7 +108,7 @@ public class OrdersApi extends Controller {
         }
 
         List<OrderInfo> orders = Lists.newArrayList();
-        for (OrderRestRep order: getCatalogClient().orders().getByIds(param.getIds())) {
+        for (OrderRestRep order: getCatalogClient().orders().getByIds(param.getIds())) { //NOSONAR ("Suppressing Sonar violation of Possible null pointer deference of param")
             checkPermissions(order);
             orders.add(newOrderInfo(order));
         }

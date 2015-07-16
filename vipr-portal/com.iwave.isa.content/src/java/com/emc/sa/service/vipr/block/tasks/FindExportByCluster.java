@@ -42,6 +42,6 @@ public class FindExportByCluster extends ViPRExecutionTask<ExportGroupRestRep> {
             }
         }
 
-        return exports.size() > 0 ? exports.get(0) : null;
+        return exports.isEmpty() ? null : exports.get(0);
     }
 }

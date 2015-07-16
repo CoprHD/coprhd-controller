@@ -32,6 +32,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.AlertsLogger;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,8 @@ public class NotificationManager {
     private final ScheduledExecutorService _scheduler = Executors.newScheduledThreadPool(1);
 
     private static CoordinatorClient _coordinator;
-    public void setCoordinator(CoordinatorClient coordinator) {
+    
+    public synchronized void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
@@ -97,7 +99,7 @@ public class NotificationManager {
      * to be expired.
      */
     private class PasswordExpireMailNotifier implements Runnable {
-        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock";
+        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
 
         @Override
         public void run() {
@@ -279,7 +281,7 @@ public class NotificationManager {
         if (userPrefs.size() > 1) {
             throw new IllegalStateException("There should only be 1 user preferences object for a user");
         }
-        else if (userPrefs.size() == 0) {
+        else if (userPrefs.isEmpty()) {
             // if there isn't a user prefs object in the DB yet then we haven't saved one for this user yet.
             return null;
         }

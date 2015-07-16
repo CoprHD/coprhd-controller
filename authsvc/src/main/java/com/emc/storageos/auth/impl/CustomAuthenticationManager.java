@@ -423,7 +423,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                     }
                 }
             } else {
-                if (providers.size() > 0) {
+                if (!providers.isEmpty()) {
                     return true;
                 }
             }

@@ -522,7 +522,7 @@ public class BlockStorageUtils {
             Collection<Initiator> initiators, Protocol protocol) {
         Set<Initiator> results = Sets.newHashSet();
         Collection<Initiator> filteredInitiators = filterInitiatorsByType(initiators, protocol);
-        if (filteredInitiators.size() > 0) {
+        if (!filteredInitiators.isEmpty()) {
             for (URI virtualArray : virtualArrays) {
                 results.addAll(execute(new FindVirtualArrayInitiators(virtualArray, filteredInitiators)));
             }

@@ -58,7 +58,7 @@ public class ConsistencyGroups extends Controller {
         	}
         });
         String activeProjectId = flash.get(ACTIVE_PROJECT_ID);
-        if (activeProjectId == null && projects.size() > 0) {
+        if (activeProjectId == null && !projects.isEmpty()) {
             activeProjectId = projects.get(0).getId().toString();
         }
 
@@ -123,7 +123,7 @@ public class ConsistencyGroups extends Controller {
     }
 
     private static void delete(List<URI> ids) {
-        if (ids.size() > 0) {
+        if (!ids.isEmpty()) {
             BlockConsistencyGroupRestRep cg = BlockConsistencyGroupUtils.getBlockConsistencyGroup(ids.get(0));
             if (cg != null) {
                 flash.put(ACTIVE_PROJECT_ID, cg.getProject().getId().toString());

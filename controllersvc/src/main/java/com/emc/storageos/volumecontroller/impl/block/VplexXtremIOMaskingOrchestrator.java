@@ -46,7 +46,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         VplexBackEndMaskingOrchestrator, Controller {
     private static final Logger _log = LoggerFactory.getLogger(VplexXtremIOMaskingOrchestrator.class);
     private boolean simulation = false;
-    private int XTREMIO_NUM_PORT_GROUP = 1;
+    private static final int XTREMIO_NUM_PORT_GROUP = 1;
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
 
@@ -234,12 +234,14 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
 
             // Make sure the completer will complete the workflow. This happens
             // on rollback case.
-            if (!completer.getOpId().equals(stepId))
+            if (!completer.getOpId().equals(stepId)) {
                 completer.setOpId(stepId);
+            }
 
             Set<String> remainingVolumes = new HashSet<String>();
-            if (exportMask.getVolumes() != null)
+            if (exportMask.getVolumes() != null) {
                 remainingVolumes.addAll(exportMask.getVolumes().keySet());
+            }
             for (URI volume : volumes) {
                 remainingVolumes.remove(volume.toString());
             }

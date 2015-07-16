@@ -87,7 +87,7 @@ public class VPlexApiFactory {
      * 
      * @return The VPLEX client factory.
      */
-    public static VPlexApiFactory getInstance() {
+    public static synchronized VPlexApiFactory getInstance() {
         if (_instance == null) {
             s_logger.info("Creating VPLEX client factory.");
             _instance = new VPlexApiFactory();

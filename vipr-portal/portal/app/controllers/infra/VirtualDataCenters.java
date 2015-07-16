@@ -221,7 +221,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     private static void delete(List<URI> ids) {
-        if (ids.size() > 0) {
+        if (!ids.isEmpty()) {
             // UI only support single selection, ignore any additional IDs
             URI id = ids.get(0);
             Task<VirtualDataCenterRestRep> task 
@@ -238,7 +238,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     private static void disconnect(List<URI> ids) {
-        if (ids.size() > 0) {
+        if (!ids.isEmpty()) {
             // UI only support single selection, ignore any additional IDs
             URI id = ids.get(0);
             Task<VirtualDataCenterRestRep> task = VirtualDataCenterUtils.disconnect(id);
@@ -253,7 +253,7 @@ public class VirtualDataCenters extends ViprResourceController {
     }
 
     private static void reconnect(List<URI> ids) {
-        if (ids.size() > 0) {
+        if (!ids.isEmpty()) {
             // UI only support single selection, ignore any additional IDs
             URI id = ids.get(0);
             Task<VirtualDataCenterRestRep> task = VirtualDataCenterUtils.reconnect(id);

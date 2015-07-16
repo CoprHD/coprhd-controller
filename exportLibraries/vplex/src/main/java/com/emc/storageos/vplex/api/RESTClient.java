@@ -133,7 +133,7 @@ public class RESTClient {
         // Set the headers for the username, password, and connection.
         Builder resBuilder = resource
             .header(VPlexApiConstants.USER_NAME_HEADER, _username)
-            .header(VPlexApiConstants.PASSWORD_HEADER, _password)
+            .header(VPlexApiConstants.PASS_WORD_HEADER, _password)
             .header(VPlexApiConstants.CONNECTION_HEADER,
                 VPlexApiConstants.CONNECTION_HEADER_VALUE_CLOSE);
         

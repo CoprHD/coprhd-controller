@@ -82,8 +82,9 @@ public class VPlexBackEndOrchestratorUtil {
                     StringSet ports = new StringSet();
                     ports.add(storagePort.getId().toString());
                     zoningMap.put(initiator.getId().toString(), ports);
-                    if (++index >= portGroup.get(networkURI).size())
+                    if (++index >= portGroup.get(networkURI).size()) {
                         index = 0;
+                    }
                     networkIndexes.put(networkURI, index);
                 }
             }

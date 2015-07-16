@@ -11,6 +11,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -44,7 +45,6 @@ public class XmlUtil {
             str = stringWriter.toString();
         } catch (JAXBException je) {
             _log.error("Unable to construct XML content.", je);
-            je.printStackTrace();
         }
 
         return str;
@@ -68,7 +68,6 @@ public class XmlUtil {
             return tClass.cast(unMarshaller.unmarshal(stringReader));
         } catch (JAXBException je) {
             _log.error("Unable to parse XML content.", je);
-            je.printStackTrace();
         }
         return null;
     }
@@ -96,7 +95,6 @@ public class XmlUtil {
                 }
             } catch (IOException ioe) {
                 _log.error("Unable to close input stream "+ioe.getMessage(), ioe);
-                ioe.printStackTrace();
             }
         }
         return null;

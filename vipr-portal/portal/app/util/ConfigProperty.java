@@ -4,6 +4,8 @@
  */
 package util;
 
+//("Suppressing Sonar violation of Password Hardcoded. Password related fields are not hardcoded here.")
+@SuppressWarnings("squid:S2068")
 public class ConfigProperty {
     public static final String NETWORK_VIRTUAL_IP = "network_vip";
     public static final String NETWORK_STANDALONE_IP = "network_standalone_ipaddr";

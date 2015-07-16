@@ -20,6 +20,12 @@
     datastoreName:{
       type:"assetType.vipr.blockdatastore",
       select:"many" 
+    },
+    unmountAndDetachLuns: {
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
     }
   }
 }

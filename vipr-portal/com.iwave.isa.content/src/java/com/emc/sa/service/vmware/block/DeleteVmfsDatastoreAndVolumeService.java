@@ -5,6 +5,7 @@
 package com.emc.sa.service.vmware.block;
 
 import static com.emc.sa.service.ServiceParams.DATASTORE_NAME;
+import static com.emc.sa.service.ServiceParams.UNMOUNT_AND_DETACH_LUNS;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -24,6 +25,9 @@ import com.vmware.vim25.mo.Datastore;
 public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
 	@Param(DATASTORE_NAME)
     protected List<String> datastoreNames;
+	
+	@Param(value=UNMOUNT_AND_DETACH_LUNS, required=false)
+    protected Boolean unMountAndDetachLuns;
 
 	private Map<Datastore, List<VolumeRestRep>> datastores;
 
@@ -48,15 +52,14 @@ public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
        		Datastore datastore = entry.getKey();
     		List<VolumeRestRep> volumes = entry.getValue();
     		
-    		vmware.enterMaintenanceMode(datastore);
-    		
-    		vmware.setStorageIOControl(datastore, false);
-    		
-    		vmware.unmountVmfsDatastore(host, datastore);
-    		
-    		vmware.detachLuns(host, datastore);
-    		
-	        //vmware.deleteVmfsDatastore(volumes, hostId, datastore);
+    		if(unMountAndDetachLuns) {
+	    		vmware.enterMaintenanceMode(datastore);
+	    		vmware.setStorageIOControl(datastore, false);
+	    		vmware.unmountVmfsDatastore(host, datastore);
+	    		vmware.detachLuns(host, datastore);
+    		} else {
+    			vmware.deleteVmfsDatastore(volumes, hostId, datastore);
+    		}
 	
 	        if (!volumes.isEmpty()) {
 	            List<URI> volumeList = new ArrayList<URI>();

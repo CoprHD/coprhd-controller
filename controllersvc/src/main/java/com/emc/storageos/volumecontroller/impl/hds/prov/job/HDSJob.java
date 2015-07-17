@@ -152,9 +152,9 @@ public class HDSJob extends  Job implements Serializable
                     Error error = javaResult.getBean(Error.class);
                     _pollResult.setJobPercentComplete(100);
                     _errorDescription = String
-                            .format("Async task failed for messageID %1$s due to %2$s with error code: %3$s",
-                                    new Object[] { messageId, error.getDescription(),
-                                            error.getCode() });
+                            .format("Async task failed for messageID %s due to %s with error code: %d",
+                                    messageId, error.getDescription(),
+                                            error.getCode());
                     _status = JobStatus.FAILED;
                     logger.error("HDSJob: {} failed; Details: {}", getJobName(), _errorDescription);
                 }

@@ -180,7 +180,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
                 // If there are any new initiators that weren't already known to the system
                 // previously, add them now.
-                if (initiatorURIsToPlace.size() > 0 && volumesToAdd != null) {
+                if (!initiatorURIsToPlace.isEmpty() && volumesToAdd != null) {
                     Map<String, List<URI>> newComputeResources =
                             mapInitiatorsToComputeResource(exportGroup, initiatorURIsToPlace);
                     log.info(String.format("Need to create ExportMasks for these compute resources %s",
@@ -292,7 +292,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 for (Map.Entry<URI, List<URI>> toRemoveVols : exportToVolumesToRemove.entrySet()) {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class, toRemoveVols.getKey());
                     List<URI> removeVolumeURIs = toRemoveVols.getValue();
-                    if (exportMask != null && removeVolumeURIs.size() > 0) {
+                    if (exportMask != null && !removeVolumeURIs.isEmpty()) {
                         List<String> exportMaskVolumeURIs = new ArrayList<>(exportMask.getVolumes().keySet());
                         for (URI uri : removeVolumeURIs) {
                             exportMaskVolumeURIs.remove(uri.toString());
@@ -502,7 +502,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                                 volumesToRemove.add(uri);
                             }
                         }
-                        if (volumesToRemove.size() > 0) {
+                        if (!volumesToRemove.isEmpty()) {
                             log.info(String.format("Adding step to remove volumes %s from ExportMask %s",
                                     Joiner.on(',').join(volumesToRemove), exportMask.getMaskName()));
                             generateExportMaskRemoveVolumesWorkflow(workflow, null, storage, exportGroup, exportMask, volumesToRemove, null);

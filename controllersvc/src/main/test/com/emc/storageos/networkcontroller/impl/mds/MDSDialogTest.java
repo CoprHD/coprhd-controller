@@ -15,8 +15,6 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import sun.util.logging.resources.logging;
-
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;

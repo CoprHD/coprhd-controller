@@ -1108,7 +1108,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         										null, capabilities, volume.getCapacity());
         		descriptors.add(desc);        	
         	}
-        	_log.info(String.format("\n\nAdding volume descriptor \n\t [%s] - [%s] %n\t type [%s]%n", desc.toString(), volume.getLabel(), volume.getPersonality()));
+        	_log.info(String.format("%n%nAdding volume descriptor %n\t [%s] - [%s] %n\t type [%s]%n", desc.toString(), volume.getLabel(), volume.getPersonality()));
         }
         return descriptors;
     } 

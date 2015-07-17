@@ -343,29 +343,23 @@ public class NetAppClusterModeCommIntf extends
     				storageSystemId.toString());
 
     	} catch (NetAppCException ve) {
-    		if (null != storageSystem) {
-    			cleanupDiscovery(storageSystem);
-    		}
+    		cleanupDiscovery(storageSystem);
     		_logger.error("discoverStorage failed.  Storage system: "
     				+ storageSystemId);
     		throw ve;
     	} catch (Exception e) {
-    		if (null != storageSystem) {
-    			cleanupDiscovery(storageSystem);
-    		}
+    		cleanupDiscovery(storageSystem);
     		_logger.error("discoverStorage failed. Storage system: "
     				+ storageSystemId, e);
     		throw NetAppCException.exceptions.discoveryFailed(storageSystemId.toString(), e);
     	} finally {
-    		if (storageSystem != null) {
-    			try {
-    				// set detailed message
-    				storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
-    				_dbClient.persistObject(storageSystem);
-    			} catch (Exception ex) {
-    				_logger.error("Error while persisting object to DB", ex);
-    			}
-    		}
+			try {
+				// set detailed message
+				storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
+				_dbClient.persistObject(storageSystem);
+			} catch (Exception ex) {
+				_logger.error("Error while persisting object to DB", ex);
+			}
     	}
     }
 	
@@ -1015,7 +1009,7 @@ public class NetAppClusterModeCommIntf extends
             String description = "";
             String maxUsers    = "-1";
             for (String key : shareMap.keySet()) {
-                Object value= shareMap.get(key);
+                Object value= shareMap.get(key); //NOSONAR("findbugs:WMI_WRONG_MAP_ITERATOR. Fix will be made in future release")
                 _logger.info("cifs share - key : {} and value : {}", key, value);
                 if(null != key && value != null) {
                     switch (key) {
@@ -1196,7 +1190,7 @@ public class NetAppClusterModeCommIntf extends
 
                 for (String key : unMangedSMBFileShareMapSet.keySet()) {
                     String filesystem = key;
-                    unManagedSMBFileShareHashSet = unMangedSMBFileShareMapSet.get(key);
+                    unManagedSMBFileShareHashSet = unMangedSMBFileShareMapSet.get(key); //NOSONAR("findbugs:WMI_WRONG_MAP_ITERATOR. Fix will be made in future release")
                     _logger.info("FileSystem Path {}", filesystem);
 
                     String nativeId = filesystem;
@@ -1229,7 +1223,7 @@ public class NetAppClusterModeCommIntf extends
                         List<UnManagedCifsShareACL> tempUnManagedCifsShareAclList =
                                 getACLs(unManagedSMBFileShareHashSet, netAppCApi, storageSystem, unManagedFs.getId());
                         if (!tempUnManagedCifsShareAclList.isEmpty() &&
-                                !tempUnManagedCifsShareAclList.isEmpty()) {
+                                tempUnManagedCifsShareAclList != null) {
                             for(UnManagedCifsShareACL unManagedCifsShareACL: tempUnManagedCifsShareAclList) {
                                 // Check whether the CIFS share ACL was present in ViPR DB.
                                 existingACL = checkUnManagedFsCifsACLExistsInDB(_dbClient,
@@ -1248,8 +1242,7 @@ public class NetAppClusterModeCommIntf extends
                         }
 
                         //store or update the FS object into DB
-                        if (!unManagedSMBFileShareHashSet.isEmpty() &&
-                                        !unManagedSMBFileShareHashSet.isEmpty()){
+                        if (!unManagedSMBFileShareHashSet.isEmpty()){
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Shares and their Count is {}",
                                     unManagedFs.getId(), tempUnManagedSMBShareMap.size());
@@ -1282,7 +1275,7 @@ public class NetAppClusterModeCommIntf extends
             }
 
             if (!unManagedCifsShareACLList.isEmpty() &&
-                    !unManagedCifsShareACLList.isEmpty()) {
+                    unManagedCifsShareACLList != null) {
                 _logger.info("Saving Number of New UnManagedCifsShareACL(s) {}",
                                                             unManagedCifsShareACLList.size());
                 _partitionManager.insertInBatches(unManagedCifsShareACLList,
@@ -1290,8 +1283,7 @@ public class NetAppClusterModeCommIntf extends
                                         UNMANAGED_SHARE_ACL);
                 unManagedCifsShareACLList.clear();
             }
-            if (!oldunManagedCifsShareACLList.isEmpty() &&
-                    !oldunManagedCifsShareACLList.isEmpty()) {
+            if (!oldunManagedCifsShareACLList.isEmpty()) {
                 _logger.info("Saving Number of Old UnManagedCifsShareACL(s) {}",
                                                     oldunManagedCifsShareACLList.size());
                 _partitionManager.updateInBatches(oldunManagedCifsShareACLList,

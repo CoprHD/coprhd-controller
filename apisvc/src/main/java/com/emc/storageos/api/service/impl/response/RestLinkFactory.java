@@ -35,7 +35,7 @@ import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 
 public final class RestLinkFactory
 {
-    static private DbClient _dbClient;
+    static private volatile DbClient _dbClient;
     static private ConcurrentMap<URI, URI> _linkCache = new ConcurrentLinkedHashMap.Builder<URI, URI>()
             .maximumWeightedCapacity(1000)  // max 1000 entries
             .build();

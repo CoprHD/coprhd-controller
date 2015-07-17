@@ -387,8 +387,8 @@ class SingleFieldIndexVerifier implements IndexVerifier {
                 
                 HashSet<String> setFromIndex = new HashSet<String>();
                 for (NamedElementQueryResultList.NamedElement elem : results) {
-                    if (elem.id.equals(obj.getId())) {
-                        setFromIndex.add(elem.name);
+                    if (elem.getId().equals(obj.getId())) {
+                        setFromIndex.add(elem.getName());
                     }
                 }
 

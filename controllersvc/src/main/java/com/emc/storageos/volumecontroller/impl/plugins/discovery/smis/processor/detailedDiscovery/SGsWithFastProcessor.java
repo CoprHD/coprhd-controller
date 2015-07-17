@@ -52,7 +52,7 @@ public class SGsWithFastProcessor extends StorageProcessor{
                 String groupId = getCIMPropertyValue(storageGroupPath, Constants.INSTANCEID);
                 _logger.info("Adding Group {} To Policy {} mapping",groupId,policyName);
                 policyToStorageGroupMapping.put(groupId, policyName);
-                addPath(keyMap, operation.get_result(), storageGroupPath);
+                addPath(keyMap, operation.getResult(), storageGroupPath);
             }
         }catch(Exception e) {
             _logger.error("Discovering SGs with FAST failed",e);

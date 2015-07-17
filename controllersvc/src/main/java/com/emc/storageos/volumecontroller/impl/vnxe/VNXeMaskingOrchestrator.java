@@ -319,7 +319,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
-            if (exportMasks != null && exportMasks.size()>0) {
+            if (exportMasks != null && !exportMasks.isEmpty()) {
 
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
@@ -399,7 +399,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
-            if (exportMasks != null && exportMasks.size() > 0) {
+            if (exportMasks != null && !exportMasks.isEmpty()) {
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
                         "exportGroupRemoveVolumes", true, token);
@@ -423,7 +423,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                     	updateMasks.add(mask);
                     }
                 }
-                if (deleteMasks.size()>0) {
+                if (!deleteMasks.isEmpty()) {
                     String zoningStep = generateZoningDeleteWorkflow(workflow, null,
                             exportGroup, exportMasks);
                     String deleteStep = null;
@@ -437,7 +437,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                         }
                     }
                 }
-                if (updateMasks.size()>0) {
+                if (!updateMasks.isEmpty()) {
                     String zoningStep = generateZoningRemoveVolumesWorkflow(workflow,
                             null, exportGroup, exportMasks, volumes);
                     String unexportStep = null;
@@ -621,7 +621,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                     
                 }
             }
-            if (maskInitiators.size() > 0) {
+            if (!maskInitiators.isEmpty()) {
                 exportMasksMap.put(exportMask, maskInitiators);
             }
         }

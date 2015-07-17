@@ -10,11 +10,16 @@ package com.iwave.ext.netapp;
 import netapp.manage.NaElement;
 import netapp.manage.NaServer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * @author sdorcas
  *
  */
 public class Server {
+
+	private Logger _log = LoggerFactory.getLogger(Server.class);
 
 	private NaServer server = null;
 	
@@ -72,7 +77,7 @@ public class Server {
 			throw new NetAppException("ONTAP SDK APIs could not be found in the classpath. "
 			+ "Please check the classpath for availability of the appropriate jar.");
 		} catch(Exception e) {
-			e.printStackTrace();
+			_log.error("Problem while connecting to Array due to {}", e);
 		}
 		return server;
 	}

@@ -169,7 +169,7 @@ public class ExportMaskUtils {
             List<ExportGroup> groups = getExportGroups(dbClient, exportMask);
             //Applies only for VMAX where even if the export mask may belong to more than one export group, 
             //they all should be of the same type.
-            if(groups.size() >= 1) {
+            if(!groups.isEmpty()) {
                 return groups.get(0).getType();
             } 
         }        
@@ -1065,7 +1065,7 @@ public class ExportMaskUtils {
                 keys.add(FCZoneReference.makeEndpointsKey(initiator.getInitiatorPort(), port.getPortNetworkId()));
             }
         }
-        if (keys.size() > 0) {
+        if (!keys.isEmpty()) {
             _log.info("removeMaskEoexistInitiators - Removing FCZoneReferences for keys {}", keys);
             Joiner joiner = dbModelClient.join(FCZoneReference.class, "refs", "pwwnKey", keys).go();
             List<FCZoneReference> list = joiner.list("refs");

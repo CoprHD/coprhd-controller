@@ -313,7 +313,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                         matchingInitiators.add(normalizedName);
                     }
                 }
-                builder.append(String.format("\nXM:%s I:{%s} V:{%s}\n", name,
+                builder.append(String.format("%nXM:%s I:{%s} V:{%s}%n", name,
                         Joiner.on(',').join(initiatorPorts),
                         Joiner.on(',').join(volumeWWNs.keySet())));
                 if (!matchingInitiators.isEmpty()) {
@@ -456,11 +456,11 @@ public class VnxExportOperations implements ExportMaskOperations {
                 Set existingVolumes = (mask.getExistingVolumes() != null) ?
                         mask.getExistingVolumes().keySet() : Collections.emptySet();
 
-                builder.append(String.format("\nXM object: %s I{%s} V:{%s}\n", name,
+                builder.append(String.format("%nXM object: %s I{%s} V:{%s}%n", name,
                         Joiner.on(',').join(existingInitiators),
                         Joiner.on(',').join(existingVolumes)));
 
-                builder.append(String.format("XM discovered: %s I:{%s} V:{%s}\n", name,
+                builder.append(String.format("XM discovered: %s I:{%s} V:{%s}%n", name,
                         Joiner.on(',').join(discoveredPorts),
                         Joiner.on(',').join(discoveredVolumes.keySet())));
 
@@ -510,11 +510,11 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // Refer to CTRL-6982.
                 
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}\n",
+                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
                                 Joiner.on(',').join(initiatorsToRemove)));
                 builder.append(
-                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}\n",
+                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
                                 Joiner.on(',').join(volumesToRemove)));
 

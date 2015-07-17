@@ -415,7 +415,7 @@ public class CustomizedDistributedRowLock<K> implements DistributedRowLock {
         
         Long timeoutValue 
               = (time == null)
-              ? new Long(0)
+              ? Long.valueOf(0)
               : time + TimeUnit.MICROSECONDS.convert(timeout, timeoutUnits);
               
         m.withRow(columnFamily, key).putColumn(lockColumn, generateTimeoutValue(timeoutValue), ttl);

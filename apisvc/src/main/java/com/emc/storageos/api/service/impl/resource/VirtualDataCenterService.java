@@ -1003,7 +1003,7 @@ public class VirtualDataCenterService extends TaskResourceService {
 
 
         // check at least one IP in both subjectIpsInCert and ipsOfEndpoint
-        if (ipsOfEndpoint.size() == 0 || subjectIpsInCert.size() == 0) {
+        if (ipsOfEndpoint.isEmpty() || subjectIpsInCert.isEmpty()) {
             throw APIException.badRequests.apiEndpointNotMatchCertificate(endpoint);
         }
 

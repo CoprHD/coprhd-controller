@@ -77,7 +77,7 @@ public class CreateNfsDatastoreService extends VMwareHostService {
         }
 
         // Add any missing IPs to the export list
-        if (ipAddresses.size() > 0) {
+        if (!ipAddresses.isEmpty()) {
             execute(new AddNfsExportEndpoints(fileSystemId, export, ipAddresses));
         }
     }

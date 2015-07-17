@@ -20,6 +20,11 @@ import com.google.gson.Gson;
 
 import java.util.ArrayList;
 
+@SuppressWarnings({"squid:S00100"})
+/*
+ * Isilon API return with json fields has underline.
+ */
+
 public class IsilonClusterConfig {
 
     private String description;

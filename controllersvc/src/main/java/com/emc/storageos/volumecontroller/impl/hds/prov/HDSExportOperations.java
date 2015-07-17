@@ -1023,7 +1023,7 @@ public class HDSExportOperations implements ExportMaskOperations {
             }
             
             // Case 1 is handled here for the new initiators & new target ports.
-            if (targetURIList != null && targetURIList.size() > 0 &&
+            if (targetURIList != null && !targetURIList.isEmpty() &&
                     !exportMask.hasTargets(targetURIList)) {
                 // If the HLU's are already configured on this target port, then an exception is thrown.
                 // User should make sure that all volumes should have same HLU across all target HSD's.
@@ -1361,7 +1361,7 @@ public class HDSExportOperations implements ExportMaskOperations {
                         matchedHSD.getPathList(), storage);
                 log.info("Current list of Volumes exists on this HSD: {}",
                         volumesExistsOnHSD);
-                builder.append(String.format("XM:%s I:{%s} V:{%s}\n",
+                builder.append(String.format("XM:%s I:{%s} V:{%s}%n",
                         matchedHSD.getObjectID(),
                         Joiner.on(',').join(initiatorsExistsOnHSD),
                         Joiner.on(',').join(volumesExistsOnHSD.keySet())));
@@ -1583,10 +1583,10 @@ public class HDSExportOperations implements ExportMaskOperations {
                 Set existingVolumes = (mask.getExistingVolumes() != null) ?
                         mask.getExistingVolumes().keySet() : Collections.emptySet();
                 
-                builder.append(String.format("\nXM object: %s I{%s} V:{%s}\n", maskName,
+                builder.append(String.format("%nXM object: %s I{%s} V:{%s}%n", maskName,
                         Joiner.on(',').join(existingInitiators), Joiner.on(',').join(existingVolumes)));
 
-                builder.append(String.format("XM discovered: %s I:{%s} V:{%s}\n", maskName,
+                builder.append(String.format("XM discovered: %s I:{%s} V:{%s}%n", maskName,
                         Joiner.on(',').join(discoveredInitiators), Joiner.on(',').join(discoveredVolumes.keySet())));
 
                 // Check the initiators and update the lists as necessary
@@ -1626,9 +1626,9 @@ public class HDSExportOperations implements ExportMaskOperations {
                     removeVolumes = !volumesToRemove.isEmpty();
                 }
 
-                builder.append(String.format("XM refresh: %s initiators; add:{%s} remove:{%s}\n", maskName,
+                builder.append(String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n", maskName,
                         Joiner.on(',').join(initiatorsToAdd), Joiner.on(',').join(initiatorsToRemove)));
-                builder.append(String.format("XM refresh: %s volumes; add:{%s} remove:{%s}\n", maskName, Joiner.on(',')
+                builder.append(String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n", maskName, Joiner.on(',')
                         .join(volumesToAdd.keySet()), Joiner.on(',').join(volumesToRemove)));
 
                 // Any changes indicated, then update the mask and persist it
@@ -1710,9 +1710,8 @@ public class HDSExportOperations implements ExportMaskOperations {
         uriParams[1] = system.getSmisProviderIP();
         uriParams[2] = system.getSmisPortNumber();
         URI uri = URI.create(String.format("%1$s://%2$s:%3$d/service/StorageManager",
-                uriParams));
+                uriParams)); //NOSONAR ("Ignore String.format sonar voilation")
         log.info("HiCommand DM server url to query: {}", uri);
-        // http://lglak148:2001/service/StorageManager
         return uri;
     }
     

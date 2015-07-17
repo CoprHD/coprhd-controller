@@ -80,7 +80,7 @@ public class CapacityService extends ResourceService {
                                   AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
                                                                               "resourceType",
                                                                                resourceType.toString()));
-            if (dataResourcesURI.size() == 0) {
+            if (dataResourcesURI.isEmpty()) {
                 _log.error("Failed to find capacity of type {} in the database, recompute", resourceType);
                 throw new Exception("Failed to find capacity in the database");
             }

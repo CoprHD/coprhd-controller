@@ -94,7 +94,7 @@ public class VNXeUnexportFileSystemJob extends VNXeJob{
             	//cleanupFSExport(fsObj, dbClient);
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                   "Task %s failed to export file system: %s", opId));
+                   "Task %s failed to export file system", opId));
             } 
             _logger.info(logMsgBuilder.toString());
             if (isFile) {

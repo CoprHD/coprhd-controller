@@ -104,7 +104,7 @@ private Logger log = Logger.getLogger(getClass());
 		elem.addNewChild("share-name", shareName);
 
 		for (String key : attrs.keySet()) {
-			elem.addNewChild(key, attrs.get(key));
+			elem.addNewChild(key, attrs.get(key)); //NOSONAR("Fix this in future release to avoid regression")
 		}
 
 		try {
@@ -736,7 +736,7 @@ private Logger log = Logger.getLogger(getClass());
     			expRuleInfo.addChildElem(roRule);
     			expRuleInfo.addChildElem(rootRule);
     		}
-    		if((permission == null) || (permission != null && permission.isEmpty())) {
+    		if((permission == null) || (permission != null && permission.isEmpty())) { //NOSONAR("Null check required")
     			NaElement roRule = new NaElement("ro-rule");
     			NaElement rwRule = new NaElement("rw-rule");
     			NaElement rootRule = new NaElement("super-user-security");
@@ -889,7 +889,7 @@ private Logger log = Logger.getLogger(getClass());
 
 			result = server.invokeElem(volumeElem);
 			log.info("Failure list size " + result.getChildByName("failure-list").getChildren().size());
-			if(result.getChildByName("failure-list").getChildren().size() > 0) {
+			if(!result.getChildByName("failure-list").getChildren().isEmpty()) {
 				log.error("Failed to modify Export Policy of File System : " + fsName);
 			}
 		} catch (IllegalArgumentException e) {

@@ -468,7 +468,7 @@ public class SRDFOperations implements SmisConstants {
                     group.setSupportedCopyMode(SupportedCopyModes.ALL.toString());
                 }
 
-                if (targetSystem.getTargetCgs() != null && targetSystem.getTargetCgs().size() > 0) {
+                if (targetSystem.getTargetCgs() != null && !targetSystem.getTargetCgs().isEmpty()) {
                     URI cgUri = source.getConsistencyGroup();
                     if (cgUri != null) {
                         targetSystem.getTargetCgs().remove(cgUri.toString());
@@ -635,6 +635,7 @@ public class SRDFOperations implements SmisConstants {
         try {
             return helper.checkExists(sourceSystem, path, false, false);
         } catch (Exception e) {
+        	log.error("Exception in getInstance", e);
         }
         return null;
     }

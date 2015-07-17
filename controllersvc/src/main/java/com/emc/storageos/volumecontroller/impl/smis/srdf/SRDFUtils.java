@@ -81,6 +81,7 @@ public class SRDFUtils implements SmisConstants {
         try {
             return helper.checkExists(sourceSystem, path, false, false);
         } catch (Exception e) {
+        	log.error("Problmem in getInstance: ", e);
         }
         return null;
     }
@@ -154,7 +155,7 @@ public class SRDFUtils implements SmisConstants {
             // If the Source Provider is down, make use of target provider to
             // find the Sync Paths. 
             // null check makes the caller not to check liveness for multiple volumes in loop.
-            boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.equals(activeProviderSystem.getId(), sourceSystem.getId()));
+            boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.identical(activeProviderSystem.getId(), sourceSystem.getId()));
             String nativeIdToUse = (isSourceActiveNow) ? source.getNativeId() : target.getNativeId();
             // Use the activeSystem always.
             StorageSystem systemToUse = (isSourceActiveNow) ? sourceSystem : activeProviderSystem;
@@ -354,7 +355,7 @@ public class SRDFUtils implements SmisConstants {
             }
             return result;
         } catch (WBEMException e) {
-            e.printStackTrace();
+        	log.error("getVolumePathsInRemoteGroup WBEMException : ", e);
         } finally {
             if (volumePaths != null) {
                 volumePaths.close();

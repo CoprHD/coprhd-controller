@@ -450,11 +450,11 @@ public class AccessProfile {
         _recordClazz = clazz;
     }
 
-    public void set_providerAccessInfo(URI _providerAccessInfo) {
+    public void setProviderAccessInfo(URI _providerAccessInfo) {
         this._providerAccessInfo = _providerAccessInfo;
     }
 
-    public URI get_providerAccessInfo() {
+    public URI getProviderAccessInfo() {
         return _providerAccessInfo;
     }
 

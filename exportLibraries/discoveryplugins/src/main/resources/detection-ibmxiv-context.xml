@@ -8,7 +8,7 @@
 
     <bean id="ibmxiv"
         class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
-        <property name="_executor" ref="executor" />
-        <property name="_namespaces" ref="namespaces" />
+        <property name="executor" ref="executor" />
+        <property name="namespaces" ref="namespaces" />
     </bean>
 </beans>

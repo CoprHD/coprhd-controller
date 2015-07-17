@@ -281,7 +281,7 @@ public class VPlexApiConsistencyGroupManager {
             s_logger.info("Set CG detach rule winner URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_C, clusterInfo.getPath());
-            argsMap.put(VPlexApiConstants.ARG_DASH_D, (new Integer(VPlexApiConstants.DETACH_DELAY)).toString());
+            argsMap.put(VPlexApiConstants.ARG_DASH_D, Integer.valueOf(VPlexApiConstants.DETACH_DELAY).toString());
             argsMap.put(VPlexApiConstants.ARG_DASH_G, cgInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Set CG detach rule winner is {}", postDataObject.toString());
@@ -731,7 +731,7 @@ public class VPlexApiConsistencyGroupManager {
             // If the flag so indicates 
             if (deleteCGWhenEmpty) {
                 discoveryMgr.updateConsistencyGroupInfo(cgInfo);
-                if (cgInfo.getVirtualVolumes().size() == 0) {
+                if (cgInfo.getVirtualVolumes().isEmpty()) {
                     s_logger.info("Deleting empty consistency group {}", cgName);
                     try {
                         deleteConsistencyGroup(cgInfo);

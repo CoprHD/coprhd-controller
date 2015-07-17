@@ -13,6 +13,8 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -33,6 +35,8 @@ public class RecoverPointSchedulerTest extends Assert {
 	protected static StoragePool poolD = null;
 	protected static VirtualArray nh1 = null;
 	protected static VirtualArray nh2 = null;
+    private static final Logger logger = LoggerFactory
+            .getLogger(RecoverPointSchedulerTest.class);
 	
 	@BeforeClass
 	public static synchronized void setup() {

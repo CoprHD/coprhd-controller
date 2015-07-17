@@ -65,12 +65,12 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public final Object getStorageDeviceGroupObjectPath_CIMWrapper(
+    public final Object getStorageDeviceGroupObjectPathCIMWrapper(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         Object value = getStorageDeviceGroupObjectPath(argument, keyMap, index);
         if (null != value) {
             CIMObjectPath path = (CIMObjectPath) value;
-            return new CIMArgument<Object>(argument.get_name(),
+            return new CIMArgument<Object>(argument.getName(),
                     CIMDataType.getDataType(path), value);
         }
         return value;
@@ -88,7 +88,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
     private final Object getBourneCreatedDeviceGroupName(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         @SuppressWarnings("unchecked")
-        List<String> deviceGroupNames = (List<String>) keyMap.get(argument.get_value());
+        List<String> deviceGroupNames = (List<String>) keyMap.get(argument.getValue());
         return deviceGroupNames.get(index);
     }
 
@@ -127,7 +127,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
             final Argument argument, final Map<String, Object> keyMap, int index) {
         @SuppressWarnings("unchecked")
         List<CIMObjectPath> deviceGroups = (List<CIMObjectPath>) keyMap.get(argument
-                .get_value());
+                .getValue());
         CIMObjectPath deviceGroupPath = deviceGroups.get(index);
         String deviceGroupName = deviceGroupPath.getKey(Constants.INSTANCEID).getValue().toString();
         _logger.debug("Device Group Name associated policy :" + deviceGroupName);
@@ -143,12 +143,12 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public Object getFASTPolicyAssociatedWithDeviceGroup_CIMWrapper(
+    public Object getFASTPolicyAssociatedWithDeviceGroupCIMWrapper(
             final Argument argument, final Map<String, Object> keyMap, int index) {
         CIMObjectPath fastPolicyPath = getFASTPolicyAssociatedWithDeviceGroup(argument,
                 keyMap, index);
         if (null != fastPolicyPath) {
-            return new CIMArgument<Object>(argument.get_name(),
+            return new CIMArgument<Object>(argument.getName(),
                     CIMDataType.getDataType(fastPolicyPath), fastPolicyPath);
         }
         return null;
@@ -166,7 +166,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
             final Argument argument, final Map<String, Object> keyMap, int index) {
         @SuppressWarnings("unchecked")
         List<String> vnxPoolCapabilities_tierMethods = (List<String>) keyMap.get(argument
-                .get_value());
+                .getValue());
         String vnxPoolCapabilities_tierMethod = vnxPoolCapabilities_tierMethods
                 .get(index);
         String vnxPoolCapabilities = vnxPoolCapabilities_tierMethod.substring(0,vnxPoolCapabilities_tierMethod.lastIndexOf("-"));
@@ -188,7 +188,7 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
             final Argument argument, final Map<String, Object> keyMap, int index) {
         @SuppressWarnings("unchecked")
         List<CIMInstance> vnxPoolSettingInstances = (List<CIMInstance>) keyMap
-                .get(argument.get_value());
+                .get(argument.getValue());
         CIMInstance vnxPoolSettingInstance = vnxPoolSettingInstances.get(index);
         String tierMethod = (String) keyMap.get(vnxPoolSettingInstance.getObjectPath()
                 .toString() + Constants.HYPEN + Constants.TIERMETHODOLOGY);
@@ -215,14 +215,14 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public final Object generateDeviceGroup_InElements_CIMWrapper(
+    public final Object generateDeviceGroupInElementsCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         @SuppressWarnings("unchecked")
         List<CIMObjectPath> deviceGroupPaths = (List<CIMObjectPath>) keyMap.get(arg
-                .get_value());
+                .getValue());
         CIMObjectPath deviceGroupPath = deviceGroupPaths.get(index);
         CIMObjectPath[] pathArray = new CIMObjectPath[] { deviceGroupPath };
-        return new CIMArgument<Object>(arg.get_name(),
+        return new CIMArgument<Object>(arg.getName(),
                 CIMDataType.getDataType(pathArray), pathArray);
     }
 
@@ -235,11 +235,11 @@ public class SmisDiscoveryArgsCreator extends ArgsCreator {
      * @param index
      * @return
      */
-    public final Object getBourneCreatedDeviceGroupName_CIMWrapper(
+    public final Object getBourneCreatedDeviceGroupNameCIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         String value = (String) getBourneCreatedDeviceGroupName(arg, keyMap, index);
         if (null != value) {
-            return new CIMArgument<Object>(arg.get_name(),
+            return new CIMArgument<Object>(arg.getName(),
                     CIMDataType.getDataType(value), value);
         }
         return value;

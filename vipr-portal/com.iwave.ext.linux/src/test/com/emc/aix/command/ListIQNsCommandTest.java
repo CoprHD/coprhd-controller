@@ -23,7 +23,7 @@ public class ListIQNsCommandTest {
     static ListIQNsCommand iqnCommand = null;
     
     @BeforeClass
-    public static void setup() {
+    public synchronized static void setup() {
         CommandOutput commandOutput = new CommandOutput(output, null, 0);
         iqnCommand = createMockBuilder(ListIQNsCommand.class).withConstructor().addMockedMethod("getOutput").createMock();
         EasyMock.expect(iqnCommand.getOutput()).andReturn(commandOutput).anyTimes();

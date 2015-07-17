@@ -90,7 +90,7 @@ public class SmisUtils {
         List<URI> volumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeNativeGuidConstraint(nativeGuid));
         
-        if (volumeUris.size() > 0) {
+        if (!volumeUris.isEmpty()) {
             Volume volume = dbClient.queryObject(Volume.class, volumeUris.get(0));
             if (!volume.getInactive()) {
                 return volume;
@@ -105,7 +105,7 @@ public class SmisUtils {
         try {
             StoragePool storagePool = dbClient.queryObject(StoragePool.class, storagePoolURI);
             storageSystem = dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
-            _log.info(String.format("Old storage pool capacity data for \n  pool %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            _log.info(String.format("Old storage pool capacity data for %n  pool %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePoolURI,
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));
@@ -136,16 +136,16 @@ public class SmisUtils {
                 storagePool.setSubscribedCapacity(ControllerUtils.convertBytesToKBytes(subscribedCapacity));
             }
 
-            _log.info(String.format("New storage pool capacity data for pool \n  %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            _log.info(String.format("New storage pool capacity data for pool %n  %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePoolURI,
                     storagePool.getFreeCapacity(),
                     storagePool.getSubscribedCapacity()));
 
             dbClient.persistObject(storagePool);
-        } catch (Throwable th) {
+        } catch (Exception e) {
             _log.error(
-                    String.format("Failed to update capacity of storage pool after volume provisioning operation. \n  Storage system: %s, storage pool %s .",
-                    storageSystem.getId(), storagePoolURI), th);
+                    String.format("Failed to update capacity of storage pool after volume provisioning operation. %n  Storage system: %s, storage pool %s .",
+                    storageSystem.getId(), storagePoolURI), e);
         }
 
     }

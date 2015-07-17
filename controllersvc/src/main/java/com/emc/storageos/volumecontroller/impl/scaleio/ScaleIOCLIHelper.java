@@ -94,7 +94,7 @@ public class ScaleIOCLIHelper {
     public static void updateStoragePoolCapacity(DbClient dbClient, ScaleIOCLI scaleIOCLI, StoragePool storagePool,
                                                  StorageSystem storage) {
         try {
-            log.info(String.format("Old storage pool capacity data for \n  pool %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            log.info(String.format("Old storage pool capacity data for %n  pool %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storage.getId(), storagePool.getId(),
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));
@@ -108,7 +108,7 @@ public class ScaleIOCLIHelper {
             Long totalCapacityKBytes = ControllerUtils.convertBytesToKBytes(totalCapacityString);
             storagePool.setTotalCapacity(totalCapacityKBytes);
 
-            log.info(String.format("New storage pool capacity data for pool \n  %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
+            log.info(String.format("New storage pool capacity data for pool %n  %s/%s --- %n  free capacity: %s; subscribed capacity: %s",
                     storage.getId(), storagePool.getId(),
                     storagePool.getFreeCapacity(),
                     storagePool.getSubscribedCapacity()));

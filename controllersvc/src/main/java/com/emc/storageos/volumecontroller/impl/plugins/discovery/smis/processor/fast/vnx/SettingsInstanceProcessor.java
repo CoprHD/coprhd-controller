@@ -41,7 +41,7 @@ public class SettingsInstanceProcessor extends Processor {
             throws BaseCollectionException {
         try {
             final CIMInstance poolSettingInstance = (CIMInstance) resultObj;
-            addInstance(keyMap,operation.get_result(),poolSettingInstance);
+            addInstance(keyMap,operation.getResult(),poolSettingInstance);
             
         }catch(Exception e) {
             _logger.error("Processing Pool Setting Instances failed :",e);

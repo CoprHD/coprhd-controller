@@ -268,7 +268,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         	// blockObject properties, and so on.
                         	if (!mask.hasExistingVolume(blockObject.getWWN()) && !mask.hasVolume(blockObject.getId())) {
                         		String volumePolicyName = ControllerUtils.getAutoTieringPolicyName(blockObject.getId(), _dbClient);
-                        		if (((volumePolicyName == null || volumePolicyName.equalsIgnoreCase(Constants.NONE.toString())) && (policy.tierPolicies == null || policy.tierPolicies.size() == 0)) ||
+                        		if (((volumePolicyName == null || volumePolicyName.equalsIgnoreCase(Constants.NONE.toString())) && (policy.tierPolicies == null || policy.tierPolicies.isEmpty())) ||
                         				((volumePolicyName != null && policy.tierPolicies != null && policy.tierPolicies.size() == 1 && policy.tierPolicies.contains(volumePolicyName)))) {
                         			_log.info(String.format("mask doesn't have volume %s yet, need to add it", blockObject.getId()));
                         			Map<URI, Integer> newVolumesMap = existingMasksToUpdateWithNewVolumes
@@ -282,7 +282,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         					volumeMap.get(blockObject.getId()));
                         		}
                         	} else {
-                    			_log.info(String.format("not adding volume %s to mask ", blockObject.getId(), mask.getMaskName()));
+                    			_log.info(String.format("not adding volume %s to mask %s", blockObject.getId(), mask.getMaskName()));
                         	}
                         }
                         // The initiator has been placed - it is in an already existing export

@@ -4350,7 +4350,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             String successMessage = String.format(
             	"ExportGroup %s successfully updated for StorageArray %s",
             	exportGroup.getLabel(), storage.getLabel());
-            storageWorkflow.set_service(_workflowService);
+            storageWorkflow.setService(_workflowService);
             storageWorkflow.executePlan(taskCompleter, successMessage);
         } catch (InternalException e) {
         	_log.error("Operation failed with Exception: " , e);

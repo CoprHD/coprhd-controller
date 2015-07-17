@@ -29,7 +29,7 @@ import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.utils.ExportRule;
 
-
+@SuppressWarnings({"findbugs:WMI_WRONG_MAP_ITERATOR"})
 /**
  * @author sdorcas
  * All calls from iWO NetApp services must delegate to this class

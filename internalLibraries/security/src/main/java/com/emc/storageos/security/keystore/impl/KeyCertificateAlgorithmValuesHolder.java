@@ -222,7 +222,7 @@ public class KeyCertificateAlgorithmValuesHolder {
      * @param algo
      *            the signingAlgorithm to set
      */
-    public static void setSigningAlgorithm(String algo) {
+    public synchronized static void setSigningAlgorithm(String algo) {
         signingAlgorithm = algo;
         log.info("Signing Algorithm is {}", algo);
     }

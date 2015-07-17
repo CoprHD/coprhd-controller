@@ -123,7 +123,7 @@ public class RemoteMirrorProtectionValidator extends
         if (null == createParam.getProtection()
                 || null == createParam.getProtection().getRemoteCopies()
                 || null == createParam.getProtection().getRemoteCopies().getRemoteCopySettings()
-                || createParam.getProtection().getRemoteCopies().getRemoteCopySettings().size() == 0)
+                || createParam.getProtection().getRemoteCopies().getRemoteCopySettings().isEmpty())
             return false;
         return true;
     }
@@ -153,7 +153,7 @@ public class RemoteMirrorProtectionValidator extends
         if (null != createParam.getProtection()
                 && null != createParam.getProtection().getRecoverPoint()
                 && null != createParam.getProtection().getRecoverPoint().getCopies()
-                && createParam.getProtection().getRecoverPoint().getCopies().size() > 0) {
+                && !createParam.getProtection().getRecoverPoint().getCopies().isEmpty()) {
             throw APIException.badRequests.parameterRPNotSupportedWithSRDF();
         }
         // VPLEX HA not allowed if SRDF Protection specified in VPOOL

@@ -115,12 +115,12 @@ public class TrustStoreTest extends ApiTestBase {
     @Before
     public void setup() throws NoSuchAlgorithmException {
         initLoadBalancer(true);
-        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
+        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         rSys.path("/tenant").get(String.class);
         addControllerLicense();
         waitForClusterToBeStable();
         updateADConfig();
-        rRootUser2 = createHttpsClient(ROOTUSER2, AD_PASSWORD, baseUrls);
+        rRootUser2 = createHttpsClient(ROOTUSER2, AD_PASS_WORD, baseUrls);
         rRootUser2.path("/tenant").get(String.class);
     }
 
@@ -262,7 +262,7 @@ public class TrustStoreTest extends ApiTestBase {
         nExistedCert = certs.getTrustedCertificates().size();
 
         // should have ca certificates by default
-        Assert.assertTrue(certs.getTrustedCertificates().size() > 0);
+        Assert.assertTrue(!certs.getTrustedCertificates().isEmpty());
 
         TrustedCertificateChanges changes = new TrustedCertificateChanges();
         List<String> add = new ArrayList<String>();

@@ -101,7 +101,7 @@ public class SmisCreateMetaVolumeMembersJob extends SmisJob {
                         CIMProperty<String> deviceID = (CIMProperty<String>) volumePath.getKey(SmisConstants.CP_DEVICE_ID);
                         String nativeID = deviceID.getValue();
                         _metaMembers.add(nativeID);
-                        logMsgBuilder.append(String.format("\n   Meta member device ID: %s", nativeID));
+                        logMsgBuilder.append(String.format("%n   Meta member device ID: %s", nativeID));
                     }
                     _log.info(logMsgBuilder.toString());
                 }

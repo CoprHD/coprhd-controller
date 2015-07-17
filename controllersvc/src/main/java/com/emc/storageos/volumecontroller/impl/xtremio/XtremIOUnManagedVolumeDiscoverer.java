@@ -125,7 +125,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
             String snapNameToProcess = (String) snapDetail.get(1);
             XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess);
             UnManagedVolume unManagedVolume = null;
-            boolean isExported = snap.getLunMaps().size() > 0;
+            boolean isExported = !snap.getLunMaps().isEmpty();
             String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                     system.getNativeGuid(), snap.getVolInfo().get(0));
             BlockSnapshot viprSnap = DiscoveryUtils.checkBlockSnapshotExistsInDB(dbClient, managedSnapNativeGuid);
@@ -195,8 +195,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     continue;
                 }
                 UnManagedVolume unManagedVolume = null;
-                boolean isExported = volume.getLunMaps().size() > 0;
-                boolean hasSnaps = volume.getSnaps().size() > 0;
+                boolean isExported = !volume.getLunMaps().isEmpty();
+                boolean hasSnaps = !volume.getSnaps().isEmpty();
                 String managedVolumeNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                         storageSystem.getNativeGuid(), volume.getVolInfo().get(0));
                 Volume viprVolume = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, managedVolumeNativeGuid);
@@ -238,7 +238,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) 
                     {
                         log.debug("Snaps :"+Joiner.on("\t").join(discoveredSnaps));
-                        if (null != discoveredSnaps && discoveredSnaps.size() == 0) {
+                        if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
                             // replace with empty string set doesn't work, hence added explicit code to remove all
                             unManagedVolumeInformation.get(
                                     SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
@@ -320,7 +320,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         
         if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
             log.debug("Matched Pools :"+Joiner.on("\t").join(parentMatchedVPools));
-            if (null != parentMatchedVPools && parentMatchedVPools.size() == 0) {
+            if (null != parentMatchedVPools && parentMatchedVPools.isEmpty()) {
                 // replace with empty string set doesn't work, hence added explicit code to remove all
                 unManagedVolumeInformation.get(
                         SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
@@ -458,7 +458,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 }
             }
             
-            mask.replaceNewWithOldResources(knownIniSet, knownNetworkIdSet, knownVolumeSet, matchedFCInitiators.size() > 0 ? knownFCStoragePortUris : knownIPStoragePortUris);
+            mask.replaceNewWithOldResources(knownIniSet, knownNetworkIdSet, knownVolumeSet, !matchedFCInitiators.isEmpty() ? knownFCStoragePortUris : knownIPStoragePortUris);
             
             updateZoningMap(mask, matchedFCInitiators, matchedFCPorts);
             
@@ -552,7 +552,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
         
         Boolean isVolumeExported = false;
-        if(volume.getLunMaps().size() > 0) {
+        if(!volume.getLunMaps().isEmpty()) {
             //clear the previous unmanaged export masks, initiators if any. The latest export masks will be updated later.
             unManagedVolume.getUnmanagedExportMasks().clear();
             unManagedVolume.getInitiatorNetworkIds().clear();
@@ -651,7 +651,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
 
                 log.debug("Matched Pools :"+Joiner.on("\t").join(matchedVPools));
-                if (null != matchedVPools && matchedVPools.size() == 0) {
+                if (null != matchedVPools && matchedVPools.isEmpty()) {
                     // replace with empty string set doesn't work, hence added explicit code to remove all
                     unManagedVolumeInformation.get(
                             SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();

@@ -370,7 +370,7 @@ public class SMISProviderService extends TaskResourceService {
 
         // Verify the provider can be removed without leaving "dangling" storages.
         StringSet providerStorageSystems = provider.getStorageSystems();
-        if (null!=providerStorageSystems && providerStorageSystems.size() != 0) {
+        if (null!=providerStorageSystems && !providerStorageSystems.isEmpty()) {
             // First we need to verify that all related storage systems has at least   2 providers
             for(String system : providerStorageSystems) {
                 StorageSystem storageSys = _dbClient.queryObject(StorageSystem.class, URI.create(system));
@@ -386,7 +386,7 @@ public class SMISProviderService extends TaskResourceService {
         }
 
         StringSet decommissionedSystems = provider.getDecommissionedSystems();
-        if ( null!=decommissionedSystems && decommissionedSystems.size() != 0) {
+        if ( null!=decommissionedSystems && !decommissionedSystems.isEmpty()) {
             for(String decommissioned : decommissionedSystems) {
                 DecommissionedResource oldRes = _dbClient.queryObject(DecommissionedResource.class, URI.create(decommissioned));
                 if(oldRes != null){

@@ -78,7 +78,7 @@ public abstract class ZeroRecordGenerator {
             // the difference without altering the Cache.
             Sets.difference(volumeURIsInDBSet, resourceIds).copyInto(zeroedRecords);
             
-            if (zeroedRecords.size() > 0) {
+            if (!zeroedRecords.isEmpty()) {
                 _logger.info("Records Zeroed : {}", zeroedRecords.size());
                 // used in caching Volume Records
                 for (String record : zeroedRecords) {

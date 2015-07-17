@@ -1142,7 +1142,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()), snapshots);
         for (NamedElementQueryResultList.NamedElement ne : snapshots) {
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, ne.id);
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, ne.getId());
             if (snapshot != null && !snapshot.getInactive()) {
                 CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, snapshot);
                 if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {

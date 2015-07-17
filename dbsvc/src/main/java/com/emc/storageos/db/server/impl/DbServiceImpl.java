@@ -267,7 +267,7 @@ public class DbServiceImpl implements DbService {
             }
             // check other existing db nodes
             List<Configuration> configs = _coordinator.queryAllConfiguration(configKind);
-            if (configs.size() == 0) {
+            if (configs.isEmpty()) {
                 // we are the first node - turn off autobootstrap
                 cfg.setConfig(DbConfigConstants.AUTOBOOT, Boolean.FALSE.toString());
             }
@@ -728,7 +728,7 @@ public class DbServiceImpl implements DbService {
         
         // check geodb cleanup mode for remove-vdc 
         List<String> obsoletePeers = checkConfigList(config, Constants.OBSOLETE_CASSANDRA_PEERS);
-        if (obsoletePeers.size() > 0) {
+        if (!obsoletePeers.isEmpty()) {
             // drop peers ip/tokens from system table   
             ObsoletePeersCleanupMode mode = new ObsoletePeersCleanupMode(config);
             mode.setCoordinator(_coordinator);

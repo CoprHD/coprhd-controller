@@ -797,7 +797,7 @@ public class BlockStorageDeviceTest {
             }
         }
 
-        if (snapshots.size() > 0) {
+        if (!snapshots.isEmpty()) {
             return snapshots;
         } else {
             return createSnapshots();

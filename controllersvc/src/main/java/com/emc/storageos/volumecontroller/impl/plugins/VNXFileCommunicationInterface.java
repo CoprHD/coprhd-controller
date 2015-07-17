@@ -122,8 +122,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     /**
      * Executor to execute the operations.
      */
-    private VNXFileExecutor _executor;
-    private NamespaceList _namespaces;
+    private VNXFileExecutor executor;
+    private NamespaceList namespaces;
 
     private VNXFileDiscExecutor _discExecutor;
     private NamespaceList       _discNamespaces;
@@ -140,7 +140,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         _keyMap.put(VNXFileConstants.DEVICETYPE, accessProfile.getSystemType());
         _keyMap.put(VNXFileConstants.DBCLIENT, _dbClient);
         _keyMap.put(VNXFileConstants.USERNAME, accessProfile.getUserName());
-        _keyMap.put(VNXFileConstants.PASSWORD, accessProfile.getPassword());
+        _keyMap.put(VNXFileConstants.USER_PASS_WORD, accessProfile.getPassword());
         _keyMap.put(VNXFileConstants.URI, getServerUri(accessProfile));
         _keyMap.put(VNXFileConstants.PORTNUMBER, accessProfile.getPortNumber());
         _keyMap.put(Constants._Stats, new LinkedList<Stat>());
@@ -152,8 +152,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 + Constants._File;
         _keyMap.put(Constants._globalCacheKey, globalCacheKey);
         _keyMap.put(Constants.PROPS, accessProfile.getProps());
-        if(_executor != null){
-            _executor.set_keyMap(_keyMap);
+        if(executor != null){
+            executor.setKeyMap(_keyMap);
             _logger.debug("Map set on executor....");
         }
     }
@@ -210,7 +210,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * @return the _executor
      */
     public VNXFileExecutor getExecutor() {
-        return _executor;
+        return executor;
     }
 
     /**
@@ -220,7 +220,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      *            the _executor to set
      */
     public void setExecutor(final VNXFileExecutor executor) {
-        _executor = executor;
+        this.executor = executor;
     }
 
     @Override
@@ -233,7 +233,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // to execute operations & process the result.
             populateMap(accessProfile);
             // Read the operations and execute them.
-            _executor.execute((Namespace) _namespaces.getNsList().get(METERINGFILE));
+            executor.execute((Namespace) namespaces.getNsList().get(METERINGFILE));
             dumpStatRecords();
             injectStats();
             _logger.info("End collecting statistics for ip address {}",
@@ -247,16 +247,16 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
      * releaseResources
      */
     private void releaseResources() {
-        _executor = null;
-        _namespaces = null;
+        executor = null;
+        namespaces = null;
     }
 
-    public void set_namespaces(NamespaceList namespaces) {
-        _namespaces = namespaces;
+    public void setNamespaces(NamespaceList namespaces) {
+        this.namespaces = namespaces;
     }
     
-    public NamespaceList get_namespaces() {
-        return _namespaces;
+    public NamespaceList getNamespaces() {
+        return namespaces;
     }
 
     /**
@@ -313,14 +313,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             Map<String, List<StorageHADomain>> groups = discoverPortGroups(storageSystem, fileSharingProtocols);
             _logger.info("No of newly discovered groups {}", groups.get(NEW).size());
             _logger.info("No of existing discovered groups {}", groups.get(EXISTING).size());
-            if(groups.get(NEW).size() > 0){
+            if(!groups.get(NEW).isEmpty()){
                 _dbClient.createObject(groups.get(NEW));
                 for(StorageHADomain newDm:groups.get(NEW)){
                     _logger.info("New DM {} ", newDm.getAdapterName());
                 }
             }
 
-            if(groups.get(EXISTING).size() > 0){
+            if(!groups.get(EXISTING).isEmpty()){
                 _dbClient.persistObject(groups.get(EXISTING));
                 for(StorageHADomain existingDm:groups.get(EXISTING)){
                     _logger.info("Existing DM {} ", existingDm.getAdapterName());
@@ -335,12 +335,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             _logger.info("No of newly discovered pools {}", pools.get(NEW).size());
             _logger.info("No of existing discovered pools {}", pools.get(EXISTING).size());
-            if(pools.get(NEW).size() > 0){
+            if(!pools.get(NEW).isEmpty()){
                 allPools.addAll(pools.get(NEW));
                 _dbClient.createObject(pools.get(NEW));
             }
 
-            if(pools.get(EXISTING).size() > 0){
+            if(!pools.get(EXISTING).isEmpty()){
                 allPools.addAll(pools.get(EXISTING));
                 _dbClient.persistObject(pools.get(EXISTING));
             }
@@ -365,11 +365,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             _logger.info("No of newly discovered port {}", ports.get(NEW).size());
             _logger.info("No of existing discovered port {}", ports.get(EXISTING).size());
-            if(ports.get(NEW).size() > 0){
+            if(!ports.get(NEW).isEmpty()){
                 _dbClient.createObject(ports.get(NEW));
             }
 
-            if(ports.get(EXISTING).size() > 0){
+            if(!ports.get(EXISTING).isEmpty()){
                 _dbClient.persistObject(ports.get(EXISTING));
             }
             
@@ -384,14 +384,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             Map<String, List<StorageHADomain>> vdms = discoverVdmPortGroups(storageSystem, activeDataMovers);
             _logger.info("No of newly Vdm discovered groups {}", vdms.get(NEW).size());
             _logger.info("No of existing vdm discovered groups {}", vdms.get(EXISTING).size());
-            if(vdms.get(NEW).size() > 0){
+            if(!vdms.get(NEW).isEmpty()){
                 _dbClient.createObject(vdms.get(NEW));
                 for(StorageHADomain newVdm:vdms.get(NEW)){
                     _logger.info("New VDM {} ", newVdm.getAdapterName());
                 }
             }
 
-            if(vdms.get(EXISTING).size() > 0){
+            if(!vdms.get(EXISTING).isEmpty()){
                 _dbClient.persistObject(vdms.get(EXISTING));
                 for(StorageHADomain existingVdm:vdms.get(EXISTING)){
                     _logger.info("Existing VDM {}", existingVdm.getAdapterName());
@@ -418,14 +418,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             _logger.info("No of newly discovered port {}", vdmPorts.get(NEW).size());
             _logger.info("No of existing discovered port {}", vdmPorts.get(EXISTING).size());
-            if(vdmPorts.get(NEW).size() > 0){
+            if(!vdmPorts.get(NEW).isEmpty()){
                 _dbClient.createObject(vdmPorts.get(NEW));
                 for(StoragePort port:vdmPorts.get(NEW)){
                     _logger.debug("New VDM Port : {}", port.getPortName());
                 }
             }
 
-            if(vdmPorts.get(EXISTING).size() > 0){
+            if(!vdmPorts.get(EXISTING).isEmpty()){
                 _dbClient.persistObject(vdmPorts.get(EXISTING));
                 for(StoragePort port:vdmPorts.get(EXISTING)){
                     _logger.info("EXISTING VDM Port : {}", port.getPortName());
@@ -914,9 +914,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 }
 
                 Map<String, String> vdmIntfs = sshDmApi.getVDMInterfaces(vdm.getVdmName());
-                Set<String> intfs = vdmIntfs.keySet();
+                Set<String> intfs = null;
+                if(vdmIntfs != null){
+                	intfs = vdmIntfs.keySet();
+                }
                 //if NFS Interfaces are not there ignore this..
-                if(vdmIntfs == null || vdmIntfs.keySet().size() == 0) {
+                if(vdmIntfs == null || intfs.isEmpty()) {
                     //There are no interfaces for this VDM via nas_server command
                     //so ignore this
                     _logger.info("Ignoring VDM {} because no NFS interfaces found via ssh query", vdm.getVdmName());
@@ -941,14 +944,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                 for(VNXCifsServer cifsServer:cifsServers){
                     _logger.info("Cifs Server {} for {} ", cifsServer.getName(), vdm.getVdmName());
-                    if(cifsServer.getInterfaces().size() > 0) {
+                    if(!cifsServer.getInterfaces().isEmpty()) {
                         _logger.info("{} has CIFS Enabled since interfaces are found ", vdm.getVdmName(),
                                 cifsServer.getName()  + ":" + cifsServer.getInterfaces());
                         protocols.add(StorageProtocol.File.CIFS.name());
                     }
                 }
 
-                if(protocols.size() == 0) {
+                if(protocols.isEmpty()) {
                     //No valid interfaces found and ignore this
                     _logger.info("Ignoring VDM {} because no NFS/CIFS interfaces found ", vdm.getVdmName());
                     continue;
@@ -1269,12 +1272,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
             _logger.info("New unmanaged VNXFile file systems count: {}", newFileSystemsCount);
             _logger.info("Update unmanaged VNXFile file systems count: {}", existingFileSystemsCount);
-            if(unManagedFileSystems.size() > 0) {
+            if(!unManagedFileSystems.isEmpty()) {
                 //Add UnManagedFileSystem
                 _dbClient.createObject(unManagedFileSystems);
             }
 
-            if(existingUnManagedFileSystems.size() > 0) {
+            if(!existingUnManagedFileSystems.isEmpty()) {
                 //Update UnManagedFilesystem
                 _dbClient.persistObject(existingUnManagedFileSystems);
             }
@@ -1339,7 +1342,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             _logger.info("No of newly discovered port {}", ports.get(NEW).size());
             _logger.info("No of existing discovered port {}", ports.get(EXISTING).size());
-            if(ports.get(NEW).size() > 0){
+            if(!ports.get(NEW).isEmpty()){
                 _dbClient.createObject(ports.get(NEW));
             }
             
@@ -1358,7 +1361,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             Map<String, List<StorageHADomain>> allVdms = discoverVdmPortGroups(storageSystem, activeDataMovers);
-            if(allVdms.get(NEW).size() > 0){
+            if(!allVdms.get(NEW).isEmpty()){
                 _dbClient.createObject(allVdms.get(NEW));
             }
 
@@ -1371,7 +1374,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
 
             Map<String, List<StoragePort>> allVdmPorts =  discoverVdmPorts(storageSystem, allActiveVDMs);
-            if(allVdmPorts.get(NEW).size() > 0){
+            if(!allVdmPorts.get(NEW).isEmpty()){
                 _dbClient.createObject(allVdmPorts.get(NEW));
             }
 
@@ -1399,7 +1402,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 _logger.info("Processing DataMover/VDM {} {}", mover.getId(), mover.getAdapterName());
 
                 // Get storage port and name for the DM
-                if(allPorts.get(mover.getId().toString()) == null || allPorts.get(mover.getId().toString()).size() == 0 ) {
+                if(allPorts.get(mover.getId().toString()) == null || allPorts.get(mover.getId().toString()).isEmpty()) {
                     // Did not find a single storage port for this DM, ignore it
                     _logger.info("No Ports found for {} {}", mover.getName(), mover.getAdapterName());
                     continue;
@@ -1522,7 +1525,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             
-            if (unManagedExportBatch.size() > 0) {
+            if (!unManagedExportBatch.isEmpty()) {
                 _logger.info("Updating {} UnManagedFileSystem in db", unManagedExportBatch.size());
                 // Update UnManagedFilesystem
                 _partitionManager.updateInBatches(unManagedExportBatch,
@@ -1583,7 +1586,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             _logger.info("No of newly discovered port {}", ports.get(NEW).size());
             _logger.info("No of existing discovered port {}", ports.get(EXISTING).size());
-            if(ports.get(NEW).size() > 0){
+            if(!ports.get(NEW).isEmpty()){
                 _dbClient.createObject(ports.get(NEW));
             }
             
@@ -1602,7 +1605,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             Map<String, List<StorageHADomain>> allVdms = discoverVdmPortGroups(storageSystem, activeDataMovers);
-            if(allVdms.get(NEW).size() > 0){
+            if(!allVdms.get(NEW).isEmpty()){
                 _dbClient.createObject(allVdms.get(NEW));
             }
 
@@ -1615,7 +1618,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
 
             Map<String, List<StoragePort>> allVdmPorts =  discoverVdmPorts(storageSystem, allActiveVDMs);
-            if(allVdmPorts.get(NEW).size() > 0){
+            if(!allVdmPorts.get(NEW).isEmpty()){
                 _dbClient.createObject(allVdmPorts.get(NEW));
             }
 
@@ -1637,7 +1640,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             for(StorageHADomain mover: activeDataMovers) {
 
                 // Get storage port and name for the DM
-                if(allPorts.get(mover.getId().toString()) == null || allPorts.get(mover.getId().toString()).size() == 0 ) {
+                if(allPorts.get(mover.getId().toString()) == null || allPorts.get(mover.getId().toString()).isEmpty()) {
                     // Did not find a single storage port for this DM, ignore it
                     _logger.debug("No Ports found for {} {}", mover.getName(), mover.getAdapterName());
                     continue;
@@ -1791,20 +1794,20 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     }
                 }
 
-            if (unManagedExportBatch.size() > 0) {
+            if (!unManagedExportBatch.isEmpty()) {
                 // Update UnManagedFilesystem
                 _dbClient.persistObject(unManagedExportBatch);
                 unManagedExportBatch.clear();
             }
             
-            if (newUnManagedCifsACLs.size() > 0) {
+            if (!newUnManagedCifsACLs.isEmpty()) {
                 //create new UnManagedCifsShareACL
 				_logger.info("Saving Number of New UnManagedCifsShareACL(s) {}", newUnManagedCifsACLs.size());
                 _dbClient.createObject(newUnManagedCifsACLs);
                 newUnManagedCifsACLs.clear();
 			}
 
-            if (oldUnManagedCifsACLs.size() > 0) {
+            if (!oldUnManagedCifsACLs.isEmpty()) {
                 //Update existing UnManagedCifsShareACL
                 _logger.info("Saving Number of Old UnManagedCifsShareACL(s) {}", oldUnManagedCifsACLs.size());
                 _dbClient.persistObject(oldUnManagedCifsACLs);
@@ -1899,7 +1902,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             _logger.info("No of newly discovered port {}", ports.get(NEW).size());
             _logger.info("No of existing discovered port {}", ports.get(EXISTING).size());
-            if(ports.get(NEW).size() > 0){
+            if(!ports.get(NEW).isEmpty()){
                 _dbClient.createObject(ports.get(NEW));
             }
             
@@ -1918,7 +1921,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
 
             Map<String, List<StorageHADomain>> allVdms = discoverVdmPortGroups(storageSystem, activeDataMovers);
-            if(allVdms.get(NEW).size() > 0){
+            if(!allVdms.get(NEW).isEmpty()){
                 _dbClient.createObject(allVdms.get(NEW));
             }
 
@@ -1931,7 +1934,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
 
             Map<String, List<StoragePort>> allVdmPorts =  discoverVdmPorts(storageSystem, allActiveVDMs);
-            if(allVdmPorts.get(NEW).size() > 0){
+            if(!allVdmPorts.get(NEW).isEmpty()){
                 _dbClient.createObject(allVdmPorts.get(NEW));
             }
 
@@ -1953,7 +1956,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             for(StorageHADomain mover: activeDataMovers) {
 
                 // Get storage port and name for the DM
-                if(allPorts.get(mover.getId().toString()) == null || allPorts.get(mover.getId().toString()).size() == 0 ) {
+                if(allPorts.get(mover.getId().toString()) == null || allPorts.get(mover.getId().toString()).isEmpty()) {
                     // Did not find a single storage port for this DM, ignore it
                     _logger.debug("No Ports found for {} {}", mover.getName(), mover.getAdapterName());
                     continue;
@@ -2069,7 +2072,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                                 // Validate Rules Compatible with ViPR - Same rules should
                                     // apply as per API SVC Validations.
-                                    if(unManagedExportRules.size() > 0) {
+                                    if(!unManagedExportRules.isEmpty()) {
                                         boolean isAllRulesValid = validationUtility
                                                 .validateUnManagedExportRules(unManagedExportRules, false);
                                         if (isAllRulesValid) {
@@ -2138,20 +2141,20 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 }
             }
 
-            if (unManagedExportBatch.size() > 0) {
+            if (!unManagedExportBatch.isEmpty()) {
                 // Update UnManagedFilesystem
                 _dbClient.persistObject(unManagedExportBatch);
                 unManagedExportBatch.clear();
             }
             
-            if (newUnManagedExportRules.size() > 0) {
+            if (!newUnManagedExportRules.isEmpty()) {
                 //create new UnManagedExportFules
 				_logger.info("Saving Number of New UnManagedFileExportRule(s) {}", newUnManagedExportRules.size());
                 _dbClient.createObject(newUnManagedExportRules);
 				newUnManagedExportRules.clear();
 			}
 
-            if (oldUnManagedExportRules.size() > 0) {
+            if (!oldUnManagedExportRules.isEmpty()) {
                 //Update exisiting UnManagedExportFules
                 _logger.info("Saving Number of Old UnManagedFileExportRule(s) {}", oldUnManagedExportRules.size());
                 _dbClient.persistObject(oldUnManagedExportRules);
@@ -2263,7 +2266,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         Map<String, List<StorageHADomain>> groups = discoverPortGroups(storageSystem, fileSharingProtocols);
         _logger.info("No of newly discovered groups {}", groups.get(NEW).size());
         _logger.info("No of existing discovered groups {}", groups.get(EXISTING).size());
-        if(groups.get(NEW).size() > 0){
+        if(!groups.get(NEW).isEmpty()){
             _dbClient.createObject(groups.get(NEW));
         }
 
@@ -2347,10 +2350,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // Retrieve list of File Systems from the VNX file device.
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_SELECTED_FS));
-            fileSystems = (List<VNXFileSystem>) _discExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEMS);
-            if ((fileSystems != null) &&(fileSystems.size() > 0)) {
+            fileSystems = (List<VNXFileSystem>) _discExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEMS);
+            if ((fileSystems != null) && !(fileSystems.isEmpty())) {
                 _logger.info("Number of file systems found: {}", fileSystems.size());
                 fileSystem = fileSystems.get(0);
             } else {
@@ -2403,13 +2406,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
             _logger.info("{}", _discExecutor);
             
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _logger.info("{}",(Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePool"));
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePool"));
             storagePools = (ArrayList<VNXStoragePool>) _discExecutor
-                    .get_keyMap().get(VNXFileConstants.STORAGEPOOLS);
+                    .getKeyMap().get(VNXFileConstants.STORAGEPOOLS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get control station op failed", e);
         }
@@ -2424,11 +2427,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileControlStation"));
             
-            station = (VNXControlStation) _discExecutor.get_keyMap().get(
+            station = (VNXControlStation) _discExecutor.getKeyMap().get(
                     VNXFileConstants.CONTROL_STATION_INFO);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get control station op failed", e);
@@ -2444,10 +2447,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePortGroup"));
-            dataMovers = (ArrayList<VNXDataMover>) _discExecutor.get_keyMap()
+            dataMovers = (ArrayList<VNXDataMover>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.STORAGE_PORT_GROUPS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get Port Groups op failed", e);
@@ -2465,10 +2468,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             reqAttributeMap.put(VNXFileConstants.MOVER_ID, Integer.toString(mover.getId()));
             reqAttributeMap.put(VNXFileConstants.ISVDM, "false");
 
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_CIFS_CONFIG));
 
-            cifsSupported = (Boolean)_discExecutor.get_keyMap().get(VNXFileConstants.CIFS_SUPPORTED);
+            cifsSupported = (Boolean)_discExecutor.getKeyMap().get(VNXFileConstants.CIFS_SUPPORTED);
 
         } catch (BaseCollectionException e) {
             throw new VNXException("check CIFS Enabled op failed", e);
@@ -2486,10 +2489,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverId);
             reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
 
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_CIFS_CONFIG));
 
-            cifsServers = (List<VNXCifsServer>)_discExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            cifsServers = (List<VNXCifsServer>)_discExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
 
         } catch (BaseCollectionException e) {
             throw new VNXException("Get CifServers op failed", e);
@@ -2504,10 +2507,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
 
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(VNXFileConstants.VNX_FILE_CIFS_CONFIG));
 
-            cifsServers = (List<VNXCifsServer>)_discExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            cifsServers = (List<VNXCifsServer>)_discExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
 
         } catch (BaseCollectionException e) {
             throw new VNXException("Get CifServers op failed", e);
@@ -2523,10 +2526,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePort"));
-            dataMovers = (ArrayList<VNXDataMoverIntf>) _discExecutor.get_keyMap()
+            dataMovers = (ArrayList<VNXDataMoverIntf>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.STORAGE_PORTS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get Port op failed", e);
@@ -2542,10 +2545,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileVdm"));
-            vdms = (ArrayList<VNXVdm>) _discExecutor.get_keyMap()
+            vdms = (ArrayList<VNXVdm>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.VDM_INFO);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get Vdm Port Groups op failed", e);
@@ -2564,10 +2567,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileStoragePort"));
-            dataMoverInterfaces = (ArrayList<VNXDataMoverIntf>) _discExecutor.get_keyMap()
+            dataMoverInterfaces = (ArrayList<VNXDataMoverIntf>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.STORAGE_PORTS);
             //Make map
             for(VNXDataMoverIntf intf:dataMoverInterfaces){
@@ -2616,11 +2619,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         try {
             Map<String, Object> reqAttributeMap = getRequestParamsMap(system);
-            _discExecutor.set_keyMap(reqAttributeMap);
+            _discExecutor.setKeyMap(reqAttributeMap);
             _discExecutor.execute((Namespace) _discNamespaces.getNsList().get(
                     "vnxfileSystem"));
 
-            fileSystems = (ArrayList<VNXFileSystem>) _discExecutor.get_keyMap()
+            fileSystems = (ArrayList<VNXFileSystem>) _discExecutor.getKeyMap()
                     .get(VNXFileConstants.FILESYSTEMS);
         } catch (BaseCollectionException e) {
             throw new VNXException("Get FileSystems op failed", e);
@@ -3065,7 +3068,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
                     SUPPORTED_VPOOL_LIST.toString())) {
                 
-                if (null != matchedVPools && matchedVPools.size() == 0) {
+                if (null != matchedVPools && matchedVPools.isEmpty()) {
                     // replace with empty string set doesn't work, hence added explicit code to remove all
                     unManagedFileSystemInformation.get(
                              SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
@@ -3158,7 +3161,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         reqAttributeMap.put(VNXFileConstants.DEVICETYPE, system.getSystemType());
         reqAttributeMap.put(VNXFileConstants.DBCLIENT, _dbClient);
         reqAttributeMap.put(VNXFileConstants.USERNAME, system.getUsername());
-        reqAttributeMap.put(VNXFileConstants.PASSWORD, system.getPassword());
+        reqAttributeMap.put(VNXFileConstants.USER_PASS_WORD, system.getPassword());
         reqAttributeMap.put(VNXFileConstants.PORTNUMBER, system.getPortNumber());
 
         AccessProfile profile = new AccessProfile();
@@ -3431,7 +3434,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     return value;
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        	_logger.error(e.getMessage());
+        }
         return null;
     }
 

@@ -83,7 +83,7 @@ public class VNXFastVolumesProcessor extends StorageProcessor{
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), tierPolicypath, keyMap, operation);
             }
-            if (_unManagedVolumesUpdate.size() > 0) {
+            if (!_unManagedVolumesUpdate.isEmpty()) {
                 _partitionManager.updateInBatches(_unManagedVolumesUpdate,
                         getPartitionSize(keyMap), _dbClient, "VOLUME");
                 _unManagedVolumesUpdate.clear();
@@ -108,7 +108,7 @@ public class VNXFastVolumesProcessor extends StorageProcessor{
                 volumePath = it.next();
                 if (tierPolicyPath.toString().contains(AutoTieringPolicy.VnxFastPolicy.DEFAULT_AUTOTIER.toString())) {
                     _logger.debug("Adding Auto Tier Policy Rule ");
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             volumePath);
                     continue;
                 }

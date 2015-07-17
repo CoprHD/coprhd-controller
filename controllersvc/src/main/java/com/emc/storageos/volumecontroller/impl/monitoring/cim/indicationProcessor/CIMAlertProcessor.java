@@ -76,7 +76,7 @@ public class CIMAlertProcessor extends BaseProcessor{
                 _recordableEventManager.recordEvents(gAlert);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            _logger.error("Exception occurred while proessing indication", e);
         }
     }
 

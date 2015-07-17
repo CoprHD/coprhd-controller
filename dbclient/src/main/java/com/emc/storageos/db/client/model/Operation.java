@@ -121,6 +121,11 @@ public class Operation extends AbstractSerializableNestedObject implements Clock
         setMessage(message);
         updateStatus(Status.suspended.name());
     }
+    
+    public void pending()  {
+        setMessage("Operation has been restarted");
+        updateStatus(Status.pending.name());
+    }
 
     /**
      * This method sets the status of the operation to "error"

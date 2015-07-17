@@ -30,8 +30,11 @@ public class WorkflowTaskCompleter extends TaskCompleter {
 			update.ready();
 			break;
 		case error:
-			update.error(coded);;
+			update.error(coded);
 			break;
+		case suspended:
+		    update.suspended("workflow suspended");
+		    break;
 		}
 		Workflow workflow = dbClient.queryObject(Workflow.class, getId());
 		workflow.getOpStatus().updateTaskStatus(getOpId(), update);

@@ -54,7 +54,7 @@ import com.emc.storageos.workflow.WorkflowService;
  * the dispatcher queue directly, or create new workflows. For an example Junit, see WorkflowTest.
  *
  */
-public class ControllersvcTestBase {
+abstract public class ControllersvcTestBase {
     protected static final Logger log = LoggerFactory.getLogger(ControllersvcTestBase.class);
     /*
      * The following context beans are prepopulated from the application context for your convenience.
@@ -81,13 +81,14 @@ public class ControllersvcTestBase {
     protected void startControllersvc() {
         if (!started) {
             started = true;
-            PropertyConfigurator.configure("log4j.properties");
-            log.info("Beginning logging");
             Properties sysProps = System.getProperties();
             sysProps.put("buildType", "emc");
             sysProps.put("java.library.path", "/opt/storageos/lib");
             sysProps.put("sblim.wbem.configURL", "file:/opt/storageos/conf/cimom.properties");
             sysProps.put("log4j.configuration", "controllersvc-log4j.properties");
+            sysProps.put("product.home", "/opt/storageos" );
+            PropertyConfigurator.configure("controllersvc-log4j.properties");
+            log.info("Beginning logging");
             Main.main(args);
         }
         applicationContext = AttributeMatcherFramework.getApplicationContext();

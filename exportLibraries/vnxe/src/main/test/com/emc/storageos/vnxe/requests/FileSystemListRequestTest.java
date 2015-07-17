@@ -31,7 +31,9 @@ public class FileSystemListRequestTest {
     private static String password = EnvConfig.get("sanity", "vnxe.password");
 	@BeforeClass
     public static void setup() throws Exception {
-		_client = new KHClient(host, userName, password);
+		synchronized (_client) {
+			_client = new KHClient(host, userName, password);
+		}
 	}
 	
 	@Test

@@ -21,6 +21,8 @@ import java.util.List;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeException;
@@ -43,9 +45,12 @@ public class FileSystemActionRequestTest {
     private static String host = EnvConfig.get("sanity", "vnxe.host");
     private static String userName = EnvConfig.get("sanity", "vnxe.username");
     private static String password = EnvConfig.get("sanity", "vnxe.password");
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemActionRequestTest.class);
 	@BeforeClass
     public static void setup() throws Exception {
-		_client = new KHClient(host, userName, password);
+		synchronized(_client) {
+			_client = new KHClient(host, userName, password);
+		}
 	}
 	
 	@Test
@@ -73,7 +78,7 @@ public class FileSystemActionRequestTest {
             response = req.createFileSystemAsync(parm);
         } catch (VNXeException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+        	logger.error("VNXeException occured", e);
         }
        
         System.out.println(response.getId() + "state: " + response.getState());

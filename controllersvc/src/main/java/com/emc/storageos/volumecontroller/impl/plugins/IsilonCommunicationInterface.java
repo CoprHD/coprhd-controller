@@ -1915,11 +1915,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         for(String expPath:expMap.keySet()) {
             if(expPath.equalsIgnoreCase(fsPath) || expPath.contains(fsPath + "/")) {
                 HashSet<Integer> expIds = expMap.get(expPath);
-                if(expIds == null) {
-                    expIds = new HashSet<>();
+                if(expIds != null && !expIds.isEmpty()) {
+                	expMapWithIds.put(expPath, expIds);
                 }
-                expIds.addAll(expIds);
-                expMapWithIds.put(expPath, expIds);
             }
         }
         return expMapWithIds;

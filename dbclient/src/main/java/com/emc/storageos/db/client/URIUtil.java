@@ -28,7 +28,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class URIUtil {
-    private static final String[] MODEL_PACKAGES = new String[]{"com.emc.storageos.db.client.model", "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects"};
+    private static final int VDC_PARTS_COUNT = 4;
+
+	private static final String[] MODEL_PACKAGES = new String[]{"com.emc.storageos.db.client.model", "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects"};
 
 	/** Pattern for finding the 'type' from an ID. */
 	private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
@@ -183,8 +185,8 @@ public class URIUtil {
         
         if (id != null) {
             String[] segments = StringUtils.split(id, ':');
-            if ((segments.length > 4) && StringUtils.isNotBlank(segments[4])) {
-                vdcId = segments[4];
+            if ((segments.length > VDC_PARTS_COUNT) && StringUtils.isNotBlank(segments[VDC_PARTS_COUNT])) {
+                vdcId = segments[VDC_PARTS_COUNT];
             }
         }
         return vdcId;
@@ -261,7 +263,7 @@ public class URIUtil {
      *        the second ID.
      * @return true if and only if the IDs are non-null and equal.
      */
-    public static boolean equals(URI first, URI second) {
+    public static boolean identical(URI first, URI second) {
         if ((first != null) && (second != null)) {
             return first.equals(second);
         }

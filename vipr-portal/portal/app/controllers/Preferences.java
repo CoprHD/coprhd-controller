@@ -4,12 +4,15 @@
  */
 package controllers;
 
+import java.util.Map.Entry;
+
 import org.apache.commons.lang.StringUtils;
 
 import play.Logger;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.Controller;
+import play.mvc.Http.Header;
 import play.mvc.With;
 import util.MessagesUtils;
 import util.UserPreferencesUtils;
@@ -83,11 +86,11 @@ public class Preferences extends Controller {
     }
 
     private static String getRefererRequestHeader() {
-        for (String key : request.headers.keySet()) {
-            if (StringUtils.equals(key, "referer")) {
-                return request.headers.get(key).value(); //NOSONAR ("Suppressing Sonar violation of Inefficient use of keySet iterator instead of entrySet")
+    	for (Entry<String, Header> keys : request.headers.entrySet()) {
+            if (StringUtils.equals(keys.getKey(), "referer")) {
+                return keys.getValue().toString();
             }
-        }
+    	}
         return null;
     }
 

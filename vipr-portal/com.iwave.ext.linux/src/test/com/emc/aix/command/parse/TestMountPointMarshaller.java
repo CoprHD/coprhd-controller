@@ -42,11 +42,11 @@ public class TestMountPointMarshaller {
 	}
 	
 	public static void addMountPointToFilesystems(MountPoint m){
-		String output = String.format("%s:\n\t\t= dev\t\t%s\n", m.getPath(), m.getDevice());
-		output += String.format("\t\t= vfs\t\t%s\n", m.getVfs());
+		String output = String.format("%s:%n\t\t= dev\t\t%s%n", m.getPath(), m.getDevice());
+		output += String.format("\t\t= vfs\t\t%s%n", m.getVfs());
 		//output += String.format("\t\t= log\t\t%s\n");
-		output += String.format("\t\t= mount\t\t%s\n", true);
-		output += String.format("\t\t= account\t\t%s\n", false);
+		output += String.format("\t\t= mount\t\t%s%n", true);
+		output += String.format("\t\t= account\t\t%s%n", false);
 		
 		System.out.print(output);
 	}

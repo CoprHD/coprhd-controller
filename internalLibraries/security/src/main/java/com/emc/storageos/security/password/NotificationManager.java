@@ -269,7 +269,7 @@ public class NotificationManager {
 
         List<URI> userPrefsIds = Lists.newArrayList();
         for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
-            userPrefsIds.add(namedElement.id);
+            userPrefsIds.add(namedElement.getId());
         }
 
         final List<UserPreferences> userPrefs = Lists.newArrayList();

@@ -1399,7 +1399,7 @@ public class VirtualArrayService extends TaggedResource {
                 List<NamedElementQueryResultList.NamedElement> dataObjects = 
                         listChildren(clusterUri, Host.class, "label", "cluster");
                 for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
-                    Set<String> hostVarrays = getVarraysForHost(dataObject.id);
+                    Set<String> hostVarrays = getVarraysForHost(dataObject.getId());
                     hostVarraySets.add(hostVarrays);
                 }
 
@@ -1463,7 +1463,7 @@ public class VirtualArrayService extends TaggedResource {
         List<NamedElementQueryResultList.NamedElement> dataObjects = 
                 listChildren(hostUri, Initiator.class, "iniport", "host");
         for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
-            initiatorList.add(dataObject.id.toString());
+            initiatorList.add(dataObject.getId().toString());
         }
         
         for (String initUri : initiatorList) {

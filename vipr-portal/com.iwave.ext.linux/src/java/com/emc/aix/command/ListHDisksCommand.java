@@ -14,10 +14,6 @@ public class ListHDisksCommand extends AixResultsCommand<List<PowerPathDevice>> 
     
     private boolean checkVplex;
     
-    public static void main(String[] args) {
-        new ListHDisksCommand(false, false);
-    }
-    
     public ListHDisksCommand(boolean usePowerPath, boolean checkVplex) {
         
         this.checkVplex = checkVplex;

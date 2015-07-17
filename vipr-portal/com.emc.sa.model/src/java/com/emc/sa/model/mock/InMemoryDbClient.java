@@ -41,8 +41,8 @@ public class InMemoryDbClient implements DBClientWrapper {
     
     private NamedElement createNamedElement(DataObject value) {
         NamedElement elem = new NamedElement();
-        elem.id = value.getId();
-        elem.name = value.getLabel();
+        elem.setId(value.getId());
+        elem.setName(value.getLabel());
         return elem;
     }
     

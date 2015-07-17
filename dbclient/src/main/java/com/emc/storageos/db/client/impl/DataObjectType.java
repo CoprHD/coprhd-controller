@@ -41,11 +41,9 @@ import javassist.NotFoundException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
-import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.model.Column;
@@ -58,7 +56,6 @@ import com.netflix.astyanax.serializers.StringSerializer;
  */
 public class DataObjectType {
     private static final Logger _log = LoggerFactory.getLogger(DataObjectType.class);
-    private String _cfName;
     private ColumnFamily<String, CompositeColumnName> _cf;
     private Class<? extends DataObject> _clazz;
     private ColumnField _idField;
@@ -163,8 +160,8 @@ public class DataObjectType {
      * Initializes cf & all column metadata for this data type
      */
     private void init() {
-        _cfName = _clazz.getAnnotation(Cf.class).value();
-        _cf = new ColumnFamily<String, CompositeColumnName>(_cfName,
+        String cfName = _clazz.getAnnotation(Cf.class).value();
+        _cf = new ColumnFamily<String, CompositeColumnName>(cfName,
                 StringSerializer.get(),
                 CompositeColumnNameSerializer.get());
         BeanInfo bInfo;
@@ -203,18 +200,16 @@ public class DataObjectType {
                 String[] groupByArr =  ((AggregateDbIndex)index).getGroupBy();
                 for(String groupByName : groupByArr) {
                     ColumnField groupField = _columnFieldMap.get(groupByName);
-                    if (groupField == null) {
-                        DatabaseException.fatals.invalidAnnotation("AggregateIndex", "property " + groupByName +
-                                " does not have a valid value");
-                    }
                     // Right now the "group field must have its own index.
                     // The index for this field will be cleared together with the index of the referenced field
-                    if (groupField.getIndex() == null) {
+                    if (groupField==null || groupField.getIndex() == null) {
                         DatabaseException.fatals.invalidAnnotation("AggregateIndex", "property " + groupByName +
-                                " must referenced another indexed field");
+                                " does not have a valid value or referenced another indexed field");
                     }
                     ((AggregateDbIndex) index).addGroupByField(_columnFieldMap.get(groupByName));
-                    groupField.getDependentFields().add(field);
+                    if (groupField.getDependentFields() != null) {
+                    	groupField.getDependentFields().add(field);
+                    }
                     field.getRefFields().add(groupField);
                 }
                 if(field.getRefFields().size()>0) {
@@ -246,8 +241,7 @@ public class DataObjectType {
         return deserialize(clazz, row, cleanupList, null);
     }
     public <T  extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList,
-            LazyLoader lazyLoader)
-            throws DatabaseException {
+            LazyLoader lazyLoader) {
         if (!_clazz.isAssignableFrom(clazz)) {
             throw new IllegalArgumentException();
         }
@@ -286,7 +280,7 @@ public class DataObjectType {
      * @param val object to persist
      * @throws DatabaseException
      */
-    public boolean serialize(RowMutator mutator, DataObject val) throws DatabaseException {
+    public boolean serialize(RowMutator mutator, DataObject val) {
         return serialize(mutator, val, null);
     }
 
@@ -299,7 +293,7 @@ public class DataObjectType {
      * @return
      * @throws DatabaseException
      */
-    public boolean serialize(RowMutator mutator, DataObject val, LazyLoader lazyLoader) throws DatabaseException {
+    public boolean serialize(RowMutator mutator, DataObject val, LazyLoader lazyLoader) {
         if (!_clazz.isInstance(val)) {
             throw new IllegalArgumentException();
         }
@@ -420,8 +414,9 @@ public class DataObjectType {
             String instrumentedClassName = _clazz.getPackage().getName() +
                     ".vipr-dbmodel$$" + _clazz.getSimpleName();
             instrumentedClass = pool.getAndRename(LazyLoadedDataObject.class.getName(), instrumentedClassName);
-            instrumentedClass.setSuperclass(modelClass);
-            
+            if(instrumentedClass != null){
+                instrumentedClass.setSuperclass(modelClass);
+            }
         } catch (CannotCompileException e) {
             _log.error(String.format("Compile error instrumenting data model class %s", _clazz.getCanonicalName()));
             _log.error(e.getMessage(), e);

@@ -150,6 +150,7 @@ import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
 import com.emc.storageos.vplex.api.clientdata.PortInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 import com.emc.storageos.vplexcontroller.completers.CacheStatusTaskCompleter;
+import com.emc.storageos.vplexcontroller.completers.MigrationOperationTaskCompleter;
 import com.emc.storageos.vplexcontroller.completers.MigrationTaskCompleter;
 import com.emc.storageos.vplexcontroller.completers.MigrationWorkflowCompleter;
 import com.emc.storageos.vplexcontroller.job.VPlexCacheStatusJob;
@@ -9566,12 +9567,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
     @Override
     public void pauseMigration(URI vplexURI, URI migrationURI, String opId) {
-        MigrationTaskCompleter completer = new MigrationTaskCompleter(
-                migrationURI, opId);
+        MigrationOperationTaskCompleter completer = null;
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
             client.pauseMigrations(Arrays.asList(migration.getLabel()));
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.PAUSED.name());
             _dbClient.persistObject(migration);
@@ -9587,12 +9589,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     
     @Override
     public void resumeMigration(URI vplexURI, URI migrationURI, String opId) {
-        MigrationTaskCompleter completer = new MigrationTaskCompleter(
-                migrationURI, opId);
+        MigrationOperationTaskCompleter completer = null;
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
             client.resumeMigrations(Arrays.asList(migration.getLabel()));
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name());
             _dbClient.persistObject(migration);
@@ -9602,12 +9605,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String opName = ResourceOperationTypeEnum.RESUME_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.operateMigrationFailed(opName, ex);
             completer.error(_dbClient, serviceError);
+            
         }
     }
     
     @Override
     public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
-        MigrationTaskCompleter completer = new MigrationTaskCompleter(
+        MigrationOperationTaskCompleter completer = new MigrationOperationTaskCompleter(
                 migrationURI, opId);
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);

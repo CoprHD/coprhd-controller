@@ -71,6 +71,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexMigrationInfo;
 import com.emc.storageos.vplexcontroller.VPlexController;
 import com.google.common.base.Function;
@@ -339,10 +340,10 @@ public class MigrationService extends TaskResourceService {
             throw APIException.badRequests.migrationHasntStarted(id.toString());
         }
         if (status != null && !status.isEmpty() && 
-            (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.name()) ||
-             status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.name()) ||
-             status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.name())) ||
-             status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name())) {
+            (status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.getStatusValue()) ||
+             status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.getStatusValue()) ||
+             status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())) ||
+             status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.getStatusValue())) {
             throw APIException.badRequests.migrationCantBePaused(migrationName, status);
         }
         URI volId = migration.getVolume();
@@ -358,10 +359,7 @@ public class MigrationService extends TaskResourceService {
 
         try {
             VPlexController controller = _vplexBlockServiceApi.getController();
-            String successMsg = String.format("Pause migration %s succeeded",
-                migrationName);
-            String failMsg = String.format("Pause migration %s failed",
-                migrationName);
+            
             controller.pauseMigration(vplexVol.getStorageController(), id, taskId);
 
         } catch (InternalException e) {
@@ -406,7 +404,7 @@ public class MigrationService extends TaskResourceService {
            throw APIException.badRequests.migrationHasntStarted(id.toString());
        }
        if (status != null && !status.isEmpty() && 
-           !status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.name())) {
+           !status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.getStatusValue())) {
            throw APIException.badRequests.migrationCantBeResumed(migrationName, status);
        }
        URI volId = migration.getVolume();
@@ -485,14 +483,21 @@ public class MigrationService extends TaskResourceService {
         String migrationName = migration.getLabel();
         URI volId = migration.getVolume();
         Volume vplexVol = _dbClient.queryObject(Volume.class, volId);
-     // Create a unique task id.
+    
+        if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
+            throw APIException.badRequests.migrationHasntStarted(id.toString());
+        }
+        if (status != null && !status.isEmpty() && 
+            status.equals(VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue())) {
+            throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
+        }
+        
+        // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Volume.class,
                 volId, taskId, ResourceOperationTypeEnum.CANCEL_MIGRATION);
         TaskResourceRep task = toTask(vplexVol, taskId, op);
-        if (status == null || status.isEmpty() || migrationName == null || migrationName.isEmpty()) {
-            throw APIException.badRequests.migrationHasntStarted(id.toString());
-        }
+        
         if (status != null && !status.isEmpty() && 
             (status.equals(VPlexMigrationInfo.MigrationStatus.CANCELLED.name()) ||
              status.equals(VPlexMigrationInfo.MigrationStatus.PARTIALLY_CANCELLED.name()))) {
@@ -503,20 +508,7 @@ public class MigrationService extends TaskResourceService {
             _dbClient.persistObject(vplexVol);
             return task;
         }
-                        
-        if (status != null && !status.isEmpty() && 
-            (!status.equals(VPlexMigrationInfo.MigrationStatus.IN_PROGRESS.name()) ||
-             !status.equals(VPlexMigrationInfo.MigrationStatus.QUEUED.name()) ||
-             !status.equals(VPlexMigrationInfo.MigrationStatus.COMPLETE.name()) ||
-             !status.equals(VPlexMigrationInfo.MigrationStatus.PAUSED.name()) ||
-             !status.equals(VPlexMigrationInfo.MigrationStatus.ERROR.name()))) {
-            throw APIException.badRequests.migrationCantBeCancelled(migrationName, status);
-        }
-        
-        // Create a task for the virtual volume being migrated and set the 
-        // initial task state to pending.
-        
-
+                      
         try {
             VPlexController controller = _vplexBlockServiceApi.getController();
            
@@ -530,7 +522,6 @@ public class MigrationService extends TaskResourceService {
             op.error(e);
             vplexVol.getOpStatus().updateTaskStatus(taskId, op);
             _dbClient.persistObject(vplexVol);
-
         }
 
         return task;

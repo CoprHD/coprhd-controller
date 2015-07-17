@@ -27,6 +27,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.MarshallingExcetion;
 import com.emc.storageos.db.client.DbAggregatorItf;
@@ -61,6 +63,7 @@ import com.netflix.astyanax.util.TimeUUIDUtils;
 public class DummyDBClient implements DbClient {
 
     HashMap<URI, DataObject> _idToObjectMap;
+    final private Logger _logger = LoggerFactory.getLogger(DummyDBClient.class);
 
     @Override
     public DataObject queryObject(URI id) throws DatabaseException {
@@ -335,8 +338,7 @@ public class DummyDBClient implements DbClient {
                                 TimeUUIDUtils.getTimeFromUUID(uuid));
                     }
                 } catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_logger.error(e.getMessage(),e);
                 }
 
                 callback.done();
@@ -359,8 +361,7 @@ public class DummyDBClient implements DbClient {
                                 TimeUUIDUtils.getTimeFromUUID(uuid));
                     }
                 } catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_logger.error(e.getMessage(),e);
                 }
 
                 callback.done();
@@ -368,8 +369,7 @@ public class DummyDBClient implements DbClient {
                 try {
                     throw new MarshallingExcetion("marshalling Exception", null);
                 } catch (MarshallingExcetion e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_logger.error(e.getMessage(),e);
                 }
             } else if (timeBucket.toString().contains("2012-01-06T00:00")) {
                 callback.error(null);
@@ -388,8 +388,7 @@ public class DummyDBClient implements DbClient {
                                 TimeUUIDUtils.getTimeFromUUID(uuid));
                     }
                 } catch (URISyntaxException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_logger.error(e.getMessage(),e);
                 }
 
                 callback.done();
@@ -398,8 +397,7 @@ public class DummyDBClient implements DbClient {
                 try {
                     throw new MarshallingExcetion("marshalling Exception", null);
                 } catch (MarshallingExcetion e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_logger.error(e.getMessage(),e);
                 }
             }
         }

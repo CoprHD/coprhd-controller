@@ -50,8 +50,8 @@ public class FileControllerImplTest {
     private static final String TaskId = UUID.randomUUID().toString();
     private static final URI FileShareId = URIUtil.createId(FileShare.class);
     private static final URI StoragePoolId = URIUtil.createId(StoragePool.class);
-    private static FileControllerImpl controller;
-    private static StorageSystem storageSystem;
+    private static volatile FileControllerImpl controller;
+    private static volatile StorageSystem storageSystem;
 
     private static int runcount = 0;
 

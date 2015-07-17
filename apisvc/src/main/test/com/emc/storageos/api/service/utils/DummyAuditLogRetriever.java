@@ -65,7 +65,6 @@ public class DummyAuditLogRetriever implements AuditLogRetriever {
         	auditLogs = getDummyAuditLogs();
         } catch (URISyntaxException e) {
             _logger.error("Error getting logs", e);
-            e.printStackTrace();
         }
 
         for (AuditLog log : auditLogs) {

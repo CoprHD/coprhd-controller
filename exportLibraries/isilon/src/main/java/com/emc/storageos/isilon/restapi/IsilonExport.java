@@ -23,6 +23,11 @@ import java.util.List;
  * Class representing the isilon export object
  * member names should match the key names in json object
  */
+
+@SuppressWarnings({"squid:S00100"})
+/*
+ * Isilon API return with json fields has underline.
+ */
 public class IsilonExport {
 
     public static class IsilonIdentity {

@@ -46,7 +46,7 @@ public class DataDomainApiTest {
     private static final String user = EnvConfig.get("sanity", "datadomain.username");
     private static final String password = EnvConfig.get("sanity", "datadomain.password");
     @BeforeClass
-    public static void setup() throws Exception {
+    public static synchronized void setup() throws Exception {
         _factory = new DataDomainClientFactory();
         _factory.setConnectionTimeoutMs(DEFAULT_CONN_TIMEOUT);
         _factory.setMaxConnections(DEFAULT_MAX_CONN);

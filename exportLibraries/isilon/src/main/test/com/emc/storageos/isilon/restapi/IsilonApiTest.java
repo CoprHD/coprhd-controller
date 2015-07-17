@@ -135,6 +135,9 @@ public class IsilonApiTest {
 
         try {
              share = _client.getShare(snapShareId);
+             if(share != null){
+            	 System.out.println("SMB Share name: " + share.getName()); 
+             }
              Assert.assertTrue("Deleted SMB share still gettable.", false);
         } catch (IsilonException e) {
         }

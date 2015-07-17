@@ -16,6 +16,7 @@
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import com.emc.storageos.db.client.model.Volume;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,8 +64,11 @@ public class MetaVolumeRecommendation {
     public void setMetaVolumeType(Volume.CompositionType _metaVolumeType) {
         this._metaVolumeType = _metaVolumeType;
     }
-
     
+    /**
+     * Created COP-37 to track hashCode() implemenatation in this class.
+     */
+    @SuppressWarnings({"squid:S1206"})
     public boolean equals(Object o) {
     	if (o == null || !(o instanceof MetaVolumeRecommendation)) {
     		return false;

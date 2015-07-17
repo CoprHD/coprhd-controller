@@ -180,7 +180,7 @@ public class DataDomainClient implements RestClientItf {
             log.error(String.format("DataDomain Rest API failed, DDCode: %d, Msg : %s",ddCode, msg));
 
             if( ddCode == 404 || ddCode == 410 )   {
-                throw DataDomainResourceNotFoundException.notFound.ResourceNotFound(uri.toString(),msg);
+                throw DataDomainResourceNotFoundException.notFound.resourceNotFound(uri.toString(),msg);
             }
             else {
                 throw DataDomainApiException.exceptions.failedResponseFromDataDomainMsg(uri,errorCode,msg, ddCode);

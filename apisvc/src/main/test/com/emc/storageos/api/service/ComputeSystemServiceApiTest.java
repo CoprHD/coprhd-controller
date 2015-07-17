@@ -50,7 +50,7 @@ public class ComputeSystemServiceApiTest extends ApiTestBase {
 
         List<String> urls = new ArrayList<String>();
         urls.add(_apiServer);
-        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, urls);
+        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, urls);
 
         TenantResponse tenantResp = rSys.path("/tenant").get(TenantResponse.class);
         _rootTenantId = tenantResp.getTenant();

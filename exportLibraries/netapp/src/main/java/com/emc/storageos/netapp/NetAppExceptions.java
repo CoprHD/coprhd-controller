@@ -111,7 +111,7 @@ public interface NetAppExceptions {
             final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException StatisticsCollectionfailed(final URI storageSystemId, final Throwable e);
+    public NetAppException statisticsCollectionfailed(final URI storageSystemId, final Throwable e);
     
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException listFileSystems(final String ip, final String message);

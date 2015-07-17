@@ -29,9 +29,9 @@ public class VNXFileProtocol {
     /**
      * Protocol type. http or https
      */
-    private static String _protocolType;
+    private static volatile String _protocolType;
 
-    private static ProtocolSocketFactory _socketFactory;
+    private static volatile ProtocolSocketFactory _socketFactory;
 
     private static int _port;
 

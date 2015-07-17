@@ -11,7 +11,7 @@
 package com.emc.storageos.services.util;
 
 
-import com.google.json.JsonSanitizer;
+import static com.google.json.JsonSanitizer.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -36,9 +36,10 @@ public class SecurityUtils {
      * @return
      */
     public static String sanitizeJsonString(String value) {
-        if (value == null)
+        if (value == null){
                 return null;
-        value = JsonSanitizer.sanitize(value);
+        }
+        value = sanitize(value);
 
         return value;
     }
@@ -51,9 +52,9 @@ public class SecurityUtils {
 	 * @return cleaned data
 	 */
     public static String stripXSS(String value) {
-        if (value == null)
+        if (value == null){
               return null;
-
+        }
         value = ESAPI.encoder().canonicalize( value );
         value = value.replaceAll("\0", "");
         value = Jsoup.clean( value, Whitelist.none() );
@@ -68,10 +69,10 @@ public class SecurityUtils {
 	 * @return cleaned map data
 	 */
     public static Map<String, String> stripMapXSS(Map <String, String> valueMap) {
-        if (valueMap == null)
+        if (valueMap == null){
               return null;
-        
-        Map<String, String> xssMap = new HashMap<String, String>();
+        }
+        Map<String, String> xssMap = new HashMap<>();
         Set<Map.Entry<String, String>> set = valueMap.entrySet();
 
         for (Map.Entry<String, String> entry : set){

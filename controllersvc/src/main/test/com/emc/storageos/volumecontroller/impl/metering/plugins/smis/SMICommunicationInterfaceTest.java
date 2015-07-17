@@ -145,7 +145,7 @@ public class SMICommunicationInterfaceTest {
 //            provider.setInterfaceType(StorageProvider.InterfaceType.smis.name());
 //            _dbClient.createObject(provider);
         } catch (Exception e) {
-            e.printStackTrace();
+            _LOGGER.error(e.getMessage(),e );
         }
         // to be used for Mock
         // System.setProperty("wbeminterface",
@@ -160,8 +160,7 @@ public class SMICommunicationInterfaceTest {
                 try {
                     smi.collectStatisticsInformation(createAccessProfile());
                 } catch (BaseCollectionException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_LOGGER.error(e.getMessage(),e );
                 }
             }
         });
@@ -171,8 +170,7 @@ public class SMICommunicationInterfaceTest {
                 try {
                     smi.scan(createAccessProfile());
                 } catch (BaseCollectionException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_LOGGER.error(e.getMessage(),e);
                 }
             }
         });
@@ -182,8 +180,7 @@ public class SMICommunicationInterfaceTest {
                 try {
                     Thread.sleep(300000);
                 } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_LOGGER.error(e.getMessage(),e);
                 }
                 _LOGGER.info("Started Querying");
                 long latchcount = Cassandraforplugin.query(_dbClient);
@@ -195,8 +192,7 @@ public class SMICommunicationInterfaceTest {
         try {
             service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	_LOGGER.error(e.getMessage(),e);
         }
     }
 
@@ -209,8 +205,7 @@ public class SMICommunicationInterfaceTest {
                 	
                     smi.scan(createXIVAccessProfile());
                 } catch (BaseCollectionException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_LOGGER.error(e.getMessage(),e);
                 }
             }
         });
@@ -221,8 +216,7 @@ public class SMICommunicationInterfaceTest {
                 try {
                     Thread.sleep(300000);
                 } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_LOGGER.error(e.getMessage(),e);
                 }
                 _LOGGER.info("Started Querying");
                 long latchcount = Cassandraforplugin.query(_dbClient);
@@ -235,8 +229,7 @@ public class SMICommunicationInterfaceTest {
         try {
             service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	_LOGGER.error(e.getMessage(),e);
         }
     }   
     
@@ -255,8 +248,7 @@ public class SMICommunicationInterfaceTest {
             _smiplugin.scan(createAccessProfile());
             //sleeptest(_smiplugin);
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	_LOGGER.error(e.getMessage(),e);
         }
     }    
 
@@ -314,8 +306,7 @@ public class SMICommunicationInterfaceTest {
             xiv.discover(profile);
             
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	_LOGGER.error(e.getMessage(),e);
         }
     }
 

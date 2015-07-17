@@ -310,7 +310,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
         	
             for (Volume volume : volumes) 
             {
-                logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 
                 try
                 {

@@ -1228,7 +1228,7 @@ public class NetAppClusterModeCommIntf extends
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempUnManagedCifsShareAclList =
                                 getACLs(unManagedSMBFileShareHashSet, netAppCApi, storageSystem, unManagedFs.getId());
-                        if (!tempUnManagedCifsShareAclList.isEmpty() &&
+                        if (tempUnManagedCifsShareAclList !=null &&
                                 !tempUnManagedCifsShareAclList.isEmpty()) {
                             for(UnManagedCifsShareACL unManagedCifsShareACL: tempUnManagedCifsShareAclList) {
                                 // Check whether the CIFS share ACL was present in ViPR DB.
@@ -1248,7 +1248,7 @@ public class NetAppClusterModeCommIntf extends
                         }
 
                         //store or update the FS object into DB
-                        if (!unManagedSMBFileShareHashSet.isEmpty() &&
+                        if (unManagedSMBFileShareHashSet != null &&
                                         !unManagedSMBFileShareHashSet.isEmpty()){
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Shares and their Count is {}",
@@ -1281,7 +1281,7 @@ public class NetAppClusterModeCommIntf extends
                 }
             }
 
-            if (!unManagedCifsShareACLList.isEmpty() &&
+            if (unManagedCifsShareACLList != null &&
                     !unManagedCifsShareACLList.isEmpty()) {
                 _logger.info("Saving Number of New UnManagedCifsShareACL(s) {}",
                                                             unManagedCifsShareACLList.size());
@@ -1290,7 +1290,7 @@ public class NetAppClusterModeCommIntf extends
                                         UNMANAGED_SHARE_ACL);
                 unManagedCifsShareACLList.clear();
             }
-            if (!oldunManagedCifsShareACLList.isEmpty() &&
+            if (oldunManagedCifsShareACLList != null &&
                     !oldunManagedCifsShareACLList.isEmpty()) {
                 _logger.info("Saving Number of Old UnManagedCifsShareACL(s) {}",
                                                     oldunManagedCifsShareACLList.size());

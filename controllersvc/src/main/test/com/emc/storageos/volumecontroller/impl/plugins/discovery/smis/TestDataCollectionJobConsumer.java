@@ -144,6 +144,7 @@ public class TestDataCollectionJobConsumer extends DataCollectionJobConsumer {
                     triggerDiscoveryNew(storageSystemsCache);
                 }
             } catch (Exception ex) {
+            	_logger.error(ex.getMessage(), ex);
             }
         }
     }

@@ -315,7 +315,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 	
 	private void sanitizeUrl(String url) {
 		try {
-			new URL(url);
+			new URL(url); //NOSONAR ("We are using this line to verify valid URL")
 		} catch (MalformedURLException e) {
 			throw ImageServerControllerException.exceptions.urlSanitationFailure(url, e);
 		}
@@ -418,7 +418,8 @@ public class ImageServerControllerImpl implements ImageServerController {
 			d.umount(dir);
 			d.rm(dir);
 			d.rm(iso);
-		} catch (Exception ignore) {			
+		} catch (Exception ignore) {
+			log.warn(ignore.getMessage(),ignore);
 		}
 	}
 

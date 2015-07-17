@@ -971,7 +971,7 @@ public class UcsDiscoveryWorker {
 		URIQueryResultList sanBootUris = new URIQueryResultList();
     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeSanBootConstraint(bootDef.getId()), sanBootUris);
    	 	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-   	 	if (sanBootList!=null && sanBootList.size()>0){
+   	 	if (sanBootList!=null && !sanBootList.isEmpty()){
    	 		sanBoot = sanBootList.get(0);
    	 	}
    	 	
@@ -979,7 +979,7 @@ public class UcsDiscoveryWorker {
 		_dbClient.queryByConstraint(ContainmentConstraint.Factory
               .getComputeBootDefComputeLanBootConstraint(bootDef.getId()), lanBootUris);
 	 	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-	 	if (lanBootList!=null && lanBootList.size() > 0){
+	 	if (lanBootList!=null && !lanBootList.isEmpty()){
 	 		lanBoot = lanBootList.get(0);
 	 	}
 	 	boolean hasLanBoot = false;
@@ -1064,7 +1064,7 @@ public class UcsDiscoveryWorker {
     		URIQueryResultList sanBootUris = new URIQueryResultList();
         	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeSanBootConstraint(bootDef.getId()), sanBootUris);
         	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-       	 	if (sanBootList!=null && sanBootList.size() > 0){
+       	 	if (sanBootList!=null && !sanBootList.isEmpty()){
        	 		deleteComputeSanBoot(sanBootList);	       	 	
 	       	 }
        	 	
@@ -1073,7 +1073,7 @@ public class UcsDiscoveryWorker {
 	       	 URIQueryResultList lanBootUris = new URIQueryResultList();
 	     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeLanBootConstraint(bootDef.getId()), lanBootUris);
 	     	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-    	 	if (lanBootList!=null && lanBootList.size() > 0){
+    	 	if (lanBootList!=null && !lanBootList.isEmpty()){
     	 		deleteComputeLanBoot(lanBootList);
     	 	}
     	 	
@@ -1102,7 +1102,7 @@ public class UcsDiscoveryWorker {
     }
     private void deleteComputeLanBootImagePaths(List<ComputeLanBootImagePath> lanBootPathList){
     	List<ComputeLanBootImagePath> removeLanBootImagePaths = new ArrayList<ComputeLanBootImagePath>();
-    	if (lanBootPathList!=null && lanBootPathList.size()> 0){
+    	if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
         	removeLanBootImagePaths.addAll(lanBootPathList);
         }
     	deleteDataObjects(new ArrayList<DataObject>(removeLanBootImagePaths));
@@ -1147,7 +1147,7 @@ public class UcsDiscoveryWorker {
     }
     private void deleteComputeSanBootImagePaths(List<ComputeSanBootImagePath> sanBootPathList){
     	List<ComputeSanBootImagePath> removeSanBootImagePaths = new ArrayList<ComputeSanBootImagePath>();
-    	if (sanBootPathList!=null && sanBootPathList.size()> 0){
+    	if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
         	removeSanBootImagePaths.addAll(sanBootPathList);
         }
     	deleteDataObjects(new ArrayList<DataObject>(removeSanBootImagePaths));
@@ -1187,7 +1187,7 @@ public class UcsDiscoveryWorker {
 	             .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 	 	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris, true);
 		
-	 	if (sanBootImageList!=null && sanBootImageList.size()>0){
+	 	if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 	 		for (ComputeSanBootImage image: sanBootImageList){
 	 			computeSanBootImageMap.put(image.getType(), image);
 	 		}
@@ -1243,7 +1243,7 @@ public class UcsDiscoveryWorker {
 	             .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 	 	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris, true);
  	
-	 	if (sanBootImageList!=null && sanBootImageList.size()>0){
+	 	if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 	 		for (ComputeSanBootImage image: sanBootImageList){
 	 			computeSanBootImageMap.put(image.getType(), image);
 	 		}
@@ -1291,7 +1291,7 @@ public class UcsDiscoveryWorker {
 	 	_dbClient.queryByConstraint(ContainmentConstraint.Factory
              .getComputeSanBootImagePathConstraint(computeSanImage.getId()), sanImagePathUris);	 	
 	 	List<ComputeSanBootImagePath> sanBootPathList = _dbClient.queryObject(ComputeSanBootImagePath.class,sanImagePathUris, true);	 	
-    	if (sanBootPathList!=null && sanBootPathList.size() > 0){
+    	if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
     		 for (ComputeSanBootImagePath sanBootImagePath: sanBootPathList){
     			 computeSanBootImagePathMap.put(sanBootImagePath.getType(), sanBootImagePath);
     		 }
@@ -1384,7 +1384,7 @@ public class UcsDiscoveryWorker {
              .getComputeLanBootImagePathsConstraint(lanBoot.getId()), lanImageUris);
 	 	List<ComputeLanBootImagePath> lanBootPathList = _dbClient.queryObject(ComputeLanBootImagePath.class,lanImageUris,true);
 	 	
-	     if (lanBootPathList!=null && lanBootPathList.size()> 0){
+	     if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
 	    	 for (ComputeLanBootImagePath lanImage: lanBootPathList){
 	    		 lanBootImageMap.put(lanImage.getType(), lanImage);
 	    	 }

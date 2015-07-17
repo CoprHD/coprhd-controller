@@ -107,7 +107,13 @@ public class Workflow implements Serializable {
         public StepStatus status;
         /** URI of Cassandra logging record. */
         URI workflowStepURI;
-
+        
+        @Override
+        public int hashCode() {
+        	return super.hashCode();
+        }
+        
+        @Override
         public boolean equals(Object o) {
         	if(o == null || !(o instanceof Step)){
         		return false;

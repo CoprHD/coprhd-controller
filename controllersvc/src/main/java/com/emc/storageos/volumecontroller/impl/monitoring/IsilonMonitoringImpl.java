@@ -266,7 +266,7 @@ public class IsilonMonitoringImpl implements IMonitoringStorageSystem {
          
          @Override
         public String toString() {
-            return String.format("URI:%1$s, Device Type:isilon, _lastPolled:%2t",_storageSystemURI,new Date(_lastPolled * 1000));
+            return String.format("URI:%1$s, Device Type:isilon, _lastPolled:%2$tc",_storageSystemURI,new Date(_lastPolled * 1000));
         }
     }
     

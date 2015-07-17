@@ -63,7 +63,11 @@ public class MetaVolumeRecommendation {
     public void setMetaVolumeType(Volume.CompositionType _metaVolumeType) {
         this._metaVolumeType = _metaVolumeType;
     }
-
+    
+    @Override
+    public int hashCode() {
+    	return super.hashCode();
+    }
     
     public boolean equals(Object o) {
     	if (o == null || !(o instanceof MetaVolumeRecommendation)) {

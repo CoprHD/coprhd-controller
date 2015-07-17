@@ -192,7 +192,7 @@ public class NetworkService extends TaggedResource {
             NetworkAssociationHelper.handleEndpointsRemoved(network, network.retrieveEndpoints(), _dbClient, _coordinator);
          	_dbClient.markForDeletion(network);
         } else if (network.getDiscovered() != true && network.retrieveEndpoints() != null
-        		&& network.retrieveEndpoints().size() > 0) {
+        		&& !network.retrieveEndpoints().isEmpty()) {
             throw APIException.badRequests.unableToDeleteNetworkContainsEndpoints();
         } else {
             NetworkAssociationHelper.handleEndpointsRemoved(network,network.retrieveEndpoints(), _dbClient, _coordinator);
@@ -343,7 +343,7 @@ public class NetworkService extends TaggedResource {
         }
         _log.info("checkNotAddingDiscoveredEndpoints: these endpoints were discovered in another network {}",
                 discoveredEndpoints.toArray());
-        if (discoveredEndpoints.size() > 0) {
+        if (!discoveredEndpoints.isEmpty()) {
         	throw APIException.badRequests.endpointsCannotBeAdded(discoveredEndpoints.toArray().toString());
         }
     }
@@ -362,7 +362,7 @@ public class NetworkService extends TaggedResource {
             }
         }
         _log.info("checkNotRemovingDiscoveredEndpoints: these endpoints were discovered in the network  {} ", discoveredEndpoints);
-        if (discoveredEndpoints.size() > 0) {
+        if (!discoveredEndpoints.isEmpty()) {
         	throw APIException.badRequests.endpointsCannotBeRemoved(discoveredEndpoints.toArray().toString());
         }
     }
@@ -791,7 +791,7 @@ public class NetworkService extends TaggedResource {
                     _log.info("The port is of type FC or iscsi. Checking if in use by an export group.");
                     List<ExportMask> masks = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, ExportMask.class,
                             "storagePorts", storagePort.getId().toString());
-                    if (masks != null && masks.size() > 0) {
+                    if (masks != null && !masks.isEmpty()) {
                         _log.info("The port is in use by {} masks. Checking the masks virtual arrays.", masks.size());
                         for (ExportMask mask : masks) {
                             if (!mask.getInactive()) {
@@ -1012,9 +1012,9 @@ public class NetworkService extends TaggedResource {
                 /* Operational Status Descriptions*/"");
         try {
             eventManager.recordEvents(event);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error("Failed to record event. Event description: {}. Error: {}.",
-                    description, th);
+                    description, ex);
         }
     }
     

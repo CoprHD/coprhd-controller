@@ -16,6 +16,7 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -85,15 +86,15 @@ public class CreateBlockVolumeHelper {
         if (export == null) {
             URI exportId = null;
             if (cluster != null) {
-                exportId = BlockStorageUtils.createClusterExport(project, virtualArray, volumeIds, hlu, cluster);
+                exportId = BlockStorageUtils.createClusterExport(project, virtualArray, volumeIds, hlu, cluster, new HashMap<URI, Integer>());
             } else {
-                exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host);
+                exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host, new HashMap<URI, Integer>());
             }
             logInfo("create.block.volume.create.export", exportId);
         }
         // Add the volume to the existing export
         else {
-            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId());
+            BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>());
             logInfo("create.block.volume.update.export", export.getId());
         }
         

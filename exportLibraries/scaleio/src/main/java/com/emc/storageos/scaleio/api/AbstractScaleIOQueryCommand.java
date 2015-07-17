@@ -56,7 +56,7 @@ abstract public class AbstractScaleIOQueryCommand<T> extends ScaleIOResultsComma
         if (log.isDebugEnabled()) {
             String command = sanitizeCommand(getCommand());
             String args = Joiner.on(',').join(getArguments());
-            log.debug(String.format("Command: %s Args: %s\nResult: %s", command, args, output));
+            log.debug(String.format("Command: %s Args: %s%nResult: %s", command, args, output));
         }
 
         for (String line : Splitter.on(CharMatcher.anyOf("\n\r")).split(output)) {
@@ -66,7 +66,7 @@ abstract public class AbstractScaleIOQueryCommand<T> extends ScaleIOResultsComma
             processLineAgainstSpec(line);
         }
         long total = System.currentTimeMillis() - start;
-        log.info(String.format("Total time taken %f seconds for %s\n", (double) total / (double) 1000,
+        log.info(String.format("Total time taken %f seconds for %s%n", (double) total / (double) 1000,
                 this.getClass().getSimpleName()));
     }
 

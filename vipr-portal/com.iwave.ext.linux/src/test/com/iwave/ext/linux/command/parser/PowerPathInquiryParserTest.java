@@ -12,6 +12,7 @@ import java.io.StringWriter;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import com.iwave.ext.linux.model.PowerPathDevice;
@@ -24,7 +25,8 @@ public class PowerPathInquiryParserTest {
 	private static final String DGC = "DGC";
 	private static final String EMC = "EMC";
 	private static final String SYMMETRIX = "SYMMETRIX";
-	
+    private static Logger log = Logger.getLogger(PowerPathInquiryParserTest.class);
+
 	@Test
 	public void test() {
 		String ppinqOutput = readFile(POWER_PATH_INQUIRY_FILENAME);
@@ -73,7 +75,7 @@ public class PowerPathInquiryParserTest {
 		}
 		catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error(e.getMessage(), e);
 			throw new RuntimeException(e);
 		}
 		String text = writer.toString();

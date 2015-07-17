@@ -481,7 +481,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 
                 boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(target.getCluster()) : target.getCluster() != null && oldClusterURI.toString().equals(target.getCluster().toString()));
 
-                if (oldInitiators.size() > 0 || addedInitiators.size() > 0 || isClusterChanged) {
+                if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
                     changes.add(new HostStateChange(target, oldClusterURI, oldInitiators, addedInitiators));
                 }
             }

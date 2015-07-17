@@ -399,7 +399,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
             controller.deactivateMirror(storageSystem.getId(), mirror.getId(), taskId);
         } catch (ControllerException e) {
-            String errorMsg = format("Failed to deactivate continuous copy", mirror.getId());
+            String errorMsg = format("Failed to deactivate continuous copy %s", mirror.getId().toString());
             _log.error(errorMsg, e);
             _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
         }

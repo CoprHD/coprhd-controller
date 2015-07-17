@@ -39,7 +39,9 @@ public class SmisDeleteVmaxCGTargetVolumesJob extends SmisJob {
     
     public SmisDeleteVmaxCGTargetVolumesJob(CIMObjectPath cimJob, URI storageSystem, String[] deviceIds, TaskCompleter taskCompleter) {
     	super(cimJob, storageSystem, taskCompleter, "DeleteVdevVolumes");
-        this.deviceIds=deviceIds;
+    	if (deviceIds != null) {
+    		this.deviceIds=deviceIds.clone();	
+    	}
     }
 
     public void updateStatus(JobContext jobContext) throws Exception {

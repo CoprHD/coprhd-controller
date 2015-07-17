@@ -32,7 +32,7 @@
       required: false,
       initialValue: "-1",
       validation: {
-        min:-1
+        min:-2
       }
     }
 

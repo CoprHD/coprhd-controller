@@ -16,6 +16,7 @@
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import com.emc.storageos.db.client.model.Volume;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,17 +64,21 @@ public class MetaVolumeRecommendation {
     public void setMetaVolumeType(Volume.CompositionType _metaVolumeType) {
         this._metaVolumeType = _metaVolumeType;
     }
+    
+    /**
+     * Created COP-37 to track hashCode() implemenatation in this class.
+     */
+    @SuppressWarnings({"squid:S1206"})
+    public boolean equals(Object o) {
+    	if (o == null || !(o instanceof MetaVolumeRecommendation)) {
+    		return false;
+    	}
 
-    public boolean equals(MetaVolumeRecommendation recommendation) {
-        if (this == recommendation) {
-            return true;
-        } else if (recommendation != null) {
-            return (isCreateMetaVolumes() == recommendation.isCreateMetaVolumes() &&
-                    getMetaMemberSize() == recommendation.getMetaMemberSize() &&
-                    getMetaMemberCount() == recommendation.getMetaMemberCount() &&
-                    getMetaVolumeType().equals(recommendation.getMetaVolumeType()));
-        } else {
-            return false;
-        }
+    	MetaVolumeRecommendation other = (MetaVolumeRecommendation)o;
+
+    	return (isCreateMetaVolumes() == other.isCreateMetaVolumes() &&
+    			getMetaMemberSize() == other.getMetaMemberSize() &&
+    			getMetaMemberCount() == other.getMetaMemberCount() &&
+    			getMetaVolumeType().equals(other.getMetaVolumeType()));
     }
 }

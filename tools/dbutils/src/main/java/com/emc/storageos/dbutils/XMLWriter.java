@@ -14,6 +14,9 @@
  */
 package com.emc.storageos.dbutils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -22,6 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class XMLWriter {
+    private static final Logger log = LoggerFactory.getLogger(XMLWriter.class);
 
     public void writeXMLToFile(String eventData, String baseName) {
         try {
@@ -40,8 +44,8 @@ public class XMLWriter {
             out.close();
             System.out.println(" -> Output file available at : " + file.getAbsolutePath());
         } catch (IOException e) {
-            System.out.println(" --> Exception : " + e.getMessage());
-            e.printStackTrace();
+            System.out.println(" --> Exception : " + e);
+            log.error("Caught Exception: ", e);
         }
         return;
     }

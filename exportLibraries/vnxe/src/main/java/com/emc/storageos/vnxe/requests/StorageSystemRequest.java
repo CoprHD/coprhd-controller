@@ -36,7 +36,7 @@ public class StorageSystemRequest extends KHRequests<VNXeStorageSystem>{
     public VNXeStorageSystem get() throws VNXeException{
         List<VNXeStorageSystem> allSystems = getDataForObjects(VNXeStorageSystem.class);
         //we only expect to get one system.
-        if (allSystems == null || allSystems.size() == 0) {
+        if (allSystems == null || allSystems.isEmpty()) {
             return null;
         }
         return allSystems.get(0);

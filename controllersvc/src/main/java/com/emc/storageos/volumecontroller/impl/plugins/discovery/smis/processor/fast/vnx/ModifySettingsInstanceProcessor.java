@@ -51,7 +51,7 @@ public class ModifySettingsInstanceProcessor extends PoolProcessor {
             throws BaseCollectionException {
         try {
             CIMInstance modifiedInstance = (CIMInstance) resultObj;
-            addInstance(keyMap, operation.get_result(), modifiedInstance);
+            addInstance(keyMap, operation.getResult(), modifiedInstance);
         } catch (Exception e) {
             _logger.error("Error while modifying Pool Setting", e);
         }

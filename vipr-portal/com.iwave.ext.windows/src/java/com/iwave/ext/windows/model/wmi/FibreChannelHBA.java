@@ -53,12 +53,12 @@ public class FibreChannelHBA implements Serializable {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof FibreChannelHBA) {
-            return equals((FibreChannelHBA) obj);
+            return equalsFibreChannelHBA((FibreChannelHBA) obj);
         }
         return false;
     }
 
-    public boolean equals(FibreChannelHBA hba) {
+    public boolean equalsFibreChannelHBA(FibreChannelHBA hba) {
         if (hba == this) {
             return true;
         }

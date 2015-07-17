@@ -575,7 +575,7 @@ public class ConnectivityUtil {
             rpSystems = rpSystemsWithIsolatedVarrayEntry;
             
             StringBuffer logMsg = new StringBuffer();
-            logMsg.append(String.format("Varray [%s] has been isolated to these RP Sites: %s \n", 
+            logMsg.append(String.format("Varray [%s] has been isolated to these RP Sites: %s %n", 
                     varrayId.toString(), Joiner.on(',').join(isolatedRPSites)));
             logMsg.append("Therefore only these Protection Systems can be used: ");            
             for (ProtectionSystem ps : rpSystems) {

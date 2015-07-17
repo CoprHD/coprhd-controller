@@ -398,6 +398,7 @@ public class XtremIOClient extends StandardRestClient {
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
             return initiators.getContent();
         } catch (Exception e) {
+        	log.error(e.getMessage(),e);
         }
         log.info("Initiators not registered on Array with name : {}", initiatorName);
         return null;
@@ -412,6 +413,7 @@ public class XtremIOClient extends StandardRestClient {
                     response);
             return igGroups.getContent();
         } catch (Exception e) {
+        	log.error(e.getMessage(),e);
         }
         log.info("Initiator Group not registered on Array with name : {}", initiatorGroupName);
         return null;
@@ -429,6 +431,7 @@ public class XtremIOClient extends StandardRestClient {
             return folderResponse.getContent();
 
         } catch (Exception e) {
+        	log.error(e.getMessage(),e);
         }
         log.info("Initiator Group Folder not available on Array with name : {}",
                 initiatorGroupFolderName);

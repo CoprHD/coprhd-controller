@@ -32,11 +32,13 @@ public class XtremIOClusters {
 	}
 
     public XtremIOCluster[] getClusters() {
-        return clusters;
+        return clusters != null ? clusters.clone() : clusters;
     }
 
     public void setClusters(XtremIOCluster[] clusters) {
-        this.clusters = clusters;
+    	if(clusters != null){
+    		this.clusters = clusters.clone();
+    	}
     }
 }
 

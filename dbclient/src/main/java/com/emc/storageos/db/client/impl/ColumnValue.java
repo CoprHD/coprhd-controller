@@ -31,15 +31,10 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.Column;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 /**
  * Utility class for de/serializing an individual column
  */
 public class ColumnValue {
-    private static final Logger log = LoggerFactory.getLogger(ColumnValue.class);
-
     /**
      * Decrypts and sets data object field value
      *
@@ -49,8 +44,7 @@ public class ColumnValue {
      * @param provider encryption provider
      */
     public static void setEncryptedStringField(Column<CompositeColumnName> column,
-            PropertyDescriptor pd, Object obj, EncryptionProvider provider)
-            throws DatabaseException {
+            PropertyDescriptor pd, Object obj, EncryptionProvider provider) {
         byte[] encrypted = column.getByteArrayValue();
         String val = provider.decrypt(encrypted);
         try {
@@ -63,7 +57,7 @@ public class ColumnValue {
     }
 
     public static void setField(Column<CompositeColumnName> column, PropertyDescriptor pd,
-            Object obj) throws DatabaseException {
+            Object obj) {
         try {
             Class type = pd.getPropertyType();
             Object objValue = null;
@@ -178,8 +172,7 @@ public class ColumnValue {
      * @param ttl time to live in seconds for this column
      * @throws DatabaseException
      */
-    public static <T> void setColumn(ColumnListMutation<T> columns, T name, Object val, Integer ttl)
-            throws DatabaseException {
+    public static <T> void setColumn(ColumnListMutation<T> columns, T name, Object val, Integer ttl) {
         if (val == null) {
             columns.putEmptyColumn(name, ttl);
         } else if (val.getClass() == byte[].class) {
@@ -226,7 +219,7 @@ public class ColumnValue {
      * @throws DatabaseException
      */
     public static void setColumn(ColumnListMutation<CompositeColumnName> columns,
-            CompositeColumnName name, Object val) throws DatabaseException {
+            CompositeColumnName name, Object val) {
         setColumn(columns, name, val, null);
     }
 }

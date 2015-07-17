@@ -565,13 +565,13 @@ public class VNXFileArgsCreator extends ArgsCreator {
             Set<String> movers = (Set<String>)keyMap.get(VNXFileConstants.MOVERLIST);
             Boolean   virtualProvisioning      = (Boolean)keyMap.get(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING);
             
-            if (isInValid(fsName) || isInValid(poolName) || null == fsSize || null == movers || (movers.size() == 0)) {
+            if (isInValid(fsName) || isInValid(poolName) || null == fsSize || null == movers || (movers.isEmpty())) {
                 throw new VNXFilePluginException("Prior command did not execute successfully", 
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }
 
             String dataMover = null;
-            if(movers.size() > 0){
+            if(!movers.isEmpty()){
                 Iterator<String> iter = movers.iterator();
                 dataMover = (String)iter.next();
             }
@@ -667,7 +667,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
     		String name = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
     		Long hardQuota = (Long)keyMap.get(VNXFileConstants.HARD_QUOTA);
     		Long softQuota = (Long)keyMap.get(VNXFileConstants.SOFT_QUOTA);
-    		String fsName = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
     		_logger.info("Quota directory for file system id: {}", fsId);
 
     		if (isInValid(fsId) || isInValid(name)) {
@@ -720,7 +719,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
 
     		String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
     		String name = (String)keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
-    		String fsPath = (String)keyMap.get(VNXFileConstants.MOUNT_PATH);
     		_logger.info("QuotaDirectory delation for file system id: {}", fsId);
 
     		if (isInValid(fsId) || isInValid(name)) {
@@ -1072,7 +1070,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             String isVirtual = (String) keyMap.get(VNXFileConstants.ISVDM);
             Set<String> moverIds = (Set<String>)keyMap.get(VNXFileConstants.MOVERLIST);
 
-            if (isInValid(path) || isInValid(id) || null == moverIds || (moverIds.size() == 0)) {
+            if (isInValid(path) || isInValid(id) || null == moverIds || (moverIds.isEmpty())) {
                 throw new VNXFilePluginException("Prior command did not execute successfully", 
                         VNXFilePluginException.ERRORCODE_ILLEGALARGUMENTEXCEPTION);
             }

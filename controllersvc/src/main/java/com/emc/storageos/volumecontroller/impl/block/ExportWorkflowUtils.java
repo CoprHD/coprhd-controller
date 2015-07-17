@@ -190,7 +190,7 @@ public class ExportWorkflowUtils {
         	if (addedInitiators == null) {
         		addedInitiators = new ArrayList<URI>();
         	}
-            if (addedInitiators.size() == 0) {
+            if (addedInitiators.isEmpty()) {
                 addedInitiators.addAll(getInitiators(exportGroup));
             }
 

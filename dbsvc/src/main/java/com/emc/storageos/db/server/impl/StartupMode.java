@@ -264,6 +264,7 @@ public abstract class StartupMode {
                         log.info("Wait on recovery status");
                     Thread.sleep(STATE_CHECK_INTERVAL);
                 } catch (InterruptedException ex) {
+                	log.warn("Thread is interrupted during refresh recovery status", ex);
                 }
             }
         }
@@ -289,7 +290,7 @@ public abstract class StartupMode {
         }
 
         void onPreStart() {
-            if (!Boolean.TRUE.equals(config.getConfig(Constants.STARTUPMODE_RESTORE_REINIT))) {
+            if (!Boolean.parseBoolean(config.getConfig(Constants.STARTUPMODE_RESTORE_REINIT))) {
                 config.setConfig(Constants.STARTUPMODE_RESTORE_REINIT, Boolean.TRUE.toString());
                 coordinator.persistServiceConfiguration(config);
             }

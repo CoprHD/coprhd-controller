@@ -109,7 +109,7 @@ public class VPlexHighAvailabilityMatcher extends AttributeMatcher {
             }
 
             // Only pools connected to a VPlex system potentially match.
-            if (vplexSystemsForPool.size() == 0) {
+            if (vplexSystemsForPool.isEmpty()) {
                 continue;
             }
 

@@ -107,7 +107,7 @@ public class DbRepairRunnable implements Runnable {
     public static String getSelfLockNodeName(InterProcessLock lock) throws Exception {
         if (lock instanceof InterProcessMutex) {
             Collection<String> nodes = ((InterProcessMutex)lock).getParticipantNodes();
-            if (nodes == null || nodes.size() == 0) {
+            if (nodes == null || nodes.isEmpty()) {
                 return null;
             }
 
@@ -235,7 +235,7 @@ public class DbRepairRunnable implements Runnable {
 
                         log.error("Repair run failed for #{} times. Will retry after {} minutes",
                                 this.state.getCurrentRetry(), this.repairRetryMin);
-                        Thread.sleep(this.repairRetryMin * 60 * 1000);
+                        Thread.sleep(this.repairRetryMin * 60 * 1000L);
                     }
 
                     return;

@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
@@ -72,7 +73,7 @@ import org.apache.curator.utils.ZKPaths;
  */
 public class WorkflowService {
     private static final Logger _log = LoggerFactory.getLogger(WorkflowService.class);
-    private static WorkflowService _instance = null;
+    private static volatile WorkflowService _instance = null;
     private DbClient _dbClient;
     private CoordinatorClient _coordinator;
     private DistributedDataManager _dataManager;
@@ -173,7 +174,7 @@ public class WorkflowService {
             _dataManager.setListener(null);
             _dataManager.setConnectionStateListener(null);
         } catch (Exception ex) {
-
+        	_log.error(ex.getMessage(), ex);
         }
     }
 
@@ -987,6 +988,7 @@ public class WorkflowService {
                     logWorkflow.setCompletionState(state.name());
                     logWorkflow.setCompletionMessage(errorMessage[0]);
                 } catch (WorkflowException ex) {
+                	_log.error(ex.getMessage(), ex);
                 }
             }
             if( created ){
@@ -1183,6 +1185,7 @@ public class WorkflowService {
                 return true;
             }
         } catch (Exception ex) {
+        	_log.error(ex.getMessage(), ex);
         }
         return false;
     }
@@ -1300,7 +1303,8 @@ public class WorkflowService {
         		WorkflowStepCompleter.stepFailed(stepId, coded);
         		return;
     		}
-    		if (childWorkflow.getOrchTaskId().equals(childOrchestrationTaskId)) {
+    		//TODO: This is a short-term fix for 12858. A more appropriate fix would be to detect that the zk copy of the WF does not exist.
+    		if (!NullColumnValueGetter.isNullValue(childWorkflow.getOrchTaskId()) && childWorkflow.getOrchTaskId().equals(childOrchestrationTaskId)) {
     			// Rolling back the specified workflow.
     			rollbackInnerWorkflow(childWorkflow, stepId);
     			return;

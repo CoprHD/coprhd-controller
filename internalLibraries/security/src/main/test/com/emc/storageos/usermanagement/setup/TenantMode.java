@@ -7,6 +7,7 @@ package com.emc.storageos.usermanagement.setup;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.usermanagement.model.RoleOrAcl;
 import com.emc.storageos.usermanagement.util.ViPRClientHelper;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.slf4j.Logger;
@@ -27,7 +28,7 @@ public class TenantMode extends ADMode {
     protected static ViPRClientHelper viPRClientHelper;
 
     @BeforeClass
-    public static void setup_TenantModeBaseClass() throws Exception {
+    public synchronized static void setup_TenantModeBaseClass() throws Exception {
         rootTenantID = superUserClient.getUserTenantId();
         viPRClientHelper = new ViPRClientHelper(superUserClient);
 

@@ -21,7 +21,9 @@ public class PoolListRequestTest {
 
 	@BeforeClass
     public static void setup() throws Exception {
+		synchronized (_client) {
 		_client = new KHClient(host, userName, password);
+	}
 	}
 	
 	@Test

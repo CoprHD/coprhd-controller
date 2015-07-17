@@ -95,7 +95,9 @@ public class ServiceClientRetryFilter extends ClientFilter {
             if (sleepMs > 0) {
                 try {
                     Thread.sleep(sleepMs);
-                } catch (InterruptedException ignore) {}
+                } catch (InterruptedException ignore) {
+                    log.error("Unexpected Error", ignore);
+                }
             }
         }
         throw new ClientHandlerException("Request retries limit exceeded.", cause);

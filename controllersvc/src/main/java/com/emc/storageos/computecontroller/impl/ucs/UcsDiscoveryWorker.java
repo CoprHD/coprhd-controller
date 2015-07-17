@@ -242,7 +242,7 @@ public class UcsDiscoveryWorker {
         List <VnicFc> vhbas = new ArrayList<>();
 
         if (spt.getContent() != null
-                && spt.getContent().size() > 0) {
+                && !spt.getContent().isEmpty()) {
             for (Serializable element : spt.getContent()) {
                 if (element instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)element).getValue() instanceof LsRequirement){
@@ -270,14 +270,14 @@ public class UcsDiscoveryWorker {
 
     private String getProcessorSpeed(ComputeBlade computeBlade) {
         if (computeBlade.getContent() != null
-                && computeBlade.getContent().size() > 0) {
+                && !computeBlade.getContent().isEmpty()) {
             for (Serializable contentElement : computeBlade.getContent()) {
                 if (contentElement instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)contentElement).getValue() instanceof ComputeBoard){
                         ComputeBoard computeBoard = (ComputeBoard)((JAXBElement)contentElement).getValue();
 
                         if (computeBoard.getContent() != null
-                                && computeBoard.getContent().size() > 0) {
+                                && !computeBoard.getContent().isEmpty()) {
                             for (Serializable computeBoardContentElement : computeBoard.getContent()) {
                                 if (computeBoardContentElement instanceof JAXBElement<?>) {
                                     if( ( (JAXBElement)computeBoardContentElement).getValue() instanceof ProcessorUnit){
@@ -422,7 +422,7 @@ public class UcsDiscoveryWorker {
 
             LsServer lsServer = associatedLsServers.get(computeElement.getLabel());
 
-            if(lsServer!=null && lsServer.getContent() != null && lsServer.getContent().size() > 0){
+            if(lsServer!=null && lsServer.getContent() != null && !lsServer.getContent().isEmpty()){
                 for(Serializable contentElement : lsServer.getContent()){
 
                     if(contentElement instanceof JAXBElement<?> && ((JAXBElement)contentElement).getValue() instanceof VnicFc){
@@ -773,7 +773,7 @@ public class UcsDiscoveryWorker {
     	URIQueryResultList sanBootUris = new URIQueryResultList();
     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootPolicyComputeSanBootConstraint(bootPolicy.getId()), sanBootUris);    	
    	 	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-   	 	if (sanBootList!=null && sanBootList.size() > 0){
+   	 	if (sanBootList!=null && !sanBootList.isEmpty()){
    	 		sanBoot = sanBootList.get(0);
    	 	}
    	 	
@@ -781,7 +781,7 @@ public class UcsDiscoveryWorker {
  		_dbClient.queryByConstraint(ContainmentConstraint.Factory
                  .getComputeBootPolicyComputeLanBootConstraint(bootPolicy.getId()), lanBootUris);
 	 	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-	 	if (lanBootList!=null && lanBootList.size() > 0){
+	 	if (lanBootList!=null && !lanBootList.isEmpty()){
 	 		lanBoot = lanBootList.get(0);
 	 	}
 	 	boolean hasLanBoot = false;
@@ -789,7 +789,7 @@ public class UcsDiscoveryWorker {
 	 	Integer nonSanBootOrder = null;
 	 	Integer sanBootOrder = null;
 	 	
-  	 	if (lsBootPolicy.getContent() != null && lsBootPolicy.getContent().size() > 0) {
+  	 	if (lsBootPolicy.getContent() != null && !lsBootPolicy.getContent().isEmpty()) {
             for (Serializable element : lsBootPolicy.getContent()) {
                 if (element instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)element).getValue() instanceof LsbootLan){
@@ -872,14 +872,14 @@ public class UcsDiscoveryWorker {
    		URIQueryResultList sanBootUris = new URIQueryResultList();
        	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeSanBootConstraint(bootPolicy.getId()), sanBootUris);
        	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-      	 	if (sanBootList!=null && sanBootList.size() > 0){
+      	 	if (sanBootList!=null && !sanBootList.isEmpty()){
       	 		for (ComputeSanBoot sanBoot : sanBootList){
 	       	 		URIQueryResultList sanImageUris = new URIQueryResultList();
 		       	 	_dbClient.queryByConstraint(ContainmentConstraint.Factory
 		                    .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 		        	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris, true);
 		        	
-		       	 	if (sanBootImageList!=null && sanBootImageList.size()>0){
+		       	 	if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 		       	 		for (ComputeSanBootImage computeSanImage : sanBootImageList){
 			       	 		URIQueryResultList sanImagePathUris = new URIQueryResultList();
 			       	   	 	_dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -887,7 +887,7 @@ public class UcsDiscoveryWorker {
 			       	   	 	
 			       	   	 	List<ComputeSanBootImagePath> sanBootPathList = _dbClient.queryObject(ComputeSanBootImagePath.class,sanImagePathUris, true);
 			       	   	 	
-			       	       	 if (sanBootPathList!=null && sanBootPathList.size() > 0){
+			       	       	 if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
 			       	       		
 			       	       		removeSanBootImagePaths.addAll(sanBootPathList);
 			       	       		
@@ -905,7 +905,7 @@ public class UcsDiscoveryWorker {
 	       	 URIQueryResultList lanBootUris = new URIQueryResultList();
 	     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeLanBootConstraint(bootPolicy.getId()), lanBootUris);
 	     	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-	   	 	if (lanBootList!=null && lanBootList.size() > 0){
+	   	 	if (lanBootList!=null && !lanBootList.isEmpty()){
 	   	 		ComputeLanBoot lanBoot =  lanBootList.get(0);
 	   	 		
 	   	 		URIQueryResultList lanImageUris = new URIQueryResultList();
@@ -913,7 +913,7 @@ public class UcsDiscoveryWorker {
 	   	                .getComputeLanBootImagePathsConstraint(lanBoot.getId()), lanImageUris);
 	   	   	 	List<ComputeLanBootImagePath> lanBootPathList = _dbClient.queryObject(ComputeLanBootImagePath.class,lanImageUris,true);
 	   	   	 	
-	   	        if (lanBootPathList!=null && lanBootPathList.size()> 0){
+	   	        if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
 	   	        	removeLanBootImagePaths.addAll(lanBootPathList);
 	   	        }
 	   	        removeLanBoots.add(lanBoot);
@@ -938,7 +938,7 @@ public class UcsDiscoveryWorker {
    	 
 		List<ComputeBootDef> bootDefs = _dbClient.queryObject(ComputeBootDef.class,bootDefUris,true);
    		 
-		if (bootDefs.size()>0){
+		if (!bootDefs.isEmpty()){
 			bootDef = bootDefs.get(0);
 			bootDef.setComputeSystem(cs.getId());
 	   	 	bootDef.setServiceProfileTemplate(spt.getId());
@@ -971,7 +971,7 @@ public class UcsDiscoveryWorker {
 		URIQueryResultList sanBootUris = new URIQueryResultList();
     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeSanBootConstraint(bootDef.getId()), sanBootUris);
    	 	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-   	 	if (sanBootList!=null && sanBootList.size()>0){
+   	 	if (sanBootList!=null && !sanBootList.isEmpty()){
    	 		sanBoot = sanBootList.get(0);
    	 	}
    	 	
@@ -979,7 +979,7 @@ public class UcsDiscoveryWorker {
 		_dbClient.queryByConstraint(ContainmentConstraint.Factory
               .getComputeBootDefComputeLanBootConstraint(bootDef.getId()), lanBootUris);
 	 	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-	 	if (lanBootList!=null && lanBootList.size() > 0){
+	 	if (lanBootList!=null && !lanBootList.isEmpty()){
 	 		lanBoot = lanBootList.get(0);
 	 	}
 	 	boolean hasLanBoot = false;
@@ -988,7 +988,7 @@ public class UcsDiscoveryWorker {
 	 	Integer sanBootOrder = null;
 	 	
 	 	
-		if (lsBootDef.getContent() != null && lsBootDef.getContent().size() > 0) {
+		if (lsBootDef.getContent() != null && !lsBootDef.getContent().isEmpty()) {
             for (Serializable element : lsBootDef.getContent()) {
                 if (element instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)element).getValue() instanceof LsbootLan){
@@ -1064,7 +1064,7 @@ public class UcsDiscoveryWorker {
     		URIQueryResultList sanBootUris = new URIQueryResultList();
         	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeSanBootConstraint(bootDef.getId()), sanBootUris);
         	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-       	 	if (sanBootList!=null && sanBootList.size() > 0){
+       	 	if (sanBootList!=null && !sanBootList.isEmpty()){
        	 		deleteComputeSanBoot(sanBootList);	       	 	
 	       	 }
        	 	
@@ -1073,7 +1073,7 @@ public class UcsDiscoveryWorker {
 	       	 URIQueryResultList lanBootUris = new URIQueryResultList();
 	     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeLanBootConstraint(bootDef.getId()), lanBootUris);
 	     	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-    	 	if (lanBootList!=null && lanBootList.size() > 0){
+    	 	if (lanBootList!=null && !lanBootList.isEmpty()){
     	 		deleteComputeLanBoot(lanBootList);
     	 	}
     	 	
@@ -1092,7 +1092,7 @@ public class UcsDiscoveryWorker {
 	                .getComputeLanBootImagePathsConstraint(lanBoot.getId()), lanImageUris);
 	   	 	List<ComputeLanBootImagePath> lanBootPathList = _dbClient.queryObject(ComputeLanBootImagePath.class,lanImageUris,true);
 	   	 	
-	        if (lanBootPathList!=null && lanBootPathList.size()> 0){
+	        if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
 	        	deleteComputeLanBootImagePaths(lanBootPathList);
 	        }
 	        removeLanBoots.add(lanBoot);
@@ -1102,7 +1102,7 @@ public class UcsDiscoveryWorker {
     }
     private void deleteComputeLanBootImagePaths(List<ComputeLanBootImagePath> lanBootPathList){
     	List<ComputeLanBootImagePath> removeLanBootImagePaths = new ArrayList<ComputeLanBootImagePath>();
-    	if (lanBootPathList!=null && lanBootPathList.size()> 0){
+    	if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
         	removeLanBootImagePaths.addAll(lanBootPathList);
         }
     	deleteDataObjects(new ArrayList<DataObject>(removeLanBootImagePaths));
@@ -1119,7 +1119,7 @@ public class UcsDiscoveryWorker {
 	                .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 	   	 	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris,true);
 	   	 	
-	        if (sanBootImageList!=null && sanBootImageList.size()> 0){
+	        if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 	        	deleteComputeSanBootImages(sanBootImageList);
 	        }
 	        removeSanBoots.add(sanBoot);
@@ -1137,7 +1137,7 @@ public class UcsDiscoveryWorker {
    	   	 	
    	   	 	List<ComputeSanBootImagePath> sanBootPathList = _dbClient.queryObject(ComputeSanBootImagePath.class,sanImagePathUris, true);
    	   	 	
-   	       	 if (sanBootPathList!=null && sanBootPathList.size() > 0){
+   	       	 if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
    	       		 deleteComputeSanBootImagePaths(sanBootPathList);
    	       	 }
         	removeSanBootImages.add(image);
@@ -1147,7 +1147,7 @@ public class UcsDiscoveryWorker {
     }
     private void deleteComputeSanBootImagePaths(List<ComputeSanBootImagePath> sanBootPathList){
     	List<ComputeSanBootImagePath> removeSanBootImagePaths = new ArrayList<ComputeSanBootImagePath>();
-    	if (sanBootPathList!=null && sanBootPathList.size()> 0){
+    	if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
         	removeSanBootImagePaths.addAll(sanBootPathList);
         }
     	deleteDataObjects(new ArrayList<DataObject>(removeSanBootImagePaths));
@@ -1187,7 +1187,7 @@ public class UcsDiscoveryWorker {
 	             .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 	 	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris, true);
 		
-	 	if (sanBootImageList!=null && sanBootImageList.size()>0){
+	 	if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 	 		for (ComputeSanBootImage image: sanBootImageList){
 	 			computeSanBootImageMap.put(image.getType(), image);
 	 		}
@@ -1243,13 +1243,13 @@ public class UcsDiscoveryWorker {
 	             .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 	 	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris, true);
  	
-	 	if (sanBootImageList!=null && sanBootImageList.size()>0){
+	 	if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 	 		for (ComputeSanBootImage image: sanBootImageList){
 	 			computeSanBootImageMap.put(image.getType(), image);
 	 		}
 	 	}
         
-        if (lsbootSan.getContent() != null && lsbootSan.getContent().size()> 0){
+        if (lsbootSan.getContent() != null && !lsbootSan.getContent().isEmpty()){
         	for (Serializable e : lsbootSan.getContent()) {
                 if (e instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)e).getValue() instanceof LsbootSanImage){
@@ -1291,13 +1291,13 @@ public class UcsDiscoveryWorker {
 	 	_dbClient.queryByConstraint(ContainmentConstraint.Factory
              .getComputeSanBootImagePathConstraint(computeSanImage.getId()), sanImagePathUris);	 	
 	 	List<ComputeSanBootImagePath> sanBootPathList = _dbClient.queryObject(ComputeSanBootImagePath.class,sanImagePathUris, true);	 	
-    	if (sanBootPathList!=null && sanBootPathList.size() > 0){
+    	if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
     		 for (ComputeSanBootImagePath sanBootImagePath: sanBootPathList){
     			 computeSanBootImagePathMap.put(sanBootImagePath.getType(), sanBootImagePath);
     		 }
     	}
     	
-    	if (sanImage.getContent()!= null && sanImage.getContent().size() > 0){
+    	if (sanImage.getContent()!= null && !sanImage.getContent().isEmpty()){
     		for (Serializable e2 : sanImage.getContent()) {
                 if (e2 instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)e2).getValue() instanceof LsbootSanImagePath){
@@ -1384,12 +1384,12 @@ public class UcsDiscoveryWorker {
              .getComputeLanBootImagePathsConstraint(lanBoot.getId()), lanImageUris);
 	 	List<ComputeLanBootImagePath> lanBootPathList = _dbClient.queryObject(ComputeLanBootImagePath.class,lanImageUris,true);
 	 	
-	     if (lanBootPathList!=null && lanBootPathList.size()> 0){
+	     if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
 	    	 for (ComputeLanBootImagePath lanImage: lanBootPathList){
 	    		 lanBootImageMap.put(lanImage.getType(), lanImage);
 	    	 }
 	     }
-	   	 if (lsbootLan.getContent() != null && lsbootLan.getContent().size()> 0){
+	   	 if (lsbootLan.getContent() != null && !lsbootLan.getContent().isEmpty()){
 	     	for (Serializable e : lsbootLan.getContent()) {
 	             if (e instanceof JAXBElement<?>) {
 	                 if( ( (JAXBElement)e).getValue() instanceof LsbootLanImagePath){
@@ -1859,12 +1859,13 @@ public class UcsDiscoveryWorker {
 	}
 
 	private void createDataObjects(List<DataObject> objects) {
-		if (objects.size() > 0)
+		if (!objects.isEmpty()){
 			_dbClient.createObject(objects);
+		}
 	}
 
 	private void persistDataObjects(List<DataObject> objects) {
-		if (objects.size() > 0)
+		if (!objects.isEmpty())
 			_dbClient.persistObject(objects);
 	}
 

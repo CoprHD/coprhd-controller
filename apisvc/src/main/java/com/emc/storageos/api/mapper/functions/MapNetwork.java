@@ -55,7 +55,7 @@ public class MapNetwork implements Function<Network,NetworkRestRep> {
     public static NetworkRestRep toNetworkRestRep(Network network, DbClient dbClient) {
         NetworkRestRep networkRestRep = MapNetwork.getInstance().apply(network);
         List<EndpointAliasRestRep> endpoints = networkRestRep.getEndpointsDiscovered();
-        if (endpoints.size() == 0 || !network.getDiscovered() ||
+        if (endpoints.isEmpty() || !network.getDiscovered() ||
                 !network.getTransportType().equalsIgnoreCase(TransportType.FC.name())) {
             return networkRestRep;
         }

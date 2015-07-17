@@ -409,7 +409,7 @@ public class ResourceUtils {
      *        the second ID.
      * @return true if and only if the IDs are non-null and equal.
      */
-    @SuppressWarnings("squid:S1201")
+    @SuppressWarnings("squid:S1201")//Suppressing Sonar violation for method naming convention. We cannot use @override to this method as signature is different from Object.equal() method.
     public static boolean equals(URI first, URI second) {
         if ((first != null) && (second != null)) {
             return first.equals(second);

@@ -233,7 +233,7 @@ public class ComputeImages extends ViprResourceController {
             if (isCreate()) {                
                 Validation.required(fieldName + ".imageUrl", this.imageUrl);
                 try {
-                    new URL(this.imageUrl);//NOSONAR ("Suppressing Sonar violation of Object being dropped without using it")
+                    new URL(this.imageUrl);//NOSONAR ("Suppressing Sonar violation of Object being dropped without using it. Object is used for validation purpose")
                 } catch (MalformedURLException e) {    
                     Validation.addError(fieldName + ".imageUrl",
                             MessagesUtils.get("computeImage.invalid.url"));                

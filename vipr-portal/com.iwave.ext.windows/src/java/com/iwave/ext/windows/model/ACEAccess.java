@@ -25,8 +25,9 @@ public enum ACEAccess implements Serializable {
 
     public static ACEAccess valueOfLabel(String label) {
         for (ACEAccess t : values()) {
-            if (label.equals(t.label))
+            if (label.equals(t.label)) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(label + " is not a valid label for CifsAccess");
     }

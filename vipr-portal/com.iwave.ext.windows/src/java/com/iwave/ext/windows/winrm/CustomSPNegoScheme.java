@@ -26,6 +26,7 @@ import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.auth.SPNegoScheme;
 import org.apache.http.protocol.HttpContext;
+import org.apache.log4j.Logger;
 import org.ietf.jgss.GSSContext;
 import org.ietf.jgss.GSSCredential;
 import org.ietf.jgss.GSSException;
@@ -40,6 +41,8 @@ public class CustomSPNegoScheme extends SPNegoScheme {
 
     private LoginContext loginContext;
     private GSSCredential credential;
+    
+    private static Logger log = Logger.getLogger(CustomSPNegoScheme.class);
 
     public CustomSPNegoScheme() {
         super(true);
@@ -96,6 +99,7 @@ public class CustomSPNegoScheme extends SPNegoScheme {
                 credential.dispose();
             }
             catch (GSSException e) {
+            	log.error(e.getMessage(), e);
             }
             credential = null;
         }
@@ -104,6 +108,7 @@ public class CustomSPNegoScheme extends SPNegoScheme {
                 loginContext.logout();
             }
             catch (LoginException e) {
+            	log.error(e.getMessage(), e);
             }
             loginContext = null;
         }

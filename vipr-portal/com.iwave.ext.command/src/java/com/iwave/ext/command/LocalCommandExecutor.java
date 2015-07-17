@@ -6,6 +6,7 @@ package com.iwave.ext.command;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -15,7 +16,11 @@ public class LocalCommandExecutor implements CommandExecutor {
     private String charset = StreamConsumer.DEFAULT_CHARSET;
 
     public void setEnvironment(String[] environment) {
-        this.environment = environment;
+    	if (environment == null) {
+    		this.environment = new String[0];
+    	} else {
+    		this.environment = Arrays.copyOf(environment, environment.length);
+    	}
     }
 
     public void setWorkingDir(File workingDir) {

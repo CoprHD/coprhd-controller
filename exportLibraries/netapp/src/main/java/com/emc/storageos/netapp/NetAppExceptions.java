@@ -5,10 +5,12 @@
 package com.emc.storageos.netapp;
 
 import java.net.URI;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
+@SuppressWarnings({"squid:S00100"})
 /**
  * This interface holds all the methods used to create {@link NetAppException}s
  * <p/>

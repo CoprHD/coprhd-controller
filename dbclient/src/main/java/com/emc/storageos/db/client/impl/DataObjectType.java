@@ -204,7 +204,7 @@ public class DataObjectType {
                     // The index for this field will be cleared together with the index of the referenced field
                     if (groupField==null || groupField.getIndex()==null) {
                         DatabaseException.fatals.invalidAnnotation("AggregateIndex", "property " + groupByName +
-                                " oes not have a valid value or referenced another indexed field");
+                                " does not have a valid value or referenced another indexed field");
                     }
                     ((AggregateDbIndex) index).addGroupByField(_columnFieldMap.get(groupByName));
                     if (groupField != null && groupField.getDependentFields() != null) {

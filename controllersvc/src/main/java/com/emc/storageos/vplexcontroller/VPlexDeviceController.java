@@ -9611,13 +9611,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     
     @Override
     public void cancelMigration(URI vplexURI, URI migrationURI, String opId) {
-        MigrationOperationTaskCompleter completer = new MigrationOperationTaskCompleter(
-                migrationURI, opId);
+        MigrationOperationTaskCompleter completer = null;
         try {
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
-            client.cancelMigrations(Arrays.asList(migration.getLabel()), true, true);
+            URI volId = migration.getVolume();
+            completer = new MigrationOperationTaskCompleter(volId, opId);
+            client.cancelMigrations(Arrays.asList(migration.getLabel()), false, false);
             migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.CANCELLED.name());
             _dbClient.persistObject(migration);
             completer.ready(_dbClient);

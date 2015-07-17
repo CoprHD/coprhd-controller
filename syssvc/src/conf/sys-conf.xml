@@ -125,6 +125,7 @@
                     <property name="coordinatorExt" ref="coordinatorclientext" />
                 </bean>
                 <ref bean="backupService" />
+                <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
             </set>
         </property>
     </bean>

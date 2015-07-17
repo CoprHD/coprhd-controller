@@ -16,6 +16,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.HostnameVerifier;
 
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,6 +150,7 @@ public class ClientRequestHelper {
      */    
     public Client createClient(int readTimeout, int connectTimeout) {
         ClientConfig config = new DefaultClientConfig();
+        config.getClasses().add(JacksonJaxbJsonProvider.class);
         config.getProperties().put(ClientConfig.PROPERTY_READ_TIMEOUT, readTimeout);
         config.getProperties().put(ClientConfig.PROPERTY_CONNECT_TIMEOUT, connectTimeout);
         return createClient(config);

@@ -134,8 +134,7 @@ abstract class GarbageCollectionRunnable implements Runnable {
         } catch (Exception e) {
             log.error("Exception e=" , e);
         } finally {
-            if (lock != null)
-                releaseLockForGC(lock);
+            releaseLockForGC(lock);
         }
     }
 

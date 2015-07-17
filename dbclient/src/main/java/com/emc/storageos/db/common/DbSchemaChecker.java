@@ -375,7 +375,7 @@ public class DbSchemaChecker {
 		}
 
 		private static boolean hasClassAnnotation(DbSchema dbSchema) {
-			return dbSchema.getAnnotations().getAnnotations()!=null && dbSchema.getAnnotations().getAnnotations().size()>0;
+			return dbSchema.getAnnotations().getAnnotations()!=null && !dbSchema.getAnnotations().getAnnotations().isEmpty();
 		}
 	}
 }

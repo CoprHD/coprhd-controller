@@ -133,7 +133,7 @@ public class DependencyTracker {
                     visited.add(entry);
                 }
             }
-            assert (_levels.get(level).size() > 0);
+            assert (!_levels.get(level).isEmpty());
             level++;
         }
     }
@@ -176,7 +176,7 @@ public class DependencyTracker {
             str.append("\n");
             for (Iterator<Class<? extends DataObject>> clazzIt = levelEntry.getValue().iterator();
                  clazzIt.hasNext();) {
-                str.append("\n\t" + clazzIt.next().getSimpleName());
+                str.append("\n\t").append(clazzIt.next().getSimpleName());
             }
             str.append("\n\n");
         }

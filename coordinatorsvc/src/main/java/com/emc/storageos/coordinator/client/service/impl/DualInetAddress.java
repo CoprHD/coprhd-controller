@@ -23,7 +23,7 @@ import java.net.UnknownHostException;
 import java.util.regex.Pattern;
 import com.emc.storageos.coordinator.exceptions.NotConnectableException;
 
-public class DualInetAddress {
+public final class DualInetAddress {
 	
 	private static int[] parseInet4Address(String ip4String) {
 		if (ip4String == null) {
@@ -105,9 +105,7 @@ public class DualInetAddress {
 			final int[] octets = parseInet4Address(parts[parts.length - 1]);
 			if (octets != null) {
 				String[] parts2 = new String[parts.length + 1];
-				for (int i = 0; i < parts.length - 1; i++) {
-					parts2[i] = parts[i];
-				}
+				System.arraycopy(parts, 0, parts2, 0, parts.length - 1);
 				parts2[parts2.length - 2] = Integer.toHexString(octets[0] * 256 + octets[1]);
 				parts2[parts2.length - 1] = Integer.toHexString(octets[2] * 256 + octets[3]);
 				parts = parts2;

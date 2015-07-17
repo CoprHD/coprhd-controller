@@ -58,7 +58,8 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
             release = m.group(m.groupCount());
 
             // Sanity check: the input must match the toString() output
-            if (versionStr != toString() && SOFTWARE_VERSION_PREFIX + versionStr == toString()) {
+            String stringRepresent = this.toString();
+            if (!stringRepresent.equals(versionStr) && !stringRepresent.equals(SOFTWARE_VERSION_PREFIX + versionStr)) {
                 throw new Exception();
             }
         } catch (Exception e) {

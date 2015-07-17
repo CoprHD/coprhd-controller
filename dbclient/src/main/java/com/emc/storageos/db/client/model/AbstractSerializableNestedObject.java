@@ -186,4 +186,8 @@ public abstract class AbstractSerializableNestedObject{
         return _field.equals(((AbstractSerializableNestedObject)obj)._field);
     }
 
+    @Override
+    public int hashCode(){
+    	return _field.hashCode();
+    }
 }

@@ -36,10 +36,12 @@ public interface AlternateIdConstraint extends Constraint {
     /**
      * Factory for creating alternate ID constraint
      */
-    public static class Factory {
+    static class Factory {
+    	private static final String NATIVE_GUID = "nativeGuid";
+    	
         public static AlternateIdConstraint getFileShareNativeIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
         
         public static AlternateIdConstraint getFileSystemMountPathConstraint(String altId) {
@@ -49,7 +51,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getVolumeNativeGuidConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 
         public static AlternateIdConstraint getVolumeNativeIdConstraint(String altId) {
@@ -59,7 +61,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getFileSystemNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
         
         public static AlternateIdConstraint getUnManagedExportMaskPathConstraint(String altId) {
@@ -79,12 +81,12 @@ public interface AlternateIdConstraint extends Constraint {
         
         public static AlternateIdConstraint getVolumeInfoNativeIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
          
          public static AlternateIdConstraint getFileSystemInfoNativeGUIdConstraint(String altId) {
              DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
-             return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
+             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
          }
 
         public static AlternateIdConstraint getVolumeWwnConstraint(String wwn) {
@@ -154,37 +156,37 @@ public interface AlternateIdConstraint extends Constraint {
         
         public static AlternateIdConstraint getStorageSystemByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
         public static AlternateIdConstraint getSnapshotNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(Snapshot.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
         
         public static AlternateIdConstraint getStoragePortByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
         public static AlternateIdConstraint getStoragePoolByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(StoragePool.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
         public static AlternateIdConstraint getBlockSnapshotsByNativeGuid(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
         
         public static AlternateIdConstraint getQuotaDirsByNativeGuid(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(QuotaDirectory.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
         
         public static AlternateIdConstraint getMirrorByNativeGuid(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(BlockMirror.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
         public static AlternateIdConstraint getStoragePoolSettingByIDConstraint(String poolsettingID) {
@@ -194,7 +196,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static Constraint getStorageHADomainByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(StorageHADomain.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
         public static AlternateIdConstraint getBlockObjectsByConsistencyGroup(String cgId) {
@@ -299,7 +301,7 @@ public interface AlternateIdConstraint extends Constraint {
          */
         public static AlternateIdConstraint getAutoTieringPolicyByNativeGuidConstraint(String policyID) {
             DataObjectType doType = TypeMap.getDoType(AutoTieringPolicy.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"),
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID),
                     policyID);
         }
         /**
@@ -328,7 +330,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getStorageTierByIdConstraint(String tiernativeGuid) {
             DataObjectType doType = TypeMap.getDoType(StorageTier.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"),
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID),
                     tiernativeGuid);
         }
 
@@ -369,19 +371,19 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("associatedVolumes"), volumeId);
         }
         
-        public static AlternateIdConstraint getStorageSystemByAssociatedSystemConstraint(String SystemId) {
+        public static AlternateIdConstraint getStorageSystemByAssociatedSystemConstraint(String systemId) {
             DataObjectType doType = TypeMap.getDoType(StorageSystem.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("associatedStorageSystems"), SystemId);
+            return new AlternateIdConstraintImpl(doType.getColumnField("associatedStorageSystems"), systemId);
         }
 
         public static AlternateIdConstraint getProtectionSystemByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(ProtectionSystem.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
         
         public static AlternateIdConstraint getRAGroupByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(RemoteDirectorGroup.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), nativeGuid);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
 
         public static AlternateIdConstraint getRPSiteArrayProtectionSystemConstraint(String protectionSystemId) {
@@ -410,7 +412,7 @@ public interface AlternateIdConstraint extends Constraint {
 
         public static AlternateIdConstraint getDecommissionedResourceNativeGuidConstraint(String resourceId) {
             DataObjectType doType = TypeMap.getDoType(DecommissionedResource.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), resourceId);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), resourceId);
         }
 
         public static AlternateIdConstraint getConstraint(Class<? extends DataObject> type,
@@ -495,12 +497,12 @@ public interface AlternateIdConstraint extends Constraint {
         
 	    public static AlternateIdConstraint getFileExporRuleNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedFileExportRule.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 	    
 	    public static AlternateIdConstraint getFileCifsACLNativeGUIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedCifsShareACL.class);
-            return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);
         }
 	    
         public static AlternateIdConstraint getVolumesByAssociatedId(String volumeId) {

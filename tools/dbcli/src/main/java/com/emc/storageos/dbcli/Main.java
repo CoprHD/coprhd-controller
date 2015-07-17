@@ -193,7 +193,6 @@ public class Main {
                     dbCli.printCfMaps();
                 } catch (Exception e){
                     System.out.println(String.format("Exception %s\n in printing column families' info.", e));
-                    e.printStackTrace();
                     log.error("Exception in printing column families' info.", e);
                 }
                 break;
@@ -204,7 +203,6 @@ public class Main {
                     dbCli.printFieldsByCf(cfName);
                 } catch (Exception e){
                     System.out.println(String.format("Exception %s\n in printing %s's fields info.", e, cfName));
-                    e.printStackTrace();
                     log.error("Exception in priting {}'s fields info.", cfName, e);
                 }
                 break;
@@ -218,7 +216,6 @@ public class Main {
                     dbCli.queryForDump(cfName, fileName, ids);
                 } catch (Exception e){
                     System.out.println(String.format("Exception %s\n in dumping column family:%s into file:%s.", e, cfName, fileName));
-                    e.printStackTrace();
                     log.error("Exception in dumping column family:{} into file.", cfName, e);
                 }
                 break;
@@ -233,7 +230,6 @@ public class Main {
                     dbCli.loadFileAndPersist(fileName);
                 } catch (Exception e){
                     System.out.println(String.format("Exception %s\n in load file:%s into database.", e, fileName));
-                    e.printStackTrace();
                     log.error("Exception in loading file{} into database.", fileName, e);
                 }
                 break;
@@ -246,7 +242,6 @@ public class Main {
                     dbCli.deleteRecords(cfName, ids, true);
                 } catch (Exception e){
                     System.out.println(String.format("Exception %s\n in deleting column family.", e));
-                    e.printStackTrace();
                     log.error("Exception in deleting column familiy.", e);
                 }
                 break;
@@ -262,7 +257,6 @@ public class Main {
                         dbCli.listRecords(cfName);
                     } catch(Exception e){
                         System.out.println(String.format("Exception %s in listing records.", e));
-                        e.printStackTrace();
                         log.error("Exception in listing records.", e);
                     }
                     break;
@@ -274,7 +268,6 @@ public class Main {
                     dbCli.queryForList(cfName, ids);
                 } catch (Exception e){
                     System.out.println(String.format("Exception %s\n in listing column family.", e));
-                    e.printStackTrace();
                     log.error("Exception in listing column family.", e);
                 }
                 break;
@@ -289,7 +282,6 @@ public class Main {
                     dbCli.loadFileAndCreate(fileName);
                 } catch (Exception e){
                     System.out.println(String.format("Exception %s\n in load file:%s into database.", e, fileName));
-                    e.printStackTrace();
                     log.error("Exception in loading file{} into database.", fileName, e);
                 }
                 break;

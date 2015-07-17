@@ -256,7 +256,7 @@ public class VcenterService extends TaskResourceService {
                 VcenterDataCenter.class, "label", "vcenter");
         for (NamedElementQueryResultList.NamedElement datacenter : datacenters) {
             // add all hosts that are directly related to the data center
-            list.getHosts().addAll(map(ResourceTypeEnum.HOST, listChildren(datacenter.id, Host.class, "label", "vcenterDataCenter")));
+            list.getHosts().addAll(map(ResourceTypeEnum.HOST, listChildren(datacenter.getId(), Host.class, "label", "vcenterDataCenter")));
         }
         return list;
     }
@@ -282,7 +282,7 @@ public class VcenterService extends TaskResourceService {
                 VcenterDataCenter.class, "label", "vcenter");
         for (NamedElementQueryResultList.NamedElement datacenter : datacenters) {
             // add all clusters that are directly related to the data center
-            list.getClusters().addAll(map(ResourceTypeEnum.CLUSTER, (listChildren(datacenter.id, Cluster.class, "label", "vcenterDataCenter"))));
+            list.getClusters().addAll(map(ResourceTypeEnum.CLUSTER, (listChildren(datacenter.getId(), Cluster.class, "label", "vcenterDataCenter"))));
         }
         return list;
     }

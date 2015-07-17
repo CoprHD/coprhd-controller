@@ -94,7 +94,7 @@ public class DbSchemaInterceptorImpl extends DbSchemaScannerInterceptor {
 	
 	@Override
     public boolean isClassAnnotationIgnored(String cfName, String annotationName) {
-		if(this.cfClsAntnList==null || this.cfClsAntnList.size()<=0){
+		if(this.cfClsAntnList==null || this.cfClsAntnList.isEmpty()){
 			return false;
 		}
 		

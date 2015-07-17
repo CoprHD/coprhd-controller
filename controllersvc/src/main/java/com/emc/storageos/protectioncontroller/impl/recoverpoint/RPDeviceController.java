@@ -3341,7 +3341,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             protectionVolume.getLabel(), protectionVolume.getId().toString()));
                     
                     List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
-                    CreateCopyParams standbyLocalCopyParams = new CreateCopyParams();
+                    CreateCopyParams standbyLocalCopyParams = null;
                     List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
                     Set<URI> journalVolumes = new HashSet<URI>();
                     if (!standbyLocalCopyVols.isEmpty()) {
@@ -3372,7 +3372,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                         // prepare journal volumes info
                         String rpCopyName = null;
-                        List<CreateVolumeParams> journaVols = new ArrayList<CreateVolumeParams>();
+                        List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
                         for (URI journalVolId : journalVolumes) {
                             Volume standbyLocalJournal = _dbClient.queryObject(Volume.class, journalVolId);
                             if (standbyLocalJournal != null) {
@@ -3383,14 +3383,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 CreateVolumeParams journalVolParams = new CreateVolumeParams();
                                 journalVolParams.setWwn(standbyLocalJournal.getWWN());
                                 journalVolParams.setInternalSiteName(standbyLocalJournal.getInternalSiteName());
-                                journaVols.add(journalVolParams);
+                                journalVols.add(journalVolParams);
                             }
                         }
                         
                         // if we found any journal volumes, add them to the local copies list
-                        if (!journaVols.isEmpty()) {
+                        if (!journalVols.isEmpty()) {
+                        	standbyLocalCopyParams = new CreateCopyParams();
                             standbyLocalCopyParams.setName(rpCopyName);
-                            standbyLocalCopyParams.setJournals(journaVols);
+                            standbyLocalCopyParams.setJournals(journalVols);
                         } else {
                             _log.error("no journal volumes found for standby production copy for source volume " + protectionVolume.getLabel());
                         }
@@ -3402,15 +3403,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)", 
                                 standbyProdJournal.getLabel(), standbyProdJournal.getId().toString(),
                                 protectionVolume.getLabel(), protectionVolume.getId().toString()));
-                        List<CreateVolumeParams> journaVols = new ArrayList<CreateVolumeParams>();
+                        List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
                         CreateVolumeParams journalVolParams = new CreateVolumeParams();
                         journalVolParams.setWwn(standbyProdJournal.getWWN());
                         journalVolParams.setInternalSiteName(standbyProdJournal.getInternalSiteName());
-                        journaVols.add(journalVolParams);
+                        journalVols.add(journalVolParams);
 
                         CreateCopyParams standbyProdCopyParams = new CreateCopyParams();
                         standbyProdCopyParams.setName(standbyProdJournal.getRpCopyName());
-                        standbyProdCopyParams.setJournals(journaVols);
+                        standbyProdCopyParams.setJournals(journalVols);
 
                         // 2. and 3. add back the standby production copy; add back the standby CDP copy                       
                         rp.addStandbyProductionCopy(standbyProdCopyParams, standbyLocalCopyParams, rSets, copyParams);

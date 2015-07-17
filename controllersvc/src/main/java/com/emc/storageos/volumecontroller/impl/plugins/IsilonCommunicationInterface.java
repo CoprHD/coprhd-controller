@@ -1917,6 +1917,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 HashSet<Integer> expIds = expMap.get(expPath);
                 if(expIds != null && !expIds.isEmpty()) {
                 	expMapWithIds.put(expPath, expIds);
+                }else{
+                	expMapWithIds.put(expPath, new HashSet<Integer>());
                 }
             }
         }

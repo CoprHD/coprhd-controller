@@ -1712,7 +1712,6 @@ public class HDSExportOperations implements ExportMaskOperations {
         URI uri = URI.create(String.format("%1$s://%2$s:%3$d/service/StorageManager",
                 uriParams)); //NOSONAR ("Ignore String.format sonar voilation")
         log.info("HiCommand DM server url to query: {}", uri);
-        // http://lglak148:2001/service/StorageManager
         return uri;
     }
     

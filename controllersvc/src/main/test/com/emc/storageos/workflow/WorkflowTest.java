@@ -64,7 +64,6 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
     
     private static Map<String, WorkflowState> taskStatusMap = new HashMap<String, WorkflowState>();
 
-    @Ignore
     @Test
     /**
      * This test a simple one step passing workflow.
@@ -84,7 +83,6 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         assertTrue(state == WorkflowState.SUCCESS);
     }
     
-    @Ignore
     @Test
     /**
      * This tests a three level hierarchical workflow that passes.
@@ -100,7 +98,6 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         
     }
     
-    @Ignore
     @Test
     /**
      * This tests a three level hierarchical workflow where the lowest level last step fails.
@@ -126,6 +123,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         }
     }
     
+    @Ignore
     @Test
     /**
      * This tests a three level hierarchical workflow where the lowest level last step fails.

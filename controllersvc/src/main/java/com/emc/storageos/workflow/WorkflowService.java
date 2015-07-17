@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -455,22 +456,8 @@ public class WorkflowService implements WorkflowController {
         Map<String, StepStatus> statusMap = workflow.getStepStatusMap();
 
         // Print out the status of each step into the log.
-        for (StepStatus status : statusMap.values()) {
-            Date startTime = status.startTime;
-            Date endTime = status.endTime;
-            if (startTime != null && endTime != null) {
-                _log.info(String.format(
-                        "Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",
-                        status.stepId, status.description,
-                        status.state, status.message, status.startTime,
-                        status.endTime, (status.endTime.getTime() - status.startTime.getTime())));
-            } else {
-                _log.info(String.format(
-                        "Step: %s (%s) state: %s message: %s ",
-                        status.stepId, status.description, status.state, status.message));
-            }
-        }
-
+        printStepStatuses(statusMap.values());
+        // Get the WorkflowState
         WorkflowState state = workflow.getWorkflowStateFromSteps();
 
         // Get composite status and status message
@@ -518,15 +505,7 @@ public class WorkflowService implements WorkflowController {
                     workflow._rollbackHandler.rollbackComplete(workflow,
                             workflow._rollbackHandlerArgs);
                 }
-                // Print the status after all rollback operations are complete.
-                for (StepStatus status : statusMap.values()) {
-                    _log.info(String
-                            .format("Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",
-                                    status.stepId, status.description,
-                                    status.state, status.message, status.startTime,
-                                    status.endTime, (status.endTime.getTime() - status.startTime.getTime())));
                 }
-            }
 
             // Check for workflow completer callback.
             if (workflow._callbackHandler != null) {
@@ -568,9 +547,9 @@ public class WorkflowService implements WorkflowController {
                     _log.info(String.format(
                             "Workflow %s is nested, destruction deferred until parent destroys",
                             workflow.getWorkflowURI()));
-            }
+                }
             logWorkflow(workflow, true);
-        }
+            }
         }
         return true;
     }
@@ -2227,6 +2206,24 @@ public class WorkflowService implements WorkflowController {
             status = Status.toStatus(operation.getStatus());
         } while (status == Status.pending);
         return status;
+    }
+
+    private void printStepStatuses(Collection<StepStatus> stepStatuses) {
+        for (StepStatus status : stepStatuses) {
+            Date startTime = status.startTime;
+            Date endTime = status.endTime;
+            if (startTime != null && endTime != null) {
+            _log.info(String.format(
+                    "Step: %s (%s) state: %s message: %s started: %s completed: %s elapsed: %d ms",
+                    status.stepId, status.description,
+                    status.state, status.message, status.startTime, 
+                    status.endTime, (status.endTime.getTime() - status.startTime.getTime())));
+            } else {
+                _log.info(String.format(
+                        "Step: %s (%s) state: %s message: %s ",
+                        status.stepId, status.description, status.state, status.message ));
+            }
+        }
     }
 
     public static void completerStepSucceded(String stepId)

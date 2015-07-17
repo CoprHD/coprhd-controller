@@ -27,7 +27,8 @@ import com.emc.storageos.workflow.WorkflowService;
  * 4. Any test using this base class should use the following as the working directory:
  * /opt/storageos/conf
  * This is set in Eclipse under "Debug Configurations" "Arguments" "Working Directory".
- * 5. Any test using this base class should set the following VM environment variables (taken from /opt/storageos/bin/controllersvc):
+ * 5. Any test using this base class should set the following VM environment variables 
+ * (taken from /opt/storageos/bin/controllersvc):
       -ea
       -server
       -d64
@@ -47,8 +48,7 @@ import com.emc.storageos.workflow.WorkflowService;
  * 
  * Note this is a full copy of the controllersvc. Depending on what is in the existing database, things like
  * discovery and collection of port metrics may proceed in the threads that are started. 
- * 
- * If running under Eclipse, the console will show the controllersvc.log.
+ * The logging output goes to the usual controllersvc.log.
  * 
  * The junit test is free to call any of the beans defined here, and could for instance place requests on
  * the dispatcher queue directly, or create new workflows. For an example Junit, see WorkflowTest.

@@ -151,7 +151,6 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         try {
         Thread.sleep(1200000);
         } catch (Exception ex) {
-            
         }
     }
     

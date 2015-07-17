@@ -75,7 +75,8 @@ abstract public class ControllersvcTestBase {
     private static boolean started = false;
     
     /**
-     * Starts the controllersvc. Works by simulating a call to com.emc.storageos.volumecontroller.impl.Main main() just as
+     * Starts the controllersvc. Works by simulating a call to 
+     * com.emc.storageos.volumecontroller.impl.Main main() just as
      * if the controllersvc script had done so.
      */
     protected void startControllersvc() {

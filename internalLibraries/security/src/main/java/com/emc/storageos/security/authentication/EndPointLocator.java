@@ -26,6 +26,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.exceptions.SecurityException;
+import org.springframework.util.CollectionUtils;
 
 /**
  * 
@@ -112,7 +113,7 @@ public class EndPointLocator {
      */
     public URI getAnEndpoint() {
         List<URI> endpoints = getServiceEndpointList();
-        if (endpoints == null || endpoints.size() < 1) {
+        if (CollectionUtils.isEmpty(endpoints)) {
             throw SecurityException.retryables.requiredServiceUnvailable(_svcInfo
                     .getServiceName());
         }

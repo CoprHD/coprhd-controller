@@ -57,7 +57,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
     }
 
     public ViPRSSLSocketFactory(CoordinatorClient coordinator) {
-        coordinatorClient = coordinator;
+        synchronized(this) {
+            coordinatorClient = coordinator;
+        }
         init();
     }
 

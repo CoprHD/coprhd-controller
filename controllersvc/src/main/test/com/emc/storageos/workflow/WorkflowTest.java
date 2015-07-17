@@ -6,6 +6,7 @@ import java.io.Serializable;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,8 +22,12 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Operation.Status;
+import com.emc.storageos.db.client.model.WorkflowStep;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.util.ControllersvcTestBase;
@@ -63,7 +68,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
     }
     
     private static Map<String, WorkflowState> taskStatusMap = new HashMap<String, WorkflowState>();
-
+    @Ignore
     @Test
     /**
      * This test a simple one step passing workflow.
@@ -82,7 +87,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         log.info(String.format("task %s state %s", taskId, state));
         assertTrue(state == WorkflowState.SUCCESS);
     }
-    
+    @Ignore
     @Test
     /**
      * This tests a three level hierarchical workflow that passes.
@@ -97,7 +102,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         log.info("Top level workflow state: " + state);
         
     }
-    
+    @Ignore
     @Test
     /**
      * This tests a three level hierarchical workflow where the lowest level last step fails.
@@ -123,7 +128,6 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         }
     }
     
-    @Ignore
     @Test
     /**
      * This tests a three level hierarchical workflow where the lowest level last step fails.
@@ -138,17 +142,16 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         Workflow workflow = generate3StepWF(0, 3, taskId);
         WorkflowState state = waitOnWorkflowComplete(taskId);
         log.info("Top level workflow state: " + state);
+        readWorkflowFromDb(taskId);
         assertTrue(state == WorkflowState.SUSPENDED_ERROR);
         if (state == WorkflowState.SUSPENDED_ERROR) {
             String rollbackTaskId = UUID.randomUUID().toString();
+            taskStatusMap.remove(taskId);
             workflowService.rollbackWorkflow(workflow.getWorkflowURI(), rollbackTaskId);
             state = waitOnWorkflowComplete(taskId);
             log.info("Top level workflow state after rollback: " + state);
-            // assertTrue(state == WorkflowState.ERROR);
-        }
-        try {
-        Thread.sleep(1200000);
-        } catch (Exception ex) {
+            readWorkflowFromDb(taskId);
+            assertTrue(state == WorkflowState.ERROR);
         }
     }
     
@@ -204,24 +207,36 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         Workflow workflow = workflowService.getNewWorkflow(this, "generate3StepWF", false, orchTaskId);
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflow.getWorkflowURI(), orchTaskId);
         // first step
-        String lastStep = workflow.createStep("first", "first nop", null, nullURI, 
+        String lastStep = workflow.createStep("first", genMsg(level, 1, "sub"), null, nullURI, 
                 this.getClass().getName(), false, this.getClass(), nopMethod(level, 1), nopMethod(level, 1), null);
         // second step
-//        if (level  >= maxLevels) {
-//            // this is the lowest level, generate nop
-//            lastStep = workflow.createStep("second", "second nop", lastStep, nullURI, 
-//                    this.getClass().getName(), false, this.getClass(), nopMethod(level, 2), nopMethod(level, 2), null);
-//        } else {
-//            // not the lowest level, generate a sub-workflow
-            lastStep = workflow.createStep("second", "second sub", lastStep, nullURI, 
+            lastStep = workflow.createStep("second", genMsg(level, 2, "sub"), lastStep, nullURI, 
                     this.getClass().getName(), false, this.getClass(), subMethod(level, maxLevels, 2), nopMethod(level, 2), null);
-//        }
         // third step
-        lastStep = workflow.createStep("third", "third", lastStep, nullURI, 
+        lastStep = workflow.createStep("third", genMsg(level, 3, "sub"), lastStep, nullURI, 
                 this.getClass().getName(), false, this.getClass(), nopMethod(level, 3), nopMethod(level, 3), null);
         // Execute and go
         workflow.executePlan(completer, String.format("Workflow level %d successful", level), new WorkflowCallback(), args, null, null);
         return workflow;
+    }
+    
+    private String genMsg(int level, int step, String msg) {
+        return String.format("L%dS%d %s", level, step, msg);
+    }
+    
+    private Map<String, WorkflowStep> readWorkflowFromDb(String orchTaskId) {
+        Map<String, WorkflowStep> msgToStep = new HashMap<String, WorkflowStep>();
+        Joiner j = new Joiner(dbClient);
+        List<WorkflowStep> steps = 
+                j.join(com.emc.storageos.db.client.model.Workflow.class, "wf")
+                .match("orchTaskId", orchTaskId)
+                .join("wf", WorkflowStep.class, "step", "workflow")
+                .go().list("step");
+        for (WorkflowStep step : steps) {
+            msgToStep.put(step.getDescription(), step);
+            System.out.println(String.format("Step %s: status: %s message: %s", step.getDescription(), step.getState(), step.getMessage()));
+        }
+        return msgToStep;
     }
     
     private static class WorkflowCallback implements Workflow.WorkflowCallbackHandler, Serializable {
@@ -235,7 +250,8 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
     }
     
     private WorkflowState waitOnWorkflowComplete(String taskId) {
-        while (taskStatusMap.get(taskId) == WorkflowState.CREATED 
+        while (taskStatusMap.get(taskId) == null
+                || taskStatusMap.get(taskId) == WorkflowState.CREATED 
                 || taskStatusMap.get(taskId) == WorkflowState.RUNNING
                 || taskStatusMap.get(taskId) == WorkflowState.ROLLING_BACK)  {
             try {

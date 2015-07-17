@@ -525,6 +525,9 @@ public class WorkflowService implements WorkflowController {
         		case SUSPENDED_ERROR:
         		case SUSPENDED_NO_ERROR:
         		    workflow._taskCompleter.suspended(_dbClient, _locker, error);
+        		    break;
+        		default:
+        		    break;
                 }
             }
         } finally {
@@ -1564,6 +1567,7 @@ public class WorkflowService implements WorkflowController {
 			if (workflow == null) {
 			    throw WorkflowException.exceptions.workflowNotFound(uri.toString());
 			}
+	        completer.statusPending(_dbClient, "Rollback requested on workflow: " + uri.toString());
 			removeRollbackSteps(workflow);
 
 	        // See if there are child Workflows that need to be rolled back.
@@ -1571,16 +1575,17 @@ public class WorkflowService implements WorkflowController {
 	        Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap 
 	        = getChildWorkflowsMap(workflow);
 	        for (Entry<String, com.emc.storageos.db.client.model.Workflow> entry : childWFMap.entrySet()) {
+	            String parentStepId = entry.getKey();
 	            Workflow child = loadWorkflowFromUri(entry.getValue().getId());
 	            WorkflowState state = child.getWorkflowState();
 	            switch(state) {
 	            case SUSPENDED_ERROR:
 	            case SUSPENDED_NO_ERROR:
 	                _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class, 
-	                        child.getWorkflowURI(), child.getOrchTaskId(), "rolling back sub-workflow");
+	                        child.getWorkflowURI(), parentStepId, "rolling back sub-workflow");
 	                rollbackWorkflow(child.getWorkflowURI(), entry.getKey());
 	                Status status  = waitOnOperationComplete(com.emc.storageos.db.client.model.Workflow.class, 
-	                        child.getWorkflowURI(), taskId);
+	                        child.getWorkflowURI(), parentStepId);
 	                _log.info(String.format("Child rollback task %s completed with state %s", taskId, status.name()));;
 	                // TODO: should we go forward if unable to roll back child?
 	                break;
@@ -1595,10 +1600,20 @@ public class WorkflowService implements WorkflowController {
 			boolean rollBackStarted = initiateRollback(workflow);
 			if (rollBackStarted) {
             	_log.info(String.format("Rollback initiated workflow %s" ,workflow.getWorkflowURI() ));
+	        } else {
+	            // We were unable to initiate rollback for some reason, this is an error.
+	            WorkflowState state = workflow.getWorkflowStateFromSteps();
+	            switch (state) {
+	            case SUCCESS:
+	                completer.ready(_dbClient);;
+	                break;
+	            default:
+	                WorkflowException ex = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
+	                completer.error(_dbClient, ex);;
 			}
-			completer.ready(_dbClient);
+	        }
 		} catch (WorkflowException ex) {
-			completer.error(_dbClient, ex);
+	        _log.info("Exception rolling back workflow: ", ex.getMessage(), ex);
 		}
 	}
 	

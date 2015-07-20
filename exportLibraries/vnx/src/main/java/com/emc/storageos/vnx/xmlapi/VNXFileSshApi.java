@@ -258,6 +258,37 @@ public class VNXFileSshApi {
         }
         return cmd.toString();
     }
+    
+    /**
+     * Create the command string for Update a CIFS file share
+     * 
+     * @param dataMover  data mover that contains the CIFS file share
+     * @param fileShare  name of the file share to remove.
+     * @param netBios    netbios used
+     * @param comment    new comment for share
+     * @param mountpoint file share mount point
+     * @return formatted command string to be used by the VNX File CLI.
+     */
+    public String formatUpdateShareCmd(String dataMover, String fileShare, String netBios, String comment,String mountpoint) {
+        StringBuilder cmd = new StringBuilder();
+        cmd.append(dataMover);
+        cmd.append(" -name ");
+        cmd.append(fileShare);
+        if(netBios != null && netBios.length() > 0) {
+            cmd.append(" -option netbios=");
+            cmd.append("\"" + netBios + "\" ");
+             
+        }
+        if (null != comment && !comment.isEmpty()) {
+       	 cmd.append(" " + "-comment ");
+       	 cmd.append("\"" + comment + "\" ");
+       }
+        cmd.append(" ");
+        cmd.append(mountpoint);
+        return cmd.toString();
+    }
+
+
 
 
     /**

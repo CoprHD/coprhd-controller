@@ -100,7 +100,7 @@ private Logger log = Logger.getLogger(getClass());
 
 	void changeCIFSShare(String shareName, Map<String, String> attrs)
 	{
-		NaElement elem = new NaElement("cifs-share-change");
+		NaElement elem = new NaElement("cifs-share-modify");
 		elem.addNewChild("share-name", shareName);
 
 		for (String key : attrs.keySet()) {

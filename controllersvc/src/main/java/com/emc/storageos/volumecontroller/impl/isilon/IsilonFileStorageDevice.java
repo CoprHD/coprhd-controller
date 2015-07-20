@@ -55,6 +55,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -1765,6 +1766,26 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
     	_log.info("End processAclsForShare");
     }
+
+
+	@Override
+	public BiosCommandResult updateShare(StorageSystem storage,
+			FileSMBShare smbShare, FileDeviceInputOutput args) {
+
+		_log.info("Start updateShare to modify share {}", 
+				args.getShareName());
+		IsilonApi isi = getIsilonDevice(storage);
+		String desc=args.getComments();
+
+		IsilonSMBShare isilonSMBShare = new IsilonSMBShare(smbShare.getName());
+		isilonSMBShare.setDescription(desc);
+		_log.info("Calling Isilon API: modifyShare. Share {}, description {}",
+				isilonSMBShare, desc);
+		isi.modifyShare(smbShare.getName(), isilonSMBShare);
+		BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+		_log.info("End updateShare");
+		return result;
+	}
 
 
 }

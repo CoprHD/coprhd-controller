@@ -1270,6 +1270,86 @@ public class VNXFileCommApi {
     
         return result;
     }
+    
+    /**
+     * Update a CIFS Share
+     * 
+     * @param system
+     * @param moverOrVdm   data mover the share is on.
+     * @param shareName   name of the CIFS share.
+     * @return            result of the operation.
+     */
+    public XMLApiResult updateShare(StorageSystem system, StorageHADomain moverOrVdm, 
+    		String shareName, String mountPoint, FileDeviceInputOutput args) {
+        _log.info("CommApi: update share {}", shareName);
+        XMLApiResult result = new XMLApiResult();
+        result.setCommandSuccess();
+        Map<String, Object> reqAttributeMap = new ConcurrentHashMap<String, Object>();
+    
+        try {
+            updateAttributes( reqAttributeMap, system );
+            if ( null == moverOrVdm ) {
+                result.setCommandFailed();
+                result.setMessage("Update failed:  data mover or VDM not found.");
+                return result;                
+            }
+
+            String moverOrVdmName = moverOrVdm.getAdapterName();
+            String isVdm = "false";
+            String moverOrVdmId = moverOrVdm.getName();
+
+            reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverOrVdmId);
+            reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
+
+            if(moverOrVdm.getVirtual() != null && moverOrVdm.getVirtual() == true) {
+                isVdm = "true";
+            }
+
+            _log.info("Using Mover {} to Update share {}", moverOrVdmId +":" + moverOrVdmName, shareName);
+
+            updateAttributes( reqAttributeMap, system );
+            reqAttributeMap.put( VNXFileConstants.MOVER_ID, moverOrVdmId );
+            reqAttributeMap.put( VNXFileConstants.DATAMOVER_NAME, moverOrVdmName);
+            reqAttributeMap.put( VNXFileConstants.ISVDM, isVdm);
+            _provExecutor.set_keyMap( reqAttributeMap );
+
+            _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_CIFS_SERVERS));
+
+            List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            for(VNXCifsServer cifsServer:cifsServers) {
+                _log.info("CIFServer:"+ cifsServer.toString());
+            }
+
+            if(cifsServers == null || cifsServers.size() == 0) {
+                _log.info("No CIFS Servers retrieved for mover {} with id {}", moverOrVdmName, moverOrVdmId);
+            }
+
+            String netBios = null;
+            //Only set netbios for VDM CIFS exports
+            if(cifsServers != null && cifsServers.size() > 0 && moverOrVdm.getVirtual()) {
+                netBios = cifsServers.get(0).getName();
+            }
+
+            sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
+        	String data = sshApi.formatUpdateShareCmd(moverOrVdmName, shareName, netBios,args.getComments(),mountPoint);
+        	_log.info("updateShare command {}", data);
+            result = sshApi.executeSsh(VNXFileSshApi.SERVER_EXPORT_CMD, data);            
+            FileShare fileShare = null;
+            if(!args.getFileOperation()){
+        		Snapshot snapshot = _dbClient.queryObject(Snapshot.class, args.getSnapshotId());
+        		fileShare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
+            }else{
+            	fileShare = _dbClient.queryObject(FileShare.class, args.getFileObjId());
+            }
+          sshApi.clearConnParams();
+        } catch (Exception e) {
+            throw new VNXException("Failure", e);
+        }
+    
+        return result;
+    }
+
+    
 
     /*
      * getThinFSAllocSize - calculate the allocation size for thin file system

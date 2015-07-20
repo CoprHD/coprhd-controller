@@ -2336,4 +2336,7 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName); 
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_NOT_FOUND)
+    public BadRequestException updateFileshareParamMissing();
 }

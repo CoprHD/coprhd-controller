@@ -83,6 +83,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileSnapshotBulkRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
+import com.emc.storageos.model.file.FileSnapshotShareUpdateParam;
 import com.emc.storageos.model.file.FileSystemExportList;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemShareList;
@@ -765,6 +766,86 @@ public class FileSnapshotService extends TaskResourceService {
 
         return toTask(snap, task, op);
     }
+    
+    /**
+     * API to update name and description  of an existing share     
+     * @param id  the file snapshot URI
+     * @param shareName  name of the share
+     * @param param request payload object of type <code>com.emc.storageos.model.file.FileSnapshotShareUpdateParam</code>
+     * @return TaskResponse
+     * @throws InternalException
+     */
+     
+    @PUT
+    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Path("/{id}/shares/{shareName}")
+    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
+    public TaskResourceRep updateShare(@PathParam("id") URI id,            
+    		@PathParam("shareName") String shareName,
+    		FileSnapshotShareUpdateParam param) throws InternalException {
+
+    	_log.info("modify file snapshot share request received. snapshot: {}, Share: {}", 
+    			id.toString(), shareName);
+    	_log.info("Request body: {}", param.toString());
+
+    	ArgValidator.checkFieldNotNull(shareName, "shareName");
+    	ArgValidator.checkFieldUriType(id, Snapshot.class, "id");
+    	if(param.getShareName() == null || param.getShareName().isEmpty() ) {
+    		if (param.getDescription() == null || param.getDescription().isEmpty() ) {
+    			throw APIException.badRequests.updateFileshareParamMissing();
+    		}
+    	}
+
+    	Snapshot snapshot = queryResource(id);
+    	ArgValidator.checkEntity(snapshot, id, isIdEmbeddedInURL(id));    
+
+    	FileShare fs = _permissionsHelper.getObjectById(snapshot.getParent(), FileShare.class);
+    	StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+
+    	CifsShareUtility.checkForUpdateShareACLOperationOnStorage(
+    			device.getSystemType(), OperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE.name());
+
+    	SMBFileShare smbShare = null;
+
+    	if(snapshot.getSMBFileShares() != null) {
+    		_log.info("Number of SMBShares found {} and looking for share to read {} ", snapshot.getSMBFileShares().size(), shareName);
+    		_log.info("Get file snapshot share: file system id: {}, share name {}", id, shareName);
+    		smbShare = snapshot.getSMBFileShares().get(shareName);
+    		if(smbShare == null) {
+    			_log.error("snapshot CIFS share does not exist {}", shareName);
+
+    			throw APIException.notFound.invalidParameterObjectHasNoSuchShare(snapshot.getId(), shareName);
+    		}
+    	}
+
+    	String task = UUID.randomUUID().toString();
+
+    	//Check for VirtualPool whether it has CIFS enabled
+    	VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+    	if(!vpool.getProtocols().contains(StorageProtocol.File.CIFS.name())) {
+    		throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support "
+    				+ StorageProtocol.File.CIFS.name() + " protocol");
+    	}
+    	_log.info("Request payload verified. No errors found.");
+
+    	FileController controller = getController(FileController.class, device.getSystemType());
+
+    	Operation op = _dbClient.createTaskOpStatus(Snapshot.class, snapshot.getId(), 
+    			task, ResourceOperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE);
+    	op.setDescription("Update file system share");
+    	FileSMBShare fileSMBShare = new FileSMBShare(shareName, smbShare.getDescription(), smbShare.getPermissionType(),
+    			smbShare.getPermission(), Integer.toString(smbShare.getMaxUsers()), smbShare.getNativeId(), smbShare.getPath());
+    	fileSMBShare.setStoragePortGroup(smbShare.getPortGroup());
+
+    	controller.updateShare(device.getId(), snapshot.getId(), fileSMBShare, param, task);
+
+    	auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
+    			fs.getId().toString(), device.getId().toString(), param);            
+
+    	return toTask(snapshot, task, op);
+    }
+
     
     /**
      * API to update ACLs of an existing share     

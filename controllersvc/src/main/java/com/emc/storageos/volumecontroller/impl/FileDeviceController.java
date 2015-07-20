@@ -61,6 +61,7 @@ import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.FileSystemShareUpdateBase;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.plugins.common.Constants;
@@ -2773,4 +2774,90 @@ public class FileDeviceController implements FileController {
 		}
 		
 	}
-}
+	
+	
+	@Override
+	public void updateShare(URI storage, URI fsURI, FileSMBShare smbShare,FileSystemShareUpdateBase param, String opId)
+			throws InternalException {
+
+
+		ControllerUtils.setThreadLocalLogData(fsURI, opId);
+		FileObject fsObj = null;
+		FileDeviceInputOutput args = new FileDeviceInputOutput();
+		FileShare fs = null;
+		Snapshot snapshotObj = null;
+		boolean isFile = false;
+
+		_log.info("Controller recieved request to update share {}: FileSystemShareUpdateParam {}",
+				smbShare.getName(), param);
+
+		try {
+
+			StorageSystem storageObj = _dbClient.queryObject(
+					StorageSystem.class, storage);
+
+			args.setComments(param.getDescription());
+			args.setShareName(param.getShareName());
+
+			// File
+			if (URIUtil.isType(fsURI, FileShare.class)) {
+				isFile = true;
+				fs = _dbClient.queryObject(FileShare.class, fsURI);
+				fsObj = fs;
+				args.addFSFileObject(fs);
+				StoragePool pool = _dbClient.queryObject(StoragePool.class,
+						fs.getPool());
+				args.addStoragePool(pool);
+
+			} else {
+				// Snapshot
+				snapshotObj = _dbClient.queryObject(Snapshot.class, fsURI);
+				fsObj = snapshotObj;
+				fs = _dbClient.queryObject(FileShare.class,
+						snapshotObj.getParent());
+				args.addFileShare(fs);
+				args.addSnapshotFileObject(snapshotObj);
+				StoragePool pool = _dbClient.queryObject(StoragePool.class,
+						fs.getPool());
+				args.addStoragePool(pool);
+			}
+
+			args.setFileOperation(isFile);
+			args.setOpId(opId);
+			// Do the Operation on device.
+			BiosCommandResult result = getDevice(storageObj.getSystemType())
+					.updateShare(storageObj,smbShare, args);
+
+			if(result.isCommandSuccess()) {
+				// Update database smbFileShare object
+				SMBShareMap smbShareMap = args.getFileObjShares();
+				SMBFileShare fileShare = smbShareMap.get(smbShare.getName());
+				fileShare.setDescription(param.getDescription());
+				smbShareMap.put(fileShare.getName(), fileShare);
+
+			}
+			if (result.getCommandPending()) {
+				return;
+			} 
+			// Audit & Update the task status
+			fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+			// Monitoring - Event Processing
+			String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
+
+			if (isFile) {
+				recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE, result.isCommandSuccess(), eventMsg,"",fs, storageObj);
+			} else {
+				recordFileDeviceOperation(_dbClient, OperationTypeEnum.UPDATE_FILE_SNAPSHOT_SHARE,	result.isCommandSuccess(),eventMsg, "",snapshotObj, fs, storageObj);
+			}
+			_dbClient.persistObject(fsObj);
+		} catch (Exception e) {
+			String[] logParams = {storage.toString(), fsURI.toString()};
+			_log.error("Unable to update share for file system or snapshot: storage {}, FS/snapshot URI {}", 
+					logParams, e);
+			_log.error("{}, {} ", e.getMessage(), e);
+			updateTaskStatus(opId, fsObj, e);
+		}
+
+	}
+
+	}

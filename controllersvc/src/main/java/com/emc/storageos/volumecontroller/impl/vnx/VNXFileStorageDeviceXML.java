@@ -59,6 +59,7 @@ import com.emc.storageos.vnx.xmlapi.VNXSnapshot;
 import com.emc.storageos.vnx.xmlapi.XMLApiResult;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
@@ -1362,4 +1363,58 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
 		return BiosCommandResult.createErrorResult(
 				DeviceControllerErrors.vnx.operationNotSupported());
 	}
+
+	@Override
+	public BiosCommandResult updateShare(StorageSystem storage, FileSMBShare smbShare, FileDeviceInputOutput args) throws ControllerException {
+		_log.info("Call FileShare updateShare");
+
+        XMLApiResult result = null;
+        ApplicationContext context = null;
+        try {
+        	context = loadContext();
+        	VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+            if (null == vnxComm) {
+                throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+             }
+            StorageHADomain dm = null;
+            String mountPoint = null;
+            
+        	if(args.getFileOperation()) {
+        		mountPoint = args.getFs().getMountPath();
+        		//Get DataMover
+        		dm = this.getDataMover(args.getFs());
+        		if(dm == null) {
+        			Exception e = new Exception("VNX File Share creation Failed Data Mover not found");
+        			throw VNXException.exceptions.createExportFailed("VNX File Update Share Failed Data Mover not found", e);
+        		}
+        	} else {
+        		//Get DataMover
+        		URI snapshotId = args.getSnapshotId();
+        		Snapshot snapshot = _dbClient.queryObject(Snapshot.class, snapshotId);
+        		FileShare fileshare = _dbClient.queryObject(FileShare.class, snapshot.getParent().getURI());
+        		mountPoint = fileshare.getMountPath();
+        		dm = this.getDataMover(fileshare);
+        		if(dm == null) {
+        			Exception e = new Exception("VNX File update Share Failed. Data Mover not found");
+        			throw VNXException.exceptions.createExportFailed("VNX File update Share Failed Data Mover not found", e);
+        		}
+        	}
+            
+            result = vnxComm.updateShare(storage, dm, smbShare.getName(), mountPoint, args);
+        } catch (VNXException e) {
+            throw new DeviceControllerException(e);
+        } finally {
+            clearContext(context);
+        }
+        
+        BiosCommandResult cmdResult = null;
+        if (result.isCommandSuccess()) {
+            cmdResult = BiosCommandResult.createSuccessfulResult();
+        } else {
+            cmdResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToModifyFileShare(result.getMessage()));
+        }
+        return  cmdResult;
+    }
+
+	
 }

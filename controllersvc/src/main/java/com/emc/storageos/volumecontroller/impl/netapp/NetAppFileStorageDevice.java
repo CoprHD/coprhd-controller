@@ -50,6 +50,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -1820,6 +1821,28 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
         	return result;
 
+        }
+        
+        @Override
+       public  BiosCommandResult updateShare(StorageSystem storage, FileSMBShare smbShare, FileDeviceInputOutput args){
+        	BiosCommandResult result = new BiosCommandResult();
+        	NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
+        			storage.getPortNumber(), storage.getUsername(),
+        			storage.getPassword()).https(true).build();
+        	 Map<String, String> param = new HashMap<String, String>();
+        	 param.put("comment", args.getComments());
+        	try {
+				nApi.modifyShare(smbShare.getName(), param);
+				result = BiosCommandResult.createSuccessfulResult();
+			} catch (NetAppException e) {
+				_log.error("NetAppFileStorageDevice::Update Share failed with an Exception", e);
+        		ServiceError serviceError = DeviceControllerErrors.netapp.unableToUpdateCIFSShare();
+        		serviceError.setMessage(e.getLocalizedMessage());
+        		result = BiosCommandResult.createErrorResult(serviceError);
+			}
+        	
+        	return result;
+        	
         }
 
 

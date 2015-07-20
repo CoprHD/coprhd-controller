@@ -222,4 +222,6 @@ public interface FileStorageDevice {
 
 	public BiosCommandResult deleteShareACLs(StorageSystem storageObj,
 			FileDeviceInputOutput args);
+	
+	public BiosCommandResult updateShare(StorageSystem storageObj, FileSMBShare smbShare, FileDeviceInputOutput args);
 }

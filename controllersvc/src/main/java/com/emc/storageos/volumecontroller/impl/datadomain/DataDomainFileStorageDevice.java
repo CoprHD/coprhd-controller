@@ -38,6 +38,7 @@ import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -1576,5 +1577,40 @@ public class DataDomainFileStorageDevice implements FileStorageDevice {
 		return BiosCommandResult.createErrorResult(
 				DeviceControllerErrors.datadomain.operationNotSupported());
 	}
+
+
+	@Override
+	public BiosCommandResult updateShare(StorageSystem storage,
+			FileSMBShare smbShare, FileDeviceInputOutput args) {
+
+		try {
+			_log.info("DataDomainFileStorageDevice updateShare - start");
+			DataDomainClient ddClient = getDataDomainClient(storage);
+			if (ddClient == null) {
+				_log.error("updateShare failed, provider unreachable");
+				String op = "FS share update";
+				return BiosCommandResult.createErrorResult(DeviceControllerErrors.datadomain.
+						operationFailedProviderInaccessible(op));
+			}
+
+			String shareId = smbShare.getNativeId();
+			URI storagePoolId = args.getFs().getPool();
+			StoragePool storagePool = _dbClient.queryObject(
+					StoragePool.class, storagePoolId);
+			DDShareInfoDetail ddShareInfoDetail = ddClient.getShare(storagePool.getNativeId(), shareId);
+
+			if (ddShareInfoDetail.getPathStatus() == 0) {
+				throw DataDomainApiException.exceptions.failedSharePathDoesNotExist(ddShareInfoDetail.getPath());
+			}
+			ddClient.modifyShare(storagePool.getNativeId(),shareId, args.getComments());
+
+			_log.info("DataDomainFileStorageDevice updateShare() - complete");
+			return BiosCommandResult.createSuccessfulResult();
+		} catch (DataDomainApiException e) {
+			_log.error("updateShare failed, device error.", e);
+			return BiosCommandResult.createErrorResult(e);
+		}
+}
+
 
 }

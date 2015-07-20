@@ -121,6 +121,7 @@ public enum OperationTypeEnum {
     CREATE_FILE_SYSTEM_SHARE   ("FileSystemShared",		            "FileSystemShareFailed",		"FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG     ("TAG A FILESYSTEM",		            "",                             "operation to tag a filesystem"),
     DELETE_FILE_SYSTEM_SHARE   ("FileSystemShareDeleted",	        "FileSystemShareDeleteFailed",  "FileSystem share deleted"),
+    UPDATE_FILE_SYSTEM_SHARE   ("FileSystemShareUpdated",	        "FileSystemShareUpdateFailed",  "FileSystem share Updated"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT			("FileSystemSnapshotCreated",        		"FileSystemSnapshotCreateFailed",   		"FileSystem snapshot created"),
     DELETE_FILE_SNAPSHOT       			("FileSystemSnapshotDeleted",        		"FileSystemSnapshotDeleteFailed",   		"FileSystem snapshot deleted"),
@@ -135,6 +136,7 @@ public enum OperationTypeEnum {
     CREATE_FILE_SNAPSHOT_SHARE ("FileSystemSnapshotShared",		    "FileSystemSnapshotShareFailed",    "FileSystem snapshot shared"),
     ASSIGN_FILE_SNAPSHOT_TAG   ("TAG A FILESYSTEM SNAPSHOT",	    "",                                 "tag a fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE ("FileSystemSnapshotShareDeleted",	"FileSystemSnapshotShareDeleteFailed",    "FileSystem snapshot share deleted"),
+    UPDATE_FILE_SNAPSHOT_SHARE ("FileSystemSnapshotShareUpdated",	"FileSystemSnapshotShareUpdateFailed",    "FileSystem snapshot share updated"),
     RESTORE_FILE_SNAPSHOT      ("FileSystemRestored",		        "FileSystemRestoreFailed",		    "FileSystem restored"),
 
     STORAGE_PORT_REGISTER      ("StoragePortRegistered",        "",             "Storage Port Registered"),

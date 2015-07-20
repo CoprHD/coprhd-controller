@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.FileSystemShareUpdateBase;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
@@ -124,6 +125,18 @@ public interface FileController extends StorageController {
      * @throws InternalException
      */
     public void deleteShare(URI storage, URI uri, FileSMBShare smbShare, String opId) throws InternalException;
+
+    
+    /**
+     * Update SMB share for file system/snapshot uri
+     * @param storage    URI of storage device
+     * @param uri        URI of file system for which share is deleted
+     * @param smbShare   FileSMBShare instance with share properties
+     * @param param      FileSystemShareUpdateParam instance for update
+     * @param opId       Task id of this operation
+     * @throws InternalException
+     */
+    public void updateShare(URI storage, URI uri, FileSMBShare smbShare,FileSystemShareUpdateBase param, String opId) throws InternalException;
 
 
     /**

@@ -21,6 +21,7 @@ import java.util.Set;
 
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParams;
+import com.emc.storageos.model.file.FileSystemShareUpdateBase;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -217,6 +218,14 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 			String opId) throws InternalException {
 		
 		execFS("deleteShareACLs", storageURI, fsURI, shareName, opId);
+		
+	}
+
+	@Override
+	public void updateShare(URI storageURI, URI fsURI, FileSMBShare smbShare,
+			FileSystemShareUpdateBase param, String opId)
+			throws InternalException {
+		execFS("updateShare", storageURI, fsURI, smbShare, param, opId);
 		
 	}
 }

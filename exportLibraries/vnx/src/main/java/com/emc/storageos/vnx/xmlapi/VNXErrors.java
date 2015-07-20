@@ -73,6 +73,9 @@ public interface VNXErrors {
     @DeclareServiceCode(ServiceCode.VNXFILE_SHARE_ERROR)
     public ServiceError unableToDeleteFileShare(String error);
     
+    @DeclareServiceCode(ServiceCode.VNXFILE_SHARE_ERROR)
+    public ServiceError unableToModifyFileShare(String error);
+    
     @DeclareServiceCode(ServiceCode.VNXFILE_SNAPSHOT_ERROR)
     public ServiceError unableToCreateFileSnapshot(String error);
     

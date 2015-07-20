@@ -91,6 +91,8 @@ public enum ResourceOperationTypeEnum {
     UPDATE_EXPORT_RULES_FILE_SYSTEM  ("UPDATE EXPORT RULES FILESYSTEM",     "Update export rules filesystem operation"),
     EXPAND_FILE_SYSTEM         ("EXPAND FILESYSTEM",     "expand filesystem operation"),
     CREATE_FILE_SYSTEM_SHARE   ("CREATE FILESHARE",      "create fileshare operation"),
+    UPDATE_FILE_SYSTEM_SHARE   ("UPDATE FILESHARE",      "update fileshare operation"),
+    UPDATE_FILE_SNAPSHOT_SHARE   ("UPDATE FILE SNAPSHOT SHARE",      "update file snapshot share operation"),
     CREATE_FILE_SYSTEM_SNAPSHOT("SNAPSHOT FILESYSTEM",   "snapshot filesystem"),
     UPDATE_FILE_SYSTEM_SHARE_ACL  ("UPDATE CIFS SHARE ACL",    "update filesystem share ACLs"),
     UPDATE_FILE_SNAPSHOT_SHARE_ACL  ("UPDATE CIFS SHARE SNAPSHOT ACL", "update snapshot share ACLs"),

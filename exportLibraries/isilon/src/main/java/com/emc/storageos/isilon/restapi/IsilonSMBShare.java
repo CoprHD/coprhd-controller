@@ -197,6 +197,10 @@ public class IsilonSMBShare {
 	public void setPermissions(ArrayList<Permission> permissions) {
 		this.permissions = permissions;
 	}
+	
+	public void setDescription(String description) {
+		this.description = description;
+	}
 
     public String getName() {
         return this.name;

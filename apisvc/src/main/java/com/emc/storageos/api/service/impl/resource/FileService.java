@@ -117,6 +117,7 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
+import com.emc.storageos.model.file.FileSystemShareUpdateParam;
 import com.emc.storageos.model.file.FileSystemSnapshotParam;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
@@ -1850,6 +1851,79 @@ public class FileService extends TaskResourceService {
 		return rules;
 
 	}
+    
+    /**
+     * API to update name and description  of an existing share     
+     * @param id  the file system URI
+     * @param shareName  name of the share
+     * @param param request payload object of type <code>com.emc.storageos.model.file.FileSystemShareUpdateParam</code>
+     * @return TaskResponse
+     * @throws InternalException
+     */
+     
+    @PUT
+    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Path("/{id}/shares/{shareName}")
+    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
+    public TaskResourceRep updateShare(@PathParam("id") URI id,            
+    		@PathParam("shareName") String shareName,
+    		FileSystemShareUpdateParam param) throws InternalException {
+
+    	_log.info("modify file share request received. Filesystem: {}, Share: {}", 
+    			id.toString(), shareName);
+    	_log.info("Request body: {}", param.toString());
+
+    	ArgValidator.checkFieldNotNull(shareName, "shareName");
+    	ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+    	if (param.getDescription() == null || param.getDescription().isEmpty() ) {
+    		throw APIException.badRequests.updateFileshareParamMissing();
+    	}
+
+    	FileShare fs = queryResource(id);
+    	ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+
+    	StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+    	SMBFileShare smbShare = null;
+
+    	if(fs.getSMBFileShares() != null) {
+    		_log.info("Number of SMBShares found {} and looking for share to read {} ", fs.getSMBFileShares().size(), shareName);
+    		_log.info("Get file system share: file system id: {}, share name {}", id, shareName);
+    		smbShare = fs.getSMBFileShares().get(shareName);
+    		if(smbShare == null) {
+    			_log.error("CIFS share does not exist {}", shareName);
+
+    			throw APIException.notFound.invalidParameterObjectHasNoSuchShare(fs.getId(), shareName);
+    		}
+    	}
+
+    	String task = UUID.randomUUID().toString();
+
+    	//Check for VirtualPool whether it has CIFS enabled
+    	VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
+    	if(!vpool.getProtocols().contains(StorageProtocol.File.CIFS.name())) {
+    		throw APIException.methodNotAllowed.vPoolDoesntSupportProtocol("Vpool doesn't support "
+    				+ StorageProtocol.File.CIFS.name() + " protocol");
+    	}
+    	_log.info("Request payload verified. No errors found.");
+
+    	FileController controller = getController(FileController.class, device.getSystemType());
+
+    	Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(), 
+    			task, ResourceOperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE);
+    	op.setDescription("Update file system share");
+    	FileSMBShare fileSMBShare = new FileSMBShare(shareName, smbShare.getDescription(), smbShare.getPermissionType(),
+    			smbShare.getPermission(), Integer.toString(smbShare.getMaxUsers()), smbShare.getNativeId(), smbShare.getPath());
+    	fileSMBShare.setStoragePortGroup(smbShare.getPortGroup());
+
+    	controller.updateShare(device.getId(), fs.getId(), fileSMBShare, param, task);
+
+    	auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM_SHARE, true, AuditLogManager.AUDITOP_BEGIN,
+    			fs.getId().toString(), device.getId().toString(), param);            
+
+    	return toTask(fs, task, op);
+    }
+
     
     
     /**

@@ -179,13 +179,16 @@ public class VPlexApiClient {
     /**
      * Gets information about the VPLEX clusters.
      * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *        to get additional info about the systems and volumes.
+     * 
      * @return A list of VPlexClusterInfo instances.
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo() throws VPlexApiException {
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(true);
+        return _discoveryMgr.getClusterInfo(shallow);
     }
     
     /**
@@ -376,6 +379,8 @@ public class VPlexApiClient {
      * @param preserveData true if the native volume data should be preserved
      *        during virtual volume creation.
      * @param winningClusterId Used to set detach rules for distributed volumes.
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *        clusters.
      * 
      * @return The information for the created virtual volume.
      * 
@@ -384,11 +389,11 @@ public class VPlexApiClient {
      */
     public VPlexVirtualVolumeInfo createVirtualVolume(
         List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
-        boolean discoveryRequired, boolean preserveData, String winningClusterId)
+        boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList)
         throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
-            discoveryRequired, preserveData, winningClusterId);
+            discoveryRequired, preserveData, winningClusterId, clusterInfoList);
     }
     
     /**
@@ -1495,6 +1500,17 @@ public class VPlexApiClient {
      */
     public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName){
         return _discoveryMgr.findVirtualVolume(virtualVolumeName, false);
+    }
+    
+    /**
+     * Finds virtual volume by name.
+     *
+     * @param clusterInfoList List of detailed VPLEX cluster info. 
+     * @param virtualVolumeInfos List of virtual volumes to find
+     * @return A map of virtual volume name to the virtual volume info.
+     */
+    public Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes( List<VPlexClusterInfo> clusterInfoList, List<VPlexVirtualVolumeInfo> virtualVolumeInfos){
+        return _discoveryMgr.findVirtualVolumes(clusterInfoList, virtualVolumeInfos, true, true);
     }
     
     /**

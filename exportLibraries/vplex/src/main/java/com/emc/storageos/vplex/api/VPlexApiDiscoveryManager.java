@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.codehaus.jettison.json.JSONObject;
@@ -1017,6 +1018,116 @@ public class VPlexApiDiscoveryManager {
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
                 } else {
                     throw e;
+                }
+            }             
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Find the virtual volume containing the passed name or name fragment.
+     * In some cases, the passed name fragment could be a storage volume 
+     * used by the virtual volume.
+     * 
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *         clusters.
+     * @param virtualVolumeInfos List of virtual volumes to find.
+     * @param fetchAtts true to fetch the virtual volume attributes.
+     * @param retry Indicates retry should occur if the first attempt to find
+     *        the virtual volume fails.
+     * 
+     * @return A map of virtual volume map to the virtual volume info.
+     * 
+     * @throws VPlexApiException When an error occurs finding the virtual
+     *         volume.
+     */
+    Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes(List<VPlexClusterInfo> clusterInfoList, List<VPlexVirtualVolumeInfo> virtualVolumeInfos,
+        Boolean fetchAtts, boolean retry) throws VPlexApiException {
+        
+        if (virtualVolumeInfos == null) {
+            throw VPlexApiException.exceptions.cantFindRequestedVolumeNull();
+        }
+        
+        StringBuffer volumeNameStrBuf = new StringBuffer();
+        
+        // Make a map of virtual volume name to VPlexVirtualVolumeInfo 
+        Map<String, VPlexVirtualVolumeInfo> virtualVolumesToFind = new HashMap<String, VPlexVirtualVolumeInfo>(); 
+        for(VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeInfos){
+        	volumeNameStrBuf.append(virtualVolumeInfo.getName()).append(" ");	
+        	virtualVolumesToFind.put(virtualVolumeInfo.getName(), virtualVolumeInfo);
+        }
+        s_logger.info("Find virtual volume containing {}", volumeNameStrBuf.toString());
+        
+        // Make a map of virtual volume name to VPlexVirtualVolumeInfo for the virtual volume found on VPLEX.
+        Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = new HashMap<String, VPlexVirtualVolumeInfo>(); 
+        
+        int retryCount = 0;
+        while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
+            try {
+            	// Make a map of VPLEX cluster to virtual volumes found on that cluster.
+            	Map<String, List<VPlexVirtualVolumeInfo>> clusterToVirtualVolumeMap = new HashMap<String, List<VPlexVirtualVolumeInfo>>();
+            	for(VPlexClusterInfo clusterInfo : clusterInfoList){
+            		List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = getVirtualVolumesForCluster(clusterInfo.getName());
+            		clusterToVirtualVolumeMap.put(clusterInfo.getName(), clusterVolumeInfoList);
+            	}
+            	
+            	List<VPlexVirtualVolumeInfo> virtualVolumeToFindList = new ArrayList<VPlexVirtualVolumeInfo>();
+            	for (Map.Entry<String, VPlexVirtualVolumeInfo> entry : virtualVolumesToFind.entrySet()){
+            		virtualVolumeToFindList.add(entry.getValue());
+            	}
+            	 
+            	for(VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeToFindList){
+            		List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = clusterToVirtualVolumeMap.get(virtualVolumeInfo.getClusters().get(0));
+            		for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
+            			s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
+            			// We use contains as at times the passed name is only
+            			// a portion of the virtual volume name for example, it
+            			// may be the name of one of the storage volumes used by
+            			// the virtual volume.
+            			if (volumeInfo.getName().contains(virtualVolumeInfo.getName())) {
+            				s_logger.info("Found virtual volume {}", volumeInfo.getName());
+            				foundVirtualVolumes.put(virtualVolumeInfo.getName(), volumeInfo);
+            				// Remove the found virtual volume from the virtualVolumesToFind Map
+            				virtualVolumesToFind.remove(virtualVolumeInfo.getName());
+            			}
+            		}
+            	}
+                
+            	if(!foundVirtualVolumes.isEmpty() && foundVirtualVolumes.size() == virtualVolumeInfos.size()){
+            		return foundVirtualVolumes;
+            	} 
+            	
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.warn("Virtual volumes not found on try {} of {}", retryCount,
+                        VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES);
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                    break;
+                }
+            } catch (VPlexApiException vae) {
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.error(String.format("Exception finding virtual volumes on try %d of %d",
+                        retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), vae);
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                	if(!foundVirtualVolumes.isEmpty()){
+                		return foundVirtualVolumes;
+                	} else {
+                		throw vae;
+                	}
+                }
+            } catch (Exception e) {
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.error(String.format("Exception finding virtual volumes on try %d of %d",
+                        retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), e);
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                	if(!foundVirtualVolumes.isEmpty()){
+                		return foundVirtualVolumes;
+                	} else {
+                		throw e;
+                	}
                 }
             }             
         }

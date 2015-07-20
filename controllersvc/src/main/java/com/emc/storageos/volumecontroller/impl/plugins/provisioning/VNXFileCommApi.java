@@ -1311,11 +1311,11 @@ public class VNXFileCommApi {
             reqAttributeMap.put( VNXFileConstants.MOVER_ID, moverOrVdmId );
             reqAttributeMap.put( VNXFileConstants.DATAMOVER_NAME, moverOrVdmName);
             reqAttributeMap.put( VNXFileConstants.ISVDM, isVdm);
-            _provExecutor.set_keyMap( reqAttributeMap );
+            _provExecutor.setKeyMap( reqAttributeMap );
 
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_CIFS_SERVERS));
 
-            List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
             for(VNXCifsServer cifsServer:cifsServers) {
                 _log.info("CIFServer:"+ cifsServer.toString());
             }

@@ -2343,4 +2343,11 @@ public class VNXeStorageDevice extends VNXeOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         
     }
+
+    @Override
+    public BiosCommandResult updateShare(StorageSystem storageObj,
+            FileSMBShare smbShare, FileDeviceInputOutput args) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

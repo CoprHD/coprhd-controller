@@ -1701,16 +1701,18 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @return
      */
     private URI getHDSServerManagementServerInfo(StorageSystem system) {
-        Object[] uriParams = new Object[3];
+    	String protocol;
+    	String smisIp;
+    	int port;
         if (Boolean.TRUE.equals(system.getSmisUseSSL())) {
-            uriParams[0] = HDSConstants.HTTPS_URL;
+        	protocol = HDSConstants.HTTPS_URL;
         } else {
-            uriParams[0] = HDSConstants.HTTP_URL;
+        	protocol = HDSConstants.HTTP_URL;
         }
-        uriParams[1] = system.getSmisProviderIP();
-        uriParams[2] = system.getSmisPortNumber();
+        smisIp = system.getSmisProviderIP();
+        port = system.getSmisPortNumber();
         URI uri = URI.create(String.format("%1$s://%2$s:%3$d/service/StorageManager",
-                uriParams)); //NOSONAR ("Ignore String.format sonar voilation")
+        		protocol,smisIp,port)); 
         log.info("HiCommand DM server url to query: {}", uri);
         return uri;
     }

@@ -428,8 +428,12 @@ public class WorkflowService implements WorkflowController {
                 }
                 // Check to see if the workflow might be finished, or need a rollback.
                 if (workflow.allStatesTerminal()) {
-                    workflowDeleted = doWorkflowEndProcessing(workflow, automaticRollback);
+                    workflowDeleted = doWorkflowEndProcessing(workflow, automaticRollback, lock);
+                    if (workflowDeleted) {
+                        // lock is released by end processing if the workflow is deleted
+                        lock = null;
                 }
+            }
             }
         } catch (Exception ex) {
             String exMsg = "Exception processing updateStepStatus stepId: " + stepId + ": " + ex.getMessage();
@@ -449,10 +453,12 @@ public class WorkflowService implements WorkflowController {
      * 
      * @param workflow
      * @param automaticRollback
+     * @param workflowLock -- released only if workflow is deleted
      * @return deleted
      * @throws DeviceControllerException
      */
-    private boolean doWorkflowEndProcessing(Workflow workflow, boolean automaticRollback) throws DeviceControllerException {
+    private boolean doWorkflowEndProcessing(Workflow workflow, boolean automaticRollback, 
+            InterProcessLock workflowLock) throws DeviceControllerException {
         Map<String, StepStatus> statusMap = workflow.getStepStatusMap();
 
         // Print out the status of each step into the log.
@@ -531,6 +537,11 @@ public class WorkflowService implements WorkflowController {
                 }
             }
         } finally {
+//            // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
+//            if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR 
+//                    && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
+//                destroyWorkflow(workflow);
+//            }
             logWorkflow(workflow, true);
             // Release the Workflow's locks, if any.
             boolean removed = _ownerLocker.releaseLocks(workflow.getWorkflowURI().toString());
@@ -541,6 +552,7 @@ public class WorkflowService implements WorkflowController {
             if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR 
             		&& workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
             if (!workflow._nested) {
+                unlockWorkflow(workflow, workflowLock);
         	    // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
                     if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR
                         && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
@@ -1597,6 +1609,9 @@ public class WorkflowService implements WorkflowController {
 	        // Now try to start rollback of top level Workflow
 	        _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class, 
                     workflow.getWorkflowURI(), workflow.getOrchTaskId(), "rolling back top-level-workflow");
+	        InterProcessLock workflowLock = null;
+	        try {
+	            workflowLock = lockWorkflow(workflow);
 			boolean rollBackStarted = initiateRollback(workflow);
 			if (rollBackStarted) {
             	_log.info(String.format("Rollback initiated workflow %s" ,workflow.getWorkflowURI() ));
@@ -1610,7 +1625,10 @@ public class WorkflowService implements WorkflowController {
 	            default:
 	                WorkflowException ex = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
 	                completer.error(_dbClient, ex);;
-			}
+	                }
+	        }
+	        } finally {
+	            unlockWorkflow(workflow, workflowLock);
 	        }
 		} catch (WorkflowException ex) {
 	        _log.info("Exception rolling back workflow: ", ex.getMessage(), ex);
@@ -1791,6 +1809,9 @@ public class WorkflowService implements WorkflowController {
         }
 
         // See if can restart the previous rollback.
+		InterProcessLock workflowLock = null;
+		try {
+		    workflowLock = lockWorkflow(workflow);
         boolean rollBackStarted = resumePreviousRollback(workflow);
         if (rollBackStarted) {
             _log.info(String.format(
@@ -1818,6 +1839,9 @@ public class WorkflowService implements WorkflowController {
             ServiceCoded coded = WorkflowException.exceptions.workflowRollbackNotInitiated(uri.toString());
             WorkflowStepCompleter.stepFailed(stepId, coded);
         }
+		} finally {
+		    unlockWorkflow(workflow, workflowLock);
+    }
     }
 
     /**

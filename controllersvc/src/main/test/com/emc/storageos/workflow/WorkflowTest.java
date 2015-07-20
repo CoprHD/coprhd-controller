@@ -34,6 +34,7 @@ import com.emc.storageos.util.ControllersvcTestBase;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocatorTest;
+import com.emc.storageos.workflow.Workflow.StepState;
 
 /**
  * This Junit uses the ControllersvcTestBase to start controllersvc and run it within the Junit.
@@ -46,7 +47,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
     protected static final Logger log = LoggerFactory.getLogger(WorkflowTest.class);
     
     // Set of injected failure steps. It's level * 100 + step
-    private Set<Integer> injectedFailures = new HashSet<Integer>();
+    private static final Set<Integer> injectedFailures = new HashSet<Integer>();
     private boolean hasInjectedFailure(int level, int step) {
         return injectedFailures.contains(level*100+step);
     }
@@ -100,23 +101,31 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         Workflow workflow = generate3StepWF(0, 3, taskId);
         WorkflowState state = waitOnWorkflowComplete(taskId);
         log.info("Top level workflow state: " + state);
-        
+        Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
+        assertTrue(state == WorkflowState.SUCCESS);
+        validateStepStates(stepMap, test2SuccessSteps, test2ErrorSteps, test2CancelledSteps);
+        log.info("Test2 completed");        
     }
-    @Ignore
+    public static final String[] test2SuccessSteps = { "L0S1 sub", "L0S2 sub", "L0S3 sub", 
+        "L1S1 sub", "L1S2 sub", "L1S3 sub", "L2S1 sub", "L2S2 sub", "L2S3 sub"};
+    public static final String[] test2ErrorSteps = { };
+    public static final String[] test2CancelledSteps = { };
     @Test
     /**
      * This tests a three level hierarchical workflow where the lowest level last step fails.
      * After the workflow suspends, remove the error and resume the workflow.
      */
     public void test3() {
-        log.info("Test started");
-        // Don't cause in failures
+        log.info("Test3 started");
         injectedFailures.clear();
         addInjectedFailure(2,3);  // level 2, step 3
         String taskId = UUID.randomUUID().toString();
         Workflow workflow = generate3StepWF(0, 3, taskId);
         WorkflowState state = waitOnWorkflowComplete(taskId);
         log.info("Top level workflow state: " + state);
+        Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
+        assertTrue(state == WorkflowState.SUSPENDED_ERROR);
+        validateStepStates(stepMap, test3aSuccessSteps, test3aErrorSteps, test3aCancelledSteps);
         if (state == WorkflowState.SUSPENDED_ERROR) {
             // clear the error and try and resume.
             injectedFailures.clear();
@@ -125,41 +134,67 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
             taskStatusMap.put(taskId, WorkflowState.CREATED);
             state = waitOnWorkflowComplete(taskId);
             log.info("Top level workflow state after resume: " + state);
+            stepMap = readWorkflowFromDb(taskId);
+            assertTrue(state == WorkflowState.SUCCESS);
+            validateStepStates(stepMap, test3bSuccessSteps, test3bErrorSteps, test3bCancelledSteps);
         }
+        log.info("Test3 completed");
     }
-    
+    private static final String[] test3aSuccessSteps = { "L0S1 sub", "L1S1 sub", "L2S1 sub", "L2S2 sub" };
+    private static final String[] test3aErrorSteps = { "L0S2 sub", "L1S2 sub", "L2S3 sub" };
+    private static final String[] test3aCancelledSteps = { "L0S3 sub", "L1S3 sub" };
+    private static final String[] test3bSuccessSteps = { "L0S1 sub", "L0S2 sub", "L0S3 sub", 
+        "L1S1 sub", "L1S2 sub", "L1S3 sub", "L2S1 sub", "L2S2 sub", "L2S3 sub" };
+    private static final String[] test3bErrorSteps = { };
+    private static final String[] test3bCancelledSteps = {  };
     @Test
     /**
      * This tests a three level hierarchical workflow where the lowest level last step fails.
      * After the workflow suspends, rollback the workflow.
      */
     public void test4() {
-        log.info("Test started");
-        // Don't cause in failures
+        for (int i=0; i < 20; i++) {
+        log.info("Test4 started");
         injectedFailures.clear();
         addInjectedFailure(2,3);  // level 2, step 3
         String taskId = UUID.randomUUID().toString();
         Workflow workflow = generate3StepWF(0, 3, taskId);
         WorkflowState state = waitOnWorkflowComplete(taskId);
         log.info("Top level workflow state: " + state);
-        readWorkflowFromDb(taskId);
+        Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
         assertTrue(state == WorkflowState.SUSPENDED_ERROR);
+        validateStepStates(stepMap, test4aSuccessSteps, test4aErrorSteps, test4aCancelledSteps);
         if (state == WorkflowState.SUSPENDED_ERROR) {
             String rollbackTaskId = UUID.randomUUID().toString();
             taskStatusMap.remove(taskId);
             workflowService.rollbackWorkflow(workflow.getWorkflowURI(), rollbackTaskId);
             state = waitOnWorkflowComplete(taskId);
             log.info("Top level workflow state after rollback: " + state);
-            readWorkflowFromDb(taskId);
-            assertTrue(state == WorkflowState.ERROR);
+            stepMap = readWorkflowFromDb(taskId);
+            // assertTrue(state == WorkflowState.ERROR);
+            validateStepStates(stepMap, test4bSuccessSteps, test4bErrorSteps, test4bCancelledSteps);
+        }
+        log.info("Test4 completed");
         }
     }
+    
+    private static final String[] test4aSuccessSteps = { "L0S1 sub", "L1S1 sub", "L2S1 sub", "L2S2 sub" };
+    private static final String[] test4aErrorSteps = { "L0S2 sub", "L1S2 sub", "L2S3 sub" };
+    private static final String[] test4aCancelledSteps = { "L0S3 sub", "L1S3 sub" };
+    private static final String[] test4bSuccessSteps = { "L0S1 sub", "L1S1 sub", "L2S1 sub", "L2S2 sub", 
+        "Rollback L0S1 sub", "Rollback L0S2 sub", "Rollback L1S1 sub", "Rollback L1S2 sub" };
+    private static final String[] test4bErrorSteps = { "L0S2 sub", "L1S2 sub", "L2S3 sub", 
+        "Rollback L2S3 sub" };
+    private static final String[] test4bCancelledSteps = { "L0S3 sub", "L1S3 sub", 
+        "Rollback L2S1 sub", "Rollback L2S2 sub"  };
     
     Workflow.Method nopMethod(int level, int step) {
         return new Workflow.Method("nop", level, step);
     }
     public void nop(int level, int step, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
         if (hasInjectedFailure(level, step)) {
+            log.info("Injecting failure in step: " + genMsg(level, step, "nop"));
             ServiceCoded coded = WorkflowException.errors.unforeseen();
             WorkflowStepCompleter.stepFailed(stepId, coded);
         } else {
@@ -180,6 +215,7 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
     public void sub(int level, int maxLevels,  int stepIndex, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         if (hasInjectedFailure(level, stepIndex)) {
+            log.info("Injecting failure in step: " + genMsg(level, stepIndex, "sub"));
             ServiceCoded coded = WorkflowException.errors.unforeseen();
             WorkflowStepCompleter.stepFailed(stepId, coded);
             return;
@@ -224,6 +260,11 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         return String.format("L%dS%d %s", level, step, msg);
     }
     
+    /**
+     * Reads a workflow from the database. Called recursively for sub-workflows.
+     * @param orchTaskId -- the Orchestration task id.
+     * @return A map from step description to WorkflowStep entry
+     */
     private Map<String, WorkflowStep> readWorkflowFromDb(String orchTaskId) {
         Map<String, WorkflowStep> msgToStep = new HashMap<String, WorkflowStep>();
         Joiner j = new Joiner(dbClient);
@@ -235,8 +276,44 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         for (WorkflowStep step : steps) {
             msgToStep.put(step.getDescription(), step);
             System.out.println(String.format("Step %s: status: %s message: %s", step.getDescription(), step.getState(), step.getMessage()));
+            // Check for sub-workflow.
+            Map<String, WorkflowStep> subWorkflowMap = readWorkflowFromDb(step.getStepId());
+            msgToStep.putAll(subWorkflowMap);
         }
         return msgToStep;
+    }
+    
+    /**
+     * Given the step descrption to WorkflowStep map computed by readWorkflowsFromDb,
+     * check that the steps (as given by the descriptions) are in the correct states.
+     * @param descriptionToStepMap
+     * @param successSteps
+     * @param errorSteps
+     * @param cancelledSteps
+     */
+    void validateStepStates(Map<String, WorkflowStep> descriptionToStepMap, 
+            String[] successSteps, String[] errorSteps, String[] cancelledSteps) {
+        // check success steps
+        for (String successStep : successSteps) {
+            WorkflowStep step = descriptionToStepMap.get(successStep);
+            assertNotNull("Step not found: " + successStep, step);
+            assertEquals(String.format("Step %s expected SUCCESS but in state %s", step, step.getState()), 
+                    step.getState(), StepState.SUCCESS.name());
+        }
+     // check error steps
+        for (String errorStep : errorSteps) {
+            WorkflowStep step = descriptionToStepMap.get(errorStep);
+            assertNotNull("Step not found: " + errorStep, step);
+            assertEquals(String.format("Step %s expected ERROR but in state %s", step, step.getState()), 
+                    step.getState(), StepState.ERROR.name());
+        }
+     // check cancelled steps
+        for (String cancelledStep : cancelledSteps) {
+            WorkflowStep step = descriptionToStepMap.get(cancelledStep);
+            assertNotNull("Step not found: " + cancelledStep, step);
+            assertEquals(String.format("Step %s expected CANCELLED but in state %s", step, step.getState()), 
+                    step.getState(), StepState.CANCELLED.name());
+        }
     }
     
     private static class WorkflowCallback implements Workflow.WorkflowCallbackHandler, Serializable {

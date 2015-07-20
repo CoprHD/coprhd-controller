@@ -711,7 +711,7 @@ public class Workflow implements Serializable {
                     break;
                 case CANCELLED: // ERROR has higher precedence than CANCELLED
                     if (state != StepState.ERROR) {
-                    state = StepState.ERROR;
+                    state = StepState.CANCELLED;
                         errorMessage[0] = status.message;
                         break;
                     }

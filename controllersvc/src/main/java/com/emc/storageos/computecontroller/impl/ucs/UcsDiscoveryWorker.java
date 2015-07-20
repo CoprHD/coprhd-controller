@@ -1851,7 +1851,7 @@ public class UcsDiscoveryWorker {
 
             if (vsanSet.contains(swInterfaces.getPortVsanId())){
                 vsanList.remove(swInterfaces.getPortVsanId()); 
-                //vasnList contains SwVasan and this code tries to remove the String element which is not correct
+                //vasnList contains swVsan and this code tries to remove the String element which is not correct
                 
             }
         }

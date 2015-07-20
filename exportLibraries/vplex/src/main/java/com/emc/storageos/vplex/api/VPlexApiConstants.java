@@ -185,6 +185,9 @@ public class VPlexApiConstants {
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
     
+    // Virtual Volume VPD-ID 
+    public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
+    
     // The prefix and suffix VPlex applies to an extent when created 
     // for a storage volume. Note that the suffix implies that only
     // one extent is created for the storage volumes.

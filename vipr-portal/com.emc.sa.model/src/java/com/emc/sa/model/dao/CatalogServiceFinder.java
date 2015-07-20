@@ -43,4 +43,18 @@ public class CatalogServiceFinder extends ModelFinder<CatalogService> {
         return findPermissions(this.clazz, user, tenantId, filterBy);
     }    
     
+    public List<CatalogService> findByExecutionWindow(URI executionWindowId) {
+        
+        List<CatalogService> results = Lists.newArrayList();
+        
+        List<NamedElement> catalogServiceIds = client.findBy(CatalogService.class, CatalogService.DEFAULT_EXECUTION_WINDOW_ID, executionWindowId);
+        if (catalogServiceIds != null) {
+            results.addAll(findByIds(toURIs(catalogServiceIds)));
+        }        
+
+        SortedIndexUtils.sort(results);
+        
+        return results;
+    }
+    
 }

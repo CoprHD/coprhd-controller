@@ -37,6 +37,7 @@ import util.OrderUtils;
 import util.TimeUtils;
 import util.TimeUtils.Duration;
 
+import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionWindowCommonParam;
 import com.emc.vipr.model.catalog.ExecutionWindowCreateParam;
 import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
@@ -160,11 +161,15 @@ public class ExecutionWindows extends Controller {
         if (executionWindow == null) {
             notFound();
         }        
-        
+
         List<OrderRestRep> scheduledOrders = OrderUtils.getScheduledOrdersByExecutionWindow(uri(executionWindowForm.id));
-        if (Validation.hasErrors() || !scheduledOrders.isEmpty()) {
+        List<CatalogServiceRestRep> catalogServices = OrderUtils.getServicesByExecutionWindow(uri(executionWindowForm.id));
+        if (Validation.hasErrors() || scheduledOrders.size() > 0 || !catalogServices.isEmpty()) {
             if (!scheduledOrders.isEmpty()) {
                 renderArgs.put("error", MessagesUtils.get("executionWindow.deleted.containsScheduledOrders", scheduledOrders.size()));
+            }
+            if (!catalogServices.isEmpty()) {
+            	renderArgs.put("error", MessagesUtils.get("executionWindow.deleted.containsCatalogService", catalogServices.size()));
             }
             response.status = 400;
 

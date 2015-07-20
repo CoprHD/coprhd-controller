@@ -20,6 +20,8 @@ import com.emc.vipr.client.core.TenantResources;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
+import com.emc.vipr.model.catalog.CatalogServiceList;
+import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionWindowBulkRep;
 import com.emc.vipr.model.catalog.ExecutionWindowCreateParam;
 import com.emc.vipr.model.catalog.ExecutionWindowList;
@@ -116,5 +118,18 @@ public class ExecutionWindows2 extends AbstractCatalogBulkResources<ExecutionWin
     public void deactivate(URI id) {
         doDeactivate(id);
     }    
+    
+    /**
+     * Return the list of catalog services contained within supplied execution window id
+     * <p>
+     * API Call: <tt>GET /catalog/execution-windows/{id}/services</tt>
+     * 
+     * @param id
+     *        the ID of the execution window
+     */    
+    public List<CatalogServiceRestRep> getCatalogServices(URI executionWindowId) {
+        CatalogServiceList response = client.get(CatalogServiceList.class, PathConstants.CATALOG_SUB_SERVICES_URL, executionWindowId);
+        return null; //ResourceUtils.defaultList(response.getCatalogServices());
+    } 
     
 }

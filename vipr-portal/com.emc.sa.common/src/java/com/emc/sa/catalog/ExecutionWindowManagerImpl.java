@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 import com.emc.sa.model.dao.ModelClient;
 
@@ -56,6 +57,10 @@ public class ExecutionWindowManagerImpl implements ExecutionWindowManager {
             }
         }
         return null;
+    }
+    
+    public List<CatalogService> getCatalogServices(URI executionWindowId) {
+        return client.catalogServices().findByExecutionWindow(executionWindowId);
     }
     
 }

@@ -7,6 +7,7 @@ package com.emc.sa.catalog;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
 
 public interface ExecutionWindowManager {
@@ -22,5 +23,7 @@ public interface ExecutionWindowManager {
     public List<ExecutionWindow> getExecutionWindows(URI tenantId);
 
     public ExecutionWindow getExecutionWindow(String name, URI tenantId);
+    
+    public List<CatalogService> getCatalogServices(URI executionWindowId);
 
 }

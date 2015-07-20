@@ -734,6 +734,7 @@ executionWindow.notfound='%s' not found.
 executionWindow.save.failed=Failed to save '%s'.
 executionWindow.deleted.failed=Failed to delete '%s'.
 executionWindow.deleted.containsScheduledOrders=Failed to delete Execution Window because it contains %s scheduled order(s).
+executionWindow.deleted.containsCatalogService=Failed to delete Execution Window because it contains %s service(s).
 executionWindow.overlapping=Unable to save Execution Window because of overlapping windows.
 
 executionWindowType.daily=Daily Execution Window

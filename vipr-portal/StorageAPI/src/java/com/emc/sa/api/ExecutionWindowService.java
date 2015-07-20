@@ -29,11 +29,16 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.sa.api.mapper.CatalogServiceMapper;
 import com.emc.sa.api.mapper.ExecutionWindowFilter;
 import com.emc.sa.api.mapper.ExecutionWindowMapper;
 import com.emc.sa.api.utils.ValidationUtils;
 import com.emc.sa.catalog.ExecutionWindowManager;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.ExecutionWindow;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -49,6 +54,8 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.vipr.client.catalog.impl.SearchConstants;
+import com.emc.vipr.model.catalog.CatalogServiceList;
+import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionWindowBulkRep;
 import com.emc.vipr.model.catalog.ExecutionWindowCommonParam;
 import com.emc.vipr.model.catalog.ExecutionWindowCreateParam;
@@ -297,4 +304,29 @@ public class ExecutionWindowService extends CatalogTaggedResourceService {
          return new ExecutionWindowBulkRep(BulkList.wrapping(_dbIterator, ExecutionWindowMapper.getInstance(), filter));
      }
     
+     /**     
+      * Get service associated with Execution Window 
+      * @param id the URN of an execution window
+      * @prereq none
+      * @brief Get catalog services
+      * @return Catalog Services details
+      */
+     @GET
+     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+     @Path("/{id}/services")
+     public CatalogServiceList getCatalogServices(@PathParam("id") URI id) {
+         CatalogServiceList catalogServiceList = new CatalogServiceList();
+         
+         List<CatalogService> catalogServices = executionWindowManager.getCatalogServices(id);
+        
+         for (CatalogService catalogService : catalogServices) {
+             NamedRelatedResourceRep resourceRep = toNamedRelatedResource(ResourceTypeEnum.CATALOG_SERVICE,
+                     catalogService.getId(), catalogService.getLabel());
+             catalogServiceList.getCatalogServices().add(resourceRep);
+         }
+       //  catalogServiceList.getCatalogServices().add(CatalogServiceMapper.map)
+         
+         
+         return catalogServiceList;
+     }   
 }

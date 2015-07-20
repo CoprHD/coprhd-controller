@@ -73,13 +73,14 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
 
             Assert.assertEquals(sw1.getBuffer().toString(), sw2.getBuffer().toString());
         } catch (Exception e) {
-            log.error("testSchemaConsistent failed:", e);
+        	log.error("testSchemaConsistent failed:", e);
             Assert.fail();
         } finally {
             try {
                 sw1.close();
                 sw2.close();
             } catch (IOException e) {
+            	log.warn("IO close exception:{}", e);
             }
         }
     }
@@ -103,13 +104,14 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
 
             writer.write(sw.toString());
         } catch (Exception e) {
-            log.error("testSchemaCheckRoundTrip failed:{}", e.getMessage());
+        	log.error("testSchemaCheckRoundTrip failed:{}", e);
             Assert.fail();
         } finally {
             try {
                 if (writer != null)
                 writer.close();
             } catch (IOException e) {
+            	log.warn("IO close exception:{}", e);
             }
         }
 
@@ -123,7 +125,7 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
 
             Assert.assertEquals(srcSchema, schemas.getSchemas().get(0));
         } catch (Exception e) {
-            log.warn("unmarshal db schema failed:{}", e.getMessage());
+        	log.error("testSchemaCheckRoundTrip failed:{}", e);
             Assert.fail();
         }
     }

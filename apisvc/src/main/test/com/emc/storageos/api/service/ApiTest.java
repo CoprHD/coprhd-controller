@@ -527,7 +527,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(400, resp.getStatus());
     }
 
-    private void ADConfigListTests() {
+    private void adConfigListTests() {
         AuthnProviderList resp = rSys.path("/vdc/admin/authnproviders").get(AuthnProviderList.class);
         int sz = resp.getProviders().size();
 
@@ -688,7 +688,7 @@ public class ApiTest extends ApiTestBase {
 
     private void testAll() throws Exception {
 
-        ADConfigTests();
+        adConfigTests();
         proxyTokenTests();
         userInfoTests();
         // uncomment the following line when CQ606655 has been fixed
@@ -874,9 +874,9 @@ public class ApiTest extends ApiTestBase {
     }
 
 
-    private void ADConfigTests() throws Exception {
+    private void adConfigTests() throws Exception {
         addBadADConfig();
-        ADConfigListTests();
+        adConfigListTests();
         authProvidersConnectivityTests();
     }
 

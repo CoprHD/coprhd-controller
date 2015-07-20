@@ -106,6 +106,6 @@ public class LogStatusInfo {
     }
     
     public boolean isEmpty() {
-        return status.size() == 0;
+        return status.isEmpty();
     }
 } 

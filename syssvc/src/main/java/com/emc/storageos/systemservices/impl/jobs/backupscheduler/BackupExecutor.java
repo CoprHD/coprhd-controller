@@ -97,7 +97,7 @@ public class BackupExecutor {
             return false;
         }
         
-        Date lastBackupDateTime = this.cfg.retainedBackups.size() == 0 ? null :
+        Date lastBackupDateTime = this.cfg.retainedBackups.isEmpty() ? null :
             ScheduledBackupTag.parseBackupTag(this.cfg.retainedBackups.last());
 
         log.info("Last backup is {}, expected is {}", lastBackupDateTime == null ? "N/A" :

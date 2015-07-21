@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -152,8 +153,13 @@ public class HDSCloneOperations implements CloneOperations{
 			Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeURI);
 			hdsProtectionOperations.deleteShadowImagePair(storageSystem, sourceVolume, targetVolume);
 			hdsProtectionOperations.removeDummyLunPath(storageSystem, cloneVolumeURI);
+            StringSet fullCopies = sourceVolume.getFullCopies();
+            if ((fullCopies != null) && (fullCopies.contains(cloneVolumeURI.toString()))) {
+                fullCopies.remove(cloneVolumeURI.toString());
+                dbClient.persistObject(sourceVolume);
+            }
+            targetVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
 			targetVolume.setReplicaState(ReplicationState.DETACHED.name());
-			targetVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
 			dbClient.persistObject(targetVolume);
 			if (taskCompleter != null) {
 			    taskCompleter.ready(dbClient);

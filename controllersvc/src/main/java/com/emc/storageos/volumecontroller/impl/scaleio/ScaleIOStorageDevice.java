@@ -40,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -501,6 +502,17 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         log.info("Nothing to do here.  ScaleIO full copies do not require detaching.");
         // no operation, set to ready
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        URI sourceURI = clone.getAssociatedSourceVolume();
+        if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
+            (URIUtil.isType(sourceURI, Volume.class))) {
+            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+            StringSet fullCopies = sourceVolume.getFullCopies();
+            if ((fullCopies != null) && (fullCopies.contains(cloneVolume.toString()))) {
+                fullCopies.remove(cloneVolume.toString());
+                dbClient.persistObject(sourceVolume);
+            }
+        }
+        clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);
         taskCompleter.ready(dbClient);

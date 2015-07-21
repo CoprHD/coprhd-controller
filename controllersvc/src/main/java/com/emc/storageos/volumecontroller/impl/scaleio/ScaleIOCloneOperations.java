@@ -16,8 +16,10 @@
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -99,6 +101,16 @@ public class ScaleIOCloneOperations implements CloneOperations {
         log.info("START detachSingleClone operation");
         // no operation, set to ready
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        URI sourceURI = clone.getAssociatedSourceVolume();
+        if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
+            (URIUtil.isType(sourceURI, Volume.class))) {
+            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+            StringSet fullCopies = sourceVolume.getFullCopies();
+            if ((fullCopies != null) && (fullCopies.contains(cloneVolume.toString()))) {
+                fullCopies.remove(cloneVolume.toString());
+                dbClient.persistObject(sourceVolume);
+            }
+        }
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);

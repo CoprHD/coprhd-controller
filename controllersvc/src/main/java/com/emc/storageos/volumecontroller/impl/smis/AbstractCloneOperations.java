@@ -40,12 +40,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -267,6 +269,16 @@ public class AbstractCloneOperations implements CloneOperations {
              * @see <code>BlockService#activateFullCopy
              * volume.setSyncActive(false);
              */
+            URI sourceURI = clone.getAssociatedSourceVolume();
+            if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
+                (URIUtil.isType(sourceURI, Volume.class))) {
+                Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceURI);
+                StringSet fullCopies = sourceVolume.getFullCopies();
+                if ((fullCopies != null) && (fullCopies.contains(cloneVolume.toString()))) {
+                    fullCopies.remove(cloneVolume.toString());
+                    _dbClient.persistObject(sourceVolume);
+                }
+            }
             clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             clone.setReplicaState(ReplicationState.DETACHED.name());
             _dbClient.persistObject(clone);

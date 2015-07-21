@@ -34,11 +34,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -320,6 +322,17 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 _helper.callModifyReplica(storage, detachCGCloneInput);
                 List<Volume> cloneVolumes = _dbClient.queryObject(Volume.class, clones);
                 for (Volume theClone : cloneVolumes) {
+                    URI sourceURI = theClone.getAssociatedSourceVolume();
+                    if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
+                        (URIUtil.isType(sourceURI, Volume.class))) {
+                        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceURI);
+                        StringSet fullCopies = sourceVolume.getFullCopies();
+                        String cloneId = theClone.getId().toString();
+                        if ((fullCopies != null) && (fullCopies.contains(cloneId))) {
+                            fullCopies.remove(cloneId);
+                            _dbClient.persistObject(sourceVolume);
+                        }
+                    }
                     theClone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                     theClone.setReplicaState(ReplicationState.DETACHED.name());
                 }

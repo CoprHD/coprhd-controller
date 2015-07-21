@@ -78,6 +78,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -6673,7 +6674,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume,
                     true, _dbClient, false);
                 if (nativeFullCopyVolume != null) {
-                    fullCopyVolume.setReplicaState(nativeFullCopyVolume.getReplicaState());
+                    String nativeFCReplicaState = nativeFullCopyVolume.getReplicaState();
+                    if (ReplicationState.DETACHED.name().equals(nativeFCReplicaState)) {
+                        URI sourceURI = fullCopyVolume.getAssociatedSourceVolume();
+                        if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
+                            (URIUtil.isType(sourceURI, Volume.class))) {
+                            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceURI);
+                            StringSet fullCopies = sourceVolume.getFullCopies();
+                            String fullCopyId = fullCopyVolumeURI.toString();
+                            if ((fullCopies != null) && (fullCopies.contains(fullCopyId))) {
+                                fullCopies.remove(fullCopyId);
+                                _dbClient.persistObject(sourceVolume);
+                            }
+                        }
+                        fullCopyVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+                    }
+                    fullCopyVolume.setReplicaState(nativeFCReplicaState);
                     _dbClient.persistObject(fullCopyVolume);
                 } else {
                     _log.warn("Can't find native full copy volume");

@@ -27,11 +27,13 @@ import com.emc.storageos.cinder.CinderEndPointInfo;
 import com.emc.storageos.cinder.api.CinderApi;
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -166,6 +168,16 @@ public class CinderCloneOperations implements CloneOperations
 	{
 		//Not Supported
 	    Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        URI sourceURI = clone.getAssociatedSourceVolume();
+        if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
+            (URIUtil.isType(sourceURI, Volume.class))) {
+            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
+            StringSet fullCopies = sourceVolume.getFullCopies();
+            if ((fullCopies != null) && (fullCopies.contains(cloneVolume.toString()))) {
+                fullCopies.remove(cloneVolume.toString());
+                dbClient.persistObject(sourceVolume);
+            }
+        }
 	    clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);

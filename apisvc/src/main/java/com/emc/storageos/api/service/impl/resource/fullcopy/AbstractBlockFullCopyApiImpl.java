@@ -338,6 +338,19 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                     if (!fullCopyURI.equals(fullCopyVolume.getId())) {
                         volume = _dbClient.queryObject(Volume.class, fullCopyURI);
                     }
+                    
+                    URI sourceURI = volume.getAssociatedSourceVolume();
+                    if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
+                        (URIUtil.isType(sourceURI, Volume.class))) {
+                        Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceURI);
+                        StringSet fullCopies = sourceVolume.getFullCopies();
+                        if ((fullCopies != null) && (fullCopies.contains(fullCopyURI.toString()))) {
+                            fullCopies.remove(fullCopyURI.toString());
+                            _dbClient.persistObject(sourceVolume);
+                        }
+                    }
+
+                    volume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                     volume.setReplicaState(ReplicationState.DETACHED.name());
                     _dbClient.persistObject(volume);
                 }

@@ -56,6 +56,7 @@ public class Workflow implements Serializable {
     Set<URI> _childWorkflows = new HashSet<URI>();	// workflowURI of child workflows
     Boolean _suspendOnError = true;  // suspend on error (rather than rollback)
     private WorkflowState _workflowState;
+    URI _suspendStep;            // Step to initiate workflow suspend
 
     // Define the serializable, persistent fields save in ZK
     private static final ObjectStreamField[] serialPersistentFields = {
@@ -77,7 +78,8 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_stepMap", Map.class),
             new ObjectStreamField("_stepStatusMap", Map.class),
             new ObjectStreamField("_suspendOnError", Boolean.class), 
-            new ObjectStreamField("_workflowState", WorkflowState.class)
+            new ObjectStreamField("_workflowState", WorkflowState.class), 
+            new ObjectStreamField("_suspendStep", URI.class)
     };
 
     private static final Logger _log = LoggerFactory.getLogger(Workflow.class);
@@ -663,6 +665,7 @@ public class Workflow implements Serializable {
     	switch(stepState) {
     	case SUCCESS: return WorkflowState.SUCCESS;
     	case ERROR: return WorkflowState.ERROR;
+    	case CANCELLED: return WorkflowState.SUSPENDED_NO_ERROR;
     	default:
     		return getWorkflowState();
     	}
@@ -837,5 +840,13 @@ public class Workflow implements Serializable {
 	public void setWorkflowState(WorkflowState workflowState) {
 		this._workflowState = workflowState;
 	}
+
+    public URI getSuspendStep() {
+        return _suspendStep;
+}
+
+    public void setSuspendStep(URI suspendStep) {
+        this._suspendStep = suspendStep;
+    }
 
 }

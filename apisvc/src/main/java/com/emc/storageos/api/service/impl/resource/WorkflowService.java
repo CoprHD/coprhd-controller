@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -272,7 +273,24 @@ public class WorkflowService extends TaskResourceService {
     }
     
     /**
-     * Suspends a workflow when it tries to execute a given step.
+     * Suspends a workflow as soon as possible, which is when the next step completes and all
+     * executing steps have completed. It is not possible to suspend in the middle of a step.
+     * @param uri
+     * @return
+     */
+    @PUT
+    @Path("/{id}/suspend")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public Response suspendWorkflow(@PathParam("id") URI uri) {
+        suspendWorkflowStep(uri, NullColumnValueGetter.getNullURI());
+        return Response.ok().build();
+    }
+    
+    /**
+     * Suspends a workflow when it tries to execute a given step, and all other executing steps
+     * have suspended.
      * @preq none
      * @brief Resumes a suspended workflow
      * @param uri - URI of the suspended workflow.
@@ -284,11 +302,18 @@ public class WorkflowService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
-    public Response suspendWorkflow(@PathParam("id") URI uri, @PathParam("stepId") URI stepURI) {
-    	queryResource(uri);
-    	// Validate step id.
-    	WorkflowStep step = _dbClient.queryObject(WorkflowStep.class, stepURI);
-        ArgValidator.checkEntityNotNull(step, stepURI, isIdEmbeddedInURL(stepURI));
+    public Response suspendWorkflowStep(@PathParam("id") URI uri, @PathParam("stepId") URI stepURI) {
+    	Workflow workflow = queryResource(uri);
+    	// Verify the workflow is either RUNNING or ROLLING_BACK
+    	EnumSet<WorkflowState> expected = 
+    	        EnumSet.of(WorkflowState.RUNNING, WorkflowState.ROLLING_BACK);
+    	WorkflowState completionState = WorkflowState.valueOf(workflow.getCompletionState());
+    	ArgValidator.checkFieldForValueFromEnum(completionState, "Workflow State", expected);
+    	if (!NullColumnValueGetter.isNullURI(stepURI)) {
+    	    // Validate step id.
+    	    WorkflowStep step = _dbClient.queryObject(WorkflowStep.class, stepURI);
+    	    ArgValidator.checkEntityNotNull(step, stepURI, isIdEmbeddedInURL(stepURI));
+    	} 
     	String taskId = UUID.randomUUID().toString();
     	getController().suspendWorkflowStep(uri, stepURI, taskId);
     	return Response.ok().build();

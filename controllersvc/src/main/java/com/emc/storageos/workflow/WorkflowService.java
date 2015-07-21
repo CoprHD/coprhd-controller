@@ -420,11 +420,6 @@ public class WorkflowService implements WorkflowController {
                     }
                     // Check for any blocked steps and unblock them
                     checkBlockedSteps(workflow, stepId);
-// Remove this code
-//                    // Terminal state achieved, delete the callback node
-//                    // _dataManager.removeNode(path);
-//                    // Remove the step to workflow path
-//                    _dataManager.removeNode(getZKStep2WorkflowPath(stepId));
                 }
                 // Check to see if the workflow might be finished, or need a rollback.
                 if (workflow.allStatesTerminal()) {
@@ -465,6 +460,8 @@ public class WorkflowService implements WorkflowController {
         printStepStatuses(statusMap.values());
         // Get the WorkflowState
         WorkflowState state = workflow.getWorkflowStateFromSteps();
+        // Clear the suspend step so we will execute if resumed.
+        workflow.setSuspendStep(NullColumnValueGetter.getNullURI());
 
         // Get composite status and status message
         if (workflow._successMessage == null) {
@@ -551,12 +548,15 @@ public class WorkflowService implements WorkflowController {
         	// Remove the workflow from ZK unless it is suspended (either for an error, or no error)
             if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR 
             		&& workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
+            removed = false;
             if (!workflow._nested) {
-                unlockWorkflow(workflow, workflowLock);
         	    // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
                     if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR
                         && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
+                    unlockWorkflow(workflow, workflowLock);
                 destroyWorkflow(workflow);
+                    return true;
+                }
             } else {
                 if (isExistingWorkflow(workflow)) {
                     _log.info(String.format(
@@ -566,7 +566,7 @@ public class WorkflowService implements WorkflowController {
             logWorkflow(workflow, true);
             }
         }
-        return true;
+        return false;
     }
 
     /**
@@ -968,10 +968,17 @@ public class WorkflowService implements WorkflowController {
      * @param workflow Workflow containing the Step
      * @param step Step checked.
      * @return true if the step is blocked waiting on a pre-requiste step to complete, false if runnable now.
-     * @throws CancelledException if a prerequisite step has had an error or has been cancelled.
+     * @throws CancelledException if a prerequisite step has had an error or has been cancelled
+     * or if this step (or all steps) should be cancelled because of suspend request.
      */
     boolean isBlocked(Workflow workflow, Step step) throws WorkflowException,
             CancelledException {
+        if (workflow.getSuspendStep() != null 
+                && (workflow.getSuspendStep().equals(workflow.getWorkflowURI()) 
+                    || workflow.getSuspendStep().equals(step.workflowStepURI)  )) {
+            // We want to cancel this step, not because of an error, but just to suspend the workflow.
+            throw new CancelledException();
+        }
         // The step cannot be blocked if waitFor is null (which means not specified)
         if (step.waitFor == null) {
             return false;
@@ -1530,20 +1537,32 @@ public class WorkflowService implements WorkflowController {
     }
 
     @Override
-	public void suspendWorkflowStep(URI workflow, URI stepId, String taskId)
+	public void suspendWorkflowStep(URI workflowURI, URI stepURI, String taskId)
 			throws ControllerException {
-		_log.info(String.format("Suspend request workflow: %s step: %s", workflow, stepId));
+        WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflowURI, taskId);
+		_log.info(String.format("Suspend request workflow: %s step: %s", workflowURI, stepURI));
+        Workflow workflow = loadWorkflowFromUri(workflowURI);
+        if (NullColumnValueGetter.isNullURI(stepURI)) {
+            // In this case, we want to suspend any step trying to unblock.
+            workflow.setSuspendStep(workflowURI);
+        } else {
+            // In this case, we want to suspend only when we reach designated step.
+            workflow.setSuspendStep(stepURI);
+	}
+        persistWorkflow(workflow);
+        completer.ready(_dbClient);
 	}
 
 	@Override
 	public void resumeWorkflow(URI uri, String taskId)
 			throws ControllerException {
+	    Workflow workflow  = null;
 	    WorkflowTaskCompleter completer = null;
-
+	    InterProcessLock workflowLock = null;
 	    completer = new WorkflowTaskCompleter(uri, taskId);
 		try {
 			_log.info(String.format("Resume request workflow: %s", uri));
-			Workflow workflow = loadWorkflowFromUri(uri);
+			workflow = loadWorkflowFromUri(uri);
 			if (workflow == null) {
 			    // Cannot resume non-existent workflow
 			    throw WorkflowException.exceptions.workflowNotFound(uri.toString());
@@ -1555,6 +1574,7 @@ public class WorkflowService implements WorkflowController {
 			    _log.info(String.format("Child workflow %s state %s is not suspended and will not be resumed", uri, state));
 			    return;
 			}
+			workflowLock = lockWorkflow(workflow);
 			Map<String, com.emc.storageos.db.client.model.Workflow> childWFMap 
 			                = getChildWorkflowsMap(workflow);
 			removeRollbackSteps(workflow);
@@ -1566,6 +1586,8 @@ public class WorkflowService implements WorkflowController {
 			completer.ready(_dbClient);
 		} catch(WorkflowException ex) {
 			completer.error(_dbClient, ex);;
+		} finally {
+		    unlockWorkflow(workflow, workflowLock);
 		}
 	}
 	
@@ -1708,9 +1730,11 @@ public class WorkflowService implements WorkflowController {
 			Step step = workflow.getStepMap().get(stepId);
 			if (step.status.state == StepState.CREATED) {
 				queueWorkflowStep(workflow, step);
+				persistWorkflowStep(workflow, step);
 			}
 		}
 		workflow.setWorkflowState(WorkflowState.RUNNING);
+		persistWorkflow(workflow);
 		logWorkflow(workflow, true);
 	}
     /**

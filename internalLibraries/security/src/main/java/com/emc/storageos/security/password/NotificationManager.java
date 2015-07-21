@@ -99,7 +99,7 @@ public class NotificationManager {
      * to be expired.
      */
     private class PasswordExpireMailNotifier implements Runnable {
-        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
 
         @Override
         public void run() {

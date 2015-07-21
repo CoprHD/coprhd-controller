@@ -183,7 +183,7 @@ public class ApiTestBase {
     protected String _blockCosAclUrl = "/block/vpools/%s/acl";
     protected String _fileCosAclUrl = "/file/vpools/%s/acl";
 
-    protected static List<String> baseUrls;
+    protected static volatile List<String> baseUrls;
 
     /**
      *  Class to encapsulate a list of WebResources
@@ -491,7 +491,7 @@ public class ApiTestBase {
                 Thread.sleep(2000);
                 System.out.println("Waiting for stable cluster state.");
             } catch (InterruptedException e) {
-
+            	_log.error(e.getMessage(),e);
             }
 
             try {
@@ -519,7 +519,7 @@ public class ApiTestBase {
                     Thread.sleep(2000);
                     System.out.println("Waiting apisvc to be up");
                 } catch (InterruptedException e) {
-
+                	_log.error(e.getMessage(),e);
                 }
             }
         }
@@ -732,7 +732,9 @@ public class ApiTestBase {
             sc.init(null, trustAllCerts, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
-        } catch (final Exception e) {}
+        } catch (final Exception e) {
+        	_log.error(e.getMessage(),e);
+        }
     }
 
 

@@ -312,13 +312,11 @@ public class ApiTest_UserGroup extends ApiTestBase {
         for (RoleAssignmentEntry roleAssignmentEntry : actual.getAssignments()) {
             Assert.assertNotNull(roleAssignmentEntry);
             if (isGroup) {
-                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getGroup()) &&
-                        expectedRoles.containsAll(expectedRoles)){
+                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getGroup())){
                     found = true;
                 }
             } else {
-                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getSubjectId()) &&
-                        expectedRoles.containsAll(expectedRoles)){
+                if (expectedEntity.equalsIgnoreCase(roleAssignmentEntry.getSubjectId())){
                     found = true;
                 }
             }
@@ -355,13 +353,11 @@ public class ApiTest_UserGroup extends ApiTestBase {
         for (ACLEntry aclAssignmentEntry : actual.getAssignments()) {
             Assert.assertNotNull(aclAssignmentEntry);
             if (isGroup) {
-                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getGroup()) &&
-                        expectedRoles.containsAll(expectedRoles)){
+                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getGroup())){
                     found = true;
                 }
             } else {
-                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getSubjectId()) &&
-                        expectedRoles.containsAll(expectedRoles)){
+                if (expectedEntity.equalsIgnoreCase(aclAssignmentEntry.getSubjectId())){
                     found = true;
                 }
             }

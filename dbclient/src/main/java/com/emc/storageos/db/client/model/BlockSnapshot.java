@@ -1,7 +1,3 @@
-/*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
 /**
  *  Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
@@ -46,6 +42,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     private String _sourceNativeId;
 
     // Name reference of Clar_SynchronizationAspectForSource
+    @Deprecated
     private String _settingsInstance;
 
     // Name reference of Snapshot'ed consistency group. That is,
@@ -61,6 +58,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     // and saved for the blocksnapshot. Future operations, will have to use this
     // to manipulate the snapshot or snapset group (for example, disabling or
     // deleting the snapshot/snapset).
+    @Deprecated
     private String _settingsGroupInstance;
 
     // This value is an indicator of whether or not the snapshot has been activated.
@@ -160,20 +158,24 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     }
 
     @Name("settingsInstance")
+    @Deprecated
     public String getSettingsInstance() {
         return _settingsInstance;
     }
 
+    @Deprecated
     public void setSettingsInstance(String settingsInstance) {
         _settingsInstance = settingsInstance;
         setChanged("settingsInstance");
     }
 
     @Name("settingsGroupInstance")
+    @Deprecated
     public String getSettingsGroupInstance() {
         return _settingsGroupInstance;
     }
 
+    @Deprecated
     public void setSettingsGroupInstance(String groupSettings) {
         _settingsGroupInstance = groupSettings;
         setChanged("settingsGroupInstance");

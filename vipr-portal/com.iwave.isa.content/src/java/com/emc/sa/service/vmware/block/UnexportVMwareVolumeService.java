@@ -85,7 +85,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
                 }
             }
 
-            if (exportedVolumeIds.size() > 0) {
+            if (!exportedVolumeIds.isEmpty()) {
                 logInfo("unexport.host.service.volume.remove", exportedVolumeIds.size(), exportName);
                 BlockStorageUtils.removeBlockResourcesFromExport(exportedVolumeIds, exportId);
             }

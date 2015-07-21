@@ -49,7 +49,7 @@ public class ControllerConfigurationProcessor extends Processor {
                         .getKey(Constants.SYSTEMNAME).getValue().toString();
                 String serialID = (String) keyMap.get(Constants._serialID);
                 if (systemName.contains(serialID)) {
-                    addPath(keyMap, operation.get_result(), controllerConfigurationService);
+                    addPath(keyMap, operation.getResult(), controllerConfigurationService);
                     if (systemName.toLowerCase().contains(Constants.SYMMETRIX)) {
                         keyMap.put(Constants.VMAXConfigurationService,
                                 controllerConfigurationService);

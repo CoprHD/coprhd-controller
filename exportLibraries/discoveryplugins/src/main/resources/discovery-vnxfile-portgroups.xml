@@ -5,7 +5,7 @@
 
     <bean id="vnxfileStoragePortGroupSpace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="_operations">
+        <property name="operations">
             <list>
                 <ref bean="loginoperation" />
                 <ref bean="vnxPortGroupOperation" />
@@ -17,10 +17,10 @@
  
     <bean id="vnxPortGroupOperation"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxPortGroupProcessor" />
+        <property name="processor" ref="vnxPortGroupProcessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -33,7 +33,7 @@
 
     <bean id="vnxfileCifsConfigSpace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="_operations">
+        <property name="operations">
             <list>
                 <ref bean="loginoperation" />
                 <ref bean="vnxCifsConfigOperation" />
@@ -45,10 +45,10 @@
 
     <bean id="vnxCifsConfigOperation"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxCifsConfigProcessor" />
+        <property name="processor" ref="vnxCifsConfigProcessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -71,16 +71,16 @@
 
     <bean id="vnxportgroupquery"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchStoragePortGroupInfo" />
-        <property name="_value" value="" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchStoragePortGroupInfo" />
+        <property name="value" value="" />
     </bean>
 
     <bean id="vnxcifsconfigquery"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchCifsServerParams" />
-        <property name="_value" value="" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchCifsServerParams" />
+        <property name="value" value="" />
     </bean>
 
 </beans>

@@ -68,10 +68,10 @@ import com.google.common.collect.Sets;
 public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImpl {
     private static final Logger _logger = LoggerFactory
             .getLogger(SMICommunicationInterface.class);
-    private SMIExecutor _executor;
+    private SMIExecutor executor;
     private WBEMClient _wbemClient;
     private boolean debug;
-    private NamespaceList _namespaces;
+    private NamespaceList namespaces;
 
     /**
      * To-Do : Argument Changes, to accomodate ProSphere usage
@@ -90,10 +90,10 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
                 _keyMap.put(Constants.IS_NEW_SMIS_PROVIDER, isSMIS8XProvider(providerVersion));
             }
             Namespace _ns = null;
-            _ns = (Namespace) _namespaces.getNsList().get(METERING);
+            _ns = (Namespace) namespaces.getNsList().get(METERING);
             _logger.info("CIMClient initialized successfully");
-            _executor.set_keyMap(_keyMap);
-            _executor.execute(_ns);
+            executor.setKeyMap(_keyMap);
+            executor.execute(_ns);
             _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
             injectStats();
@@ -190,14 +190,14 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
     private void releaseResources() {
         execServiceShut();
         _keyMap.clear();
-        _namespaces = null;
+        namespaces = null;
     }
 
     /**
      * Shut Down Executor
      */
     private void execServiceShut() {
-        ExecutorService execService = _executor.getExecService();
+        ExecutorService execService = executor.getExecService();
         /*
          * Threads spawned using ExecutorService, mostly stuck in Blocking IOs,
          * not responsible to interruption. Currently, we don't have the handle
@@ -224,24 +224,24 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
         }
     }
 
-    public void set_executor(SMIExecutor executor) {
-        _executor = executor;
+    public void setExecutor(SMIExecutor executor) {
+        this.executor = executor;
     }
 
-    public SMIExecutor get_executor() {
-        return _executor;
+    public SMIExecutor getExecutor() {
+        return executor;
     }
 
     public void setDebug(boolean debugValue) {
         debug = debugValue;
     }
 
-    public void set_namespaces(NamespaceList namespaces) {
-        _namespaces = namespaces;
+    public void setNamespaces(NamespaceList namespaces) {
+        this.namespaces = namespaces;
     }
 
-    public NamespaceList get_namespaces() {
-        return _namespaces;
+    public NamespaceList getNamespaces() {
+        return namespaces;
     }
 
     /**
@@ -275,8 +275,8 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
             _keyMap.put(Constants._InteropNamespace, accessProfile.getInteropNamespace());
             _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
             _keyMap.put(Constants.SYSTEMCACHE, accessProfile.getCache());
-            _executor.set_keyMap(_keyMap);
-            _executor.execute((Namespace) _namespaces.getNsList().get(SCAN));
+            executor.setKeyMap(_keyMap);
+            executor.execute((Namespace) namespaces.getNsList().get(SCAN));
 
             // scan succeeds
             detailedStatusMessage = String.format("Scan job completed successfully for " +
@@ -354,8 +354,8 @@ public class SMICommunicationInterface extends ExtendedCommunicationInterfaceImp
                 initEMCDiscoveryKeyMap(accessProfile);                
             }
              
-            _executor.set_keyMap(_keyMap);
-            _executor.execute((Namespace) _namespaces.getNsList().get(DISCOVER));
+            executor.setKeyMap(_keyMap);
+            executor.execute((Namespace) namespaces.getNsList().get(DISCOVER));
 
         } catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",

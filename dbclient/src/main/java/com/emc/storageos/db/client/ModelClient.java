@@ -36,20 +36,20 @@ public abstract class ModelClient {
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
     
-    public abstract <T extends DataObject> List<URI> findAllIds(Class<T> clazz, boolean activeOnly) throws DatabaseException;
-    public abstract <T extends DataObject> T findById(Class<T> clazz, URI id) throws DatabaseException;
-    public abstract <T extends DataObject> Iterable<T> findByIds(Class<T> clazz, List<URI> ids, boolean activeOnly) throws DatabaseException;
+    public abstract <T extends DataObject> List<URI> findAllIds(Class<T> clazz, boolean activeOnly);
+    public abstract <T extends DataObject> T findById(Class<T> clazz, URI id);
+    public abstract <T extends DataObject> Iterable<T> findByIds(Class<T> clazz, List<URI> ids, boolean activeOnly);
     
-    public abstract <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id) throws DatabaseException;
-    public abstract <T extends DataObject> List<NamedElement> findByPrefix(Class<T> clazz, String columnField, String prefix) throws DatabaseException;
-    public abstract <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id, String labelPrefix) throws DatabaseException;
-    public abstract <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value) throws DatabaseException;
+    public abstract <T extends DataObject> List<NamedElement> findBy(Class<T> clazz, String columnField, URI id);
+    public abstract <T extends DataObject> List<NamedElement> findByPrefix(Class<T> clazz, String columnField, String prefix);
+    public abstract <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(Class<T> clazz, String columnField, URI id, String labelPrefix);
+    public abstract <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value);
 
-    public abstract <T extends DataObject> void create(T model) throws DatabaseException;
-    public abstract <T extends DataObject> void update(T model) throws DatabaseException;
+    public abstract <T extends DataObject> void create(T model);
+    public abstract <T extends DataObject> void update(T model);
 
-    public abstract <T extends DataObject> void delete(T model) throws DatabaseException;
-    public abstract <T extends DataObject> void delete(List<T> models) throws DatabaseException;
+    public abstract <T extends DataObject> void delete(T model);
+    public abstract <T extends DataObject> void delete(List<T> models);
     
     public <T extends DataObject> ModelFinder<T> of(final Class<T> clazz) {
         return new ModelFinder<T>(clazz, this);
@@ -162,7 +162,7 @@ public abstract class ModelClient {
         return clazz;
     }
 
-    public <T extends DataObject> void save(T model) throws DatabaseException {
+    public <T extends DataObject> void save(T model){
         boolean isNew = generateIdIfNew(model);
         setCreationTimeIfRequired(model);
 

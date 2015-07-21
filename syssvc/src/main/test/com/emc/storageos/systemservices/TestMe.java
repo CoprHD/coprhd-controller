@@ -45,16 +45,12 @@ public class TestMe {
         // close the stream
         try {
             shellIn.close();
-        } catch (IOException ignoreMe) {
+        } catch (IOException ignoreMe) { //NOSONAR ("squid:S00108 empty block of code. The exception is meant to be ignored")
         }
     }
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         TestMe test =  new TestMe();
-        try {
-            test.testname(args[0]);
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+
+        test.testname(args[0]);
     }
 }

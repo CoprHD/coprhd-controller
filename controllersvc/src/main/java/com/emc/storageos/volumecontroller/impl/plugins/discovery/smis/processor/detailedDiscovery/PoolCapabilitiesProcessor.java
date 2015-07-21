@@ -66,7 +66,7 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
 						capabilitiesInstance = it.next();
 						String instanceID = capabilitiesInstance.getPropertyValue(
 								Constants.INSTANCEID).toString();
-						addPath(keyMap, operation.get_result(), capabilitiesInstance.getObjectPath());
+						addPath(keyMap, operation.getResult(), capabilitiesInstance.getObjectPath());
 					} catch (Exception e) {
 						_logger.warn(
 								"Pool Capabilities detailed discovery failed for {}-->{}",

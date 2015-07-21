@@ -107,7 +107,7 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
 
     @Override
     protected boolean isCreateAttributeOn(BlockVirtualPoolParam createParam) {
-        if (null != createParam.getRaidLevels() && createParam.getRaidLevels().size() > 0)
+        if (null != createParam.getRaidLevels() && !createParam.getRaidLevels().isEmpty())
             return true;
         return false;
     }

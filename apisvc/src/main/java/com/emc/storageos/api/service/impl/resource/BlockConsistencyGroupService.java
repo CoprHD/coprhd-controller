@@ -961,7 +961,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             Set<URI> addSet = new HashSet<URI>(param.getAddVolumesList().getVolumes());
             Set<URI> removeSet = new HashSet<URI>(param.getRemoveVolumesList().getVolumes());
             addSet.retainAll(removeSet);
-            if (addSet.size() != 0) {
+            if (!addSet.isEmpty()) {
                 throw APIException.badRequests.sameVolumesInAddRemoveList();
             }
         }
@@ -1346,7 +1346,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         
         // Get the volumes in the consistency group.
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
-        if (cgVolumes.size() <= 0) {
+        if (cgVolumes.isEmpty()) {
             throw APIException.badRequests
                 .fullCopyOperationNotAllowedOnEmptyCG(consistencyGroup.getLabel());
         }

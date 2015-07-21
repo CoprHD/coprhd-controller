@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.catalog.AssetDependencyRequest;
 import com.emc.vipr.model.catalog.AssetDependencyResponse;
@@ -64,16 +65,18 @@ public class AssetOptionService extends CatalogResourceService {
     public AssetOptionsResponse getAssetOptions(@PathParam("assetType") String assetType, AssetOptionsRequest request) {
         final Map<String, String> availableAssets = request.getAvailableAssets();
         final AssetOptionsContext context = createAssetOptionsContext(request);
+        final Map<String, String> sanitizedAvailableAssets = SecurityUtils.stripMapXSS(availableAssets);
+        final String sanitizedAssetType = SecurityUtils.stripXSS(assetType);
 
-        log.info("Retrieving asset options for " + assetType + " with available assets : "
-                + StringUtils.join(availableAssets.keySet(), ", "));
+        log.info("Retrieving asset options for " + sanitizedAssetType + " with available assets : "
+                + StringUtils.join(sanitizedAvailableAssets.keySet(), ", "));
 
         try {
-            List<AssetOption> options = assetOptionsManager.getOptions(context, assetType, availableAssets);
+            List<AssetOption> options = assetOptionsManager.getOptions(context, sanitizedAssetType, sanitizedAvailableAssets);
 
             AssetOptionsResponse response = new AssetOptionsResponse();
-            response.setAssetType(assetType);
-            response.setAvailableAssets(availableAssets);
+            response.setAssetType(sanitizedAssetType);
+            response.setAvailableAssets(sanitizedAvailableAssets);
             response.setOptions(options);
 
             return response;
@@ -96,14 +99,15 @@ public class AssetOptionService extends CatalogResourceService {
             AssetDependencyRequest request) {
 
         final Set<String> availableAssetTypes = request.getAvailableAssetTypes();
+	final String sanitizedAssetType = SecurityUtils.stripXSS(assetType);
 
-        log.info("Retrieving asset dependencies for " + assetType + " with available assets : "
+        log.info("Retrieving asset dependencies for " + sanitizedAssetType + " with available assets : "
                 + StringUtils.join(availableAssetTypes, ", "));
         
-        List<String> dependencies = assetOptionsManager.getAssetDependencies(assetType, availableAssetTypes);
+        List<String> dependencies = assetOptionsManager.getAssetDependencies(sanitizedAssetType, availableAssetTypes);
 
         AssetDependencyResponse response = new AssetDependencyResponse();
-        response.setAssetType(assetType);
+        response.setAssetType(sanitizedAssetType);
         response.setAssetDependencies(dependencies);
         return response;
     }

@@ -19,10 +19,8 @@ import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Collections;
 
@@ -48,9 +46,12 @@ import com.emc.storageos.db.server.impl.DbServiceImpl;
  */
 public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoInternodeAuthenticatorMBean {
     private static final Logger log = LoggerFactory.getLogger(GeoInternodeAuthenticator.class);
-    private static String SEPARATOR = ",";
+    private static final String SEPARATOR = ",";
     private Set<InetAddress> blacklist;
 
+    /**
+     * Initial Blacklist
+     */
     public GeoInternodeAuthenticator() {
         blacklist = new HashSet<InetAddress>();
     }
@@ -118,7 +119,7 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
     @Override
     public List<String> getBlacklist() {
         List<String> result = new ArrayList<>();
-        for(InetAddress addr : blacklist) {
+        for (InetAddress addr : blacklist) {
             result.add(addr.getHostAddress());
         }
         return Collections.unmodifiableList(result);

@@ -41,7 +41,7 @@ public abstract class Notifier {
     private static final String SSL_NOTIFIER = "ssl";
     private static final String DNS_NOTIFIER = "dns";
     private static final String SSH_AUTH_KEY_NOTIFIER = "ssh_auth_key";
-    private static final String PASSWORD_NOTIFIER = "password";
+    private static final String PASSWORD_NOTIFIER = "password"; //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
     private static final String BACKUPSCHEDULER_NOTIFIER = "backupscheduler";
     private static final String UPGRADE_NOTIFIER = "upgrade";
 

@@ -650,7 +650,7 @@ public class HostService extends TaskResourceService {
         List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(id, IpInterface.class, "ipAddress", "host");
         for (NamedElementQueryResultList.NamedElement dataObject: dataObjects) {
             list.getIpInterfaces().add(toNamedRelatedResource(ResourceTypeEnum.IPINTERFACE,
-                dataObject.id, dataObject.name));
+                dataObject.getId(), dataObject.getName()));
         }
         return list;
     }
@@ -767,7 +767,7 @@ public class HostService extends TaskResourceService {
         List<NamedElementQueryResultList.NamedElement> dataObjects = listChildren(id, Initiator.class, "iniport", "host");
         for (NamedElementQueryResultList.NamedElement dataObject: dataObjects) {
             list.getInitiators().add(toNamedRelatedResource(ResourceTypeEnum.INITIATOR,
-                dataObject.id, dataObject.name));
+                dataObject.getId(), dataObject.getName()));
         }
         return list;
     }

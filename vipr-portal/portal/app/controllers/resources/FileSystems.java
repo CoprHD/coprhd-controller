@@ -264,7 +264,7 @@ public class FileSystems extends ResourceController {
                         new FileSystemDeleteParam(forceDelete));
                 tasks.add(task);
             }
-            if (tasks.size() > 0) {
+            if (!tasks.isEmpty()) {
                 flash.put("info", MessagesUtils.get("resources.filesystems.deactivate", tasks.size()));
             }
         }

@@ -64,7 +64,7 @@ public class CreatePoolSettingProcessor extends Processor {
                 keyMap.put(path.toString(), poolCapabilitiesPathAssociatedWiththisSetting);
                 keyMap.put(path.toString() + Constants.HYPEN + Constants.TIERMETHODOLOGY,
                         tierMethodologyToBeUsedForThisCreatedSetting);
-                addPath(keyMap, operation.get_result(), path);
+                addPath(keyMap, operation.getResult(), path);
             }
         } catch (Exception e) {
             _logger.error(

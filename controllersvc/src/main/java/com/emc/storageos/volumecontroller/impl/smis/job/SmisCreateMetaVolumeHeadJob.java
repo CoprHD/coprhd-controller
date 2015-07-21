@@ -82,7 +82,7 @@ public class SmisCreateMetaVolumeHeadJob extends SmisJob {
                 dbClient.persistObject(metaHead);
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                        "\n   Task %s created meta head volume: %s with device ID: %s", opId, metaHead.getLabel(), headNativeID));
+                        "%n   Task %s created meta head volume: %s with device ID: %s", opId, metaHead.getLabel(), headNativeID));
                 _log.info(logMsgBuilder.toString());
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 logMsgBuilder.append("\n");

@@ -308,7 +308,7 @@ public class PlacementTests extends DbsvcTestBase {
         	List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray, project, vplexVpool, capabilities); 
 
         	assertNotNull(recommendations);
-        	assertTrue(recommendations.size()>0);
+        	assertTrue(!recommendations.isEmpty());
         	assertNotNull(recommendations.get(0));
             VPlexRecommendation rec = (VPlexRecommendation)recommendations.get(0);
             assertNotNull(rec.getSourcePool());
@@ -481,7 +481,7 @@ public class PlacementTests extends DbsvcTestBase {
             List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, vplexVpool, capabilities);
 
             assertNotNull(recommendations);
-            assertTrue(recommendations.size()>0);
+            assertTrue(!recommendations.isEmpty());
             assertNotNull(recommendations.get(0));
             assertNotNull(recommendations.get(1));
             VPlexRecommendation srcRec = (VPlexRecommendation)recommendations.get(0);
@@ -626,7 +626,7 @@ public class PlacementTests extends DbsvcTestBase {
             List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray, project, vplexVpool, capabilities);
 
             assertNotNull(recommendations);
-            assertTrue(recommendations.size()>0);
+            assertTrue(!recommendations.isEmpty());
             assertNotNull(recommendations.get(0));
             VPlexRecommendation rec = (VPlexRecommendation)recommendations.get(0);
             assertNotNull(rec.getSourcePool());
@@ -833,7 +833,7 @@ public class PlacementTests extends DbsvcTestBase {
             List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, rpVpool, capabilities);
 
             assertNotNull(recommendations);
-            assertTrue(recommendations.size() > 0);
+            assertTrue(!recommendations.isEmpty());
             assertNotNull(recommendations.get(0));
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
             assertNotNull(rec.getSourceInternalSiteName());
@@ -1121,7 +1121,7 @@ public class PlacementTests extends DbsvcTestBase {
             List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, rpVpool, capabilities);
 
             assertNotNull(recommendations);
-            assertTrue(recommendations.size() > 0);
+            assertTrue(!recommendations.isEmpty());
             assertNotNull(recommendations.get(0));
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
             assertNotNull(rec.getSourceInternalSiteName());
@@ -1454,7 +1454,7 @@ public class PlacementTests extends DbsvcTestBase {
             List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray2, project, rpVplexVpool, capabilities);
 
             assertNotNull(recommendations);
-            assertTrue(recommendations.size() > 0);
+            assertTrue(!recommendations.isEmpty());
             assertNotNull(recommendations.get(0));
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
             RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
@@ -1470,7 +1470,7 @@ public class PlacementTests extends DbsvcTestBase {
 
             assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
             assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-            assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
+            assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
             assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 
             //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
@@ -1821,7 +1821,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray2, project, rpVplexVpool, capabilities);
 	
 	        assertNotNull(recommendations);
-	        assertTrue(recommendations.size() > 0);
+	        assertTrue(!recommendations.isEmpty());
 	        assertNotNull(recommendations.get(0));
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
 	        RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
@@ -1837,7 +1837,7 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
 	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
+	        assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
 	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 	
 	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
@@ -2188,7 +2188,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray2, project, rpVplexVpool, capabilities);
 	
 	        assertNotNull(recommendations);
-	        assertTrue(recommendations.size() > 0);
+	        assertTrue(!recommendations.isEmpty());
 	        assertNotNull(recommendations.get(0));
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
 	        RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
@@ -2204,7 +2204,7 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
 	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
+	        assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
 	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 	
 	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());

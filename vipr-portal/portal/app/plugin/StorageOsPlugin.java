@@ -30,7 +30,7 @@ import com.emc.vipr.client.ViPRCoreClient;
 public class StorageOsPlugin extends PlayPlugin {
     private static final String DEFAULT_CONTEXT_FILE = "dbclient-prod.xml";
 
-    private static StorageOsPlugin instance;
+    private static StorageOsPlugin instance = null;
 
     private String version;
     private GenericXmlApplicationContext context;
@@ -74,7 +74,7 @@ public class StorageOsPlugin extends PlayPlugin {
      */
     @Override
     public void onApplicationStart() {
-        instance = this;
+        instance = this;//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for field instance")
         if (!isEnabled()) {
             return;
         }
@@ -88,11 +88,7 @@ public class StorageOsPlugin extends PlayPlugin {
             context.refresh();
 
             Logger.info("Connected to Coordinator Service");
-
-            if (context == null) {
-                Logger.error("Spring configuration file %s cannot be found on classpath", getContextFileName());
-                shutdown();
-            }
+            
             zkConnection = getBean("zkconn", ZkConnection.class);
             coordinatorClient = getBean("coordinator", CoordinatorClient.class);
             encryptionProvider = getBean("encryptionProvider", EncryptionProvider.class);

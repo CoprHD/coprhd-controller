@@ -60,7 +60,7 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
         this._controller = controller;
     }
 
-    public Dispatcher get_dispatcher() {
+    public Dispatcher getDispatcher() {
         return _dispatcher;
     }
 

@@ -35,6 +35,7 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.security.SerializerUtils;
 import com.emc.storageos.security.SignatureHelper;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.springframework.util.CollectionUtils;
 
 /**
  *  Class responsible for generating and providing access to signature keys for Tokens and ProxyTokens, during
@@ -122,6 +123,11 @@ public class TokenKeyGenerator  {
             KeyIdKeyPair p = (KeyIdKeyPair) pair;
             return (p._entry.equals(_entry));
         }
+
+        @Override
+        public int hashCode() {
+            return _entry.hashCode();
+        }
     }
     // --- end of embedded KeyIdKeyPair class
     
@@ -206,7 +212,7 @@ public class TokenKeyGenerator  {
          * @return keyid
          */
         public String getCurrentKeyEntry() {
-            if (_cachedKeyPairs.size() > 0) {
+            if ( !CollectionUtils.isEmpty(_cachedKeyPairs) ) {
                 return _cachedKeyPairs.get(_cachedKeyPairs.size()-1).getEntry();
             }
             return null;
@@ -437,7 +443,7 @@ public class TokenKeyGenerator  {
             return _cachedTokenKeysBundle.getProxyKey();
         }
         try {
-            if (_cachedTokenKeysBundle.getKeyEntries().size() == 0) {
+            if (CollectionUtils.isEmpty(_cachedTokenKeysBundle.getKeyEntries())) {
                 _log.info("Cache was empty at initialization time.  Perhaps authsvc hasn't created the initial signature keys yet.");
                 updateCachedKeys();
             } else {
@@ -565,7 +571,7 @@ public class TokenKeyGenerator  {
      */
     public boolean doesConfigExist() throws Exception {
         List<Configuration> configs = _coordinator.queryAllConfiguration(SIGNATURE_KEY_CONFIG);
-        if (configs == null || configs.size() == 0) {
+        if (CollectionUtils.isEmpty(configs)) {
             return false;
         }
         return true;

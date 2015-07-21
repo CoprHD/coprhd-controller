@@ -68,7 +68,7 @@ public class DiagnosticsExecTest extends  DiagnosticsExec{
     @Test
     public void testConversionEmptyStdout(){
         List<DiagTest> diagTests = convertStringToDiagTestList(STDOUT_EMPTY);
-        Assert.assertTrue(diagTests == null || diagTests.size() == 0);
+        Assert.assertTrue(diagTests == null || diagTests.isEmpty());
     }
 
     @Test

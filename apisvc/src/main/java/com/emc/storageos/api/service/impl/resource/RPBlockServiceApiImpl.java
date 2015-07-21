@@ -1136,7 +1136,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 Long requestedVolumeCapactity = 0L;
                 for (URI volumeURI : volumeURIs) {
                     Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                    if (volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE)) {
+                    if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
                         requestedVolumeCapactity = volume.getCapacity();
                         break;
                     }

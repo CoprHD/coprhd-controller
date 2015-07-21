@@ -22,7 +22,7 @@ public class CallableHelper {
                     promise.invoke(result);
                     return result;
                 }
-                catch (Throwable t) {
+                catch (Exception t) {
                     promise.invokeWithException(t);
                     return null;
                 }

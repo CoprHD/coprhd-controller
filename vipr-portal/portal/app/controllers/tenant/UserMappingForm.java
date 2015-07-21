@@ -123,7 +123,11 @@ public class UserMappingForm {
             return true;
         }
 
-        if (!left.getDomain().equals(right.getDomain())) {
+        if (left == null || right == null) {
+        	return false;
+        }
+        
+        if (!left.getDomain().equals(right.getDomain())) { //NOSONAR (Suppressing null pointer dereference of left. When left is null, previous if handles it. 
             return false;
         }
 

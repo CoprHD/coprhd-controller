@@ -1093,7 +1093,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     public CIMInstance getZoneset(WBEMClient client,  String fabricId, String fabricWwn, String zonesetName) throws WBEMException{
         CIMInstance zonesetIns = null;
         List<CIMInstance> zonesets = getZoneSetsForFabric(client, fabricId, fabricWwn, zonesetName);
-        if ( zonesets.size() > 0) {
+        if ( !zonesets.isEmpty()) {
             zonesetIns = zonesets.get(0);
         }
         return zonesetIns;
@@ -1489,6 +1489,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
             try {
                 Thread.sleep(defaultTimeout / 5);
             } catch (InterruptedException ex) {
+                _log.warn(ex.getLocalizedMessage());
             }
             zoneService = getZoneServiceInstance(client, fabricId, fabricWwn);
             session = cimIntegerProperty(zoneService, _SessionState);

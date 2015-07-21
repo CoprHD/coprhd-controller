@@ -60,7 +60,7 @@ public class RefreshRequiredUpdateFunction implements SimpleFunction {
 
     @Override
     public void call() {
-        _log.info(String.format("Original list of uris requiring EMCRefresh:\n%s",
+        _log.info(String.format("Original list of uris requiring EMCRefresh:%n%s",
                 Joiner.on(',').join(objsRequiringRefresh)));
         handleBlockObjects(Volume.class);
         handleBlockObjects(BlockSnapshot.class);  

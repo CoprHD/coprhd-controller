@@ -165,7 +165,7 @@ public class LunSnapRequests extends KHRequests<VNXeLunSnap> {
         VNXeLunSnap result = null;
         List<VNXeLunSnap> snapList = getDataForObjects(VNXeLunSnap.class);
         //it should just return 1
-        if (snapList!= null && snapList.size()>0) {
+        if (snapList!= null && !snapList.isEmpty()) {
             result =snapList.get(0);
         } else {
             _logger.info("No lun snapshot found using the name: " +name);

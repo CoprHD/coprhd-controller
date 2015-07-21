@@ -62,7 +62,7 @@ public class CIMSnapshotRecordableDeviceEvent extends
 		    logMessage(
 	                "NativeGuid for block Computed as  : [{}]",
 	                new Object[] { _nativeGuid });
-		} catch (Throwable e) {
+		} catch (Exception e) {
 		    _logger.error("Unable to compute NativeGuid :", e);
         }
 		return _nativeGuid;

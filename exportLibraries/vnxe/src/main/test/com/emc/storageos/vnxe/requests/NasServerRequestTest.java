@@ -30,7 +30,10 @@ public class NasServerRequestTest {
 
 	@BeforeClass
     public static void setup() throws Exception {
+		synchronized (_client) {
 		_client = new KHClient(host, userName, password);
+	}
+	
 	}
 	
 	@Test

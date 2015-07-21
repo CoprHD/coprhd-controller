@@ -264,7 +264,7 @@ public class BlockStorageScheduler {
             List<Initiator> initiators = net2InitiatorsMap.get(netURI);
             // Check that there are initiators to get assignments. This check is
             // needed for when initiators were eliminate by #filterRemoteInitiators
-            if (initiators == null || initiators.size() == 0) {
+            if (initiators == null || initiators.isEmpty()) {
                 _log.info("No initiators to be assigned for net: " + netURI);
                 continue;
             }
@@ -666,6 +666,11 @@ public class BlockStorageScheduler {
         NetworkUsage(URI network, long metric) {
             this.network = network; this.metric = metric;
         }
+        
+        //Suppressing Sonar violation: This class overrides "equals()" and should therefore also override "hashCode()
+        //CTRL-12976
+        @SuppressWarnings("squid:S1206")
+        
         @Override
         public boolean equals(Object obj) {
             if (! (obj instanceof NetworkUsage)) return false;
@@ -1205,7 +1210,7 @@ public class BlockStorageScheduler {
             for (Initiator initiator : hostInitiatorsMap.get(hostURI)) {
                 if (initiator.getHostName() != null) hostName = initiator.getHostName();
                 List<StoragePort> ports = assignments.get(initiator);
-                if (ports == null || ports.size() == 0) unassignedInitiators++;
+                if (ports == null || ports.isEmpty()) unassignedInitiators++;
                 if (ports != null) totalPorts += ports.size();
             }
             if (totalPorts < pathParams.getMinPaths()) {

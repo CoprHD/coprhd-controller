@@ -104,7 +104,7 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             while (it.hasNext()) {
                 CIMInstance poolInstance = it.next();
                 try {
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             poolInstance.getObjectPath());
                     
                     String hardSizeStr = getCIMPropertyValue(poolInstance,
@@ -226,7 +226,7 @@ public class XIVStoragePoolProcessor extends PoolProcessor {
             pool.setMinimumThickVolumeSize(0L);
             pool.setMaximumThinVolumeSize(0L);
             pool.setMinimumThinVolumeSize(0L);
-            _logger.info(String.format("Maximum default limits for volume capacity in storage pool: %s  \n   max thin volume capacity: %s, max thick volume capacity: %s ",
+            _logger.info(String.format("Maximum default limits for volume capacity in storage pool: %s  %n   max thin volume capacity: %s, max thick volume capacity: %s ",
                     pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
 
             pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());

@@ -54,10 +54,10 @@ public class CifsShareUtility {
 	private String shareName;
 	private String missingRequestParameterErrorString;
 	private List<String> userGroupList;
-	public final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type";
-	public final String REQUEST_PARAM_PERMISSION = "permission";
-	public final String REQUEST_PARAM_USER = "user";
-	public final String REQUEST_PARAM_GROUP = "group";
+	public static final String REQUEST_PARAM_PERMISSION_TYPE = "permission_type"; //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String REQUEST_PARAM_PERMISSION = "permission";			  //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String REQUEST_PARAM_USER = "user";						  //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
+	public static final String REQUEST_PARAM_GROUP = "group";					  //NOSONAR ("Suppressing Sonar violation for variable name should be in camel case")
 	
 
 	public CifsShareUtility(DbClient dbClient, FileShare fs, Snapshot snapshot,
@@ -118,7 +118,7 @@ public class CifsShareUtility {
 		String opName = ShareACLOperationType.DELETE.name();
 		// Report Add ACL Errors
 		ShareACLs shareAcls = param.getAclsToDelete();
-		if (shareAcls == null || shareAcls.getShareACLs().size() == 0)
+		if (shareAcls == null || shareAcls.getShareACLs().isEmpty())
 			return;
 
 		List<ShareACL> shareAclList = shareAcls.getShareACLs();
@@ -182,7 +182,7 @@ public class CifsShareUtility {
 		String opName = ShareACLOperationType.MODIFY.name();
 		// Report Add ACL Errors
 		ShareACLs shareAcls = param.getAclsToModify();
-		if (shareAcls == null || shareAcls.getShareACLs().size() == 0)
+		if (shareAcls == null || shareAcls.getShareACLs().isEmpty())
 			return;
 
 		List<ShareACL> shareAclList = shareAcls.getShareACLs();
@@ -256,7 +256,7 @@ public class CifsShareUtility {
 		String opName = ShareACLOperationType.ADD.name();
 		// Report Add ACL Errors
 		ShareACLs shareAcls = param.getAclsToAdd();
-		if (shareAcls == null || shareAcls.getShareACLs().size() == 0)
+		if (shareAcls == null || shareAcls.getShareACLs().isEmpty())
 			return;
 
 		List<ShareACL> shareAclList = shareAcls.getShareACLs();

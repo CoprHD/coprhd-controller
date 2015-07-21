@@ -43,7 +43,7 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
     // A reference to the coordinator client for retrieving/updating local user
     private CoordinatorClient _coordinatorClient;
 
-    private static Map<String, StorageOSUser> _localUsers;
+    private Map<String, StorageOSUser> _localUsers;
          
     private EncryptionProvider _encryptionProvider;
     
@@ -126,7 +126,7 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
         return verifyUserPassword(creds.getUserName(), creds.getPassword());
     }
 
-    public static boolean exists(String username) {
+    public boolean exists(String username) {
         return _localUsers.containsKey(username);
     }
     

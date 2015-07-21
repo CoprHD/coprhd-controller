@@ -12,8 +12,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.networkcontroller.SSHSession;
@@ -30,7 +30,7 @@ public class MDSDialogTest {
     static Integer sshport = 22;
     static String vsanId = "3178";
     
-    private static final Log _log = LogFactory.getLog(MDSDialogTest.class);
+    private static final Logger _log = LoggerFactory.getLogger(MDSDialogTest.class);
 
 	/**
 	 * @param args
@@ -68,14 +68,14 @@ public class MDSDialogTest {
             Map<Integer, Set<String>> peerDevicesMap = dialog.showTopology();
             System.out.println("Peer Devices: ");
             for (Entry<Integer, Set<String>> entry : peerDevicesMap.entrySet()) {
-                System.out.printf("...Vsan: %s, Peer devices: %s\n", entry.getKey(), entry.getValue());
+            	_log.info(String.format("...Vsan: %s, Peer devices: %s%n", entry.getKey(), entry.getValue()));
             }
     
             testNonIvr(dialog);
        
             testIvr(dialog);
         } catch (Exception ex) {
-            ex.printStackTrace();
+        	_log.error(ex.getMessage(),ex);
         } finally {
             if (sshs != null) sshs.disconnect();
         }
@@ -85,12 +85,12 @@ public class MDSDialogTest {
 	static void printVsan(MDSDialog dialog, Integer vsanId) throws ControllerException {
 	    Zoneset activeZoneset = dialog.showActiveZoneset(vsanId);
 	    if ( activeZoneset != null)  {
-	        System.out.println("Active zoneset for vsan: " + vsanId);
+	    	_log.info("Active zoneset for vsan: {}", vsanId);
 	        activeZoneset.print();
 	    }
 	    
 	    
-        System.out.println("Inactive zonesets for vsan: " + vsanId);
+	    _log.info("Inactive zonesets for vsan: {}",vsanId);
 		List<Zoneset> zonesets = dialog.showZoneset(vsanId,false, null, false);
 		for (Zoneset zs : zonesets) {
 			if (!zs.getActive() == true) {
@@ -103,7 +103,7 @@ public class MDSDialogTest {
         Map<Integer, String> vsanToWwns = dialog.getVsanWwns(null);
         for (Integer vsan : vsanToWwns.keySet()) {
             String wwn = vsanToWwns.get(vsan);
-            System.out.println("Vsan " + vsan + " WWN " + wwn);
+            _log.info("Vsan {} WWN {}",vsan, wwn);
         }
         boolean isSessionInProgress = dialog.isSessionInProgress(3172);
         isSessionInProgress = dialog.isSessionInProgress(new Integer(vsanId));
@@ -115,7 +115,7 @@ public class MDSDialogTest {
             String msg = MessageFormat.format("connection: {0} {1}:{2} {3} remote {4} {5} fabric {6}",
                     cn.getFabricId(), cn.getSwitchName(), cn.getSwitchInterface(), cn.getSwitchPortName(),
                     cn.getRemotePortName(), cn.getRemotePortName(), cn.getFabricWwn());
-            System.out.println(msg);
+            _log.info(msg);
         }
         
         dialog.showVsan(true);
@@ -132,23 +132,23 @@ public class MDSDialogTest {
 	static void testIvr(MDSDialog dialog) throws ControllerException {
         if (dialog.isIvrEnabled()) {
             String switchWwn = dialog.showSwitchWwn();
-            System.out.println("Switch WWN: " + switchWwn);  
+            _log.info("Switch WWN: {}", switchWwn);  
             
             List<IvrVsanConfiguration> ivrVsansList = dialog.showIvrVsanTopology();
             for (IvrVsanConfiguration ivrVsans : ivrVsansList) {
-                System.out.printf("%s\n", ivrVsans.toString());
+            	_log.info(String.format("%s%n", ivrVsans.toString()));
             }
 
             testIvrZoneset(dialog);
             
             testIvrZone(dialog);
                         
-            System.out.printf("---------------- Active Ivr Zoneset ----------------\n");
+            _log.info("---------------- Active Ivr Zoneset ----------------%n");
             IvrZoneset ivrZoneset = dialog.showActiveIvrZoneset();
             printIvrZoneset(ivrZoneset);
             
         } else {
-            System.out.printf("Switch %s is not ivr enabled", ipaddress);
+            _log.info("Switch {} is not ivr enabled", ipaddress);
         }	    
 	}
 	
@@ -159,7 +159,7 @@ public class MDSDialogTest {
             try {
                 dialog.ivrZonesetMember("test-non-exist-zone", bRemove);
             } catch (Exception e) {
-                System.out.println("------Error---: " + e.getMessage());
+                _log.error(e.getMessage(),e);
             }
         }
         dialog.ivrCommit();
@@ -185,7 +185,7 @@ public class MDSDialogTest {
         configIvrZoneSet(dialog, "test-zoneset-abc", false);
 
         // show zone set after create
-        System.out.printf("---------------- Ivr Zoneset after created ----------------\n");
+        _log.info("---------------- Ivr Zoneset after created ----------------%n");
         for (IvrZoneset ivrZoneset : dialog.showIvrZonesets(false)) {
             printIvrZoneset(ivrZoneset);
         }
@@ -194,7 +194,7 @@ public class MDSDialogTest {
         configIvrZoneSet(dialog, "test-zoneset-abc", true);
         
         // show zone set after create
-        System.out.printf("---------------- Ivr Zoneset after removed ----------------\n");
+        _log.info("---------------- Ivr Zoneset after removed ----------------%n");
         for (IvrZoneset ivrZoneset : dialog.showIvrZonesets(false)) {
             printIvrZoneset(ivrZoneset);
         }	    
@@ -205,7 +205,7 @@ public class MDSDialogTest {
         configIvrZone(dialog, "test-zoneset-abc", false);
 
         // show zone set after create
-        System.out.printf("---------------- Ivr Zone after created ----------------\n");
+        _log.info("---------------- Ivr Zone after created ----------------%n");
         for (IvrZone ivrZone : dialog.showIvrZones(false)) {
             printIvrZone(ivrZone);
         }        
@@ -214,7 +214,7 @@ public class MDSDialogTest {
         configIvrZone(dialog, "test-zoneset-abc", true);
         
         // show zone set after create
-        System.out.printf("---------------- Ivr Zone after removed ----------------\n");
+        _log.info("---------------- Ivr Zone after removed ----------------%n");
         for (IvrZone ivrZone : dialog.showIvrZones(false)) {
             printIvrZone(ivrZone);
         }        
@@ -224,16 +224,16 @@ public class MDSDialogTest {
 	static void printIvrZoneset(IvrZoneset ivrZoneset) {
 	    if ( ivrZoneset==null ) return;
 	    
-        System.out.printf("--Ivr Zoneset: %s\n", ivrZoneset.getName());
+	    _log.info("--Ivr Zoneset: %s%n", ivrZoneset.getName());
         for (IvrZone ivrZone : ivrZoneset.getZones()) {
             printIvrZone(ivrZone);
         }	    
 	}
 	
     static void printIvrZone(IvrZone ivrZone) {
-        System.out.printf("-----Ivr Zone: %s\n", ivrZone.getName());
+    	_log.info("-----Ivr Zone: %s%n", ivrZone.getName());
         for (IvrZoneMember ivrZoneMember : ivrZone.getMembers()) {
-            System.out.printf("----------pwwn: %s,  vsan: %s\n", ivrZoneMember.getPwwn(), ivrZoneMember.getVsanId());
+        	_log.info("----------pwwn: {},  vsan: {}%n", ivrZoneMember.getPwwn(), ivrZoneMember.getVsanId());
         }       
     }	
 	
@@ -285,12 +285,12 @@ public class MDSDialogTest {
 			List<Zone> zoneArgs = new ArrayList<Zone>();
 			for (int j=0; j <= i; j++) zoneArgs.add(zonesToTest.get(j));
 			
-			System.out.println("Creating zones:");
+			_log.info("Creating zones:");
 			MdsNetworkSystemDevice device = new MdsNetworkSystemDevice();
 			device.addZonesStrategy(dialog, zoneArgs, vsanId, false);
 			printVsan(dialog, vsanId);
 			
-			System.out.println("Removing zones:");
+			_log.info("Removing zones:");
 			device.removeZonesStrategy(dialog, zoneArgs, vsanId, false);
 			printVsan(dialog, vsanId);
 		}

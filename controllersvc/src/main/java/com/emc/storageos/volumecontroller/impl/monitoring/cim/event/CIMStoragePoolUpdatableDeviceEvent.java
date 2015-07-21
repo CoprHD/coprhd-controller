@@ -300,7 +300,7 @@ public class CIMStoragePoolUpdatableDeviceEvent extends
             _logger.error(
                     "Multiple StoragePools found with same native guid {}",
                     nativeGuid);
-        } else if (resourceURIs.size() == 0) {
+        } else if (resourceURIs.isEmpty()) {
             _logger.debug("No StoragePools found with native guid {}",
                     nativeGuid);
         } else if (resourceURIs.size() == 1) {

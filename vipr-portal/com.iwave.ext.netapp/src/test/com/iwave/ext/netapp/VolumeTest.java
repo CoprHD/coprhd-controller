@@ -22,6 +22,11 @@ import com.emc.storageos.services.util.EnvConfig;
  * @author sdorcas
  *
  */
+
+@SuppressWarnings({"squid:S2444"})
+/*
+ * Change to static reference will be made in the future release
+ */
 public class VolumeTest {
 
 	static private NaServer server = null;

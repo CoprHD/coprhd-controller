@@ -441,7 +441,8 @@ public class CimIndicationSet {
                     CIMObjectPath path = null;
                     try {
                         path = CimObjectPathCreator.createInstance(value);
-                    } catch (Throwable e) {
+                    } catch (Exception e) {
+                    	s_logger.error(e.getMessage(), e);
                     }
                     if (path != null) {
                         processObjectPath(name, path);
@@ -531,6 +532,7 @@ public class CimIndicationSet {
                 int i = Integer.parseInt(get(key));
                 tag = CimAlertType.toString(i);
             } catch (NumberFormatException e) {
+            	s_logger.error(e.getMessage(),e);
             }
 
             set(CimConstants.ALERT_TYPE_TAG_KEY, tag);

@@ -82,9 +82,9 @@ public class VNXFileCommunicationInterfaceTest {
             fileShare.setCapacity(12500L);
             _dbClient.persistObject(fileShare);
         } catch (final Exception ioEx) {
-            ioEx.printStackTrace();
             _logger.error("Exception occurred while persisting objects in db {}",
                     ioEx.getMessage());
+            _logger.error(ioEx.getMessage(), ioEx);
         }
     }
 
@@ -104,9 +104,8 @@ public class VNXFileCommunicationInterfaceTest {
             Assert.assertTrue("Processed 0 record", latchcount == 0);
             plugin.cleanup();
         } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        	_logger.error(e.getMessage(), e);
+        	}
         _logger.debug("Executing testVNXFileDataCollection() test case completed.");
     }
 

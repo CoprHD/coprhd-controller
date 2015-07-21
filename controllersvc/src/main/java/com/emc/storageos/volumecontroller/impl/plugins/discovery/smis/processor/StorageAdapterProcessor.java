@@ -74,7 +74,7 @@ public class StorageAdapterProcessor extends Processor {
                     adapterInstance = it.next();
                     StorageHADomain adapter = checkStorageAdapterExistsInDB(adapterInstance, device);
                     createStorageAdapter(adapter, adapterInstance, profile);
-                    addPath(keyMap, operation.get_result(), adapterInstance.getObjectPath());
+                    addPath(keyMap, operation.getResult(), adapterInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("Adapter Discovery failed for {}-->{}", "",
                             getMessage(e));
@@ -136,9 +136,10 @@ public class StorageAdapterProcessor extends Processor {
         List<URI> adapterURIs = _dbClient
                 .queryByConstraint(AlternateIdConstraint.Factory
                         .getStorageHADomainByNativeGuidConstraint(adapterNativeGuid));
-        if (adapterURIs.size() > 0)
+        if (!adapterURIs.isEmpty()) {
             adapter = _dbClient.queryObject(StorageHADomain.class,
                     adapterURIs.get(0));
+        }
         return adapter;
     }
 

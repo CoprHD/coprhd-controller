@@ -41,7 +41,7 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
 
     private final static Logger log = LoggerFactory.getLogger(DisconnectVdcTaskOp.class);
 
-    private final static int NODE_CHECK_TIMEOUT = 180*1000; // 3 minutes
+    private final static int NODE_CHECK_TIMEOUT = 180 * 1000; // 3 minutes
 
     public DisconnectVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, String taskId,
@@ -98,7 +98,7 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
         // check local db first
         VirtualDataCenter disconnectingVdc = helper.getDisconnectingVdc();
 
-       if (disconnectingVdc != null)
+        if (disconnectingVdc != null)
         {
             log.error("There is already a VDC {} under disconnecting", disconnectingVdc.getId());
             throw GeoException.fatals.disconnectVdcConcurrentCheckFail(disconnectingVdc.getLabel());

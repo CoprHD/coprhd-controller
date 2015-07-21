@@ -713,7 +713,7 @@ public class VirtualArrays extends ViprResourceController {
             List<StoragePortRestRep> ports = StoragePortUtils.getStoragePortsByStorageSystem(storageSystemId);
             storagePorts.addAll(ResourceUtils.ids(ports));
         }
-        if (storagePorts.size() > 0) {
+        if (!storagePorts.isEmpty()) {
             VirtualArrayRestRep virtualArray = getVirtualArray(virtualArrayId);
             updateStoragePorts(storagePorts, addVirtualArray(virtualArray));
         }
@@ -792,7 +792,7 @@ public class VirtualArrays extends ViprResourceController {
                 }
             }
 
-            if (tenants.size() > 0) {
+            if (!tenants.isEmpty()) {
                 this.enableTenants = true;
             }
         }

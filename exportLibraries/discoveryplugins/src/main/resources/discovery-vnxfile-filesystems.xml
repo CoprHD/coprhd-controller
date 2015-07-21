@@ -5,7 +5,7 @@
 
     <bean id="vnxfileFileSystemSpace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="_operations">
+        <property name="operations">
             <list>
                 <ref bean="loginoperation" />
                 <ref bean="vnxFileSystemOperation" />
@@ -16,7 +16,7 @@
     
     <bean id="vnxfileSelectedFileSystemSpace"
           class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="_operations">
+        <property name="operations">
             <list>
                 <ref bean="loginoperation" />
                 <ref bean="vnxFileSelectedFileSystemOperation" />
@@ -27,10 +27,10 @@
 
     <bean id="vnxFileSystemOperation"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxFileSystemsProcessor" />
+        <property name="processor" ref="vnxFileSystemsProcessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -42,10 +42,10 @@
     
     <bean id="vnxFileSelectedFileSystemOperation"
           class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_processor" ref="vnxFileSystemsProcessor" />
+        <property name="processor" ref="vnxFileSystemsProcessor" />
         <property name="instance" ref="retriever" />
-        <property name="_method" value="execute" />
-        <property name="_arguments">
+        <property name="method" value="execute" />
+        <property name="arguments">
             <list>
                 <ref bean="uri" />
                 <ref bean="cookie" />
@@ -62,16 +62,16 @@
 
     <bean id="vnxfilesystemquery"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchFileSystemInfoWithSize" />
-        <property name="_value" value="" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchFileSystemInfoWithSize" />
+        <property name="value" value="" />
     </bean>
     
     <bean id="vnxfileselectedfilesystemquery"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="fetchSelectedFileSystemInfo" />
-        <property name="_value" value="" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="fetchSelectedFileSystemInfo" />
+        <property name="value" value="" />
     </bean>
 
 </beans>

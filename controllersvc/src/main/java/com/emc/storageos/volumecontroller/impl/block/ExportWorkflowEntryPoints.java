@@ -33,7 +33,7 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class ExportWorkflowEntryPoints implements Controller {
     private static final Logger _log = LoggerFactory.getLogger(ExportWorkflowEntryPoints.class);
-    private static String _beanName;
+    private static volatile String _beanName;
     private Map<String, MaskingOrchestrator> _orchestratorMap;
     private DbClient _dbClient;
 

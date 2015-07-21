@@ -47,34 +47,30 @@ public class UpgradeCoordinatorClientTest {
     private static final String SERVICE_BEAN = "syssvcserver";
     private static final String COORDINATOR_BEAN = "coordinatorclientext";
     private static final String SERVICEINFO = "serviceinfo";
-    private static SysSvcImpl sysservice;
-    private static CoordinatorClientExt _coordinator;
-    private static ServiceImpl _serviceinfo;
+    private static volatile SysSvcImpl sysservice;
+    private static volatile CoordinatorClientExt _coordinator;
+    private static volatile ServiceImpl _serviceinfo;
     private final int NUMCLIENTS = 2;
     private final int NUMRUNS = 1;
-    private static String nodeid1;
-    private static String nodeid2;
-    private static String targetVersion1;
-    private static String targetVersion2;
+    private static volatile String nodeid1;
+    private static volatile String nodeid2;
+    private static volatile String targetVersion1;
+    private static volatile String targetVersion2;
     private static final String DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK = "controlNodeUpgradeLock";
 
     @BeforeClass
-    public static void setup() throws IOException {
-        try {
-            ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
-                    "/sys-conf.xml");
-            sysservice = (SysSvcImpl) ctx.getBean(SERVICE_BEAN);
-            sysservice.start();
-            _coordinator = (CoordinatorClientExt) ctx.getBean(COORDINATOR_BEAN);
-            _serviceinfo = (ServiceImpl) ctx.getBean(SERVICEINFO);
+    public static void setup() throws Exception {
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
+                "/sys-conf.xml");
+        sysservice = (SysSvcImpl) ctx.getBean(SERVICE_BEAN);
+        sysservice.start();
+        _coordinator = (CoordinatorClientExt) ctx.getBean(COORDINATOR_BEAN);
+        _serviceinfo = (ServiceImpl) ctx.getBean(SERVICEINFO);
 
-            nodeid1 = "node1";
-            nodeid2 = "node2";
-            targetVersion1 = "storageos-1.0.0.0.r500";
-            targetVersion2 = "storageos-1.0.0.0.6666";
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        nodeid1 = "node1";
+        nodeid2 = "node2";
+        targetVersion1 = "storageos-1.0.0.0.r500";
+        targetVersion2 = "storageos-1.0.0.0.6666";
     }
 
     @Test
@@ -297,7 +293,7 @@ public class UpgradeCoordinatorClientTest {
     }
 
     @Test
-    public void testSerialize() throws CoordinatorClientException {
+    public void testSerialize() throws Exception {
         _logger.info("Testing coordinator serialization");
 
         _coordinator.getRemoteDownloadLock(nodeid1);
@@ -324,7 +320,6 @@ public class UpgradeCoordinatorClientTest {
                 Assert.assertTrue("value2".equals(props.getProperty("property2")));
             }
         } catch (Exception e) {
-            e.printStackTrace();
             Assert.assertTrue(false);
         }
 

@@ -216,7 +216,7 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
      * @param newEntries
      */
     public void replace(Set<K> newEntries) {
-        if (newEntries == null || (newEntries.size() == 0)) {
+        if (newEntries == null || (newEntries.isEmpty())) {
             clear();
             return;
         }

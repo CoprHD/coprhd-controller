@@ -147,7 +147,7 @@ public class IndicationTest {
             dbClient.queryTimeSeries(EventTimeSeries.class, dateTime, result, executor);
         } catch (Exception e) {
             _logger.error("Error --> " + e.getMessage());
-            e.printStackTrace();
+            _logger.error(e.getMessage(), e);
         }
         try {
             latch.await(60, TimeUnit.SECONDS);

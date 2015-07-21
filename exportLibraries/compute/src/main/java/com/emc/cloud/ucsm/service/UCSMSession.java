@@ -177,7 +177,7 @@ public class UCSMSession implements ComputeSession{
 
                 ComputeSessionCache cache = decryptAndRetrieveSessionCache();
 
-                if(cache != null|| cache.getSessionId()!=null){
+                if(cache != null && cache.getSessionId()!=null){
                     BeanUtils.setProperty(jaxbElement.getValue(), "cookie", cache.getSessionId());
                 }
             } catch (IllegalAccessException e) {
@@ -376,7 +376,7 @@ public class UCSMSession implements ComputeSession{
 
     private Boolean isCacheNotNull(ComputeSessionCache cache){
         if(cache == null || cache.getSessionId() == null || cache.getSessionLength() == null ||
-                cache.getSessionLength() == null || cache.getHashKey() == null){
+                cache.getHashKey() == null){
             return false;
         }
         return true;

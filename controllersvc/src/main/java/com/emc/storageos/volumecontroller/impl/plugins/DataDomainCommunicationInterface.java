@@ -181,7 +181,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                 DDStatsCapacityInfo statsCapInfo = null;
                 Stat stat = null;
 
-                if (statsCapInfos != null && statsCapInfos.size() > 0) {
+                if (statsCapInfos != null && !statsCapInfos.isEmpty()) {
                     statsCapInfo = statsCapInfos.get(0);
                     _keyMap.put(Constants._Granularity, granularity);
                     stat = recorder.addUsageInfo(statsCapInfo, _keyMap, fsNativeGuid, ddClient);
@@ -218,7 +218,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         } catch (Exception e) {
             _log.error("CollectStatisticsInformation failed. Storage system: " + 
                          storageSystemId, e);
-            throw DataDomainApiException.exceptions.StatsCollectionFailed(e.getMessage());
+            throw DataDomainApiException.exceptions.statsCollectionFailed(e.getMessage());
         }
 
     }
@@ -648,14 +648,14 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             // Process those active unmanaged fs objects available in database but not in newly discovered items, to mark them inactive.
             markUnManagedFSObjectsInActive(storageSystem, allDiscoveredUnManagedFileSystems);
 
-            if(newUnManagedFileSystems.size() > 0) {
+            if(newUnManagedFileSystems!= null && !newUnManagedFileSystems.isEmpty() ) {
                 //Add UnManagedFileSystem
                 _dbClient.createObject(newUnManagedFileSystems);
                 _log.info("{} {} Records inserted to DB",newUnManagedFileSystems.size(), UNMANAGED_FILESYSTEM);
 
             }
 
-            if(existingUnManagedFileSystems.size() > 0) {
+            if(existingUnManagedFileSystems != null && !existingUnManagedFileSystems.isEmpty() ) {
                 _dbClient.persistObject(existingUnManagedFileSystems);
                 _log.info("{} {} Records updated to DB",existingUnManagedFileSystems.size(), UNMANAGED_FILESYSTEM);
             }
@@ -854,9 +854,10 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             filesystemUris.add(unFileSystemtURI);
         }
 
-        if (filesystemUris.size() > 0)
+        if (!filesystemUris.isEmpty()) { 
             filesystemInfo = _dbClient.queryObject(UnManagedFileSystem.class,
                     filesystemUris.get(0));
+        }
         return filesystemInfo;
 
     }
@@ -915,7 +916,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             unManagedFileSystem.setStoragePoolUri(pool.getId());
         }
 
-        if (null == vPools || vPools.size() == 0) {
+        if (null == vPools || vPools.isEmpty() ) {
             unManagedFileSystemInformation.put(
                             UnManagedVolume.SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), new StringSet());
         } else {
@@ -1073,7 +1074,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
  
                     // Validate Rules Compatible with ViPR - Same rules should
                     // apply as per API SVC Validations.
-                    if(unManagedExportRules.size() > 0) {
+                    if(!unManagedExportRules.isEmpty()) {
                         boolean isAllRulesValid = validationUtility
                             .validateUnManagedExportRules(unManagedExportRules);
                         if (isAllRulesValid) {
@@ -1239,14 +1240,14 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                 }  
             }
             
-            if (newUnManagedCifsACLs.size() > 0) {
+            if (!newUnManagedCifsACLs.isEmpty() ) {
                 //create new UnManagedCifsShareACL
 				_log.info("Saving Number of New UnManagedCifsShareACL(s) {}", newUnManagedCifsACLs.size());
                 _dbClient.createObject(newUnManagedCifsACLs);
                 newUnManagedCifsACLs.clear();
 			}
 
-            if (oldUnManagedCifsACLs.size() > 0) {
+            if (!oldUnManagedCifsACLs.isEmpty() ) {
                 //Update existing UnManagedCifsShareACL
                 _log.info("Saving Number of Old UnManagedCifsShareACL(s) {}", oldUnManagedCifsACLs.size());
                 _dbClient.persistObject(oldUnManagedCifsACLs);

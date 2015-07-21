@@ -366,7 +366,9 @@ public class RPProtectionRecommendation extends VPlexRecommendation {
                 
                 if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
                 	buff.append("\tVPLEX Journal : " + "\n");
-                	buff.append("\tVplex Storage System : " + dbClient.queryObject(StorageSystem.class, protection.getTargetVplexStorageSystem()).getLabel() + "\n");
+                	if (protection.getTargetVplexStorageSystem() != null) {
+                		buff.append("\tVplex Storage System : " + dbClient.queryObject(StorageSystem.class, protection.getTargetVplexStorageSystem()).getLabel() + "\n");
+                	}
                 } else {
                 	buff.append("\tRegular Journal : " + "\n");
                 	buff.append("\tStorage System : " + dbClient.queryObject(StorageSystem.class, protection.getTargetStorageSystem()).getLabel() + "\n");

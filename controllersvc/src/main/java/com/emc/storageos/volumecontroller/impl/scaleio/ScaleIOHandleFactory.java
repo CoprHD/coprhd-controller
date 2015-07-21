@@ -20,6 +20,10 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.scaleio.api.ScaleIOCLI;
+import com.emc.storageos.scaleio.api.ScaleIOContants;
+import com.emc.storageos.scaleio.api.ScaleIOHandle;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
 import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,53 +32,84 @@ import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ScaleIOCLIFactory {
-    private static final Logger log = LoggerFactory.getLogger(ScaleIOCLI.class);
-    private final Map<String, ScaleIOCLI> scaleIOCLIMap = new ConcurrentHashMap<String, ScaleIOCLI>();
-    private final Map<ScaleIOCLI, String> scaleIOCLIVersionMap =
+public class ScaleIOHandleFactory {
+    private static final Logger log = LoggerFactory.getLogger(ScaleIOHandleFactory.class);
+    private final Map<String, ScaleIOHandle> scaleIOCLIMap = new ConcurrentHashMap<String, ScaleIOHandle>();
+    private final Map<ScaleIOHandle, String> scaleIOCLIVersionMap =
             new ConcurrentHashMap<>();
     private final Object syncObject = new Object();
 
     private DbClient dbClient;
     private static final String SIO_V1_3X_REGEX = ".*?1_3\\d+.*";
+    private ScaleIORestClientFactory scaleIORestClientFactory;
 
     public void setDbClient(DbClient client) {
         dbClient = client;
     }
 
-    public ScaleIOCLI getCLI(StorageSystem storageSystem) {
-        ScaleIOCLI cli;
+    public ScaleIORestClientFactory getScaleIORestClientFactory() {
+        return scaleIORestClientFactory;
+    }
+
+    public void setScaleIORestClientFactory(
+            ScaleIORestClientFactory scaleIORestClientFactory) {
+        this.scaleIORestClientFactory = scaleIORestClientFactory;
+    }
+
+
+
+    public ScaleIOHandle getCLI(StorageSystem storageSystem)  throws Exception{
+        ScaleIOHandle handle;
         synchronized (syncObject) {
             URI activeProviderURI = storageSystem.getActiveProviderURI();
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, activeProviderURI);
             String providerId = provider.getProviderID();
-            cli = scaleIOCLIMap.get(providerId);
-            if (cli == null) {
-                cli = newCLIBasedOnStorageProvider(provider);
-            } else {
-                cli = handlePossibleSIOVersionChange(provider, cli);
-            }
-            refreshUsernameAndPassword(cli, provider);
+            handle = scaleIOCLIMap.get(providerId);
+            handle = getHandle(handle, provider);
         }
-        return cli;
+        return handle;
     }
 
-    public ScaleIOCLI getCLI(StorageProvider provider) {
-        ScaleIOCLI cli;
+    public ScaleIOHandle getCLI(StorageProvider provider) throws Exception {
+        ScaleIOHandle handle;
         synchronized (syncObject) {
             String providerId = provider.getProviderID();
-            cli = scaleIOCLIMap.get(providerId);
-            if (cli == null) {
-                cli = newCLIBasedOnStorageProvider(provider);
-            } else {
-                cli = handlePossibleSIOVersionChange(provider, cli);
-            }
-            refreshUsernameAndPassword(cli, provider);
+            handle = scaleIOCLIMap.get(providerId);
+            handle = getHandle(handle, provider);
         }
-        return cli;
+        return handle;
     }
 
-    public ScaleIOCLIFactory using(DbClient dbClient) {
+    private ScaleIOHandle getHandle(ScaleIOHandle handle, StorageProvider provider) throws Exception {
+        if (StorageProvider.InterfaceType.scaleio.toString().equals(provider.getInterfaceType())) {
+            ScaleIOCLI cliHandle = (ScaleIOCLI) handle;
+            if (handle == null) {
+                handle = newCLIBasedOnStorageProvider(provider);
+            } else {
+                handle = handlePossibleSIOVersionChange(provider, cliHandle);
+            }
+            refreshUsernameAndPassword(cliHandle, provider);
+        } else {
+            if (handle == null) {
+                URI baseURI = URI.create(ScaleIOContants.getAPIBaseURI(provider.getIPAddress(), provider.getPortNumber()));
+                handle = (ScaleIORestClient) scaleIORestClientFactory.getRESTClient(baseURI, provider.getUserName(), provider.getPassword(), true);
+                ScaleIORestClient client = (ScaleIORestClient) handle;
+                String version = client.init();
+                scaleIOCLIMap.put(provider.getProviderID(), client);
+                scaleIOCLIVersionMap.put(client, version);
+            }
+            ScaleIORestClient client = (ScaleIORestClient) handle;
+            if (!Strings.isNullOrEmpty(provider.getUserName())) {
+                client.setUsername(provider.getUserName());
+            }
+            if (!Strings.isNullOrEmpty(provider.getPassword())) {
+                client.setPassword(provider.getPassword());
+            }
+        }
+        return handle;
+    }
+    
+    public ScaleIOHandleFactory using(DbClient dbClient) {
         setDbClient(dbClient);
         return this;
     }

@@ -27,6 +27,8 @@ import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.api.ScaleIOAttributes;
 import com.emc.storageos.scaleio.api.ScaleIOCLI;
+import com.emc.storageos.scaleio.api.ScaleIOContants;
+import com.emc.storageos.scaleio.api.ScaleIOHandle;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllSCSIInitiatorsResult;
@@ -34,13 +36,14 @@ import com.emc.storageos.scaleio.api.ScaleIOQueryAllSDCResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllSDSResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryClusterResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryStoragePoolResult;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.OperationalStatus;
-import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOCLIFactory;
+import com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOHandleFactory;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Strings;
@@ -68,16 +71,16 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
     private static final Set<String> SCALEIO_ONLY = Collections.singleton(HostInterface.Protocol.ScaleIO.name());
     private static final Set<String> SCALEIO_AND_ISCSI = new HashSet<>();
 
-    private ScaleIOCLIFactory scaleIOCLIFactory;
+    private ScaleIOHandleFactory scaleIOHandleFactory;
 
     static {
         SCALEIO_AND_ISCSI.add(HostInterface.Protocol.ScaleIO.name());
         SCALEIO_AND_ISCSI.add(HostInterface.Protocol.iSCSI.name());
     }
 
-    public void setScaleIOCLIFactory(ScaleIOCLIFactory scaleIOCLIFactory) {
-        this.scaleIOCLIFactory = scaleIOCLIFactory;
-        this.scaleIOCLIFactory.setDbClient(_dbClient);
+    public void setScaleIOHandleFactory(ScaleIOHandleFactory scaleIOHandleFactory) {
+        this.scaleIOHandleFactory = scaleIOHandleFactory;
+        this.scaleIOHandleFactory.setDbClient(_dbClient);
     }
 
     @Override
@@ -92,16 +95,16 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, accessProfile.getSystemId());
         _locker.acquireLock(accessProfile.getIpAddress(), LOCK_WAIT_SECONDS);
         try {
-            ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(_dbClient).getCLI(provider);
-            if (scaleIOCLI != null) {
+            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getCLI(provider);
+            if (scaleIOHandle != null) {
                 Map<String, StorageSystemViewObject> storageSystemsCache = accessProfile.getCache();
 
-                ScaleIOQueryClusterResult clusterResult = scaleIOCLI.queryClusterCommand();
+                ScaleIOQueryClusterResult clusterResult = scaleIOHandle.queryClusterCommand();
                 StringSet secondaryIps = new StringSet();
                 secondaryIps.add(clusterResult.getSecondaryIP());
                 provider.setSecondaryIps(secondaryIps);
 
-                ScaleIOQueryAllResult queryAllResult = scaleIOCLI.queryAll();
+                ScaleIOQueryAllResult queryAllResult = scaleIOHandle.queryAll();
                 String scaleIOType = StorageSystem.Type.scaleio.name();
                 String installationId = queryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_INSTALLATION_ID);
                 String version = queryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_VERSION).replaceAll("_", ".");
@@ -147,12 +150,16 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
         log.info("Starting discovery of ScaleIO StorageProvider. IP={} StorageSystem {}",
                 accessProfile.getIpAddress(), storageSystem.getNativeGuid());
         try {
-            ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(_dbClient).getCLI(storageSystem);
-            if (scaleIOCLI != null) {
-                ScaleIOQueryAllResult queryAllResult = scaleIOCLI.queryAll();
-                ScaleIOQueryAllSDCResult queryAllSDCResult = scaleIOCLI.queryAllSDC();
-                ScaleIOQueryAllSDSResult queryAllSDSResult = scaleIOCLI.queryAllSDS();
-                ScaleIOQueryAllSCSIInitiatorsResult queryAllSCSIInitiatorsResult = scaleIOCLI.queryAllSCSIInitiators();
+            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(_dbClient).getCLI(storageSystem);
+            boolean usingAPI = false;
+            if (scaleIOHandle instanceof ScaleIORestClient) {
+                usingAPI = true;
+            }
+            if (scaleIOHandle != null) {
+                ScaleIOQueryAllResult queryAllResult = scaleIOHandle.queryAll();
+                ScaleIOQueryAllSDCResult queryAllSDCResult = scaleIOHandle.queryAllSDC();
+                ScaleIOQueryAllSDSResult queryAllSDSResult = scaleIOHandle.queryAllSDS();
+                ScaleIOQueryAllSCSIInitiatorsResult queryAllSCSIInitiatorsResult = scaleIOHandle.queryAllSCSIInitiators();
 
                 List<StoragePort> ports = new ArrayList<>();
                 List<StoragePool> newPools = new ArrayList<StoragePool>();
@@ -179,7 +186,12 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                         // This is not the ProtectionDomain that we're looking for
                         continue;
                     }
-                    storageSystem.setSerialNumber(protectionDomain);
+                    if (usingAPI) {
+                        String protectionDomainId = queryAllResult.getProtectionDomainId(protectionDomain);
+                        storageSystem.setSerialNumber(protectionDomainId);
+                    } else {
+                        storageSystem.setSerialNumber(protectionDomain);
+                    }
                     Network network = createNetwork(installationId);
                     List<StoragePort> thesePorts =
                             createStoragePorts(storageSystem, compatibility, network, queryAllSDSResult, protectionDomain);
@@ -196,8 +208,12 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                     Set<String> supportedProtocols = (hasSCSIInitiators) ? SCALEIO_AND_ISCSI : SCALEIO_ONLY;
                     for (String storagePool : queryAllResult.getStoragePoolsForProtectionDomain(protectionDomain)) {
                         ScaleIOQueryStoragePoolResult storagePoolResult =
-                                scaleIOCLI.queryStoragePool(protectionDomain, storagePool);
-                        String nativeGuid = String.format("%s-%s-%s", installationId, protectionDomain, storagePool);
+                                scaleIOHandle.queryStoragePool(protectionDomain, storagePool);
+                        String poolName = storagePool;
+                        if (usingAPI) {
+                            poolName = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool, ScaleIOContants.NAME);
+                        }
+                        String nativeGuid = String.format("%s-%s-%s", installationId, protectionDomain, poolName);
                         log.info("Attempting to discover pool {} for ProtectionDomain {}", storagePool, protectionDomain);
                         List<StoragePool> pools =
                                 queryActiveResourcesByAltId(_dbClient, StoragePool.class, "nativeGuid", nativeGuid);
@@ -206,8 +222,12 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                             log.info("Pool {} is new", storagePool);
                             pool = new StoragePool();
                             pool.setId(URIUtil.createId(StoragePool.class));
-                            pool.setPoolName(storagePool);
-                            pool.setNativeId(String.format("%s-%s-%s", installationId, protectionDomain, storagePool));
+                            pool.setPoolName(poolName);
+                            if (usingAPI) {
+                                pool.setNativeId(storagePool);
+                            } else {
+                                pool.setNativeId(String.format("%s-%s-%s", installationId, protectionDomain, storagePool));
+                            }
                             pool.setNativeGuid(nativeGuid);
                             pool.setStorageDevice(accessProfile.getSystemId());
                             pool.setPoolServiceType(StoragePool.PoolServiceType.block.toString());
@@ -231,12 +251,21 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                                     nativeGuid));
                             continue;
                         }
-                        String freeCapacityString = storagePoolResult.getAvailableCapacity();
-                        Long freeCapacityKBytes = ControllerUtils.convertBytesToKBytes(freeCapacityString);
-                        pool.setFreeCapacity(freeCapacityKBytes);
-                        String totalCapacityString = storagePoolResult.getTotalCapacity();
-                        Long totalCapacityKBytes = ControllerUtils.convertBytesToKBytes(totalCapacityString);
-                        pool.setTotalCapacity(totalCapacityKBytes);
+                        if (usingAPI) {
+                            String availableCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool, 
+                                    ScaleIOQueryAllCommand.POOL_AVAILABLE_CAPACITY);
+                            pool.setFreeCapacity(Long.parseLong(availableCapacityString));
+                            String totalCapacityString = queryAllResult.getStoragePoolProperty(protectionDomain, storagePool, 
+                                    ScaleIOQueryAllCommand.SCALEIO_TOTAL_CAPACITY);
+                            pool.setTotalCapacity(Long.parseLong(totalCapacityString));
+                        } else {
+                            String freeCapacityString = storagePoolResult.getAvailableCapacity();
+                            Long freeCapacityKBytes = ControllerUtils.convertBytesToKBytes(freeCapacityString);
+                            pool.setFreeCapacity(freeCapacityKBytes);
+                            String totalCapacityString = storagePoolResult.getTotalCapacity();
+                            Long totalCapacityKBytes = ControllerUtils.convertBytesToKBytes(totalCapacityString);
+                            pool.setTotalCapacity(totalCapacityKBytes);
+                        }
                         pool.addProtocols(supportedProtocols);
                         // In case there is an upgrade from SIO 1.2x to SIO 1.30, this will update
                         // the pool values to the appropriate values
@@ -489,7 +518,8 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             Network networkForSCSIInitiators = createIPNetworkForSCSIInitiators(networkId);
 
             for (String iqn : queryAllSCSIInitiatorsResult.getAllInitiatorIds()) {
-                Initiator initiator = createSCSIInitiator(iqn);
+                String id = queryAllSCSIInitiatorsResult.getInitiator(iqn).get(queryAllSCSIInitiatorsResult.INITIATOR_ID);
+                Initiator initiator = createSCSIInitiator(iqn, id);
                 if (!networkForSCSIInitiators.hasEndpoint(initiator.getInitiatorPort())) {
                     initiatorsToAddToNetwork.add(initiator.getInitiatorPort());
                 }
@@ -540,7 +570,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
      * @param iqn [id] - iSCSI IQN for the port
      * @return Initiator object
      */
-    private Initiator createSCSIInitiator(String iqn) {
+    private Initiator createSCSIInitiator(String iqn, String id) {
         Initiator initiator;
         List<Initiator> results =
                 CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, Initiator.class, "iniport", iqn);
@@ -551,9 +581,14 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             initiator.setProtocol(HostInterface.Protocol.iSCSI.name());
             initiator.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.name());
             initiator.setInactive(false);
+            if (id != null && !id.isEmpty()) {
+                initiator.setLabel(id);
+            }
             _dbClient.createObject(initiator);
         } else {
             initiator = results.get(0);
+            initiator.setLabel(id);
+            _dbClient.persistObject(initiator);
         }
         return initiator;
     }

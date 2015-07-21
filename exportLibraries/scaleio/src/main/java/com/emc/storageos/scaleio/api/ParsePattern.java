@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  * This class will contain a REGEX string and a name. It is used for finding output line matches
  * for processing by the AbstractScaleIOQueryCommand implementation.
  */
-class ParsePattern {
+public class ParsePattern {
     String patternString;
     Pattern pattern;
     String propertyName;

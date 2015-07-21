@@ -26,6 +26,7 @@ public class ScaleIOQueryAllResult {
     private Set<String> protectionDomains;
     private Map<String, Map<String, ScaleIOAttributes>> protectionDomainStoragePools;
     private Map<String, Long> protectionDomainToCapacity;
+    private Map<String, String> protectionDomainNameIdMap;
 
     public ScaleIOQueryAllResult() {
         this.properties = new ScaleIOAttributes();
@@ -70,11 +71,16 @@ public class ScaleIOQueryAllResult {
         return result;
     }
 
-    void addProtectionDomain(String protectionDomainName) {
+    public void addProtectionDomain(String protectionDomainName) {
         protectionDomains.add(protectionDomainName);
     }
+    
+    public void addProtectionDomain(String protectionDomainName, String protectionDomainId) {
+        protectionDomains.add(protectionDomainName);
+        getProtectionDomainNameIdMap().put(protectionDomainName, protectionDomainId);
+    }
 
-    void addProtectionDomainStoragePool(String protectionDomainName, String poolName) {
+    public void addProtectionDomainStoragePool(String protectionDomainName, String poolName) {
         Map<String, ScaleIOAttributes> poolMap = protectionDomainStoragePools.get(protectionDomainName);
         if (poolMap == null) {
             poolMap = new HashMap<String, ScaleIOAttributes>();
@@ -83,7 +89,7 @@ public class ScaleIOQueryAllResult {
         poolMap.put(poolName, new ScaleIOAttributes());
     }
 
-    void addStoragePoolProperty(String protectionDomainName, String poolName, String propertyName, String value) {
+    public void addStoragePoolProperty(String protectionDomainName, String poolName, String propertyName, String value) {
         if (protectionDomainStoragePools != null &&
                 protectionDomainStoragePools.containsKey(protectionDomainName)) {
             Map<String, ScaleIOAttributes> poolToProperties = protectionDomainStoragePools.get(protectionDomainName);
@@ -93,7 +99,27 @@ public class ScaleIOQueryAllResult {
         }
     }
 
-    void setProperty(String propertyName, String value) {
+    public void setProperty(String propertyName, String value) {
         properties.put(propertyName, value);
+    }
+    
+    public Map<String, String> getProtectionDomainNameIdMap() {
+        if (protectionDomainNameIdMap == null) {
+            protectionDomainNameIdMap = new HashMap<String, String>();
+        }
+        return protectionDomainNameIdMap;
+    }
+
+    public void setProtectionDomainNameIdMap(
+            Map<String, String> protectionDomainNameIdMap) {
+        this.protectionDomainNameIdMap = protectionDomainNameIdMap;
+    }
+
+    public String getProtectionDomainId(String protectionDomainName) {
+        String result = null;
+        if (protectionDomainNameIdMap != null) {
+            result = protectionDomainNameIdMap.get(protectionDomainName);
+        }
+        return result;
     }
 }

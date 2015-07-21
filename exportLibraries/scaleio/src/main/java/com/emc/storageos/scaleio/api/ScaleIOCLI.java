@@ -16,6 +16,7 @@
 package com.emc.storageos.scaleio.api;
 
 import com.emc.storageos.scaleio.ScaleIOException;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.google.common.base.Strings;
 import com.iwave.utility.ssh.SSHCommandExecutor;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ import java.util.regex.Pattern;
  * ScaleIOCLI cli = new ScaleIOCLI("MDM-IP/host", port, "username", "password");
  * ScaleIOFooResult cli.foo();
  */
-public class ScaleIOCLI {
+public class ScaleIOCLI implements ScaleIOHandle {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOCLI.class);
     private static final Pattern versionPattern = Pattern.compile("(\\d+)_(\\d+)\\.\\d+\\.\\d+");
     /**
@@ -72,13 +73,10 @@ public class ScaleIOCLI {
      * SIO 1.30 requires an MDM user + password for running SIO CLI
      */
     private String mdmPassword;
+    
+    private Boolean isInitialized;
 
     private ScaleIOCLICommand.ScaleIOCommandSemantics commandSemantics;
-
-    /**
-     * Boolean to indicate if the CLI has been initialized.
-     */
-    private Boolean isInitialized;
 
     public ScaleIOCLI() {
     }
@@ -94,13 +92,6 @@ public class ScaleIOCLI {
         this.port = port;
         this.username = username;
         this.password = password;
-    }
-
-    private void checkIfInitWasCalled() {
-        if (isInitialized == null || !isInitialized) {
-            log.error("ScaleIO CLI was not initialized before use");
-            throw ScaleIOException.exceptions.initWasNotCalled();
-        }
     }
 
     public String init() {
@@ -274,14 +265,14 @@ public class ScaleIOCLI {
         return command.getResults();
     }
 
-    public ScaleIOSnapshotVolumeResult snapshotVolume(String id, String snapshot) {
+    public ScaleIOSnapshotVolumeResult snapshotVolume(String id, String snapshot, String systemId) {
         ScaleIOSnapshotVolumeCommand command = new ScaleIOSnapshotVolumeCommand(id, snapshot);
         command.useCustomInvocationIfSet(customInvocation);
         executeCommand(command);
         return command.getResults();
     }
 
-    public ScaleIOSnapshotMultiVolumeResult snapshotMultiVolume(Map<String,String> id2snapshot) {
+    public ScaleIOSnapshotMultiVolumeResult snapshotMultiVolume(Map<String,String> id2snapshot, String systemId) {
         ScaleIOSnapshotMultiVolumeCommand command = new ScaleIOSnapshotMultiVolumeCommand(id2snapshot);
         command.useCustomInvocationIfSet(customInvocation);
         executeCommand(command);
@@ -348,5 +339,24 @@ public class ScaleIOCLI {
         executeCommand(command);
         ScaleIOVersionResult result = command.getResults();
         return result.getVersion();
+    }
+
+    @Override
+    public String getSystemId() throws Exception {
+        ScaleIOQueryAllResult scaleIOQueryAllResult = queryAll();
+        return scaleIOQueryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID);
+    }
+
+    @Override
+    public ScaleIOVolume queryVolume(String volId) throws Exception {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
+    public void checkIfInitWasCalled() {
+        if (isInitialized == null || !isInitialized) {
+            log.error("ScaleIO CLI was not initialized before use");
+            throw ScaleIOException.exceptions.initWasNotCalled();
+        }
     }
 }

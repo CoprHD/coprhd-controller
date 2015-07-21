@@ -25,10 +25,12 @@ import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.scaleio.api.ScaleIOAttributes;
 import com.emc.storageos.scaleio.api.ScaleIOCLI;
+import com.emc.storageos.scaleio.api.ScaleIOHandle;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllResult;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllVolumesResult;
 import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -44,36 +46,36 @@ public class ScaleIOCloneOperations implements CloneOperations {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIOCloneOperations.class);
     private DbClient dbClient;
-    private ScaleIOCLIFactory scaleIOCLIFactory;
+    private ScaleIOHandleFactory scaleIOHandleFactory;
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
 
     @SuppressWarnings("UnusedDeclaration")
-    public void setScaleIOCLIFactory(ScaleIOCLIFactory scaleIOCLIFactory) {
-        this.scaleIOCLIFactory = scaleIOCLIFactory;
+    public void setScaleIOHandleFactory(ScaleIOHandleFactory scaleIOHandleFactory) {
+        this.scaleIOHandleFactory = scaleIOHandleFactory;
     }
 
     @Override
     public void createSingleClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume, Boolean createInactive,
                                   TaskCompleter taskCompleter) {
         try {
-            ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storageSystem);
+            ScaleIOHandle scaleIOHandle = scaleIOHandleFactory.using(dbClient).getCLI(storageSystem);
 
             Volume cloneObj = dbClient.queryObject(Volume.class, cloneVolume);
             BlockObject parent = BlockObject.fetch(dbClient, sourceVolume);
 
-            String systemId = getScaleIOCustomerId(scaleIOCLI);
+            String systemId = scaleIOHandle.getSystemId();
             // Note: ScaleIO snapshots can be treated as full copies, hence re-use of #snapshotVolume here.
-            ScaleIOSnapshotVolumeResult result = scaleIOCLI.snapshotVolume(parent.getNativeId(), cloneObj.getLabel());
+            ScaleIOSnapshotVolumeResult result = scaleIOHandle.snapshotVolume(parent.getNativeId(), cloneObj.getLabel(), systemId);
 
             if (result.isSuccess()) {
                 ScaleIOCLIHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, cloneObj, systemId, result);
                 // Snapshots result does not provide capacity info, so we need to perform a --query_all_volumes
-                updateCloneFromQueryAllVolumes(scaleIOCLI, cloneObj);
+                updateCloneFromQueryAllVolumes(scaleIOHandle, cloneObj);
                 dbClient.persistObject(cloneObj);
-                ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOCLI, cloneObj);
+                ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);
                 taskCompleter.ready(dbClient);
             } else {
                 ServiceCoded code = DeviceControllerErrors.scaleio.createFullCopyError(parent.getLabel(),
@@ -110,24 +112,27 @@ public class ScaleIOCloneOperations implements CloneOperations {
         // Not supported
     }
 
-    private void updateCloneFromQueryAllVolumes(ScaleIOCLI scaleIOCLI, Volume cloneObj) {
-        ScaleIOQueryAllVolumesResult result = scaleIOCLI.queryAllVolumes();
+    private void updateCloneFromQueryAllVolumes(ScaleIOHandle scaleIOHandle, Volume cloneObj) throws Exception {
+        
 
         try {
-            ScaleIOAttributes attributes = result.getScaleIOAttributesOfVolume(cloneObj.getNativeId());
-            long l = Long.parseLong(attributes.get(VOLUME_SIZE_BYTES));
-            cloneObj.setAllocatedCapacity(l);
-            cloneObj.setProvisionedCapacity(l);
+            if (scaleIOHandle instanceof ScaleIOCLI) {
+                ScaleIOQueryAllVolumesResult result = scaleIOHandle.queryAllVolumes();
+                ScaleIOAttributes attributes = result.getScaleIOAttributesOfVolume(cloneObj.getNativeId());
+                long l = Long.parseLong(attributes.get(VOLUME_SIZE_BYTES));
+                cloneObj.setAllocatedCapacity(l);
+                cloneObj.setProvisionedCapacity(l);
+            } else {
+                ScaleIOVolume vol = scaleIOHandle.queryVolume(cloneObj.getNativeId());
+                long size = Long.parseLong(vol.getSizeInKb())*1024L;
+                cloneObj.setAllocatedCapacity(size);
+                cloneObj.setProvisionedCapacity(size);
+            }
         } catch (Exception e) {
             log.warn("Failed to update full copy {} with size information: {}", cloneObj.getId(),
-                    result.getErrorString());
+                        e.getMessage());
             throw e;
         }
-    }
-
-    private String getScaleIOCustomerId(ScaleIOCLI scaleIOCLI) {
-        ScaleIOQueryAllResult scaleIOQueryAllResult = scaleIOCLI.queryAll();
-        return scaleIOQueryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID);
     }
     
     @Override

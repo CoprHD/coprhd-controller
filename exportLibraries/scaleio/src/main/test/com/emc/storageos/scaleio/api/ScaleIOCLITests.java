@@ -220,7 +220,7 @@ public class ScaleIOCLITests {
             id2snap.put(volume.getId(), generateUUID());
         }
 
-        ScaleIOSnapshotMultiVolumeResult multiResult = scaleIOCLI.snapshotMultiVolume(id2snap);
+        ScaleIOSnapshotMultiVolumeResult multiResult = scaleIOCLI.snapshotMultiVolume(id2snap, "");
 
         assertTrue("Snapshot multivolume failed", multiResult.isSuccess());
         assertNotNull(multiResult.getConsistencyGroupId());

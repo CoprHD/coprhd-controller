@@ -73,7 +73,7 @@ public class MarshallUtil {
             TenantOrgRestRep response = (TenantOrgRestRep) unmarshaller.unmarshal(new StringReader(strUserMappings));
             userMappingList = BasePermissionsHelper.UserMapping.fromParamList(response.getUserMappings());
         } catch (JAXBException e) {
-            log.warn("An error happened when convert string to list", e);
+            log.error("An error occurred when converting string {} to list. Cause: {}", strUserMappings, e);
         }
 
         return  userMappingList;

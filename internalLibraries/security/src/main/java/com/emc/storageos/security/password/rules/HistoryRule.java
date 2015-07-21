@@ -55,8 +55,8 @@ public class HistoryRule implements Rule {
 
         String text = password.getPassword();
         List<String> previousPasswords = password.getPreviousPasswords(historySize);
-        if (CollectionUtils.isEmpty(previousPasswords) ) {
-            _log.info("pass, no previous password");
+        if (previousPasswords.isEmpty() ) {
+            _log.info("Pass since no password in history list.");
             return;
         }
 

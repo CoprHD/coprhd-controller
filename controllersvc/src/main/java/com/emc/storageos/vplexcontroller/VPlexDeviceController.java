@@ -1829,10 +1829,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             for (Initiator init : inits) {
                 String port = init.getInitiatorPort();
-                String normalizedName = port;
-                if (WWNUtility.isValidWWN(port)) {
-                    normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                }
+                String normalizedName = Initiator.normalizePort(port);
                 _log.info("   looking at initiator " + normalizedName + " host " + init.getHostName());
                 if (initiatorPorts.contains(normalizedName)) {
                     _log.info("      found a matching initiator for " + normalizedName 

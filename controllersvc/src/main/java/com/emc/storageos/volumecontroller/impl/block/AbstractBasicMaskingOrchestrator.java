@@ -1686,11 +1686,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     if (initiator.getInactive()) {
                         continue;
                     }
-                    String normalizedName = initiator.getInitiatorPort();
-                    if (WWNUtility.isValidWWN(normalizedName)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(initiator
-                                .getInitiatorPort());
-                    }
+                    String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                     if (!portNames.contains(normalizedName)) {
                         portNames.add(normalizedName);
                         portNamesToInitiatorURI.put(normalizedName, uri);
@@ -1816,11 +1812,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                    if (initiator.getInactive()) {
                        continue;
                    }
-                   String normalizedName = initiator.getInitiatorPort();
-                   if (WWNUtility.isValidWWN(normalizedName)) {
-                       normalizedName = WWNUtility.getUpperWWNWithNoColons(initiator
-                               .getInitiatorPort());
-                   }
+                   String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
                    if (!portNames.contains(normalizedName)) {
                        portNames.add(normalizedName);
                        portNamesToInitiatorURI.put(normalizedName, uri);

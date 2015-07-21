@@ -305,10 +305,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // Find out if the port is in this masking container
                 List<String> matchingInitiators = new ArrayList<String>();
                 for (String port : initiatorNames) {
-                    String normalizedName = port;
-                    if (WWNUtility.isValidWWN(port)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                    }
+                    String normalizedName = Initiator.normalizePort(port);
                     if (initiatorPorts.contains(normalizedName)) {
                         matchingInitiators.add(normalizedName);
                     }

@@ -4126,10 +4126,7 @@ public class SmisCommandHelper implements SmisConstants {
                         CP_STORAGE_ID);
                 // initiator could be iSCSI or a WWN. We need to normalize if it is a
                 // WWN, so that we can compare appropriately.
-                String it = initiator;
-                if (WWNUtility.isValidWWN(initiator)) {
-                    it = WWNUtility.getUpperWWNWithNoColons(initiator);
-                }
+                String it = Initiator.normalizePort(initiator);
                 initiatorPorts.add(it);
             }
         } catch (WBEMException we) {

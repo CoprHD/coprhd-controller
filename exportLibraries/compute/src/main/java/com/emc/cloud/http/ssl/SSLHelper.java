@@ -1,15 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2009 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright 2009, EMC Corporation ("EMC").
- * All Rights Reserved
- *
- * UNPUBLISHED CONFIDENTIAL AND PROPRIETARY PROPERTY OF EMC. The copyright
- * notice above does not evidence any actual or intended publication of this
- * software. Disclosure and dissemination are pursuant to separate agreements.
- * Unauthorized use, distribution or dissemination are strictly prohibited.
  */
 package com.emc.cloud.http.ssl;
 

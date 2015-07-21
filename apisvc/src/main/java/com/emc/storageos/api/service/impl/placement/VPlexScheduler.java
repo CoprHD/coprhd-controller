@@ -1044,7 +1044,7 @@ public class VPlexScheduler implements Scheduler {
             vplexRecommendation.setSourceDevice(recommendation.getSourceDevice());
             vplexRecommendation.setSourcePool(recommendation.getSourcePool());
             vplexRecommendation.setResourceCount(recommendation.getResourceCount());
-            vplexRecommendation.setVPlexStorageSystem(URI.create(vplexStorageSystemId));
+            vplexRecommendation.setSourceDevice(URI.create(vplexStorageSystemId));
             vplexRecommendation.setVirtualArray(varray.getId());
             vplexRecommendation.setVirtualPool(vpool);
             vplexRecommendations.add(vplexRecommendation);

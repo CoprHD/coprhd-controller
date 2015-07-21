@@ -78,6 +78,7 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
         <property name="rpHelper" ref="rphelper"/>
+        <property name="vplexScheduler" ref="vplexscheduler" />
         <property name="blockScheduler" ref="storagescheduler" />
     </bean>
 

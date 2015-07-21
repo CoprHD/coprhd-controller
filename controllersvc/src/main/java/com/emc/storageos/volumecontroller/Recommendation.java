@@ -12,41 +12,40 @@ import java.net.URI;
  */
 @SuppressWarnings("serial")
 public class Recommendation implements Serializable {
-    private URI _sourceDevice;
-    private URI _sourcePool;
-    private String _deviceType;
-    private int _resourceCount;
+    private URI sourceStorageSystem;
+    private URI sourceStoragePool;
+    private String deviceType;
+    private int resourceCount;
     
     public int getResourceCount() {
-        return _resourceCount;
+        return resourceCount;
     }
 
     public void setResourceCount(int resourceCount) {
-        this._resourceCount = resourceCount;
+        this.resourceCount = resourceCount;
     }
 
     public URI getSourcePool() {
-        return _sourcePool;
+        return sourceStoragePool;
     }
 
     public void setSourcePool(URI _sourcePool) {
-        this._sourcePool = _sourcePool;
+        this.sourceStoragePool = _sourcePool;
     }
 
     public URI getSourceDevice() {
-        return _sourceDevice;
+        return sourceStorageSystem;
     }
 
     public void setSourceDevice(URI _sourceDevice) {
-        this._sourceDevice = _sourceDevice;
+        this.sourceStorageSystem = _sourceDevice;
     }
 
 	public String getDeviceType() {
-		return _deviceType;
+		return deviceType;
 	}
 
 	public void setDeviceType(String _deviceType) {
-		this._deviceType = _deviceType;
+		this.deviceType = _deviceType;
 	}
-
 }

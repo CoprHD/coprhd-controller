@@ -24,7 +24,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
  * recommendation.
  */
 @SuppressWarnings("serial")
-public class VPlexRecommendation extends RPProtectionRecommendation {
+public class VPlexRecommendation extends Recommendation {
     
     // The VPlex storage system.
     private URI _vplexStorageSystem;
@@ -38,11 +38,11 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
     @Override
 	public String toString() {
     	StringBuffer ret = new StringBuffer();
-    	if (super.getSourceInternalSiteName() != null) {
-    		ret.append(super.toString());
-    	}
+    	//if (super.getSourceInternalSiteName() != null) {
+    		//ret.append(super.toString());
+    	//}
     	
-    	ret.append("VPlexRecommendation [_vplexStorageSystem=" + _vplexStorageSystem
+    	ret.append("VPlexRecommendation [_vplexStorageSystem=" + getVPlexStorageSystem()
 						+ ", _varray=" + _varray
 						+ ", _vpool=" + _vpool
 						+ "]");
@@ -55,16 +55,20 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
      * 
      * @return The VPlex storage system for the recommendation.
      */
-    public URI getVPlexStorageSystem() {
+       
+     public URI getVPlexStorageSystem() {
+     
         return _vplexStorageSystem;
-    }
+    } 
     
     /**
      * Setter for the VPlex storage system for the recommendation.
      * 
      * @param vplexStorageSystem The VPlex storage system for the recommendation.
      */
-    public void setVPlexStorageSystem(URI vplexStorageSystem) {
+   
+     public void setVPlexStorageSystem(URI vplexStorageSystem) {
+     
         _vplexStorageSystem = vplexStorageSystem;
     }
     
@@ -102,5 +106,5 @@ public class VPlexRecommendation extends RPProtectionRecommendation {
      */
     public void setVirtualPool(VirtualPool vpool) {
         _vpool = vpool;
-    }
+    }	
 }

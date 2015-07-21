@@ -84,7 +84,7 @@ import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexProtection;
-import com.emc.storageos.volumecontroller.VPlexProtectionRecommendation;
+import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 
@@ -242,18 +242,18 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         
         while (recommendationsIter.hasNext()) {                	
-        	VPlexProtectionRecommendation primaryRecommendation = 
-            		(VPlexProtectionRecommendation) recommendationsIter.next();
+        	RPProtectionRecommendation primaryRecommendation = 
+            		(RPProtectionRecommendation) recommendationsIter.next();
 
         	// Determine if MetroPoint is enabled.  If this is the case we need to create an additional
         	// RP source journal for the HA side.
         	boolean metroPointEnabled = VirtualPool.vPoolSpecifiesMetroPoint(vpool);
 
-        	VPlexProtectionRecommendation secondaryRecommendation = null;
+        	RPProtectionRecommendation secondaryRecommendation = null;
         	
-        	// VPLEX Distributed requires two Recommendations.  The first is the VPlexProtectionRecommendation 
+        	// VPLEX Distributed requires two Recommendations.  The first is the RPProtectionRecommendation 
         	// recommendation.  The second is a VPlexRecommendation recommendation for cluster 2.  The second 
-        	// Recommendation is embedded in the VPlexProtectionRecommendation object.  
+        	// Recommendation is embedded in the RPProtectionRecommendation object.  
             if (primaryRecommendation.getSourceVPlexHaRecommendations() != null
             		&& !primaryRecommendation.getSourceVPlexHaRecommendations().isEmpty()) {
 
@@ -261,7 +261,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 if (primaryRecommendation.getSourceVPlexHaRecommendations() != null 
                 		&& !primaryRecommendation.getSourceVPlexHaRecommendations().isEmpty()) {
                 	secondaryRecommendation = 
-                			(VPlexProtectionRecommendation) primaryRecommendation.getSourceVPlexHaRecommendations().get(0);
+                			(RPProtectionRecommendation) primaryRecommendation.getSourceVPlexHaRecommendations().get(0);
                 }
             }
         	
@@ -327,7 +327,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 	            String activeSourceCopyName = "";
 	            String standbySourceCopyName = "";
 	            if (metroPointEnabled) {
-	            	VPlexProtectionRecommendation secondaryProtectionRecommendation = (VPlexProtectionRecommendation) secondaryRecommendation;
+	            	RPProtectionRecommendation secondaryProtectionRecommendation = (RPProtectionRecommendation) secondaryRecommendation;
 	            	VirtualArray recHaVarray = _dbClient.queryObject(VirtualArray.class, secondaryProtectionRecommendation.getVirtualArray());
 	            	activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
 	            	standbySourceCopyName = recHaVarray.getLabel() + MP_STANDBY_COPY_SUFFIX;
@@ -430,7 +430,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                     	if (VirtualPool.vPoolSpecifiesHighAvailability(journalVpool)) {
     	                	 _log.info("Create VPLEX Source Journal");
     	                	primarySourceJournalVolume = createJournalVolume(primaryRecommendation, task, taskList, param, project, 
-    														                			primaryRecommendation.getVPlexStorageSystem(), journalVarray, journalVpool, 
+    														                			primaryRecommendation.getSourceDevice(), journalVarray, journalVpool, 
     														                			sourceJournalVolumeName, capabilities, descriptors, consistencyGroup, metroPointEnabled ? activeSourceCopyName : srcCopyName, 
     														                			sourceInternalSiteName, primaryRecommendation.getSourceDevice(), 
     														                			journalStoragePoolUri, journalSize);
@@ -466,8 +466,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                 // If MetroPoint is enabled we need to create the secondary journal volume
                 if (metroPointEnabled) {     
                 	if (secondarySourceJournalVolume == null) {
-	                	if (secondaryRecommendation instanceof VPlexProtectionRecommendation) {
-	                		VPlexProtectionRecommendation secondaryProtectionRecommendation = (VPlexProtectionRecommendation) secondaryRecommendation;	                		
+	                	if (secondaryRecommendation instanceof RPProtectionRecommendation) {
+	                		RPProtectionRecommendation secondaryProtectionRecommendation = (RPProtectionRecommendation) secondaryRecommendation;	                		
 		                	String secondarySourceJournalVolumeName = new StringBuilder(newVolumeLabel).append(SECONDARY_SRC_JOURNAL_SUFFIX).toString(); 
 		                	String secondarySourceJournalInternalSiteName = ((RPProtectionRecommendation) secondaryProtectionRecommendation).getSourceInternalSiteName();
 		                	// Get the HA varray
@@ -481,7 +481,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 		                    	if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
 		                    		_log.info("Create VPLEX Source Journal For Standby");
 		                    		secondarySourceJournalVolume = createJournalVolume(secondaryRecommendation, task, taskList, param, project, 
-	   	                															   secondaryRecommendation.getVPlexStorageSystem(), standbyJournalVarray, standbyJournalVpool, 
+	   	                															   secondaryRecommendation.getSourceDevice(), standbyJournalVarray, standbyJournalVpool, 
 	   														                		   secondarySourceJournalVolumeName, capabilities, descriptors, consistencyGroup, metroPointEnabled ? standbySourceCopyName : srcCopyName, 
 	   														                		   secondarySourceJournalInternalSiteName, secondaryRecommendation.getSourceDevice(), 
 	   														                		   journalStoragePoolUri, journalSize);			   	
@@ -531,7 +531,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
         		// Consolidate all VPLEX and non-VPLEX targets
         		List<URI> allPrimaryTargetVarrayURIs = new ArrayList<URI>();    
         		allPrimaryTargetVarrayURIs.addAll(primaryRecommendation.getVirtualArrayProtectionMap().keySet());    
-        		allPrimaryTargetVarrayURIs.addAll(primaryRecommendation.getVarrayVPlexProtection().keySet());  
+        		//allPrimaryTargetVarrayURIs.addAll(primaryRecommendation.getVarrayVPlexProtection().keySet());  
         		_log.info(String.format("Creating target copies and corresponding journals on %s", Joiner.on("--").join(allPrimaryTargetVarrayURIs)));
         		    
 				for (URI tgtVirtualArrayURI : allPrimaryTargetVarrayURIs) {					
@@ -574,21 +574,21 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 			        
 			        if (VirtualPool.vPoolSpecifiesHighAvailability(targetVirtualPool)) {
 			            _log.info("Create VPLEX Target");
-			            VPlexProtection vplexProtection = primaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI);
+			            Protection vplexProtection = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
 			            copyInternalSiteName = vplexProtection.getTargetInternalSiteName();
 			            
 			            // Create a recommendation object to use the correct values for Target 
-	                    VPlexProtectionRecommendation tgtRec = createTempRecommendation(primaryRecommendation,
-	                                                                                vplexProtection.getTargetVplexDevice(),
+	                    RPProtectionRecommendation tgtRec = createTempRecommendation(primaryRecommendation,
+	                                                                                vplexProtection.getTargetStorageSystem(),
 	                                                                                tgtVirtualArray.getId(),
 	                                                                                targetVirtualPool,
-	                                                                                vplexProtection.getTargetDevice(),
+	                                                                                vplexProtection.getTargetStorageSystem(),
 	                                                                                vplexProtection.getTargetStoragePool());
 	                    
 	                    // VPLEX Distributed requires two Recommendations. 
-	                    // The first is the VPlexProtectionRecommendation recommendation.
+	                    // The first is the RPProtectionRecommendation recommendation.
 	                    // The second is a VPlexRecommendation recommendation for cluster 2.
-	                    // The second Recommendation is embedded in VPlexProtectionRecommendation object. 
+	                    // The second Recommendation is embedded in RPProtectionRecommendation object. 
 	                    // Pass these two Recommendations to vplexBlockServiceApiImpl (if both exist).
 	                    List<Recommendation> targetRecommendations = new ArrayList<Recommendation>();
 	                    targetRecommendations.add(tgtRec);
@@ -659,18 +659,14 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 			        	VirtualArray targetJournalVarray = _dbClient.queryObject(VirtualArray.class, settings.getJournalVarray() != null ? settings.getJournalVarray() : tgtVirtualArrayURI);
 		        	    VirtualPool targetJournalVpool = _dbClient.queryObject(VirtualPool.class, settings.getJournalVpool() != null ? settings.getJournalVpool() : settings.getVirtualPool());
 		        	    
-		        	    URI targetJournalStoragePool;
-		        	    if (VirtualPool.vPoolSpecifiesHighAvailability(targetVirtualPool)) {
-		        	    	targetJournalStoragePool = primaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
-		        	    } else {
-		        	    	targetJournalStoragePool = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
-		        	    }
+		        	    URI targetJournalStoragePool = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
+		        	    URI targetJournalStorageSystem = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetStorageSystem();
 		        	    
 			        	if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
 			        	    _log.info("Create VPLEX Target Journal");
-			        	    VPlexProtection vplexProtection = primaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI);
+			        	    Protection vplexProtection = primaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
     			        	targetJournalVolume = createJournalVolume(primaryRecommendation, task, taskList, param, project, 
-                                        			        			vplexProtection.getTargetVplexDevice(), tgtVirtualArray, targetVirtualPool, 
+                                        			        			vplexProtection.getTargetStorageSystem(), tgtVirtualArray, targetVirtualPool, 
                                         	                			targetJournalVolumeName, capabilities, descriptors, consistencyGroup, targetCopyName, 
                                         	                			vplexProtection.getTargetInternalSiteName(), vplexProtection.getTargetJournalDevice(), 
                                         	                			vplexProtection.getTargetJournalStoragePool(), journalSize);
@@ -710,7 +706,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 				    // Consolidate all VPLEX and non-VPLEX targets
 	                List<URI> allSecondaryTargetVarrayURIs = new ArrayList<URI>();    
 	                allSecondaryTargetVarrayURIs.addAll(secondaryRecommendation.getVirtualArrayProtectionMap().keySet());    
-	                allSecondaryTargetVarrayURIs.addAll(secondaryRecommendation.getVarrayVPlexProtection().keySet());    
+	                //allSecondaryTargetVarrayURIs.addAll(secondaryRecommendation.getVarrayVPlexProtection().keySet());    
 				    
 					for (URI tgtVirtualArrayURI : allSecondaryTargetVarrayURIs) {		
 						// Skip over protection targets that have already been created as part of the 
@@ -757,20 +753,20 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
                         
 				        if (VirtualPool.vPoolSpecifiesHighAvailability(targetVirtualPool)) {
 				            _log.info("Create VPLEX Secondary Target");
-    				        VPlexProtection vplexProtection = secondaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI);
+    				        Protection vplexProtection = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
     				        
     				        // Create a recommendation object to use the correct values for Target 
-    				        VPlexProtectionRecommendation tgtRec = createTempRecommendation(secondaryRecommendation,
-    					        														vplexProtection.getTargetVplexDevice(),
+    				        RPProtectionRecommendation tgtRec = createTempRecommendation(secondaryRecommendation,
+    					        														vplexProtection.getTargetStorageSystem(),
     												        							tgtVirtualArray.getId(),
     												        							targetVirtualPool,
-    												        							vplexProtection.getTargetDevice(),
+    												        							vplexProtection.getTargetStorageSystem(),
     												        							vplexProtection.getTargetStoragePool());
     				        
     				        // VPLEX Distributed requires two Recommendations. 
-    			        	// The first is the VPlexProtectionRecommendation recommendation.
+    			        	// The first is the RPProtectionRecommendation recommendation.
     				        // The second is a VPlexRecommendation recommendation for cluster 2.
-    			        	// The second Recommendation is embedded in VPlexProtectionRecommendation object. 
+    			        	// The second Recommendation is embedded in RPProtectionRecommendation object. 
     				        // Pass these two Recommendations to vplexBlockServiceApiImpl (if both exist).
     				        List<Recommendation> targetRecommendations = new ArrayList<Recommendation>();
     				        targetRecommendations.add(tgtRec);
@@ -841,20 +837,15 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 				        	}
 				        	
 			        	    URI targetJournalStoragePool;
-			        	    String targetInternalSiteName = "";
-			        	    if (VirtualPool.vPoolSpecifiesHighAvailability(targetVirtualPool)) {
-			        	    	targetJournalStoragePool = secondaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
-			        	    	targetInternalSiteName = secondaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI).getTargetInternalSiteName();
-			        	    } else {
-			        	    	targetJournalStoragePool = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
-			        	    	targetInternalSiteName = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetInternalSiteName();
-			        	    }			        	    
+			        	    String targetInternalSiteName = "";			        	  
+		        	    	targetJournalStoragePool = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetJournalStoragePool();
+		        	    	targetInternalSiteName = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI).getTargetInternalSiteName();
 				        	
 				        	if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
 				        	    _log.info("Create VPLEX Secondary Target Journal");
-				        	    VPlexProtection vplexProtection = secondaryRecommendation.getVarrayVPlexProtection().get(tgtVirtualArrayURI);
+				        	    Protection vplexProtection = secondaryRecommendation.getVirtualArrayProtectionMap().get(tgtVirtualArrayURI);
     				        	targetJournalVolume = createJournalVolume(secondaryRecommendation, task, taskList, param, project, 
-                                        				        			vplexProtection.getTargetVplexDevice(), targetJournalVarray, targetJournalVpool, 
+                                        				        			vplexProtection.getTargetStorageSystem(), targetJournalVarray, targetJournalVpool, 
                                         		                			targetJournalVolumeName, capabilities, descriptors, consistencyGroup, targetCopyName, 
                                         		                			targetInternalSiteName, vplexProtection.getTargetJournalDevice(), 
                                         		                			targetJournalStoragePool, journalSize);
@@ -974,14 +965,14 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param journalSize The calculated Journal size
      * @return new VPLEX Journal Volume
      */
-    private Volume createJournalVolume(VPlexProtectionRecommendation recommendation, String task, TaskList taskList, 
+    private Volume createJournalVolume(RPProtectionRecommendation recommendation, String task, TaskList taskList, 
                                 		VolumeCreate param, Project project, URI vplexURI, VirtualArray varray, VirtualPool vpool, 
                                 		String journalVolumeName, VirtualPoolCapabilityValuesWrapper capabilities, List<VolumeDescriptor> descriptors,
                                 		BlockConsistencyGroup consistencyGroup, String copyName, String internalSiteName, URI backendStorageSystemURI, URI storagePool, 
                                 		String journalSize) {
         	                	
     	// Create a recommendation object.
-    	VPlexProtectionRecommendation journalRec = createTempRecommendation(recommendation,vplexURI, varray.getId(),
+    	RPProtectionRecommendation journalRec = createTempRecommendation(recommendation,vplexURI, varray.getId(),
 	        															    vpool, backendStorageSystemURI, storagePool);
     	
     	// Build the list of Recommendations for the journal
@@ -1030,15 +1021,15 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param storagePoolId
      * @return Modified recommendation object.
      */
-    private VPlexProtectionRecommendation createTempRecommendation(VPlexProtectionRecommendation recommendation, 
+    private RPProtectionRecommendation createTempRecommendation(RPProtectionRecommendation recommendation, 
 																URI vplexId, 
 																URI varrayId,
 																VirtualPool vpool, 
 																URI storageSystemId,
 																URI storagePoolId) {
     	
-    	VPlexProtectionRecommendation newRecommendation = new VPlexProtectionRecommendation(recommendation);    	
-    	newRecommendation.setVPlexStorageSystem(vplexId);
+    	RPProtectionRecommendation newRecommendation = new RPProtectionRecommendation(recommendation);    	
+    	newRecommendation.setSourceDevice(vplexId);
     	newRecommendation.setVirtualArray(varrayId);
     	newRecommendation.setVirtualPool(vpool);				        
     	newRecommendation.setSourceDevice(storageSystemId);
@@ -1143,8 +1134,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
 									            String token, boolean remote, URI protectionStorageSystem,
 									            Volume.PersonalityTypes personality, String rsetName, 
 									            String internalSiteName, String rpCopyName, URI srcVolumeId, 
-									            VPlexProtectionRecommendation primaryRecommendation, 
-									            VPlexProtectionRecommendation secondaryRecommendation) {
+									            RPProtectionRecommendation primaryRecommendation, 
+									            RPProtectionRecommendation secondaryRecommendation) {
                 
     	volume.setRpCopyName(rpCopyName);    	    	        
         volume.setPersonality(personality.toString());
@@ -1954,8 +1945,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      * @param sourceVolume The volume that should be checked for it's backing volumes to be updated 
      * @param haVarrayConnectedToRp only be used if isSrcAndHaSwapped == true, tells us which varray is the HA one
      */
-    private void setInternalSitesForSourceBackingVolumes(VPlexProtectionRecommendation primaryRecommendation, 
-                                                    VPlexProtectionRecommendation secondaryRecommendation, Volume sourceVolume, 
+    private void setInternalSitesForSourceBackingVolumes(RPProtectionRecommendation primaryRecommendation, 
+                                                    RPProtectionRecommendation secondaryRecommendation, Volume sourceVolume, 
                                                     boolean exportForMetroPoint, boolean exportToHASideOnly, String haVarrayConnectedToRp) {                
         if (exportForMetroPoint) {
             // If this is MetroPoint request and we're looking at the SOURCE volume we need to ensure the

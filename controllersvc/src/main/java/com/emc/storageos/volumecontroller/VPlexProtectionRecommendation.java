@@ -28,6 +28,7 @@ import com.emc.storageos.volumecontroller.VPlexRecommendation;
 @SuppressWarnings("serial")
 public class VPlexProtectionRecommendation extends VPlexRecommendation {
 
+	/* 
     public VPlexProtectionRecommendation() {
     }
     
@@ -70,6 +71,8 @@ public class VPlexProtectionRecommendation extends VPlexRecommendation {
 	 * 
 	 * @return the MetroPoint configuration type
 	 */
+	
+	/* 
 	public MetroPointType getMetroPointType() {
 		MetroPointType metroPointType = null;
 		
@@ -186,6 +189,9 @@ public class VPlexProtectionRecommendation extends VPlexRecommendation {
     	
     	return metroPointType;
 	}
+	*/
+	
+	/*
 	
     public String toString(DbClient dbClient) {
     	StringBuffer buff = new StringBuffer("\nRP+VPlex/MetroPoint Placement Results\n");
@@ -432,5 +438,5 @@ public class VPlexProtectionRecommendation extends VPlexRecommendation {
     	buff.append("--------------------------------------\n");
     	buff.append("--------------------------------------\n");
     	return buff.toString();
-    }
+    } */
 }

@@ -6,54 +6,41 @@ package com.emc.storageos.api.service.impl.placement;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
-import com.emc.storageos.api.service.impl.resource.RPBlockServiceApiImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
-import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
-import com.emc.storageos.volumecontroller.VPlexProtection;
-import com.emc.storageos.volumecontroller.VPlexProtectionRecommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
-import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VPlexHighAvailabilityMatcher;
 import com.google.common.base.Joiner;
 //import com.emc.storageos.api.service.impl.placement.RecoverPointScheduler.ProtectionPoolMapping;
 import com.google.common.collect.Lists;
@@ -185,10 +172,13 @@ public class RPVPlexScheduler implements Scheduler {
         if (recommendations != null && !recommendations.isEmpty()) {
         	_log.info("Created VPlex Protection recommendations:\n");
         	for (Recommendation rec : recommendations) {
-        		VPlexProtectionRecommendation protectionRec = (VPlexProtectionRecommendation) rec;
+        		RPProtectionRecommendation protectionRec = (RPProtectionRecommendation) rec;
         		_log.info(protectionRec.toString(dbClient));
         	}
         }
+        
+        if (true)
+        	throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(URI.create(null), URI.create(null));   
 
         return recommendations;
     }
@@ -552,8 +542,8 @@ public class RPVPlexScheduler implements Scheduler {
      * @param haVpool the HA VirtualPool. This param can be null if there is no HA vpool specified.
      * @return the converted recommendation.
      */
-    private VPlexProtectionRecommendation convertRPProtectionRecommendation(RPProtectionRecommendation rpRec, VirtualArray varray, VirtualPool vpool, VirtualPool haVpool) {
-        VPlexProtectionRecommendation vplexProtectionRec = new VPlexProtectionRecommendation();
+    private RPProtectionRecommendation convertRPProtectionRecommendation(RPProtectionRecommendation rpRec, VirtualArray varray, VirtualPool vpool, VirtualPool haVpool) {
+        RPProtectionRecommendation vplexProtectionRec = new RPProtectionRecommendation();
         vplexProtectionRec.setSourceInternalSiteName(rpRec.getSourceInternalSiteName());
         vplexProtectionRec.setSourceDevice(rpRec.getSourceDevice());
         vplexProtectionRec.setSourcePool(rpRec.getSourcePool()); 
@@ -576,6 +566,7 @@ public class RPVPlexScheduler implements Scheduler {
         	vplexProtectionRec.setStandbySourceJournalVpool(rpRec.getStandbySourceJournalVpool());
         }
         
+        vplexProtectionRec.setSourceDevice(rpRec.getSourceDevice());
         vplexProtectionRec.setVPlexStorageSystem(rpRec.getSourceInternalSiteStorageSystem());
         
         vplexProtectionRec.setVirtualArray(varray.getId());
@@ -586,7 +577,7 @@ public class RPVPlexScheduler implements Scheduler {
         	vplexProtectionRec.setVirtualPool(vpool);
         }
         
-        vplexProtectionRec.setVarrayVPlexProtection(new HashMap<URI, VPlexProtection>()); 
+        //vplexProtectionRec.setVirtualArrayProtectionMap(new HashMap<URI, Protection>()); 
         
         List<URI> tgtVarraysToRemove = new ArrayList<URI>();
         
@@ -598,13 +589,13 @@ public class RPVPlexScheduler implements Scheduler {
 
             // Populate the VarrayVPlexProtection map if this target vpool specifies RP+VPLEX or MetroPoint
             if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
-                VPlexProtection vplexProtection = new VPlexProtection();
-                vplexProtection.setTargetVplexDevice(rpProtection.getTargetInternalSiteStorageSystem());
+                Protection vplexProtection = new Protection();
+                vplexProtection.setTargetVplexStorageSystem(rpProtection.getTargetInternalSiteStorageSystem());                
                 vplexProtection.setTargetVarray(tgtVarrayURI);                                
                 vplexProtection.setTargetVpool(targetVpool);
                 vplexProtection.setTargetInternalSiteName(rpProtection.getTargetInternalSiteName());                
                 vplexProtection.setTargetVPlexHaRecommendations(tgtVPlexHaRecommendations.get(tgtVarrayURI));
-                vplexProtection.setTargetDevice(rpProtection.getTargetDevice());
+                vplexProtection.setTargetStorageSystem(rpProtection.getTargetStorageSystem());
                 vplexProtection.setTargetStoragePool(rpProtection.getTargetStoragePool());
                 vplexProtection.setTargetJournalDevice(rpProtection.getTargetJournalDevice());
                 vplexProtection.setTargetJournalVarray(rpProtection.getTargetJournalVarray());
@@ -615,17 +606,17 @@ public class RPVPlexScheduler implements Scheduler {
                 vplexProtection.setProtectionType(rpProtection.getProtectionType());                
                 
                 // Add this vplex protection to the actual recommendation
-                vplexProtectionRec.getVarrayVPlexProtection().put(tgtVarrayURI, vplexProtection);  
+                vplexProtectionRec.getVirtualArrayProtectionMap().put(tgtVarrayURI, vplexProtection);  
                 
                 // This is a VPlex Protection, track it so it can be removed from the regular protection map
                 tgtVarraysToRemove.add(tgtVarrayURI);
             }                                                    
         }
         
-        // Remove the VPlex protection from the regular protection map
+        /* Remove the VPlex protection from the regular protection map
         for (URI uri : tgtVarraysToRemove) {
         	vplexProtectionRec.getVirtualArrayProtectionMap().remove(uri);
-        }
+        } */
         
         return vplexProtectionRec;
     }
@@ -674,8 +665,8 @@ public class RPVPlexScheduler implements Scheduler {
             RPProtectionRecommendation rpPrimaryRec = (RPProtectionRecommendation) primary;
             RPProtectionRecommendation rpSecondaryRec = (RPProtectionRecommendation) metroPointRecommendations.get(primary);
             
-            VPlexProtectionRecommendation primaryVPlexProtectionRec = convertRPProtectionRecommendation(rpPrimaryRec, srcVarray, srcVpool, null);
-            VPlexProtectionRecommendation secondaryVPlexProtectionRec = convertRPProtectionRecommendation(rpSecondaryRec, haVarray, srcVpool, haVpool);
+            RPProtectionRecommendation primaryVPlexProtectionRec = convertRPProtectionRecommendation(rpPrimaryRec, srcVarray, srcVpool, null);
+            RPProtectionRecommendation secondaryVPlexProtectionRec = convertRPProtectionRecommendation(rpSecondaryRec, haVarray, srcVpool, haVpool);
             
             List<Recommendation> rpSecondaryRecs = new ArrayList<Recommendation>();
             rpSecondaryRecs.add(secondaryVPlexProtectionRec);
@@ -732,7 +723,7 @@ public class RPVPlexScheduler implements Scheduler {
         // the RP+VPlex placement request.
         for (Recommendation rec : rpRecommendations) {
             RPProtectionRecommendation rpRec = (RPProtectionRecommendation) rec;
-            VPlexProtectionRecommendation vplexProtectionRec = this.convertRPProtectionRecommendation(rpRec, srcVarray, srcVpool, null);
+            RPProtectionRecommendation vplexProtectionRec = this.convertRPProtectionRecommendation(rpRec, srcVarray, srcVpool, null);
             vplexProtectionRec.setSourceVPlexHaRecommendations(srcVPlexHaRecommendations);       
             recommendations.add(vplexProtectionRec);
         }   
@@ -813,7 +804,7 @@ public class RPVPlexScheduler implements Scheduler {
         if (recommendations != null && !recommendations.isEmpty()) {
         	_log.info("Created VPlex Protection recommendations:\n");
         	for (Recommendation rec : recommendations) {
-        		VPlexProtectionRecommendation protectionRec = (VPlexProtectionRecommendation) rec;
+        		RPProtectionRecommendation protectionRec = (RPProtectionRecommendation) rec;
         		_log.info(protectionRec.toString(dbClient));        		
         	}
         }
@@ -1007,7 +998,7 @@ public class RPVPlexScheduler implements Scheduler {
             // All HA recommendations are of type VPlexRecommendation but just in case
             if (recommendation instanceof VPlexRecommendation) {
                 vPlexProtectionRecommendations.add(
-                        new VPlexProtectionRecommendation((VPlexRecommendation)recommendation));
+                        new RPProtectionRecommendation((RPProtectionRecommendation)recommendation));
             }
         }
         
@@ -1192,7 +1183,7 @@ public class RPVPlexScheduler implements Scheduler {
         if (recommendations != null && !recommendations.isEmpty()) {
             _log.info("Created VPlex Protection recommendations:\n");
             for (Recommendation rec : recommendations) {
-                VPlexProtectionRecommendation protectionRec = (VPlexProtectionRecommendation) rec;
+                RPProtectionRecommendation protectionRec = (RPProtectionRecommendation) rec;
                 _log.info(protectionRec.toString(dbClient));
             }
         }

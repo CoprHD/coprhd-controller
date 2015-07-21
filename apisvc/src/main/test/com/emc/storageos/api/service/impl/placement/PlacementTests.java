@@ -844,7 +844,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(rec.getPlacementStepsCompleted().name());
             assertNotNull(rec.getVirtualArrayProtectionMap());
             assertTrue(rec.getVirtualArrayProtectionMap().size() > 0);
-            assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetDevice());
+            assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName());
             assertTrue("site1".equals(rec.getSourceInternalSiteName()));
@@ -852,7 +852,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
             assertTrue("IDENTIFIED_SOLUTION_FOR_ALL_TARGETS".equals(rec.getPlacementStepsCompleted().name()));
             assertTrue(rec.getVirtualArrayProtectionMap().containsKey(URI.create("varray2")));
-            assertTrue("vmax2".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetDevice().toString()));
+            assertTrue("vmax2".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem().toString()));
             assertTrue("vmax2".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice().toString()));
             assertTrue("site2".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName()));
             assertTrue(("pool2".equals(rec.getSourcePool().toString())) || ("pool1".equals(rec.getSourcePool().toString())));
@@ -1132,7 +1132,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(rec.getPlacementStepsCompleted().name());
             assertNotNull(rec.getVirtualArrayProtectionMap());
             assertTrue(rec.getVirtualArrayProtectionMap().size() > 0);
-            assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetDevice());
+            assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice());
             assertNotNull(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName());
             assertTrue("site1".equals(rec.getSourceInternalSiteName()));
@@ -1140,7 +1140,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
             assertTrue("IDENTIFIED_SOLUTION_FOR_ALL_TARGETS".equals(rec.getPlacementStepsCompleted().name()));
             assertTrue(rec.getVirtualArrayProtectionMap().containsKey(URI.create("varray2")));
-            assertTrue(("xtremio4".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetDevice().toString())) || ("xtremio5".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetDevice().toString())));
+            assertTrue(("xtremio4".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem().toString())) || ("xtremio5".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetStorageSystem().toString())));
             assertTrue(("xtremio4".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice().toString())) || ("xtremio5".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetJournalDevice().toString())));
             assertTrue("site2".equals(rec.getVirtualArrayProtectionMap().get(URI.create("varray2")).getTargetInternalSiteName()));
             assertTrue(("pool2".equals(rec.getSourcePool().toString())) || ("pool1".equals(rec.getSourcePool().toString())));
@@ -1457,8 +1457,8 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue(recommendations.size() > 0);
             assertNotNull(recommendations.get(0));
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-            VPlexProtectionRecommendation recVplexProt = (VPlexProtectionRecommendation) recommendations.get(0);
-            VPlexRecommendation recVplex = (VPlexProtectionRecommendation) ((VPlexProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
+            RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
+            VPlexRecommendation recVplex = (RPProtectionRecommendation) ( (RPProtectionRecommendation)recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
 
             assertNotNull(rec.getSourceInternalSiteName());
             assertNotNull(rec.getSourceDevice());
@@ -1468,19 +1468,19 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(rec.getVirtualArrayProtectionMap());
             assertTrue(rec.getVirtualArrayProtectionMap().size() == 0);
 
-            assertNotNull(recVplexProt.getVarrayVPlexProtection());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
             assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-            assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
+            assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
             assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVplexDevice());
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetDevice());
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalDevice());
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVarray());
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVpool());
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetInternalSiteName());
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool());
-            assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool());
+            //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool());
+            assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool());
 
             assertNotNull(recVplex.getVPlexStorageSystem());
             assertNotNull(recVplex.getVirtualArray());
@@ -1494,14 +1494,14 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue(("pool5".equals(rec.getSourcePool().toString())) || ("pool4".equals(rec.getSourcePool().toString())));
             assertTrue(("pool5".equals(rec.getSourceJournalStoragePool().toString())) || ("pool4".equals(rec.getSourceJournalStoragePool().toString())));
 
-            assertTrue("vplex2".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVplexDevice().toString()));
-            assertTrue("vmax3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetDevice().toString()));
-            assertTrue("vmax3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalDevice().toString()));
-            assertTrue("varray3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVarray().toString()));
-            assertTrue("site2".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetInternalSiteName()));
-            assertTrue("vpoolRP".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVpool().getId().toString()));
-            assertTrue(("pool8".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString())));
-            assertTrue(("pool8".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
+            assertTrue("vplex2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem().toString()));
+            assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem().toString()));
+            assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice().toString()));
+            assertTrue("varray3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray().toString()));
+            assertTrue("site2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName()));
+            assertTrue("vpoolRP".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool().getId().toString()));
+            assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())));
+            assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
 
             assertTrue("vplex1".equals(recVplex.getVPlexStorageSystem().toString()));
             assertTrue("varray1".equals(recVplex.getVirtualArray().toString()));
@@ -1509,7 +1509,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue("vmax1".equals(recVplex.getSourceDevice().toString()));
             assertTrue(("pool2".equals(recVplex.getSourcePool().toString())) || ("pool1".equals(recVplex.getSourcePool().toString())));
 
-            _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString());
+            _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString());
         }
     }
 
@@ -1824,8 +1824,8 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertTrue(recommendations.size() > 0);
 	        assertNotNull(recommendations.get(0));
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-	        VPlexProtectionRecommendation recVplexProt = (VPlexProtectionRecommendation) recommendations.get(0);
-	        VPlexRecommendation recVplex = (VPlexProtectionRecommendation) ((VPlexProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
+	        RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
+	        VPlexRecommendation recVplex = (RPProtectionRecommendation) ((RPProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
 	
 	        assertNotNull(rec.getSourceInternalSiteName());
 	        assertNotNull(rec.getSourceDevice());
@@ -1835,19 +1835,19 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertNotNull(rec.getVirtualArrayProtectionMap());
 	        assertTrue(rec.getVirtualArrayProtectionMap().size() == 0);
 	
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
 	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-	        assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
+	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
 	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 	
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVplexDevice());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetDevice());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalDevice());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVarray());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVpool());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetInternalSiteName());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool());
+	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool());
 	
 	        assertNotNull(recVplex.getVPlexStorageSystem());
 	        assertNotNull(recVplex.getVirtualArray());
@@ -1861,14 +1861,14 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertTrue(("pool5".equals(rec.getSourcePool().toString())) || ("pool4".equals(rec.getSourcePool().toString())));
 	        assertTrue(("pool5".equals(rec.getSourceJournalStoragePool().toString())) || ("pool4".equals(rec.getSourceJournalStoragePool().toString())));
 	
-	        assertTrue("vplex2".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVplexDevice().toString()));
-	        assertTrue("vmax3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetDevice().toString()));
-	        assertTrue("vmax3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalDevice().toString()));
-	        assertTrue("varray3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVarray().toString()));
-	        assertTrue("site1".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetInternalSiteName()));
-	        assertTrue("vpoolRP".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVpool().getId().toString()));
-	        assertTrue(("pool8".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString())));
-	        assertTrue(("pool8".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
+	        //assertTrue("vplex2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice().toString()));
+	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem().toString()));
+	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice().toString()));
+	        assertTrue("varray3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray().toString()));
+	        assertTrue("site1".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName()));
+	        assertTrue("vpoolRP".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool().getId().toString()));
+	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())));
+	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
 	
 	        assertTrue("vplex1".equals(recVplex.getVPlexStorageSystem().toString()));
 	        assertTrue("varray1".equals(recVplex.getVirtualArray().toString()));
@@ -1876,7 +1876,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertTrue("vmax1".equals(recVplex.getSourceDevice().toString()));
 	        assertTrue(("pool2".equals(recVplex.getSourcePool().toString())) || ("pool1".equals(recVplex.getSourcePool().toString())));
 	
-	        _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString());
+	        _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString());
 	    }
 	}
 
@@ -2191,8 +2191,8 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertTrue(recommendations.size() > 0);
 	        assertNotNull(recommendations.get(0));
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-	        VPlexProtectionRecommendation recVplexProt = (VPlexProtectionRecommendation) recommendations.get(0);
-	        VPlexRecommendation recVplex = (VPlexProtectionRecommendation) ((VPlexProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
+	        RPProtectionRecommendation recVplexProt = (RPProtectionRecommendation) recommendations.get(0);
+	        VPlexRecommendation recVplex = (RPProtectionRecommendation) ((RPProtectionRecommendation) recommendations.get(0)).getSourceVPlexHaRecommendations().get(0);
 	
 	        assertNotNull(rec.getSourceInternalSiteName());
 	        assertNotNull(rec.getSourceDevice());
@@ -2202,19 +2202,19 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertNotNull(rec.getVirtualArrayProtectionMap());
 	        assertTrue(rec.getVirtualArrayProtectionMap().size() == 0);
 	
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
 	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-	        assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
+	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
 	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 	
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVplexDevice());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetDevice());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalDevice());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVarray());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVpool());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetInternalSiteName());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool());
-	        assertNotNull(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool());
+	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool());
+	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool());
 	
 	        assertNotNull(recVplex.getVPlexStorageSystem());
 	        assertNotNull(recVplex.getVirtualArray());
@@ -2228,14 +2228,14 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertTrue(("pool5".equals(rec.getSourcePool().toString())) || ("pool4".equals(rec.getSourcePool().toString())));
 	        assertTrue(("pool5".equals(rec.getSourceJournalStoragePool().toString())) || ("pool4".equals(rec.getSourceJournalStoragePool().toString())));
 
-	        assertTrue("vplex2".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVplexDevice().toString()));
-	        assertTrue("vmax3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetDevice().toString()));
-	        assertTrue("vmax3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalDevice().toString()));
-	        assertTrue("varray3".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVarray().toString()));
-	        assertTrue("site2".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetInternalSiteName()));
-	        assertTrue("vpoolRP".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetVpool().getId().toString()));
-	        assertTrue(("pool8".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString())));
-	        assertTrue(("pool8".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
+	        //assertTrue("vplex2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice().toString()));
+	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStorageSystem().toString()));
+	        assertTrue("vmax3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalDevice().toString()));
+	        assertTrue("varray3".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVarray().toString()));
+	        assertTrue("site2".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetInternalSiteName()));
+	        assertTrue("vpoolRP".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVpool().getId().toString()));
+	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString())));
+	        assertTrue(("pool8".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())) || ("pool7".equals(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetJournalStoragePool().toString())));
 	
 	        assertTrue("vplex1".equals(recVplex.getVPlexStorageSystem().toString()));
 	        assertTrue("varray1".equals(recVplex.getVirtualArray().toString()));
@@ -2243,7 +2243,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertTrue("vmax1".equals(recVplex.getSourceDevice().toString()));
 	        assertTrue(("pool2".equals(recVplex.getSourcePool().toString())) || ("pool1".equals(recVplex.getSourcePool().toString())));
 	
-	        _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVarrayVPlexProtection().get(URI.create("varray3")).getTargetStoragePool().toString());
+	        _log.info("Recommendation " + i + ": " + recommendations.size() + ", Source Pool Chosen: " + rec.getSourcePool().toString() + ", Target Pool Chosen: " + recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetStoragePool().toString());
 	    }
 	}
 

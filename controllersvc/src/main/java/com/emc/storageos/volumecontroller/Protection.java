@@ -16,34 +16,43 @@ package com.emc.storageos.volumecontroller;
 
 import java.io.Serializable;
 import java.net.URI;
+import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.VirtualPool;
 
 @SuppressWarnings("serial")
 public class Protection implements Serializable {
     // Target (for protection only)
-    private URI targetDevice;
-    private URI targetJournalDevice;
-    private URI targetStoragePool;
-    private URI targetJournalStoragePool;
+	// The target virtual array for the recommendation.
+    private URI targetVarray;
+    // The target vpool for the recommendation
+    private VirtualPool targetVpool;
+    private URI targetStorageSystem;
+    private URI targetVplexStorageSystem; //if target is a VPLEX virtual device
+    private URI targetStoragePool;   
     private String targetInternalSiteName;
     // This is the Storage System that was chosen by placement for connectivity/visibility to the RP Cluster
     private URI targetInternalSiteStorageSystem;
+    private URI targetJournalStorageSystem;    
+    private URI targetJournalStoragePool;
     private URI targetJournalVarray;
     private URI targetJournalVpool;
     private ProtectionType protectionType;
+       
+    private List<Recommendation> targetVPlexHaRecommendations;
     
     public static enum ProtectionType {
     	LOCAL,
     	REMOTE
     }
     
-    public URI getTargetDevice() {
-        return targetDevice;
+    public URI getTargetStorageSystem() {
+        return targetStorageSystem;
     }
     
-    public void setTargetDevice(URI targetDevice) {
-    	this.targetDevice = targetDevice;
+    public void setTargetStorageSystem(URI targetStorageSystem) {
+    	this.targetStorageSystem = targetStorageSystem;
     }
 
     public URI getTargetStoragePool() {
@@ -61,8 +70,7 @@ public class Protection implements Serializable {
 	public void setTargetJournalStoragePool(URI targetJournalStoragePool) {
 		this.targetJournalStoragePool = targetJournalStoragePool;
     }
-	
-	
+		
 	public URI getTargetJournalVarray() {
 		return targetJournalVarray;
 	}
@@ -77,8 +85,7 @@ public class Protection implements Serializable {
 
 	public void setTargetJournalVpool(URI targetJournalVpool) {
 		this.targetJournalVpool = targetJournalVpool;
-	}
-	
+	}	
 
     public String getTargetInternalSiteName() {
         return targetInternalSiteName;
@@ -89,11 +96,11 @@ public class Protection implements Serializable {
     }
 
 	public URI getTargetJournalDevice() {
-		return targetJournalDevice;
+		return targetJournalStorageSystem;
 	}
 
-	public void setTargetJournalDevice(URI _targetJournalDevice) {
-		this.targetJournalDevice = _targetJournalDevice;
+	public void setTargetJournalDevice(URI _targetJournalStorageSystem) {
+		this.targetJournalStorageSystem = _targetJournalStorageSystem;
 	}
 
 	public ProtectionType getProtectionType() {
@@ -112,19 +119,52 @@ public class Protection implements Serializable {
             URI targetInternalSiteStorageSystem) {
         this.targetInternalSiteStorageSystem = targetInternalSiteStorageSystem;
     }
+    
+    public URI getTargetVarray() {
+		return targetVarray;
+	}
+
+	public void setTargetVarray(URI targetVarray) {
+		this.targetVarray = targetVarray;
+	}
+
+	public VirtualPool getTargetVpool() {
+		return targetVpool;
+	}
+
+	public void setTargetVpool(VirtualPool targetVpool) {
+		this.targetVpool = targetVpool;
+	}
+
+	public List<Recommendation> getTargetVPlexHaRecommendations() {
+		return targetVPlexHaRecommendations;
+	}
+
+	public void setTargetVPlexHaRecommendations(
+			List<Recommendation> targetVPlexHaRecommendations) {
+		this.targetVPlexHaRecommendations = targetVPlexHaRecommendations;
+	}
+
+	public URI getTargetVplexStorageSystem() {
+		return targetVplexStorageSystem;
+	}
+
+	public void setTargetVplexStorageSystem(URI targetVplexStorageSystem) {
+		this.targetVplexStorageSystem = targetVplexStorageSystem;
+	}
 	
     @Override
 	public String toString() {
-		return "Protection [_targetDevice=" + targetDevice
-				+ ", _targetPool=" + targetStoragePool
-				+ ", _targetJournalPool=" + targetJournalStoragePool
-				+ ", _targetInternalSiteName=" + targetInternalSiteName
-				+ ", _targetInternalSiteStorageSystem=" + targetInternalSiteStorageSystem
-				+ ", _tagetJournalDevice =" + targetJournalDevice
+		return "Protection [_targetStorageSystem =" + targetStorageSystem
+				+ ", _targetPool =" + targetStoragePool
+				+ ", _targetJournalPool =" + targetJournalStoragePool
+				+ ", _targetInternalSiteName =" + targetInternalSiteName
+				+ ", _targetInternalSiteStorageSystem =" + targetInternalSiteStorageSystem
+				+ ", _tagetJournalStorageSystem =" + targetJournalStorageSystem
 				+ "]";
 	}
 
     public String toString(DbClient _dbClient) {
     	return "NIY";
-    }
+    }	
 }

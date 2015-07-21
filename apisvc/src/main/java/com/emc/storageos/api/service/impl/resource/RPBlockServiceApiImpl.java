@@ -926,7 +926,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     	//Find the protection info for this varray, first check if the target is non-vplex by checking the varray protection map, then vplex protection map
     	Protection protectionInfo =  ((RPProtectionRecommendation)recommendation).getVirtualArrayProtectionMap().get(varray.getId());
     	if (protectionInfo == null) {
-    		protectionInfo = ((VPlexProtectionRecommendation) recommendation).getVarrayVPlexProtection().get(varray.getId());
+    		protectionInfo = ((RPProtectionRecommendation) recommendation).getVirtualArrayProtectionMap().get(varray.getId());
     	}
     	return protectionInfo;
     }

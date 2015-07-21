@@ -74,7 +74,7 @@ public class OrderUtils {
              catalogServices.addAll(catalog.services().findByCatalogCategory(category.getId()));
         }
         
-        catalog.executionWindows().getCatalogServices();
+        //catalog.executionWindows().getCatalogServices();
         
         return catalogServices;
     }

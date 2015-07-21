@@ -58,7 +58,7 @@ public class CoordinatorTestBase {
      */
     protected static void cleanDirectory(File dir) {
         File[] files = dir.listFiles();
-        if(files == null || files.length == 0) {
+        if(files == null) {
             return;
         }
         for (File file : files) {

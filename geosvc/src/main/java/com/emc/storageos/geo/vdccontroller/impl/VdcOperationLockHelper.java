@@ -1,9 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * This computer code is copyright 2014 EMC Corporation. All rights reserved.
  */
 package com.emc.storageos.geo.vdccontroller.impl;
 

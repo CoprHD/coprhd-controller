@@ -20,6 +20,9 @@ import java.util.regex.Pattern;
  * Group filter white list.
  * 
  */
+
+// Suppress the following two sonar warnings. the arrays are not modified outside of the class.
+@SuppressWarnings({"pmd:ArrayIsStoredDirectly","pmd:MethodReturnsInternalArray"})
 public class GroupWhiteList {
     private String _type;
     private String[] _values;

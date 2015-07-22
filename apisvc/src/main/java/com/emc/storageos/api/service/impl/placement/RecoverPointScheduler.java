@@ -253,7 +253,18 @@ public class RecoverPointScheduler implements Scheduler {
         // Get all storage pools that match the passed CoS params and
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
-        List<StoragePool> candidatePools = getSourceCandidatePools(varray, vpool, project, capabilities);                       
+        VirtualArray haVarray = null;
+        VirtualPool haVpool = null; 
+        RPVPlexVarrayVpool container = null; 
+        if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)){
+        	container = swapSrcAndHAIfNeeded(varray, vpool);
+        	varray = container.getSrcVarray();
+        	vpool = container.getSrcVpool();
+        	haVarray = container.getHaVarray();
+        	haVpool = container.getHaVpool();
+        	
+        }
+        List<StoragePool> candidatePools = getSourceCandidatePools(varray, vpool, haVarray, haVpool, project, capabilities);                       
         
         if (candidatePools == null || candidatePools.isEmpty()) {
         	_log.error("No matching storage pools found for the source varray: {0}. There are no storage pools that " +
@@ -277,16 +288,16 @@ public class RecoverPointScheduler implements Scheduler {
         
         if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
         	  _log.info("Getting recommendations for RP + VPLEX volume placement...");    
-        	RPVPlexVarrayVpool container = swapSrcAndHAIfNeeded(varray, vpool);
+        	//RPVPlexVarrayVpool container = swapSrcAndHAIfNeeded(varray, vpool);
 	        if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
 	        	// MetroPoint has been enabled.  get the HA virtual array and virtual pool.  This will allow us to obtain 
 	        	// candidate storage pool and secondary cluster protection recommendations.	        
-	        	VirtualArray haVarray = vplexScheduler.getHaVirtualArray(container.getSrcVarray(), project, container.getSrcVpool());
-	        	VirtualPool haVpool = vplexScheduler.getHaVirtualPool(container.getSrcVarray(), project, container.getSrcVpool());
+	        	 haVarray = vplexScheduler.getHaVirtualArray(container.getSrcVarray(), project, container.getSrcVpool());
+	        	 haVpool = vplexScheduler.getHaVirtualPool(container.getSrcVarray(), project, container.getSrcVpool());
 	        	
 	        	// Get the candidate source pools for the distributed cluster.  The 2 null params are ignored in the pool matching
 	        	// because they are used to build the HA recommendations, which will not be done if MetroPoint is enabled.
-	            List<StoragePool> haCandidateStoragePools = getSourceCandidatePools(varray, vpool, project, capabilities);            
+	            List<StoragePool> haCandidateStoragePools = getSourceCandidatePools(haVarray, haVpool, null, null, project, capabilities);            
 	                        
 	        	// MetroPoint has been enabled so we need to obtain recommendations for the primary (active) and secondary (HA/Stand-by) 
 	            // VPlex clusters.
@@ -322,25 +333,18 @@ public class RecoverPointScheduler implements Scheduler {
      * @param capabilities
      * @return
      */
-    private List<StoragePool> getSourceCandidatePools(VirtualArray srcVarray, VirtualPool srcVpool,                                                       
+    private List<StoragePool> getSourceCandidatePools(VirtualArray srcVarray, VirtualPool srcVpool, VirtualArray haVarray, VirtualPool haVpool,                                                        
                                                       Project project, VirtualPoolCapabilityValuesWrapper capabilities) {
         
         List<StoragePool> srcCandidateStoragePools = new ArrayList<StoragePool>();
                         
         // Determine if the source vpool specifies VPlex Protection
-        if (VirtualPool.vPoolSpecifiesHighAvailability(srcVpool)) {
-        	 RPVPlexVarrayVpool container = this.swapSrcAndHAIfNeeded(srcVarray, srcVpool);
-        	 if (VirtualPool.vPoolSpecifiesMetroPoint(srcVpool)) {
-        		 srcCandidateStoragePools = 
-                         this.getMatchingPools(container.getHaVarray(), container.getHaVpool(), null, null, 
-                         		project, capabilities);
-        	 } else {
-        		 srcCandidateStoragePools = 
-                    this.getMatchingPools(container.getSrcVarray(), container.getSrcVpool(), container.getHaVarray(), container.getHaVpool(), 
-                    		project, capabilities);
-        	 }
+        if (VirtualPool.vPoolSpecifiesHighAvailability(srcVpool)) {        	
+        	 srcCandidateStoragePools = 
+                     this.getMatchingPools(srcVarray,srcVpool, haVarray, haVpool, 
+                     		project, capabilities);        	         	
         } else {                       
-            srcCandidateStoragePools = getMatchingPools(srcVarray, srcVpool, null, null, project, capabilities);
+            srcCandidateStoragePools = blockScheduler.getMatchingPools(srcVarray, srcVpool, capabilities);       
         } 
                         
         if (srcCandidateStoragePools == null || srcCandidateStoragePools.isEmpty()) {
@@ -856,7 +860,7 @@ public class RecoverPointScheduler implements Scheduler {
        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, param.getConsistencyGroup());
        
-       List<StoragePool> allMatchingPools = getSourceCandidatePools(varray, newVpool, project, capabilities);
+       List<StoragePool> allMatchingPools = getSourceCandidatePools(varray, newVpool, null, null, project, capabilities);
                
        List<StoragePool> sourcePools = new ArrayList<StoragePool>();
        

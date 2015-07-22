@@ -32,7 +32,7 @@ public interface PrefixConstraint extends Constraint {
     /**
      * Factory for creating prefix constraint
      */
-    public static class Factory {
+    class Factory {
         // tags - prefix search
         public static PrefixConstraint getTagsPrefixConstraint(Class<? extends DataObject> clazz, String prefix, URI tenant) {
             DataObjectType doType = TypeMap.getDoType(clazz);

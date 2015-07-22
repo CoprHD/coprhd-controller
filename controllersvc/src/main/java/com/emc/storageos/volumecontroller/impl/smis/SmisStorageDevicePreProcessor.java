@@ -64,7 +64,7 @@ public class SmisStorageDevicePreProcessor {
             long thinVolumePreAllocateSize) throws Exception {
 
         _log.info(String.format(
-                "Create StoragePool Setting Start - Array: %s, Pool: %s, \n   thinVolumePreAllocateSize: %s",
+                "Create StoragePool Setting Start - Array: %s, Pool: %s, %n   thinVolumePreAllocateSize: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), thinVolumePreAllocateSize));
         CIMObjectPath poolSvcPath = _cimPath.getStoragePoolPath(storageSystem, storagePool);
         CimConnection connection = _cimConnection.getConnection(storageSystem);

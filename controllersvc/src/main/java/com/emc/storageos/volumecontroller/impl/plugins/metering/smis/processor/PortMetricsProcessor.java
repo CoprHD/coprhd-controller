@@ -74,8 +74,8 @@ import com.google.common.collect.Sets;
 public class PortMetricsProcessor {
     static final private Logger _log = LoggerFactory.getLogger(PortMetricsProcessor.class);
     
-    private static DbClient _dbClient;
-    private static CoordinatorClient _coordinator;
+    private static volatile DbClient _dbClient;
+    private static volatile CoordinatorClient _coordinator;
     @Autowired
     private static CustomConfigHandler customConfigHandler;
     
@@ -428,7 +428,7 @@ public class PortMetricsProcessor {
                 }
             }
             
-            storageSystemPortsMetrics = usablePortCount == 0 ? 0.0 : portMetricsSum / usablePortCount;
+            storageSystemPortsMetrics = (Double.compare(usablePortCount, 0 ) == 0 ) ? 0.0 : portMetricsSum / usablePortCount;
             _log.info(String.format("Array %s metric %f", storageDevice.getLabel(), storageSystemPortsMetrics));
             
             // persisted into storage system object for later retrieval

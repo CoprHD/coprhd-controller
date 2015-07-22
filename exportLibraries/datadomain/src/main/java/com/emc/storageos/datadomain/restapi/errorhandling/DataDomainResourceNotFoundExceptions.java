@@ -38,6 +38,6 @@ public interface DataDomainResourceNotFoundExceptions {
 
 
     @DeclareServiceCode(ServiceCode.DATADOMAIN_RESOURCE_NOT_FOUND)
-    DataDomainResourceNotFoundException ResourceNotFound(String dataDomainURI,String msg);
+    DataDomainResourceNotFoundException resourceNotFound(String dataDomainURI,String msg);
 
 }

@@ -190,7 +190,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                e.printStackTrace();
+                _log.error(e.getMessage(),e);
                 throw DatabaseException.retryables.connectionFailed();
     }
             throw e;
@@ -257,7 +257,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                e.printStackTrace();
+                _log.error(e.getMessage(),e);
                 throw DatabaseException.retryables.connectionFailed();
     }
             throw e;
@@ -313,7 +313,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                e.printStackTrace();
+                _log.error(e.getMessage(),e);
                 throw DatabaseException.retryables.connectionFailed();
     }
             throw e;
@@ -338,7 +338,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                e.printStackTrace();
+                _log.error(e.getMessage(),e);
                 throw DatabaseException.retryables.connectionFailed();
     }
             throw e;

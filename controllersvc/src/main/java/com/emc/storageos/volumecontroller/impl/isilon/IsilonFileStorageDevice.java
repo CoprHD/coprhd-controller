@@ -1230,10 +1230,10 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
 
     	// Handle Add export Rules
-    	if (exportAdd != null && exportAdd.size() > 0) {
+    	if (exportAdd != null && !exportAdd.isEmpty()) {
             //Check for existing exports for the export path including subdirectory
             ArrayList<ExportRule> exps = existingExportsMapped.get(exportPath);
-            if(exps != null && exps.size() > 0) {
+            if(exps != null && !exps.isEmpty()) {
                 _log.error("Adding export rules is not supported as there can be only one export rule for Isilon for a path.");
                 ServiceError error = DeviceControllerErrors.isilon.jobFailed("updateExportRules : Adding export rule is not supported for Isilon");
                 return BiosCommandResult.createErrorResult(error);
@@ -1243,7 +1243,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
         _log.info("Number of existing Rules found {}", exportsToProcess.size());
 
         //Handle Modified export Rules and Delete Export Rule
-        if(existingExportsMapped.get(exportPath) != null && existingExportsMapped.get(exportPath).size() > 0) {
+        if(existingExportsMapped.get(exportPath) != null && !existingExportsMapped.get(exportPath).isEmpty()) {
             for (ExportRule existingRule :  existingExportsMapped.get(exportPath)) {
                 for (ExportRule modifiedrule : exportModify) {
                     if (modifiedrule.getSecFlavor().equals(
@@ -1257,7 +1257,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
             }
 
             // Handle Delete export Rules
-            if (exportDelete != null && exportDelete.size() > 0) {
+            if (exportDelete != null && !exportDelete.isEmpty()) {
                 for (ExportRule existingRule :  existingExportsMapped.get(exportPath)) {
                     for (ExportRule oldExport : exportDelete) {
                         if (oldExport.getSecFlavor().equals(
@@ -1281,7 +1281,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             //Handle Add Export Rules
             //This is valid only if no rules to modify exists
-            if (exportAdd != null && exportAdd.size() > 0) {
+            if (exportAdd != null && !exportAdd.isEmpty()) {
                 for (ExportRule newExport : exportAdd) {
                     _log.info("Add Export Rule {}", newExport);
                     newExport.setExportPath(exportPath);
@@ -1345,7 +1345,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             if(rootHosts != null) {
                 // Validate parameters for permissions and root user mapping.
-                if ((rootHosts.size() > 0)  &&
+                if ((!rootHosts.isEmpty())  &&
                         !root_user.equals("root")) {
                     String msg = "The root_user mapping is not set to root but the permission is.";
                     _log.error(msg);
@@ -1368,7 +1368,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 exportRule.setDeviceExportId(expId);
             }
 
-            if(modifyRules.size() > 0) {
+            if(!modifyRules.isEmpty()) {
                 //Call Process Isi Export
                 processIsiExport(isi, args, modifyRules);
             }
@@ -1399,7 +1399,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
 
             if(rootHosts != null) {
 	            // Validate parameters for permissions and root user mapping.
-	            if ((rootHosts.size() > 0)  &&
+	            if ((!rootHosts.isEmpty())  &&
 	                    !root_user.equals("root")) {
 	                String msg = "The root_user mapping is not set to root but the permission is.";
 	                _log.error(msg);
@@ -1424,11 +1424,11 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                 	boolean hasrwClients = false;
                 	boolean hasrootClients = false;
                 	
-                	if((isilonExport.getReadWriteClients() != null && isilonExport.getReadWriteClients().size() > 0) || 
-                			(exportRule.getReadWriteHosts() != null && exportRule.getReadWriteHosts().size() > 0))
+                	if((isilonExport.getReadWriteClients() != null && !isilonExport.getReadWriteClients().isEmpty()) || 
+                			(exportRule.getReadWriteHosts() != null && !exportRule.getReadWriteHosts().isEmpty()))
                 		hasrwClients = true;
-                	if((isilonExport.getRootClients() != null && isilonExport.getRootClients().size() > 0) || 
-                			(exportRule.getRootHosts() != null && exportRule.getRootHosts().size() > 0))
+                	if((isilonExport.getRootClients() != null && !isilonExport.getRootClients().isEmpty()) || 
+                			(exportRule.getRootHosts() != null && !exportRule.getRootHosts().isEmpty()))
                 		hasrootClients = true;
 
                     List<String> roClients = new ArrayList<>();
@@ -1443,7 +1443,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                         
                         List<String> commonHosts = getIntersection(existingRWRootClients, roClients);
                         
-                        if(commonHosts.size() > 0) {
+                        if(!commonHosts.isEmpty()) {
                         	//RW, RO and Root permissions cannot co-exist for same client hosts
                         	// Using Set to eliminate duplicates
                         	Set<String> existingRWClients = new HashSet<String>(isilonExport.getReadWriteClients());
@@ -1470,7 +1470,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                         
                         List<String> commonHosts = getIntersection(existingRORootClients, rwClients);
                         
-                        if(commonHosts.size() > 0) {
+                        if(!commonHosts.isEmpty()) {
 	                        
                         	//RW, RO and Root permissions cannot co-exist for same client hosts
                         	// Using Set to eliminate duplicates
@@ -1497,7 +1497,7 @@ public class IsilonFileStorageDevice implements FileStorageDevice {
                         
                         List<String> commonHosts = getIntersection(existingRORWClients, rootClients);
                         
-                        if(commonHosts.size() > 0) {
+                        if(!commonHosts.isEmpty()) {
                         	//RW, RO and Root permissions cannot co-exist for same client hosts
                         	
                         	Set<String> existingROClients = new HashSet<String>(isilonExport.getReadOnlyClients());

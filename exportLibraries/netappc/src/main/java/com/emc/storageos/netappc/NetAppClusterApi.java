@@ -25,6 +25,12 @@ import com.iwave.ext.netapp.model.Qtree;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netappc.StorageVirtualMachineInfo;
 
+/*
+ * Following Jiras raised for tracking. The fix will be made in the future release.
+ * Jira COP-32 -Change static netAppClusterFacade in future
+ * Jira COP-33 - Change the code for Inappropriate Collection call
+ */
+@SuppressWarnings({"findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","squid:S2444","squid:S2175"})
 public class NetAppClusterApi {
     private static Map<String, String> ntpSecMap = null;
     private static Map<String, String> cifsPermissionMap = null;
@@ -185,7 +191,7 @@ public class NetAppClusterApi {
             netAppClusterFacade = new NetAppClusterFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, true, _svmName);
             List<Qtree> qtrees = netAppClusterFacade.listQtrees(volName);
-            if(qtrees != null && qtrees.size() > 0) {
+            if(qtrees != null && !qtrees.isEmpty()) {
             	for(Qtree qtree : qtrees ){
             		qtreeName = qtree.getQtree();
             		// Skip the unnamed Qtree.
@@ -260,7 +266,7 @@ public class NetAppClusterApi {
     		}
 
     		List<ExportsRuleInfo> exportRules = listNFSExportRules(volName);
-    		if (exportRules.size() < 1) {
+    		if (exportRules.isEmpty()) {
     			_logger.info("Export doesn't exist on the array to delete {}", exportPath);
     			return true;
     		}
@@ -530,7 +536,7 @@ public class NetAppClusterApi {
     				_password, _https, true, _svmName);
     		List<String> snapshots = (List<String>) netAppClusterFacade
     				.listSnapshots(volumeName);
-    		if ((null != snapshots) && (snapshots.size() > 0)) {
+    		if ((null != snapshots) && (!snapshots.isEmpty())) {
     			if (snapshots.toString().contains(snapshotName)) {
     				return netAppClusterFacade.deleteVolumeSnapshot(volumeName, snapshotName);
     			}
@@ -582,7 +588,7 @@ public class NetAppClusterApi {
     	return _https;
     }
 
-    public String get_svmName() {
+    public String getSvmName() {
     	return _svmName;
     }
     
@@ -844,13 +850,13 @@ public class NetAppClusterApi {
 		dest.setExportPath(orig.getExportPath());
 		dest.setSecFlavor(orig.getSecFlavor());
 		dest.setAnon(orig.getAnon());
-		if (orig.getReadOnlyHosts()!=null && orig.getReadOnlyHosts().size() > 0){
+		if (orig.getReadOnlyHosts()!=null && !orig.getReadOnlyHosts().isEmpty()){
 			dest.setReadOnlyHosts(orig.getReadOnlyHosts());
 		}
-		if (orig.getReadWriteHosts()!=null && orig.getReadWriteHosts().size() > 0){
+		if (orig.getReadWriteHosts()!=null && !orig.getReadWriteHosts().isEmpty()){
 			dest.setReadWriteHosts(orig.getReadWriteHosts());
 		}
-		if (orig.getRootHosts()!=null && orig.getRootHosts().size() > 0){
+		if (orig.getRootHosts()!=null && !orig.getRootHosts().isEmpty()){
 			dest.setRootHosts((orig.getRootHosts()));
 		}
 

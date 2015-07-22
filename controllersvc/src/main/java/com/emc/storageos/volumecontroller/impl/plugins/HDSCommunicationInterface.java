@@ -153,7 +153,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             initMap(accessProfile);
             Namespace namespace = (Namespace) namespaces.getNsList().get(METERING);
             _logger.info("HDS CIMClient initialized successfully");
-            executor.set_keyMap(_keyMap);
+            executor.setKeyMap(_keyMap);
             executor.execute(namespace);
             _logger.info("Started Injection of Stats to Cassandra");
             dumpStatRecords();
@@ -462,7 +462,7 @@ public class HDSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 } catch (Exception ex) {
                     _logger.error(
                             String.format(
-                                    "Error while updating unmanaged volume discovery status for system {}",
+                                    "Error while updating unmanaged volume discovery status for system %s",
                                     storageSystem.getId()), ex);
                 }
             }

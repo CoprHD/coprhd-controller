@@ -22,6 +22,9 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Jobs for Metering.
  */
@@ -29,6 +32,9 @@ public class DataCollectionMeteringJob extends DataCollectionJob implements Seri
 
     private static final long serialVersionUID = 6949883905186395658L;
 
+    private static final Logger logger = LoggerFactory
+            .getLogger(DataCollectionMeteringJob.class);
+    
     private final DataCollectionTaskCompleter _completer;
 
     public DataCollectionMeteringJob(MeteringTaskCompleter completer){
@@ -86,7 +92,9 @@ public class DataCollectionMeteringJob extends DataCollectionJob implements Seri
         try {
             sys = _completer.getId().toString();
         }
-        catch (Exception ex) {}
+        catch (Exception ex) {
+            logger.error("Exception occurred while getting system id from completer", ex);
+        }
         return sys;
     }
 

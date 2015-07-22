@@ -52,7 +52,7 @@ public class NumPathsMatcher extends AttributeMatcher {
     private static final Logger _logger = LoggerFactory
             .getLogger(NumPathsMatcher.class);
     
-    private static PortMetricsProcessor _portMetricsProcessor;    
+    private static volatile PortMetricsProcessor _portMetricsProcessor;    
 
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
         if ( _portMetricsProcessor == null) {

@@ -35,11 +35,13 @@ import com.emc.storageos.security.resource.UserInfoPage.UserTenantList;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.sun.jersey.api.client.ClientResponse;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
+
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -253,16 +255,15 @@ public class Validator {
         return false;
     }
 
-
-    public static void setAuthSvcEndPointLocator(AuthSvcEndPointLocator authSvcEndPointLocator ) {
+    public synchronized static void setAuthSvcEndPointLocator(AuthSvcEndPointLocator authSvcEndPointLocator ) {
         _authSvcEndPointLocator = authSvcEndPointLocator;
     }
 
-    public static void setCoordinator(CoordinatorClient coordinator) {
+    public synchronized static void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
-    public static void setStorageOSUserRepository(StorageOSUserRepository repo) {
+    public synchronized static void setStorageOSUserRepository(StorageOSUserRepository repo) {
         _repository = repo;
     }
 

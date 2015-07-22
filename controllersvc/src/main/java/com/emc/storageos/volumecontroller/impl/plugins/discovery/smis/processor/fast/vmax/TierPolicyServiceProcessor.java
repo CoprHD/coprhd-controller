@@ -76,8 +76,6 @@ public class TierPolicyServiceProcessor extends Processor {
             setFASTStatusOnStorageSystem(storageSystemURI, tierServiceFound);
         } catch (Exception e) {
             _logger.error("Tier Policy Service Discovery Failed : ", e);
-        } finally {
-                 
         }
     }
     

@@ -23,6 +23,8 @@ import java.util.Hashtable;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * JUnit test class for {@link FileCimIndicationConsumer}.
@@ -33,6 +35,7 @@ public class FileCimIndicationConsumerTest {
     private static final String TEST_KEY2 = "key2";
     private static final String TEST_VALUE1 = "value1";
     private static final String TEST_VALUE2 = "value2";
+    private static final Logger s_logger = LoggerFactory.getLogger(FileCimIndicationConsumerTest.class);
     
     /**
      * Make sure indication file doesn't exist.
@@ -62,7 +65,7 @@ public class FileCimIndicationConsumerTest {
      * Tests the consumeIndication method when the passed indication is null.
      */
     @Test
-    public void testConsumeIndication_Null() {
+    public void testConsumeIndicationNull() {
         FileCimIndicationConsumer consumer = new FileCimIndicationConsumer();
         consumer.consumeIndication(null);
 
@@ -79,7 +82,7 @@ public class FileCimIndicationConsumerTest {
      * Hashtable<String, String>.
      */
     @Test
-    public void testConsumeIndication_NotHashtable() {
+    public void testConsumeIndicationNotHashtable() {
         FileCimIndicationConsumer consumer = new FileCimIndicationConsumer();
         consumer.consumeIndication(new ArrayList<String>());
 
@@ -138,6 +141,7 @@ public class FileCimIndicationConsumerTest {
             try {
                 bufferedFileReader.close();
             } catch (Exception e) {
+            	s_logger.error(e.getMessage(),e);
             }
         }
 

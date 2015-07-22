@@ -62,7 +62,7 @@ public class CIMVolumeRecordableDeviceEvent extends
 		    logMessage(
 	                "NativeGuid for block Computed as  : [{}]",
 	                new Object[] { _nativeGuid });
-		}catch (Throwable e) {
+		}catch (Exception e) {
 		    _logger.error("Unable to compute NativeGuid :", e);
         }
 		

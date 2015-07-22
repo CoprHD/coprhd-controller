@@ -47,7 +47,7 @@ public class ErrorHandlingTest {
     private static final int HTTP_SERVICE_UNAVAILABLE = 503;
     
 	private static final int port = 12345;
-	private static Server _server;
+	private static volatile Server _server;
 	private Client client;
 	private WebResource baseResource;
 

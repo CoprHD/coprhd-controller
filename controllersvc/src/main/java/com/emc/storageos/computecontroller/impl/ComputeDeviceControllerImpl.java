@@ -890,7 +890,7 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
 
 			List<String> vmList = vcenterController.getVirtualMachines(datacenterId, clusterId);
 
-			if (vmList.size() > 0) {
+			if (!vmList.isEmpty()) {
 				log.error("there are {} VMs in the cluster", vmList.size());
 				throw ComputeSystemControllerException.exceptions.clusterHasVms(cluster != null ? cluster.getLabel()
 						: clusterId.toString());

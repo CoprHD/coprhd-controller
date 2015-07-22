@@ -52,7 +52,7 @@ public class CallHomeEventManagerTest {
 	 * Test case which recognizes that a heartbeat event should be sent.
 	 */
 	@Test
-	public void testHeartbeatEventTrue() {
+	public void testHeartbeatEventTrue() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
@@ -64,12 +64,8 @@ public class CallHomeEventManagerTest {
 		
 		licenseInfo.setLastHeartbeatEventDate(stringDate);
 		manager.setLicenseInfo(licenseInfo);
-		
-		try {
-			Assert.assertTrue(manager.doSendHeartBeat(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+
+		Assert.assertTrue(manager.doSendHeartBeat(licenseInfo));
 	}
 	
 	
@@ -77,32 +73,25 @@ public class CallHomeEventManagerTest {
 	 * test that a heartbeat event is sent if no heartbeat date exists in zookeeper.
 	 */
 	@Test
-	public void testHeartbeatEventNoHeartbeatDate() {
+	public void testHeartbeatEventNoHeartbeatDate() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
 		manager.setLicenseInfo(licenseInfo);
-		
-		try {
-			Assert.assertTrue(manager.doSendHeartBeat(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+
+		Assert.assertTrue(manager.doSendHeartBeat(licenseInfo));
 	}
 	
 	/**
 	 * test that a heartbeat event is sent if no CallInfo object returned from zookeeper.
 	 */
 	@Test
-	public void testHeartbeatEventNoCallInfoObject() {
-		
+	public void testHeartbeatEventNoCallInfoObject() throws Exception {
+
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = null;
-		try {
-			Assert.assertTrue(manager.doSendHeartBeat(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+
+		Assert.assertTrue(manager.doSendHeartBeat(licenseInfo));
 	}
 	
 	
@@ -110,7 +99,7 @@ public class CallHomeEventManagerTest {
 	 * Test case which recognizes that a heartbeat event should not be sent.
 	 */
 	@Test
-	public void testHeartbeatEventFalse() {
+	public void testHeartbeatEventFalse() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
@@ -122,19 +111,15 @@ public class CallHomeEventManagerTest {
 		
 		licenseInfo.setLastHeartbeatEventDate(stringDate);
 		manager.setLicenseInfo(licenseInfo);
-		
-		try {
-			Assert.assertFalse(manager.doSendHeartBeat(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+
+		Assert.assertFalse(manager.doSendHeartBeat(licenseInfo));
 	}
 	
 	/**
 	 * Test case which recognizes that a license expiration event should be sent.
 	 */
 	@Test
-	public void testLicenseExpirationEventTrue() {
+	public void testLicenseExpirationEventTrue() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
@@ -146,44 +131,33 @@ public class CallHomeEventManagerTest {
 		
 		licenseInfo.setLastLicenseExpirationDateEventDate(stringDate);
 		manager.setLicenseInfo(licenseInfo);
-		
-		try {
-			Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+
+		Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
 	}
 	
 	/**
 	 * test that a license expiration event is sent if no heartbeat date exists in zookeeper.
 	 */
 	@Test
-	public void testLicenseExpirationEventNoExpirationDate() {
+	public void testLicenseExpirationEventNoExpirationDate() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
 		manager.setLicenseInfo(licenseInfo);
 		
-		try {
-			Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+		Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
 	}
 	
 	/**
 	 * test that a license expiration event is sent if no CallInfo object returned from zookeeper.
 	 */
 	@Test
-	public void testLicensExpirationEventNoCallInfoObject() {
+	public void testLicensExpirationEventNoCallInfoObject() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = null;
-		try {
-			Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+
+		Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
 	}
 	
 	
@@ -191,7 +165,7 @@ public class CallHomeEventManagerTest {
 	 * Test case which recognizes that a license expiration event should not be sent.
 	 */
 	@Test
-	public void testLicenExpirationEventFalse() {
+	public void testLicenExpirationEventFalse() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
@@ -204,28 +178,20 @@ public class CallHomeEventManagerTest {
 		licenseInfo.setLastLicenseExpirationDateEventDate(stringDate);
 		manager.setLicenseInfo(licenseInfo);
 		
-		try {
-			Assert.assertFalse(manager.doSendLicenseExpiration(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+		Assert.assertFalse(manager.doSendLicenseExpiration(licenseInfo));
 	}
 	
 	/**
 	 * Test case which recognizes that a registration event should be sent.
 	 */
 	@Test
-	public void testRegistrationEventTrue() {
+	public void testRegistrationEventTrue() throws Exception {
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
 		
 		manager.setLicenseInfo(licenseInfo);
 		
-		try {
-			Assert.assertTrue(manager.doSendRegistration(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+		Assert.assertTrue(manager.doSendRegistration(licenseInfo));
 	
 	}
 	
@@ -233,22 +199,18 @@ public class CallHomeEventManagerTest {
 	 * test that a registration event is sent if no CallInfo object returned from zookeeper.
 	 */
 	@Test
-	public void testRegistrationEventNoCallInfoObject() {
+	public void testRegistrationEventNoCallInfoObject() throws Exception {
 		
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = null;
-		try {
-			Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+		Assert.assertTrue(manager.doSendLicenseExpiration(licenseInfo));
 	}
 	
 	/**
 	 * Test case which recognizes that a registration event should not be sent.
 	 */
 	@Test
-	public void testRegistrationEventFalse() {
+	public void testRegistrationEventFalse() throws Exception {
 		MockCallHomeEventManager manager = new MockCallHomeEventManager();
 		LicenseInfoExt licenseInfo = new LicenseInfoExt();
 		SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy");
@@ -256,10 +218,6 @@ public class CallHomeEventManagerTest {
 		licenseInfo.setLastRegistrationEventDate(stringDate);
 		manager.setLicenseInfo(licenseInfo);
 		
-		try {
-			Assert.assertFalse(manager.doSendRegistration(licenseInfo));
-		}catch(Exception e) { 
-			e.printStackTrace();
-		}
+		Assert.assertFalse(manager.doSendRegistration(licenseInfo));
 	}
 }

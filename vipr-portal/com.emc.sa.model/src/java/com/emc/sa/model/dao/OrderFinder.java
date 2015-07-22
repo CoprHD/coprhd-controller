@@ -33,7 +33,7 @@ public class OrderFinder extends TenantModelFinder<Order> {
         Set<URI> orderIds = Sets.newHashSet();
         List<NamedElement> scheduledOrderElems = client.findByAlternateId(Order.class, Order.ORDER_STATUS, OrderStatus.SCHEDULED.name());
         for (NamedElement scheduledOrderElem : scheduledOrderElems) {
-            Order scheduledOrder = client.findById(Order.class, scheduledOrderElem.id);
+            Order scheduledOrder = client.findById(Order.class, scheduledOrderElem.getId());
             if (scheduledOrder.getExecutionWindowId() != null && scheduledOrder.getExecutionWindowId().getURI() != null && executionWindowId.equalsIgnoreCase(scheduledOrder.getExecutionWindowId().getURI().toString())) {
                 results.add(scheduledOrder);
             }

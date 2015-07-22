@@ -27,10 +27,12 @@ public class XtremIOPortsInfo {
     private XtremIOPortInfo[] portInfo;
 
     public XtremIOPortInfo[] getPortInfo() {
-        return portInfo;
+        return portInfo != null ? portInfo.clone() : portInfo;
     }
 
     public void setPortInfo(XtremIOPortInfo[] portInfo) {
-        this.portInfo = portInfo;
+    	if(portInfo != null){
+    		this.portInfo = portInfo.clone();
+    	}
     }
 }

@@ -19,11 +19,11 @@ import java.util.List;
 public class Namespace {
     private List<Object> _operations;
 
-    public void set_operations(List<Object> _operations) {
+    public void setOperations(List<Object> _operations) {
         this._operations = _operations;
     }
 
-    public List<Object> get_operations() {
+    public List<Object> getOperations() {
         return _operations;
     }
 

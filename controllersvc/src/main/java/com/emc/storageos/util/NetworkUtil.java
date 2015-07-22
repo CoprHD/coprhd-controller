@@ -314,7 +314,7 @@ public class NetworkUtil {
                     dbClient, ExportGroup.class, 
                     AlternateIdConstraint.Factory.getConstraint(
                             ExportGroup.class, "initiators", initId.toString()));
-            return exportGroups.size() > 0;
+            return (exportGroups!=null && !exportGroups.isEmpty());
         }
         return false;
     }
@@ -332,7 +332,7 @@ public class NetworkUtil {
                     dbClient, ExportMask.class, 
                     AlternateIdConstraint.Factory.getConstraint(
                             ExportMask.class, "storagePorts", portId.toString()));
-            return exportMasks.size() > 0;
+            return (exportMasks!=null && !exportMasks.isEmpty());
         }
         return false;
     }

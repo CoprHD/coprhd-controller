@@ -81,7 +81,7 @@ public class ApiTest_AuthnProviderUtils {
 
     private final static String DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN = "uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=maxcrc,dc=com";
 
-    private final static String DEFAULT_TEST_TENANT_USERS_PASSWORD = "secret";
+    private final static String DEFAULT_TEST_TENANT_USERS_PASS_WORD = "secret";
 
     private final String[] TEST_DEFAULT_ATTRIBUTE_KEYS = {"departmentNumber", "l"}; //l means localityName
     private final String[] TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES = {"ENG", "QE", "DEV", "MANAGE"};
@@ -171,7 +171,7 @@ public class ApiTest_AuthnProviderUtils {
     }
 
     public String getLDAPUserPassword () {
-        return DEFAULT_TEST_TENANT_USERS_PASSWORD;
+        return DEFAULT_TEST_TENANT_USERS_PASS_WORD;
     }
 
     public String getAuthnProviderDomain() {

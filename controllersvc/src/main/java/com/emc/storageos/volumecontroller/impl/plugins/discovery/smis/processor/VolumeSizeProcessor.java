@@ -104,7 +104,7 @@ public class VolumeSizeProcessor extends PoolProcessor {
                         }
                     }
                     
-                    _logger.info(String.format("Maximum limits for volume capacity in storage pool: %s  \n   max thin volume capacity: %s, max thick volume capacity: %s ",
+                    _logger.info(String.format("Maximum limits for volume capacity in storage pool: %s  %n   max thin volume capacity: %s, max thick volume capacity: %s ",
                             pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
 
                     _dbClient.persistObject(pool);

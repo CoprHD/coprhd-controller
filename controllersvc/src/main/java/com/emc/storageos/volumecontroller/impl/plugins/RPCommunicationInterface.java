@@ -87,8 +87,8 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
     private Logger _log = LoggerFactory.getLogger(RPCommunicationInterface.class);
 
-    private NamespaceList _namespaces;
-    private Executor _executor;
+    private NamespaceList namespaces;
+    private Executor executor;
 
     private RPStatisticsHelper _rpStatsHelper;
 
@@ -101,19 +101,19 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
     }
 
     public void setExecutor(Executor executor) {
-        _executor = executor;
+        this.executor = executor;
     }
 
     public Executor getExecutor() {
-        return _executor;
+        return executor;
     }
 
-    public void set_namespaces(NamespaceList namespaces) {
-        _namespaces = namespaces;
+    public void setNamespaces(NamespaceList namespaces) {
+        this.namespaces = namespaces;
     }
 
-    public NamespaceList get_namespaces() {
-        return _namespaces;
+    public NamespaceList getNamespaces() {
+        return namespaces;
     }
 
     @Override
@@ -127,7 +127,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
      */
     private void releaseResources() {
         _keyMap.clear();
-        _namespaces = null;
+        namespaces = null;
     }
 
     @Override
@@ -807,7 +807,7 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
     					    }
     					}
     				}
-    				if (storagePortURIs.size() > 0) {
+    				if (!storagePortURIs.isEmpty()) {
     					storagePort = _dbClient.queryObject(StoragePort.class, storagePortURIs).get(0);
     					rpSiteArray = new RPSiteArray();
     					rpSiteArray.setInactive(false);

@@ -41,7 +41,7 @@ public class QueryStatisticsProcessor extends Processor {
             while (it.hasNext()) {
                 final CIMInstance queryInstance = (CIMInstance) it.next();
                 keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
-                addPath(keyMap, operation.get_result(), queryInstance.getObjectPath());
+                addPath(keyMap, operation.getResult(), queryInstance.getObjectPath());
             }
         } catch (Exception e) {
             _logger.error("Failed while processing QueryStatistics :", e);

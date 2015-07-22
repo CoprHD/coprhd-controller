@@ -212,13 +212,13 @@ public class VNXeUnManagedObjectDiscoverer {
 	            unManagedFilesystemsReturnedFromProvider.add(unManagedFs.getId());
 	        }
 			
-			if(unManagedFilesystemsInsert.size() > 0) {
+			if(!unManagedFilesystemsInsert.isEmpty()) {
 	            //Add UnManagedFileSystem
 	            partitionManager.insertInBatches(unManagedFilesystemsInsert,
 	                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
 	        }
 	
-	        if(unManagedFilesystemsUpdate.size() > 0) {
+	        if(!unManagedFilesystemsUpdate.isEmpty()) {
 	            //Update UnManagedFilesystem
 	            partitionManager.updateInBatches(unManagedFilesystemsUpdate,
 	                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
@@ -259,7 +259,7 @@ public class VNXeUnManagedObjectDiscoverer {
      // Retrieve the list of data movers interfaces for the VNX File device.
     	List<VNXeFileInterface> interfaces = apiClient.getFileInterfaces();
     	VNXeBase fsNasserver = fs.getNasServer();
-    	if (interfaces == null || interfaces.size() == 0) {
+    	if (interfaces == null || interfaces.isEmpty()) {
     		log.info("No file interfaces found for the system: {} ", storageSystem.getId());
     		return storagePort;
     	}
@@ -385,7 +385,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
 					// Validate Rules Compatible with ViPR - Same rules should
 					// apply as per API SVC Validations.
-					if(unManagedExportRules.size() > 0) {
+					if(!unManagedExportRules.isEmpty()) {
 						boolean isAllRulesValid = validationUtility
 								.validateUnManagedExportRules(unManagedExportRules);
 						if (isAllRulesValid) {
@@ -398,20 +398,19 @@ public class VNXeUnManagedObjectDiscoverer {
 						}
 					}
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error("IOException occured in discoverAllExportRules()", e);
 				}
 			}
 		}
 
-		if(unManagedExportRulesInsert.size() > 0) {
+		if(!unManagedExportRulesInsert.isEmpty()) {
 			//Add UnManagedFileSystem
 			partitionManager.insertInBatches(unManagedExportRulesInsert,
 					Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
 			unManagedExportRulesInsert.clear();
 		}
 
-		if(unManagedExportRulesUpdate.size() > 0) {
+		if(!unManagedExportRulesUpdate.isEmpty()) {
 			//Update UnManagedFilesystem
 			partitionManager.updateInBatches(unManagedExportRulesUpdate,
 					Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_RULE);
@@ -495,20 +494,19 @@ public class VNXeUnManagedObjectDiscoverer {
                     
 							
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					log.error("IOException occured in discoverAllCifsShares()",e);
 				}
 			}
 		}
 
-		if(unManagedCifsAclInsert.size() > 0) {
+		if(!unManagedCifsAclInsert.isEmpty()) {
 			//Add UnManagedFileSystem
 			partitionManager.insertInBatches(unManagedCifsAclInsert,
 					Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CIFS_SHARE_ACL);
 			unManagedCifsAclInsert.clear();
 		}
 
-		if(unManagedCifsAclUpdate.size() > 0) {
+		if(!unManagedCifsAclUpdate.isEmpty()) {
 			//Update UnManagedFilesystem
 			partitionManager.updateInBatches(unManagedCifsAclUpdate,
 					Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_CIFS_SHARE_ACL);
@@ -617,7 +615,9 @@ public class VNXeUnManagedObjectDiscoverer {
                     return value;
                 }
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+        	log.error("extractValueFromStringSet Exception: ", e);
+        }
         return null;
     }
 	
@@ -626,7 +626,7 @@ public class VNXeUnManagedObjectDiscoverer {
             String storagePort) {
    	
     	StringSet roHosts = new StringSet();
-    	if(export.getReadOnlyHosts() != null && export.getReadOnlyHosts().size() > 0) {
+    	if(export.getReadOnlyHosts() != null && !export.getReadOnlyHosts().isEmpty()) {
     		for(VNXeBase roHost : export.getReadOnlyHosts()) {
     			roHosts.add(apiClient.getHostById(roHost.getId()).getName());    		
     		}
@@ -634,7 +634,7 @@ public class VNXeUnManagedObjectDiscoverer {
     	}
 
     	StringSet rwHosts = new StringSet();
-    	if(export.getReadWriteHosts() != null && export.getReadWriteHosts().size() > 0) {
+    	if(export.getReadWriteHosts() != null && !export.getReadWriteHosts().isEmpty()) {
     		for(VNXeBase rwHost : export.getReadWriteHosts()) {
     			rwHosts.add(apiClient.getHostById(rwHost.getId()).getName());    		
     		}
@@ -642,7 +642,7 @@ public class VNXeUnManagedObjectDiscoverer {
     	}
     	
     	StringSet rootHosts = new StringSet();
-    	if(export.getRootAccessHosts() != null && export.getRootAccessHosts().size() > 0) {
+    	if(export.getRootAccessHosts() != null && !export.getRootAccessHosts().isEmpty()) {
     		for(VNXeBase rootHost : export.getRootAccessHosts()) {
     			rootHosts.add(apiClient.getHostById(rootHost.getId()).getName());    		
     		}
@@ -750,7 +750,7 @@ public class VNXeUnManagedObjectDiscoverer {
                     .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
 
                 log.debug("Matched Pools :"+Joiner.on("\t").join(matchedVPools));
-                if (null != matchedVPools && matchedVPools.size() == 0) {
+                if (null != matchedVPools && matchedVPools.isEmpty()) {
                     // replace with empty string set doesn't work, hence added explicit code to remove all
                     unManagedVolumeInformation.get(
                             SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
@@ -853,7 +853,7 @@ public class VNXeUnManagedObjectDiscoverer {
             if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
                     SUPPORTED_VPOOL_LIST.toString())) {
                 
-                if (null != matchedVPools && matchedVPools.size() == 0) {
+                if (null != matchedVPools && matchedVPools.isEmpty()) {
                     // replace with empty string set doesn't work, hence added explicit code to remove all
                     unManagedFileSystemInformation.get(
                              SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
@@ -1036,7 +1036,7 @@ public class VNXeUnManagedObjectDiscoverer {
         SetView<URI> onlyAvailableinDB =  Sets.difference(unManagedFSInDBSet, unManagedFilesystemsReturnedFromProvider);
 
         log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
-        if (onlyAvailableinDB.size() > 0) {
+        if (!onlyAvailableinDB.isEmpty()) {
             List<UnManagedFileSystem> unManagedFsTobeDeleted = new ArrayList<UnManagedFileSystem>();
             Iterator<UnManagedFileSystem> unManagedFs =  dbClient.queryIterativeObjects(UnManagedFileSystem.class, 
                     new ArrayList<URI>(onlyAvailableinDB));
@@ -1053,7 +1053,7 @@ public class VNXeUnManagedObjectDiscoverer {
                 fs.setInactive(true);
                 unManagedFsTobeDeleted.add(fs);
             }
-            if (unManagedFsTobeDeleted.size() > 0 ) {
+            if (!unManagedFsTobeDeleted.isEmpty()) {
                 partitionManager.updateAndReIndexInBatches(unManagedFsTobeDeleted, 1000,
                         dbClient, UNMANAGED_FILESYSTEM);
             }

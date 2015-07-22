@@ -51,8 +51,8 @@ public class Main {
                             stackTraceBuilder.append(threadInfos[i].toString());
                         }
                         _log.error(stackTraceBuilder.toString());
-                    } catch(Throwable th) {
-                        _log.error("Error in default uncaught exception handler for {}:", SERVICE_BEAN, th);
+                    } catch(Exception ex) {
+                        _log.error("Error in default uncaught exception handler for {}:", SERVICE_BEAN, ex);
                         System.exit(1);
                     }
                 }

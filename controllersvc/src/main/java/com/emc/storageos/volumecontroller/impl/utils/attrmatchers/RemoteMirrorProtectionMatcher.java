@@ -80,7 +80,7 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                 Set<String> copies = new HashSet<String>(system.getRemotelyConnectedTo());
                 copies.retainAll(remotestorageToPoolMap.asMap().keySet());
                 _logger.info("Remotely Connected Systems Matched with Remote VArray : {}", Joiner.on("\t").join(copies));
-                if (copies.size() > 0 && isRemotelyConnectedViaExpectedCopyMode(system, remoteCopySettings)) {
+                if (!copies.isEmpty() && isRemotelyConnectedViaExpectedCopyMode(system, remoteCopySettings)) {
                     _logger.info("Adding Pools {} , as associated Storage System {} is connected to any remote Storage System",
                             Joiner.on("\t").join(storageToPoolsEntry.getValue()));
                     matchedPools.addAll(storageToPoolsEntry.getValue());

@@ -178,7 +178,7 @@ public abstract class SendEvent {
         ArrayList<String> fileList = genAttachFiles();
         BadRequestException badRequestException = null;
         
-        if (fileList != null && fileList.size() > 0) {                        
+        if (fileList != null && !fileList.isEmpty()) {
             boolean attachLogs = true;
             try {
                 validateAttachmentSize(fileList);
@@ -296,7 +296,7 @@ public abstract class SendEvent {
     public void validateAttachmentSize(List<String> filePathNames) {
         int attachmentsMaxMB = getAttachmentsMaxSizeMB();
         if (attachmentsMaxMB == 0 || filePathNames == null ||
-                filePathNames.size() == 0) {
+                filePathNames.isEmpty()) {
             return;
         }
 

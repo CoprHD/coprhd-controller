@@ -10,14 +10,9 @@ import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 
 public class AggregateDbIndex extends DbIndex {
-    private static final Logger log = LoggerFactory.getLogger(AggregateDbIndex.class);
-
     private boolean groupGlobal;
     private String[] groupBy;
     private Map<String,ColumnField> groupByFields;
@@ -47,7 +42,7 @@ public class AggregateDbIndex extends DbIndex {
         return Collections.unmodifiableMap(groupByFields);
     }
     String[] getGroupBy() {
-        return groupBy;
+        return Arrays.copyOf(groupBy, groupBy.length);
     }
 
     boolean isGroupedGlobal() { return groupGlobal;}

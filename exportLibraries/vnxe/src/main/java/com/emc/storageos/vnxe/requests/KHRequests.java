@@ -91,12 +91,12 @@ public class KHRequests <T> {
         
         builder = builder.header(CLIENT_HEADER,"true");
         Set<NewCookie> cookies = null;
-        if (_requestCookies.size() > 0 ) {	
+        if (!_requestCookies.isEmpty()) {	
         	cookies = _requestCookies;
         } else {
-        	cookies = _client.get_cookie();
+        	cookies = _client.getCookie();
         }
-        if (cookies != null && cookies.size()>0) {
+        if (cookies != null && !cookies.isEmpty()) {
 
             StringBuilder buildCookies = new StringBuilder();
             int n = 0;
@@ -121,8 +121,9 @@ public class KHRequests <T> {
     }
 
    protected WebResource addQueryParameters(WebResource resource) {
-        if (_queryParams == null)
+        if (_queryParams == null) {
             return resource; // no query parameters 
+        }
 
         return resource.queryParams(_queryParams);
     }
@@ -309,13 +310,13 @@ public class KHRequests <T> {
         try {
             job = mapper.readValue(resString, VNXeCommandJob.class);
         } catch (JsonParseException e) {
-            _logger.error(String.format("unexpected data returned: %s from:", resString, _url), e);
+            _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError("unexpected data returned:" +resString, e);
         } catch (JsonMappingException e) {
-            _logger.error(String.format("unexpected data returned: %s from:", resString, _url), e);
+            _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError("unexpected data returned:" +resString, e);
         } catch (IOException e) {
-            _logger.error(String.format("unexpected data returned: %s from:", resString, _url), e);
+            _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
             throw VNXeException.exceptions.unexpectedDataError("unexpected data returned:" +resString, e);
         }
         if (job != null) {
@@ -360,7 +361,7 @@ public class KHRequests <T> {
                  }
              }
          } catch (JSONException e) {
-             _logger.error(String.format("unexpected data returned: %s from: ", resString, _url), e);
+             _logger.error(String.format("unexpected data returned: %s from: %s", resString, _url), e);
              throw VNXeException.exceptions.unexpectedDataError(String.format("unexpected data returned: %s", objectString), e);
          }
          return returnedObject;
@@ -407,7 +408,7 @@ public class KHRequests <T> {
 	    checkResponse(response, GET_REQUEST);
 	    
 	    List<NewCookie> cookies = response.getCookies();
-        if (cookies != null && cookies.size()>0) {
+        if (cookies != null && !cookies.isEmpty()) {
             _requestCookies.addAll(cookies);
         }
 	    saveClientCookies();
@@ -421,7 +422,7 @@ public class KHRequests <T> {
     private WebResource handelRedirect(ClientResponse response) {
     	URI url = response.getLocation();
     	List<NewCookie> cookies = response.getCookies();
-    	if (cookies != null && cookies.size()>0) {
+    	if (cookies != null && !cookies.isEmpty()) {
     		_requestCookies.addAll(cookies);
     	} else {
     		_logger.debug("no cookies");
@@ -497,8 +498,8 @@ public class KHRequests <T> {
      * save cookies in KHClient for next request
      */
     private void saveClientCookies() {
-        if (_requestCookies.size()>0) {
-        	_client.set_cookie(_requestCookies);
+        if (!_requestCookies.isEmpty()) {
+        	_client.setCookie(_requestCookies);
         }
     }
     
@@ -551,7 +552,7 @@ public class KHRequests <T> {
      
     private void authenticate() {
     	//calling a GET operation would authenticate the client again.
-        _client.set_cookie(null);
+        _client.setCookie(null);
     	StorageSystemRequest req = new StorageSystemRequest(_client);
         req.get();
     }

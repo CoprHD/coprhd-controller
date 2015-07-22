@@ -98,7 +98,6 @@ public class IndexCleaner {
 
         Map<String, List<Column<CompositeColumnName>>> cleanList = listToClean.getColumnsToClean();
         Iterator<Map.Entry<String, List<Column<CompositeColumnName>>>> entryIt = cleanList.entrySet().iterator();
-        Map<String,ColumnField> dependentFields = new HashMap<>();
         while (entryIt.hasNext()) {
             Map.Entry<String, List<Column<CompositeColumnName>>> entry = entryIt.next();
 

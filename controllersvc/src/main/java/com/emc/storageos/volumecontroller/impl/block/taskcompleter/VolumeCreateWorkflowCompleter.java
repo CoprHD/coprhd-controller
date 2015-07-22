@@ -110,7 +110,7 @@ public class VolumeCreateWorkflowCompleter extends VolumeWorkflowCompleter {
             }
         }
         
-        if (finalMessages.size() > 0) {
+        if (!finalMessages.isEmpty()) {
             String finalMessage = Joiner.on("; ").join(finalMessages) + ".";
             _log.error(finalMessage);
         }

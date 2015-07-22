@@ -320,27 +320,33 @@ public class BackupOps {
                                 ? cause : result;
                     }
                 }
-                if (result != null)
-                    throw result;
+                if (result != null) {
+                    if (result instanceof Exception) {
+                        throw (Exception) result;
+                    } else {
+                        throw new Exception(result);
+                    }
+                }
                 log.info("Create backup({}) success", backupTag);
                 persistBackupInfo(backupTag);
                 return;
-            } catch (Throwable t) {
-                boolean retry = (t instanceof RetryableBackupException) &&
+            } catch (Exception e) {
+                boolean retry = (e instanceof RetryableBackupException) &&
                         (retryCnt < BackupConstants.RETRY_MAX_CNT - 1);
                 if (retry) {
                     deleteBackupWithoutLock(backupTag, true);
                     log.info("Retry to create backup...");
                     continue;
                 }
-                boolean exist = (t instanceof BackupException) &&
-                        (((BackupException)t).getServiceCode() == ServiceCode.BACKUP_CREATE_EXSIT);
+                boolean exist = (e instanceof BackupException) &&
+                        (((BackupException)e).getServiceCode() == ServiceCode.BACKUP_CREATE_EXSIT);
                 if (exist) {
-                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), t);
+                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), e);
                 }
                 if (!checkCreateResult(backupTag, errorList, force)) {
                     deleteBackupWithoutLock(backupTag, true);
-                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), t);
+                    Throwable cause = (e.getCause() == null ? e : e.getCause());
+                    throw BackupException.fatals.failedToCreateBackup(backupTag, errorList.toString(), cause);
                 }
                 break;
             }
@@ -526,10 +532,15 @@ public class BackupOps {
                     errorList.add(task.getRequest().getHost());
                 }
             }
-            if (result != null) 
-                throw result;
+            if (result != null) {
+                if (result instanceof Exception) {
+                    throw (Exception) result;
+                } else {
+                    throw new Exception(result);
+                }
+            }
             log.info("Delete backup(name={}) success", backupTag);
-        } catch (Throwable t) {
+        } catch (Exception ex) {
             List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
             for (String host : newErrList) {
                 for (int i = 1; i < ports.size(); i++) {
@@ -546,12 +557,13 @@ public class BackupOps {
                 }
             }
             if (!errorList.isEmpty()) { 
+                Throwable cause = (ex.getCause() == null ? ex : ex.getCause());
                 if (ignore) {
                     log.warn(String.format(
                         "Delete backup({%s}) on nodes(%s) failed, but ignore ingnore the errors", 
-                        backupTag, errorList.toString()), t);
+                        backupTag, errorList.toString()), cause);
                 } else {
-                    throw BackupException.fatals.failedToDeleteBackup(backupTag, errorList.toString(), t);
+                    throw BackupException.fatals.failedToDeleteBackup(backupTag, errorList.toString(), cause);
                 }
             } else {
                 log.info("Delete backup(name={}) success", backupTag);
@@ -657,10 +669,15 @@ public class BackupOps {
                     errorList.add(task.getRequest().getNode());
                 }
             }
-            if (result != null)
-                throw result;
-        } catch (Throwable t) {
-            log.error("Exception when listing backups", t);
+            if (result != null) {
+                if (result instanceof Exception) {
+                    throw (Exception) result;
+                } else {
+                    throw new Exception(result);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Exception when listing backups", e);
             List<String> newErrList = (List<String>)((ArrayList<String>)errorList).clone();
             for (String node : newErrList) {
                 List<BackupSetInfo> nodeBackupFileList = retryListBackupWithOtherPorts(getHosts().get(node));
@@ -670,11 +687,12 @@ public class BackupOps {
                 }
             }
             if (!errorList.isEmpty()) {
+                Throwable cause = (e.getCause() == null ? e : e.getCause());
                 if (ignore) {
                     log.warn("List backup on nodes({}) failed, but ignore the errors",
-                            errorList.toString(), t);
+                            errorList.toString(), cause);
                 } else {
-                    throw BackupException.fatals.failedToListBackup(errorList.toString(), t);
+                    throw BackupException.fatals.failedToListBackup(errorList.toString(), cause);
                 }
             }
         }

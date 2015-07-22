@@ -100,7 +100,7 @@ public class DbObjectMapper {
     public static List<NamedRelatedResourceRep> map(ResourceTypeEnum type, List<NamedElementQueryResultList.NamedElement> from) {
         List<NamedRelatedResourceRep> to = Lists.newArrayList();
         for(NamedElementQueryResultList.NamedElement el : from){
-            to.add(new NamedRelatedResourceRep(el.id, toLink(type, el.id), el.name));
+            to.add(new NamedRelatedResourceRep(el.getId(), toLink(type, el.getId()), el.getName()));
         }
         return to;
     }
@@ -108,7 +108,7 @@ public class DbObjectMapper {
     public static List<NamedRelatedResourceRep> map(ResourceTypeEnum type, URI parentId, List<NamedElementQueryResultList.NamedElement> from) {
         List<NamedRelatedResourceRep> to = Lists.newArrayList();
         for(NamedElementQueryResultList.NamedElement el : from){
-            to.add(new NamedRelatedResourceRep(el.id, toLink(type, el.id, parentId), el.name));
+            to.add(new NamedRelatedResourceRep(el.getId(), toLink(type, el.getId(), parentId), el.getName()));
         }
         return to;
     }

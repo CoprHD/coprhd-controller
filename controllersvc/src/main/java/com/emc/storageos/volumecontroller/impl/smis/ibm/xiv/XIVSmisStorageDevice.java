@@ -232,7 +232,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     .processVolumeCreation(storageSystem, storagePool.getId(),
                             volumes, outArgs);
             
-            if (volumeURIs.size() > 0) {
+            if (!volumeURIs.isEmpty()) {
             	// see SmisAbstractCreateVolumeJob.addVolumeToConsistencyGroup
                 // All the volumes will be in the same consistency group
                 final URI consistencyGroupId = firstVolume.getConsistencyGroup();
@@ -279,7 +279,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 storageSystem.getLabel(), storagePool.getNativeId()));
         for (Volume volume : volumes) {
             logMsgBuilder
-                    .append(String.format("\nVolume:%s", volume.getLabel()));
+                    .append(String.format("%nVolume:%s", volume.getLabel()));
         }
         _log.info(logMsgBuilder.toString());
     }
@@ -350,7 +350,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                     "Delete Volume Start - Array:%s", storageSystem.getLabel()));
             MultiVolumeTaskCompleter multiVolumeTaskCompleter = (MultiVolumeTaskCompleter) taskCompleter;
             for (Volume volume : volumes) {
-                logMsgBuilder.append(String.format("\nVolume:%s",
+                logMsgBuilder.append(String.format("%nVolume:%s",
                         volume.getLabel()));
 
                 if (volume.getConsistencyGroup() != null) {
@@ -453,7 +453,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 "Delete Volume End - Array: %s", storageSystem.getLabel()));
         for (Volume volume : volumes) {
             logMsgBuilder
-                    .append(String.format("\nVolume:%s", volume.getLabel()));
+                    .append(String.format("%nVolume:%s", volume.getLabel()));
         }
         _log.info(logMsgBuilder.toString());
     }
@@ -832,7 +832,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            if (objectsToSave.size() > 0) {
+            if (!objectsToSave.isEmpty()) {
                 _dbClient.updateAndReindexObject(objectsToSave);
             }
 
@@ -856,7 +856,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            if (objectsToSave.size() > 0) {
+            if (!objectsToSave.isEmpty()) {
                 _dbClient.persistObject(objectsToSave);
             }
 

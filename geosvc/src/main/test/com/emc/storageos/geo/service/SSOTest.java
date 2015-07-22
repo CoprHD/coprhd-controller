@@ -55,7 +55,7 @@ public class SSOTest extends ApiTestBase {
     @Test
     public void loginLogoutFromOriginator() throws Exception {
         // get a token from VDC1, for an AD user.
-        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls, true);
         _savedTokens.remove(ZONEADMIN);
         ClientResponse resp = rAdmin.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
@@ -92,7 +92,7 @@ public class SSOTest extends ApiTestBase {
     @Test
     public void loginLogoutFromBorrower() throws Exception {
         // get a token from VDC1, for an AD user.
-        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls, true);
         _savedTokens.remove(ZONEADMIN);
         ClientResponse resp = rAdmin.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
@@ -130,7 +130,7 @@ public class SSOTest extends ApiTestBase {
     @Test
     public void loginLogoutForce() throws Exception {
         // get a token from VDC1, for an AD user.
-        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls, true);
         _savedTokens.remove(ZONEADMIN);
         ClientResponse resp = rAdmin.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
@@ -181,7 +181,7 @@ public class SSOTest extends ApiTestBase {
     @Test
     public void loginLogoutOtherUser() throws Exception {
         // get a token from VDC1, for an AD user.
-        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls, true);
         _savedTokens.remove(ZONEADMIN);
         ClientResponse resp = rAdmin.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
@@ -210,7 +210,7 @@ public class SSOTest extends ApiTestBase {
 
         
         // login as root, grant security admin to SUPERUSER, on  both VDCs.
-        BalancedWebResource rootVDC1 = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls, true);
+        BalancedWebResource rootVDC1 = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls, true);
         BalancedWebResource rootVDC1UnAuth = createHttpsClient("", "", baseUrls, false);
         rootVDC1.path("/tenant").get(ClientResponse.class);
         String rootVDC1Token = (String) _savedTokens.get(SYSADMIN);
@@ -225,7 +225,7 @@ public class SSOTest extends ApiTestBase {
         
         _savedTokens.remove(SYSADMIN);
         
-        BalancedWebResource rootVDC2 = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, Collections.singletonList(remoteVDCVIP), true);
+        BalancedWebResource rootVDC2 = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, Collections.singletonList(remoteVDCVIP), true);
         BalancedWebResource rootVDC2UnAuth = createHttpsClient("", "", Collections.singletonList(remoteVDCVIP), false);
         rootVDC2.path("/tenant").get(ClientResponse.class);
         String rootVDC2Token = (String) _savedTokens.get(SYSADMIN);
@@ -238,7 +238,7 @@ public class SSOTest extends ApiTestBase {
         // he is logging out is a local user
         resp = rootVDC1UnAuth.path("/logout").queryParam("username", ZONEADMIN).header(AUTH_TOKEN_HEADER, rootVDC1Token).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());  
-        BalancedWebResource svcUser = createHttpsClient(SVCUSER, SVCUSER_PASSWORD, baseUrls, true);
+        BalancedWebResource svcUser = createHttpsClient(SVCUSER, SVCUSER_PASS_WORD, baseUrls, true);
         svcUser.path("/tenant").get(ClientResponse.class);
         String svcUserToken = (String) _savedTokens.get(SVCUSER);
         resp = rootVDC1UnAuth.path("/logout").queryParam("username", SVCUSER).header(AUTH_TOKEN_HEADER, rootVDC1Token).get(ClientResponse.class);
@@ -249,7 +249,7 @@ public class SSOTest extends ApiTestBase {
         
         // With a sec admin connection, logoutwith username=zadmin@sanity.local
         // delete one of the tokens from vdc1, using the force flag
-        BalancedWebResource secAdminAD = createHttpsClient(SUPERUSER, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource secAdminAD = createHttpsClient(SUPERUSER, AD_PASS_WORD, baseUrls, true);
         secAdminAD.path("/tenant").get(ClientResponse.class);
         resp = secAdminAD.path("/logout").queryParam("username", ZONEADMIN).get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
@@ -268,11 +268,11 @@ public class SSOTest extends ApiTestBase {
         // Using a sec admin user, do a logout?username=svcuser on vdc1.  This should not 
         // propagate to vdc2 because svcuser is a local user.
         _savedTokens.remove(SVCUSER);
-        svcUser = createHttpsClient(SVCUSER, SVCUSER_PASSWORD, baseUrls, true);
+        svcUser = createHttpsClient(SVCUSER, SVCUSER_PASS_WORD, baseUrls, true);
         svcUser.path("/tenant").get(ClientResponse.class);
         String svcUserTokenVDC1 = (String) _savedTokens.get(SVCUSER);
         _savedTokens.remove(SVCUSER);
-        BalancedWebResource svcUserVDC2 = createHttpsClient(SVCUSER, SVCUSER_PASSWORD, Collections.singletonList(remoteVDCVIP), true);
+        BalancedWebResource svcUserVDC2 = createHttpsClient(SVCUSER, SVCUSER_PASS_WORD, Collections.singletonList(remoteVDCVIP), true);
         svcUserVDC2.path("/tenant").get(ClientResponse.class);
         String svcUserTokenVDC2 = (String) _savedTokens.get(SVCUSER);
         resp = secAdminAD.path("/logout").queryParam("username", SVCUSER).get(ClientResponse.class);
@@ -318,7 +318,7 @@ public class SSOTest extends ApiTestBase {
     @Test
     public void proxyTokenDenied() throws Exception {
         // connect to vdc1 as zoneadmin user.
-        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls, true);
         _savedTokens.remove(ZONEADMIN);
         ClientResponse resp = rAdmin.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
@@ -366,7 +366,7 @@ public class SSOTest extends ApiTestBase {
      */
     @Test
     public void SSOformLogin() throws Exception {
-        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls, true);
         _savedTokens.remove(ZONEADMIN);
         ClientResponse resp = rAdmin.path("/tenant").get(ClientResponse.class);
         String vdc1Token = (String) _savedTokens.get(ZONEADMIN);
@@ -419,7 +419,7 @@ public class SSOTest extends ApiTestBase {
         
         int maxLife = 4;     
         // get a token from VDC1, for an AD user.
-        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls, true);
+        BalancedWebResource rAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls, true);
         _savedTokens.remove(ZONEADMIN);
         ClientResponse resp = rAdmin.path("/tenant").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());

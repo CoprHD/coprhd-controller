@@ -81,15 +81,15 @@ public class RecoverPointClientIntegrationTest {
    
 
     private static final String FAKE_WWN = "6006016018C12D00";
-    private static RecoverPointClient rpClient;
-    private static Logger logger;
+    private static volatile RecoverPointClient rpClient;
+    private static volatile Logger logger;
 
     private static final String preURI = "https://";
     private static final String postURI = ":7225/fapi/version4_1" + "?wsdl";
 
     private static final String site2InternalSiteName = "";
     
-    private static String Bookmarkname = "";
+    private static volatile String Bookmarkname = "";
 
     @BeforeClass
     public static void setup() {
@@ -102,12 +102,11 @@ public class RecoverPointClientIntegrationTest {
             endpoint = new URI(preURI + RPSiteToUse + postURI);
             List<URI> endpoints = new ArrayList<URI>();
             endpoints.add(endpoint);
-            new RecoverPointClientFactory();
 			rpClient = RecoverPointClientFactory.getClient(URI.create("http://anykey.com/"), endpoints, username, password);
         } catch (URISyntaxException e) {
             logger.error(e.getMessage(), e);
         } catch (RecoverPointException e) {
-			e.printStackTrace();
+        	logger.error(e.getMessage(), e);
 		}
         
         logger = LoggerFactory.getLogger(RecoverPointClientTest.class);
@@ -122,7 +121,7 @@ public class RecoverPointClientIntegrationTest {
     }
 
     @Test
-    public void TestRecoverPointServicePing() {
+    public void testRecoverPointServicePing() {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Service ping");
         int retVal = 0;
@@ -140,7 +139,7 @@ public class RecoverPointClientIntegrationTest {
     }
 
     @Test
-    public void TestRecoverPointServiceTopology() {
+    public void testRecoverPointServiceTopology() {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Service topology");
         Set<String> topologies;
@@ -157,7 +156,7 @@ public class RecoverPointClientIntegrationTest {
     }
     
     @Test
-    public void TestGetAllSites() {
+    public void testGetAllSites() {
         RPSystem rpSystem = new RPSystem();
         RPSite site = new RPSite();
         Set<RPSite> siteList = new HashSet<RPSite>();
@@ -175,7 +174,7 @@ public class RecoverPointClientIntegrationTest {
             Set<RPSite> returnList;
             setupClient(RPSiteToUse, RP_USERNAME, RP_PASSWORD);
             returnList = rpClient.getAssociatedRPSites();
-            if (returnList.size() == 0) {
+            if (returnList.isEmpty()) {
                 logger.info("getAssociatedRPSites FAILED");
                 fail();
             }
@@ -191,7 +190,7 @@ public class RecoverPointClientIntegrationTest {
             Set<RPSite> returnList;
             setupClient(RPSiteToUse, RP_USERNAME, RP_PASSWORD);
             returnList = rpClient.getAssociatedRPSites();
-            if (returnList.size() == 0) {
+            if (returnList.isEmpty()) {
                 logger.info("getAssociatedRPSites FAILED");
                 fail();
             }
@@ -203,7 +202,7 @@ public class RecoverPointClientIntegrationTest {
     }
 
     @Test
-    public void TestGetAllArrays() {
+    public void testGetAllArrays() {
         RPSystem rpSystem = new RPSystem();
         RPSite site = new RPSite();
         Set<RPSite> siteList = new HashSet<RPSite>();
@@ -233,7 +232,7 @@ public class RecoverPointClientIntegrationTest {
     }
 
     @Test
-    public void TestRecoverPointServiceGetSiteWWNs() {
+    public void testRecoverPointServiceGetSiteWWNs() {
         RPSystem rpSystem = new RPSystem();
         RPSite site = new RPSite();
         Set<RPSite> siteList = new HashSet<RPSite>();
@@ -250,7 +249,7 @@ public class RecoverPointClientIntegrationTest {
             Set<RPSite> returnList;
             setupClient(RPSiteToUse, RP_USERNAME, RP_PASSWORD);
             returnList = rpClient.getAssociatedRPSites();
-            if (returnList.size() == 0) {
+            if (returnList.isEmpty()) {
                 logger.info("getAssociatedRPSites FAILED");
                 fail();
             }
@@ -275,7 +274,7 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestWwnUtils() {
+    public void testWwnUtils() {
         logger.info("Testing WWN Converter");
 
         String wwnString = FAKE_WWN;
@@ -287,12 +286,12 @@ public class RecoverPointClientIntegrationTest {
 
 
     //@Test
-    public void TestGetProtectionInfoForVolume() {
+    public void testGetProtectionInfoForVolume() {
         logger.info("Testing RecoverPoint Get Protection Info For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         boolean foundError = false;
         try {
-            RecreateCG();
+            recreateCG();
             protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
         } catch (RecoverPointException e) {
             foundError = true;
@@ -378,14 +377,14 @@ public class RecoverPointClientIntegrationTest {
         logger.info("TestGetProtectionInfoForVolumeAndEnableAndDisable PASSED");
     }
     //@Test
-    public void TestStopStartPauseResume() {
+    public void testStopStartPauseResume() {
         logger.info("Testing RecoverPoint Stop, Start, Pause, Resume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         RecoverPointVolumeProtectionInfo crrCopyProtectionInfo = null;
         RecoverPointVolumeProtectionInfo cdpCopyProtectionInfo = null;
         boolean foundError = false;
         try {
-            RecreateCG();
+            recreateCG();
             protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
             crrCopyProtectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCRRLUN1WWN);
             cdpCopyProtectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCDPLUN1WWN);
@@ -491,12 +490,12 @@ public class RecoverPointClientIntegrationTest {
     }
 
     @Test
-    public void TestRecoverPointServiceCreateDeleteCG() {
+    public void testRecoverPointServiceCreateDeleteCG() {
         logger.info("Testing RecoverPoint Create CG");
 
         try {
             //RecreateCG();
-            RecreateCGCDPOnly();
+            recreateCGCDPOnly();
             //RecoverPointVolumeProtectionInfo prodInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
             //rpClient.deleteCG(prodInfo);
             logger.info("TestRecoverPointServiceCreateDeleteCG PASSED");
@@ -506,11 +505,11 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestCreateRPBookmarks() {
+    public void testCreateRPBookmarks() {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Create Bookmark");
         try {
-            RecreateCGAndBookmark();
+            recreateCGAndBookmark();
         } catch (RecoverPointException e) {
             foundError = true;
             fail(e.getMessage());
@@ -521,13 +520,13 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestEnableDisableRPBookmarks() throws InterruptedException {
+    public void testEnableDisableRPBookmarks() throws InterruptedException {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Enable/Disable Bookmark");
         MultiCopyEnableImageRequestParams enableParams = new MultiCopyEnableImageRequestParams();
         MultiCopyDisableImageRequestParams disableParams = new MultiCopyDisableImageRequestParams();
         try {
-            RecreateCGAndBookmark();
+            recreateCGAndBookmark();
             enableParams.setBookmark(Bookmarkname);
             Set<String> WWNSetForTest =new HashSet<String>();
             WWNSetForTest.add(BourneRPTestCRRLUN1WWN);
@@ -549,12 +548,12 @@ public class RecoverPointClientIntegrationTest {
     }
 
     @Test
-    public void TestRestoreRPBookmarks() throws InterruptedException {
+    public void testRestoreRPBookmarks() throws InterruptedException {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Create Bookmark");
         MultiCopyRestoreImageRequestParams restoreParams = new MultiCopyRestoreImageRequestParams();
         try {
-            RecreateCGAndBookmark();
+            recreateCGAndBookmark();
             restoreParams.setBookmark(Bookmarkname);
             Set<String> WWNSetForTest =new HashSet<String>();
             WWNSetForTest.add(BourneRPTestCRRLUN1WWN);
@@ -573,12 +572,12 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestFailoverTestAndTestCancel() {
+    public void testFailoverTestAndTestCancel() {
         logger.info("Testing RecoverPoint Failover Cancel For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         boolean foundError = false;
         try {
-            RecreateCGAndBookmark();
+            recreateCGAndBookmark();
             protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCRRLUN1WWN);
         } catch (RecoverPointException e) {
             foundError = true;
@@ -628,13 +627,13 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestFailoverTestAndFailoverAndFailback() {
+    public void testFailoverTestAndFailoverAndFailback() {
         logger.info("Testing RecoverPoint Failover Cancel For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         RecoverPointVolumeProtectionInfo failbackProtectionInfo = null;
         boolean foundError = false;
         try {
-            RecreateCGAndBookmark();
+            recreateCGAndBookmark();
 
             protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCRRLUN1WWN);
             failbackProtectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
@@ -693,13 +692,13 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestFailover() {
+    public void testFailover() {
         logger.info("Testing RecoverPoint Failover For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         RecoverPointVolumeProtectionInfo failbackProtectionInfo = null;
         boolean foundError = false;
         try {
-            RecreateCGAndBookmark();
+            recreateCGAndBookmark();
 
             protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCRRLUN1WWN);
             failbackProtectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
@@ -757,7 +756,7 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestExceptionUseCases() throws InterruptedException {
+    public void testExceptionUseCases() throws InterruptedException {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Exception Use Cases");
 
@@ -833,11 +832,11 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestUpdateProtectionJournal() throws InterruptedException {
+    public void testUpdateProtectionJournal() throws InterruptedException {
         logger.info("Testing RecoverPoint Update CG Protection Journal");
 
         try {
-            RecreateCGSmall();
+            recreateCGSmall();
             RecoverPointVolumeProtectionInfo protectionTargetInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCRRLUN1WWN);
             RecoverPointVolumeProtectionInfo protectionProdInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
 //            rpClient.addJournalToCopy(protectionTargetInfo, BourneRPTestJrnlLUN6WWN);
@@ -854,18 +853,18 @@ public class RecoverPointClientIntegrationTest {
     }
 
     //@Test
-    public void TestUpdateProtectionAddCopy() throws InterruptedException {
+    public void testUpdateProtectionAddCopy() throws InterruptedException {
         logger.info("Testing RecoverPoint Update CG Protection Add Copy");
 
         try {
-            RecreateCGCDPOnly();
+            recreateCGCDPOnly();
             logger.info("TestUpdateProtectionAddCopy PASSED");
         } catch (RecoverPointException e) {
             fail(e.getMessage());
         }
     }
 
-    public void RecreateCG() throws RecoverPointException {
+    public void recreateCG() throws RecoverPointException {
 
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         try {
@@ -878,12 +877,12 @@ public class RecoverPointClientIntegrationTest {
             rpClient.deleteCG(protectionInfo);
         }
         logger.info("Create the CG with two replication sets");
-        CGRequestParams createCGParams = CreateCGParamsHelper(true, true, 2);
+        CGRequestParams createCGParams = createCGParamsHelper(true, true, 2);
         rpClient.createCG(createCGParams, false);
     }
 
     @Test
-public void RecreateCGSmall() throws RecoverPointException {
+public void recreateCGSmall() throws RecoverPointException {
 
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         try {
@@ -901,7 +900,7 @@ public void RecreateCGSmall() throws RecoverPointException {
         //rpClient.createCG(createCGParams);
     }
 
-public void RecreateCGCDPOnly() throws RecoverPointException {
+public void recreateCGCDPOnly() throws RecoverPointException {
 
     RecoverPointVolumeProtectionInfo protectionInfo = null;
     try {
@@ -916,12 +915,12 @@ public void RecreateCGCDPOnly() throws RecoverPointException {
     logger.info("Create the CG with one replication set");
 
     //CreateCGRequestParams createCGParams = CreateCGParamsHelper(true, false, 2);
-    CGRequestParams createCGParams = CreateCGParamsHelper(true, false, 1);
+    CGRequestParams createCGParams = createCGParamsHelper(true, false, 1);
 
     rpClient.createCG(createCGParams, false);
 }
 
-    public void RecreateCGAndBookmark() throws RecoverPointException {
+    public void recreateCGAndBookmark() throws RecoverPointException {
         CreateBookmarkRequestParams params = new CreateBookmarkRequestParams();
         Bookmarkname = "BourneBookmark_";
         Random randomnumber = new Random();
@@ -931,11 +930,11 @@ public void RecreateCGCDPOnly() throws RecoverPointException {
         WWNSetToBookmark.add(BourneRPTestCRRLUN1WWN);
         WWNSetToBookmark.add(BourneRPTestCRRLUN2WWN);
         params.setVolumeWWNSet(WWNSetToBookmark);
-        RecreateCG();
+        recreateCG();
         rpClient.createBookmarks(params);
     }
 
-    public CGRequestParams CreateCGParamsHelper(boolean createCDP, boolean createCRR, int numRSets) {
+    public CGRequestParams createCGParamsHelper(boolean createCDP, boolean createCRR, int numRSets) {
 
         CGRequestParams params = new CGRequestParams();
         params.setJunitTest(true);

@@ -13,6 +13,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.machinetags.vmware.VMwareDatastoreTagger;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.service.vipr.block.ExportBlockVolumeHelper;
+import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vmware.VMwareHostService;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 
@@ -20,7 +21,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 public class ExportVMwareVolumeService extends VMwareHostService {
 
     @Bindable
-    protected ExportBlockVolumeHelper helper = new ExportBlockVolumeHelper();
+    protected ExportBlockVolumeHelper helper = new ExportVMwareBlockVolumeHelper();
 		
 	@Override
 	public void precheck() throws Exception {

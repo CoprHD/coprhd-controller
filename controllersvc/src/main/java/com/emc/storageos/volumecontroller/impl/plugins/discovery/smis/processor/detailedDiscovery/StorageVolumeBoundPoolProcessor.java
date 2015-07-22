@@ -39,7 +39,7 @@ import com.google.common.base.Joiner;
  * Processor used in getting bound storage volumes for VMAX2 Thin pool.
  * 
  * CTRL-11845 : A VMAX2 FAST thin volume may be associated with more than one storage pool.
- *    – one is bound pool where it is originally created from, and the others are because of data movement due to auto-tiering policy.
+ *    ï¿½ one is bound pool where it is originally created from, and the others are because of data movement due to auto-tiering policy.
  *    With the bound volumes list for each thin pool, skip the non-bound volumes in StorageVolumeInfoProcessor while creating UnManaged Volumes.
  * 
  */
@@ -95,6 +95,7 @@ public class StorageVolumeBoundPoolProcessor extends StorageProcessor {
                 try {
                     client.closeEnumeration(storagePoolPath, allocatedFromStoragePoolInstanceChunks.getContext());
                 } catch (Exception e) {
+                    _logger.warn("Exception occurred while closing enumeration", e);
                 }
             }
 

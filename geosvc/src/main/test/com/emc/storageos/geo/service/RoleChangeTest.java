@@ -40,8 +40,8 @@ public class RoleChangeTest extends ApiTestBase{
             Assert.fail("Missing remove VDC vip");
         String remoteVDCTemplate = "https://%1$s:4443";
         remoteVDCVIP = String.format(remoteVDCTemplate, remoteVDCVIPvar);
-        rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
-        superSanity = createHttpsClient(SUPERUSER, AD_PASSWORD, baseUrls);
+        rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
+        superSanity = createHttpsClient(SUPERUSER, AD_PASS_WORD, baseUrls);
 
         TenantResponse tenantResp = superSanity.path("/tenant").get(TenantResponse.class);
         superSanityToken = (String)_savedTokens.get(SUPERUSER);
@@ -151,7 +151,7 @@ public class RoleChangeTest extends ApiTestBase{
         Assert.assertEquals(200, resp.getStatus());
 
         // list tenant's role-assignments
-        BalancedWebResource tenantAdmin = createHttpsClient(TENANTADMIN, AD_PASSWORD, baseUrls);
+        BalancedWebResource tenantAdmin = createHttpsClient(TENANTADMIN, AD_PASS_WORD, baseUrls);
         resp = tenantAdmin.path("/tenants/" + rootTenantId + "/role-assignments")
                 .get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());

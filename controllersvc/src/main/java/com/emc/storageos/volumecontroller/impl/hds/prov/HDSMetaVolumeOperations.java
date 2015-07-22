@@ -92,7 +92,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             long memberCapacity, MetaVolumeTaskCompleter metaVolumeTaskCompleter)
             throws Exception {
         log.info(String
-                .format("Create Meta Volume Members Start - Array: %s, Pool: %s, \n   Volume: %s, Count:%s, Member capacity: %s",
+                .format("Create Meta Volume Members Start - Array: %s, Pool: %s, %n Volume: %s, Count:%s, Member capacity: %s",
                         storageSystem.getSerialNumber(), storagePool.getNativeId(),
                         metaHead.getLabel(), memberCount, memberCapacity));
         try {
@@ -121,7 +121,7 @@ public class HDSMetaVolumeOperations implements MetaVolumeOperations {
             throw e;
         } finally {
             log.info(String
-                    .format("Create Meta Volume Members End - Array: %s, Pool: %s, \n   Volume: %s",
+                    .format("Create Meta Volume Members End - Array: %s, Pool: %s, %n Volume: %s",
                             storageSystem.getSerialNumber(), storagePool.getNativeId(),
                             metaHead.getLabel()));
         }

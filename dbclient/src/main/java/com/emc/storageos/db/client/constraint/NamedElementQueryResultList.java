@@ -23,21 +23,37 @@ import java.util.UUID;
  */
 public class NamedElementQueryResultList extends QueryResultList<NamedElementQueryResultList.NamedElement> {
     public static class NamedElement {
-        public URI id;
-        public String name;
+        private URI id;
+        private String name;
 
         public static NamedElement createElement(URI id) {
             NamedElement e = new NamedElement();
-            e.id = id;
+            e.setId(id);
             return e;
         }
 
         public static NamedElement createElement(URI id, String name) {
             NamedElement e = new NamedElement();
-            e.id = id;
-            e.name = name;
+            e.setId(id);
+            e.setName(name);
             return e;
         }
+
+		public URI getId() {
+			return id;
+		}
+
+		public void setId(URI id) {
+			this.id = id;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
     }
 
     @Override

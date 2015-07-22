@@ -65,7 +65,7 @@ public class WindowsSystemWinRM {
 
     public WindowsVersion getVersion() throws WinRMException {
         List<WindowsVersion> versions = new GetWindowsVersionQuery(target).execute();
-        return versions.size() > 0 ? versions.get(0) : null;
+        return !versions.isEmpty() ? versions.get(0) : null;
     }
 
     public String rescanDisks() throws WinRMException {

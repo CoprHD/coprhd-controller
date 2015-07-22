@@ -45,7 +45,7 @@ public class VcenterCompleter extends ComputeSystemCompleter {
             List<NamedElementQueryResultList.NamedElement> datacenterUris = ComputeSystemHelper.listChildren(dbClient, vcenter.getId(),
                     VcenterDataCenter.class, "label", "vcenter");
             for (NamedElementQueryResultList.NamedElement datacenterUri : datacenterUris) {
-                VcenterDataCenter dataCenter = dbClient.queryObject(VcenterDataCenter.class, datacenterUri.id);
+                VcenterDataCenter dataCenter = dbClient.queryObject(VcenterDataCenter.class, datacenterUri.getId());
                 if (dataCenter != null && !dataCenter.getInactive()) {
                     ComputeSystemHelper.doDeactivateVcenterDataCenter(dbClient, dataCenter);
                 }

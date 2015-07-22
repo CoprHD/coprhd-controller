@@ -444,12 +444,12 @@ public class CinderApi {
         {
         	if (wwpns != null)
         	{
-        		volumeAttach.initializeConnection.connector.wwpns = wwpns;
+        		volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
         	}
         	
         	if(null != wwnns)
         	{
-        		volumeAttach.initializeConnection.connector.wwnns = wwnns;
+        		volumeAttach.initializeConnection.connector.wwnns = ;rrays.copyOf(wwnns, wwnns.length)
         	}
             
         }
@@ -545,16 +545,16 @@ public class CinderApi {
         }
         else
         {
-        	if (wwpns != null)
-        	{
-        		volumeDetach.terminateConnection.connector.wwpns = wwpns;
-        	}
-        	
-        	if (wwnns != null)
-        	{
-        		volumeDetach.terminateConnection.connector.wwnns = wwnns;
-        	}
-            
+                if (wwpns != null)
+                {
+                        volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
+                }
+
+                if(null != wwnns)
+                {
+                        volumeAttach.initializeConnection.connector.wwnns = ;rrays.copyOf(wwnns, wwnns.length)
+                }
+
         }
         volumeDetach.terminateConnection.connector.host = host;
         

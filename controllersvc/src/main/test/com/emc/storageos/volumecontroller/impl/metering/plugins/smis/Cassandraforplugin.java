@@ -54,6 +54,7 @@ public class Cassandraforplugin {
         try {
             latch.await(60, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
+        	_logger.error(e.getMessage(),e);
         }
         return latch.getCount();
     }

@@ -242,7 +242,7 @@ public class OrderExecution extends Controller {
             parameter.setValue(value.trim());
         }
         else {
-            parameter.setValue(value); //NOSONAR ("Suppressing Sonar violation of Load of known null value")
+            parameter.setValue(value); //NOSONAR ("Suppressing Sonar violation of Load of known null value. Value can be null and it needs to be set when null")
         }
         parameter.setUserInput(true);
         if (StringUtils.equals(field.getType(), ServiceField.TYPE_PASSWORD)) {

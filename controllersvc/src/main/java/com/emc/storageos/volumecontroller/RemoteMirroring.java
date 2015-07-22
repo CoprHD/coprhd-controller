@@ -210,5 +210,10 @@ public interface RemoteMirroring {
      */
     void doUpdateSourceAndTargetPairings(List<URI> sourceURIs, List<URI> targetURIs);
 
+    /**
+     * Refresh the storage system.
+     * @param targetURIs
+     */
+    void refreshStorageSystem(URI systemURI);
 
 }

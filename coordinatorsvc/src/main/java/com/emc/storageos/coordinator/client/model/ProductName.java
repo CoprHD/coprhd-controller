@@ -29,7 +29,8 @@ public class ProductName {
     protected ProductName() {}
 
     public void setName(String name) {
-        _name = name;
+        // This method is only called in test cases and when Spring initialization, safe to suppress
+        _name = name; //NOSONAR("findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
     }
 
     public static String getName() {

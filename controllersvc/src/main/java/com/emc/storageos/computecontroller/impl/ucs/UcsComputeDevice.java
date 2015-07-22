@@ -1135,7 +1135,7 @@ public class UcsComputeDevice implements ComputeDevice {
             ucsmService.clearDeviceSession(ucsmURL.toString(), cs.getUsername(), cs.getPassword());
         }
         catch (Exception e) {
-
+        	LOGGER.error(e.getMessage(),e);
         }
     }
 

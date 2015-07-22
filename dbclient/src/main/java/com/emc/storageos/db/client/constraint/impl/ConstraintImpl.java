@@ -39,9 +39,9 @@ import com.emc.storageos.db.client.impl.*;
  */
 public abstract class ConstraintImpl implements Constraint {
     private static final Logger log = LoggerFactory.getLogger(ConstraintImpl.class);
-    private static int DEFAULT_PAGE_SIZE = 100;
+    private static final int DEFAULT_PAGE_SIZE = 100;
 
-    ConstraintDescriptor constraintDescriptor;
+    private ConstraintDescriptor constraintDescriptor;
 
     protected String startId;
     protected int pageCount = DEFAULT_PAGE_SIZE;
@@ -66,10 +66,10 @@ public abstract class ConstraintImpl implements Constraint {
 
         //TODO: remove this once TimeConstraintImpl has been reworked to work over geo-queries
         if (this instanceof TimeConstraintImpl)
-            return;
+        	return;
 
         if (field == null)
-            throw new IllegalArgumentException("ColumnField should be in the constructor arguments");
+        	throw new IllegalArgumentException("ColumnField should be in the constructor arguments");
 
 
         String dataObjClassName = field.getDataObjectType().getName();
@@ -90,7 +90,7 @@ public abstract class ConstraintImpl implements Constraint {
 
     public void setStartId(URI startId) {
         if (startId != null)
-            this.startId = startId.toString();
+        	this.startId = startId.toString();
 
         this.returnOnePage = true;
     }
@@ -101,7 +101,7 @@ public abstract class ConstraintImpl implements Constraint {
     }
 
     @Override
-    public <T> void execute(final Constraint.QueryResult<T> result) throws DatabaseException {
+    public <T> void execute(final Constraint.QueryResult<T> result) {
         try {
             if (returnOnePage) {
                 queryOnePage(result);
@@ -148,7 +148,7 @@ public abstract class ConstraintImpl implements Constraint {
         ColumnList<IndexColumnName> columns = query.execute().getResult();
 
         List<T> ids = new ArrayList();
-        if (columns.size() == 0) {
+        if (columns.isEmpty()) {
             result.setResult(ids.iterator());
             return ; // not found
         }
@@ -211,12 +211,12 @@ public abstract class ConstraintImpl implements Constraint {
             columns = query.execute().getResult();
 
             if (columns.isEmpty())
-                break; // reach the end
+            	break; // reach the end
 
             for (Column<IndexColumnName> col : columns) {
                 if (startId == null)
                     start = true;
-                else if (startId.toString().equals(getURI(col).toString())) {
+                else if (startId.equals(getURI(col).toString())) {
                     start = true;
                     continue;
                 }
@@ -224,7 +224,7 @@ public abstract class ConstraintImpl implements Constraint {
                 if (start) {
                     T obj = createQueryHit(result, col);
                     if (!ids.contains(obj))
-                        ids.add(obj);
+                    	ids.add(obj);
                     count++;
                 }
             }

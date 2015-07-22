@@ -30,13 +30,13 @@ public interface Constraint {
     /**
      * Encapsulates query result out parameter
      */
-    public interface QueryResult<T> {
+    interface QueryResult<T> {
         /**
          * Set query result
          *
          * @param iterator iterator through query results
          */
-        public void setResult(Iterator<T> iterator);
+        void setResult(Iterator<T> iterator);
 
         /**
          * Creates a single query hit
@@ -44,7 +44,7 @@ public interface Constraint {
          * @param uri
          * @return
          */
-        public T createQueryHit(URI uri);
+        T createQueryHit(URI uri);
 
         /**
          * Creates a single query hit
@@ -56,7 +56,7 @@ public interface Constraint {
          * @param timestamp The time the entry was added to the index
          * @return
          */
-        public T createQueryHit(URI uri, String name, UUID timestamp);
+        T createQueryHit(URI uri, String name, UUID timestamp);
 
         /**
          * Creates a single query hit
@@ -65,7 +65,7 @@ public interface Constraint {
          * @param name
          * @return
          */
-        public T createQueryHit(URI uri, Object entry);
+        T createQueryHit(URI uri, Object entry);
 
     }
 
@@ -76,7 +76,7 @@ public interface Constraint {
      *
      * @param keyspace
      */
-    public void setKeyspace(Keyspace keyspace);
+    void setKeyspace(Keyspace keyspace);
 
     /**
      * Execute this query
@@ -85,14 +85,14 @@ public interface Constraint {
      *
      * @return
      */
-    public <T> void execute(QueryResult<T> result) throws DatabaseException;
+    <T> void execute(QueryResult<T> result);
 
     /**
      * Return the data objec type for this query
      * 
      * @return
      */
-    public Class<? extends DataObject> getDataObjectType();
+    Class<? extends DataObject> getDataObjectType();
 
-    public ConstraintDescriptor toConstraintDescriptor();
+    ConstraintDescriptor toConstraintDescriptor();
 }

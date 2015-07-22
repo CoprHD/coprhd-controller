@@ -72,6 +72,9 @@ public class Common extends Controller {
     public static final String ANGULAR_RENDER_ARGS = "angularRenderArgs";
     
     public static final String CACHE_EXPR = "2min";
+
+    public static final String[] paramsToClean = 
+    	{ "name", "authenticityToken", "button.save", "referrerUrl", "nodeId", "taskId" };
     
     @Before(priority=0)
     @Unrestricted
@@ -110,13 +113,19 @@ public class Common extends Controller {
 
     @Before(priority=0)
     public static void xssCheck() {
-    	String[] data = params.getAll("name");
-    	if (data == null) {
-    		return;
-    	}
-    	for (String val : data) {
-    		val = SecurityUtils.stripXSS(val);
-    	}
+        for (String param : paramsToClean) {
+            String[] data = params.getAll(param);
+    	
+            if ( (data != null) && (data.length > 0) ) {
+            	Logger.debug("Cleaning data for " + param);
+                String[] cleanValues = new String[data.length];
+                for (int i = 0; i < data.length; ++i) {
+                    cleanValues[i] = SecurityUtils.stripXSS( data[i] );
+                }
+
+                params.put(param, cleanValues);
+            }
+        }
     }
     
     @Before(priority=5)

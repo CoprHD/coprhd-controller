@@ -92,7 +92,7 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 return version;
             }
         }
-        return versions.size() > 0 ? versions.get(0) : new LinuxVersion(LinuxDistribution.UNKNOWN, "");
+        return !versions.isEmpty() ? versions.get(0) : new LinuxVersion(LinuxDistribution.UNKNOWN, "");
     }
 
     private void checkMultipathSoftwareCompatibility(Host host) {
@@ -292,10 +292,10 @@ public class LinuxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         LinuxSystemCLI linux = createLinuxCLI(host);
         for (IPInterface nic : linux.listIPInterfaces()) {
             if (nic.getInterfaceName().equalsIgnoreCase(ETH0)) {
-                if (!host.getNativeGuid().equalsIgnoreCase(nic.getMACAddress())) {
-                    checkDuplicateHost(host, nic.getMACAddress());
-                    info("Setting nativeGuid for " + host.getId() + " as " + nic.getMACAddress());
-                    host.setNativeGuid(nic.getMACAddress());
+                if (!host.getNativeGuid().equalsIgnoreCase(nic.getMacAddress())) {
+                    checkDuplicateHost(host, nic.getMacAddress());
+                    info("Setting nativeGuid for " + host.getId() + " as " + nic.getMacAddress());
+                    host.setNativeGuid(nic.getMacAddress());
                     save(host);
                 }
                 break;

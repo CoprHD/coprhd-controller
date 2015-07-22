@@ -140,9 +140,9 @@ public class TaskService extends TaggedResource {
             Iterator<AggregationQueryResultList.AggregatedEntry> it = queryResults.iterator();
             while(it.hasNext()) {
                 AggregationQueryResultList.AggregatedEntry entry = it.next();
-                if (entry.value.equals(Task.Status.ready.name())) {
+                if (entry.getValue().equals(Task.Status.ready.name())) {
                     ready++;
-                } else if(entry.value.equals(Task.Status.error.name())) {
+                } else if(entry.getValue().equals(Task.Status.error.name())) {
                     error++;
                 } else {
                     pending++;
@@ -451,10 +451,10 @@ public class TaskService extends TaggedResource {
         while(it.hasNext()) {
             NamedElementQueryResultList.NamedElement item = it.next();
 
-            Task task = _dbClient.queryObject(Task.class, item.id);
+            Task task = _dbClient.queryObject(Task.class, item.getId());
             if (task.getTenant() != null && tenantIds.contains(task.getTenant())) {
-                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), item.id));
-                results.add(new SearchResultResourceRep(item.id, selfLink, null));
+                RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), item.getId()));
+                results.add(new SearchResultResourceRep(item.getId(), selfLink, null));
             }
         }
 

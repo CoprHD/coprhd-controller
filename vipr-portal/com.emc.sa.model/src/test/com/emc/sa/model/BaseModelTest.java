@@ -103,7 +103,7 @@ public abstract class BaseModelTest<T extends DataObject> extends DBClientTestBa
         List<NamedElement> results = getModelClient().findByAlternateId(type, columnName, value);
         List<URI> ids = new ArrayList<URI>();
         for (NamedElement result : results) {
-            ids.add(result.id);
+            ids.add(result.getId());
         }
         return ids;
     }

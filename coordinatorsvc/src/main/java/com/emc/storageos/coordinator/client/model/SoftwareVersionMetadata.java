@@ -30,10 +30,13 @@ import org.slf4j.LoggerFactory;
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 
-public class SoftwareVersionMetadata {	
+public final class SoftwareVersionMetadata {
 	private static final Logger log = LoggerFactory.getLogger(SoftwareVersionMetadata.class);
 	private static String IMAGE_FILE_PATH_TEMPLATE = "/.volumes/bootfs/%s/rootimg";
 	
+	// Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+	// This method is only used in test case, safe to suppress
+	@SuppressWarnings("squid:S2444")
 	public static void setimageFileTemplate(String template) {
 		IMAGE_FILE_PATH_TEMPLATE = template;
 	}
@@ -98,7 +101,7 @@ public class SoftwareVersionMetadata {
 			try {
 				file.close();
 			} catch (IOException e) {
-	
+			    log.debug(String.format("IOException is throwed when closing file %s", f.getAbsolutePath()), e);
 			}
 		}
 		

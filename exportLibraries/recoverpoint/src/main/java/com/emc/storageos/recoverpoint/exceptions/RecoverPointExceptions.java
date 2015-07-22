@@ -80,7 +80,7 @@ public interface RecoverPointExceptions {
     public RecoverPointException exceptionLookingForBookmarks(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-    public RecoverPointException APITEnableNotImplementedYet();
+    public RecoverPointException apitEnableNotImplementedYet();
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToFindBookmarkOrAPIT();

@@ -218,7 +218,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
         } catch (Exception e) {
             _log.error("CollectStatisticsInformation failed. Storage system: " + 
                          storageSystemId, e);
-            throw DataDomainApiException.exceptions.StatsCollectionFailed(e.getMessage());
+            throw DataDomainApiException.exceptions.statsCollectionFailed(e.getMessage());
         }
 
     }

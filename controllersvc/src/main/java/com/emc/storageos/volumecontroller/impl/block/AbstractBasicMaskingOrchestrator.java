@@ -1314,7 +1314,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                             } else if (!anyVolumesFoundInAnotherExportGroup) {
                                 // Non-Shared ExportMask, and none of the volumes are shared with another ExportGroup.
                                 // Evaluate the situation with the volumes
-                                if (!exportGroupHasMoreVolumes || removingLastVolumeFromMask) {
+                                if (!exportGroupHasMoreVolumes && removingLastVolumeFromMask) {
                                     // The remove will empty the ExportGroup or ExportMask of volumes
                                     canDeleteExportMask = true;
                                     _log.info(String.format("ExportMask %s(%s) - Determined that this mask is not shared and meets the criteria for deletion",

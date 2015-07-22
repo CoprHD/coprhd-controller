@@ -23,6 +23,7 @@ import java.io.IOException;
 public abstract class BackupHandler {
 
     protected BackupType backupType;
+    protected BackupContext backupContext;
 
     /**
      * Gets backup data type
@@ -38,6 +39,21 @@ public abstract class BackupHandler {
      */
     public void setBackupType(BackupType backupType) {
         this.backupType = backupType;
+    }
+    
+    /**
+     * Gets backup context
+     */
+    public BackupContext getBackupContext() {
+        return this.backupContext;
+    }    
+
+    /**
+    * Sets backup context
+    * @param backupContext
+    */
+    public void setBackupContext(BackupContext backupContext) {
+        this.backupContext = backupContext;
     }
 
     /**
@@ -72,7 +88,7 @@ public abstract class BackupHandler {
      *          The name of the backup file
      */
     protected void checkBackupFileExist(final String backupTag, final String fullBackupTag) {
-        File backupFolder = new File(BackupManager.backupDir, backupTag);
+        File backupFolder = new File(backupContext.getBackupDir(), backupTag);
         if (!backupFolder.exists())
             return;
         File backupFile = new File(backupFolder, fullBackupTag + BackupConstants.COMPRESS_SUFFIX);

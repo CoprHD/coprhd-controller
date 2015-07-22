@@ -58,7 +58,7 @@ public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
     /**
      * Trust managers.
      */
-    private static TrustManager[] _trustManagers;
+    private static volatile TrustManager[] _trustManagers;
 
     /**
      * Constructor for EasySSLProtocolSocketFactory.

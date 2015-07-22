@@ -94,11 +94,11 @@ public class DbBackupHandler extends BackupHandler {
     public String createBackup(final String backupTag) {
         // For multi vdc ViPR, need to reinit geodb during restore, so use the special backup type
         // to show the difference
-        if (backupType.equals(BackupType.geodb) && BackupManager.vdcList.size() > 1)
+        if (backupType.equals(BackupType.geodb) && backupContext.getVdcList().size() > 1)
             backupType = BackupType.geodbmultivdc;
         String fullBackupTag = backupTag + BackupConstants.BACKUP_NAME_DELIMITER +
                                backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +
-                               BackupManager.nodeName;
+                               backupContext.getNodeName();
         checkBackupFileExist(backupTag, fullBackupTag);
         try {
             StorageService.instance.takeSnapshot(fullBackupTag, viprKeyspace);
@@ -113,7 +113,7 @@ public class DbBackupHandler extends BackupHandler {
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         // Prepares backup folder to accept snapshot files
-        File targetDir = new File(BackupManager.backupDir, backupTag);
+        File targetDir = new File(backupContext.getBackupDir(), backupTag);
         if (!targetDir.exists())
             targetDir.mkdir();
         File backupFolder = new File(targetDir, fullBackupTag);
@@ -121,7 +121,9 @@ public class DbBackupHandler extends BackupHandler {
             FileUtils.deleteQuietly(backupFolder);
         backupFolder.mkdir();
         try {
-            for (File cfDir : getValidKeyspace().listFiles()) {
+        	File[] cfDirs = getValidKeyspace().listFiles();
+        	cfDirs = (cfDirs == null) ? BackupConstants.EMPTY_ARRAY : cfDirs;
+            for (File cfDir : cfDirs) {
                 File cfBackupFolder = new File(backupFolder, cfDir.getName());
                 if (cfBackupFolder.exists())
                     FileUtils.deleteQuietly(cfBackupFolder);

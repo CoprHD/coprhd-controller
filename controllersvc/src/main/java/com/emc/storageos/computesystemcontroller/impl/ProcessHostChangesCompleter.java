@@ -82,7 +82,7 @@ public class ProcessHostChangesCompleter extends TaskCompleter {
                 Cluster cluster = dbClient.queryObject(Cluster.class, clusterId);
                 List<URI> clusterHosts = ComputeSystemHelper.getChildrenUris(dbClient, clusterId, Host.class, "cluster");
                 // don't delete cluster if all hosts weren't deleted (ex: hosts provisioned by ViPR)
-                if (clusterHosts.size() > 0) {
+                if (!clusterHosts.isEmpty()) {
                     _logger.info("do not delete cluster {} - it still has hosts - disassociate it from vcenter", cluster.getLabel());
                     cluster.setVcenterDataCenter(NullColumnValueGetter.getNullURI());
                     cluster.setExternalId(NullColumnValueGetter.getNullStr());

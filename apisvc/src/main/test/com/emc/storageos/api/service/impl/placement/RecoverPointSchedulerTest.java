@@ -13,6 +13,8 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -23,58 +25,80 @@ import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 
 public class RecoverPointSchedulerTest extends Assert {
 
-	static StoragePool pool1;
-	static StoragePool pool2;
-	static StoragePool pool3;
-	static StoragePool pool4;
-	static StoragePool poolA;
-	static StoragePool poolB;
-	static StoragePool poolC;
-	static StoragePool poolD;
-	static VirtualArray nh1;
-	static VirtualArray nh2;
+	protected static StoragePool pool1 = null;
+	protected static StoragePool pool2 = null;
+	protected static StoragePool pool3 = null;
+	protected static StoragePool pool4 = null;
+	protected static StoragePool poolA = null;
+	protected static StoragePool poolB = null;
+	protected static StoragePool poolC = null;
+	protected static StoragePool poolD = null;
+	protected static VirtualArray nh1 = null;
+	protected static VirtualArray nh2 = null;
+    private static final Logger logger = LoggerFactory
+            .getLogger(RecoverPointSchedulerTest.class);
 	
 	@BeforeClass
-	public static void setup() {
-		pool1 = new StoragePool();
-		pool1.setId(URI.create("pool1"));
-		pool1.setLabel("Pool1");
+	public static synchronized void setup() {
+		if (pool1 == null) {
+			pool1 = new StoragePool();
+			pool1.setId(URI.create("pool1"));
+			pool1.setLabel("Pool1");
+		}
 		
-		pool2 = new StoragePool();
-		pool2.setId(URI.create("pool2"));
-		pool2.setLabel("Pool2");
+		if (pool2 == null) {
+			pool2 = new StoragePool();
+			pool2.setId(URI.create("pool2"));
+			pool2.setLabel("Pool2");
+		}
 		
-		pool3 = new StoragePool();
-		pool3.setId(URI.create("pool3"));
-		pool3.setLabel("Pool3");
+		if (pool3 == null) {
+			pool3 = new StoragePool();
+			pool3.setId(URI.create("pool3"));
+			pool3.setLabel("Pool3");
+		}
 		
-		pool4 = new StoragePool();
-		pool4.setId(URI.create("pool4"));
-		pool4.setLabel("Pool4");
+		if (pool4 == null) {
+			pool4 = new StoragePool();
+			pool4.setId(URI.create("pool4"));
+			pool4.setLabel("Pool4");
+		}
 
-		poolA = new StoragePool();
-		poolA.setId(URI.create("poolA"));
-		poolA.setLabel("PoolA");
+		if (poolA == null) {
+			poolA = new StoragePool();
+			poolA.setId(URI.create("poolA"));
+			poolA.setLabel("PoolA");
+		}
 		
-		poolB = new StoragePool();
-		poolB.setId(URI.create("poolB"));
-		poolB.setLabel("PoolB");
+		if (poolB == null) {
+			poolB = new StoragePool();
+			poolB.setId(URI.create("poolB"));
+			poolB.setLabel("PoolB");
+		}
 		
-		poolC = new StoragePool();
-		poolC.setId(URI.create("poolC"));
-		poolC.setLabel("PoolC");
+		if (poolC == null) {
+			poolC = new StoragePool();
+			poolC.setId(URI.create("poolC"));
+			poolC.setLabel("PoolC");
+		}
 		
-		poolD = new StoragePool();
-		poolD.setId(URI.create("poolD"));
-		poolD.setLabel("PoolD");
+		if (poolD == null) {
+			poolD = new StoragePool();
+			poolD.setId(URI.create("poolD"));
+			poolD.setLabel("PoolD");
+		}
 		
-		nh1 = new VirtualArray();
-		nh1.setId(URI.create("NH1URI"));
-		nh1.setLabel("nh1");
+		if (nh1 == null) {
+			nh1 = new VirtualArray();
+			nh1.setId(URI.create("NH1URI"));
+			nh1.setLabel("nh1");
+		}
 		
-		nh2 = new VirtualArray();
-		nh2.setId(URI.create("NH2URI"));
-		nh2.setLabel("nh2");
+		if (nh2 == null) {
+			nh2 = new VirtualArray();
+			nh2.setId(URI.create("NH2URI"));
+			nh2.setLabel("nh2");
+		}
 	}
 	
 	private ProtectionSystem buildProtectionSystemWithCapacity() {
@@ -453,9 +477,8 @@ public class RecoverPointSchedulerTest extends Assert {
 			Object ret = method.invoke(scheduler, new Object[] {protectionSystem, rec, resourceCount});			
 			Boolean returnBool = (Boolean) ret;
             toRet = returnBool.booleanValue();
-		} catch (Exception e) {
-			e.printStackTrace();
-			Assert.fail();
+		} catch (Exception e) {			
+			Assert.fail(e.getMessage());
 		}
 		
 		return toRet;

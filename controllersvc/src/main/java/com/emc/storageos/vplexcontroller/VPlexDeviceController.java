@@ -7503,7 +7503,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // VPLEX volume.
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
                     waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                        vplexVolumeURI, waitFor, null);
+                        vplexVolumeURI, null, null);
                 }
 
                 // Now create a workflow step to natively restore the backend

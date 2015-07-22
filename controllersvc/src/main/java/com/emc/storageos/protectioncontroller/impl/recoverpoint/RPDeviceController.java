@@ -235,7 +235,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
 	private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
  
-    private static DbClient      _dbClient;
+    private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
     private Map<String, BlockStorageDevice> _devices;
     private NameGenerator _nameGenerator;
@@ -335,8 +335,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         _devices = deviceInterfaces;
     }
 
-    public void setDbClient(DbClient dbClient) {
-        _dbClient = dbClient;
+    public static synchronized void setDbClient(DbClient dbClient) {
+        if (_dbClient == null) {
+        	_dbClient = dbClient;
+        }
     }
 
     private BlockStorageDevice getDevice(String deviceType) {
@@ -795,7 +797,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         cgParams.cgPolicy.copyMode = copyMode;
         cgParams.cgPolicy.rpoType = rpoType;
         cgParams.cgPolicy.rpoValue = rpoValue;
-        _log.info(String.format("CG Request param complete:\n %s", cgParams));
+        _log.info(String.format("CG Request param complete:%n %s", cgParams));
         return cgParams;
     }
 
@@ -1094,9 +1096,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     			// export group.
     			StringBuilder buffer = new StringBuilder();
     			if (!addExportGroupToDB) {
-    				buffer.append(String.format("Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]\n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
-    				buffer.append(String.format("Export Group name is : [%s]\n", exportGroup.getGeneratedName()));
-    				buffer.append(String.format("Export Group will have these volumes added: [%s]\n", Joiner.on(',').join(volumes)));
+    				buffer.append(String.format("Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
+    				buffer.append(String.format("Export Group name is : [%s]%n", exportGroup.getGeneratedName()));
+    				buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
     				_log.info(buffer.toString());
 
     				waitFor = _exportWfUtils.
@@ -1107,10 +1109,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     				_log.info("Added Export Group add volumes step in workflow");
     			}
     			else {
-    				buffer.append(String.format("Creating new Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]\n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
-    				buffer.append(String.format("Export Group name is: [%s]\n", exportGroup.getGeneratedName()));
-    				buffer.append(String.format("Export Group will have these initiators: [%s]\n", Joiner.on(',').join(initiatorSet)));
-    				buffer.append(String.format("Export Group will have these volumes added: [%s]\n", Joiner.on(',').join(volumes)));
+    				buffer.append(String.format("Creating new Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n", storageSystem.getLabel(), rpSiteName, varray.getLabel()));
+    				buffer.append(String.format("Export Group name is: [%s]%n", exportGroup.getGeneratedName()));
+    				buffer.append(String.format("Export Group will have these initiators: [%s]%n", Joiner.on(',').join(initiatorSet)));
+    				buffer.append(String.format("Export Group will have these volumes added: [%s]%n", Joiner.on(',').join(volumes)));
     				_log.info(buffer.toString());
 
     				String exportStep = workflow.createStepId();
@@ -3339,7 +3341,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             protectionVolume.getLabel(), protectionVolume.getId().toString()));
                     
                     List<Volume> standbyLocalCopyVols = _rpHelper.getMetropointStandbyCopies(protectionVolume);
-                    CreateCopyParams standbyLocalCopyParams = new CreateCopyParams();
+                    CreateCopyParams standbyLocalCopyParams = null;
                     List<CreateRSetParams> rSets = new ArrayList<CreateRSetParams>();
                     Set<URI> journalVolumes = new HashSet<URI>();
                     if (!standbyLocalCopyVols.isEmpty()) {
@@ -3370,7 +3372,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                         // prepare journal volumes info
                         String rpCopyName = null;
-                        List<CreateVolumeParams> journaVols = new ArrayList<CreateVolumeParams>();
+                        List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
                         for (URI journalVolId : journalVolumes) {
                             Volume standbyLocalJournal = _dbClient.queryObject(Volume.class, journalVolId);
                             if (standbyLocalJournal != null) {
@@ -3381,14 +3383,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 CreateVolumeParams journalVolParams = new CreateVolumeParams();
                                 journalVolParams.setWwn(standbyLocalJournal.getWWN());
                                 journalVolParams.setInternalSiteName(standbyLocalJournal.getInternalSiteName());
-                                journaVols.add(journalVolParams);
+                                journalVols.add(journalVolParams);
                             }
                         }
                         
                         // if we found any journal volumes, add them to the local copies list
-                        if (!journaVols.isEmpty()) {
+                        if (!journalVols.isEmpty()) {
+                        	standbyLocalCopyParams = new CreateCopyParams();
                             standbyLocalCopyParams.setName(rpCopyName);
-                            standbyLocalCopyParams.setJournals(journaVols);
+                            standbyLocalCopyParams.setJournals(journalVols);
                         } else {
                             _log.error("no journal volumes found for standby production copy for source volume " + protectionVolume.getLabel());
                         }
@@ -3400,15 +3403,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)", 
                                 standbyProdJournal.getLabel(), standbyProdJournal.getId().toString(),
                                 protectionVolume.getLabel(), protectionVolume.getId().toString()));
-                        List<CreateVolumeParams> journaVols = new ArrayList<CreateVolumeParams>();
+                        List<CreateVolumeParams> journalVols = new ArrayList<CreateVolumeParams>();
                         CreateVolumeParams journalVolParams = new CreateVolumeParams();
                         journalVolParams.setWwn(standbyProdJournal.getWWN());
                         journalVolParams.setInternalSiteName(standbyProdJournal.getInternalSiteName());
-                        journaVols.add(journalVolParams);
+                        journalVols.add(journalVolParams);
 
                         CreateCopyParams standbyProdCopyParams = new CreateCopyParams();
                         standbyProdCopyParams.setName(standbyProdJournal.getRpCopyName());
-                        standbyProdCopyParams.setJournals(journaVols);
+                        standbyProdCopyParams.setJournals(journalVols);
 
                         // 2. and 3. add back the standby production copy; add back the standby CDP copy                       
                         rp.addStandbyProductionCopy(standbyProdCopyParams, standbyLocalCopyParams, rSets, copyParams);
@@ -3861,7 +3864,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
           	  	volume = Volume.fetchVplexVolume(_dbClient, volume);
             }
         
-            if (protectionSet==null || !protectionSet.getId().equals(volume.getProtectionSet())) {
+            if (protectionSet==null || !protectionSet.getId().equals(volume.getProtectionSet().getURI())) {
                 protectionSet = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
             }
             

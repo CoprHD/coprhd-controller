@@ -137,7 +137,8 @@ public class DBClient {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+        	System.err.println("Caught Exception: " + e);
+            log.error("Caught Exception: ", e);
         }
     }
 
@@ -367,7 +368,7 @@ public class DBClient {
         @Override
         public void error(Throwable e) {
             System.err.println("Error callback" + e);
-            e.printStackTrace();
+            log.error("Error callback ", e);
         }
     }
 
@@ -400,6 +401,7 @@ public class DBClient {
         @Override
         public void error(Throwable e) {
             System.err.println("Error callback" + e);
+            log.error("Error callback ", e);
         }
     }
 
@@ -431,7 +433,8 @@ public class DBClient {
 
         @Override
         public void error(Throwable e) {
-            System.err.println("Error callback" + e);
+            System.err.println("Error callback " + e);
+            log.error("Error callback ", e);
         }
     }
 
@@ -448,8 +451,8 @@ public class DBClient {
             System.out.println(" --- Job Exceution for Querying Stats completed ---\n\n");
             return;
         } catch (DatabaseException e) {
-            System.err.println("Exception Query" + e);
-            e.printStackTrace();
+            System.err.println("Exception Query " + e);
+            log.error("Exception Query ", e);
         }
     }
 
@@ -466,8 +469,8 @@ public class DBClient {
             System.out.println(" --- Job Exceution for Querying Events completed ---");
             return;
         } catch (DatabaseException e) {
-            System.err.println("Exception Query" + e);
-            e.printStackTrace();
+            System.err.println("Exception Query " + e);
+            log.error("Exception Query ", e);
         }
     }
 
@@ -484,8 +487,8 @@ public class DBClient {
             System.out.println(" --- Job Exceution for Querying Audits completed ---\n\n");
             return;
         } catch (DatabaseException e) {
-            System.err.println("Exception Query" + e);
-            e.printStackTrace();
+            System.err.println("Exception Query " + e);
+            log.error("Exception Query ", e);
         }
     }
 
@@ -644,8 +647,8 @@ public class DBClient {
             System.out.println("Db Schema version " + schemaVersion + " successfully" +
                     " dumped to file " + dumpFilename);
         } catch (IOException e) {
-            System.err.println("Caught IOException");
-            e.printStackTrace(System.err);
+            System.err.println("Caught IOException: " + e);
+            log.error("Caught IOException: ", e);
         }
     }
     
@@ -920,7 +923,7 @@ public class DBClient {
             newZipEntry(zos, dbKey, KEY_DB);
             newZipEntry(zos, geodbKey, KEY_GEODB);
         } catch (IOException e) {
-            System.err.println(String.format("Failed to write the key to file:%s\n Exception=%s", dumpFileName, e));
+            System.err.println(String.format("Failed to write the key to file:%s%n Exception=%s", dumpFileName, e));
             log.error("Failed to write the key to file:{}", dumpFileName, e);
         }
     }

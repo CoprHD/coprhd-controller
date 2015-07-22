@@ -16,16 +16,12 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-
-import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
-
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.DataObject;
@@ -86,8 +82,9 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
             ret = URI.create(col.getName().getTwo());
         } else if (_field.getIndex() instanceof AltIdDbIndex) {
             ret = URI.create(col.getName().getTwo());
-        }else
-            ret = URI.create(col.getName().getFour());
+        }else {
+        	ret = URI.create(col.getName().getFour());
+        }
 
         return ret;
     }

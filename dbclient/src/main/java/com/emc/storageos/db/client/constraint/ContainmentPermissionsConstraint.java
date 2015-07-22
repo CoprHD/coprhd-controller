@@ -31,7 +31,7 @@ public interface ContainmentPermissionsConstraint extends Constraint {
     /**
      * Factory for creating containment prefix constraint for various object types
      */
-    public static class Factory {
+    class Factory {
         public static ContainmentPermissionsConstraint getTenantsWithPermissionsConstraint (String key) {
             DataObjectType doType = TypeMap.getDoType(TenantOrg.class);
             ColumnField field = doType.getColumnField("role-assignment");

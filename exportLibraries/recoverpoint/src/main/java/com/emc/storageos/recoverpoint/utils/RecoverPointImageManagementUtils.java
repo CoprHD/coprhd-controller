@@ -130,7 +130,7 @@ public class RecoverPointImageManagementUtils {
 				} else {
 					// Get the snapshotToEnable based on the APIT
 					logger.info("TBD: Enable APIT image on RP CG: " + cgName + " for CG copy: " + cgCopyName);
-                    throw RecoverPointException.exceptions.APITEnableNotImplementedYet();
+                    throw RecoverPointException.exceptions.apitEnableNotImplementedYet();
 				}
 			} else {
 				// Bookmark based enable.  Set snapshotToEnable

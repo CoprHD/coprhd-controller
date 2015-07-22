@@ -971,7 +971,7 @@ public class UcsDiscoveryWorker {
 		URIQueryResultList sanBootUris = new URIQueryResultList();
     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeSanBootConstraint(bootDef.getId()), sanBootUris);
    	 	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-   	 	if (sanBootList!=null && sanBootList.size()>0){
+   	 	if (sanBootList!=null && !sanBootList.isEmpty()){
    	 		sanBoot = sanBootList.get(0);
    	 	}
    	 	
@@ -979,7 +979,7 @@ public class UcsDiscoveryWorker {
 		_dbClient.queryByConstraint(ContainmentConstraint.Factory
               .getComputeBootDefComputeLanBootConstraint(bootDef.getId()), lanBootUris);
 	 	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-	 	if (lanBootList!=null && lanBootList.size() > 0){
+	 	if (lanBootList!=null && !lanBootList.isEmpty()){
 	 		lanBoot = lanBootList.get(0);
 	 	}
 	 	boolean hasLanBoot = false;
@@ -1064,7 +1064,7 @@ public class UcsDiscoveryWorker {
     		URIQueryResultList sanBootUris = new URIQueryResultList();
         	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeSanBootConstraint(bootDef.getId()), sanBootUris);
         	List<ComputeSanBoot> sanBootList = _dbClient.queryObject(ComputeSanBoot.class,sanBootUris,true);
-       	 	if (sanBootList!=null && sanBootList.size() > 0){
+       	 	if (sanBootList!=null && !sanBootList.isEmpty()){
        	 		deleteComputeSanBoot(sanBootList);	       	 	
 	       	 }
        	 	
@@ -1073,7 +1073,7 @@ public class UcsDiscoveryWorker {
 	       	 URIQueryResultList lanBootUris = new URIQueryResultList();
 	     	_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeBootDefComputeLanBootConstraint(bootDef.getId()), lanBootUris);
 	     	List<ComputeLanBoot> lanBootList = _dbClient.queryObject(ComputeLanBoot.class,lanBootUris,true);
-    	 	if (lanBootList!=null && lanBootList.size() > 0){
+    	 	if (lanBootList!=null && !lanBootList.isEmpty()){
     	 		deleteComputeLanBoot(lanBootList);
     	 	}
     	 	
@@ -1102,7 +1102,7 @@ public class UcsDiscoveryWorker {
     }
     private void deleteComputeLanBootImagePaths(List<ComputeLanBootImagePath> lanBootPathList){
     	List<ComputeLanBootImagePath> removeLanBootImagePaths = new ArrayList<ComputeLanBootImagePath>();
-    	if (lanBootPathList!=null && lanBootPathList.size()> 0){
+    	if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
         	removeLanBootImagePaths.addAll(lanBootPathList);
         }
     	deleteDataObjects(new ArrayList<DataObject>(removeLanBootImagePaths));
@@ -1147,7 +1147,7 @@ public class UcsDiscoveryWorker {
     }
     private void deleteComputeSanBootImagePaths(List<ComputeSanBootImagePath> sanBootPathList){
     	List<ComputeSanBootImagePath> removeSanBootImagePaths = new ArrayList<ComputeSanBootImagePath>();
-    	if (sanBootPathList!=null && sanBootPathList.size()> 0){
+    	if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
         	removeSanBootImagePaths.addAll(sanBootPathList);
         }
     	deleteDataObjects(new ArrayList<DataObject>(removeSanBootImagePaths));
@@ -1187,14 +1187,14 @@ public class UcsDiscoveryWorker {
 	             .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 	 	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris, true);
 		
-	 	if (sanBootImageList!=null && sanBootImageList.size()>0){
+	 	if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 	 		for (ComputeSanBootImage image: sanBootImageList){
 	 			computeSanBootImageMap.put(image.getType(), image);
 	 		}
 	 	}
  	
     	
-        if (lsbootStorage.getContent() != null && lsbootStorage.getContent().size()> 0){
+        if (lsbootStorage.getContent() != null && !lsbootStorage.getContent().isEmpty()){
         	for (Serializable e : lsbootStorage.getContent()) {
                 if (e instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)e).getValue() instanceof LsbootSanImage){
@@ -1243,7 +1243,7 @@ public class UcsDiscoveryWorker {
 	             .getComputeSanBootImageConstraint(sanBoot.getId()), sanImageUris);
 	 	List<ComputeSanBootImage> sanBootImageList = _dbClient.queryObject(ComputeSanBootImage.class,sanImageUris, true);
  	
-	 	if (sanBootImageList!=null && sanBootImageList.size()>0){
+	 	if (sanBootImageList!=null && !sanBootImageList.isEmpty()){
 	 		for (ComputeSanBootImage image: sanBootImageList){
 	 			computeSanBootImageMap.put(image.getType(), image);
 	 		}
@@ -1291,7 +1291,7 @@ public class UcsDiscoveryWorker {
 	 	_dbClient.queryByConstraint(ContainmentConstraint.Factory
              .getComputeSanBootImagePathConstraint(computeSanImage.getId()), sanImagePathUris);	 	
 	 	List<ComputeSanBootImagePath> sanBootPathList = _dbClient.queryObject(ComputeSanBootImagePath.class,sanImagePathUris, true);	 	
-    	if (sanBootPathList!=null && sanBootPathList.size() > 0){
+    	if (sanBootPathList!=null && !sanBootPathList.isEmpty()){
     		 for (ComputeSanBootImagePath sanBootImagePath: sanBootPathList){
     			 computeSanBootImagePathMap.put(sanBootImagePath.getType(), sanBootImagePath);
     		 }
@@ -1384,7 +1384,7 @@ public class UcsDiscoveryWorker {
              .getComputeLanBootImagePathsConstraint(lanBoot.getId()), lanImageUris);
 	 	List<ComputeLanBootImagePath> lanBootPathList = _dbClient.queryObject(ComputeLanBootImagePath.class,lanImageUris,true);
 	 	
-	     if (lanBootPathList!=null && lanBootPathList.size()> 0){
+	     if (lanBootPathList!=null && !lanBootPathList.isEmpty()){
 	    	 for (ComputeLanBootImagePath lanImage: lanBootPathList){
 	    		 lanBootImageMap.put(lanImage.getType(), lanImage);
 	    	 }
@@ -1823,7 +1823,13 @@ public class UcsDiscoveryWorker {
         String wwn = seedWwn.substring(6,seedWwn.length());
         return "24:"+ Long.toHexString(parseNumber(portChannelId).longValue()).toUpperCase()+":"+wwn;
     }
-
+    /**
+     * Created COPP-38 to track the sonar issue.
+     * @param vsanList
+     * @param fcInterfaceMap
+     * @return
+     */
+    @SuppressWarnings({"squid:S2175"})
     private Map<String, Set<String>> getUnpinnedVSans(List<SwVsan> vsanList, Map<String, SwFcSanEp> fcInterfaceMap){
         Map <String,Set <String>> switchWiseVsan = new HashMap<>();
 
@@ -1844,7 +1850,9 @@ public class UcsDiscoveryWorker {
             if (vsanList == null) continue;
 
             if (vsanSet.contains(swInterfaces.getPortVsanId())){
-                vsanList.remove(swInterfaces.getPortVsanId());
+                vsanList.remove(swInterfaces.getPortVsanId()); 
+                //vasnList contains swVsan and this code tries to remove the String element which is not correct
+                
             }
         }
         return switchWiseVsan;
@@ -1865,13 +1873,15 @@ public class UcsDiscoveryWorker {
 	}
 
 	private void persistDataObjects(List<DataObject> objects) {
-		if (!objects.isEmpty())
+		if (!objects.isEmpty()){
 			_dbClient.persistObject(objects);
+		}
 	}
 
 	private void deleteDataObjects(List<DataObject> objects) {
-		if (objects.size() > 0)
+		if (!objects.isEmpty()){
 			_dbClient.markForDeletion(objects);
+		}
 	}
 
     private URL getUcsmURL(ComputeSystem cs) {

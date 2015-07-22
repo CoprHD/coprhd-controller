@@ -1674,7 +1674,6 @@ public class DbClientTest extends DbsvcTestBase {
         Calendar now = Calendar.getInstance();
         Calendar then = hit.getCreationTime();
         Assert.assertNotNull(then);
-        Assert.assertTrue(then instanceof Calendar);
         Assert.assertTrue(String.format("then(%s) is not before now(%s), should be %s", then.toString(), now.toString(), system.getCreationTime().toString()), then.before(now));
 
         system.setLabel("Update");
@@ -1683,7 +1682,6 @@ public class DbClientTest extends DbsvcTestBase {
         hit = dbClient.queryObject(StorageSystem.class, system.getId());
         Calendar thenAgain = hit.getCreationTime();
         Assert.assertNotNull(thenAgain);
-        Assert.assertTrue(thenAgain instanceof Calendar);
         Assert.assertEquals(thenAgain, then);
 
         _logger.info("Finished testing CreationTime");
@@ -1856,7 +1854,7 @@ public class DbClientTest extends DbsvcTestBase {
             for(int ii = 0; ii < 4; ii++) {
                 volume = new Volume();
                 volume.setId(URIUtil.createId(Volume.class));
-                String label = String.format("%1$d.%1$d : Test Label", jj,ii);
+                String label = String.format("%1$d.%2$d : Test Label", jj,ii);
                 volume.setLabel(label);
                 int mult = (int)Math.round(Math.pow(10,jj));
                 volume.setCapacity(2000L * (ii + 1) * mult);
@@ -1974,7 +1972,9 @@ public class DbClientTest extends DbsvcTestBase {
         _logger.info("Waiting for 20 sec  for the DB to do its job. ");
         try {
             Thread.currentThread().sleep(20000);
-        } catch (Exception ex ){}
+        } catch (Exception ex ){
+            _logger.warn("Thread is interrupted", ex);
+        }
         _logger.info("DB should be set by now. Starting the efficiency test ");
         long start = System.currentTimeMillis();
         CustomQueryUtility.AggregatedValue aggregatedValue =
@@ -1996,7 +1996,7 @@ public class DbClientTest extends DbsvcTestBase {
         _logger.info("Aggregation byCF : " + oldTime + "msec; by AggregatedIdx : " + newTime +
                 "msec.");
 
-        Assert.assertTrue(aggregatedValue.getValue()== agg.getAggregate("allocatedCapacity"));
+        Assert.assertTrue((long)aggregatedValue.getValue()== agg.getAggregate("allocatedCapacity"));
     }
 
     private void checkAggregatedValues(String groupBy,String groupByValue,
@@ -2031,11 +2031,11 @@ public class DbClientTest extends DbsvcTestBase {
         int count = 0;
         while( it.hasNext()){
             AggregationQueryResultList.AggregatedEntry entry = it.next();
-            _logger.info("         " + entry.id + ";  capacity = " + entry.value.toString());
-            DataObject obj = validatedObj.get(entry.id);
+            _logger.info("         " + entry.getId() + ";  capacity = " + entry.getValue().toString());
+            DataObject obj = validatedObj.get(entry.getId());
             DataObjectType doType = TypeMap.getDoType(clazz);
             Object value = ColumnField.getFieldValue(doType.getColumnField(field),obj);
-            Assert.assertEquals(value,entry.value);
+            Assert.assertEquals(value,entry.getValue());
             count++;
         }
         Assert.assertEquals(count,validatedObj.size());
@@ -2107,8 +2107,7 @@ public class DbClientTest extends DbsvcTestBase {
                     try {
                         this.wait();
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        _logger.warn("Thread is interrupted", e);
                     }
                 }
                 
@@ -2145,8 +2144,7 @@ public class DbClientTest extends DbsvcTestBase {
                     try {
                         this.wait();
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        _logger.warn("Thread is interrupted", e);
                     }
                 }
             }
@@ -2164,8 +2162,7 @@ public class DbClientTest extends DbsvcTestBase {
                     try {
                         this.wait(); // Release lock and wait for notification
                     } catch (InterruptedException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        _logger.warn("Thread is interrupted", e);
                     }
                 }
             }

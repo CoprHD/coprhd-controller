@@ -643,7 +643,7 @@ public class FileDeviceController implements FileController {
                         strBuilder.append(",");
                     }
                 }
-                if (clients.size() > 0 && (i < fExports.size() - 1)) {
+                if (!clients.isEmpty() && (i < fExports.size() - 1)) {
                     strBuilder.append(",");
                 }
             }

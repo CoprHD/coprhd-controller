@@ -107,7 +107,11 @@ public class Workflow implements Serializable {
         public StepStatus status;
         /** URI of Cassandra logging record. */
         URI workflowStepURI;
-
+        
+        /**
+         * Created COP-37 to track hashCode() implemenatation in this class.
+         */
+        @SuppressWarnings({"squid:S1206"})
         public boolean equals(Object o) {
         	if(o == null || !(o instanceof Step)){
         		return false;

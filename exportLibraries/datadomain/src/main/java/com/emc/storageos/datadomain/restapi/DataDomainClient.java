@@ -18,6 +18,8 @@ package com.emc.storageos.datadomain.restapi;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiException;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainResourceNotFoundException;
 import com.emc.storageos.services.restutil.RestClientItf;
+import com.emc.storageos.services.util.SecurityUtils;
+
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -180,7 +182,7 @@ public class DataDomainClient implements RestClientItf {
             log.error(String.format("DataDomain Rest API failed, DDCode: %d, Msg : %s",ddCode, msg));
 
             if( ddCode == 404 || ddCode == 410 )   {
-                throw DataDomainResourceNotFoundException.notFound.ResourceNotFound(uri.toString(),msg);
+                throw DataDomainResourceNotFoundException.notFound.resourceNotFound(uri.toString(),msg);
             }
             else {
                 throw DataDomainApiException.exceptions.failedResponseFromDataDomainMsg(uri,errorCode,msg, ddCode);
@@ -206,7 +208,7 @@ public class DataDomainClient implements RestClientItf {
     private <T> T getResponseObject(Class<T> clazz, ClientResponse response ) throws  DataDomainApiException {
         try {
             JSONObject resp = response.getEntity(JSONObject.class);
-            T respObject = new Gson().fromJson(resp.toString(), clazz);
+            T respObject = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), clazz);
             /*ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationConfig.Feature.UNWRAP_ROOT_VALUE, true);
             mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);

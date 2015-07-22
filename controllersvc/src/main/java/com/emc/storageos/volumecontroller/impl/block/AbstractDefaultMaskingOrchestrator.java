@@ -1670,7 +1670,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
                         URI exportMaskURI = maskToStoragePortsEntry.getKey();
                         Map<String, String> storagePortToNetworks = maskToStoragePortsEntry.getValue();
                         ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                        exportMaskInfo.append(String.format("MaskingView=%s StoragePorts [ %s ]\n", mask.getMaskName(),
+                        exportMaskInfo.append(String.format("MaskingView=%s StoragePorts [ %s ]%n", mask.getMaskName(),
                                 Joiner.on(',').join(storagePortToNetworks.entrySet())));
                     }
 

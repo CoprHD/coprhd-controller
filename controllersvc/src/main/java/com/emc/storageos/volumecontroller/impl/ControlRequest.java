@@ -62,12 +62,12 @@ public class ControlRequest implements Serializable {
     public String getQueueName() {
         return (String) _req.get(QUEUE_NAME);
     }
-
+    @SuppressWarnings({"squid:S2118"})
     public byte[] serialize() {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ObjectOutputStream oout = new ObjectOutputStream(out);
-            oout.writeObject(_req);
+            oout.writeObject(_req); // Can not write non-serializable object(Map)
             return out.toByteArray();
         } catch (Exception e) {
             throw new IllegalStateException(e);

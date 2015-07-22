@@ -155,7 +155,7 @@ public class SRDFUtils implements SmisConstants {
             // If the Source Provider is down, make use of target provider to
             // find the Sync Paths. 
             // null check makes the caller not to check liveness for multiple volumes in loop.
-            boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.equals(activeProviderSystem.getId(), sourceSystem.getId()));
+            boolean isSourceActiveNow = (null == activeProviderSystem || URIUtil.identical(activeProviderSystem.getId(), sourceSystem.getId()));
             String nativeIdToUse = (isSourceActiveNow) ? source.getNativeId() : target.getNativeId();
             // Use the activeSystem always.
             StorageSystem systemToUse = (isSourceActiveNow) ? sourceSystem : activeProviderSystem;
@@ -164,14 +164,15 @@ public class SRDFUtils implements SmisConstants {
             }
 
             CIMObjectPath volumePath = cimPath.getVolumePath(systemToUse, nativeIdToUse);
-            log.info("Volume Path {}", volumePath.toString());
             if (volumePath == null) {
                 throw new IllegalStateException("Volume not found : " + source.getNativeId());
             }
+            log.info("Volume Path {}", volumePath.toString());
             iterator = helper.getReference(systemToUse, volumePath, SE_STORAGE_SYNCHRONIZED_SV_SV, null);
             while (iterator.hasNext()) {
                 CIMObjectPath reference = iterator.next();
-                if (reference.toString().contains(nativeIdToUse)) {
+                if (reference.toString().contains(source.getNativeId()) &&
+                        reference.toString().contains(target.getNativeId())) {
                     log.info("Storage Synchronized  reference {}", reference.toString());
                     return reference;
                 }
@@ -253,6 +254,15 @@ public class SRDFUtils implements SmisConstants {
         }
 
         return dbClient.queryObject(Volume.class, volumeURIs);
+    }
+    
+    /**
+     * return the targetSystem of the targetvolume.
+     * @param targetURIs
+     * @return
+     */
+    public StorageSystem getStorageSystem(URI systemURI) {
+        return dbClient.queryObject(StorageSystem.class, systemURI);
     }
     
     /**

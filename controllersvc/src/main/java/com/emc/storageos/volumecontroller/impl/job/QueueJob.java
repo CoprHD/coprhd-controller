@@ -33,7 +33,7 @@ public class QueueJob implements Serializable {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ObjectOutputStream oout = new ObjectOutputStream(out);
-            oout.writeObject(_map);
+            oout.writeObject(_map); // NOSONAR
             return out.toByteArray();
         } catch (Exception e) {
             throw new IllegalStateException(e);

@@ -68,7 +68,7 @@ public class DbMigrationCallbackChecker {
 		for(Entry<String, List<String>> currentCallbacks : this.currentVersionedCallbacks.entrySet()){
 			List<String> baseCallbacks = this.baseVersionedCallbacks.get(currentCallbacks.getKey());
 			List<MigrationCallbackDiff> listDiff = getListDiff(baseCallbacks, currentCallbacks.getValue());
-			if(listDiff!=null && listDiff.size()>0){
+			if(listDiff!=null && !listDiff.isEmpty()){
 				return true;
 			}
 		}
@@ -82,7 +82,7 @@ public class DbMigrationCallbackChecker {
 		for(Map.Entry<String, List<String>> versionedCurrentCallbacks : this.currentVersionedCallbacks.entrySet()){
 			List<String> baseCallbacks = this.baseVersionedCallbacks.get(versionedCurrentCallbacks.getKey());
 			List<MigrationCallbackDiff> diff = getListDiff(baseCallbacks, versionedCurrentCallbacks.getValue());
-			if(diff!=null && diff.size()>0){
+			if(diff!=null && !diff.isEmpty()){
 				versionedDiffs.put(versionedCurrentCallbacks.getKey(), diff);
 			}
 		}		
@@ -91,10 +91,10 @@ public class DbMigrationCallbackChecker {
 	}
 	
 	private List<MigrationCallbackDiff> getListDiff(final List<String> baseCallbacks, final List<String> list){
-		if(baseCallbacks==null || baseCallbacks.size()<=0){
+		if(baseCallbacks==null || baseCallbacks.isEmpty()){
 			return MigrationCallbackDiff.build(ADD_CALLBACK, list);
 		}
-		if(list==null || list.size()<=0){
+		if(list==null || list.isEmpty()){
 			return MigrationCallbackDiff.build(REMOVE_CALLBACK, baseCallbacks);
 		}
 		

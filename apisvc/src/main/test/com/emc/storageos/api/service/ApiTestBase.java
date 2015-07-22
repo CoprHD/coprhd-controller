@@ -73,13 +73,13 @@ public class ApiTestBase {
     protected static final String ROOTTENANT_NAME = "Root Provider Tenant";
 
     protected static final String SYSADMIN = "root";
-    protected static final String SYSADMIN_PASSWORD = "ChangeMe";
+    protected static final String SYSADMIN_PASS_WORD = "ChangeMe";
     
     protected static final String SYSMONITOR = "sysmonitor";
-    protected static final String SYSMONITOR_PASSWORD = "ChangeMe1!";
+    protected static final String SYSMONITOR_PASS_WORD = "ChangeMe1!";
     
     protected static final String SVCUSER = "svcuser";
-    protected static final String SVCUSER_PASSWORD = "ChangeMe1!";
+    protected static final String SVCUSER_PASS_WORD = "ChangeMe1!";
     
     protected static final String PROXY_USER = "proxyuser";
     protected static final String PROXY_USER_PWD = "ChangeMe1!";
@@ -132,11 +132,11 @@ public class ApiTestBase {
     // LDAPS Configuration
 
     protected static final String LDAPS_USER = "user1@secureldap.com";
-    protected static final String LDAPS_PASSWORD = "password";
+    protected static final String LDAPS_PASS_WORD = "password";
 
     protected static final Logger _log = LoggerFactory.getLogger(ApiTest.class);
 
-    protected static final String AD_PASSWORD = EnvConfig.get("sanity", "ad.manager.password");
+    protected static final String AD_PASS_WORD = EnvConfig.get("sanity", "ad.manager.password");
 
     protected static final String LICENSE_FILE="INCREMENT ViPR_Controller EMCLM 2.0 permanent uncounted " +
             "VENDOR_STRING=CAPACITY=1024;CAPACITY_UNIT=TB;SWID=PXTYD1DZK59Y4C;PLC=VIPR; " +
@@ -183,7 +183,7 @@ public class ApiTestBase {
     protected String _blockCosAclUrl = "/block/vpools/%s/acl";
     protected String _fileCosAclUrl = "/file/vpools/%s/acl";
 
-    protected static List<String> baseUrls;
+    protected static volatile List<String> baseUrls;
 
     /**
      *  Class to encapsulate a list of WebResources
@@ -270,7 +270,7 @@ public class ApiTestBase {
         if (rSys == null) {  // rSys may get nulled out between 
             // Tests depending on what Junit feels like doing that day
             try {
-                rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);     
+                rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);     
                 rSys.path("/tenant").get(String.class);
             } catch (Exception e) {
                 Assert.fail();
@@ -384,43 +384,43 @@ public class ApiTestBase {
         rProxyUser = createHttpsClient(PROXY_USER, PROXY_USER_PWD, baseUrls);
         rProxyUser.path("/tenant").get(String.class);
 
-        rMon = createHttpsClient(SYSMONITOR, SYSMONITOR_PASSWORD, baseUrls);
+        rMon = createHttpsClient(SYSMONITOR, SYSMONITOR_PASS_WORD, baseUrls);
         
         updateADConfig();
         updateRootTenantAttrs();
 
-        rZAdmin = createHttpsClient(ZONEADMIN, AD_PASSWORD, baseUrls);
+        rZAdmin = createHttpsClient(ZONEADMIN, AD_PASS_WORD, baseUrls);
         ClientResponse r = rZAdmin.path("/tenant").get(ClientResponse.class);
 
-        rZAdminGr = createHttpsClient(SUPERUSER, AD_PASSWORD, baseUrls);
+        rZAdminGr = createHttpsClient(SUPERUSER, AD_PASS_WORD, baseUrls);
         rZAdminGr.path("/tenant").get(String.class);
 
-        rTAdmin = createHttpsClient(ROOTTENANTADMIN, AD_PASSWORD, baseUrls);
+        rTAdmin = createHttpsClient(ROOTTENANTADMIN, AD_PASS_WORD, baseUrls);
         rTAdmin.path("/tenant").get(String.class);
-        rTAdminGr = createHttpsClient(TENANTADMIN, AD_PASSWORD, baseUrls);
+        rTAdminGr = createHttpsClient(TENANTADMIN, AD_PASS_WORD, baseUrls);
         rTAdminGr.path("/tenant").get(String.class);
 
-        rSTAdmin1 = createHttpsClient(SUBTENANT1_ADMIN, AD_PASSWORD, baseUrls);
-        rSTAdminGr1 = createHttpsClient(SUBTENANT1_ADMIN2, AD_PASSWORD, baseUrls);
+        rSTAdmin1 = createHttpsClient(SUBTENANT1_ADMIN, AD_PASS_WORD, baseUrls);
+        rSTAdminGr1 = createHttpsClient(SUBTENANT1_ADMIN2, AD_PASS_WORD, baseUrls);
 
-        rSTAdmin2 = createHttpsClient(SUBTENANT2_ADMIN, AD_PASSWORD, baseUrls);
-        rSTAdminGr2 = createHttpsClient(SUBTENANT2_ADMIN2, AD_PASSWORD, baseUrls);
+        rSTAdmin2 = createHttpsClient(SUBTENANT2_ADMIN, AD_PASS_WORD, baseUrls);
+        rSTAdminGr2 = createHttpsClient(SUBTENANT2_ADMIN2, AD_PASS_WORD, baseUrls);
 
-        rST2User = createHttpsClient(SUBTENANT2_USER, AD_PASSWORD, baseUrls);
+        rST2User = createHttpsClient(SUBTENANT2_USER, AD_PASS_WORD, baseUrls);
 
-        rProjRead = createHttpsClient(SUBTENANT1_READER, AD_PASSWORD, baseUrls);
-        rProjUserGr = createHttpsClient(SUBTENANT1_USER, AD_PASSWORD, baseUrls);
+        rProjRead = createHttpsClient(SUBTENANT1_READER, AD_PASS_WORD, baseUrls);
+        rProjUserGr = createHttpsClient(SUBTENANT1_USER, AD_PASS_WORD, baseUrls);
 
-        rUnAuth = createHttpsClient(ROOTUSER, AD_PASSWORD, baseUrls);
-        rRootUser2 = createHttpsClient(ROOTUSER2, AD_PASSWORD, baseUrls);
+        rUnAuth = createHttpsClient(ROOTUSER, AD_PASS_WORD, baseUrls);
+        rRootUser2 = createHttpsClient(ROOTUSER2, AD_PASS_WORD, baseUrls);
 
-        rSTAdmin3 = createHttpsClient(SUBTENANT3_ADMIN, AD_PASSWORD, baseUrls);
+        rSTAdmin3 = createHttpsClient(SUBTENANT3_ADMIN, AD_PASS_WORD, baseUrls);
 
-        rLdaps =  createHttpsClient(LDAPS_USER, LDAPS_PASSWORD, baseUrls);
+        rLdaps =  createHttpsClient(LDAPS_USER, LDAPS_PASS_WORD, baseUrls);
 
-        rST13User = createHttpsClient(SUBTENANT13_USER, AD_PASSWORD, baseUrls);
+        rST13User = createHttpsClient(SUBTENANT13_USER, AD_PASS_WORD, baseUrls);
 
-        rSTCross = createHttpsClient(CROSS_TENANT_USER, AD_PASSWORD, baseUrls);
+        rSTCross = createHttpsClient(CROSS_TENANT_USER, AD_PASS_WORD, baseUrls);
     }
 
     public void logoutUser (BalancedWebResource resource) {
@@ -454,18 +454,18 @@ public class ApiTestBase {
     }
 
     protected void setupLicenseAndInitialPasswords() throws NoSuchAlgorithmException {
-        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);     
+        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);     
         rSys.path("/tenant").get(String.class);
 
         //Initialize proxyuser password to ChangeMe
         String usernames[] = {"sysmonitor", "proxyuser"};
-        String password = "ChangeMe1!";
+        String pass_word = "ChangeMe1!";
         ClientResponse resp = null;
 
         for (String username : usernames) {
             PasswordResetParam params = new PasswordResetParam();
             params.setUsername(username);
-            params.setPassword(password);
+            params.setPassword(pass_word);
             resp = rSys.path("/password/reset").
                     put(ClientResponse.class, params);
             Assert.assertThat( resp.getStatus(), anyOf(is(200), is(400)));        
@@ -491,7 +491,7 @@ public class ApiTestBase {
                 Thread.sleep(2000);
                 System.out.println("Waiting for stable cluster state.");
             } catch (InterruptedException e) {
-
+            	_log.error(e.getMessage(),e);
             }
 
             try {
@@ -519,7 +519,7 @@ public class ApiTestBase {
                     Thread.sleep(2000);
                     System.out.println("Waiting apisvc to be up");
                 } catch (InterruptedException e) {
-
+                	_log.error(e.getMessage(),e);
                 }
             }
         }
@@ -732,7 +732,9 @@ public class ApiTestBase {
             sc.init(null, trustAllCerts, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
-        } catch (final Exception e) {}
+        } catch (final Exception e) {
+        	_log.error(e.getMessage(),e);
+        }
     }
 
 

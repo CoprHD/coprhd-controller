@@ -75,8 +75,8 @@ public class DefaultSecurityService implements SecurityService {
         return ciphers; // NOSONAR ("Suppressing: Returning 'ciphers' may expose an internal array")
     }
 
-    public void setCiphers(String[] ciphers) {
-        // Not a real issue as no write in class
-        this.ciphers = ciphers; // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    // Not a real issue as no write in class
+    public void setCiphers(String[] ciphers) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+        this.ciphers = ciphers;
     }
 }

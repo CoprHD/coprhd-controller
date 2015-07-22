@@ -31,10 +31,10 @@ public class KeyCertificateEntry implements Serializable {
     private Certificate[] certificateChain;
     private Date creationDate;
 
-    public KeyCertificateEntry(byte[] key, Certificate[] certificateChain) {
+    // Not a real issue as no write in class
+    public KeyCertificateEntry(byte[] key, Certificate[] certificateChain) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
         this.key = Base64.encodeBase64(key);
-        // Not a real issue as no write in class
-        this.certificateChain = certificateChain; // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+        this.certificateChain = certificateChain;
     }
 
     public KeyCertificateEntry(Key key, Certificate[] certificateChain) {
@@ -86,9 +86,9 @@ public class KeyCertificateEntry implements Serializable {
      * @param certificateChain
      *            the certificateChain to set
      */
-    public void setCertificateChain(Certificate[] certificateChain) {
-        // Not a real issue as no write in class
-        this.certificateChain = certificateChain; // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    // Not a real issue as no write in class
+    public void setCertificateChain(Certificate[] certificateChain) {  // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+        this.certificateChain = certificateChain;
     }
 
     /**

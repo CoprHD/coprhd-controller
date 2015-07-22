@@ -32,9 +32,9 @@ public class SSHKeyPair implements Serializable {
         return publicKey; // NOSONAR ("Suppressing: Returning may expose an internal array")
     }
 
-    public void setPublicKey(byte[] publicKey) {
-        // Not a real issue as no write in class
-        this.publicKey = publicKey; // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    // Not a real issue as no write in class
+    public void setPublicKey(byte[] publicKey) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+        this.publicKey = publicKey;
     }
 
     public byte[] getPrivateKey() {
@@ -42,9 +42,9 @@ public class SSHKeyPair implements Serializable {
         return privateKey; // NOSONAR ("Suppressing: Returning may expose an internal array")
     }
 
-    public void setPrivateKey(byte[] privateKey) {
-        // Not a real issue as no write in class
-        this.privateKey = privateKey; // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    // Not a real issue as no write in class
+    public void setPrivateKey(byte[] privateKey) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+        this.privateKey = privateKey;
     }
 
     public static SSHKeyPair toKeyPair(KeyPair keyPair) {

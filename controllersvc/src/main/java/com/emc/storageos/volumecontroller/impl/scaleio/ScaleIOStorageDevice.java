@@ -83,7 +83,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private static volatile ScaleIOStorageDevice instance;
 
     private DbClient dbClient;
-    private ScaleIOCLIFactory scaleIOCLIFactory;
+    private ScaleIOHandleFactory scaleIOHandleFactory;
     private SnapshotOperations snapshotOperations;
     private CloneOperations cloneOperations;
 
@@ -295,7 +295,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             volume.setProvisionedCapacity(size);
                 volume.setAllocatedCapacity(newSize);
                 volume.setCapacity(size);
-    
+
                 dbClient.persistObject(volume);
                 ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
             pool.removeReservedCapacityForVolumes(Arrays.asList(volume.getId().toString()));
@@ -329,7 +329,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             String failedVolumeName = null;
             String errorMessage = null;
             Set<URI> poolsToUpdate = new HashSet<>();
-    
+
             for (Volume volume : volumes) {
                 ScaleIORemoveVolumeResult result = scaleIOHandle.removeVolume(volume.getNativeId());
                 if (result.isSuccess() || result.errorString().contains(VOLUME_NOT_FOUND)) {
@@ -345,12 +345,12 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
             dbClient.persistObject(volumes);
-    
+
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
             for (StoragePool pool : pools) {
                 ScaleIOCLIHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storageSystem);
             }
-    
+
             if (!anyFailures) {
                 completer.ready(dbClient);
             } else {
@@ -617,12 +617,12 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer) 
+    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer)
     {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
     }
-    
+
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
@@ -705,7 +705,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             completer.error(dbClient, code);
             return false;
         }
-       
+
         return true;
     }
 
@@ -787,7 +787,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             completer.error(dbClient, code);
             return false;
         }
-        
+
         return true;
     }
 
@@ -860,21 +860,21 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             TaskCompleter completer) {
         completeTaskAsUnsupported(completer);
     }
-    
+
     @Override
     public void doRestoreFromClone(StorageSystem storage, URI cloneVolume,
             TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
     }
-    
+
     @Override
     public void doResyncClone(StorageSystem storage, URI cloneVolume,
             TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
     }
-    
+
     @Override
-    public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones, 
+    public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones,
             Boolean createInactive, TaskCompleter completer) {
         completeTaskAsUnsupported(completer);
     }
@@ -883,27 +883,27 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume,
             TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
-        
+
     }
 
     @Override
     public void doRestoreFromGroupClone(StorageSystem storageSystem, List<URI> cloneVolume,
                                         TaskCompleter taskCompleter) {
         completeTaskAsUnsupported(taskCompleter);
-        
+
     }
 
     @Override
     public void doActivateGroupFullCopy(StorageSystem storageSystem,
             List<URI> fullCopy, TaskCompleter completer) {
         completeTaskAsUnsupported(completer);
-        
+
     }
 
     @Override
     public void doResyncGroupClone(StorageSystem storageDevice,
             List<URI> clone, TaskCompleter completer) throws Exception {
         completeTaskAsUnsupported(completer);
-        
+
     }
     }

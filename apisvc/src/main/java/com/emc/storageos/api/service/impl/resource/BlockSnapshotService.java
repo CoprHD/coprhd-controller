@@ -42,6 +42,7 @@ import com.emc.storageos.api.mapper.functions.MapBlockSnapshot;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.utils.ExportUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.BulkList.PermissionsEnforcingResourceFilter;
@@ -148,8 +149,20 @@ public class BlockSnapshotService extends TaskResourceService {
     @Path("/{id}/protection/snapshot-sessions")
     @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.ANY})
     public TaskList createSnapshotSession(@PathParam("id") URI id, SnapshotSessionCreateParam param) {
-        return null;
+        return getSnapshotSessionManager().createSnapshotSession(id, param);
     }
+    
+    /**
+     * Creates and returns an instance of the block snapshot session manager to handle
+     * a snapshot session creation request.
+     * 
+     * @return BlockSnapshotSessionManager
+     */
+    private BlockSnapshotSessionManager getSnapshotSessionManager() {
+        BlockSnapshotSessionManager snapshotSessionManager = new BlockSnapshotSessionManager(_dbClient,
+            _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
+        return snapshotSessionManager;
+    }    
 
     /**
      * Get snapshot details

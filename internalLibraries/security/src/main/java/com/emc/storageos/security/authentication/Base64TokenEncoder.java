@@ -262,7 +262,8 @@ public class Base64TokenEncoder implements TokenEncoder {
          * @param signature
          */
         public SignedToken(byte[] body, String signature) {
-            _tokenBody = body;
+            // Not an real issue as no write op in class
+            _tokenBody = body; // NOSONAR ("Suppressing: The user-supplied array 'body' is stored directly")
             _signature = signature;
         }
         
@@ -286,7 +287,8 @@ public class Base64TokenEncoder implements TokenEncoder {
          */
         @SerializationIndex(3)
         public byte[] getTokenBody() {
-            return _tokenBody;
+            // Not an real issue as no write op outside
+            return _tokenBody; // NOSONAR ("Suppressing: Returning '_tokenBody' may expose an internal array.")
         }
         
         /**
@@ -294,7 +296,8 @@ public class Base64TokenEncoder implements TokenEncoder {
          * @param body
          */
         public void setTokenBody(byte[] body) {
-            _tokenBody = body;
+            // Not an real issue as no write op in class
+            _tokenBody = body; // NOSONAR ("Suppressing: The user-supplied array 'body' is stored directly")
         }
         
         /**

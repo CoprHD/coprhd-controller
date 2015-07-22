@@ -94,7 +94,8 @@ public abstract class AbstractSecuredWebServer {
     }
 
     public void setCiphersToInclude(String[] ciphers) {
-        _ciphers = ciphers;
+        // Not a real issue as no write in class
+        _ciphers = ciphers; // NOSONAR ("Suppressing: The user-supplied array 'ciphers' is stored directly.")
     }
 
     public void setServiceInfo(Service service) {

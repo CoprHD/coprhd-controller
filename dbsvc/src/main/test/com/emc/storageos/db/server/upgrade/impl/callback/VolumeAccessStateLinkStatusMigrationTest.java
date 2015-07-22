@@ -65,7 +65,7 @@ public class VolumeAccessStateLinkStatusMigrationTest extends DbSimpleMigrationT
     private static final Logger log = LoggerFactory.getLogger(VolumeAccessStateLinkStatusMigrationTest.class);
     
     // Used for migrations tests related to access state and link status
-    private static List<URI> volumeAccessStateLinkStatusURIs = new ArrayList<URI>();
+    private static volatile List<URI> volumeAccessStateLinkStatusURIs = new ArrayList<URI>();
 
     @BeforeClass
     public static void setup() throws IOException {

@@ -39,7 +39,7 @@ import com.emc.storageos.db.server.DbsvcTestBase;
  */
 public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
     private static final Logger _log = LoggerFactory.getLogger(DbMigrationTestBase.class);
-    protected static HotSwapper hs = null;
+    protected static volatile HotSwapper hs = null;
 
     /**
      * @return the DB version upgraded from

@@ -143,15 +143,16 @@ public class CustomConfigHandler {
             }
         }
         if (customConfig != null) {
-            logger.info("Found the custom config {} for {}", configName, scope);
+            logger.debug("Found the custom config {} for {}", configName, scope);
             value = customConfig.getValue();
         } else if (globalConfig != null) {
-            logger.info("Could not find custom config {} for {}. The global custom config will be used.", configName, scope);
+            logger.debug("Could not find custom config {} for {}. The global custom config will be used.", configName, scope);
             value = globalConfig.getValue();
         } else if (systemDefaultConfig != null) {
-            logger.info("Could not find custom config {} for {}. The system default config will be used.", configName, scope);
+            logger.debug("Could not find custom config {} for {}. The system default config will be used.", configName, scope);
             value = systemDefaultConfig.getValue();
         } else {
+            logger.error("Could not find custom config {} for {}", configName, scope);
             String key = scope.keySet().iterator().next();
             throw CustomConfigControllerException.exceptions.customConfigScopeWithNoDefault(configName,key, scope.get(key));
         }

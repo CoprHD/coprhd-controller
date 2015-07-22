@@ -16,7 +16,7 @@
     <!-- List of operations for this performance namespace -->
     <bean id="collectMetering"
         class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="_operations">
+        <property name="operations">
             <list>
             </list>
         </property>
@@ -24,8 +24,8 @@
 
     <bean id="ibmxiv"
         class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
-        <property name="_executor" ref="executor" />
-        <property name="_namespaces" ref="namespaces" />
+        <property name="executor" ref="executor" />
+        <property name="namespaces" ref="namespaces" />
         <property name="xmlDumpGenerator" ref="blockXMLDumpgenerator"/>
         <property name="partitionManager" ref="partitionManager"/>
     </bean>
@@ -40,8 +40,8 @@
 
     <bean id="executor"
         class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor">
-        <property name="_util" ref="smiutility" />
-        <property name="_generator" ref="commandgenerator" />
+        <property name="util" ref="smiutility" />
+        <property name="generator" ref="commandgenerator" />
     </bean>
 
     <bean id="blockXMLDumpgenerator" class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.BlockXMLStatsDumpGenerator" />

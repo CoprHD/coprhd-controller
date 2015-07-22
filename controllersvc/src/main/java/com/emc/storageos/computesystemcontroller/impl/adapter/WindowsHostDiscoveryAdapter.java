@@ -198,7 +198,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         
         // update export groups with new initiators if host is in use.
-        if (addedInitiators.size() > 0) {
+        if (!addedInitiators.isEmpty()) {
             Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators, CommonTransformerFunctions.fctnDataObjectToID()));
             changes.setNewInitiators(addedInitiatorIds);
         }

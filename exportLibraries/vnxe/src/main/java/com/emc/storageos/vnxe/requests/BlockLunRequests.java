@@ -69,7 +69,7 @@ public class BlockLunRequests extends KHRequests<VNXeLun>{
         List<VNXeLun> result = null;
         List<VNXeLun> lunList = getDataForObjects(VNXeLun.class);
         //it should just return 1
-        if (lunList!= null && lunList.size()>0) {
+        if (lunList!= null && !lunList.isEmpty()) {
             result =lunList;
         } else {
             _logger.info("No lun found using the storage resource id: " +storageResourceId);

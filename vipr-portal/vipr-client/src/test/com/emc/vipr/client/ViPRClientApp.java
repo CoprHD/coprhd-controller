@@ -121,7 +121,7 @@ public class ViPRClientApp {
         List<TrustedCertificate> certs = client.truststore().getTrustedCertificates();
         TrustedCertificateChanges certsChanges = new TrustedCertificateChanges();
         List<String> changes = new ArrayList<String>();
-        if (certs.size() == 0 || checkForCert(certs)) {
+        if (certs.isEmpty() || checkForCert(certs)) {
             changes.add(TRUSTED_CERTIFICATE);
             certsChanges.setAdd(changes);
             List<TrustedCertificate> newCerts =

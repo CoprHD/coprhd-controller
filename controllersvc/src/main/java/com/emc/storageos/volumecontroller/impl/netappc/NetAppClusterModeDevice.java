@@ -284,23 +284,23 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 		// TODO: Revisit once new Data Model for Exports is implemented.
 		Map<String, List<String>> existingHosts = null;
 
-		if ((null != existingExportList) && (existingExportList.size() > 0)) {
+		if ((null != existingExportList) && (!existingExportList.isEmpty())) {
 			existingHosts = sortHostsFromCurrentExports(existingExportList);
 		}
 
 		if (null != existingHosts) {
 			if ((null != existingHosts.get(ROOT_HOSTS))
-					&& (existingHosts.get(ROOT_HOSTS).size() > 0)) {
+					&& (!existingHosts.get(ROOT_HOSTS).isEmpty())) {
 				addNewHostsOnly(rootHosts, existingHosts.get(ROOT_HOSTS));
 			}
 
 			if ((null != existingHosts.get(RW_HOSTS))
-					&& (existingHosts.get(RW_HOSTS).size() > 0)) {
+					&& (!existingHosts.get(RW_HOSTS).isEmpty())) {
 				addNewHostsOnly(rwHosts, existingHosts.get(RW_HOSTS));
 			}
 
 			if ((null != existingHosts.get(RO_HOSTS))
-					&& (existingHosts.get(RO_HOSTS).size() > 0)) {
+					&& (!existingHosts.get(RO_HOSTS).isEmpty())) {
 				addNewHostsOnly(roHosts, existingHosts.get(RO_HOSTS));
 			}
 		}
@@ -456,7 +456,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 		Map<String, List<String>> currentHostsList = new HashMap<String, List<String>>();
 		for (FileExport curExport : curExpList) {
 			if ((null != curExport.getClients())
-					&& (curExport.getClients().size() > 0)) {
+					&& (!curExport.getClients().isEmpty())) {
 				if (curExport.getPermissions().toString().equals(ROOT_PERM)) {
 					currentHostsList.put(ROOT_HOSTS, curExport.getClients());
 				} else if (curExport.getPermissions().toString()
@@ -476,7 +476,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 	private void sortNewEndPoints(List<String> rootHosts, List<String> rwHosts,
 			List<String> roHosts, List<String> endPointList, String permission) {
 		for (String endPoint : endPointList) {
-			if ((null != endPointList) && (endPointList.size() > 0)) {
+			if ((null != endPointList) && (!endPointList.isEmpty())) {
 				if (permission.equals(ROOT_PERM)
 						&& !(rootHosts.contains(endPoint))) {
 					rootHosts.add(endPoint);
@@ -1205,7 +1205,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 			args.setExportPath(exportPath);
 
 			//Handle Modified export Rules
-			if (exportsToprocess.size() > 0) {
+			if (!exportsToprocess.isEmpty()) {
 				for (ExportRule existingRule : exportsToprocess) {
 					if (existingRule.getExportPath().equalsIgnoreCase(exportPath)) {
 						for (ExportRule modifiedrule : exportModify) {
@@ -1226,7 +1226,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 				}
 
 				// Handle Add export Rules
-				if (exportAdd != null && exportAdd.size() > 0) {
+				if (exportAdd != null && !exportAdd.isEmpty()) {
 					for (ExportRule newExport : exportAdd) {
 						_log.info("Adding Export Rule {}", newExport);
 						if(!ncApi.addNFSShare(fsName, qtreeName, qtreePath, newExport)) {
@@ -1240,7 +1240,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 				}
 
 				// Handle Delete export Rules
-				if (exportDelete != null && exportDelete.size() > 0) {
+				if (exportDelete != null && !exportDelete.isEmpty()) {
 					for (ExportRule existingRule : exportsToprocess) {
 						if (existingRule.getExportPath().equalsIgnoreCase(exportPath)) {
 							exportsToRemove.add(existingRule);
@@ -1268,7 +1268,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
 				
 				//delete the export if no export rule left.
 				//If we delete filesystem without deleting export policy. Export policy will not get cleared on Array.
-				if(exportsToRemove.isEmpty() && exportsRemove.size() >= 1){					
+				if(exportsToRemove.isEmpty() && !exportsRemove.isEmpty()){					
 					ncApi.deleteNFSExport(qtreePath);
 				}
 			}
@@ -1592,13 +1592,13 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     	aclsToAdd.addAll(args.getShareAclsToAdd());
     	aclsToModify.addAll(args.getShareAclsToModify());
     	aclsToDelete.addAll(args.getShareAclsToDelete());
-    	if(aclsToAdd.size()> 0 ){
+    	if(!aclsToAdd.isEmpty()){
     		updateShareAcl(ncApi,ShareName,aclsToAdd,AclOperation.ADD);
     	}
-    	if(aclsToModify.size()> 0 ){
+    	if(!aclsToModify.isEmpty()){
     		updateShareAcl(ncApi,ShareName,aclsToModify,AclOperation.MODIFY);
     	}
-    	if(aclsToDelete.size()> 0 ){
+    	if(!aclsToDelete.isEmpty()){
     		updateShareAcl(ncApi,ShareName,aclsToDelete,AclOperation.DELETE);
     	}
 
@@ -1615,7 +1615,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
      */
     private void updateShareAcl(NetAppClusterApi ncApi, String shareName,List<ShareACL> inputAcls, AclOperation action) {
 
-    	if(inputAcls.size() < 1)
+    	if(inputAcls.isEmpty())
     		return;
 
     	List<CifsAcl> acls = new ArrayList<CifsAcl>();  

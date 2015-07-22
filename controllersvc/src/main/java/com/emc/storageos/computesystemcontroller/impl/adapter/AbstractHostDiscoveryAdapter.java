@@ -189,6 +189,7 @@ public abstract class AbstractHostDiscoveryAdapter extends AbstractDiscoveryAdap
                 }
             }
             catch (UnknownHostException ignore) {
+            	getLog().error(ignore.getMessage(), ignore);
             }
 
             // Check the ip interfaces for the host

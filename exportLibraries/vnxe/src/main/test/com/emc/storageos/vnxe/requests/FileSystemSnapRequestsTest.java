@@ -19,6 +19,8 @@ import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.vnxe.VNXeException;
@@ -33,10 +35,15 @@ public class FileSystemSnapRequestsTest {
     private static String host = EnvConfig.get("sanity", "vnxe.host");
     private static String userName = EnvConfig.get("sanity", "vnxe.username");
     private static String password = EnvConfig.get("sanity", "vnxe.password");
+    
+    private static final Logger logger = LoggerFactory.getLogger(FileSystemSnapRequestsTest.class);
+    
 	@BeforeClass
     public static void setup() throws Exception {
+		
+		synchronized (_client) {
 		_client = new KHClient(host, userName, password);
-
+		}
 	}
 	
 	//@Test
@@ -54,7 +61,7 @@ public class FileSystemSnapRequestsTest {
             response = req.createFileSystemSnap(parm);
         } catch (VNXeException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            logger.error("VNXeException occured", e);
         }
        
         System.out.println(response.getId() + "state: " + response.getState());
@@ -72,7 +79,7 @@ public class FileSystemSnapRequestsTest {
             response = req.getByName("test-file-01-snap");
         } catch (VNXeException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            logger.error("VNXeException occured", e);
         }
        
         System.out.println(response.getId());
@@ -87,8 +94,7 @@ public class FileSystemSnapRequestsTest {
         try {
             response = req.deleteFileSystemSnap("98784247867");
         } catch (VNXeException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	logger.error("VNXeException occured", e);
         }
        
         System.out.println(response.getId());
@@ -101,8 +107,7 @@ public class FileSystemSnapRequestsTest {
         try {
             response = req.restoreFileSystemSnap("98784247833", null);
         } catch (VNXeException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        	logger.error("VNXeException occured", e);
         }
        
         System.out.println(response.getId());

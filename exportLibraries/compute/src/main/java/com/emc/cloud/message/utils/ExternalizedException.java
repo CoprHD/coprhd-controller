@@ -24,7 +24,9 @@ public class ExternalizedException extends Exception {
     public ExternalizedException(MessageKeysInterface key, String[] params) {
         super(key.getDecodedMessage(params));
         this.key = key;
-        this.params = params;
+        if(params != null){
+        	this.params = params.clone();
+        }
     }
     public ExternalizedException(MessageKeysInterface key, Throwable cause) {
         super(key.getDecodedMessage(), cause);
@@ -33,12 +35,18 @@ public class ExternalizedException extends Exception {
     public ExternalizedException(MessageKeysInterface key, String[] params, Throwable cause) {
         super(key.getDecodedMessage(params), cause);
         this.key = key;
-        this.params = params;
+        if(params != null){
+        	this.params = params.clone();
+        }
     }
     public MessageKeysInterface getKey() {
         return key;
     }
     public String[] getParams() {
-        return params;
+    	String[] paramsClone = null;
+    	if(params != null){
+    		paramsClone = params.clone();
+    	}
+        return paramsClone;
     }
 }

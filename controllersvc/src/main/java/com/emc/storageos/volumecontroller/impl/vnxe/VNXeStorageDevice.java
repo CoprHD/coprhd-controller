@@ -1699,10 +1699,10 @@ public class VNXeStorageDevice extends VNXeOperations
             }
             
             // Handle Add export Rules
-    		if (exportAdd != null && exportAdd.size() > 0) {
+    		if (exportAdd != null && !exportAdd.isEmpty()) {
     			//Check for existing exports for the export path including subdirectory
                 ArrayList<ExportRule> exps = existingExportsMapped.get(exportPath);
-                if(exps != null && exps.size() > 0) {
+                if(exps != null && !exps.isEmpty()) {
                 	_logger.error("Adding export rules is not supported as there can be only one export rule for VNXe.");
             		ServiceError error = DeviceControllerErrors.vnxe.jobFailed("updateExportRules", "Adding export rule is not supported for VNXe");
             		return BiosCommandResult.createErrorResult(error);
@@ -1710,7 +1710,7 @@ public class VNXeStorageDevice extends VNXeOperations
         	}   	
     	
     		//Handle Modified export Rules
-    		if (exportsToprocess.size() > 0) {    		
+    		if (!exportsToprocess.isEmpty()) {
 
     			if (subDir != null && !subDir.isEmpty()) {
     				for (ExportRule existingRule : exportsToprocess) {
@@ -1726,7 +1726,7 @@ public class VNXeStorageDevice extends VNXeOperations
     				}
 
     				// Handle Delete export Rules
-    				if (exportDelete != null && exportDelete.size() > 0) {
+    				if (exportDelete != null && !exportDelete.isEmpty()) {
     					for (ExportRule existingRule : exportsToprocess) {
     						if (existingRule.getExportPath().endsWith("/" + subDir)) {
     							processDeleteRules(exportDelete, existingRule, exportsToRemove, newExportsForDelete);
@@ -1746,7 +1746,7 @@ public class VNXeStorageDevice extends VNXeOperations
     				}
 
     				// Handle Delete export Rules
-    				if (exportDelete != null && exportDelete.size() > 0) {
+    				if (exportDelete != null && !exportDelete.isEmpty()) {
     					for (ExportRule existingRule : exportsToprocess) {
     						if (existingRule.getExportPath().equalsIgnoreCase(exportPath)) {
     							processDeleteRules(exportDelete, existingRule, exportsToRemove, newExportsForDelete);
@@ -1766,7 +1766,7 @@ public class VNXeStorageDevice extends VNXeOperations
     		}else{
     			//Handle Add Export Rules
                 //This is valid only if no rules to modify exists
-                if (exportAdd != null && exportAdd.size() > 0) {
+                if (exportAdd != null && !exportAdd.isEmpty()) {
                     for (ExportRule newExport : exportAdd) {
                     	if(args.getFileObjExports() != null) {
             				Collection<FileExport> expList = args.getFileObjExports().values();
@@ -1946,15 +1946,15 @@ public class VNXeStorageDevice extends VNXeOperations
 
     	dest.setSecFlavor(orig.getSecFlavor());
     	dest.setAnon(orig.getAnon());
-    	if (orig.getReadOnlyHosts()!=null && orig.getReadOnlyHosts().size() > 0){
+    	if (orig.getReadOnlyHosts()!=null && !orig.getReadOnlyHosts().isEmpty()){
     		dest.setReadOnlyHosts(new StringSet(orig.getReadOnlyHosts()));
     		_logger.info("Read Only Hosts {}", dest.getReadOnlyHosts());
     	}
-    	if (orig.getReadWriteHosts()!=null && orig.getReadWriteHosts().size() > 0){
+    	if (orig.getReadWriteHosts()!=null && !orig.getReadWriteHosts().isEmpty()){
     		dest.setReadWriteHosts(new StringSet(orig.getReadWriteHosts()));
     		_logger.info("Read Write Hosts {}", dest.getReadWriteHosts());
     	}
-    	if (orig.getRootHosts()!=null && orig.getRootHosts().size() > 0){
+    	if (orig.getRootHosts()!=null && !orig.getRootHosts().isEmpty()){
     		dest.setRootHosts(new StringSet(orig.getRootHosts()));
     		_logger.info("Root hosts {}", dest.getRootHosts());
     	}

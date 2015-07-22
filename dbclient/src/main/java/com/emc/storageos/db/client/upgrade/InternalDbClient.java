@@ -67,7 +67,7 @@ public class InternalDbClient extends DbClientImpl {
         Keyspace ks = getKeyspace(clazz);
         Iterator<URI> recIt = allrecs.iterator();
         List<URI> batch = getNextBatch(recIt);
-        while (batch.size() > 0) {
+        while (!batch.isEmpty()) {
             Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(ks, batch, doType.getCF(),
                     columnField);
             Iterator<Row<String, CompositeColumnName>> it = rows.iterator();
@@ -108,7 +108,7 @@ public class InternalDbClient extends DbClientImpl {
         Keyspace ks = getKeyspace(clazz);
         Iterator<URI> recIt = allrecs.iterator();
         List<URI> batch = getNextBatch(recIt);
-        while (batch.size() > 0) {
+        while (!batch.isEmpty()) {
             Rows<String, CompositeColumnName> rows = queryRowsWithAColumn(ks, batch, doType.getCF(),
                     columnField);
             List<T> objects = new ArrayList<T>(rows.size());
@@ -206,7 +206,9 @@ public class InternalDbClient extends DbClientImpl {
 
         return inmemKeyList;
     }
-
+    
+    //only used during migration stage in single thread, so it's safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public <T extends DataObject> void migrateToGeoDb(Class<T> clazz) {
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {
@@ -228,7 +230,7 @@ public class InternalDbClient extends DbClientImpl {
 
         Iterator<URI> recIt = result.iterator();
         List<URI> batch = getNextBatch(recIt);
-        while (batch.size() > 0) {
+        while (!batch.isEmpty()) {
             Rows<String, CompositeColumnName> rows = queryRowsWithAllColumns(
                     localContext.getKeyspace(), batch, doType.getCF());
             Iterator<Row<String, CompositeColumnName>> it = rows.iterator();

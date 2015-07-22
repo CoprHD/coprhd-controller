@@ -93,7 +93,7 @@ public class ExportUtils {
         List<Initiator> initiators = new ArrayList<Initiator>();
         Initiator initiator = null;
         if (exportMask.getExistingInitiators() != null && 
-            exportMask.getExistingInitiators().size() > 0) {
+            !exportMask.getExistingInitiators().isEmpty()) {
             for (String initStr : exportMask.getExistingInitiators()) {
                 initStr = Initiator.toPortNetworkId(initStr);
                 initiator = getInitiator(initStr, dbClient);
@@ -117,11 +117,11 @@ public class ExportUtils {
     public static List<URI> getExportMaskAllInitiators(ExportMask exportMask, DbClient dbClient) {
         List<URI> initiators = new ArrayList<URI>();
         if (exportMask.getInitiators() != null && 
-                exportMask.getInitiators().size() > 0) {
+                !exportMask.getInitiators().isEmpty()) {
             initiators.addAll(StringSetUtil.stringSetToUriList(exportMask.getInitiators()));
         }
         if (exportMask.getExistingInitiators() != null && 
-            exportMask.getExistingInitiators().size() > 0) {
+            !exportMask.getExistingInitiators().isEmpty()) {
             for (String initStr : exportMask.getExistingInitiators()) {
                 initStr = Initiator.toPortNetworkId(initStr);
                 Initiator init = getInitiator(initStr, dbClient);
@@ -157,7 +157,7 @@ public class ExportUtils {
      */
     public static Set<String> getExportMaskAllInitiatorPorts(ExportMask exportMask, DbClient dbClient) {
         Set<String> ports = new HashSet<String>();
-        if (exportMask.getInitiators() != null && exportMask.getInitiators().size() > 0) {
+        if (exportMask.getInitiators() != null && !exportMask.getInitiators().isEmpty()) {
             List<URI> iniUris = StringSetUtil.stringSetToUriList(exportMask.getInitiators());
             List<Initiator> initiators = dbClient.queryObject(Initiator.class, iniUris);
             for (Initiator ini : initiators) {
@@ -167,7 +167,7 @@ public class ExportUtils {
             }
         }
 
-        if (exportMask.getExistingInitiators() != null && exportMask.getExistingInitiators().size() > 0) {
+        if (exportMask.getExistingInitiators() != null && !exportMask.getExistingInitiators().isEmpty()) {
             for (String initStr : exportMask.getExistingInitiators()) {
                 ports.add(initStr);
             }
@@ -588,7 +588,7 @@ public class ExportUtils {
 			}
 		}
      	existingStoragePorts.removeAll(zoningMapStoragePorts);
-    	if(existingStoragePorts.size() > 0){
+    	if(!existingStoragePorts.isEmpty()){
     		storagePortURIs = StringSetUtil.stringSetToUriList(existingStoragePorts);
     		_log.info("Storage ports needs to be removed are:"+ storagePortURIs);;
     	}

@@ -112,9 +112,9 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             // For 8.0 providers, no need to create target devices and
             // target group separately for volumes in CG.
             // They will be created as part of 'CreateGroupReplica' call.
-            // For 4.6 providers, target devices and target group will be
+            // For 4.6 providers and VMAX3 arrays, target devices and target group will be
             // created separately before 'CreateGroupReplica' call.
-            if (!storage.getUsingSmis80()) {
+            if (storage.checkIfVmax3() || !storage.getUsingSmis80()) {
 	            targetDeviceIds = new ArrayList<String>();
 	            for (Volume clone : clones) {
 	                

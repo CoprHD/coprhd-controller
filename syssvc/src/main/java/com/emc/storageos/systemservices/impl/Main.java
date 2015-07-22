@@ -23,12 +23,11 @@ public class Main {
     private static final Logger _log = LoggerFactory.getLogger(Main.class);
     private static final String BUILD_TYPE = "buildType";
     private static final String SERVICE_BEAN = "syssvcserver";
-    private static GenericXmlApplicationContext ctx;
 
     public static void main(String[] args) {
         try {
             SLF4JBridgeHandler.install();
-            ctx = new GenericXmlApplicationContext();
+            GenericXmlApplicationContext ctx = new GenericXmlApplicationContext();
             ctx.getEnvironment().setActiveProfiles(System.getProperty(BUILD_TYPE));
             ctx.load(args);
             ctx.refresh();

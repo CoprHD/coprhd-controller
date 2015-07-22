@@ -7,15 +7,15 @@
 	<bean id="vnxfile"
 		class="com.emc.storageos.volumecontroller.impl.plugins.VNXFileCommunicationInterface">
 		<property name="executor" ref="vnxfileexecutor" />
-		<property name="_namespaces" ref="namespaces" />
+		<property name="namespaces" ref="namespaces" />
 		<property name="partitionManager" ref="partitionManager"/>
 		<property name="xmlDumpGenerator" ref="fileXMLDumpgenerator"/>
 	</bean>
 
 	<bean id="vnxfileexecutor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileExecutor">
-		<property name="_generator" ref="commandgenerator" />
-        <property name="_util" ref="utility" /> 
+		<property name="generator" ref="commandgenerator" />
+        <property name="util" ref="utility" /> 
 	</bean>
 	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
 
@@ -31,7 +31,7 @@
 
 	<bean id="vnxfilenamespace"
 		class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-		<property name="_operations">
+		<property name="operations">
 			<list>
 				<ref bean="loginoperation" />
 				<ref bean="fileshareinfooperation" />
@@ -45,10 +45,10 @@
 
 	<bean id="loginoperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_processor" ref="authprocessor" />
+		<property name="processor" ref="authprocessor" />
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="dologin" />
-		<property name="_arguments">
+		<property name="method" value="dologin" />
+		<property name="arguments">
 			<list>
 				<ref bean="authuri" />
 				<ref bean="username" />
@@ -60,10 +60,10 @@
 
 	<bean id="fileshareinfooperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_processor" ref="fileshareinfoprocessor" />
+		<property name="processor" ref="fileshareinfoprocessor" />
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="execute" />
-		<property name="_arguments">
+		<property name="method" value="execute" />
+		<property name="arguments">
 			<list>
 				<ref bean="uri" />
 				<ref bean="cookie" />
@@ -75,10 +75,10 @@
 	
 	<bean id="volumestatsoperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_processor" ref="volumestatsprocessor" />
+		<property name="processor" ref="volumestatsprocessor" />
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="execute" />
-		<property name="_arguments">
+		<property name="method" value="execute" />
+		<property name="arguments">
 			<list>
 				<ref bean="uri" />
 				<ref bean="cookie" />
@@ -91,10 +91,10 @@
 
 	<bean id="snapshotoperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_processor" ref="snapshotprocessor" />
+		<property name="processor" ref="snapshotprocessor" />
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="execute" />
-		<property name="_arguments">
+		<property name="method" value="execute" />
+		<property name="arguments">
 			<list>
 				<ref bean="uri" />
 				<ref bean="cookie" />
@@ -106,10 +106,10 @@
 
 	<bean id="fsusageoperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_processor" ref="fsusageprocessor" />
+		<property name="processor" ref="fsusageprocessor" />
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="execute" />
-		<property name="_arguments">
+		<property name="method" value="execute" />
+		<property name="arguments">
 			<list>
 				<ref bean="uri" />
 				<ref bean="cookie" />
@@ -122,8 +122,8 @@
 	<bean id="sessioncleanoperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="disconnect" />
-		<property name="_arguments">
+		<property name="method" value="disconnect" />
+		<property name="arguments">
 			<list>
 				<ref bean="uri" />
 				<ref bean="cookie" />
@@ -135,72 +135,72 @@
 
 	<bean id="fileusagequery"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="fetchFileSystemUsageStats" />
-		<property name="_value" value="" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="fetchFileSystemUsageStats" />
+		<property name="value" value="" />
 	</bean>
 
 	<bean id="filesharequery"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="fetchFileSystemInfo" />
-		<property name="_value" value="" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="fetchFileSystemInfo" />
+		<property name="value" value="" />
 	</bean>	
 	
 	<bean id="volstatsquery"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="fetchVolumeStats" />
-		<property name="_value" value="movers" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="fetchVolumeStats" />
+		<property name="value" value="movers" />
 	</bean>	
 
 	<bean id="snapshotquery"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="fetchCheckpointInfo" />
-		<property name="_value" value="" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="fetchCheckpointInfo" />
+		<property name="value" value="" />
 	</bean>
 
 	<bean id="uri"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="uri" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="uri" />
 	</bean>
 
 	<bean id="authuri"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="authuri" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="authuri" />
 	</bean>
 
 	<bean id="username"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="username" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="username" />
 	</bean>
 
 	<bean id="password"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="password" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="password" />
 	</bean>
 	
 	<bean id="cookie"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="Cookie" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="Cookie" />
 	</bean>
 
 	<bean id="session"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="CelerraConnector-Sess" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="CelerraConnector-Sess" />
 	</bean>
 
 
@@ -267,9 +267,9 @@
 
 
 	<bean id="portnumber" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="portnumber" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="portnumber" />
 	</bean>
 	
 	<!-- Bean id for utility -->

@@ -40,8 +40,8 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	private static final String MDS_ROUTED_INDICATOR = "Virtual Device"; 
 	private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
 
-    private static CoordinatorClient _coordinator;
-    private static DbClient _dbClient; 	
+    private static volatile CoordinatorClient _coordinator;
+    private static volatile DbClient _dbClient; 	
 	
 
     /**
@@ -211,7 +211,9 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 				Integer vsanId = new Integer(fabricId);
 				vsanWwnMap = dialog.getVsanWwns(new Integer (fabricId));
 				if (vsanWwnMap.get(vsanId).equals(fabricWwn)) return vsanId;
-			} catch (Exception ex) { }
+			} catch (Exception ex) {
+			    _log.warn("Exception while getting vsan wwns for {}", fabricId, ex);
+			}
 			// fabricId mal-formated (i.e. not a Vsan number) or doesn't match WWN
 			vsanWwnMap = dialog.getVsanWwns(null);
 			for (Integer v : vsanWwnMap.keySet()) {
@@ -664,6 +666,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             try {
                 Thread.sleep(MDSDialogProperties.SLEEP_TIME_PER_RETRY);
             } catch (InterruptedException ex) {
+                _log.warn(ex.getLocalizedMessage());
             }
             isInSession = dialog.isSessionInProgress(vsanId);
         }

@@ -50,7 +50,7 @@ public class DbSchemaChecker {
             + "by %s against ViPR version %s, at %s\n"
             + "Please DO NOT modify the content.\n-->\n";
 
-    static void Usage() {
+    static void usage() {
         log.info("dbchecker [-i ignored-pkg1:ignored-pkg2:...] [-l geo|all] schema-file" +
                 " pkg1:pkg2");
         log.info("           -i: packages to ignore during schema comparison");
@@ -86,7 +86,7 @@ public class DbSchemaChecker {
             if (args[i].equals("-i")) {
                 ignoredPkgs = args[++i].split(":");
                 if (ignoredPkgs.length == 0) {
-                    Usage();
+                    usage();
                     throw new IllegalArgumentException("no ignored packages provided");
                 }
                 continue;
@@ -104,7 +104,7 @@ public class DbSchemaChecker {
                     schemaLock = SchemaLockType.valueOf(lock.toUpperCase());
                     log.info("Schema lock:{}", schemaLock);
                 } catch (IllegalArgumentException e) {
-                    Usage();
+                    usage();
                     throw new IllegalArgumentException("Invalid schema lock: "+lock);
                 }
                 continue;
@@ -126,11 +126,11 @@ public class DbSchemaChecker {
         }
 
         if (baseCallbackFile==null || currentCallbackFile==null){
-        	Usage();
+        	usage();
         	throw new IllegalArgumentException("no migraton callback file provided");
         }
         if (schemaFile == null || pkgs.length == 0) {
-            Usage();
+            usage();
             throw new IllegalArgumentException("no schema file or packages provided");
         }
         
@@ -375,7 +375,7 @@ public class DbSchemaChecker {
 		}
 
 		private static boolean hasClassAnnotation(DbSchema dbSchema) {
-			return dbSchema.getAnnotations().getAnnotations()!=null && dbSchema.getAnnotations().getAnnotations().size()>0;
+			return dbSchema.getAnnotations().getAnnotations()!=null && !dbSchema.getAnnotations().getAnnotations().isEmpty();
 		}
 	}
 }

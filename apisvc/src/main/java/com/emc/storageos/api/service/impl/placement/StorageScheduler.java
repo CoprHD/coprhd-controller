@@ -409,7 +409,7 @@ public class StorageScheduler implements Scheduler{
                     // source Label is set as alternate name for target Cgs, so that the same name can be used to create targte CGs in Array.
                     List<URI> cgUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getBlockConsistencyGroupByAlternateNameConstraint(consistencyGroup.getLabel()));
-                    if (cgUris.size() > 0) {
+                    if (!cgUris.isEmpty()) {
                         BlockConsistencyGroup targetCgGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgUris.get(0));
                         if (null != targetCgGroup && !targetCgGroup.getInactive() && null != targetCgGroup.getStorageController() &&
                         		!NullColumnValueGetter.getNullURI().equals(targetCgGroup.getStorageController())) {
@@ -474,12 +474,12 @@ public class StorageScheduler implements Scheduler{
         StringSetMap arrayInfo = vpool.getArrayInfo();
         if (null != arrayInfo) {
             Set<String> raidLevels = arrayInfo.get(VirtualPoolCapabilityValuesWrapper.RAID_LEVEL);
-            if (null != raidLevels && raidLevels.size() > 0) {
+            if (null != raidLevels && !raidLevels.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.raid_levels.name(), raidLevels);
             }
             
             Set<String> systemTypes = arrayInfo.get(AttributeMatcher.Attributes.system_type.name());
-            if (null != systemTypes && systemTypes.size() > 0) {
+            if (null != systemTypes && !systemTypes.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.system_type.name(), systemTypes);
             }
         }
@@ -749,7 +749,7 @@ public class StorageScheduler implements Scheduler{
 
                 // IBM XIV needs all volumes in the same pool in order to add to a CG
                 if (recommendedPool.getPoolClassName() != null 
-                        && recommendedPool.getPoolClassName().equals(PoolClassNames.IBMTSDS_VirtualPool)
+                        && recommendedPool.getPoolClassName().equals(PoolClassNames.IBMTSDS_VirtualPool.name())
                         && capabilities.getBlockConsistencyGroup() != null
                         && currentCount != capabilities.getResourceCount()) {
                     // can not put all resources to the same IBM XIV pool

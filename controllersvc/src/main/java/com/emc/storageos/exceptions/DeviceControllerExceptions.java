@@ -197,6 +197,9 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException srdfConsistencyGroupNotFoundOnProviders();
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException srdfBothSourceAndTargetProvidersNotReachable();
     
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failbackVolumeOperationFailed(final String message, final Throwable cause);

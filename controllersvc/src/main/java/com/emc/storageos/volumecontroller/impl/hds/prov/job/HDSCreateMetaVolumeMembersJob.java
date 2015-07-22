@@ -103,7 +103,7 @@ public class HDSCreateMetaVolumeMembersJob extends HDSJob {
                     logMsgBuilder.append(String.format("   Created required number %s of meta members for meta head %s, task: %s .",
                             count, metaHead.getLabel(), opId));
                     metaMembers.addAll(luObjectIdList);
-                    logMsgBuilder.append(String.format("\n   Meta member device ID's: %s", metaMembers));
+                    logMsgBuilder.append(String.format("%n Meta member device ID's: %s", metaMembers));
                    
                     _log.info(logMsgBuilder.toString());
                 }

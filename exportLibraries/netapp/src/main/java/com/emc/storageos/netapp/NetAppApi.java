@@ -26,6 +26,13 @@ import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 import com.iwave.ext.netapp.model.Qtree;
 
+@SuppressWarnings({"findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD","squid:S2175","squid:S2444"})
+/*
+ * Following Jiras raised for tracking. The fix will be made in the future release
+ * Jira COP-32 -Change static netAppFascade in future 
+ * Jira COP-33 - Change the code for Inappropriate Collection call
+ */
+
 public class NetAppApi {
     private static Map<String, String> ntpSecMap = null;
     private static Map<String, String> cifsPermissionMap = null;
@@ -133,8 +140,8 @@ public class NetAppApi {
         _vFilerName = builder._vFilerName;
     }
 
-	public Boolean createVolume(String volName, String aggregate, String size, Boolean isThin) {
-		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+	public Boolean createVolume(String volName, String aggregate, String size, Boolean isThin) { 
+		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
 				_password, _https);
 		String spaceReserve = "";
 		if(isThin)
@@ -178,7 +185,7 @@ public class NetAppApi {
 		
 		// If vFiler enabled, need to add storage to vFiler.
 		if (status && _vFilerName != null && !_vFilerName.equals(DEFAULT_VFILER)) {
-		    netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+		    netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
 	                _password, _https, DEFAULT_VFILER);
 		    
 		    try {
@@ -218,9 +225,10 @@ public class NetAppApi {
         return true;
     }
 
-    public Boolean deleteFS(String volName) throws NetAppException {
-    	try {
-    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    public Boolean deleteFS(String volName) throws NetAppException { 
+    	try { 
+    		
+    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
     				_password, _https);
     		List<String> volumes= netAppFacade.listVolumes();
     		if(!volumes.contains(volName)) {
@@ -241,9 +249,9 @@ public class NetAppApi {
     	}
     }
 
-    public Boolean offlineVol(String volName) throws NetAppException {
+    public Boolean offlineVol(String volName) throws NetAppException { 
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             netAppFacade.setVolumeOffline(volName, 1);
             return true;
@@ -253,13 +261,14 @@ public class NetAppApi {
         }
     }
     
-    public Boolean deleteAllQTrees(String volName) throws NetAppException {
+    public Boolean deleteAllQTrees(String volName) throws NetAppException { 
     	String qtreeName = null;
-    	try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    	try { 
+    		
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             List<Qtree> qtrees = netAppFacade.listQtrees(volName);
-            if(qtrees != null && qtrees.size() > 0) {
+            if(qtrees != null && !qtrees.isEmpty()) {
             	for(Qtree qtree : qtrees ){
             		qtreeName = qtree.getQtree();
             		// Skip the unnamed Qtree.
@@ -287,7 +296,7 @@ public class NetAppApi {
         	}
 
 			List<ExportsRuleInfo> exportRules = listNFSExportRules(volName);
-			if (exportRules.size() < 1) {
+			if (exportRules.isEmpty()) {
 				_logger.info("Export doesn't exist on the array delete {}", exportPath);
 				return true;
 			}
@@ -341,7 +350,7 @@ public class NetAppApi {
 
 	public Boolean exportFS(String mountPath, String exportPath,
 			List<String> rootHosts, List<String> rwHosts, List<String> roHosts,
-			String root_user, String securityStyle) throws NetAppException {
+			String root_user, String securityStyle) throws NetAppException { 
 		try {
 
 			if ((null == roHosts) && (null == rwHosts) && (null == rootHosts)) {
@@ -383,7 +392,7 @@ public class NetAppApi {
 						rootMappingUid, roHosts, roAddAll, rwHosts, rwAddAll,
 						rootHosts, rootAddAll, secruityStyleList);
 
-				if (FsList.size() < 1) {
+				if (FsList.isEmpty()) {
 					return false;
 				}
 
@@ -397,20 +406,20 @@ public class NetAppApi {
 	public void addRootToHosts(List<String> rootHosts, List<String> rwHosts) {
 		if (null != rootHosts) {
 			for (String rootHost : rootHosts) {
-				if ((null != rwHosts) && (!(rwHosts.contains(rootHosts)))) {
+				if ((null != rwHosts) && (!(rwHosts.contains(rootHosts)))) { 
 					rwHosts.add(rootHost);
 				}
 			}
 		}
 	}
 	
-    public Boolean unexportFS(String mountPath, String exportPath)
+    public Boolean unexportFS(String mountPath, String exportPath) 
             throws NetAppException {
 
         try {
-            _logger.debug("Un-Exporting NFS share...");
+            _logger.debug("Un-Exporting NFS share...");  
 
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https, _vFilerName);
 
             netAppFacade.deleteNFSShare(mountPath, false);
@@ -421,9 +430,9 @@ public class NetAppApi {
     }
 
     public List<ExportsRuleInfo> listNFSExportRules(String pathName)
-            throws NetAppException {
+            throws NetAppException { 
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,    		
                     _password, _https);
             return netAppFacade.listNFSExportRules(pathName);
         } catch (Exception e) {
@@ -432,10 +441,10 @@ public class NetAppApi {
     }
 
     public Boolean setVolumeSize(String volume, String newSize)
-          throws NetAppException{
+          throws NetAppException{ 
 
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             String cmdResult =  netAppFacade.setVolumeSize(volume, newSize);
             //Return value is a empty string if the operation is not success
@@ -448,10 +457,10 @@ public class NetAppApi {
         }
     }
 
-    public List<Map<String, String>> listVolumeInfo(String volume,
+    public List<Map<String, String>> listVolumeInfo(String volume, 
             Collection<String> attrs) throws NetAppException {
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             return netAppFacade.listVolumeInfo(volume, attrs);
         } catch (Exception e) {
@@ -459,10 +468,11 @@ public class NetAppApi {
         }
     }
 
-    public List<AggregateInfo> listAggregates(String name)
+    public List<AggregateInfo> listAggregates(String name) 
             throws NetAppException {
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    		
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             return netAppFacade.listAggregates(name);
         } catch (Exception e) {
@@ -470,10 +480,11 @@ public class NetAppApi {
         }
     }
 
-    public List<VFilerInfo> listVFilers(String name) {
+    public List<VFilerInfo> listVFilers(String name) { 
         List<VFilerInfo> vFilers = null;
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    		
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,    		
                     _password, _https);
             vFilers = netAppFacade.listVFilers();
         } catch (Exception e) {
@@ -483,9 +494,9 @@ public class NetAppApi {
         return vFilers;
     }
 
-    public Map<String, String> systemInfo() throws NetAppException {
+    public Map<String, String> systemInfo() throws NetAppException { 
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,   
                     _password, _https);
             return netAppFacade.systemInfo();
         } catch (Exception e) {
@@ -493,9 +504,9 @@ public class NetAppApi {
         }
     }
 
-    public Map<String, String> systemVer() throws NetAppException {
+    public Map<String, String> systemVer() throws NetAppException { 
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             Map<String, String> info = netAppFacade.systemVersion();
             Map<String, String> versionInfo = new HashMap<String, String>();
@@ -522,27 +533,28 @@ public class NetAppApi {
         }
     }
 
-    public Boolean createSnapshot(String volumeName, String snapshotName)
+    public Boolean createSnapshot(String volumeName, String snapshotName) 
             throws NetAppException {
-        try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https);
+        try { 
+    		
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
+                    _password, _https); 
             return netAppFacade.createVolumeSnapshot(volumeName, snapshotName,
                     false);
         } catch (Exception e) {
             throw NetAppException.exceptions.createSnapshotFailed(volumeName, 
                     snapshotName, _ipAddress, e.getMessage());
         }
-    }
+    } 
 
-	public Boolean deleteSnapshot(String volumeName, String snapshotName)
-			throws NetAppException {
-		try {
-			netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+	public Boolean deleteSnapshot(String volumeName, String snapshotName) 
+			throws NetAppException { 
+		try { 
+			netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
 					_password, _https);
 			List<String> snapshots = (List<String>) netAppFacade
 					.listSnapshots(volumeName);
-			if ((null != snapshots) && (snapshots.size() > 0)) {
+			if ((null != snapshots) && (!snapshots.isEmpty())) {
 				if (snapshots.toString().contains(snapshotName)) {
 					return netAppFacade.deleteVolumeSnapshot(volumeName, snapshotName);
 				}
@@ -557,7 +569,7 @@ public class NetAppApi {
     public Boolean restoreSnapshot(String volumeName, String snapshotName)
             throws NetAppException {
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             return netAppFacade.restoreVolumeFromSnapshot(volumeName, snapshotName);
         } catch (Exception e) {
@@ -612,7 +624,7 @@ public class NetAppApi {
             } else {
                 mountPath = "/vol" + mntpath;
             }
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https, _vFilerName);
             if(!netAppFacade.addCIFSShare(mountPath, shareName, comment, maxusers, forcegroup)){
                 return false;
@@ -629,8 +641,7 @@ public class NetAppApi {
     
     public void setQtreemode(String volPath, String mode) throws NetAppException {
         try {                    
-            
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https, _vFilerName);
             netAppFacade.setQTreeSecurityStyle(volPath, mode);
             
@@ -638,7 +649,7 @@ public class NetAppApi {
             throw NetAppException.exceptions.setVolumeQtreeModeFailed(volPath, mode);
         }        
     }
-    public Boolean modifyShare(String mntpath, String shareName, String comment, int maxusers, String permission, String forcegroup) throws NetAppException {
+    public Boolean modifyShare(String mntpath, String shareName, String comment, int maxusers, String permission, String forcegroup) throws NetAppException { 
         try {
 
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
@@ -658,7 +669,7 @@ public class NetAppApi {
     
     public boolean deleteShare(String shareName) throws NetAppException {
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https, _vFilerName);
             netAppFacade.deleteCIFSShare(shareName);
             return true;
@@ -667,7 +678,7 @@ public class NetAppApi {
         }        
     }
    
-    public void modifyShare(String shareName, Map <String, String>  attrs) throws NetAppException {
+    public void modifyShare(String shareName, Map <String, String>  attrs) throws NetAppException { 
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
@@ -679,9 +690,9 @@ public class NetAppApi {
     }
     
     
-    public List<Map<String, String>>  listShares(String shareName) throws NetAppException {
+    public List<Map<String, String>>  listShares(String shareName) throws NetAppException { 
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             return netAppFacade.listCIFSShares(shareName);
         } catch (Exception e) {
@@ -690,9 +701,10 @@ public class NetAppApi {
         }        
     }
     
-    public List<String>  listFileSystems() throws NetAppException {
+    public List<String>  listFileSystems() throws NetAppException { 
         try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    		
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             return netAppFacade.listVolumes();
         } catch (Exception e) {
@@ -700,9 +712,9 @@ public class NetAppApi {
         }        
     }
     
-    public Map<String, String>  getFileSystemInfo(String fileSystem) throws NetAppException {
+    public Map<String, String>  getFileSystemInfo(String fileSystem) throws NetAppException { 
         try {            
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                     _password, _https);
             return netAppFacade.getVolumeInfoAttributes(fileSystem, true);
         } catch (Exception e) {
@@ -710,10 +722,12 @@ public class NetAppApi {
         }        
     } 
     
-    public List<String> listSnapshots(String volumeName) throws NetAppException {
+    @SuppressWarnings ("findbugs:ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
+    public List<String> listSnapshots(String volumeName) throws NetAppException { 
         List<String> snapshots = null;
-        try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+        try { 
+    		
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,    		
                     _password, _https);
             snapshots = (List<String>) netAppFacade
                     .listSnapshots(volumeName);
@@ -722,14 +736,13 @@ public class NetAppApi {
             _logger.info("Failed to retrieve list of snapshots for {} due to {}", params);
         }
         return snapshots;
-    }
+    } 
      
     // New QTree methods
-    public void createQtree(String qtreeName, String volumeName, Boolean opLocks, String securityStyle, Long size, String vfilerName) 
+    public void createQtree(String qtreeName, String volumeName, Boolean opLocks, String securityStyle, Long size, String vfilerName)  
     		throws NetAppException {
-    	try {
-    		
-    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    	try { 
+    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                         _password, _https, vfilerName);
     		
     		            
@@ -806,10 +819,9 @@ public class NetAppApi {
     	}
     }
     
-    public void deleteQtree(String qtreeName, String volumeName, String vfilerName) throws NetAppException {
-    	try {
-    		
-    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    public void deleteQtree(String qtreeName, String volumeName, String vfilerName) throws NetAppException { 
+    	try { 
+    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                         _password, _https, vfilerName);
             
             /*
@@ -841,7 +853,7 @@ public class NetAppApi {
     		throws NetAppException {
     	try {
     		
-    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+    		netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, 
                         _password, _https, vfilerName);
     		
             String qtreePath = "/vol/" + volumeName + "/" + qtreeName;
@@ -890,12 +902,12 @@ public class NetAppApi {
     	}
     }
 
-	public Boolean exportNewFS(String exportPath, List<ExportRule> exportRules) throws NetAppException {
+	public Boolean exportNewFS(String exportPath, List<ExportRule> exportRules) throws NetAppException { 
 		try {
 			List<String> fsList = null;
 			if (netAppFacade == null) {
 				_logger.warn("Invalid Facade found {} creating now...", netAppFacade);
-				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https); 
 				_logger.warn("Facade created : {} ", netAppFacade);
 			} 
 			_logger.info("NetApp Inputs for exportNewFS exportPath: {} , exportRules size {}", exportPath, exportRules.size());
@@ -908,7 +920,7 @@ public class NetAppApi {
 			}
 			
 			fsList = netAppFacade.addNewNFSShare(exportPath, netAppCompatableRules);
-			if (fsList.size() < 1) {
+			if (fsList.isEmpty()) {
 				return false;
 			}
 
@@ -920,11 +932,11 @@ public class NetAppApi {
 		return true;
 	}
 	
-	public Boolean modifyNFSShare(String exportPath, List<ExportRule> exportRules) throws NetAppException {
+	public Boolean modifyNFSShare(String exportPath, List<ExportRule> exportRules) throws NetAppException { 
 		try {
 			if (netAppFacade == null) {
 				_logger.warn("Invalid Facade found {} creating now...", netAppFacade);
-				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https); 
 				_logger.warn("Facade created : {} ", netAppFacade);
 			} 
 			_logger.info("NetApp Inputs for modifyNFSShare exportPath: {} , exportRules size {}", exportPath, exportRules.size());
@@ -946,11 +958,11 @@ public class NetAppApi {
 		return true;
 	}
 	
-	public Boolean modifyCIFSShareAcl(String shareName, List<CifsAcl> acls) throws NetAppException {
+	public Boolean modifyCIFSShareAcl(String shareName, List<CifsAcl> acls) throws NetAppException { 
 		try {
 			if (netAppFacade == null) {
 				_logger.warn("Invalid Facade found {} creating now...", netAppFacade);
-				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https); 
 				_logger.warn("Facade created : {} ", netAppFacade);
 			} 
 
@@ -966,11 +978,11 @@ public class NetAppApi {
 		return true;
 	}
 
-	public List<CifsAcl> listCIFSShareAcl(String ShareName) throws NetAppException {
+	public List<CifsAcl> listCIFSShareAcl(String ShareName) throws NetAppException { 
 		try {
 			if (netAppFacade == null) {
 				_logger.warn("Invalid Facade found {} creating now...", netAppFacade);
-				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https); 
 				_logger.warn("Facade created : {} ", netAppFacade);
 			} 
 
@@ -985,11 +997,11 @@ public class NetAppApi {
 	}
 
 
-	public Boolean deleteCIFSShareAcl(String shareName, List<CifsAcl> acls) throws NetAppException {
+	public Boolean deleteCIFSShareAcl(String shareName, List<CifsAcl> acls) throws NetAppException { 
 		try {
 			if (netAppFacade == null) {
 				_logger.warn("Invalid Facade found {} creating now...", netAppFacade);
-				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https);
+				netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName, _password, _https); 
 				_logger.warn("Facade created : {} ", netAppFacade);
 			} 
 			for (CifsAcl acl:acls){
@@ -1012,13 +1024,13 @@ public class NetAppApi {
 		dest.setExportPath(orig.getExportPath());
 		dest.setSecFlavor(orig.getSecFlavor());
 		dest.setAnon(orig.getAnon());
-		if (orig.getReadOnlyHosts()!=null && orig.getReadOnlyHosts().size() > 0){
+		if (orig.getReadOnlyHosts()!=null && !orig.getReadOnlyHosts().isEmpty()){
 			dest.setReadOnlyHosts(orig.getReadOnlyHosts());
 		}
-		if (orig.getReadWriteHosts()!=null && orig.getReadWriteHosts().size() > 0){
+		if (orig.getReadWriteHosts()!=null && !orig.getReadWriteHosts().isEmpty()){
 			dest.setReadWriteHosts(orig.getReadWriteHosts());
 		}
-		if (orig.getRootHosts()!=null && orig.getRootHosts().size() > 0){
+		if (orig.getRootHosts()!=null && !orig.getRootHosts().isEmpty()){
 			dest.setRootHosts((orig.getRootHosts()));
 		}
 

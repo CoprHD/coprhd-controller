@@ -560,4 +560,9 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public void doUpdateSourceAndTargetPairings(List<URI> sourceURIs, List<URI> targetURIs) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void refreshStorageSystem(URI systemURI) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

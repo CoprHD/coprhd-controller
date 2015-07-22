@@ -310,7 +310,7 @@ public class NetworkScheduler {
         // Find the FCZoneReference in ViPR for the port-initiator key and the network
         String key = FCZoneReference.makeEndpointsKey(initiatorWwn, portWwn);
         List<FCZoneReference> fcZoneRefs = getFCZoneReferencesForKey(key);
-        if (fcZoneRefs.size() > 0) {
+        if (!fcZoneRefs.isEmpty()) {
             Zone matchedZone = null; 
             _log.info("Found {} FCZoneReference for key {}", fcZoneRefs.size(), key);
             // try to re-use zones known to ViPR as a first preference

@@ -134,7 +134,7 @@ public class UnManagedExportVerificationUtility {
 				URI unFileSystemtURI = iter.next();
 				filesystemUris.add(unFileSystemtURI);
 			}
-			if (filesystemUris.size() > 0) {
+			if (!filesystemUris.isEmpty()) {
 				_log.warn(
 						"Rule with native guid {} already exists in DB.",
 						exportRule.getNativeGuid());

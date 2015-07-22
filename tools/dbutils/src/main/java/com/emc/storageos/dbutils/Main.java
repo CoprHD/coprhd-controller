@@ -78,47 +78,47 @@ public class Main {
      * Dump usage
      */
     private static void usage() {
-        System.out.printf("Usage: \n");
-        System.out.printf("\t%s [%s <n>] [%s] <Column Family Name>\n",
+        System.out.printf("Usage: %n");
+        System.out.printf("\t%s [%s <n>] [%s] <Column Family Name>%n",
                 Command.LIST.name().toLowerCase(), LIST_LIMIT, LIST_ACTIVE);
         System.out.printf("\t\t%s <n>\t List paginated with a limit of <n>, "
-                + "if <n> is missing, default is 100.\n", LIST_LIMIT);
-        System.out.printf("\t\t%s\t List exclude inactive object ids.\n", LIST_ACTIVE);
-        System.out.printf("\t%s <Column Family Name> <id>\n", Command.QUERY.name().toLowerCase());
-        System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]\n",
+                + "if <n> is missing, default is 100.%n", LIST_LIMIT);
+        System.out.printf("\t\t%s\t List exclude inactive object ids.%n", LIST_ACTIVE);
+        System.out.printf("\t%s <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase());
+        System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",
                 Command.LIST.name().toLowerCase(), TYPE_EVENTS, TYPE_STATS, TYPE_AUDITS);
-        System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>\n", Command.DELETE.name().toLowerCase());
-        System.out.printf("\t\t%s\t<file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.\n", DELETE_FILE);
-        System.out.printf("\t%s [%s] <Column Family Name>\n",
+        System.out.printf("\t%s [-force] <Column Family Name> <id/-file file_path>%n", Command.DELETE.name().toLowerCase());
+        System.out.printf("\t\t%s\t<file_path>\tEvery single line in this file is an object id, multiple object ids should be separated to different line.%n", DELETE_FILE);
+        System.out.printf("\t%s [%s] <Column Family Name>%n",
                 Command.COUNT.name().toLowerCase(), LIST_ACTIVE);
-        System.out.printf("\t\t%s\t Count exclude inactive object ids.\n", LIST_ACTIVE);
-        System.out.printf("\t%s <%s/%s/%s> <START TIME> <END TIME>[eg:2012/05/18/15]\n",
+        System.out.printf("\t\t%s\t Count exclude inactive object ids.%n", LIST_ACTIVE);
+        System.out.printf("\t%s <%s/%s/%s> <START TIME> <END TIME>[eg:2012/05/18/15]%n",
                 Command.GET_RECORDS.name().toLowerCase(), "Events", "Stats", "AuditLogs");
-        System.out.printf("\t%s %s %s %s %s %s\n",
+        System.out.printf("\t%s %s %s %s %s %s%n",
                 Command.GLOBALLOCK.name().toLowerCase(), "CREATE", "<lock name>", "<owner>", "(<mode>)", "(<timeout>)");
-        System.out.printf("\t\tNote: For <mode>, could be GL_NodeSvcShared_MODE or GL_VdcShared_MODE(default).\n");
-        System.out.printf("\t\t    : For <timeout>, unit is millisecond and 0 (default) means never expired.\n");
-        System.out.printf("\t%s %s %s \n",
+        System.out.printf("\t\tNote: For <mode>, could be GL_NodeSvcShared_MODE or GL_VdcShared_MODE(default).%n");
+        System.out.printf("\t\t    : For <timeout>, unit is millisecond and 0 (default) means never expired.%n");
+        System.out.printf("\t%s %s %s %n",
                 Command.GLOBALLOCK.name().toLowerCase(), "READ", "<lock name>");
-        System.out.printf("\t%s %s %s \n",
+        System.out.printf("\t%s %s %s %n",
                 Command.GLOBALLOCK.name().toLowerCase(), "DELETE", "<lock name>");
-        System.out.printf("\t%s <schema version> <dump filename>\n",
+        System.out.printf("\t%s <schema version> <dump filename>%n",
                 Command.DUMP_SCHEMA.name().toLowerCase());
-        System.out.printf("\t%s <dump filename>\n",
+        System.out.printf("\t%s <dump filename>%n",
                 Command.DUMP_SECRETKEY.name().toLowerCase());
-        System.out.printf("\t%s <restore filename>\n",
+        System.out.printf("\t%s <restore filename>%n",
                 Command.RESTORE_SECRETKEY.name().toLowerCase());
-        System.out.printf("\t%s [%s] [%s] Recover Vdc.\n",
+        System.out.printf("\t%s [%s] [%s] Recover Vdc.%n",
                 Command.RECOVER_VDC_CONFIG.name().toLowerCase(), RECOVER_DUMP, RECOVER_LOAD);
-        System.out.printf("\t%s [%s] [%s] Geodb blacklist.\n",
+        System.out.printf("\t%s [%s] [%s] Geodb blacklist.%n",
                 Command.GEOBLACKLIST.name().toLowerCase(), "-reset|set", "<vdc short id>");
-        System.out.printf("\t%s Check correctness for URI and serialize in db\n",
+        System.out.printf("\t%s Check correctness for URI and serialize in db%n",
                 Command.CHECK_DB.name().toLowerCase());
-        System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]\n",
+        System.out.printf("\t%s -db|-geodb [-new] [-crossVdc]%n",
                 Command.REPAIR_DB.name().toLowerCase());
-        System.out.printf("\t\tNote: %s option can only be executed as %s user\n",
+        System.out.printf("\t\tNote: %s option can only be executed as %s user%n",
                 Command.REPAIR_DB.name().toLowerCase(), STORAGEOS_USER);
-        System.out.printf("\t -bypassMigrationCheck\n");
+        System.out.printf("\t -bypassMigrationCheck%n");
         System.out.printf("\t\tNote: it's used with other commands together only when migration fail, dbutils still work even migration fail if you pass this option");
     }
 
@@ -192,7 +192,9 @@ public class Main {
         }
 
         try {
-            _client = new DBClient(skipMigrationCheck);
+            //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+            //This is a CLI application and main method will not be called by multiple threads
+            _client = new DBClient(skipMigrationCheck); //NOSONAR ("squid:S2444")
 
             CommandHandler handler = null;
             boolean result = false;
@@ -251,8 +253,8 @@ public class Main {
             }
             handler.process(_client);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println("Exception e="+e);
+            System.err.println("Exception e=" + e);
+            log.error("Exception e=", e);
             usage();
         } finally {
             stop();

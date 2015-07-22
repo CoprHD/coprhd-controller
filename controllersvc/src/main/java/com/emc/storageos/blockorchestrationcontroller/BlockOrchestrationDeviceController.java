@@ -201,7 +201,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         } catch (Exception ex) {
             s_logger.error("Could not expand volume: " + volUris,toString(), ex);
             String opName = ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME.getName();
-            ServiceError serviceError = DeviceControllerException.errors.expandVolumeFailed(volUris.toString(), opName, ex);
+            ServiceError serviceError = 
+            		DeviceControllerException.errors.expandVolumeFailed(volUris.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
@@ -306,7 +307,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = String.format(
-                "Change virtual array suceeded for volumes: &s", changeVArrayVolURIList);
+                "Change virtual array suceeded for volumes: %s", changeVArrayVolURIList);
             Object[] callbackArgs = new Object[] { changeVArrayVolURIList };
             workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
         } catch (Exception ex) {
@@ -336,7 +337,9 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 }, null);
 
         // If no volume descriptors match, just return
-        if (rpVolumeDescriptors.isEmpty()) return waitFor;
+        if (rpVolumeDescriptors.isEmpty()){
+        	return waitFor;
+        }
                         
         List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();
         
@@ -363,15 +366,18 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     // for creating the CG and adding the backing volume to it.
                     Volume assocVolume = s_dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
                     VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                            assocVolume.getStorageController(), assocVolume.getId(), null, rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
+                            assocVolume.getStorageController(), assocVolume.getId(), null, 
+                            rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
                     blockDataDescriptors.add(blockDataDesc);
                     
                     // Good time to update the backing volume with it's new CG
                     assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
                     s_dbClient.persistObject(assocVolume);
                     
-                    s_logger.info(String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].", 
-                            assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(), assocVolume.getStorageController()));
+                    s_logger.info(
+                    		String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].", 
+                            assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(), 
+                            assocVolume.getStorageController()));
                 }
             }            
         }

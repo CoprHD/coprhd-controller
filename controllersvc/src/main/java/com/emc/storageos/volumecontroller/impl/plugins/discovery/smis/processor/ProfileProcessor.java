@@ -53,7 +53,7 @@ public class ProfileProcessor extends Processor {
         CIMInstance profileInstance = isRegisteredProfileValid(it);
         if (null != profileInstance) {
             _logger.info("RegisteredProfile : {}", profileInstance.getObjectPath());
-            addPath(keyMap, operation.get_result(), profileInstance.getObjectPath());
+            addPath(keyMap, operation.getResult(), profileInstance.getObjectPath());
         } else {
             throw new SMIPluginException(
                     "Provider Version not supported,hence skipping scanning",

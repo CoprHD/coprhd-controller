@@ -6025,7 +6025,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String successMessage = String.format(
                     "ExportGroup %s successfully updated for StorageArray %s",
                     exportGroup.getLabel(), storage.getLabel());
-            storageWorkflow.set_service(_workflowService);
+            storageWorkflow.setService(_workflowService);
             storageWorkflow.executePlan(taskCompleter, successMessage);
         } catch (Exception ex) {
             _log.error("ExportGroupUpdate Orchestration failed.", ex);
@@ -7509,7 +7509,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // VPLEX volume.
                 for (URI vplexVolumeURI : vplexVolumeURIs) {
                     waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                        vplexVolumeURI, waitFor, null);
+                        vplexVolumeURI, null, null);
                 }
 
                 // Now create a workflow step to natively restore the backend

@@ -47,10 +47,10 @@ public class CelerraConnectionTest {
     private static final int LISTENER_QUEUE_SIZE = 1000;
 
     // Connection reference.
-    private static CelerraConnection _connection = null;
+    private static volatile CelerraConnection _connection = null;
     
     // Message Specs list reference.
-    private static CelerraMessageSpecList _msgSpecList = null;
+    private static volatile CelerraMessageSpecList _msgSpecList = null;
 
     /**
      * Creates a Celerra connection.

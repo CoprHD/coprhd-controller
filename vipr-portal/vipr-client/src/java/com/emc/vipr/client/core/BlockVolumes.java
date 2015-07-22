@@ -37,6 +37,7 @@ import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
@@ -254,6 +255,20 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
     public List<ITLRestRep> getExports(URI id) {
         ITLRestRepList response = client.get(ITLRestRepList.class, getIdUrl() + "/exports", id);
         return defaultList(response.getExportList());
+    }
+    
+    /**
+     * Gets the exports for a list of volumes.
+     * <p>
+     * API Call: <tt>POST /block/volumes/exports/bulk</tt>
+     * 
+     * @param ids
+     *      the IDs of the block volumes.
+     *      
+     * @return the list of exports.
+     */
+    public ITLBulkRep getExports(BulkIdParam ids) {
+        return client.post(ITLBulkRep.class, ids, baseUrl + "/exports/bulk");
     }
 
     /**

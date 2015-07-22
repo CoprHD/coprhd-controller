@@ -64,16 +64,22 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         svc.setVersion("1");
         _dbinfo = svc;
         
-        defaultProperties = new Properties();
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //Junit test will be called in single thread by default, it's safe to ignore this violation
+        defaultProperties = new Properties(); //NOSONAR ("squid:S2444")
         defaultProperties.put("controller_max_pool_utilization_percentage", "300");
     }
 
     public static void setDefaultProperties(Properties defaults) {
-        defaultProperties = defaults;
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //Junit test will be called in single thread by default, it's safe to ignore this violation
+        defaultProperties = defaults; //NOSONAR ("squid:S2444")
     }
 
     public static void setOvfProperties(Properties ovfProps) {
-        ovfProperties = ovfProps;
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //Junit test will be called in single thread by default, it's safe to ignore this violation
+        ovfProperties = ovfProps; //NOSONAR ("squid:S2444")
     }
     
     @Override

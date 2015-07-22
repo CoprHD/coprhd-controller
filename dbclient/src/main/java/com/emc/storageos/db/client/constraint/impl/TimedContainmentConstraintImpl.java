@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.db.client.constraint.impl;
 
-import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
@@ -22,7 +21,7 @@ import java.net.URI;
  * A containment constraint that returns only those elements from the index that were added between startTime and endTime
  */
 public class TimedContainmentConstraintImpl extends ConstraintImpl {
-    private static final long MILLIS_TO_MICROS = 1000l;
+    private static final long MILLIS_TO_MICROS = 1000L;
 
     private final long startTimeMicros;
     private final long endTimeMicros;
@@ -95,7 +94,6 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
                 if (endTimeMicros > 0 && columnTime > endTimeMicros) {
                     return false;
                 }
-
                 return true;
             }
         };
@@ -111,8 +109,9 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
         URI ret;
         if (field.getIndex() instanceof RelationDbIndex) {
             ret = URI.create(col.getName().getTwo());
-        }else
-            ret = URI.create(col.getName().getFour());
+        }else {
+        	ret = URI.create(col.getName().getFour());
+        }
 
         return ret;
     }

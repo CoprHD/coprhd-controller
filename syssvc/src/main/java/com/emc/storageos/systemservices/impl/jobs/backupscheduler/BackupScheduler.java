@@ -61,7 +61,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private static final long SCHEDULE_BACKUP_RETRY_OFFSITE = 5 * 60 * 1000L;
     private volatile boolean isLeader = false;
     
-    private static BackupScheduler singletonInstance;
+    private static volatile BackupScheduler singletonInstance;
 
     @Autowired
     private CoordinatorClient coordinatorClient;

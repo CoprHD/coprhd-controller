@@ -95,7 +95,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
             }
         }
 
-        if (modifiedUnManagedVolumes.size() > 0) {
+        if (!modifiedUnManagedVolumes.isEmpty()) {
             _partitionManager.updateInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
         }
     }

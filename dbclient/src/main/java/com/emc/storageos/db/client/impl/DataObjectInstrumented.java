@@ -23,13 +23,13 @@ import com.emc.storageos.db.client.model.DataObject;
  */
 public interface DataObjectInstrumented<E extends DataObject> {
     
-    public void initLazyLoading(LazyLoader loader);
+    void initLazyLoading(LazyLoader loader);
     
-    public void enableLazyLoading();
+    void enableLazyLoading();
     
-    public void load(String lazyLoadedFieldName, DataObject obj);
+    void load(String lazyLoadedFieldName, DataObject obj);
     
-    public void refreshMappedByField(String lazyLoadedFieldName, DataObject obj);
+    void refreshMappedByField(String lazyLoadedFieldName, DataObject obj);
 
-    public void invalidate(String lazyLoadedFieldName);
+    void invalidate(String lazyLoadedFieldName);
 }

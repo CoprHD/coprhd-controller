@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
+
 import com.emc.storageos.services.util.Strings;
 
 import com.emc.storageos.coordinator.exceptions.DecodingException;
@@ -76,6 +78,12 @@ public class RepositoryInfo implements CoordinatorSerializable {
         final RepositoryInfo state = (RepositoryInfo)object;
         return (_current == null ? state._current == null : _current.equals(state._current)) &&
             hasSameVersions(state);
+    }
+
+    @Override
+    public int hashCode() {
+        HashCodeBuilder builder = new HashCodeBuilder();
+        return builder.append(this._current).append(this._versions).toHashCode();
     }
 
     @Override

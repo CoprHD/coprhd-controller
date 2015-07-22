@@ -98,6 +98,7 @@ public class SSHDialog {
             } catch (IOException ex) {
                 _log.error(ex.getLocalizedMessage());
             } catch (InterruptedException ex) {
+                _log.error(ex.getLocalizedMessage());
             }
         }
 

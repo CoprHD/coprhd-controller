@@ -752,7 +752,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     snaps.asMap().entrySet()) {
                 List<URI> snapshots = new ArrayList<URI>();
                 snapshots.addAll(entries.getValue());
-                _log.info(String.format("Need to run copy-to-target snapshots in snap set %s:\n%s",
+                _log.info(String.format("Need to run copy-to-target snapshots in snap set %s:%n%s",
                         entries.getKey(), Joiner.on(',').join(snapshots)));
                 step = SnapshotWorkflowEntryPoints.
                         generateCopySnapshotsToTargetWorkflow(workflow, step,

@@ -71,8 +71,8 @@ public class LogRequestTest {
     }
     
     @Test
-    public void testMarshal_UnMarshal()  throws Exception {
-        System.out.println("Entering testMarshl_UnMarshal()");
+    public void testMarshalUnMarshal()  throws Exception {
+        System.out.println("Entering testMarshlUnMarshal()");
         LogRequest req = new LogRequest();
         List<String> baseNames = new ArrayList<String>();
         List<String> nodeIds = new ArrayList<String>();
@@ -90,7 +90,7 @@ public class LogRequestTest {
         LogRequest reqNew = (LogRequest) jaxbUnmarshaller.unmarshal(file);
         assertTrue("The object after marshal and unMarshal should be the same with "
                 + "the origianl one",req.toString().equals(reqNew.toString()));
-        System.out.println("Done testMarshl_UnMarshal() ");
+        System.out.println("Done testMarshlUnMarshal() ");
     }
 
 }

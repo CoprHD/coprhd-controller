@@ -48,7 +48,7 @@ import com.google.common.base.Joiner;
 public class ImplicitPoolMatcher {
     private static final Logger _logger = LoggerFactory
             .getLogger(ImplicitPoolMatcher.class);
-    private static AttributeMatcherFramework _matcherFramework = null;
+    private static volatile AttributeMatcherFramework _matcherFramework = null;
     
     /**
      * Match block system pools with all VirtualPool. This method will be invoked only for block
@@ -179,7 +179,7 @@ public class ImplicitPoolMatcher {
      *            : dbClient.
      */
     private static void persistUpdatedVpoolList(List<VirtualPool> updatedVpoolList, DbClient dbClient) {
-        if (0 < updatedVpoolList.size()) {
+        if (!updatedVpoolList.isEmpty()) {
             dbClient.updateAndReindexObject(updatedVpoolList);
         }
     }
@@ -205,7 +205,7 @@ public class ImplicitPoolMatcher {
             matchvPoolWithStoragePools(vpool, updatedPoolList, dbClient, coordinator);
             vPoolsToUpdate.add(vpool);
         }
-        if (vPoolsToUpdate.size() > 0) {
+        if (!vPoolsToUpdate.isEmpty()) {
             persistUpdatedVpoolList(vPoolsToUpdate, dbClient);
         }
     }
@@ -357,7 +357,7 @@ public class ImplicitPoolMatcher {
         while (storagePoolList.hasNext()) {
             allPoolsToProcess.add(storagePoolList.next());
         }
-        if (allPoolsToProcess.size() > 0) {
+        if (!allPoolsToProcess.isEmpty()) {
             matchvPoolWithStoragePools(vpool, allPoolsToProcess, dbClient, coordinator);
         }
     }

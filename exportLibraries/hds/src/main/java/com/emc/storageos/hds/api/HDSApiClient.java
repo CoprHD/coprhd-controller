@@ -367,66 +367,62 @@ public class HDSApiClient {
      * @return Parsed java result of response stream.
      */
     public JavaResult waitForCompletion(String messageID) throws Exception {
-        log.info("Verifying the Async task status for message {}", messageID);
-        InputStream responseStream = null;
-        EchoCommand command = null;
-        JavaResult result = null;
-        try {
-            String statusQueryWithParams = String.format(STATUS_QUERY, messageID);
-            int retries = 0;
-            do {
-                try {
-                    log.info("retrying {}th time", retries);
-                    ClientResponse response = client.post(getBaseURI(), statusQueryWithParams);
-                    if (HttpStatus.SC_OK == response.getStatus()) {
-                        responseStream = response.getEntityInputStream();
-                        result = SmooksUtil.getParsedXMLJavaResult(responseStream,
-                                HDSConstants.SMOOKS_CONFIG_FILE);
-                        command = result.getBean(EchoCommand.class);
-                        // Sleep for some time if the Async task is still
-                        // processing state.
-                        if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command
-                                .getStatus())) {
-                            log.info("Async task is still in processing state. Hence sleeping...");
-                            Thread.sleep(HDSConstants.TASK_PENDING_WAIT_TIME);
-                        }
-                    } else {
-                        throw HDSException.exceptions
-                                .asyncTaskInvalidResponse(response.getStatus());
-                    }
-                } finally {
-                    try {
-                        if (null != responseStream) {
-                            responseStream.close();
-                        }
-                    } catch (IOException ioEx) {
-                        log.warn(
-                                "Ignoring io exception that occurred during stream closing for async status check for messageID {}",
-                                messageID);
-                    }
-                }
-            } while (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus()) && retries++ < HDSConstants.MAX_RETRIES);
-            if (retries >= HDSConstants.MAX_RETRIES) {
-                log.error("Async task exceeded the maximum number of retries");
-                throw HDSException.exceptions
-                        .asyncTaskMaximumRetriesExceed(messageID);
-                // handle carefully for the generated task. is it possible to cancel the task? 
-            }
-            if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
-                Error error = result.getBean(Error.class);
-                String errorMessage = String
-                        .format("Async task failed for messageID %1$s due to %2$s with error code: %3$s",
-                                new Object[] { messageID, error.getDescription(),
-                                        error.getCode() });
-                log.error(errorMessage);
-                HDSException.exceptions.asyncTaskFailedWithErrorResponse(messageID, error.getDescription(), error.getCode());
-                throw new Exception(errorMessage);
-            }
-        } finally {
-            
-        }
-        log.info("Async task completed for messageID {}", messageID);
-        return result;
+    	log.info("Verifying the Async task status for message {}", messageID);
+    	InputStream responseStream = null;
+    	EchoCommand command = null;
+    	JavaResult result = null;
+    	String statusQueryWithParams = String.format(STATUS_QUERY, messageID);
+    	int retries = 0;
+    	do {
+    		try {
+    			log.info("retrying {}th time", retries);
+    			ClientResponse response = client.post(getBaseURI(), statusQueryWithParams);
+    			if (HttpStatus.SC_OK == response.getStatus()) {
+    				responseStream = response.getEntityInputStream();
+    				result = SmooksUtil.getParsedXMLJavaResult(responseStream,
+    						HDSConstants.SMOOKS_CONFIG_FILE);
+    				command = result.getBean(EchoCommand.class);
+    				// Sleep for some time if the Async task is still
+    				// processing state.
+    				if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command
+    						.getStatus())) {
+    					log.info("Async task is still in processing state. Hence sleeping...");
+    					Thread.sleep(HDSConstants.TASK_PENDING_WAIT_TIME);
+    				}
+    			} else {
+    				throw HDSException.exceptions
+    				.asyncTaskInvalidResponse(response.getStatus());
+    			}
+    		} finally {
+    			try {
+    				if (null != responseStream) {
+    					responseStream.close();
+    				}
+    			} catch (IOException ioEx) {
+    				log.warn(
+    						"Ignoring io exception that occurred during stream closing for async status check for messageID {}",
+    						messageID);
+    			}
+    		}
+    	} while (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus()) && retries++ < HDSConstants.MAX_RETRIES);
+    	if (retries >= HDSConstants.MAX_RETRIES) {
+    		log.error("Async task exceeded the maximum number of retries");
+    		throw HDSException.exceptions
+    		.asyncTaskMaximumRetriesExceed(messageID);
+    		// handle carefully for the generated task. is it possible to cancel the task? 
+    	}
+    	if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
+    		Error error = result.getBean(Error.class);
+    		String errorMessage = String
+    				.format("Async task failed for messageID %s due to %s with error code: %d",
+    						messageID, error.getDescription(),
+    						error.getCode());
+    		log.error(errorMessage);
+    		HDSException.exceptions.asyncTaskFailedWithErrorResponse(messageID, error.getDescription(), error.getCode());
+    		throw new Exception(errorMessage);
+    	}
+    	log.info("Async task completed for messageID {}", messageID);
+    	return result;
     }
     
     /**

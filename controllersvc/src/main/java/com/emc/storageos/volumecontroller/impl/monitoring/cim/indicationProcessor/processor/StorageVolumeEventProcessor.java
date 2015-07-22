@@ -55,7 +55,7 @@ public class StorageVolumeEventProcessor extends BaseProcessor {
             List<URI> resourceURIs = new ArrayList<URI>();
             _logger.info("nativeGuid :{}",nativeGuid);
             resourceURIs = getDbClient().queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid));
-            if (resourceURIs.size() == 0) {
+            if (resourceURIs.isEmpty()) {
                 // This has to be a snapshot GUID.
                 logMessage("StorageVolumeSnapshot indication found", new Object[] {});
                 vEvent = (CIMSnapshotRecordableDeviceEvent) getApplicationContext()

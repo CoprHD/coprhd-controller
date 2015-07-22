@@ -92,7 +92,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
     public static final String UNASSOCIATED = "UNASSOCIATED";
 
     protected DbClient _dbClient;
-    protected static BlockStorageScheduler _blockScheduler;
+    protected static volatile BlockStorageScheduler _blockScheduler;
     protected WorkflowService _workflowService;
     protected NetworkDeviceController _networkDeviceController;
     @Autowired
@@ -206,7 +206,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
             String successMessage = String.format(
                     "ExportGroup %s successfully updated for StorageArray %s",
                     exportGroup.getLabel(), storage.getLabel());
-            storageWorkflow.set_service(_workflowService);
+            storageWorkflow.setService(_workflowService);
             storageWorkflow.executePlan(taskCompleter, successMessage);
         } catch (Exception ex) {
             _log.error("ExportGroupUpdate Orchestration failed.", ex);
@@ -395,7 +395,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
                     generateZoningRemoveInitiatorsWorkflow(workflow, null,
                             exportGroup, maskToInitiatorsMap);
 
-            if (exportMask.getInitiators().size() > 0) {
+            if (!exportMask.getInitiators().isEmpty()) {
                 generateExportMaskRemoveInitiatorsWorkflow(workflow, zoningStep,
                         storage, exportGroup, exportMask, initiatorURIs, true);
             } else {
@@ -1211,7 +1211,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
             Collection<String> exportMaskVolumeURIStrings =
                     new ArrayList<String> (exportMask.getUserAddedVolumes().values());
             exportMaskVolumeURIStrings.removeAll(volumeURIStrings);
-            result = (exportMaskVolumeURIStrings.size() == 0);
+            result = (exportMaskVolumeURIStrings.isEmpty());
         }
         
         return result;
@@ -1664,7 +1664,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
                         URI exportMaskURI = maskToStoragePortsEntry.getKey();
                         Map<String, String> storagePortToNetworks = maskToStoragePortsEntry.getValue();
                         ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
-                        exportMaskInfo.append(String.format("MaskingView=%s StoragePorts [ %s ]\n", mask.getMaskName(),
+                        exportMaskInfo.append(String.format("MaskingView=%s StoragePorts [ %s ]%n", mask.getMaskName(),
                                 Joiner.on(',').join(storagePortToNetworks.entrySet())));
                     }
 
@@ -1786,7 +1786,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
                 List<URI> initiatorsInRequest = computeResourceMapForRequest.get(computeResource.getKey());
                 if (initiatorsInRequest != null) {
                     initiatorsForComputeResource.removeAll(initiatorsInRequest);
-                    Boolean isFullList = (initiatorsForComputeResource.size() == 0);
+                    Boolean isFullList = (initiatorsForComputeResource.isEmpty());
                     for (URI uri : initiatorsInRequest) {
                         initiatorFlagMap.put(uri, isFullList);
                     }
@@ -2115,7 +2115,7 @@ abstract public class AbstractDefaultMaskingOrchestrator implements MaskingOrche
             StackTraceElement[] elements = new Throwable().getStackTrace();
             String caller = String.format("%s#%s", elements[1].getClassName(), elements[1].getMethodName());
             StringBuilder message = new StringBuilder();
-            message.append(String.format("ExportGroup before %s\n%s", caller, exportGroup.toString()));
+            message.append(String.format("ExportGroup before %s %n %s", caller, exportGroup.toString()));
             message.append(String.format("ExportMasks associated with ExportGroup and StorageSystem %s:", storage));
             for (ExportMask exportMask : ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storage)) {
                 message.append('\n').append(exportMask.toString());

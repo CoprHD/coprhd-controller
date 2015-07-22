@@ -487,7 +487,9 @@ public class ControllerUtils {
     public static Long getLongValue(String value) {
         try {
             return Long.parseLong(value);
-        }catch(Exception e) {}
+        }catch(Exception e) {
+            s_logger.warn("Not parse String to get Long value");
+        }
         return 0L;
     }
     
@@ -503,7 +505,9 @@ public class ControllerUtils {
         	BigInteger bigValue = new BigInteger(value);
         	bigValue = bigValue.mod(modValue);
             return bigValue.longValue();
-        }catch(Exception e) {}
+        } catch (Exception e) {
+            s_logger.warn("Not parse String to get Long value");
+        }
         return 0L;
     }
     
@@ -514,10 +518,11 @@ public class ControllerUtils {
      */
     public static Double getDoubleValue(String value) {
     	try {
-    	return Double.parseDouble(value);
+    	    return Double.parseDouble(value);
     	} catch (Exception e) {
-    		return 0.0;
+    	    s_logger.warn("Not parse String to get Double value");
     	}
+    	return 0.0;
     }
 
     public static VolumeURIHLU[] getVolumeURIHLUArray(String storageType,

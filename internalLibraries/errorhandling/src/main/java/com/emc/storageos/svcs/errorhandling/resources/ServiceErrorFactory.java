@@ -73,12 +73,9 @@ public class ServiceErrorFactory {
 
     public static String toXml(final ServiceErrorRestRep error) {
         try {
+            initContext();
             // Create a stringWriter to hold the XML
             final StringWriter stringWriter = new StringWriter();
-            if (context == null) {
-                context = JAXBContext.newInstance(ServiceErrorRestRep.class);
-            }
-
             final Marshaller jaxbMarshaller = context.createMarshaller();
             jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
             jaxbMarshaller.marshal(error, stringWriter);
@@ -86,5 +83,11 @@ public class ServiceErrorFactory {
         } catch (final JAXBException e) {
             return error.toString();
         }
+    }
+    
+    private static synchronized void initContext() throws JAXBException {
+        if (context == null) {
+            context = JAXBContext.newInstance(ServiceErrorRestRep.class);
+        }   
     }
 }

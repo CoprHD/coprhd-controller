@@ -35,7 +35,7 @@ public class BasicSystemInfoRequest extends KHRequests<BasicSystemInfo>{
     public BasicSystemInfo get() throws VNXeException{
         List<BasicSystemInfo> allSystems = getDataForObjects(BasicSystemInfo.class);
         //we only expect to get one system.
-        if (allSystems == null || allSystems.size() == 0) {
+        if (allSystems == null || allSystems.isEmpty()) {
             return null;
         }
         return allSystems.get(0);

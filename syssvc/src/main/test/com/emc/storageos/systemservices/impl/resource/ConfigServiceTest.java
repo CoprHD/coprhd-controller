@@ -52,11 +52,7 @@ public class ConfigServiceTest {
         email.setNotifyEmailAddress("joe.customer@customer.com");
         email.setPrimaryEmailAddress("emailalertesg@emc.com");
         email.setSafeEncryption("no");
-        try {
-            email.setStartTls("no");
-        } catch (Exception e) {
-           
-        }
+        email.setStartTls("no");
      
         PropertyInfoUpdate propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
         Assert.assertEquals(propInfo.getProperty("system_connectemc_smtp_server"), email.getEmailServer());
@@ -79,19 +75,10 @@ public class ConfigServiceTest {
         email.setNotifyEmailAddress("joe.customer@customer.com");
         email.setPrimaryEmailAddress("emailalertesg@emc.com");
         email.setSafeEncryption("no");
-    
-        try {
-            email.setSmtpAuthType("login");
-        } catch(Exception e) {
-            
-        }
+        email.setSmtpAuthType("login");
 
         PropertyInfoUpdate propInfo = null;
-        try {
-            propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
-        } catch (APIException ise) {
-            
-        }
+        propInfo = ConfigService.ConfigureConnectEmc.configureEmail(email);
         
         Assert.assertNull(propInfo);
     }

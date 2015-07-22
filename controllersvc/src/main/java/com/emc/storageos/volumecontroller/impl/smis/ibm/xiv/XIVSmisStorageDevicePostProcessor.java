@@ -218,11 +218,11 @@ public class XIVSmisStorageDevicePostProcessor {
                             storagePool.getSubscribedCapacity()));
 
             _dbClient.persistObject(storagePool);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error(
                     String.format(
                             "Failed to update capacity of storage pool after volume provisioning operation. Storage pool %s .",
-                            storagePool.getNativeId()), th);
+                            storagePool.getNativeId()), ex);
         }
     }
 
@@ -387,7 +387,7 @@ public class XIVSmisStorageDevicePostProcessor {
                 _dbClient.persistObject(volume);
                 logMsgBuilder
                         .append(String
-                                .format("\n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s",
+                                .format("%n   Capacity: %s, Provisioned capacity: %s, Allocated Capacity: %s",
                                         volume.getCapacity(),
                                         volume.getProvisionedCapacity(),
                                         volume.getAllocatedCapacity()));
@@ -673,7 +673,7 @@ public class XIVSmisStorageDevicePostProcessor {
                 }
             }
 
-            if (objectsToSave.size() > 0) {
+            if (!objectsToSave.isEmpty()) {
                 _dbClient.persistObject(objectsToSave);
                 taskCompleter.ready(_dbClient);
             } else {

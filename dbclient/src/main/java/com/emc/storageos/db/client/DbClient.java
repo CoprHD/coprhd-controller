@@ -30,7 +30,6 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
@@ -49,7 +48,7 @@ public interface DbClient {
      *      exist
      * @throws DatabaseException TODO
      */
-    public DataObject queryObject(URI id) throws DatabaseException;
+    DataObject queryObject(URI id);
 
     /**
      * Queries for object with given URI.  Deserializes into a data object of given
@@ -62,14 +61,13 @@ public interface DbClient {
      *      exist
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> T queryObject(Class<T> clazz, URI id) throws DatabaseException;
+    <T extends DataObject> T queryObject(Class<T> clazz, URI id);
 
     /**
      * Same as queryObject(Class, URI).  Takes NamedURI instead.
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> T queryObject(Class<T> clazz, NamedURI id)
-            throws DatabaseException;
+    <T extends DataObject> T queryObject(Class<T> clazz, NamedURI id);
 
     /**
      * Queries for objects with given URI's.  Deserializes into a data object of given
@@ -81,8 +79,7 @@ public interface DbClient {
      * @return deserialized object list.  non matching records are not returned
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids)
-            throws DatabaseException;
+    <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids);
     
     /**
      * Same as queryObject(Class, List<URI>). Filters on activeOnly record if specified.
@@ -92,15 +89,13 @@ public interface DbClient {
      * @return
      * @throws DatabaseException
      */
-    public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) 
-    		throws DatabaseException;
+    <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly);
 
     /**
      * See queryObject(Class<T> clazz, List<URI>)
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id)
-            throws DatabaseException;
+    <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id);
 
     /**
      * Queries for objects with given URI's.  Deserializes into a data object of given
@@ -115,8 +110,7 @@ public interface DbClient {
      * @return deserialized object as an Interator.  non matching records are not returned
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> Iterator<T> queryIterativeObjects(Class<T> clazz, Collection<URI> id)
-            throws DatabaseException;
+    <T extends DataObject> Iterator<T> queryIterativeObjects(Class<T> clazz, Collection<URI> id);
     
     /**
      * Same has queryIterativeObjects(Class, List<URI>). Filters on activeOnly record if specified.
@@ -126,8 +120,8 @@ public interface DbClient {
      * @return
      * @throws DatabaseException
      */
-    public <T extends DataObject> Iterator<T> queryIterativeObjects(final Class<T> clazz,
-            Collection<URI> ids, final boolean activeOnly) throws DatabaseException;
+    <T extends DataObject> Iterator<T> queryIterativeObjects(final Class<T> clazz,
+            Collection<URI> ids, final boolean activeOnly);
 
     /**
      * Queries for a particular field on objects with the given URIs
@@ -140,8 +134,7 @@ public interface DbClient {
      *         else null
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> List<T> queryObjectField(Class<T> clazz, String fieldName, Collection<URI> ids)
-            throws DatabaseException;
+    <T extends DataObject> List<T> queryObjectField(Class<T> clazz, String fieldName, Collection<URI> ids);
 
     /**
      * Queries for a particular field on objects with the given URIs. 
@@ -158,8 +151,7 @@ public interface DbClient {
      * @return deserialized object as an Interator. non matching records are not returned
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> Iterator<T> queryIterativeObjectField(Class<T> clazz, String fieldName, Collection<URI> ids)
-            throws DatabaseException;
+    <T extends DataObject> Iterator<T> queryIterativeObjectField(Class<T> clazz, String fieldName, Collection<URI> ids);
 
     /**
     * Aggregate fields for the column by using the provided Aggregator.
@@ -173,8 +165,7 @@ public interface DbClient {
     * @param <T>
     * @throws DatabaseException
     */
-    public <T extends DataObject> void aggregateObjectField(Class<T> clazz, Iterator<URI> ids, DbAggregatorItf aggregator )
-            throws DatabaseException;
+    <T extends DataObject> void aggregateObjectField(Class<T> clazz, Iterator<URI> ids, DbAggregatorItf aggregator );
 
     /**
      * Return references for objects with given type
@@ -184,8 +175,7 @@ public interface DbClient {
      * @return
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly)
-            throws DatabaseException;
+    <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly);
 
     /**
      * Return references for objects with given type
@@ -197,8 +187,7 @@ public interface DbClient {
      * @return
      * @throws DatabaseException
      */
-    public <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly, URI startId, int count)
-            throws DatabaseException;
+    <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly, URI startId, int count);
 
     /**
      * Query for object of given type that is marked as inactive before specified time.
@@ -208,8 +197,7 @@ public interface DbClient {
      * @param <T>
      * @throws DatabaseException
      */
-    public <T extends DataObject> void queryInactiveObjects(Class<T> clazz, long timeBefore, QueryResultList<URI> result)
-            throws DatabaseException;
+    <T extends DataObject> void queryInactiveObjects(Class<T> clazz, long timeBefore, QueryResultList<URI> result);
 
     /**
      * Queries for objects with given constraint.   See constraint package for availabile
@@ -222,7 +210,7 @@ public interface DbClient {
      * @throws DatabaseException TODO
      */
     @Deprecated
-    public List<URI> queryByConstraint(Constraint constraint) throws DatabaseException;
+    List<URI> queryByConstraint(Constraint constraint);
 
     /**
      * Queries for objects with given constraint. See constraint package for
@@ -232,8 +220,7 @@ public interface DbClient {
      * @param result out parameter where query results will be added to
      * @throws DatabaseException TODO
      */
-    public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result)
-            throws DatabaseException;
+    <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result);
 
     /**
      * Queries for objects with given constraint start from some resource. See constraint package for
@@ -246,8 +233,7 @@ public interface DbClient {
      *
      * @throws DatabaseException TODO
      */
-    public <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount)
-            throws DatabaseException;
+    <T> void queryByConstraint(Constraint constraint, QueryResultList<T> result, URI startId, int maxCount);
 
     /**
      * Returns the count of objects with the given type which have the given URI in the specified
@@ -258,8 +244,7 @@ public interface DbClient {
      * @param uri
      * @throws DatabaseException TODO
      */
-    public Integer countObjects(Class<? extends DataObject> type, String columnField, URI uri)
-            throws DatabaseException;
+    Integer countObjects(Class<? extends DataObject> type, String columnField, URI uri);
 
     
     /**
@@ -270,7 +255,7 @@ public interface DbClient {
      * @param <T> data objects
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void createObject(T object) throws DatabaseException;
+    <T extends DataObject> void createObject(T object);
 
     /**
      * Persists given list of new objects to DB.  DataObject.id field must be filled in.
@@ -280,13 +265,13 @@ public interface DbClient {
      * @param <T> data objects
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void createObject(Collection<T> objects) throws DatabaseException;
+    <T extends DataObject> void createObject(Collection<T> objects);
 
     /**
      * See createObject(List<T>)
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void createObject(T... object) throws DatabaseException;
+    <T extends DataObject> void createObject(T... object);
 
     /**
      * Persists given existing object to DB. 
@@ -305,7 +290,7 @@ public interface DbClient {
      * @param <T> data objects
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void persistObject(T object) throws DatabaseException;
+    <T extends DataObject> void persistObject(T object);
 
     /**
      * Persists given list of existing objects to DB.  DataObject.id field must be filled in.
@@ -315,13 +300,13 @@ public interface DbClient {
      * @param <T> data objects
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void persistObject(Collection<T> objects) throws DatabaseException;
+    <T extends DataObject> void persistObject(Collection<T> objects);
 
     /**
      * See persistObject(List<T>)
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void persistObject(T... object) throws DatabaseException;
+    <T extends DataObject> void persistObject(T... object);
 
     /**
      * Similar to persistObject(T), also synchronously updates the index fields if needed
@@ -329,7 +314,7 @@ public interface DbClient {
      * See persistObject(T)
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void updateAndReindexObject(T object) throws DatabaseException;
+    <T extends DataObject> void updateAndReindexObject(T object);
 
     /**
      * Similar to persistObject(List<T>), also synchronously updates the index fields if needed
@@ -337,15 +322,13 @@ public interface DbClient {
      * See persistObject(List<T>)
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void updateAndReindexObject(Collection<T> objects)
-            throws DatabaseException;
+    <T extends DataObject> void updateAndReindexObject(Collection<T> objects);
 
     /**
      * See updateObject(List<T>)
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void updateAndReindexObject(T... object)
-            throws DatabaseException;
+    <T extends DataObject> void updateAndReindexObject(T... object);
 
     /**
      * Convenience method for setting operation status to ready for given object
@@ -356,7 +339,7 @@ public interface DbClient {
      * @return TODO
      * @throws DatabaseException
      */
-    public Operation ready(Class<? extends DataObject> clazz, URI id, String opId) throws DatabaseException;
+    Operation ready(Class<? extends DataObject> clazz, URI id, String opId);
 
     /**
      * Convenience method for setting operation status to ready for given object
@@ -368,7 +351,7 @@ public interface DbClient {
      * @return TODO
      * @throws DatabaseException
      */
-    public Operation ready(Class<? extends DataObject> clazz, URI id, String opId, String message) throws DatabaseException;
+    Operation ready(Class<? extends DataObject> clazz, URI id, String opId, String message);
 
     /**
      * Convenience method for setting operation status to pending for given
@@ -380,8 +363,7 @@ public interface DbClient {
      * @return TODO
      * @throws DatabaseException
      */
-    public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message)
-            throws DatabaseException;
+    Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message);
 
     /**
      * Convenience method for setting operation status to error for given object
@@ -392,7 +374,7 @@ public interface DbClient {
      * @return TODO
      * @throws DatabaseException
      */
-    public Operation error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded) throws DatabaseException;
+    Operation error(Class<? extends DataObject> clazz, URI id, String opId, ServiceCoded serviceCoded);
 
     /**
      * Convenience method for setting operation status for given object
@@ -404,9 +386,8 @@ public interface DbClient {
      * @throws DatabaseException TODO
      */
     @Deprecated
-    public void setStatus(Class<? extends DataObject> clazz,
-                          URI id, String opId, String status)
-            throws DatabaseException;
+    void setStatus(Class<? extends DataObject> clazz,
+                          URI id, String opId, String status);
 
 
     /**
@@ -420,9 +401,8 @@ public interface DbClient {
      * @throws DatabaseException
      */
     @Deprecated
-    public void setStatus(Class<? extends DataObject> clazz,
-                          URI id, String opId, String status, String message)
-        throws DatabaseException;
+    void setStatus(Class<? extends DataObject> clazz,
+                          URI id, String opId, String status, String message);
 
 
     /**
@@ -437,9 +417,8 @@ public interface DbClient {
      * @param newOperation - operation object
      * @throws DatabaseException
      */
-    public Operation createTaskOpStatus(Class<? extends DataObject> clazz,
-                          URI id, String opId, Operation newOperation)
-        throws DatabaseException;
+    Operation createTaskOpStatus(Class<? extends DataObject> clazz,
+                          URI id, String opId, Operation newOperation);
 
 	/**
      * Convenience method for creating and setting the operation status for
@@ -452,9 +431,8 @@ public interface DbClient {
 	 * @param type - type of operation
      * @throws DatabaseException
      */
-    public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
-							String opId, ResourceOperationTypeEnum type)
-		throws DatabaseException;    
+    Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
+							String opId, ResourceOperationTypeEnum type);    
 
 	/**
      * Convenience method for creating and setting the operation status for
@@ -468,10 +446,9 @@ public interface DbClient {
 	 * @param associatedResources - list of associated resources to the task
      * @throws DatabaseException
      */
-    public Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
+    Operation createTaskOpStatus(Class<? extends DataObject> clazz, URI id,
 							String opId, ResourceOperationTypeEnum type,
-							String associatedResources) 
-		throws DatabaseException;
+							String associatedResources);
 
 	/**
      * Convenience method for updating the operation status for given object
@@ -483,9 +460,8 @@ public interface DbClient {
      * @throws DatabaseException TODO
      */
     @Deprecated // As public, should be changed to protected when no longer called from outside this class hierarchy.
-    public Operation updateTaskOpStatus(Class<? extends DataObject> clazz,
-                          URI id, String opId, Operation updateOperation)
-        throws DatabaseException;
+    Operation updateTaskOpStatus(Class<? extends DataObject> clazz,
+                          URI id, String opId, Operation updateOperation);
 
 	/**
      * Marks an object for deletion.  Note that DB does not remove an object immediately
@@ -499,7 +475,7 @@ public interface DbClient {
      * @param object object to mark for deletion
      * @throws DatabaseException TODO
      */
-    public void markForDeletion(DataObject object) throws DatabaseException;
+    void markForDeletion(DataObject object);
 
     /**
      * Marks a list of objects for deletion.  Note that DB does not remove an object immediately
@@ -513,13 +489,13 @@ public interface DbClient {
      * @param object list of objects to mark for deletion
      * @throws DatabaseException TODO
      */
-    public void markForDeletion(Collection<? extends DataObject> objects) throws DatabaseException;
+    void markForDeletion(Collection<? extends DataObject> objects);
 
     /**
      * See markForDeletion(List)
      * @throws DatabaseException TODO
      */
-    public <T extends DataObject> void markForDeletion(T... object) throws DatabaseException;
+    <T extends DataObject> void markForDeletion(T... object);
 
 
     /**
@@ -528,7 +504,7 @@ public interface DbClient {
      * @param object array of objects to delete
      * @throws DatabaseException TODO
      */
-    public void removeObject(DataObject... object) throws DatabaseException;
+    void removeObject(DataObject... object);
     
     /**
      * Inserts time series data of given type. Time series implementation
@@ -559,8 +535,8 @@ public interface DbClient {
      * @return bucket / row ID where this batch of time series data was stored
      * @throws DatabaseException TODO
      */
-    public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
-            Class<? extends TimeSeries> tsType, T... data) throws DatabaseException;
+    <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
+            Class<? extends TimeSeries> tsType, T... data);
 
     /**
      * Inserts a data point of time series with given timestamp. 
@@ -575,9 +551,8 @@ public interface DbClient {
      * @return bucket / row ID where this batch of time series data was stored
      * @throws DatabaseException TODO
      */
-    public <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
-            Class<? extends TimeSeries> tsType, DateTime time, T data) 
-            throws DatabaseException;
+    <T extends TimeSeriesSerializer.DataPoint> String insertTimeSeries(
+            Class<? extends TimeSeries> tsType, DateTime time, T data);
 
     /**
      * Queries time series data for given time bucket. For example, if time
@@ -601,10 +576,9 @@ public interface DbClient {
      * @param <T>
      * @throws DatabaseException TODO
      */
-    public <T extends TimeSeriesSerializer.DataPoint> void queryTimeSeries(
+    <T extends TimeSeriesSerializer.DataPoint> void queryTimeSeries(
             Class<? extends TimeSeries> tsType, DateTime timeBucket,
-            TimeSeriesQueryResult<T> callback, ExecutorService workerThreads)
-            throws DatabaseException;
+            TimeSeriesQueryResult<T> callback, ExecutorService workerThreads);
 
     /**
      * Overload of queryTimeSeries(TimeSeries, DateTime, TImeSeriesQueryResult,
@@ -615,10 +589,10 @@ public interface DbClient {
      *
      * @throws DatabaseException TODO
      */
-    public <T extends TimeSeriesSerializer.DataPoint> void queryTimeSeries(
+    <T extends TimeSeriesSerializer.DataPoint> void queryTimeSeries(
             Class<? extends TimeSeries> tsType, DateTime timeBucket,
             TimeSeriesMetadata.TimeBucket bucket, TimeSeriesQueryResult<T> callback,
-            ExecutorService workerThreads) throws DatabaseException;
+            ExecutorService workerThreads);
 
 
     /**
@@ -628,30 +602,29 @@ public interface DbClient {
      * @return
      * @throws DatabaseException TODO
      */
-    public TimeSeriesMetadata queryTimeSeriesMetadata(Class<? extends TimeSeries> tsType)
-            throws DatabaseException;
+    TimeSeriesMetadata queryTimeSeriesMetadata(Class<? extends TimeSeries> tsType);
 
 
     /**
      * Starts DB connection pool
      */
-    public void start();
+    void start();
 
     /**
      * Shuts down DB connection pool
      */
-    public void stop();
+    void stop();
 
-    public abstract <T extends DataObject> Collection<T> 
+    <T extends DataObject> Collection<T> 
     queryObjectFields(Class<T> clazz, Collection<String> fieldNames, Collection<URI> ids);
 
-    public abstract <T extends DataObject> Iterator<T> 
+    <T extends DataObject> Iterator<T> 
     queryIterativeObjectFields(Class<T> clazz, Collection<String> fieldNames, Collection<URI> ids);
 
     /**
      * Get the DB schema version
      */
-    public String getSchemaVersion();
+    String getSchemaVersion();
 
     /**
      * Retrieve the short ID of the local VDC
@@ -660,7 +633,7 @@ public interface DbClient {
      * @return the vdc id
      */
     @Deprecated
-    public String getLocalShortVdcId();
+    String getLocalShortVdcId();
     
     /**
      * Get the full URN for the VDC referenced by the short vdcId
@@ -670,14 +643,14 @@ public interface DbClient {
      * @return the VDC object's full URN or null if not found
      */
     @Deprecated
-    public URI getVdcUrn(String shortVdcId);
+    URI getVdcUrn(String shortVdcId);
     
     /**
      * For a rebuild of the Vdc to Urn cache used for mapping short VDC ids
      * Deprecated; use VdcUtils.invalidateVdcUrnCache() instead
      */
     @Deprecated
-    public void invalidateVdcUrnCache();
+    void invalidateVdcUrnCache();
     
     /**
      * Check if Geo db version is compatible or not in a federation. 
@@ -686,5 +659,5 @@ public interface DbClient {
      * @return true if Geo db version in all vdcs of the federation is equals or high then expectVersion which indicates 
      * 		   the features for geoVersion can be enabled. Otherwise false;
      * */
-    public boolean checkGeoCompatible(String expectVersion);
+    boolean checkGeoCompatible(String expectVersion);
 }

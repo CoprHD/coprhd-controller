@@ -127,7 +127,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
 
     @Test
     public void testNodeHealth(){
-        NodeHealth nodeHealth = getNodeHealth(NODE_ID, NODE_IP, AVAILABLE_SERVICES);
+        NodeHealth nodeHealth = getNodeHealth(NODE_ID, NODE_ID, NODE_IP, AVAILABLE_SERVICES);
         Assert.assertNotNull(nodeHealth);
         Assert.assertEquals(NODE_ID, nodeHealth.getNodeId());
         Assert.assertEquals(NODE_IP, nodeHealth.getIp());
@@ -145,7 +145,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
             add("syssvc");
             add("mysvc");
         }};
-        NodeHealth nodeHealth = getNodeHealth(NODE_ID, NODE_IP, invalidServices);
+        NodeHealth nodeHealth = getNodeHealth(NODE_ID, NODE_ID, NODE_IP, invalidServices);
         Assert.assertNotNull(nodeHealth);
         Assert.assertTrue(Status.DEGRADED.toString().equals(nodeHealth.getStatus()));
     }

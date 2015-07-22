@@ -44,6 +44,7 @@ public class ServiceImpl implements Service {
     // Node name used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
     private static final String NODE_NAME_KEY = "_nodeName";
+    private static final String NODE_CUSTOM_NAME_KEY = "_nodeCustomName";
     private static final String ENDPOINT_KEY = "_endpoint";
 
     private Properties _map = new Properties();
@@ -93,6 +94,15 @@ public class ServiceImpl implements Service {
 
     public void setNodeName(String nodeId) {
         _map.put(NODE_NAME_KEY, nodeId);
+    }
+
+    @Override
+    public String getNodeCustomName() {
+        return (String) _map.get(NODE_CUSTOM_NAME_KEY);
+    }
+
+    public void setNodeCustomName(String customNodeName) {
+        _map.put(NODE_CUSTOM_NAME_KEY, customNodeName);
     }
 
     @Override

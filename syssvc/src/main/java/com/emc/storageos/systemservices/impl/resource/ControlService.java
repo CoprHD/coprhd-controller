@@ -179,6 +179,7 @@ public class ControlService {
      * Restart a service on a virtual machine
      * @brief Restart a service on a virtual machine
      * @param nodeId Virtual machine id (e.g. vipr1)
+     * @param nodeName node name of Virtual machine
      * @prereq none
      * @param name Service name
      */
@@ -186,7 +187,19 @@ public class ControlService {
     @Path("service/restart")
     @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Response restartService(@QueryParam("node_id") String nodeId, @QueryParam("name") String name) {
+    public Response restartService(@QueryParam("node_id") String nodeId, @QueryParam("name") String name, @QueryParam("node_name") String nodeName) {
+
+        if (nodeName != null) {
+            //check that nodeId is empty
+            if (nodeId != null) {
+                throw APIException.badRequests.theParametersAreNotValid("cannot use node_id and node_name");
+            }
+
+            //get nodeIds for node names
+            nodeId = _coordinator.getMatchingNodeId(nodeName);
+            _log.info("Found node id {} for node name {}",nodeId,nodeName);
+        }
+
         List<String> controlNodeServiceNames = ServicesMetadata.getControlNodeServiceNames();
         if(_coordinator.getMyNodeName().equals(nodeId)){
             if (!controlNodeServiceNames.contains(name)) {
@@ -250,13 +263,26 @@ public class ControlService {
      * Reboot a virtual machine
      * @brief Reboot a virtual machine
      * @param nodeId Virtual machine id (e.g. vipr1)
+     * @param nodeName node name of Virtual machine
      * @prereq none
      */
     @POST
     @Path("node/reboot")
     @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public Response rebootNode(@QueryParam("node_id") String nodeId) {
+    public Response rebootNode(@QueryParam("node_id") String nodeId, @QueryParam("node_name") String nodeName) {
+
+        if (nodeName != null) {
+            //check that nodeId is empty
+            if (nodeId != null) {
+                throw APIException.badRequests.theParametersAreNotValid("cannot use node_id and node_name");
+            }
+
+            //get nodeIds for node names
+            nodeId = _coordinator.getMatchingNodeId(nodeName);
+            _log.info("Found node id {} for node name {}",nodeId,nodeName);
+        }
+
         _log.info("Reboot node: "+nodeId);
         if(_coordinator.getMyNodeName().equals(nodeId)){
             auditControl(OperationTypeEnum.REBOOT_NODE, AuditLogManager.AUDITLOG_SUCCESS,

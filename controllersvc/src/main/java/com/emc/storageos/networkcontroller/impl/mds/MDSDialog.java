@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.networkcontroller.SSHDialog;
 import com.emc.storageos.networkcontroller.SSHPrompt;
 import com.emc.storageos.networkcontroller.SSHSession;
@@ -48,13 +49,15 @@ public class MDSDialog extends SSHDialog {
 	private boolean inConfigMode = false;
 	private boolean inSession = false;
 	private SSHPrompt lastPrompt = null;
+	private NetworkSystem networkSystem;
 
 	private static final Logger _log = LoggerFactory.getLogger(MDSDialog.class);
 	private final String wwnRegex = "([0-9A-Fa-f][0-9A-Fa-f]:){7}[0-9A-Fa-f][0-9A-Fa-f]";
 	private final static Integer sessionLockRetryMax = 5;
 	
-    public MDSDialog(SSHSession session, Integer defaultTimeout) {
+    public MDSDialog(NetworkSystem networkSystem, SSHSession session, Integer defaultTimeout) {
         super(session, defaultTimeout);
+        this.networkSystem = networkSystem;
     }
     
     /**
@@ -2032,5 +2035,9 @@ public class MDSDialog extends SSHDialog {
             }
         }        
         return zone;
+    }
+
+    public NetworkSystem getNetworkSystem() {
+        return networkSystem;
     }
 }

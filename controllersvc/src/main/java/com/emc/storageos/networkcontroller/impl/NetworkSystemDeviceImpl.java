@@ -28,6 +28,7 @@ import com.google.common.collect.Sets;
 
 public abstract class NetworkSystemDeviceImpl implements NetworkSystemDevice {
 	private static final Logger _log = LoggerFactory.getLogger(NetworkSystemDeviceImpl.class);
+    private static NetworkConnectionDirector _connectionFactory;
 	
 	/**
 	 * Given a list of zones requested to be added, and a list of existing zones on
@@ -287,5 +288,16 @@ public abstract class NetworkSystemDeviceImpl implements NetworkSystemDevice {
             zone.print();
         }
         return same;
+    }
+
+
+    public static NetworkConnectionDirector getConnectionFactory() {
+        return _connectionFactory;
+    }
+
+
+    public static void setConnectionFactory(
+            NetworkConnectionDirector _connectionFactory) {
+        NetworkSystemDeviceImpl._connectionFactory = _connectionFactory;
     }
 }

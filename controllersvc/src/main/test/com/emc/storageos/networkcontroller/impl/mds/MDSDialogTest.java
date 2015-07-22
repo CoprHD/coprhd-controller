@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 import com.emc.storageos.services.util.EnvConfig;
@@ -59,7 +60,7 @@ public class MDSDialogTest {
         try {
             sshs = new SSHSession();
             sshs.connect(ipaddress, sshport, username, password);
-            MDSDialog dialog = new MDSDialog(sshs, null);
+            MDSDialog dialog = new MDSDialog(createNetworkSystem(ipaddress, sshport, username, password), sshs, null);
             dialog.initialize();
             String[] versions = dialog.showVersion();
             if (versions[0] != null) System.out.println("Hardware: " + versions[0]);
@@ -314,5 +315,15 @@ public class MDSDialogTest {
 		}
 		dialog.deviceAliasCommit();
 		dialog.endConfig();
+	}
+	
+	private static NetworkSystem createNetworkSystem (String host, int port, String userName, String password) {
+	    NetworkSystem networkSystem = new NetworkSystem();
+	    networkSystem.setIpAddress(host);
+        networkSystem.setLabel(host);
+        networkSystem.setPortNumber(port);
+        networkSystem.setUsername(userName);
+        networkSystem.setPassword(password);
+	    return networkSystem;
 	}
 }

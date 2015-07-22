@@ -302,4 +302,9 @@ public interface NetworkDeviceControllerExceptions {
     @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
     public NetworkDeviceControllerException failedToFindNetworkSystem(final Collection<String> endpoints, final String network);    
     
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public NetworkDeviceControllerException couldNotAcquireLease(String networkSystem);
+    
+    @DeclareServiceCode(ServiceCode.CONTROLLER_NETWORK_ERROR)
+    public NetworkDeviceControllerException leaseAlreadyAcquired(String networkSystem);
 }

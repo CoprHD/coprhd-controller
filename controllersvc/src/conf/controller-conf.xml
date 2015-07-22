@@ -884,12 +884,18 @@
         <property name="dbClient" ref="dbclient"/>
     </bean>
 
+    <bean id="networkConnectionFactory" class="com.emc.storageos.networkcontroller.impl.NetworkConnectionFactory">
+        <property name="dispatcher" ref="dispatcher"/>
+    </bean>
+
     <bean id="mdsNetworkDevice" class="com.emc.storageos.networkcontroller.impl.mds.MdsNetworkSystemDevice">
+        <property name="connectionFactory" ref="networkConnectionFactory"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator" />
     </bean>
 
     <bean id="brocadeNetworkDevice" class="com.emc.storageos.networkcontroller.impl.brocade.BrocadeNetworkSystemDevice">
+        <property name="connectionFactory" ref="networkConnectionFactory"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator" />
     </bean>

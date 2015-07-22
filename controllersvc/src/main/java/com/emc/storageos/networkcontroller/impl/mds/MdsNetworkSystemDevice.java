@@ -52,9 +52,10 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	 */
 	private MDSDialog setUpDialog(NetworkSystem network) throws NetworkDeviceControllerException {
 		try {
+		    getConnectionFactory().acquireLease(network);
 			SSHSession session = new SSHSession();
 			session.connect(network.getIpAddress(), network.getPortNumber(), network.getUsername(), network.getPassword());
-			MDSDialog dialog = new MDSDialog(session,  getDefaultTimeout());
+			MDSDialog dialog = new MDSDialog(network, session,  getDefaultTimeout());
 			dialog.initialize();
 			return dialog;
 		} catch (Exception ex) {
@@ -63,6 +64,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 			if (exMsg.equals("timeout: socket is not established")) exMsg = "Connection Failed";
 			String msg = MessageFormat.format("Could not connect to device {0}: {1}", network.getLabel(), exMsg);
 			_log.error(msg);
+            getConnectionFactory().returnLease(network);
             throw NetworkDeviceControllerException.exceptions.setUpDialogFailed(network.getLabel(), exMsg, ex);
 		}
 	}
@@ -72,6 +74,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
 	 * @param dialog
 	 */
 	private void disconnect(MDSDialog dialog) {
+        getConnectionFactory().returnLease(dialog.getNetworkSystem());
 		if (dialog != null) {
 			dialog.send("exit\n");
 			dialog.getSession().disconnect();

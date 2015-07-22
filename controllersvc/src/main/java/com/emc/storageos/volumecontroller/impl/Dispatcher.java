@@ -127,8 +127,8 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
     private Map<Controller, Map<String, Method>> _methodMap;
     private Map<String,Integer> _deviceMaxConnectionMap;
     private final ConcurrentMap<URI, DistributedSemaphore> _deviceSemaphoreMap = new ConcurrentHashMap<URI, DistributedSemaphore>();
-    private int _acquireLeaseWaitTimeSeconds = ACQUIRE_LEASE_WAIT_TIME_SECONDS;
-    private int _acquireLeaseRetryWaitTimeSeconds = ACQUIRE_LEASE_RETRY_WAIT_TIME__SECONDS;
+    public int _acquireLeaseWaitTimeSeconds = ACQUIRE_LEASE_WAIT_TIME_SECONDS;
+    public int _acquireLeaseRetryWaitTimeSeconds = ACQUIRE_LEASE_RETRY_WAIT_TIME__SECONDS;
 
     /**
      * This method implements the logic for acquiring a device-specific semaphore.
@@ -139,7 +139,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      * @return DistributedSemaphore instance, if maxConnections exists.
      *         null, otherwise.
      */
-    private DistributedSemaphore getSemaphore(DeviceInfo info) {
+    public DistributedSemaphore getSemaphore(DeviceInfo info) {
         if (!info.getNeedsLock()) {
             return null;
         }

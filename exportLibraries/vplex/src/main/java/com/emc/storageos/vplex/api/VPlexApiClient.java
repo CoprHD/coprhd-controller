@@ -1498,7 +1498,7 @@ public class VPlexApiClient {
      * @param virtualVolumeName Name of virtual volume.
      * @return A reference to the virtual volume info.
      */
-    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName){
+    public VPlexVirtualVolumeInfo findVirtualVolume(String virtualVolumeName) {
         return _discoveryMgr.findVirtualVolume(virtualVolumeName, false);
     }
     
@@ -1509,7 +1509,8 @@ public class VPlexApiClient {
      * @param virtualVolumeInfos List of virtual volumes to find
      * @return A map of virtual volume name to the virtual volume info.
      */
-    public Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes( List<VPlexClusterInfo> clusterInfoList, List<VPlexVirtualVolumeInfo> virtualVolumeInfos){
+    public Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes( List<VPlexClusterInfo> clusterInfoList,
+    		List<VPlexVirtualVolumeInfo> virtualVolumeInfos) {
         return _discoveryMgr.findVirtualVolumes(clusterInfoList, virtualVolumeInfos, true, true);
     }
     

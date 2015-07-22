@@ -101,8 +101,8 @@ public class VPlexApiVirtualVolumeManager {
         
         // Find the storage volumes corresponding to the passed native
         // volume information, discovery them if required.
-        if(null == clusterInfoList){
-        	clusterInfoList = new ArrayList<VPlexClusterInfo>();
+        if (null == clusterInfoList) {
+            clusterInfoList = new ArrayList<VPlexClusterInfo>();
         }
         
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
@@ -180,7 +180,6 @@ public class VPlexApiVirtualVolumeManager {
             virtualVolumeInfo.setName(volumeNameBuilder.toString());
             virtualVolumeInfo.addCluster(clusterId);
             return virtualVolumeInfo;
-            //return discoveryMgr.findVirtualVolume(clusterId, volumeNameBuilder.toString(), true, true);
         } catch (Exception e) {
             // An error occurred. Clean up any VPLEX artifacts created for
             // virtual volume and unclaim the storage volumes.
@@ -727,9 +726,9 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Storage volume discovery is not required.");
 
             // Get the cluster information.
-            if(clusterInfoList.isEmpty()){
-            	clusterInfoList.addAll(discoveryMgr.getClusterInfo(false));
-            	s_logger.info("Retrieved storage volume info for VPlex clusters");
+            if (clusterInfoList.isEmpty()) {
+                clusterInfoList.addAll(discoveryMgr.getClusterInfo(false));
+                s_logger.info("Retrieved storage volume info for VPlex clusters");
             }
 
             // Find the backend storage volumes. If a volume cannot be

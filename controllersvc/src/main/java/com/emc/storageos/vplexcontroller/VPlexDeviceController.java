@@ -745,7 +745,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             
            Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client.findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
 
-           if(!foundVirtualVolumes.isEmpty()){
+           if(!foundVirtualVolumes.isEmpty()) {
             	for(Entry<String, Volume> entry : vplexVolumeNameMap.entrySet()){
             		Volume vplexVolume = entry.getValue();
             		VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(entry.getKey());
@@ -766,7 +766,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             				OperationTypeEnum.CREATE_BLOCK_VOLUME.getDescription());  
             	}
             }
-            if(foundVirtualVolumes.size() != vplexVolumeNameMap.size()){
+            if (foundVirtualVolumes.size() != vplexVolumeNameMap.size()) {
             	VPlexApiException ex = VPlexApiException.exceptions.cantFindAllRequestedVolume();
             	throw ex;
             }

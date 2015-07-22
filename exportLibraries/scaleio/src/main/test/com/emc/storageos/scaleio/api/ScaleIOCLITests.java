@@ -54,8 +54,8 @@ public class ScaleIOCLITests {
 
     @BeforeClass
     static public void setUp() {
-        
-        
+
+
         scaleIOCLI = new ScaleIOCLI(sioHostIpAddress, sioHostCLIUsername, sioHostCLIPwd);
         scaleIOVersionUnderTest = scaleIOCLI.getVersion();
         if (scaleIOVersionUnderTest.matches(SIO_V1_3X_REGEX)) {
@@ -112,7 +112,7 @@ public class ScaleIOCLITests {
         ScaleIOQueryAllResult results = scaleIOCLI.queryAll();
         System.out.println("PD names " + Joiner.on(',').join(results.getProtectionDomainNames()));
         for (String pdName : results.getProtectionDomainNames()) {
-            System.out.printf("PD %s%n  SP names %s", pdName, 
+            System.out.printf("PD %s%n  SP names %s", pdName,
             		Joiner.on(',').join(results.getStoragePoolsForProtectionDomain(pdName)));
             for (String spName : results.getStoragePoolsForProtectionDomain(pdName)) {
                 System.out.printf("%n     %s - %s", spName, results.getStoragePoolProperties(pdName, spName));
@@ -144,7 +144,7 @@ public class ScaleIOCLITests {
                         addVolumeResult.getActualSize()));
             else
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
-            assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), 
+            assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()),
             		addVolumeResult.isSuccess());
             assertTrue(addVolumeResult.isThinlyProvisioned());
 
@@ -194,7 +194,7 @@ public class ScaleIOCLITests {
         final String snapshotName = generateUUID();
 
         ScaleIOSnapshotVolumeResult snapshotVolumeResult =
-                scaleIOCLI.snapshotVolume(addVolumeResult.getId(), snapshotName);
+                scaleIOCLI.snapshotVolume(addVolumeResult.getId(), snapshotName, null);
         System.out.printf("Snapshot volume success is %s%n", snapshotVolumeResult.isSuccess());
         assertTrue(String.format("Snapshot volume failed %s%n", snapshotVolumeResult.getErrorString()),
                 snapshotVolumeResult.isSuccess());

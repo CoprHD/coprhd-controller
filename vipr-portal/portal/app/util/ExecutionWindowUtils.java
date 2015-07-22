@@ -283,4 +283,8 @@ public class ExecutionWindowUtils {
         return catalog.executionWindows().update(id, updateParam);
     }
     
+    public static List<NamedRelatedResourceRep> getCatalogServices(URI id) {
+        ViPRCatalogClient2 catalog = getCatalogClient();
+        return catalog.executionWindows().getCatalogServices(id);
+    }
 }

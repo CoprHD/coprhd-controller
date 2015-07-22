@@ -315,18 +315,7 @@ public class ExecutionWindowService extends CatalogTaggedResourceService {
      @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
      @Path("/{id}/services")
      public CatalogServiceList getCatalogServices(@PathParam("id") URI id) {
-         CatalogServiceList catalogServiceList = new CatalogServiceList();
-         
          List<CatalogService> catalogServices = executionWindowManager.getCatalogServices(id);
-        
-         for (CatalogService catalogService : catalogServices) {
-             NamedRelatedResourceRep resourceRep = toNamedRelatedResource(ResourceTypeEnum.CATALOG_SERVICE,
-                     catalogService.getId(), catalogService.getLabel());
-             catalogServiceList.getCatalogServices().add(resourceRep);
-         }
-       //  catalogServiceList.getCatalogServices().add(CatalogServiceMapper.map)
-         
-         
-         return catalogServiceList;
+         return CatalogServiceMapper.toCatalogServiceList(catalogServices);
      }   
 }

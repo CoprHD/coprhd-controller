@@ -37,6 +37,7 @@ import util.OrderUtils;
 import util.TimeUtils;
 import util.TimeUtils.Duration;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.vipr.model.catalog.CatalogServiceRestRep;
 import com.emc.vipr.model.catalog.ExecutionWindowCommonParam;
 import com.emc.vipr.model.catalog.ExecutionWindowCreateParam;
@@ -163,8 +164,8 @@ public class ExecutionWindows extends Controller {
         }        
 
         List<OrderRestRep> scheduledOrders = OrderUtils.getScheduledOrdersByExecutionWindow(uri(executionWindowForm.id));
-        List<CatalogServiceRestRep> catalogServices = OrderUtils.getServicesByExecutionWindow(uri(executionWindowForm.id));
-        if (Validation.hasErrors() || scheduledOrders.size() > 0 || !catalogServices.isEmpty()) {
+        List<NamedRelatedResourceRep> catalogServices = ExecutionWindowUtils.getCatalogServices(uri(executionWindowForm.id));
+        if (Validation.hasErrors() || !scheduledOrders.isEmpty() || !catalogServices.isEmpty()) {
             if (!scheduledOrders.isEmpty()) {
                 renderArgs.put("error", MessagesUtils.get("executionWindow.deleted.containsScheduledOrders", scheduledOrders.size()));
             }

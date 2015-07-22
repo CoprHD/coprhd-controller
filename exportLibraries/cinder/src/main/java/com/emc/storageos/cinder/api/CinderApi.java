@@ -429,18 +429,31 @@ public class CinderApi {
      * @throws Exception the exception
      */
     public VolumeAttachResponse attachVolume(String volumeId, String initiator,
-            String[] wwpns, String host) throws Exception
+            String[] wwpns, String[] wwnns, String host) throws Exception
     {
         _log.info("CinderApi - start attachVolume");
         
         Gson gson = new Gson();
         
         VolumeAttachRequest volumeAttach = new VolumeAttachRequest();
-        if (initiator != null) {
+        if (initiator != null) 
+        {
             volumeAttach.initializeConnection.connector.initiator = initiator;
-        } else if (wwpns != null) {
-            volumeAttach.initializeConnection.connector.wwpns = wwpns;
         }
+        else 
+        {
+        	if (wwpns != null)
+        	{
+        		volumeAttach.initializeConnection.connector.wwpns = wwpns;
+        	}
+        	
+        	if(null != wwnns)
+        	{
+        		volumeAttach.initializeConnection.connector.wwnns = wwnns;
+        	}
+            
+        }
+        
         volumeAttach.initializeConnection.connector.host = host;
         
         String volumeAttachmentUri = endPoint.getBaseUri()
@@ -519,16 +532,29 @@ public class CinderApi {
      * @throws Exception 
      */
     public void detachVolume(String volumeId, String initiator, String[] wwpns,
+    		String[] wwnns,
             String host) throws Exception
     {
         _log.info("CinderApi - start detachVolume");
         Gson gson = new Gson();
         
         VolumeDetachRequest volumeDetach = new VolumeDetachRequest();
-        if (initiator != null) {
+        if (initiator != null)
+        {
             volumeDetach.terminateConnection.connector.initiator = initiator;
-        } else if (wwpns != null) {
-            volumeDetach.terminateConnection.connector.wwpns = wwpns;
+        }
+        else
+        {
+        	if (wwpns != null)
+        	{
+        		volumeDetach.terminateConnection.connector.wwpns = wwpns;
+        	}
+        	
+        	if (wwnns != null)
+        	{
+        		volumeDetach.terminateConnection.connector.wwnns = wwnns;
+        	}
+            
         }
         volumeDetach.terminateConnection.connector.host = host;
         

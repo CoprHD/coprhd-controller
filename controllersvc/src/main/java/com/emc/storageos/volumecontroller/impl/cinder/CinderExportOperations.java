@@ -49,6 +49,9 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 
 public class CinderExportOperations implements ExportMaskOperations {
+	
+	private static final String WWPNS = "wwpns";
+	private static final String WWNNS = "wwnns";
 
     private static Logger log = LoggerFactory.getLogger(CinderExportOperations.class);
     private DbClient dbClient;
@@ -365,7 +368,9 @@ public class CinderExportOperations implements ExportMaskOperations {
         splitInitiatorsByProtocol(initiators, iSCSIInitiators, fcInitiators);
         String host = getHostNameFromInitiators(initiators);
 
-        String[] fcInitiatorsWwpns = getFCInitiatorsArray(fcInitiators);
+        Map<String, String[]> mapSettingVsValues = getFCInitiatorsArray(fcInitiators);
+        String[] fcInitiatorsWwpns = mapSettingVsValues.get(WWPNS);
+        String[] fcInitiatorsWwnns = mapSettingVsValues.get(WWNNS);
 
         for (Volume volume : volumes) {
             // cinder generated volume ID
@@ -380,7 +385,7 @@ public class CinderExportOperations implements ExportMaskOperations {
                         .format("Attaching volume %s ( %s ) to initiator %s on Openstack cinder node",
                                 volumeId, volume.getId(), initiatorPort));
                 attachResponse = cinderApi.attachVolume(
-                        volumeId, initiatorPort, null, host);
+                        volumeId, initiatorPort, null, null, host);
                 log.info("Got response : {}", attachResponse.connection_info.toString());
                 targetLunId = attachResponse.connection_info.data.target_lun;
             }
@@ -391,7 +396,7 @@ public class CinderExportOperations implements ExportMaskOperations {
                         .format("Attaching volume %s ( %s ) to initiators %s on Openstack cinder node",
                                 volumeId, volume.getId(), fcInitiatorsWwpns));
                 attachResponse = cinderApi.attachVolume(
-                        volumeId, null, fcInitiatorsWwpns, host);
+                        volumeId, null, fcInitiatorsWwpns, fcInitiatorsWwnns, host);
                 log.info("Got response : {}", attachResponse.connection_info.toString());
                 targetLunId = attachResponse.connection_info.data.target_lun;
 
@@ -429,7 +434,9 @@ public class CinderExportOperations implements ExportMaskOperations {
         splitInitiatorsByProtocol(initiators, iSCSIInitiators, fcInitiators);
         String host = getHostNameFromInitiators(initiators);
 
-        String[] fcInitiatorsWwpns = getFCInitiatorsArray(fcInitiators);
+        Map<String, String[]> mapSettingVsValues = getFCInitiatorsArray(fcInitiators);
+        String[] fcInitiatorsWwpns = mapSettingVsValues.get(WWPNS);
+        String[] fcInitiatorsWwnns = mapSettingVsValues.get(WWNNS);
 
         for (Volume volume : volumes) {
             // cinder generated volume ID
@@ -441,7 +448,7 @@ public class CinderExportOperations implements ExportMaskOperations {
                 log.debug(String
                         .format("Detaching volume %s ( %s ) from initiator %s on Openstack cinder node",
                                 volumeId, volume.getId(), initiatorPort));
-                cinderApi.detachVolume(volumeId, initiatorPort, null, host);
+                cinderApi.detachVolume(volumeId, initiatorPort, null, null, host);
 
                 // TODO : Do not use Job to poll status till we figure out how
                 // to get detach status.
@@ -459,7 +466,7 @@ public class CinderExportOperations implements ExportMaskOperations {
                 log.debug(String
                         .format("Detaching volume %s ( %s ) from initiator %s on Openstack cinder node",
                                 volumeId, volume.getId(), fcInitiatorsWwpns));
-                cinderApi.detachVolume(volumeId, null, fcInitiatorsWwpns, host);
+                cinderApi.detachVolume(volumeId, null, fcInitiatorsWwpns, fcInitiatorsWwnns, host);
             }
         }
     }
@@ -475,18 +482,30 @@ public class CinderExportOperations implements ExportMaskOperations {
         }
     }
 
-    private String[] getFCInitiatorsArray(List<Initiator> fcInitiators) {
+    private Map<String, String[]> getFCInitiatorsArray(List<Initiator> fcInitiators) 
+    {
+    	Map<String, String[]> mapSettingVsValues = new HashMap<>();
         // form an array with all FC initiator wwpns
         // to put into attach request body
         String[] fcInitiatorsWwpns = new String[fcInitiators.size()];
+        String[] fcInitiatorsWwnns = new String[fcInitiators.size()];
         int index = 0;
-        for (Initiator fcInitiator : fcInitiators) {
+        for (Initiator fcInitiator : fcInitiators) 
+        {
             // remove colons in initiator port
-            fcInitiatorsWwpns[index] = fcInitiator.getInitiatorPort()
-                    .replaceAll(CinderConstants.COLON, "");
+            fcInitiatorsWwpns[index] = fcInitiator.getInitiatorPort().replaceAll(CinderConstants.COLON, "");
+            String wwnn = fcInitiator.getInitiatorNode();
+            if(null!=wwnn && wwnn.length()>0)
+            {
+            	fcInitiatorsWwnns[index] = wwnn.replaceAll(CinderConstants.COLON, "");
+            }
+            
             index++;
         }
-        return fcInitiatorsWwpns;
+        
+        mapSettingVsValues.put(WWPNS, fcInitiatorsWwpns);
+        mapSettingVsValues.put(WWNNS, fcInitiatorsWwnns);
+        return mapSettingVsValues;
     }
 
     private String getHostNameFromInitiators(List<Initiator> initiators) {

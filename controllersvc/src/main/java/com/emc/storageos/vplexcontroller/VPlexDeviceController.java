@@ -745,7 +745,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             
            Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = client.findVirtualVolumes(clusterInfoList, virtualVolumeInfos);
 
-           if(!foundVirtualVolumes.isEmpty()) {
+           if (!foundVirtualVolumes.isEmpty()) {
             	for(Entry<String, Volume> entry : vplexVolumeNameMap.entrySet()){
             		Volume vplexVolume = entry.getValue();
             		VPlexVirtualVolumeInfo vvInfo = foundVirtualVolumes.get(entry.getKey());

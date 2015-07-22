@@ -51,7 +51,7 @@ _get_controller_props() {
 }
 
 _controller_var_props() {
-    _get_props node_index node_name network_ipaddr_service
+    _get_props node_index node_id network_ipaddr_service
 }
 
 _genconfig_exec _gen_template           /opt/storageos/conf/controller-configinfo.xml   $(_get_controller_props)

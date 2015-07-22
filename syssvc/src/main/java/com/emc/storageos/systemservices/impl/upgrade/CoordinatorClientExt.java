@@ -79,6 +79,7 @@ public class CoordinatorClientExt {
     // Node name used for external display/query purpose.
     // EX: vipr1, vipr2, dataservice-10_247_100_15
     private String _myNodeName = null;
+    private String _myCustomName = null;
     // Service id is for internal use to talk to coordinator.
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
@@ -100,6 +101,7 @@ public class CoordinatorClientExt {
     public void setService(ServiceImpl service) {
         _svc = service;
         _myNodeName = _svc.getNodeName();
+        _myCustomName = _svc.getNodeCustomName();
         mySvcId = _svc.getId();
     }
 
@@ -889,6 +891,63 @@ public class CoordinatorClientExt {
     }
 
     /**
+     * The utility method to find the corresponding nodeIds for the provided
+     * custom names. When each node starts, the system management service on each
+     * node, registers themselves with the coordninator. This method iterates
+     * over that registration namespace to find the nodes in the cluster
+     *
+     * @return NodeHandle for mathing node in the cluster
+     */
+    public List<String> getMatchingNodeIds(List<String> customNames) {
+        List<String> nodeIds = new ArrayList<String>();
+        try {
+            List<Service> svcs = getAllServices();
+            for (Service svc : svcs) {
+                if (customNames.contains(svc.getName())){
+                    final String nodeId =svc.getId();
+                    nodeIds.add(nodeId);
+                }
+            }
+        } catch (Exception e) {
+            _log.error("getMatchingNodeIds(): Failed to get all nodeIds for nodeNames {}: {}",customNames, e);
+        }
+        _log.info("getMatchingNodeIds(): Node Ids: {}", Strings.repr(nodeIds));
+        return nodeIds;
+    }
+
+    /**
+     * The utility method to find the corresponding nodeId for the provided
+     * custom name. When each node starts, the system management service on each
+     * node, registers themselves with the coordninator. This method iterates
+     * over that registration namespace to find the node in the cluster
+     *
+     * @return NodeHandle for mathing node in the cluster
+     */
+    public String getMatchingNodeId(String customName) {
+        String nodeId = null;
+        try {
+            List<Service> svcs = getAllServices();
+            for (Service svc : svcs) {
+                if (customName.equals(svc.getName())){
+                    nodeId =svc.getId();
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            _log.error("getMatchingNodeId(): Failed to get all nodes while searching for {}: {}",customName, e);
+        }
+
+        if (nodeId==null) {
+            _log.error("getMatchingNodeId(): Failed to get nodeId for nodeName {}",customName);
+        } else {
+            _log.info("getMatchingNodeId(): Node Id: {}", nodeId);
+        }
+
+        return nodeId;
+    }
+
+
+    /**
      * The utility method to find all the controller nodes which are not available in the
      * cluster(they might be powered off or the syssvc is off). When each node starts, the system management service on each
      * node, registers themselves with the coordninator. This method iterates
@@ -933,6 +992,13 @@ public class CoordinatorClientExt {
      */
     public String getMyNodeName() {
         return _myNodeName;
+    }
+
+    /**
+     * Get name for "this" node
+     */
+    public String getMyCustomName() {
+        return _myCustomName;
     }
 
     /**

@@ -46,6 +46,11 @@ public interface Service {
     public String getNodeName();
 
     /**
+     * Node name as seen in SSH login.
+     */
+    public String getNodeCustomName();
+
+    /**
      * Service specified attribute
      * 
      * @param key attribute key

@@ -22,12 +22,14 @@ public class NodesDataTable extends DataTable {
 
     public static class Nodes {
         String name;
+        Strinf id;
         String ip;
         String status;
         String type;
-
-        public Nodes(NodeHealth node, String type) {
-            this.name = node.getNodeId();
+        
+        public Nodes (NodeHealth node, String type) {
+            this.name = node.getNodeName();
+            this.id = node.getNodeId();
             this.ip = node.getIp();
             this.status = node.getStatus();
             this.type = type;

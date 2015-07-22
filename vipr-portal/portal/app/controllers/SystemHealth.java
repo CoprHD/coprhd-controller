@@ -216,12 +216,20 @@ public class SystemHealth extends Controller {
                 angularRenderArgs().put("serviceCount", serviceHealthList.size());
                 angularRenderArgs().put("statusCount", getStatusCount(serviceHealthList));
                 angularRenderArgs().put("nodeId", nodeId);
+                angularRenderArgs().put("nodeName", nodeHealth.getNodeName());
                 render(nodeId);
             }
             else {
-                flash.error(Messages.get("system.node.services.error", nodeId));
+                String nodeError = nodeId;
+                try {
+                    nodeError = nodeHealth.getNodeName();
+                }catch (NullPointerException e){
+                    Logger.warn("Could not determine node name.");
+                }
+                flash.error(Messages.get("system.node.services.error", nodeError));
             }
         } else {
+            Logger.warn("Could not determine node name.");
             flash.error(Messages.get("system.node.error", nodeId));
         }
         systemHealth();
@@ -242,6 +250,13 @@ public class SystemHealth extends Controller {
         }
         else {
             flash.error(Messages.get("system.node.error", nodeId));
+            String nodeError= nodeId;
+            try {
+                nodeError = nodeHealth.getNodeName();
+            }catch (NullPointerException e){
+                Logger.warn("Could not determine node name.");
+            }
+            flash.error(Messages.get("system.node.error", nodeError));
             systemHealth();
         }
     }
@@ -512,7 +527,13 @@ public class SystemHealth extends Controller {
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void nodeReboot(@Required String nodeId) {
         new RebootNodeJob(getSysClient(), nodeId).in(3);
-        flash.success(Messages.get("adminDashboard.nodeRebooting", nodeId));
+        String node= nodeId;
+        try {
+            node = MonitorUtils.getNodeHealth(nodeId).getNodeName();
+        }catch (NullPointerException e){
+            Logger.warn("Could not determine node name.");
+        }
+        flash.success(Messages.get("adminDashboard.nodeRebooting", node));
         Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "systemHealth"));
     }
 
@@ -533,8 +554,14 @@ public class SystemHealth extends Controller {
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void serviceRestart(@Required String nodeId, @Required String serviceName) {
         new RestartServiceJob(getSysClient(), serviceName, nodeId).in(3);
-        flash.success(Messages.get("adminDashboard.serviceRestarting", serviceName, nodeId));
-        Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "services", "nodeId", nodeId));
+        String node= nodeId;
+        try {
+            node = MonitorUtils.getNodeHealth(nodeId).getNodeName();
+        }catch (NullPointerException e){
+            Logger.warn("Could not determine node name.");
+        }
+        flash.success(Messages.get("adminDashboard.serviceRestarting", serviceName, node));
+        Maintenance.maintenance(Common.reverseRoute(SystemHealth.class, "services","nodeId", nodeId));
     }
 
     public static void downloadConfigParameters() throws UnsupportedEncodingException {

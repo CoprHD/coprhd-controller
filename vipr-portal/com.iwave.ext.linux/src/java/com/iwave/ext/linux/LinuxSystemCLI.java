@@ -141,7 +141,7 @@ public class LinuxSystemCLI {
      */
     static String createUniqueName(String name, List<String> names) {
 		String result = name;
-		if(name != null && names != null && names.size() > 0 ) {
+		if(name != null && names != null && !names.isEmpty() ) {
 			boolean found = false;
 			for(String currentName: names) {
 				if(name.equals(currentName)) {

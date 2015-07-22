@@ -77,7 +77,7 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
                         addPath(keyMap, Constants.VNXPOOLCAPABILITIES,
                                 capabilitiesInstance.getObjectPath());
                     }
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             capabilitiesInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("Pool Capabilities Discovery failed for {}-->{}",
@@ -86,7 +86,6 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
             }
         } catch (Exception e) {
             _logger.error("Pool Capabilities Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

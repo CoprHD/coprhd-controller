@@ -229,7 +229,7 @@ public class HDSMirrorOperations implements MirrorOperations {
 			String systemObjectID = HDSUtils.getSystemObjectID(storageSystem);
 			BlockMirror mirrorObj = dbClient.queryObject(BlockMirror.class, mirror);
 
-			logMsgBuilder.append(String.format("\nMirror:%s", mirrorObj.getLabel()));
+			logMsgBuilder.append(String.format("%nMirror:%s", mirrorObj.getLabel()));
 			String logicalUnitObjectId = HDSUtils.getLogicalUnitObjectId(
 					mirrorObj.getNativeId(), storageSystem);
 			LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(systemObjectID,

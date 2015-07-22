@@ -12,6 +12,7 @@ import java.io.StringWriter;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import com.iwave.ext.windows.model.DiskSummary;;
@@ -23,6 +24,7 @@ public class ListDiskParserTest {
     private static final String ONLINE = "Online";
     private static final String OFFLINE = "Offline";
     private static final String RESERVED = "Reserved";
+    private static Logger log = Logger.getLogger(ListDiskParserTest.class);
     
     private static final String FLAG = "*";
     
@@ -66,7 +68,7 @@ public class ListDiskParserTest {
         }
         catch (IOException e) {
             // TODO Auto-generated catch block
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
         String text = writer.toString();

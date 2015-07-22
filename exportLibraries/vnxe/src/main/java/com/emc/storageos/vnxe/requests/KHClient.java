@@ -78,11 +78,11 @@ public class KHClient {
 		return _client.resource(url);
 	}
 
-    public synchronized Set<NewCookie> get_cookie() {
+    public synchronized Set<NewCookie> getCookie() {
         return _cookie;
     }
 
-    public synchronized void set_cookie(Set<NewCookie> _cookie) {
+    public synchronized void setCookie(Set<NewCookie> _cookie) {
         this._cookie = _cookie;
     }
 

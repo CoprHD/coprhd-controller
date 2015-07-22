@@ -183,7 +183,7 @@ public class CoordinatorClientInetAddressMap {
         if (uri.getHost().compareToIgnoreCase("localhost") == 0) {
             return uri;
         }
-        if (node.indexOf(".") > 0 || node.indexOf(":") > 0) {
+        if (node.indexOf('.') > 0 || node.indexOf(':') > 0) {
             return uri;
         }
 

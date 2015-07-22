@@ -44,7 +44,7 @@ public class CimAdapterTest {
     private static final String CONNECTION_MANAGER_BEAN = "ConnectionManager";
 
     // A reference to the connection manager.
-    private static ConnectionManager _connectionManager;
+    private static volatile ConnectionManager _connectionManager;
 
     // The time delay after the connection manager is started when it will be
     // shut down. Default is 2 minutes.
@@ -122,6 +122,7 @@ class ShutdownTask extends TimerTask {
             connectionManager.shutdown();
             System.exit(0);
         } catch (Exception e) {
+        	 s_logger.error(e.getMessage(),e);
         }
     }
 }

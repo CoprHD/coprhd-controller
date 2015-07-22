@@ -189,7 +189,7 @@ public class CustomQueryUtility {
         AggregatedValue agg = new AggregatedValue();
         while( it.hasNext()){
             AggregationQueryResultList.AggregatedEntry entry = it.next();
-            agg.value += agg.getDouble(entry.value);
+            agg.value += agg.getDouble(entry.getValue());
             agg.count++;
         }
         return agg;
@@ -261,9 +261,9 @@ public class CustomQueryUtility {
                 protected void run() throws DatabaseException {
                     currentIt = null;
                     getNextBatch();
-                    while (nextBatch.size() > 0) {
+                    while (!nextBatch.isEmpty()) {
                         List<URI> currBatchResults = queryActiveObjects(dbClient, clazz, nextBatch);
-                        if (currBatchResults.size() > 0) {
+                        if (!currBatchResults.isEmpty()) {
                             currentIt = currBatchResults.iterator();
                             break;
                         }
@@ -301,9 +301,9 @@ public class CustomQueryUtility {
                     protected void run() throws DatabaseException {
                         currentIt = null;
                         getNextBatch();
-                        while (nextBatch.size() > 0) {
+                        while (!nextBatch.isEmpty()) {
                             List<URI> currBatchResults = filterDataObjects(dbClient, clazz, field, nextBatch, values);
-                            if (currBatchResults.size() > 0) {
+                            if (!currBatchResults.isEmpty()) {
                                 currentIt = currBatchResults.iterator();
                                 break;
                             }

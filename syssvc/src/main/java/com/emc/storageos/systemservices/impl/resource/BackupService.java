@@ -190,7 +190,7 @@ public class BackupService{
         log.info("Received download backup request, backup tag={}", backupTag);
         try {
             final BackupFileSet files = getDownloadList(backupTag);
-            if (files.size() == 0) {
+            if (files.isEmpty()) {
                 throw APIException.internalServerErrors.createObjectError(
                         String.format("can not find target backup set '%s'.", backupTag),
                         null);

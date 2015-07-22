@@ -15,11 +15,9 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -27,11 +25,9 @@ import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
 import com.netflix.astyanax.util.RangeBuilder;
 import com.netflix.astyanax.util.TimeUUIDUtils;
-
 import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.*;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.exceptions.DatabaseException;
 
 
 /**
@@ -92,10 +88,12 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        if (_value != null)
-            queryOnePageWithoutAutoPaginate(genQuery(),Boolean.toString( _value), result);
-        else
-            queryOnePageWithAutoPaginate(genQuery(), result);
+        if (_value != null) {
+        	queryOnePageWithoutAutoPaginate(genQuery(),Boolean.toString( _value), result);
+        }
+        else {
+        	queryOnePageWithAutoPaginate(genQuery(), result);
+        }
     }
 
     @Override

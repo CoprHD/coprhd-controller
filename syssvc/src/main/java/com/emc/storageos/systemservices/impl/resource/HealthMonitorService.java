@@ -210,7 +210,7 @@ public class HealthMonitorService extends BaseLogSvcResource {
         Map<String, DualInetAddress> ipLookupTable = _coordinatorClientExt.getCoordinatorClient().getInetAddessLookupMap().getControllerNodeIPLookupMap();
 
         //get all nodes if the input param is empty
-        if (nodeIds == null || nodeIds.size() <= 0) {
+        if (nodeIds == null || nodeIds.isEmpty()) {
             int clusterNodeCount = _coordinatorClientExt.getNodeCount();
             nodeIds = new ArrayList<>();
             for (int i=1;i<=clusterNodeCount;i++) {

@@ -43,8 +43,8 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
 
     final private Logger _logger = LoggerFactory.getLogger(JSONAuditLogMarshaller.class);
 
-    private static Locale locale = null;
-    private static ResourceBundle resb = null;
+    private static volatile Locale locale = null;
+    private static volatile ResourceBundle resb = null;
 
     private ObjectMapper _mapper = null;
 

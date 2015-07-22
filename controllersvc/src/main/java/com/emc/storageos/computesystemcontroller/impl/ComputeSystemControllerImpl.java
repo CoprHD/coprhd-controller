@@ -161,7 +161,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<NamedElementQueryResultList.NamedElement> datacenterUris = ComputeSystemHelper.listChildren(_dbClient, id,
                     VcenterDataCenter.class, "label", "vcenter");
             for (NamedElementQueryResultList.NamedElement datacenterUri : datacenterUris) {
-            	waitFor = addStepForVcenterDataCenter(workflow, waitFor, datacenterUri.id);
+            	waitFor = addStepForVcenterDataCenter(workflow, waitFor, datacenterUri.getId());
             }
 
             workflow.executePlan(completer, "Success", null, null, null, null);
@@ -224,7 +224,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<NamedElementQueryResultList.NamedElement> hostUris = ComputeSystemHelper.listChildren(_dbClient,
                     dataCenter.getId(), Host.class, "label", "vcenterDataCenter");
             for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
-                Host host = _dbClient.queryObject(Host.class, hostUri.id);
+                Host host = _dbClient.queryObject(Host.class, hostUri.getId());
                 // do not detach storage of provisioned hosts
                 if (host != null && !host.getInactive() && NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     waitFor = addStepsForExportGroups(workflow, waitFor, host.getId());
@@ -235,7 +235,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<NamedElementQueryResultList.NamedElement> clustersUris = ComputeSystemHelper.listChildren(_dbClient,
                     dataCenter.getId(), Cluster.class, "label", "vcenterDataCenter");
             for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
-                Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri.id);
+                Cluster cluster = _dbClient.queryObject(Cluster.class, clusterUri.getId());
                 if (cluster != null && !cluster.getInactive()) {
                 	waitFor = addStepsForClusterExportGroups(workflow, waitFor, cluster.getId());
                 }
@@ -749,7 +749,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             	updatedInitiators.removeAll( ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
             }            
 
-            if (updatedInitiators.size() == 0) {
+            if (updatedInitiators.isEmpty()) {
                 waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
                       String.format("Deleting export group %s", export.getId()), waitFor,
                       export.getId(), export.getId().toString(),
@@ -845,7 +845,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 List<Initiator> newInitiatorObjects = _dbClient.queryObject(Initiator.class, change.getNewInitiators());
                 
                 // only update initiators if any of them have changed for this host
-                if (change.getNewInitiators().size() > 0 || change.getOldInitiators().size() > 0) {
+                if (!change.getNewInitiators().isEmpty() || !change.getOldInitiators().isEmpty()) {
                     for (ExportGroup export : getExportGroups(hostId, hostInitiators)) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         _log.info("Detected new/removed initiators for export " + export.getId() + " Change: " + change);
@@ -937,7 +937,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
 
                 _log.info("ExportGroupState for " + export.getId() + " = " + export);
                 
-                if (export.getInitiators().size() == 0) {
+                if (export.getInitiators().isEmpty()) {
                     waitFor = workflow.createStep(DELETE_EXPORT_GROUP_STEP,
                           String.format("Deleting export group %s", export.getId()), waitFor,
                           export.getId(), export.getId().toString(),

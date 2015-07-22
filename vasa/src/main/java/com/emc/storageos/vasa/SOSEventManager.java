@@ -83,15 +83,16 @@ public class SOSEventManager {
 	 */
 	public boolean isItEvent(Event event) {
 		if (event.getRecordType() != null
-				& event.getRecordType().equals("Event"))
+				& event.getRecordType().equals("Event")) {
 			return true;
-
+		}
 		return false;
 	}
 
 	public boolean isEventRequired(String eventType) {
-		if (eventType == null)
+		if (eventType == null) {
 			return false;
+		}
 
 		if (eventType.startsWith("GenericSystem") ||
 
@@ -120,8 +121,9 @@ public class SOSEventManager {
 				|| eventType.startsWith("Vpool")
 				|| eventType.contains("STORAGEPORT")
 				|| eventType.contains("StoragePort")
-				|| eventType.contains("Export"))
+				|| eventType.contains("Export")) {
 			return true;
+		}
 
 		return false;
 	}
@@ -163,9 +165,10 @@ public class SOSEventManager {
 				|| eventType.contains("StoragePort")) {
 
 			strVasaEventType = EventTypeEnum.Config.getValue();
-		} else
+		} else {
 			log.warn("Unknown event type: [" + eventType
 					+ "] in getVasaEventType()");
+		}
 
 		return strVasaEventType;
 
@@ -206,9 +209,10 @@ public class SOSEventManager {
 				|| eventType.startsWith("UPDATE STORAGEPORT")
 				|| eventType.startsWith("StoragePortUpdated")) {
 			return EventConfigTypeEnum.Update.getValue();
-		} else
+		} else {
 			log.warn("Unknown event type: " + eventType
 					+ "in getVasaConfigType()");
+		}
 
 		return strVasaConfigType;
 
@@ -225,23 +229,30 @@ public class SOSEventManager {
 	public String getEventObjectType(String eventType) {
 		String objectTypeString = "";
 		if (eventType.startsWith("FileShare")
-				|| eventType.startsWith("FileSystem"))
+				|| eventType.startsWith("FileSystem")) {
 			objectTypeString = EntityTypeEnum.StorageFileSystem.getValue();
+		}
 		else if (eventType.startsWith("Volume")
-				|| eventType.startsWith("ExportVolume"))
+				|| eventType.startsWith("ExportVolume")) {
 			objectTypeString = EntityTypeEnum.StorageLun.getValue();
-		else if (eventType.startsWith("Vpool"))
+		}
+		else if (eventType.startsWith("Vpool")) {
 			objectTypeString = EntityTypeEnum.StorageCapability.getValue();
-		else if (eventType.startsWith("StorageArray"))
+		}
+		else if (eventType.startsWith("StorageArray")) {
 			objectTypeString = EntityTypeEnum.StorageArray.getValue();
-		else if (eventType.startsWith("StorageProcessor"))
+		}
+		else if (eventType.startsWith("StorageProcessor")) {
 			objectTypeString = EntityTypeEnum.StorageProcessor.getValue();
+		}
 		else if (eventType.contains("STORAGEPORT")
-				|| eventType.contains("StoragePort"))
+				|| eventType.contains("StoragePort")) {
 			objectTypeString = EntityTypeEnum.StoragePort.getValue();
-		else
+		}
+		else {
 			log.warn("Unknown event type [" + eventType
 					+ "] in getEventObjectType()");
+		}
 
 		return objectTypeString;
 
@@ -264,12 +275,15 @@ public class SOSEventManager {
 	public String getMessageIdForEvent(String eventType) {
 
 		String msgIdPrefix = "StorageOS.";
-		if (eventType == null)
+		if (eventType == null) {
 			return "";
-		else if (eventType.startsWith("ExportVolumeAdded"))
+		}
+		else if (eventType.startsWith("ExportVolumeAdded")) {
 			return msgIdPrefix + "VolumeExported";
-		else if (eventType.startsWith("ExportVolumeRemoved"))
+		}
+		else if (eventType.startsWith("ExportVolumeRemoved")) {
 			return msgIdPrefix + "VolumeUnexported";
+		}
 		else if (eventType.contains("STORAGEPORT")) {
 			if (eventType.contains("CREATE")) {
 				return msgIdPrefix + "StoragePortCreated";
@@ -314,8 +328,9 @@ public class SOSEventManager {
 			String eventId = event.getEventId().toString();
 			for (NameValuePair nvp : nvpList) {
 				if (nvp.getParameterName().equalsIgnoreCase("SOSEventId")
-						&& nvp.getParameterValue().equalsIgnoreCase(eventId))
+						&& nvp.getParameterValue().equalsIgnoreCase(eventId)) {
 					return true;
+				}
 
 			}
 		}
@@ -327,23 +342,30 @@ public class SOSEventManager {
 	public String getEventObjectTypeId(String eventType) {
 		String objectTypeIdString = "";
 		if (eventType.startsWith("FileShare")
-				|| eventType.startsWith("FileSystem"))
+				|| eventType.startsWith("FileSystem")) {
 			objectTypeIdString = EntityTypeEnum.StorageFileSystem.getValue();
+		}
 		else if (eventType.startsWith("Volume")
-				|| eventType.startsWith("ExportVolume"))
+				|| eventType.startsWith("ExportVolume")) {
 			objectTypeIdString = EntityTypeEnum.StorageLun.getValue();
-		else if (eventType.startsWith("Vpool"))
+		}
+		else if (eventType.startsWith("Vpool")) {
 			objectTypeIdString = EntityTypeEnum.StorageCapability.getValue();
-		else if (eventType.startsWith("StorageArray"))
+		}
+		else if (eventType.startsWith("StorageArray")) {
 			objectTypeIdString = EntityTypeEnum.StorageArray.getValue();
-		else if (eventType.startsWith("StorageProcessor"))
+		}
+		else if (eventType.startsWith("StorageProcessor")) {
 			objectTypeIdString = EntityTypeEnum.StorageProcessor.getValue();
+		}
 		else if (eventType.contains("STORAGEPORT")
-				|| eventType.contains("StoragePort"))
+				|| eventType.contains("StoragePort")) {
 			objectTypeIdString = EntityTypeEnum.StoragePort.getValue();
-		else
+		}
+		else {
 			log.warn("Unknown event type: [" + eventType
 					+ "] in getEventObjectTypeId()");
+		}
 
 		return objectTypeIdString;
 

@@ -211,7 +211,6 @@ public class Util {
 			return configParser.getString(configPath + configName, null);
 		} catch (Exception e) {
 			log.error("getStringConfigValue ", e);
-			e.printStackTrace();
 			return null;
 		}
 	}
@@ -223,7 +222,6 @@ public class Util {
 			return configParser.getString(configName, null);
 		} catch (Exception e) {
 			log.error("getConfigValue ", e);
-			e.printStackTrace();
 			return null;
 		}
 	}

@@ -22,6 +22,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
@@ -32,6 +34,8 @@ import java.util.Date;
 import java.util.List;
 
 public class BackupCmd {
+
+    private static final Logger log = LoggerFactory.getLogger(BackupCmd.class);
 
     private static final Options options = new Options();
     private static final String TOOL_NAME = "bkutils";
@@ -112,7 +116,7 @@ public class BackupCmd {
             }
         } catch (Exception p) {
             System.err.print(p.getMessage());
-            p.printStackTrace();
+            log.error("Caught Exception when parsing command line input: ", p);
             formatter.printHelp(TOOL_NAME, options);
             System.exit(-1);
         }

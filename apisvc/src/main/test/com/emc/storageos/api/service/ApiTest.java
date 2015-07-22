@@ -215,7 +215,7 @@ public class ApiTest extends ApiTestBase {
         param.getGroupWhitelistValues().add("*Test*");
         param.getGroupWhitelistValues().add("*Users*");
         param.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        param.setManagerPassword(AD_PASSWORD);
+        param.setManagerPassword(AD_PASS_WORD);
         param.setSearchBase("CN=Users,DC=sanity,DC=local");
         // %u is there but not on the right side of the "=".  Adding this config should fail
         param.setSearchFilter("%u=userPrincipalName");
@@ -236,7 +236,7 @@ public class ApiTest extends ApiTestBase {
         duplicateConfig1.setGroupWhitelistValues(new HashSet<String>());
         duplicateConfig1.getGroupWhitelistValues().add("*Admins*");
         duplicateConfig1.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        duplicateConfig1.setManagerPassword(AD_PASSWORD);
+        duplicateConfig1.setManagerPassword(AD_PASS_WORD);
         duplicateConfig1.setSearchBase("CN=Users,DC=sanity,DC=local");
         duplicateConfig1.setSearchFilter("userPrincipalName=%u");
         duplicateConfig1.setServerUrls(new HashSet<String>());
@@ -255,7 +255,7 @@ public class ApiTest extends ApiTestBase {
         duplicateConfig2.setGroupWhitelistValues(new HashSet<String>());
         duplicateConfig2.getGroupWhitelistValues().add("*Admins*");
         duplicateConfig2.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        duplicateConfig2.setManagerPassword(AD_PASSWORD);
+        duplicateConfig2.setManagerPassword(AD_PASS_WORD);
         duplicateConfig2.setSearchBase("CN=Users,DC=sanity,DC=local");
         duplicateConfig2.setSearchFilter("userPrincipalName=%u");
         duplicateConfig2.setServerUrls(new HashSet<String>());
@@ -350,7 +350,7 @@ public class ApiTest extends ApiTestBase {
         badScopeParam.setGroupWhitelistValues(new HashSet<String>());
         badScopeParam.getGroupWhitelistValues().add("*Admins*");
         badScopeParam.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        badScopeParam.setManagerPassword(AD_PASSWORD);
+        badScopeParam.setManagerPassword(AD_PASS_WORD);
         badScopeParam.setSearchBase("CN=Users,DC=sanity,DC=local");
         badScopeParam.setSearchFilter("userPrincipalName=%u");
         badScopeParam.setServerUrls(new HashSet<String>());
@@ -371,7 +371,7 @@ public class ApiTest extends ApiTestBase {
         goodScopeParam.setGroupWhitelistValues(new HashSet<String>());
         goodScopeParam.getGroupWhitelistValues().add("*Admins*");
         goodScopeParam.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        goodScopeParam.setManagerPassword(AD_PASSWORD);
+        goodScopeParam.setManagerPassword(AD_PASS_WORD);
         goodScopeParam.setSearchBase("CN=Users,DC=sanity,DC=local");
         goodScopeParam.setSearchFilter("userPrincipalName=%u");
         goodScopeParam.setServerUrls(new HashSet<String>());
@@ -391,7 +391,7 @@ public class ApiTest extends ApiTestBase {
         randomConfig.setGroupWhitelistValues(new HashSet<String>());
         randomConfig.getGroupWhitelistValues().add("*Admins*");
         randomConfig.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        randomConfig.setManagerPassword(AD_PASSWORD);
+        randomConfig.setManagerPassword(AD_PASS_WORD);
         randomConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         randomConfig.setSearchFilter( "userPrincipalName=%u");
         randomConfig.setServerUrls(new HashSet<String>());
@@ -456,7 +456,7 @@ public class ApiTest extends ApiTestBase {
         param.getGroupWhitelistValues().add("*Test*");
         param.getGroupWhitelistValues().add("*Users*");
         param.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        param.setManagerPassword(AD_PASSWORD);
+        param.setManagerPassword(AD_PASS_WORD);
         param.setSearchBase("CN=Users,DC=sanity,DC=local");
         param.setSearchFilter("userPrincipalName=%u");
         param.setServerUrls(new HashSet<String>());
@@ -491,7 +491,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(400, resp.getStatus());
 
         // fix what was wrong (password), and disable = false from above, validation should rerun and be ok
-        updateParam.setManagerPassword(AD_PASSWORD);
+        updateParam.setManagerPassword(AD_PASS_WORD);
         resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString())).put(ClientResponse.class, updateParam);
         Assert.assertEquals(200, resp.getStatus());
 
@@ -502,7 +502,7 @@ public class ApiTest extends ApiTestBase {
         ldapParam.setDisable(false);
         ldapParam.getDomains().add("domain22.com");
         ldapParam.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        ldapParam.setManagerPassword(AD_PASSWORD);
+        ldapParam.setManagerPassword(AD_PASS_WORD);
         ldapParam.setSearchBase("CN=Users,DC=sanity,DC=local");
         ldapParam.setSearchFilter("userPrincipalName=%u");
         ldapParam.setServerUrls(new HashSet<String>());
@@ -527,7 +527,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(400, resp.getStatus());
     }
 
-    private void ADConfigListTests() {
+    private void adConfigListTests() {
         AuthnProviderList resp = rSys.path("/vdc/admin/authnproviders").get(AuthnProviderList.class);
         int sz = resp.getProviders().size();
 
@@ -543,7 +543,7 @@ public class ApiTest extends ApiTestBase {
         param.getGroupWhitelistValues().add("*Test*");
         param.getGroupWhitelistValues().add("*Users*");
         param.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
-        param.setManagerPassword(AD_PASSWORD);
+        param.setManagerPassword(AD_PASS_WORD);
         param.setSearchBase("CN=Users,DC=sanity,DC=local");
         param.setSearchFilter( "userPrincipalName=%u");
         param.setServerUrls(new HashSet<String>());
@@ -646,7 +646,7 @@ public class ApiTest extends ApiTestBase {
     }
 
     private void logoutTests() throws Exception {
-        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
+        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         ClientResponse resp = rootUser.path("/login").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertNotNull(_savedTokens.get("root"));
@@ -688,7 +688,7 @@ public class ApiTest extends ApiTestBase {
 
     private void testAll() throws Exception {
 
-        ADConfigTests();
+        adConfigTests();
         proxyTokenTests();
         userInfoTests();
         // uncomment the following line when CQ606655 has been fixed
@@ -874,9 +874,9 @@ public class ApiTest extends ApiTestBase {
     }
 
 
-    private void ADConfigTests() throws Exception {
+    private void adConfigTests() throws Exception {
         addBadADConfig();
-        ADConfigListTests();
+        adConfigListTests();
         authProvidersConnectivityTests();
     }
 
@@ -1739,7 +1739,7 @@ public class ApiTest extends ApiTestBase {
         roleAssignmentChanges.setAdd(add);
         resp = rSys.path("/vdc/role-assignments").put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
-        BalancedWebResource rSysadminOnly = createHttpsClient(SYSTEM_ADMIN_ONLY, AD_PASSWORD, baseUrls);
+        BalancedWebResource rSysadminOnly = createHttpsClient(SYSTEM_ADMIN_ONLY, AD_PASS_WORD, baseUrls);
         resp = rSysadminOnly.path(subtenant_url).get( ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
@@ -2269,19 +2269,19 @@ public class ApiTest extends ApiTestBase {
     public void prepareVdcTest() throws Exception {
         ClientResponse resp = null;
 
-        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
+        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         UserInfo info = rootUser.path("/user/whoami").get(UserInfo.class);
         String rootTenantId = info.getTenant();
         String rootToken = (String)_savedTokens.get(SYSADMIN);
 
-        BalancedWebResource superSanity = createHttpsClient(SUPERUSER, AD_PASSWORD, baseUrls);
+        BalancedWebResource superSanity = createHttpsClient(SUPERUSER, AD_PASS_WORD, baseUrls);
         superSanity.path("/tenant").get(TenantResponse.class);
         String superSanityToken = (String)_savedTokens.get(SUPERUSER);
 
         // prepare tenant roles and project ownership
         // also assign TenantAdmin to superuser, so it can be used to verify afterwards
         boolean bRootHasProviderTenantAdmin = true;
-        if (info.getHomeTenantRoles().size() == 0) {
+        if (info.getHomeTenantRoles().isEmpty()) {
             bRootHasProviderTenantAdmin = false;
             resp = assignTenantRole(rootTenantId, SYSADMIN, "TENANT_ADMIN");
             Assert.assertEquals(200, resp.getStatus());
@@ -2352,7 +2352,7 @@ public class ApiTest extends ApiTestBase {
     }
 
     private TenantOrgRestRep createTenant(String label, String domain, String attrKey, String attrValue) throws Exception {
-        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
+        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         UserInfo info = rootUser.path("/user/whoami").get(UserInfo.class);
         String rootTenantId = info.getTenant();
         String rootToken = (String)_savedTokens.get(SYSADMIN);
@@ -2386,7 +2386,7 @@ public class ApiTest extends ApiTestBase {
     }
 
     private ClientResponse changeTenantRoles(String tenantId, String subjectId, List<String> addRoles, List<String> removeRoles) throws Exception {
-        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
+        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         rootUser.path("/user/whoami").get(UserInfo.class);
         String rootToken = (String)_savedTokens.get(SYSADMIN);
 
@@ -2436,7 +2436,7 @@ public class ApiTest extends ApiTestBase {
     }
 
     private ClientResponse createTenant(String label, String domain, String groupName) throws Exception {
-        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
+        BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         UserInfo info = rootUser.path("/user/whoami").get(UserInfo.class);
         String rootTenantId = info.getTenant();
         String rootToken = (String)_savedTokens.get(SYSADMIN);
@@ -2474,7 +2474,7 @@ public class ApiTest extends ApiTestBase {
         param.getDomains().add(domain);
         param.setGroupAttribute("CN");
         param.setManagerDn("CN=Administrator,CN=Users,DC=secqe,DC=com");
-        param.setManagerPassword(AD_PASSWORD);
+        param.setManagerPassword(AD_PASS_WORD);
         param.setSearchBase("CN=Users,DC=secqe,DC=com");
         param.setSearchFilter("userPrincipalName=%u");
         param.setServerUrls(new HashSet<String>());

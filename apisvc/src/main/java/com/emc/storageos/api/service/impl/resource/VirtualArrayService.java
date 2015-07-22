@@ -979,7 +979,7 @@ public class VirtualArrayService extends TaggedResource {
             for (Map.Entry<String, Set<String>> entry : availableAttrs.entrySet()) {
                 list.getAttributes().add(new VirtualPoolAvailableAttributesResourceRep(entry.getKey(), entry.getValue()));
             }
-            if(list.getAttributes().size() != 0){
+            if(!list.getAttributes().isEmpty()){
                 vArrayAttributes.getAttributes().add(list);
             }
         }
@@ -1130,7 +1130,7 @@ public class VirtualArrayService extends TaggedResource {
 		}
 		_log.info("the networks run on these network systems: {}", nsIds);
 
-		if (networkVsanIds.size() == 0 || nsIds.size() == 0) {
+		if (networkVsanIds.isEmpty() || nsIds.isEmpty()) {
 			// no networks in the array - exit early
 			return new ComputeSystemBulkRep();
 		}
@@ -1209,7 +1209,7 @@ public class VirtualArrayService extends TaggedResource {
 		}
 		_log.info("these CS are connected to the vArray: {}", matchingCsIds.getIds());
 
-		if (matchingCsIds.getIds().size() == 0) {
+		if (matchingCsIds.getIds().isEmpty()) {
 			return new ComputeSystemBulkRep();
 		}
 
@@ -1399,7 +1399,7 @@ public class VirtualArrayService extends TaggedResource {
                 List<NamedElementQueryResultList.NamedElement> dataObjects = 
                         listChildren(clusterUri, Host.class, "label", "cluster");
                 for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
-                    Set<String> hostVarrays = getVarraysForHost(dataObject.id);
+                    Set<String> hostVarrays = getVarraysForHost(dataObject.getId());
                     hostVarraySets.add(hostVarrays);
                 }
 
@@ -1463,7 +1463,7 @@ public class VirtualArrayService extends TaggedResource {
         List<NamedElementQueryResultList.NamedElement> dataObjects = 
                 listChildren(hostUri, Initiator.class, "iniport", "host");
         for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
-            initiatorList.add(dataObject.id.toString());
+            initiatorList.add(dataObject.getId().toString());
         }
         
         for (String initUri : initiatorList) {
@@ -1536,7 +1536,7 @@ public class VirtualArrayService extends TaggedResource {
                     Arrays.toString(criterias), 
                     acceptableKeys.toString());
         }
-        if (unacceptableKeys.size() > 0) {
+        if (!unacceptableKeys.isEmpty()) {
             throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(
                     getResourceClass().getName(), 
                     Arrays.toString(criterias), 

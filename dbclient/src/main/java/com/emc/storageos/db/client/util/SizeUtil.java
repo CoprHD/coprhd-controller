@@ -46,7 +46,7 @@ public class SizeUtil {
         }
         Double d = Double.valueOf(sizeSubstr.trim()) * multiplier;
         sizeVal = d.longValue();
-        return new Long(sizeVal);
+        return Long.valueOf(sizeVal);
     }
     
     /**
@@ -64,8 +64,8 @@ public class SizeUtil {
          } else if (to.endsWith(SIZE_MB)) {
              multiplier = 1024*1024L;          
          } 
-         Double d = Double.valueOf(size / multiplier);
+         Double d = Double.valueOf(size / (double)multiplier);
          long sizeVal = d.longValue();
-         return new Long(sizeVal);
+         return Long.valueOf(sizeVal);
     }
 }

@@ -1,9 +1,5 @@
-/*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
 /**
- *  Copyright (c) 2008-2013 EMC Corporation
+ *  Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  *
  * This software contains the intellectual property of EMC Corporation
@@ -113,7 +109,7 @@ public class CIMStoragePortUpdatableDeviceEvent extends
                 }
                 logMessage("NativeGuid for storagePort Computed as  : [{}]",
                         new Object[] { _nativeGuid });
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 _logger.error("Unable to compute NativeGuid :", e);
             }
         }

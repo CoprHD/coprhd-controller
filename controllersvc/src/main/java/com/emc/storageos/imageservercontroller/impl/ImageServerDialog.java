@@ -17,7 +17,8 @@ import com.emc.storageos.networkcontroller.SSHSession;
 import com.emc.storageos.networkcontroller.exceptions.NetworkDeviceControllerException;
 
 public class ImageServerDialog extends SSHDialog {
-
+	private static final Logger logger = LoggerFactory
+            .getLogger(ImageServerDialog.class);
 	public static void main(String[] args) {
 		ImageServerDialog d = null;
 		try {
@@ -39,8 +40,7 @@ public class ImageServerDialog extends SSHDialog {
 			d.cd("/tmp");
 
 		} catch (Exception e) {
-			System.out.println("Unexpected exception during image server verification: " + e.getMessage());
-			e.printStackTrace();
+			logger.error(e.getMessage(),e);
 		} finally {
 			if (d != null && d.isConnected())
 				d.close();

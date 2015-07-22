@@ -114,67 +114,67 @@ public class DataDomainApiConstants {
     public static final String DATADOMAIN_SYSTEM_LIST = DATADOMAIN_PATH + "/dd-systems";
 
     private static final String DATADOMAIN_SYSTEM_ = DATADOMAIN_SYSTEM_LIST + "/%s";
-    public static final String DATADOMAIN_SYSTEM(String system) {
+    public static final String dataDomainSystem(String system) {
     	return String.format(DATADOMAIN_SYSTEM_, system);
     }
 
     private static final String DATADOMAIN_MTREES_= DATADOMAIN_SYSTEM_ + "/mtrees";
-    public static final String DATADOMAIN_MTREES(String system) {
+    public static final String dataDomainMtrees(String system) {
         return String.format(DATADOMAIN_MTREES_, system);
     }
 
     private static final String DATADOMAIN_MTREE_ = DATADOMAIN_MTREES_ + "/%s";
-    public static final String DATADOMAIN_MTREE(String system, String id) {
+    public static final String dataDomainMtree(String system, String id) {
         return String.format(DATADOMAIN_MTREE_, system,id);
     }
     
     private static final String DATADOMAIN_EXPORTS_ = DATADOMAIN_SYSTEM_ + "/protocols/nfs/exports";
-    public static final String DATADOMAIN_EXPORTS(String system) {
+    public static final String dataDomainExports(String system) {
         return String.format(DATADOMAIN_EXPORTS_, system);
     }
     
     private static final String DATADOMAIN_EXPORT_= DATADOMAIN_EXPORTS_ + "/%s";
-    public static final String DATADOMAIN_EXPORT(String system, String id) {
+    public static final String dataDomainExport(String system, String id) {
         return String.format(DATADOMAIN_EXPORT_, system, id);
     }
     
     private static final String DATADOMAIN_SHARES_ = DATADOMAIN_SYSTEM_ + "/protocols/cifs/shares";
-    public static final String DATADOMAIN_SHARES(String system) {
+    public static final String dataDomainShares(String system) {
         return String.format(DATADOMAIN_SHARES_, system);
     }
     
     private static final String DATADOMAIN_SHARE_= DATADOMAIN_SHARES_ + "/%s";
-    public static final String DATADOMAIN_SHARE(String system, String id) {
+    public static final String dataDomainShare(String system, String id) {
         return String.format(DATADOMAIN_SHARE_, system, id);
     }
     
     private static final String DATADOMAIN_SNAPSHOTS_ = DATADOMAIN_SYSTEM_ + "/snapshots";
-    public static final String DATADOMAIN_SNAPSHOTS(String system) {
+    public static final String dataDomainSnapshots(String system) {
         return String.format(DATADOMAIN_SNAPSHOTS_, system);
     }
     
     private static final String DATADOMAIN_SNAPSHOT_= DATADOMAIN_SNAPSHOTS_ + "/%s";
-    public static final String DATADOMAIN_SNAPSHOT(String system, String id) {
+    public static final String dataDomainSnapshot(String system, String id) {
         return String.format(DATADOMAIN_SNAPSHOT_, system, id);
     }
     
     private static final String DATADOMAIN_SYSTEM_STATS_CAPACITY = DATADOMAIN_SYSTEM_ + "/stats/capacity";
-    public static final String DATADOMAIN_SYSTEM_STATS_CAPACITY(String system) {
+    public static final String dataDomainSystemStatsCapacity(String system) {
         return String.format(DATADOMAIN_SYSTEM_STATS_CAPACITY, system);
     }
     
     private static final String DATADOMAIN_MTREE_STATS_= DATADOMAIN_MTREE_ + "/stats";
-    public static final String DATADOMAIN_MTREE_STATS(String system, String mtreeId) {
+    public static final String dataDomainMtreeStats(String system, String mtreeId) {
         return String.format(DATADOMAIN_MTREE_STATS_, system, mtreeId);
     }
     
     private static final String DATADOMAIN_MTREE_STATS_CAPACITY = DATADOMAIN_MTREE_ + "/stats/capacity";
-    public static final String DATADOMAIN_MTREE_STATS_CAPACITY(String system, String mtreeId) {
+    public static final String dataDomainMtreeStatsCapacity(String system, String mtreeId) {
         return String.format(DATADOMAIN_MTREE_STATS_CAPACITY, system, mtreeId);
     }
     
     private static final String DATADOMAIN_MTREE_STATS_PERFORMANCE = DATADOMAIN_MTREE_ + "/stats/performance";
-    public static final String DATADOMAIN_MTREE_STATS_PERFORMANCE(String system, String mtreeId) {
+    public static final String dataDomainMtreeStatsPerformance(String system, String mtreeId) {
         return String.format(DATADOMAIN_MTREE_STATS_PERFORMANCE, system, mtreeId);
     }
 
@@ -184,12 +184,12 @@ public class DataDomainApiConstants {
     public static final URI URI_DATADOMAIN_SYSTEM_LIST = URI.create(DATADOMAIN_SYSTEM_LIST);
 
     private static final String DATADOMAIN_NETWORKS_= DATADOMAIN_SYSTEM_ + "/networks";
-    public static final String DATADOMAIN_NETWORKS(String system) {
+    public static final String dataDomainNetworks(String system) {
         return String.format(DATADOMAIN_NETWORKS_, system);
     }
 
     private static final String DATADOMAIN_NETWORK_= DATADOMAIN_NETWORKS_ + "/%s";
-    public static final String DATADOMAIN_NETWORK(String system, String networkId) {
+    public static final String dataDomainNetwork(String system, String networkId) {
         return String.format(DATADOMAIN_NETWORK_, system, networkId);
     }
 
@@ -201,64 +201,64 @@ public class DataDomainApiConstants {
           return URI.create(newDataDomainBase(ip,port));
     }
 
-    public static final URI URI_DATADOMAIN_SYSTEM(String system){
-        return URI.create(DATADOMAIN_SYSTEM(system));
+    public static final URI uriDataDomainSystem(String system){
+        return URI.create(dataDomainSystem(system));
     }
 
-    public static final URI URI_DATADOMAIN_MTREES(String system){
-        return URI.create(DATADOMAIN_MTREES(system));
+    public static final URI uriDataDomainMtrees(String system){
+        return URI.create(dataDomainMtrees(system));
     }
 
-    public static final URI URI_DATADOMAIN_MTREE(String system, String id){
-        return URI.create(DATADOMAIN_MTREE(system,id));
+    public static final URI uriDataDomainMtree(String system, String id){
+        return URI.create(dataDomainMtree(system,id));
     }
 
-    public static final URI URI_DATADOMAIN_EXPORTS(String system){
-        return URI.create(DATADOMAIN_EXPORTS(system));
+    public static final URI uriDataDomainExports(String system){
+        return URI.create(dataDomainExports(system));
     }
     
-    public static final URI URI_DATADOMAIN_EXPORT(String system, String id){
-        return URI.create(DATADOMAIN_EXPORT(system, id));
+    public static final URI uriDataDomainExport(String system, String id){
+        return URI.create(dataDomainExport(system, id));
     }
     
-    public static final URI URI_DATADOMAIN_SHARES(String system){
-        return URI.create(DATADOMAIN_SHARES(system));
+    public static final URI uriDataDomainShares(String system){
+        return URI.create(dataDomainShares(system));
     }
     
-    public static final URI URI_DATADOMAIN_SHARE(String system, String id){
-        return URI.create(DATADOMAIN_SHARE(system, id));
+    public static final URI uriDataDomainShare(String system, String id){
+        return URI.create(dataDomainShare(system, id));
     }
     
-    public static final URI URI_DATADOMAIN_SNAPSHOTS(String system){
-        return URI.create(DATADOMAIN_SNAPSHOTS(system));
+    public static final URI uriDataDomainSnapshots(String system){
+        return URI.create(dataDomainSnapshots(system));
     }
     
-    public static final URI URI_DATADOMAIN_SNAPSHOT(String system, String id){
-        return URI.create(DATADOMAIN_SNAPSHOT(system, id));
+    public static final URI uriDataDomainSnapshot(String system, String id){
+        return URI.create(dataDomainSnapshot(system, id));
     }
 
-    public static final URI URI_DATADOMAIN_NETWORKS(String system){
-        return URI.create(DATADOMAIN_NETWORKS(system));
+    public static final URI uriDataDomainNetworks(String system){
+        return URI.create(dataDomainNetworks(system));
     }
 
-    public static final URI URI_DATADOMAIN_NETWORK(String system, String network){
-        return URI.create(DATADOMAIN_NETWORK(system,network));
+    public static final URI uriDataDomainNetwork(String system, String network){
+        return URI.create(dataDomainNetwork(system,network));
     }
     
-    public static final URI URI_DATADOMAIN_SYSTEM_STATS_CAPACITY(String systemId){
-        return URI.create(DATADOMAIN_SYSTEM_STATS_CAPACITY(systemId));
+    public static final URI uriDataDomainSystemStatsCapacity(String systemId){
+        return URI.create(dataDomainSystemStatsCapacity(systemId));
     }
     
-    public static final URI URI_DATADOMAIN_MTREE_STATS(String system, String id){
-        return URI.create(DATADOMAIN_MTREE_STATS(system, id));
+    public static final URI uriDataDomainMtreeStats(String system, String id){
+        return URI.create(dataDomainMtreeStats(system, id));
     }
  
-    public static final URI URI_DATADOMAIN_MTREE_STATS_CAPACITY(String system, String id){
-        return URI.create(DATADOMAIN_MTREE_STATS_CAPACITY(system, id));
+    public static final URI uriDataDomainMtreeStatsCapacity(String system, String id){
+        return URI.create(dataDomainMtreeStatsCapacity(system, id));
     }
     
-    public static final URI URI_DATADOMAIN_MTREE_STATS_PERFORMANCE(String system, String id){
-        return URI.create(DATADOMAIN_MTREE_STATS_PERFORMANCE(system, id));
+    public static final URI uriDataDomainMtreeStatsPerformace(String system, String id){
+        return URI.create(dataDomainMtreeStatsPerformance(system, id));
     }
 
 }

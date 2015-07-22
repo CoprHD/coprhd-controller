@@ -67,30 +67,30 @@ public class NetworkAssociationHelper {
 
 	    // First update removed endpoints
 	    List<StoragePort> remPorts = getEndPointsStoragePorts(remEps, dbClient);
-	    if (remPorts.size() > 0) {
+	    if (!remPorts.isEmpty()) {
 	        // clear all network and varrays associations
 	        clearPortAssociations(remPorts, dbClient);
 	    }
 
         List<StoragePort> addPorts = getEndPointsStoragePorts(addEps, dbClient);
-        if (addPorts.size() > 0) {
+        if (!addPorts.isEmpty()) {
             // update the ports  implicitly connected varrays
             updatePortAssociations(network, addPorts, dbClient);
         }
         
         List<StoragePort> createdAndUpdatedPorts = new ArrayList<StoragePort>(addPorts);
-        if ((addVarrays != null && addVarrays.size() > 0) || (remVarray != null && remVarray.size() > 0) ) {
+        if ((addVarrays != null && !addVarrays.isEmpty()) || (remVarray != null && !remVarray.isEmpty()) ) {
             // varray changed, update existing ports in the network
             List<StoragePort> updatedPorts = getNetworkStoragePorts(network.getId().toString(), addEps, dbClient);
             createdAndUpdatedPorts.addAll(updatedPorts);
             updatePortAssociations(network, updatedPorts, dbClient);
         }
         
-        if (remPorts.size() > 0 || 
-                (addVarrays != null && addVarrays.size() > 0) || (remVarray != null && remVarray.size() > 0)) {
+        if (!remPorts.isEmpty() || 
+                (addVarrays != null && !addVarrays.isEmpty()) || (remVarray != null && !remVarray.isEmpty())) {
             //when ports are removed or varrays changed, a full recompute of connected networks is needed
             setNetworkConnectedVirtualArrays(network, true, dbClient);
-        } else if (addPorts.size() > 0) {
+        } else if (!addPorts.isEmpty()) {
             // update the network implicitly connected varrays based on added ports
             updateConnectedVirtualArrays(network, addPorts, true, dbClient);
         }

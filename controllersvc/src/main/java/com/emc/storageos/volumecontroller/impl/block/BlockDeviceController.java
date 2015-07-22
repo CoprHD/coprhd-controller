@@ -319,8 +319,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 extensions,_dbClient,EVENT_SERVICE_TYPE, RecordType.Event.name(),EVENT_SERVICE_SOURCE);
         try {
             _eventManager.recordEvents(event);
-        } catch(Throwable th ) {
-            _log.error("Failed to record event. Event description: {}. Error: ",  description, th);
+        } catch (Exception ex) {
+            _log.error("Failed to record event. Event description: {}. Error: ",  description, ex);
         }
     }
 
@@ -405,7 +405,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     // For vmax thin meta volumes we can create multiple meta volumes in one smis request
                     if (volume.getThinlyProvisioned() && storageSystem.getSystemType().equals(StorageSystem.Type.vmax.toString())) {
                         workflow.createStep(CREATE_VOLUMES_STEP_GROUP,
-                                String.format("Creating meta volumes:\n%s", getVolumesMsg(_dbClient, volumeURIs)),
+                                String.format("Creating meta volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
                                 waitFor, deviceURI, getDeviceType(deviceURI),
                                 this.getClass(),
                                 createMetaVolumesMethod(deviceURI, poolURI, volumeURIs, capabilities),
@@ -417,7 +417,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             metaVolumeURIs.add(metaVolumeURI);
                             String stepId = workflow.createStepId();
                             workflow.createStep(CREATE_VOLUMES_STEP_GROUP,
-                                    String.format("Creating meta volume:\n%s", getVolumesMsg(_dbClient, metaVolumeURIs)),
+                                    String.format("Creating meta volume:%n%s", getVolumesMsg(_dbClient, metaVolumeURIs)),
                                     waitFor, deviceURI, getDeviceType(deviceURI),
                                     this.getClass(),
                                     createMetaVolumeMethod(deviceURI, poolURI, metaVolumeURI, capabilities),
@@ -426,7 +426,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     }
                 } else {
                     workflow.createStep(CREATE_VOLUMES_STEP_GROUP,
-                            String.format("Creating volumes:\n%s", getVolumesMsg(_dbClient, volumeURIs)),
+                            String.format("Creating volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
                             waitFor, deviceURI, getDeviceType(deviceURI),
                             this.getClass(),
                             createVolumesMethod(deviceURI, poolURI, volumeURIs, capabilities),
@@ -438,7 +438,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                             first.getVolumeURI(), _dbClient);
                     if (modifyHitachiVolumeToApplyTieringPolicy) {
                         workflow.createStep(MODIFY_VOLUMES_STEP_GROUP,
-                                String.format("Modifying volumes:\n%s", getVolumesMsg(_dbClient, volumeURIs)),
+                                String.format("Modifying volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
                                 CREATE_VOLUMES_STEP_GROUP, deviceURI, getDeviceType(deviceURI), this.getClass(),
                                 moidfyVolumesMethod(deviceURI, poolURI, volumeURIs),
                                 rollbackCreateVolumesMethod(deviceURI, volumeURIs), null);
@@ -466,7 +466,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR },
                  new VolumeDescriptor.Type[] { });
         // If no volumes to be created, just return.
-        if (volumes.isEmpty()) return waitFor;
+        if (volumes.isEmpty()) {
+            return waitFor;
+        }
 
         for (VolumeDescriptor volume : volumes) {
             URI deviceURI = volume.getDeviceURI();
@@ -689,7 +691,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     poolURI.toString()));
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
-                logMsgBuilder.append(String.format("\nVolume:%s", volumeURI.toString()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volumeURI.toString()));
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 volumes.add(volume);
                 VolumeUpdateCompleter volumeCompleter = new VolumeUpdateCompleter(
@@ -710,7 +712,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     poolURI.toString()));
             volumeURIsIter = volumeURIs.iterator();
             while (volumeURIsIter.hasNext()) {
-                logMsgBuilder.append(String.format("\nVolume:%s", volumeURIsIter.next()
+                logMsgBuilder.append(String.format("%nVolume:%s", volumeURIsIter.next()
                         .toString()));
             }
             _log.info(logMsgBuilder.toString());
@@ -763,7 +765,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     poolURI.toString()));
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
-                logMsgBuilder.append(String.format("\nVolume:%s", volumeURI.toString()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volumeURI.toString()));
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 volumes.add(volume);
                 VolumeCreateCompleter volumeCompleter = new VolumeCreateCompleter(
@@ -784,7 +786,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     poolURI.toString()));
             volumeURIsIter = volumeURIs.iterator();
             while (volumeURIsIter.hasNext()) {
-                logMsgBuilder.append(String.format("\nVolume:%s", volumeURIsIter.next()
+                logMsgBuilder.append(String.format("%nVolume:%s", volumeURIsIter.next()
                         .toString()));
             }
             _log.info(logMsgBuilder.toString());
@@ -1151,7 +1153,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     poolURI.toString()));
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
-                logMsgBuilder.append(String.format("\nVolume:%s", volumeURI.toString()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volumeURI.toString()));
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 volumes.add(volume);
                 VolumeCreateCompleter volumeCompleter = new VolumeCreateCompleter(
@@ -1183,7 +1185,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     poolURI.toString()));
             volumeURIsIter = volumeURIs.iterator();
             while (volumeURIsIter.hasNext()) {
-                logMsgBuilder.append(String.format("\nVolume:%s", volumeURIsIter.next()
+                logMsgBuilder.append(String.format("%nVolume:%s", volumeURIsIter.next()
                         .toString()));
             }
             _log.info(logMsgBuilder.toString());
@@ -1502,7 +1504,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumes);
 
             workflow.createStep(DELETE_VOLUMES_STEP_GROUP,
-                    String.format("Deleting volumes:\n%s", getVolumesMsg(_dbClient, volumeURIs)),
+                    String.format("Deleting volumes:%n%s", getVolumesMsg(_dbClient, volumeURIs)),
                     waitFor, deviceURI, getDeviceType(deviceURI),
                     this.getClass(),
                     deleteVolumesMethod(deviceURI, volumeURIs),
@@ -1542,9 +1544,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             while (volumeURIsIter.hasNext()) {
                 URI volumeURI = volumeURIsIter.next();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                entryLogMsgBuilder.append(String.format("\nPool:%s Volume:%s", volume
+                entryLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", volume
                     .getPool().toString(), volumeURI.toString()));
-                exitLogMsgBuilder.append(String.format("\nPool:%s Volume:%s", volume
+                exitLogMsgBuilder.append(String.format("%nPool:%s Volume:%s", volume
                         .getPool().toString(), volumeURI.toString()));
                 VolumeDeleteCompleter volumeCompleter = new VolumeDeleteCompleter(volumeURI, opId);
                 if (volume.getInactive() == false) {
@@ -3000,10 +3002,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         try {
             _eventManager.recordEvents(event);
             _log.info("Bourne {} event recorded", evtType.name());
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error(
                     "Failed to record event. Event description: {}. Error: ",
-                    evtType.name(), th);
+                    evtType.name(), ex);
         }
     }
 

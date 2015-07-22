@@ -67,7 +67,7 @@ public class FileSystemSnapRequests  extends KHRequests<VNXeFileSystemSnap>{
         VNXeFileSystemSnap result = null;
         List<VNXeFileSystemSnap> snapList = getDataForObjects(VNXeFileSystemSnap.class);
         //it should just return 1
-        if (snapList!= null && snapList.size()>0) {
+        if (snapList!= null && !snapList.isEmpty()) {
             result =snapList.get(0);
         } else {
             _logger.info("No file system snapshot found using the name: " +name);

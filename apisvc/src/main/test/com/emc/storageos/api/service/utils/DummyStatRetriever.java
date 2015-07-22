@@ -76,7 +76,6 @@ public class DummyStatRetriever implements StatRetriever {
             stats = getDummyStats();
         } catch (URISyntaxException e) {
             _logger.error("Error getting stats", e);
-            e.printStackTrace();
         }
 
         for (Stat stat : stats) {
@@ -84,15 +83,13 @@ public class DummyStatRetriever implements StatRetriever {
                 try {
                     marshaller.marshall(stat, out);
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_logger.error(e.getMessage(),e);
                 }
             } else if (mediaType == MediaType.APPLICATION_JSON_TYPE) {
                 try {
                     marshaller.marshall(stat, out);
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	_logger.error(e.getMessage(),e);
                 }
             }
         }

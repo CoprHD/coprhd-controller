@@ -184,8 +184,8 @@ public class FileDeviceController implements FileController {
                 );
         try {
             eventManager.recordEvents(event);
-        } catch(Throwable th ) {
-            _log.error("Failed to record event. Event description: {}.",  description, th);
+        } catch(Exception ex) {
+            _log.error("Failed to record event. Event description: {}.",  description, ex);
         }
     }
     
@@ -217,8 +217,8 @@ public class FileDeviceController implements FileController {
                 );
         try {
             eventManager.recordEvents(event);
-        } catch(Throwable th ) {
-            _log.error("Failed to record event. Event description: {}.",  description, th);
+        } catch(Exception ex) {
+            _log.error("Failed to record event. Event description: {}.",  description, ex);
         }
     }    
 
@@ -643,7 +643,7 @@ public class FileDeviceController implements FileController {
                         strBuilder.append(",");
                     }
                 }
-                if (clients.size() > 0 && (i < fExports.size() - 1)) {
+                if (!clients.isEmpty() && (i < fExports.size() - 1)) {
                     strBuilder.append(",");
                 }
             }
@@ -1734,7 +1734,7 @@ public class FileDeviceController implements FileController {
 				doCRUDExports(param, fs, args);
 				
 				// Delete the Export Map, if there are no exports.
-				if ((args.getFileObjExports() != null) && (queryExports(args).size() == 0)) {
+				if ((args.getFileObjExports() != null) && (queryExports(args).isEmpty())) {
                     args.getFileObjExports().clear();
                     _dbClient.persistObject(args.getFileObj());
                 }
@@ -1912,15 +1912,15 @@ public class FileDeviceController implements FileController {
 		dest.setExportPath(exportPath);
 		dest.setSecFlavor(orig.getSecFlavor());
 		dest.setAnon(orig.getAnon());
-		if (orig.getReadOnlyHosts()!=null && orig.getReadOnlyHosts().size() > 0){
+		if (orig.getReadOnlyHosts()!=null && !orig.getReadOnlyHosts().isEmpty()){
 			dest.setReadOnlyHosts(new StringSet(orig.getReadOnlyHosts()));
 			_log.info("Read Only Hosts {}", dest.getReadOnlyHosts());
 		}
-		if (orig.getReadWriteHosts()!=null && orig.getReadWriteHosts().size() > 0){
+		if (orig.getReadWriteHosts()!=null && !orig.getReadWriteHosts().isEmpty()){
 			dest.setReadWriteHosts(new StringSet(orig.getReadWriteHosts()));
 			_log.info("Read Write Hosts {}", dest.getReadWriteHosts());
 		}
-		if (orig.getRootHosts()!=null && orig.getRootHosts().size() > 0){
+		if (orig.getRootHosts()!=null && !orig.getRootHosts().isEmpty()){
 			dest.setRootHosts(new StringSet(orig.getRootHosts()));
 			_log.info("Root hosts {}", dest.getRootHosts());
 		}
@@ -1996,7 +1996,7 @@ public class FileDeviceController implements FileController {
 		List<ExportRule> rules;
 		if(exportRules!=null){
 			rules = exportRules.getExportRules();
-			if(rules!=null && rules.size() > 0){
+			if(rules!=null && !rules.isEmpty()){
 				for (ExportRule exportRule : rules) {
 					FileExportRule rule = new FileExportRule();
 					rule.setId(URIUtil.createId(FileExportRule.class));
@@ -2011,7 +2011,7 @@ public class FileDeviceController implements FileController {
 		exportRules = param.getExportRulesToModify();
 		if(exportRules!=null){
 			rules = exportRules.getExportRules();
-			if(rules!=null && rules.size() > 0){
+			if(rules!=null && !rules.isEmpty()){
 				for (ExportRule exportRule : rules) {
 					FileExportRule rule = new FileExportRule();
 					// Copy the properties to build the index id to query DB for existing Export Rule
@@ -2040,7 +2040,7 @@ public class FileDeviceController implements FileController {
 		exportRules = param.getExportRulesToDelete();
 		if(exportRules!=null){
 			rules = exportRules.getExportRules();
-			if(rules!=null && rules.size() > 0){
+			if(rules!=null && !rules.isEmpty()){
 				for (ExportRule exportRule : rules) {
 					FileExportRule rule = new FileExportRule();
 					copyPropertiesToSave(rule, exportRule, fs, args); 
@@ -2099,15 +2099,6 @@ public class FileDeviceController implements FileController {
             		root.addAll(fExports.get(i).getRootHosts());
             		//clients.addAll(fExports.get(i).getRootHosts());
             	}
-                /*for (int j=0; j < clients.size(); j++) {
-                    strBuilder.append(clients.get(j));
-                    if (j < clients.size() - 1) {
-                        strBuilder.append(",");
-                    }
-                }
-                if (clients.size() > 0 && (i < fExports.size() - 1)) {
-                    strBuilder.append(",");
-                }*/
             }
             StringBuilder allROhosts=new StringBuilder("ReadOnly Hosts : [");
             for(String roClient:ro){
@@ -2318,15 +2309,15 @@ public class FileDeviceController implements FileController {
         rule.setSecFlavor(fileExport.getSecurityType());
         
         if(fileExport.getPermissions().equals(FileShareExport.Permissions.ro.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
+        		&& fileExport.getClients()!=null && !fileExport.getClients().isEmpty()) {
         	rule.setReadOnlyHosts(new StringSet(fileExport.getClients()));
         }
         if(fileExport.getPermissions().equals(FileShareExport.Permissions.rw.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
+        		&& fileExport.getClients()!=null && !fileExport.getClients().isEmpty()) {
         	rule.setReadWriteHosts(new StringSet(fileExport.getClients()));
         }
         if(fileExport.getPermissions().equals(FileShareExport.Permissions.root.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
+        		&& fileExport.getClients()!=null && !fileExport.getClients().isEmpty()) {
         	rule.setRootHosts(new StringSet(fileExport.getClients()));
         }
         rule.setMountPoint(fileExport.getMountPoint());
@@ -2451,7 +2442,7 @@ public class FileDeviceController implements FileController {
 			List<ShareACL> shareAclList = null;
 			if(shareAcls!=null){
 				shareAclList = shareAcls.getShareACLs();
-				if(shareAclList!=null && shareAclList.size() > 0){
+				if(shareAclList!=null && !shareAclList.isEmpty()){
 					for (ShareACL acl : shareAclList) {
 						CifsShareACL dbShareAcl = new CifsShareACL();
 						dbShareAcl.setId(URIUtil.createId(CifsShareACL.class));
@@ -2466,7 +2457,7 @@ public class FileDeviceController implements FileController {
 			shareAcls = param.getAclsToModify();
 			if(shareAcls != null) {
 				shareAclList = shareAcls.getShareACLs();
-				if(shareAclList != null && shareAclList.size() > 0) {
+				if(shareAclList != null && !shareAclList.isEmpty()) {
 					for(ShareACL acl : shareAclList) {
 						CifsShareACL dbShareAcl = new CifsShareACL();
 						
@@ -2485,7 +2476,7 @@ public class FileDeviceController implements FileController {
 			shareAcls = param.getAclsToDelete();
 			if(shareAcls != null) {
 				shareAclList = shareAcls.getShareACLs();
-				if(shareAclList != null && shareAclList.size() > 0) {
+				if(shareAclList != null && !shareAclList.isEmpty()) {
 					for(ShareACL acl : shareAclList) {
 						CifsShareACL dbShareAcl = new CifsShareACL();
 						copyPropertiesToSave(acl, dbShareAcl, fs, args);

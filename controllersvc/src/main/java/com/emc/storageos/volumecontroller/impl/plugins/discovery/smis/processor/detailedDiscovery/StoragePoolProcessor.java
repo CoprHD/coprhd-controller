@@ -54,7 +54,7 @@ public class StoragePoolProcessor extends StorageProcessor {
                         .generateNativeGuidForPool(poolPath);
                 StoragePool pool = checkStoragePoolExistsInDB(poolNativeGuid, _dbClient);
                 if (pool != null && validPool(poolPath)) {
-                    addPath(keyMap, operation.get_result(), poolPath);
+                    addPath(keyMap, operation.getResult(), poolPath);
                     // add VMAX2 Thin pools to get BoundVolumes later
                     if (poolPath.toString().contains(StoragePool.PoolClassNames.Symm_VirtualProvisioningPool.toString())) {
                         addPath(keyMap, Constants.VMAX2_THIN_POOLS, poolPath);

@@ -164,7 +164,7 @@ public class VdcUtil {
                             localVdc = vdc;
                         }
                     }
-                    if (vdcIdMap.size() > 0) {
+                    if (!vdcIdMap.isEmpty()) {
                         rebuildVdcIdMap = false;
                     }
                 }

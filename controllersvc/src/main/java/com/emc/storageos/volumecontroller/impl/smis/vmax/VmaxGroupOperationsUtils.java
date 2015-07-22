@@ -84,7 +84,17 @@ public class VmaxGroupOperationsUtils {
              CIMObjectPath cgPath = cimPath.getReplicationGroupPath(storage, groupName);
              CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
              CIMInstance replicaSettingData = null;
-             if (syncType == SYNC_TYPE.CLONE) {
+
+             if (storage.checkIfVmax3()) {
+                 String instanceId = targetGroupPath.getKey(SmisConstants.CP_INSTANCE_ID).getValue().toString();
+                 replicaLabel = SmisUtils.getTargetGroupName(instanceId, storage.getUsingSmis80());
+
+                 // Unlike single volume snapshot where snapSettingName is used in SMI-S as StorageSynchronized.EMCRelationshipName,
+                 // for group snapshot, GroupSynchronized.RelationshipName is set via RelationshipName input argument of CreateGroupReplica method.
+                 // Using replicaLabel in the call below is not necessary, just for convenience.
+                 // But it has to be used in the getCreateGroupReplicaInputArgumentsForVMAX below.
+                 replicaSettingData = helper.getReplicationSettingData(storage, replicaLabel, true);
+             } else if (syncType == SYNC_TYPE.CLONE) {
                  replicaSettingData = ReplicationUtils.getReplicationSettingForGroupClones(storage, helper,
                              cimPath, createInactive);
              } else {

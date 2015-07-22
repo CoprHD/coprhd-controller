@@ -18,7 +18,6 @@ import com.emc.storageos.db.client.constraint.DecommissionedConstraint;
 import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
@@ -37,8 +36,8 @@ import java.util.Date;
  * between this time period.
  */
 public class TimeConstraintImpl extends ConstraintImpl implements DecommissionedConstraint {
-    private static final long MILLIS_TO_MICROS = 1000l;
-    private static int DEFAULT_PAGE_SIZE = 100;
+    private static final long MILLIS_TO_MICROS = 1000L;
+    private static final int DEFAULT_PAGE_SIZE = 100;
     private Keyspace keyspace;
     private final ColumnFamily<String, IndexColumnName> cf;
     private final String rowKey;
@@ -86,7 +85,7 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     }
 
     @Override
-    public <T> void execute(final QueryResult<T> result) throws DatabaseException {
+    public <T> void execute(final QueryResult<T> result) {
         RowQuery<String, IndexColumnName> query;
         if (value == null) {
             query = keyspace.prepareQuery(cf).getKey(rowKey)
@@ -120,7 +119,6 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
                 if (endTimeMicros > 0 && timeMarked > endTimeMicros) {
                     return false;
                 }
-
                 return true;
             }
         };

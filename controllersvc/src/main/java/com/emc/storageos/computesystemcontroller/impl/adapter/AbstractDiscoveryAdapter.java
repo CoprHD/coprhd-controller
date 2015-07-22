@@ -171,7 +171,7 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
     
     protected void removeOldInitiatorFromExport(Host host, List<Initiator> oldInitiators) {
     	// update export if host is in use
-        if (oldInitiators.size() > 0 && ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
+        if (!oldInitiators.isEmpty() && ComputeSystemHelper.isHostInUse(dbClient, host.getId())) {
         	String taskId = UUID.randomUUID().toString();
         	ComputeSystemController controller = getController(ComputeSystemController.class, null);
         	List<URI> uris = Lists.newArrayList();

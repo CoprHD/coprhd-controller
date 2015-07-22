@@ -367,7 +367,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup, storageURI);
             _log.info("Volumes  : {}",Joiner.on(",").join(volumes.keySet()));
-            if (exportMasks != null && exportMasks.size() > 0) {
+            if (exportMasks != null && !exportMasks.isEmpty()) {
                 // find the export mask which has the same Host name as the initiator
                 // Add the initiator to that export mask
                 // Set up workflow steps.
@@ -516,7 +516,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
             
             _log.info("Host to initiators  : {}",Joiner.on(",").join(computeResourceToInitiators.entrySet()));
             
-            if (exportMasks != null && exportMasks.size() > 0) {
+            if (exportMasks != null && !exportMasks.isEmpty()) {
                 // find the export mask which has the same Host name as the initiator
                 // Add the initiator to that export mask
                 // Set up workflow steps.
@@ -630,7 +630,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             String zoningStep = generateZoningDeleteWorkflow(workflow, null, exportGroup, exportMasks);
             
-            if (null == exportMasks || exportMasks.size() == 0) {
+            if (null == exportMasks || exportMasks.isEmpty()) {
                 exportGroup.getVolumes().clear();
                 taskCompleter.ready(_dbClient);
                 return;

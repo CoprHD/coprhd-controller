@@ -133,7 +133,7 @@ public class MetaVolumeUtils {
             metaVolumeType = Volume.CompositionType.STRIPED;
         }
 
-        _log.info(String.format("Regular volume capacity limits for storage pool %s,  \n   max thin volume capacity: %s, max thick volume capacity: %s ",
+        _log.info(String.format("Regular volume capacity limits for storage pool %s,  %n   max thin volume capacity: %s, max thick volume capacity: %s ",
                 storagePool.getId(), storagePool.getMaximumThinVolumeSize(), storagePool.getMaximumThickVolumeSize()));
 
         // Get storage pool setting for maximum supported regular volume size.

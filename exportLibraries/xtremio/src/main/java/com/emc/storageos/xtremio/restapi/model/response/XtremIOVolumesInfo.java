@@ -28,11 +28,12 @@ public class XtremIOVolumesInfo {
     private XtremIOVolumeInfo[] volumeInfo;
 
     public XtremIOVolumeInfo[] getVolumeInfo() {
-        return volumeInfo;
+        return volumeInfo!=null? volumeInfo.clone() : volumeInfo;
     }
 
     public void setVolumeInfo(XtremIOVolumeInfo[] volumeInfo) {
-        this.volumeInfo = volumeInfo;
+    	if(volumeInfo!=null){
+    		this.volumeInfo = volumeInfo.clone();
+    	}
     }
-
 }

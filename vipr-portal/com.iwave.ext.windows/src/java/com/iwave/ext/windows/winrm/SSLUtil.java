@@ -17,7 +17,7 @@ public class SSLUtil {
 
     private static SSLContext trustAllContext;
 
-    public static SSLContext getTrustAllContext() {
+    public static synchronized SSLContext getTrustAllContext() {
         if (trustAllContext == null) {
             try {
                 SSLContext sc = SSLContext.getInstance("SSL");

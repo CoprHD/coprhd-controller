@@ -134,6 +134,7 @@ public class TrustStoreLoader {
                     in.close();
                 }
             } catch (IOException e) {
+                log.error("Unexpected error", e);
             }
         }
     }

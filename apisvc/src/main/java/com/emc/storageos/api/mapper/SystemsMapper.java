@@ -159,7 +159,7 @@ public class SystemsMapper {
                         getPropertyValueFromCoordinator(coordinatorClient, CapacityMatcher.MAX_POOL_UTILIZATION_PERCENTAGE)));
         
         if (null != from.getSupportedResourceTypes() && 
-                !from.getSupportedResourceTypes().equals(StoragePool.SupportedResourceTypes.THICK_ONLY)) {
+                !from.getSupportedResourceTypes().equals(StoragePool.SupportedResourceTypes.THICK_ONLY.name())) {
             
             to.setMaxThinPoolSubscriptionPercentage((from.getMaxThinPoolSubscriptionPercentage() != null) ? from
                     .getMaxThinPoolSubscriptionPercentage() : Integer.valueOf(ControllerUtils.

@@ -113,7 +113,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             _log.error("Controller error when creating volumes", e);
             failVolumeCreateRequest(task, taskList, preparedVolumes, e.getMessage());
             throw e;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             _log.error("Controller error when creating volumes", e);
             failVolumeCreateRequest(task, taskList, preparedVolumes, e.getMessage());
             throw e;

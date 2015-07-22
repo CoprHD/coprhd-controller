@@ -65,7 +65,7 @@ public abstract class AbstractFASTPolicyProcessor extends Processor {
         @SuppressWarnings("deprecation")
         List<URI> storageTierUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getStorageTierByIdConstraint(tierNativeGuid));
-        if (storageTierUris.size() > 0) {
+        if (!storageTierUris.isEmpty()) {
             tier = _dbClient.queryObject(StorageTier.class, storageTierUris.get(0));
         }
         return tier;

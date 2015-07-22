@@ -73,7 +73,7 @@ public class Util {
     public final Object[] returnInputArgs(
             final Operation operation, final Map<String, Object> keyMap, int index)
             throws BaseCollectionException, IllegalAccessException, InvocationTargetException {
-        final List<Object> args = operation.get_arguments();
+        final List<Object> args = operation.getArguments();
         final int nArgs = args.size();
         final Object[] inputArgs1 = new Object[nArgs];
         int count = 0;
@@ -85,8 +85,8 @@ public class Util {
             Argument arg = (Argument) argobj;
             // final Object instance = returnInstance(arg.gegetInstance(),
             // keyMap);
-            final Object instance = arg.get_creator();
-            final Method method = getMethod(operation, arg.get_method(), instance,Util.ENDPOINTS.ARGUMENT.toString());
+            final Object instance = arg.getCreator();
+            final Method method = getMethod(operation, arg.getMethod(), instance,Util.ENDPOINTS.ARGUMENT.toString());
             final Object[] inputArgs = { arg, keyMap, index };
             final Object resultObj = method.invoke(instance, inputArgs);
             inputArgs1[count++] = resultObj;
@@ -111,9 +111,9 @@ public class Util {
         if (operation.getInstance() instanceof Argument) {
             Argument instanceArg = (Argument) operation.getInstance();
             final Object[] inputArgs = { instanceArg, keyMap, index };
-            final Object instance = instanceArg.get_creator();
-            final Method method = getMethod(operation, instanceArg.get_method(), instance,Util.ENDPOINTS.ARGUMENT.toString());
-            instanceToReturn = method.invoke(instanceArg.get_creator(), inputArgs);
+            final Object instance = instanceArg.getCreator();
+            final Method method = getMethod(operation, instanceArg.getMethod(), instance,Util.ENDPOINTS.ARGUMENT.toString());
+            instanceToReturn = method.invoke(instanceArg.getCreator(), inputArgs);
         } else
             instanceToReturn = operation.getInstance();
         return instanceToReturn;
@@ -143,7 +143,7 @@ public class Util {
                 for (Method m : methods) {
                     if (instance instanceof WBEMClient) {
                         if (m.getName().equalsIgnoreCase(methodName)
-                                && operation.get_arguments().size() == m
+                                && operation.getArguments().size() == m
                                         .getParameterTypes().length) {
                             method = m;
                             _logger.debug("Method found :" + m.getName());
@@ -187,7 +187,7 @@ public class Util {
         List<Class> classes = new ArrayList<Class>();
         Class[] classArray = null;
         if(null == operation) return classArray;
-        for (int index = 0; index < operation.get_arguments().size(); index++) {
+        for (int index = 0; index < operation.getArguments().size(); index++) {
             String type = getType(operation, endPoint, index);
             if (null == type)
                 continue;
@@ -201,8 +201,8 @@ public class Util {
 
     private String getType(Operation operation, String endPoint, int index) {
         if (ENDPOINTS.ARGUMENT.toString().equalsIgnoreCase(endPoint))
-            return ((Argument) operation.get_arguments().get(index)).get_type();
-        return operation.get_type();
+            return ((Argument) operation.getArguments().get(index)).getType();
+        return operation.getType();
     }
 
     /**

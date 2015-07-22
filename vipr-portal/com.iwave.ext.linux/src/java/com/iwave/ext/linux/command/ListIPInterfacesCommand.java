@@ -46,7 +46,7 @@ public class ListIPInterfacesCommand extends LinuxResultsCommand<List<IPInterfac
                 ipInfo.setIpAddress(StringUtils.trim(ipAddress));
                 
                 String macAddress = parser.findMatch(MAC_ADDRESS_PATTERN, textBlock);
-                ipInfo.setMACAddress(StringUtils.trim(macAddress));
+                ipInfo.setMacAddress(StringUtils.trim(macAddress));
                 
                 String netMask = parser.findMatch(MASK_PATTERN, textBlock);
                 ipInfo.setNetMask(StringUtils.trim(netMask));

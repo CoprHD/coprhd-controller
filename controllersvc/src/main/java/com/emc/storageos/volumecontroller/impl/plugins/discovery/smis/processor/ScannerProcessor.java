@@ -55,7 +55,7 @@ public class ScannerProcessor extends Processor {
 				    final CIMInstance instance = it.next();
 				    final CIMObjectPath path = instance.getObjectPath();
 				    if (isIBMInstance(instance) || path.toString().toLowerCase().contains(Constants.CLARIION) || !isRemoteSystem(instance)) {
-				    	addPath(keyMap, operation.get_result(), path);
+				    	addPath(keyMap, operation.getResult(), path);
 				    } else {
 				       _logger.info("Skipping Detection of Remote System {}",instance.getPropertyValue(Constants.NAME) );
 				    }

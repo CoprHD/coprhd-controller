@@ -47,7 +47,7 @@ public class HostInitiatorRequest extends KHRequests<VNXeHostInitiator>{
         VNXeHostInitiator result = null;
         List<VNXeHostInitiator> initList = getDataForObjects(VNXeHostInitiator.class);
         //it should just return 1
-        if (initList!= null && initList.size()>0) {
+        if (initList!= null && !initList.isEmpty()) {
             result =initList.get(0);
         } else {
             _logger.info("No HostInitiator found using iqn: {}", initiatorId);

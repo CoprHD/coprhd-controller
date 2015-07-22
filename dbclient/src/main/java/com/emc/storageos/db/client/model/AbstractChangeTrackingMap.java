@@ -165,7 +165,7 @@ public abstract class AbstractChangeTrackingMap<K> extends HashMap<String, K> {
      * @param newEntries
      */
     public void replace(Map<String, K> newEntries) {
-        if ((newEntries == null) || (newEntries.size() == 0 )) {
+        if ((newEntries == null) || (newEntries.isEmpty() )) {
             clear();
             return;
         }

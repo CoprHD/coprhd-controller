@@ -163,7 +163,7 @@ public class VNXFileCommApi {
             reqAttributeMap.put(VNXFileConstants.FS_INIT_SIZE, size);
             reqAttributeMap.put(VNXFileConstants.MOVER_ID, dataMover);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_VIRTUAL_PROVISIONING, virtualProvisioning);
-            _provExecutor.set_keyMap(reqAttributeMap);
+            _provExecutor.setKeyMap(reqAttributeMap);
 
             String cmdResult = VNXFileConstants.CMD_SUCCESS;
 
@@ -175,12 +175,12 @@ public class VNXFileCommApi {
             if(null != nativeFsId && !nativeFsId.isEmpty()) {
                 String fileSysId = nativeFsId;
                 _log.info("Query file system query with id {}.", fileSysId);
-                _provExecutor.get_keyMap().put(VNXFileConstants.FILESYSTEM_ID, fileSysId);
+                _provExecutor.getKeyMap().put(VNXFileConstants.FILESYSTEM_ID, fileSysId);
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE));
-                cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+                cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
                 if (cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-                    fileSysId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEM_ID);
-                    foundFSwithId = (Boolean)_provExecutor.get_keyMap().get(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY);
+                    fileSysId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_ID);
+                    foundFSwithId = (Boolean)_provExecutor.getKeyMap().get(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY);
                 }
 
                 if(foundFSwithId) {
@@ -212,7 +212,7 @@ public class VNXFileCommApi {
             }
 
             if (cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-                String fileSysId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEM_ID);
+                String fileSysId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_ID);
 
                 int fsId = 0;
                 if (null == fileSysId || fileSysId.isEmpty()) {
@@ -220,9 +220,9 @@ public class VNXFileCommApi {
                     _log.info("Second file system create query.");
                     _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE));
                     
-                    cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+                    cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
                     if (cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-                        fileSysId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEM_ID);
+                        fileSysId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_ID);
                         
                         if (null != fileSysId && !fileSysId.isEmpty()) {
                             fsId = Integer.parseInt(fileSysId);
@@ -247,7 +247,7 @@ public class VNXFileCommApi {
                     result.setMessage("File System creation failed");
                 }
             } else {
-                String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
@@ -287,14 +287,14 @@ public class VNXFileCommApi {
             updateAttributes( reqAttributeMap, system );
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
             reqAttributeMap.put(VNXFileConstants.SNAPSHOT_NAME, snapshotName);
-            _provExecutor.set_keyMap(reqAttributeMap);
+            _provExecutor.setKeyMap(reqAttributeMap);
 
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_CREATE_SNAP));
 
-            String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+            String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (cmdResult!=null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-                String snapId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.SNAPSHOT_ID);
-                String fsysId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEM_ID);
+                String snapId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.SNAPSHOT_ID);
+                String fsysId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_ID);
                 if(snapId != null){
                     int fsId = Integer.parseInt(fsysId);
                     int snId = Integer.parseInt(snapId);
@@ -306,10 +306,10 @@ public class VNXFileCommApi {
                 }
                 else {
                     result.setCommandFailed();
-                    result.setMessage((String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC));
+                    result.setMessage((String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC));
                 }
             } else {
-                String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
@@ -342,7 +342,7 @@ public class VNXFileCommApi {
     		reqAttributeMap.put( VNXFileConstants.OPLOCKS, oplocks);
     		reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, "/"+fsName);
 
-    		_provExecutor.set_keyMap(reqAttributeMap);
+    		_provExecutor.setKeyMap(reqAttributeMap);
     		
     		if (isMountRequired) {
     			_provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_CREATE_MOUNT));
@@ -350,10 +350,10 @@ public class VNXFileCommApi {
             	_provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_CREATE));
             }
 
-    		String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+    		String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
     		if (cmdResult!=null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-    			String quotaDirId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.QUOTA_DIR_ID);
-    			String fsysId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEM_ID);
+    			String quotaDirId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.QUOTA_DIR_ID);
+    			String fsysId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_ID);
     			if(quotaDirId != null){
     				int fsId = Integer.parseInt(fsysId);
     				int qdId = Integer.parseInt(quotaDirId);
@@ -365,10 +365,10 @@ public class VNXFileCommApi {
     			}
     			else {
     				result.setCommandFailed();
-    				result.setMessage((String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC));
+    				result.setMessage((String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC));
     			}
     		} else {
-    			String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+    			String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
     			result.setCommandFailed();
     			result.setMessage(errMsg);
     		}
@@ -401,7 +401,7 @@ public class VNXFileCommApi {
     		reqAttributeMap.put( VNXFileConstants.SECURITY_STYLE, securityStyle);
     		reqAttributeMap.put( VNXFileConstants.OPLOCKS, oplocks);
 
-    		_provExecutor.set_keyMap(reqAttributeMap);
+    		_provExecutor.setKeyMap(reqAttributeMap);
 
     		if (isMountRequired){
     			_provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_MODIFY_MOUNT));
@@ -409,10 +409,10 @@ public class VNXFileCommApi {
     			_provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_MODIFY));
     		}
     		
-    		String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+    		String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
     		if (cmdResult!=null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-    			String quotaDirId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.QUOTA_DIR_ID);
-    			String fsysId = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FILESYSTEM_ID);
+    			String quotaDirId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.QUOTA_DIR_ID);
+    			String fsysId = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FILESYSTEM_ID);
     			if(quotaDirId != null){
     				int fsId = Integer.parseInt(fsysId);
     				int qdId = Integer.parseInt(quotaDirId);
@@ -424,10 +424,10 @@ public class VNXFileCommApi {
     			}
     			else {
     				result.setCommandFailed();
-    				result.setMessage((String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC));
+    				result.setMessage((String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC));
     			}
     		} else {
-    			String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+    			String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
     			result.setCommandFailed();
     			result.setMessage(errMsg);
     		}
@@ -456,7 +456,7 @@ public class VNXFileCommApi {
     		reqAttributeMap.put( VNXFileConstants.QTREE_FORCE_DELETE, forceDelete);
     		reqAttributeMap.put( VNXFileConstants.MOUNT_PATH, "/"+fsName);
 
-    		_provExecutor.set_keyMap(reqAttributeMap);
+    		_provExecutor.setKeyMap(reqAttributeMap);
 
     		if(isMountRequired){
     			_provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_DELETE_MOUNT));
@@ -464,11 +464,11 @@ public class VNXFileCommApi {
     			_provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_QUOTA_DIR_DELETE));
     		}
     		
-    		String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+    		String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
     		if (cmdResult!=null && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
     			result.setCommandSuccess();
     		} else {
-    			String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+    			String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
     			result.setCommandFailed();
     			result.setMessage(errMsg);
     		}
@@ -499,16 +499,16 @@ public class VNXFileCommApi {
             updateAttributes( reqAttributeMap, system );
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fileSys);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fileId);
-            _provExecutor.set_keyMap(reqAttributeMap);
+            _provExecutor.setKeyMap(reqAttributeMap);
 
             // Before deleting check whether it is available or not on the array - This need to be done as part of deleting un-managed FS.
-            _provExecutor.set_keyMap(reqAttributeMap);
+            _provExecutor.setKeyMap(reqAttributeMap);
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSIDQUERY_FILE_DELETE));
             boolean isFsAvailable = false;
             _log.debug("Listing VNX File File Systems");
-            String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+            String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
-                isFsAvailable = (Boolean)_provExecutor.get_keyMap().get(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY);
+                isFsAvailable = (Boolean)_provExecutor.getKeyMap().get(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY);
             }
 
             if(!isFsAvailable) {
@@ -522,13 +522,13 @@ public class VNXFileCommApi {
 
                 // handle snapshots
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FS_FORCE_DEL_FILE));
-                cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+                cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
 
                 StorageHADomain dataMover = getDataMover(fs);
 
                 if (cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
 
-                    List<Checkpoint> snaps = (List<Checkpoint>)_provExecutor.get_keyMap().get(VNXFileConstants.SNAPSHOTS_LIST);
+                    List<Checkpoint> snaps = (List<Checkpoint>)_provExecutor.getKeyMap().get(VNXFileConstants.SNAPSHOTS_LIST);
                     int numSnapshots = (snaps != null) ? snaps.size() : 0;
                     _log.info("Number of Snapshots found {} for a file system {}", numSnapshots, fileId);
                     if(snaps != null && !snaps.isEmpty()){
@@ -543,7 +543,7 @@ public class VNXFileCommApi {
 
                             _log.info("{} Snapshots found with native guid : {} ",snapShotUris.size(), nativeGuid);
 
-                            if(snapShotUris.size() > 0) {
+                            if(!snapShotUris.isEmpty()) {
                                 _log.info("Retriving Snapshot using URI : {} ", snapShotUris.get(0));
                                 snapshot = _dbClient.queryObject(Snapshot.class, snapShotUris.get(0));
                             }
@@ -553,7 +553,7 @@ public class VNXFileCommApi {
 
                                 XMLApiResult status = doDeleteSnapshot(system, checkpoint.getCheckpoint(), checkpoint.getName(), false);
                                 if (!status.isCommandSuccess()) {
-                                    String errMsg = (String) _provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                                    String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                                     result.setCommandFailed();
                                     result.setMessage(errMsg);
                                     return result;
@@ -573,7 +573,7 @@ public class VNXFileCommApi {
                     result = deleteAllExportsAndShares(system, dataMover, fs, null);
 
                 } else {
-                    String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                    String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                     result.setCommandFailed();
                     result.setMessage(errMsg);
                     return result;
@@ -602,10 +602,10 @@ public class VNXFileCommApi {
                     _log.info("No need to Unmount FS {} since there is no mount info", fs.getMountPath());
                 }
 
-                _provExecutor.set_keyMap(reqAttributeMap);
+                _provExecutor.setKeyMap(reqAttributeMap);
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FSDEL_FILE));
 
-                cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+                cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
                 if (null != cmdResult && cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                     result.setCommandSuccess();
                     if(fs!=null)
@@ -614,7 +614,7 @@ public class VNXFileCommApi {
                         _dbClient.persistObject(fs);
                     }
                 } else {
-                    String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                    String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                     result.setCommandFailed();
                     result.setMessage(errMsg);
                 }
@@ -635,8 +635,8 @@ public class VNXFileCommApi {
     	
     	try{
 	    	//Process for quota dir delete on this file share.
-	        List<TreeQuota> quotaDirs = (List<TreeQuota>)_provExecutor.get_keyMap().get(VNXFileConstants.QUOTA_DIR_LIST);
-	        if(quotaDirs != null && quotaDirs.size() > 0 && dataMover != null){
+	        List<TreeQuota> quotaDirs = (List<TreeQuota>)_provExecutor.getKeyMap().get(VNXFileConstants.QUOTA_DIR_LIST);
+	        if(quotaDirs != null && !quotaDirs.isEmpty() && dataMover != null){
 	        	_log.info("Number of quota dirs found {} for a file system {}", quotaDirs.size(), fs.getName());
 	        	// In the process of delete file system, we are unmounting the FileSystem.
 	        	// In order to delete Quota Directory, file system should be mounted.
@@ -653,7 +653,7 @@ public class VNXFileCommApi {
 	                	String quotaDirName = quota.getPath().substring(1); // exclude the "/" in the beginning of the path.
 	                	XMLApiResult status = deleteQuotaDirectory(system, fs.getName(), quotaDirName, true, false);
 	                	if (!status.isCommandSuccess()) {
-	                        String errMsg = (String) _provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+	                        String errMsg = (String) _provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
 	                        result.setCommandFailed();
 	                        result.setMessage(errMsg);
 	                        return result;
@@ -760,7 +760,7 @@ public class VNXFileCommApi {
             XMLApiResult status = doUnexport(system, fileExport, args, deleteMount);
             if(!status.isCommandSuccess())
             {
-                String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
                 return result;
@@ -809,7 +809,7 @@ public class VNXFileCommApi {
             if(!status.isCommandSuccess())
             {
                 _log.info("SMBFileShare deletion failed key {} : {} ", key, share.getName());
-                String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
                 return result;
@@ -899,7 +899,7 @@ public class VNXFileCommApi {
             Set<String> moverIds = new HashSet<String>();
             moverIds.add( port );
             reqAttributeMap.put( VNXFileConstants.MOVERLIST, moverIds );
-            _provExecutor.set_keyMap( reqAttributeMap );
+            _provExecutor.setKeyMap( reqAttributeMap );
 
             if ( firstExport ) {
                 reqAttributeMap.put( VNXFileConstants.MOUNT_PATH, fs.getMountPath() );
@@ -909,9 +909,9 @@ public class VNXFileCommApi {
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_FILE_EXPORT));
             }
 
-            List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
 
-            if(cifsServers == null || cifsServers.size() == 0) {
+            if(cifsServers == null || cifsServers.isEmpty()) {
                 _log.info("No CIFS Servers retrieved for mover {} with id {}", moverOrVdmName, moverOrVdmId);
             } else {
                 for(VNXCifsServer cifsServer:cifsServers) {
@@ -919,7 +919,7 @@ public class VNXFileCommApi {
                 }
             }
 
-            //Map<String,String> userInfo = (Map<String,String>)_provExecutor.get_keyMap().get(VNXFileConstants.USER_INFO);
+            //Map<String,String> userInfo = (Map<String,String>)_provExecutor.getKeyMap().get(VNXFileConstants.USER_INFO);
 
             // Format and issue separate ssh api commands for each new file system and subdirectory
             List<VNXFileExport> newExportEntries = new ArrayList<VNXFileExport>();
@@ -927,7 +927,7 @@ public class VNXFileCommApi {
             for (String newPath: newPaths) {
                 String netBios = null;
                 //Only set netbios for VDM CIFS exports
-                if(cifsServers != null && cifsServers.size() > 0 && dataMover.getVirtual()) {
+                if(cifsServers != null && !cifsServers.isEmpty() && dataMover.getVirtual()) {
                     netBios = cifsServers.get(0).getName();
                 }
                 for(VNXFileExport export: exports) {
@@ -1027,7 +1027,7 @@ public class VNXFileCommApi {
 			reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverId);
 			reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, exportPath);
 			reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
-			_provExecutor.set_keyMap(reqAttributeMap);
+			_provExecutor.setKeyMap(reqAttributeMap);
 
 			sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
 			if( sshApi.getNFSExportsForPath(dataMover.getAdapterName(), exportPath).containsKey(exportPath)){
@@ -1158,7 +1158,7 @@ public class VNXFileCommApi {
     			reqAttributeMap.put(VNXFileConstants.MOVER_ID, moverId);
     			reqAttributeMap.put(VNXFileConstants.MOUNT_PATH, fileExport.getMountPoint());
     			reqAttributeMap.put(VNXFileConstants.ISVDM, isVdm);
-    			_provExecutor.set_keyMap(reqAttributeMap);
+    			_provExecutor.setKeyMap(reqAttributeMap);
 
     			sshApi.setConnParams(system.getIpAddress(), system.getUsername(), system.getPassword());
     			String mntPoint = fileExport.getMountPoint();
@@ -1224,22 +1224,22 @@ public class VNXFileCommApi {
             reqAttributeMap.put( VNXFileConstants.MOVER_ID, moverOrVdmId );
             reqAttributeMap.put( VNXFileConstants.DATAMOVER_NAME, moverOrVdmName);
             reqAttributeMap.put( VNXFileConstants.ISVDM, isVdm);
-            _provExecutor.set_keyMap( reqAttributeMap );
+            _provExecutor.setKeyMap( reqAttributeMap );
 
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(PROV_CIFS_SERVERS));
 
-            List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.get_keyMap().get(VNXFileConstants.CIFS_SERVERS);
+            List<VNXCifsServer> cifsServers = (List<VNXCifsServer>)_provExecutor.getKeyMap().get(VNXFileConstants.CIFS_SERVERS);
             for(VNXCifsServer cifsServer:cifsServers) {
                 _log.info("CIFServer:"+ cifsServer.toString());
             }
 
-            if(cifsServers == null || cifsServers.size() == 0) {
+            if(cifsServers == null || cifsServers.isEmpty()) {
                 _log.info("No CIFS Servers retrieved for mover {} with id {}", moverOrVdmName, moverOrVdmId);
             }
 
             String netBios = null;
             //Only set netbios for VDM CIFS exports
-            if(cifsServers != null && cifsServers.size() > 0 && moverOrVdm.getVirtual()) {
+            if(cifsServers != null && !cifsServers.isEmpty() && moverOrVdm.getVirtual()) {
                 netBios = cifsServers.get(0).getName();
             }
 
@@ -1333,7 +1333,7 @@ public class VNXFileCommApi {
             }
             reqAttributeMap.put(VNXFileConstants.THIN_FS_ALLOC_SIZE, thinProvFsSizeMBs);
             
-            _provExecutor.set_keyMap(reqAttributeMap);
+            _provExecutor.setKeyMap(reqAttributeMap);
 
             if (isMountRequired) {
                 _provExecutor.execute((Namespace) _provNamespaces.getNsList()
@@ -1343,11 +1343,11 @@ public class VNXFileCommApi {
                         .get(PROV_FILE_EXPAND));
             }
 
-            String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+            String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                 result.setCommandSuccess();
             } else {
-                String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
@@ -1369,15 +1369,15 @@ public class VNXFileCommApi {
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
             reqAttributeMap.put(VNXFileConstants.SNAPSHOT_NAME, snapshotName);
             reqAttributeMap.put(VNXFileConstants.SNAPSHOT_ID, id);
-            _provExecutor.set_keyMap(reqAttributeMap);
+            _provExecutor.setKeyMap(reqAttributeMap);
             _provExecutor.execute((Namespace) _provNamespaces.getNsList()
                         .get(PROV_SNAP_RESTORE));
 
-            String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+            String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                 result.setCommandSuccess();
             } else {
-                String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
@@ -1398,16 +1398,16 @@ public class VNXFileCommApi {
             updateAttributes(reqAttributeMap, system);
             reqAttributeMap.put(VNXFileConstants.SNAPSHOT_NAME, snapshotName);
             reqAttributeMap.put(VNXFileConstants.SNAPSHOT_ID, snapId);
-            _provExecutor.set_keyMap(reqAttributeMap);
+            _provExecutor.setKeyMap(reqAttributeMap);
 
             _provExecutor.execute((Namespace) _provNamespaces.getNsList().get(
                     PROV_DELETE_SNAP));
 
-            String cmdResult = (String)_provExecutor.get_keyMap().get(VNXFileConstants.CMD_RESULT);
+            String cmdResult = (String)_provExecutor.getKeyMap().get(VNXFileConstants.CMD_RESULT);
             if (cmdResult.equals(VNXFileConstants.CMD_SUCCESS)) {
                 result.setCommandSuccess();
             } else {
-                String errMsg = (String)_provExecutor.get_keyMap().get(VNXFileConstants.FAULT_DESC);
+                String errMsg = (String)_provExecutor.getKeyMap().get(VNXFileConstants.FAULT_DESC);
                 result.setCommandFailed();
                 result.setMessage(errMsg);
             }
@@ -1422,7 +1422,7 @@ public class VNXFileCommApi {
 
         reqAttributeMap.put(VNXFileConstants.DEVICETYPE, system.getSystemType());
         reqAttributeMap.put(VNXFileConstants.USERNAME, system.getUsername());
-        reqAttributeMap.put(VNXFileConstants.PASSWORD, system.getPassword());
+        reqAttributeMap.put(VNXFileConstants.USER_PASS_WORD, system.getPassword());
         reqAttributeMap.put(VNXFileConstants.PORTNUMBER, system.getPortNumber());
 
         reqAttributeMap.put(VNXFileConstants.URI,  getServerUri(system));

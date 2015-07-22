@@ -530,7 +530,7 @@ public class UCSMServiceImpl implements UCSMService {
                                 com.emc.cloud.platform.ucs.out.model.LsInstantiateNNamedTemplate.class);
 
                 if (namedTemplateOut != null && namedTemplateOut.getContent() != null) {
-                    if (namedTemplateOut.getContent().size() > 0) {
+                    if (!namedTemplateOut.getContent().isEmpty()) {
 
                         /*
                          * Expecting only one element to be returned!
@@ -894,7 +894,7 @@ public class UCSMServiceImpl implements UCSMService {
             }
         });
         
-        if(vnics != null && vnics.size() >=1 ){
+        if(vnics != null && !vnics.isEmpty() ){
             lsbootLan.getContent().add(factory.createLsbootLanImagePath(createLsbootLanImagePath(LanImagePathType.primary, vnics.get(0))));
         }
         if(vnics != null && vnics.size() >=2 ){

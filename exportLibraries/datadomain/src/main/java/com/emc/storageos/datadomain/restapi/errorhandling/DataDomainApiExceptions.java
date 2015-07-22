@@ -85,7 +85,7 @@ public interface DataDomainApiExceptions {
     DataDomainApiException unsupportedVersion(String version);
     
     @DeclareServiceCode(ServiceCode.DATADOMAIN_API_ERROR)
-    DataDomainApiException StatsCollectionFailed(String message);
+    DataDomainApiException statsCollectionFailed(String message);
 
     @DeclareServiceCode(ServiceCode.DATADOMAIN_API_ERROR)
     DataDomainApiException updateExportFailedNoExistingExport(final String FsId);

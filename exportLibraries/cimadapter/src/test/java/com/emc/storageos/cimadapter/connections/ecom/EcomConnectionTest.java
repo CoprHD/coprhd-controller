@@ -54,7 +54,7 @@ public class EcomConnectionTest {
     private static final int LISTENER_QUEUE_SIZE = 1000;
 
     // Connection reference.
-    private static EcomConnection _connection = null;
+    private static volatile EcomConnection _connection = null;
 
     /**
      * Creates a connection required by the ECOM processor.

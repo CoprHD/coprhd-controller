@@ -91,7 +91,7 @@ public class BackupManagerTest extends BackupTestBase {
                     BackupConstants.BACKUP_NAME_DELIMITER + BackupConstants.COMPRESS_SUFFIX, 1024);
             randomFile = FileUtil.createRandomFile(backupDir, backupName, 1024);
             List<BackupSetInfo> fileList = backupManager.list();
-            Assert.assertTrue(fileList.size() >= 1);
+            Assert.assertTrue(!fileList.isEmpty());
             boolean found = false;
             for (BackupSetInfo backupSetInfo : fileList) {
                 if (backupSetInfo.getName().equals(zipFile.getName())) {

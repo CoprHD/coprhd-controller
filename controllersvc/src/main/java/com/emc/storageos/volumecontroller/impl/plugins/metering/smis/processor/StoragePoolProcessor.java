@@ -44,7 +44,7 @@ public class StoragePoolProcessor extends Processor {
                 final CIMObjectPath path = (CIMObjectPath) it.next();
                 // Validate whether this storagePool is created by Bourne
                 if (validateStoragePool(path, keyMap)) {
-                    addPath(keyMap, operation.get_result(), path);
+                    addPath(keyMap, operation.getResult(), path);
                 }
             }
         } catch (Exception ex) {

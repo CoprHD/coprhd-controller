@@ -40,7 +40,7 @@ public class CIMArgumentArrayProcessor extends Processor {
             if (resultObj instanceof CIMArgument<?>[]) {
                 CIMArgument<?>[] _outputArguments = (CIMArgument<?>[]) resultObj;
                 CIMObjectPath _path = (CIMObjectPath) _outputArguments[0].getValue();
-                keyMap.put(operation.get_result(), _path);
+                keyMap.put(operation.getResult(), _path);
             }
         } catch (Exception e) {
             _logger.error("Failed while processing Result", e);

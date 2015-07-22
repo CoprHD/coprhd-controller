@@ -133,10 +133,10 @@ public class SRDFTaskCompleter extends TaskCompleter {
        try {
            eventManager.recordEvents(event);
            _logger.info("Bourne {} event recorded", evtType);
-       } catch (Throwable th) {
+       } catch (Exception ex) {
            _logger.error(
                    "Failed to record event. Event description: {}. Error: ",
-                   evtType, th);
+                   evtType, ex);
        }
    }
    

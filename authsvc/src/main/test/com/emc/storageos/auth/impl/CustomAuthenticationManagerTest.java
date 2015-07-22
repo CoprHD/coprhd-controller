@@ -140,7 +140,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
            adAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
            adAuthConfig.setSearchFilter("userPrincipalName=%u");
            adAuthConfig.setGroupAttribute("CN");
-           adAuthConfig.setLast_modified(System.currentTimeMillis());
+           adAuthConfig.setLastModified(System.currentTimeMillis());
            _log.info("adding new provider");
            _dbClient.createObject(adAuthConfig);
 
@@ -190,7 +190,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         adAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         adAuthConfig.setSearchFilter("userPrincipalName=%u");
         adAuthConfig.setGroupAttribute("CN");
-        adAuthConfig.setLast_modified(System.currentTimeMillis());
+        adAuthConfig.setLastModified(System.currentTimeMillis());
         _log.info("adding new provider");
         _dbClient.createObject(adAuthConfig);
         // force db error
@@ -553,7 +553,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         whitelistValues.add("*Users*");
         whitelistValues.add("ProjectAdmins");
         adAuthConfig.setGroupWhitelistValues(whitelistValues);
-        adAuthConfig.setLast_modified(System.currentTimeMillis());
+        adAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(adAuthConfig);
         reloadConfig(true);
         // Login the user the user that is in the group "Test Group" but it is not in the whitelist in
@@ -1004,7 +1004,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         authConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         authConfig.setSearchFilter("sAMAccountName=%U");
         authConfig.setGroupAttribute("CN");
-        authConfig.setLast_modified(System.currentTimeMillis());
+        authConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(authConfig);
         reloadConfig(true);
         return authConfig;
@@ -1107,7 +1107,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         updateTestConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         updateTestConfig.setSearchFilter("userPrincipalName=%u");
         updateTestConfig.setGroupAttribute("CN");
-        updateTestConfig.setLast_modified(System.currentTimeMillis());
+        updateTestConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(updateTestConfig);
         // Wait one minute and the providers should be updated automatically
         Thread.sleep(61 * 1000);

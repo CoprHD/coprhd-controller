@@ -97,7 +97,7 @@ public class FCZoneReference extends DataObject {
 	 */
 	public static String makeEndpointsKey(List<String> endpoints) {
 		StringBuilder key = new StringBuilder();
-		if (endpoints.size() < 1) return NULL_KEY;
+		if (endpoints.isEmpty()) return NULL_KEY;
 		TreeSet<String> set = new TreeSet<String>();
 		set.addAll(endpoints);
 		Iterator<String> iter = set.iterator();

@@ -79,7 +79,7 @@ public class FileSystemExportToFileSystemExportRuleMigration extends
 				FileShare fileShare = fileShareListIterator.next();
 				// Create FS Export Rule for export Map
 				List<FileExportRule> fsExpRules = createFSExportRules(fileShare);
-				if (null != fsExpRules && fsExpRules.size() > 0) {
+				if (null != fsExpRules && !fsExpRules.isEmpty()) {
 					log.debug("Persisting new File Export rule(s): {}",
 							fsExpRules);
 					dbClient.createObject(fsExpRules);
@@ -96,7 +96,7 @@ public class FileSystemExportToFileSystemExportRuleMigration extends
 				Snapshot snapshot = snapshotListIterator.next();
 				// Create FS Export Rule for export Map
 				List<FileExportRule> snapshotExpRules = createSnapshotExportRules(snapshot);
-				if (null != snapshotExpRules && snapshotExpRules.size() > 0) {
+				if (null != snapshotExpRules && !snapshotExpRules.isEmpty()) {
 					log.debug("Persisting new Snapshot Export rule(s): {}",
 							snapshotExpRules);
 					dbClient.createObject(snapshotExpRules);

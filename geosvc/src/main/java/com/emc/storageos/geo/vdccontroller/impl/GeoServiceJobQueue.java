@@ -119,7 +119,9 @@ public class GeoServiceJobQueue extends DistributedQueueConsumer<GeoServiceJob> 
                 _log.info("db not stable yet, retry");
                 try {
                     TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
-                } catch (InterruptedException ex) {}
+                } catch (InterruptedException ex) {
+                	//Ignore this exception
+                }
             }
             retry = retry + 1;
         }

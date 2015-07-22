@@ -140,11 +140,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void setDbVersionInfo(DbVersionInfo info) {
         dbVersionInfo = info;
     }
-    
+
+    // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+    // This method is only called in tests and when Spring initialization, safe to suppress
+    @SuppressWarnings("squid:S2444")
     public static void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }
 
+    // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+    // This method is only called in tests and when Spring initialization, safe to suppress
+    @SuppressWarnings("squid:S2444")
     public static void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
@@ -934,8 +940,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         try {
             byte[] data = state.encodeAsString().getBytes("UTF-8");
-
-            for (boolean exist = _zkConnection.curator().checkExists().forPath(path) != null; ; exist = !exist) {
+            // This is reported because the for loop's stop condition and incrementer don't act on the same variable to make sure loop ends
+            // Here the loop can end (break or throw Exception) from inside, safe to suppress
+            for (boolean exist = _zkConnection.curator().checkExists().forPath(path) != null; ; exist = !exist) { //NOSONAR("squid:S1994")
                 try {
                     if (exist) {
                         _zkConnection.curator().setData().forPath(path, data);

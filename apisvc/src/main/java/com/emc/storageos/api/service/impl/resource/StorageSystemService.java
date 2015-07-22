@@ -1225,9 +1225,9 @@ public class StorageSystemService extends TaskResourceService {
         /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
-        } catch (Throwable th) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",
-                    description, th);
+        } catch (Exception ex) {
+            _log.error("Failed to record event. Event description: {}. Error: ",
+                    description, ex);
         }
     }    
 

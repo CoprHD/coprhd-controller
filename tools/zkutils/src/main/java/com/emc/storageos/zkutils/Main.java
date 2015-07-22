@@ -30,6 +30,9 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
  * 1. Dump contents from zk in human readable form 
  * 2. Control the upgrade process(including manually prevent, suspend, release, get info)
  */
+// Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+// There's only one thread initializing static fields, so it's thread safe.
+@SuppressWarnings("squid:S2444")
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final String WITH_DATA = "-withdata";

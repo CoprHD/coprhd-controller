@@ -40,7 +40,9 @@ public class LockCmdHandler {
     private String upgradeLockId;
     
     public LockCmdHandler() {
-        ctx = new ClassPathXmlApplicationContext(ZKUTI_CONF);
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // This constructor used in Main, and only called in main thread, so it's safe to initialize ctx here
+        ctx = new ClassPathXmlApplicationContext(ZKUTI_CONF); //NOSONAR("squid:S2444")
         coordinatorClientExt = (CoordinatorClientExt) ctx.getBean(COORDINATOR_BEAN);
         mysvcId = coordinatorClientExt.getMySvcId();
         upgradeLockId = Constants.DISTRIBUTED_UPGRADE_LOCK;

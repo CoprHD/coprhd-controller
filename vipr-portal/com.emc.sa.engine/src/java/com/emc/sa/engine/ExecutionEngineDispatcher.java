@@ -51,7 +51,7 @@ public class ExecutionEngineDispatcher {
             monitor.removeOrder(order);
             notifyCompletion(order);
         }
-        catch (RuntimeException | Error e) {
+        catch (Exception e) {
             String message = String.format("Error processing order %s [%s]", order.getOrderNumber(), order.getId());
             LOG.error(message, e);
             tryMarkOrderAsFailed(order, e);

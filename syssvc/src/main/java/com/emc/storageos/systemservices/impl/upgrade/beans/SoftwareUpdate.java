@@ -27,12 +27,12 @@ import com.emc.storageos.db.client.model.EncryptionProvider;
 
 public class SoftwareUpdate {
 
-    private static EncryptionProvider _encryptionProvider;
-    private static List<String> _catalogServerHostNames;
-    private static String _catalogKey;
-    private static String _catalogCategory;
-    private static String _catalogLanguage;
-    private static String _catalogEnvironment;
+    private static volatile EncryptionProvider _encryptionProvider;
+    private static volatile List<String> _catalogServerHostNames;
+    private static volatile String _catalogKey;
+    private static volatile String _catalogCategory;
+    private static volatile String _catalogLanguage;
+    private static volatile String _catalogEnvironment;
     private static String _catalogMajorRev = "";
     private static String _catalogMinorRev  = "";
     private static String _catalogBuildNumber = "";

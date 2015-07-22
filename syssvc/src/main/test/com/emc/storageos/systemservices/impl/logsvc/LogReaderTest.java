@@ -42,7 +42,7 @@ public class LogReaderTest {
 
     private static final Logger logger = LoggerFactory.getLogger(LogReaderTest.class);
     
-    private static File logDir;
+    private static volatile File logDir;
     
     String regularSvcLogPath = null;
     String superLongSvcLogPath = null;
@@ -110,7 +110,7 @@ public class LogReaderTest {
      * Test if readMessage() can read regular service log from file and parse it correctly
      */
     @Test
-    public void testReadRegularLog_NoFilter_SvcParser() throws Exception {
+    public void testReadRegularLogNoFilterSvcParser() throws Exception {
         LogStatusInfo status = new LogStatusInfo();
         LogRequest req = new LogRequest.Builder().build();
         LogReader reader = new LogReader(regularSvcLogPath, req,status,null);
@@ -133,7 +133,7 @@ public class LogReaderTest {
      * Test if readMessage() can read super long service log from file and parse it correctly
      */
     @Test
-    public void testSuperLongLog_NoFilter_SVCParser() throws Exception {
+    public void testSuperLongLogNoFilterSVCParser() throws Exception {
         LogStatusInfo status = new LogStatusInfo();
         LogRequest req = new LogRequest.Builder().build();
         LogReader reader = new LogReader(superLongSvcLogPath, req,status,null);
@@ -158,7 +158,7 @@ public class LogReaderTest {
      * Test log whose first line's message field is null.
      */
     @Test
-    public void testMultipleLinesInfo_NoFilter_SVCParser() throws Exception{
+    public void testMultipleLinesInfoNoFilterSVCParser() throws Exception{
         LogStatusInfo status = new LogStatusInfo();
         LogRequest req = new LogRequest.Builder().build();
         LogReader reader = new LogReader(multipleLineINFOLogPath, req,status,null);

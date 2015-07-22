@@ -51,16 +51,18 @@ public class RemoteRepositoryTest {
     private static final String CATALOG_SERVER_URL = EnvConfig.get("sanity", "syssvc.RemoteRepositoryTest.catalogServerURL");
     private static final String USERNAME = EnvConfig.get("sanity", "syssvc.RemoteRepositoryTest.username");
     private static final String PASSWORD = EnvConfig.get("sanity", "syssvc.RemoteRepositoryTest.password");
-    private static String repositoryProxy = null;
-    private static String repositoryUrl;
-    private static String username = USERNAME;
-    private static String password = PASSWORD;
-    private static RemoteRepositoryCache newSoftwareVersions;
+    private static volatile String repositoryProxy = null;
+    private static volatile String repositoryUrl;
+    private static volatile String username = USERNAME;
+    private static volatile String password = PASSWORD;
+    private static volatile RemoteRepositoryCache newSoftwareVersions;
     private RemoteRepository _repo = null;
     private UpgradeImageDownloader _downloader;
     private EncryptionProvider _encrypter;
     private String newVersionCheckLock = "new_version_check_lock";
-    
+
+    // Suppress Sonar warning that created objects are never used. The constructors are called to set static fields.
+    @SuppressWarnings("squid:S1848")
     @Before
     public void setup() throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
         new TestProductName();
@@ -273,7 +275,7 @@ public class RemoteRepositoryTest {
         Assert.assertTrue(remoteVersions != null);
         Assert.assertTrue(!remoteVersions.isEmpty());  
         SoftwareVersion v = remoteVersions.get(0);       
-        password = "badpassword";
+        password = "badpassword"; //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
         _repo = RemoteRepository.getInstance();
         try {
             _repo.checkVersionDownloadable(remoteVersions.get(0));

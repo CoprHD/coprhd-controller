@@ -96,12 +96,12 @@ public class ComputeVirtualPoolUtils {
     private static ComputeVirtualPoolElementUpdateParam createElementAssignments(Collection<String> addElements,
             Collection<String> removeElements) {
         ComputeVirtualPoolAssignmentChanges changes = new ComputeVirtualPoolAssignmentChanges();
-        if (addElements != null && addElements.size() > 0) {
+        if (addElements != null && !addElements.isEmpty()) {
             ComputeVirtualPoolAssignments add = new ComputeVirtualPoolAssignments();
             add.getComputeElements().addAll(addElements);
             changes.setAdd(add);
         }
-        if (removeElements != null && removeElements.size() > 0) {
+        if (removeElements != null && !removeElements.isEmpty()) {
             ComputeVirtualPoolAssignments remove = new ComputeVirtualPoolAssignments();
             remove.getComputeElements().addAll(removeElements);
             changes.setRemove(remove);

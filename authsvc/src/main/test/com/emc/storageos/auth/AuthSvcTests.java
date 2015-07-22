@@ -480,7 +480,7 @@ public class AuthSvcTests extends ApiTestBase {
         }
 
         WebResource rRoot =
-                createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, true).resource(baseAuthServiceURL);
+                createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, true).resource(baseAuthServiceURL);
         rRoot.path("/login").get(ClientResponse.class);
 
         // post authProvider
@@ -488,7 +488,7 @@ public class AuthSvcTests extends ApiTestBase {
 
         // login with a user from ldap
         WebResource rSanityUser =
-                createHttpsClient(ROOTUSER, AD_PASSWORD, true).resource(
+                createHttpsClient(ROOTUSER, AD_PASS_WORD, true).resource(
                         baseAuthServiceURL);
         rSanityUser.path("/login").get(ClientResponse.class);
         TenantResponse tenant = rSanityUser.path("/tenant").get(TenantResponse.class);

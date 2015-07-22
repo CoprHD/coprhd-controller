@@ -15,6 +15,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -168,12 +169,11 @@ public class VirtualArrayUtils {
         
         // cycle through the available attributes, adding them to the allAttributes list
         Map<String, Set<String>> allAttributes = Maps.newTreeMap();
-        for (URI varrayId : availableAttributes.keySet()) {
-            List<VirtualPoolAvailableAttributesResourceRep> attributes = availableAttributes.get(varrayId);
+        for (Entry<URI, List<VirtualPoolAvailableAttributesResourceRep>> varrayId : availableAttributes.entrySet()) {
+            List<VirtualPoolAvailableAttributesResourceRep> attributes = varrayId.getValue();
             for (VirtualPoolAvailableAttributesResourceRep attribute : attributes) {
                 String attributesName = attribute.getName();
                 Set<String> values = allAttributes.get(attributesName);
-                
                 // ensure the map has a valid set for this attribute entry
                 if (values == null) {
                     values = Sets.newTreeSet();

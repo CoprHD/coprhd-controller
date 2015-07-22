@@ -18,6 +18,8 @@ package com.emc.storageos.datadomain.restapi;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiException;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainResourceNotFoundException;
 import com.emc.storageos.services.restutil.RestClientItf;
+import com.emc.storageos.services.util.SecurityUtils;
+
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -180,7 +182,7 @@ public class DataDomainClient implements RestClientItf {
             log.error(String.format("DataDomain Rest API failed, DDCode: %d, Msg : %s",ddCode, msg));
 
             if( ddCode == 404 || ddCode == 410 )   {
-                throw DataDomainResourceNotFoundException.notFound.ResourceNotFound(uri.toString(),msg);
+                throw DataDomainResourceNotFoundException.notFound.resourceNotFound(uri.toString(),msg);
             }
             else {
                 throw DataDomainApiException.exceptions.failedResponseFromDataDomainMsg(uri,errorCode,msg, ddCode);
@@ -206,7 +208,7 @@ public class DataDomainClient implements RestClientItf {
     private <T> T getResponseObject(Class<T> clazz, ClientResponse response ) throws  DataDomainApiException {
         try {
             JSONObject resp = response.getEntity(JSONObject.class);
-            T respObject = new Gson().fromJson(resp.toString(), clazz);
+            T respObject = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), clazz);
             /*ObjectMapper mapper = new ObjectMapper();
             mapper.configure(DeserializationConfig.Feature.UNWRAP_ROOT_VALUE, true);
             mapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -225,7 +227,7 @@ public class DataDomainClient implements RestClientItf {
     	createParam.setQuota(new DDQuotaConfig());
     	createParam.getQuota().setHardLimit(size);
     	createParam.getQuota().setSoftLimit((long)(size * DataDomainApiConstants.DD_MTREE_SOFT_LIMIT));
-    	ClientResponse response = post(DataDomainApiConstants.URI_DATADOMAIN_MTREES(ddSystem),
+    	ClientResponse response = post(DataDomainApiConstants.uriDataDomainMtrees(ddSystem),
     			getJsonForEntity(createParam));
     	return response;
     }
@@ -235,26 +237,26 @@ public class DataDomainClient implements RestClientItf {
     	DDQuotaConfig quotaConfig = null;
     	DDRetentionLockSet retentionLockSet = new DDRetentionLockSet(enable, mode);
     	DDMTreeModify modifyParam = new DDMTreeModify(quotaConfig, retentionLockSet);
-    	ClientResponse response =  put(DataDomainApiConstants.URI_DATADOMAIN_MTREE(ddSystem, mtreeId),
+    	ClientResponse response =  put(DataDomainApiConstants.uriDataDomainMtree(ddSystem, mtreeId),
     			getJsonForEntity(modifyParam));
     	return response;
     }
     
     private ClientResponse doCreateExport(String ddSystem, DDExportCreate ddExport) throws DataDomainApiException{
-    	ClientResponse response = post(DataDomainApiConstants.URI_DATADOMAIN_EXPORTS(ddSystem),
+    	ClientResponse response = post(DataDomainApiConstants.uriDataDomainExports(ddSystem),
     			getJsonForEntity(ddExport));
     	return response;
     }
 
     private ClientResponse doModifyExport(String ddSystem, String ddExportId,
     		DDExportModify ddExportModify) throws DataDomainApiException{
-    	ClientResponse response = put(DataDomainApiConstants.URI_DATADOMAIN_EXPORT(ddSystem, ddExportId),
+    	ClientResponse response = put(DataDomainApiConstants.uriDataDomainExport(ddSystem, ddExportId),
     			getJsonForEntity(ddExportModify));
     	return response;
     }
 
     private ClientResponse doCreateShare(String ddSystem, DDShareCreate ddShare) throws DataDomainApiException{
-    	ClientResponse response = post(DataDomainApiConstants.URI_DATADOMAIN_SHARES(ddSystem),
+    	ClientResponse response = post(DataDomainApiConstants.uriDataDomainShares(ddSystem),
     			getJsonForEntity(ddShare));
     	return response;
     }
@@ -270,12 +272,12 @@ public class DataDomainClient implements RestClientItf {
     }
 
     public DDSystem getDDSystem(String system) throws DataDomainApiException {
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_SYSTEM(system));
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainSystem(system));
         return getResponseObject(DDSystem.class, response);
     }
     
     public DDMCInfoDetail getDDSystemInfoDetail(String system) throws DataDomainApiException {
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_SYSTEM(system));
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainSystem(system));
         return getResponseObject(DDMCInfoDetail.class, response);
     }
 
@@ -286,13 +288,13 @@ public class DataDomainClient implements RestClientItf {
     	MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
     	queryParams.add("size", String.valueOf(DataDomainApiConstants.DD_MAX_MTREE_LIMIT));
     	
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_MTREES(system),
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainMtrees(system),
         		(MultivaluedMap<String, String>) queryParams);
         return getResponseObject(DDMTreeList.class, response);
     }
 
     public DDMTreeInfoDetail getMTree(String system,String mtree) throws DataDomainApiException {
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_MTREE(system, mtree));
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainMtree(system, mtree));
         return getResponseObject(DDMTreeInfoDetail.class, response);
     }
     
@@ -310,7 +312,7 @@ public class DataDomainClient implements RestClientItf {
     }
 
     public DDServiceStatus deleteMTree(String ddSystem, String mtreeId) throws DataDomainApiException{
-    	ClientResponse response =  delete(DataDomainApiConstants.URI_DATADOMAIN_MTREE(ddSystem, mtreeId));
+    	ClientResponse response =  delete(DataDomainApiConstants.uriDataDomainMtree(ddSystem, mtreeId));
     	return getResponseObject(DDServiceStatus.class, response);
     }
     
@@ -320,13 +322,13 @@ public class DataDomainClient implements RestClientItf {
     	quotaConfig.setSoftLimit((long) (newSize * DataDomainApiConstants.DD_MTREE_SOFT_LIMIT));
     	DDRetentionLockSet retentionLockSet = null;
     	DDMTreeModify modifyParam = new DDMTreeModify(quotaConfig, retentionLockSet);
-    	ClientResponse response =  put(DataDomainApiConstants.URI_DATADOMAIN_MTREE(ddSystem, mtreeId), 
+    	ClientResponse response =  put(DataDomainApiConstants.uriDataDomainMtree(ddSystem, mtreeId), 
     			getJsonForEntity(modifyParam));
     	return getResponseObject(DDMTreeInfo.class, response);
     }
 
     public DDExportInfoDetail getExport(String ddSystem, String exportId) throws DataDomainApiException{
-    	ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_EXPORT(ddSystem, exportId));
+    	ClientResponse response = get(DataDomainApiConstants.uriDataDomainExport(ddSystem, exportId));
     	return getResponseObject(DDExportInfoDetail.class, response);
     }
     
@@ -345,7 +347,7 @@ public class DataDomainClient implements RestClientItf {
     }
     
     public DDServiceStatus deleteExport(String ddSystem, String ddExportId) throws DataDomainApiException{
-    	ClientResponse response = delete(DataDomainApiConstants.URI_DATADOMAIN_EXPORT(ddSystem, ddExportId));
+    	ClientResponse response = delete(DataDomainApiConstants.uriDataDomainExport(ddSystem, ddExportId));
     	return getResponseObject(DDServiceStatus.class, response);
     }
     
@@ -361,49 +363,49 @@ public class DataDomainClient implements RestClientItf {
     public DDShareInfo modifyShare(String ddSystem, String ddShareId, String description) 
     		throws DataDomainApiException{
 		DDShareModify ddShareModify = new DDShareModify(description);
-    	ClientResponse response = put(DataDomainApiConstants.URI_DATADOMAIN_SHARE(ddSystem, ddShareId),
+    	ClientResponse response = put(DataDomainApiConstants.uriDataDomainShare(ddSystem, ddShareId),
     			getJsonForEntity(ddShareModify));
     	return getResponseObject(DDShareInfo.class, response);
     }
     
     public DDServiceStatus deleteShare(String ddSystem, String ddShareId) throws DataDomainApiException{
-    	ClientResponse response = delete(DataDomainApiConstants.URI_DATADOMAIN_SHARE(ddSystem, ddShareId));
+    	ClientResponse response = delete(DataDomainApiConstants.uriDataDomainShare(ddSystem, ddShareId));
     	return getResponseObject(DDServiceStatus.class, response);
     }
     
     public DDShareInfoDetail getShare(String ddSystem, String shareId) throws DataDomainApiException{
-    	ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_SHARE(ddSystem, shareId));
+    	ClientResponse response = get(DataDomainApiConstants.uriDataDomainShare(ddSystem, shareId));
     	return getResponseObject(DDShareInfoDetail.class, response);
     }
     
     
     public DDShareList getShares(String ddSystem) throws DataDomainApiException{
-    	ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_SHARES(ddSystem));
+    	ClientResponse response = get(DataDomainApiConstants.uriDataDomainShares(ddSystem));
     	return getResponseObject(DDShareList.class, response);
     }
 
     public DDNetworkList getNetworks(String ddSystem)  throws DataDomainApiException{
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_NETWORKS(ddSystem));
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainNetworks(ddSystem));
         return getResponseObject(DDNetworkList.class, response);
     }
 
     public DDNetworkDetails getNetwork(String ddSystem, String network)  throws DataDomainApiException{
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_NETWORK(ddSystem, network));
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainNetwork(ddSystem, network));
         return getResponseObject(DDNetworkDetails.class, response);
     }
 
     public DDExportList getExports(String ddSystem )throws DataDomainApiException{
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_EXPORTS(ddSystem));
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainExports(ddSystem));
         return getResponseObject(DDExportList.class, response);
     }
 
     public DDSnapshot createSnapshot(String ddSystem, DDSnapshotCreate ddSnapshotCreate) throws DataDomainApiException{
-    	ClientResponse response = post(DataDomainApiConstants.URI_DATADOMAIN_SNAPSHOTS(ddSystem),getJsonForEntity(ddSnapshotCreate));
+    	ClientResponse response = post(DataDomainApiConstants.uriDataDomainSnapshots(ddSystem),getJsonForEntity(ddSnapshotCreate));
     	return getResponseObject(DDSnapshot.class, response);
     }
 
     public DDServiceStatus deleteSnapshot(String ddSystem, String ddSnapshotId) throws DataDomainApiException{
-    	ClientResponse response = delete(DataDomainApiConstants.URI_DATADOMAIN_SNAPSHOT(ddSystem, ddSnapshotId));
+    	ClientResponse response = delete(DataDomainApiConstants.uriDataDomainSnapshot(ddSystem, ddSnapshotId));
     	return getResponseObject(DDServiceStatus.class, response);
     }
     
@@ -429,14 +431,14 @@ public class DataDomainClient implements RestClientItf {
             queryParams.add("filter", queryFilter);
         }
         ClientResponse response = get(
-                DataDomainApiConstants.URI_DATADOMAIN_SYSTEM_STATS_CAPACITY(ddSystem),
+                DataDomainApiConstants.uriDataDomainSystemStatsCapacity(ddSystem),
                 (MultivaluedMap<String, String>) queryParams);
         return getResponseObject(DDStatsCapacityInfos.class, response);
    
     }
     
     public DDStatsInfos getMTreeStatsInfos(String ddSystem, String mtreeId) throws DataDomainApiException{
-        ClientResponse response = get(DataDomainApiConstants.URI_DATADOMAIN_MTREE_STATS(ddSystem, mtreeId));
+        ClientResponse response = get(DataDomainApiConstants.uriDataDomainMtreeStats(ddSystem, mtreeId));
         return getResponseObject(DDStatsInfos.class, response);
     }
     
@@ -466,7 +468,7 @@ public class DataDomainClient implements RestClientItf {
             queryParams.add(DataDomainApiConstants.SORT, sort);
         }
         ClientResponse response = get(
-                DataDomainApiConstants.URI_DATADOMAIN_MTREE_STATS_CAPACITY(ddSystem, mtreeId),
+                DataDomainApiConstants.uriDataDomainMtreeStatsCapacity(ddSystem, mtreeId),
                 (MultivaluedMap<String, String>) queryParams);
         return getResponseObject(DDMtreeCapacityInfos.class, response);
     }

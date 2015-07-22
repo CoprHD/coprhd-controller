@@ -733,17 +733,17 @@ public class PersistingChangesTest extends DbsvcTestBase {
         SumPrimitiveFieldAggregator aggregator = CustomQueryUtility.aggregateActiveObject (
                 this.dbClient,Volume.class,new String[] {"allocatedCapacity"} );
         Assert.assertTrue(aggregator.get_NRecords() == 3);
-        Assert.assertTrue(aggregator.getAggregate("allocatedCapacity") == 9500L);
+        Assert.assertTrue((long)aggregator.getAggregate("allocatedCapacity") == 9500L);
         
         aggregator = CustomQueryUtility.aggregateActiveObject(
                                              this.dbClient,Volume.class,
                                              new String[]{"allocatedCapacity"} );
         Assert.assertTrue(aggregator.get_NRecords() == 3);
-        Assert.assertTrue(aggregator.getAggregate("allocatedCapacity") == 9500L);
+        Assert.assertTrue((long)aggregator.getAggregate("allocatedCapacity") == 9500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient,Volume.class,
                 new String[]{"provisionedCapacity"} );
-        Assert.assertTrue(aggregator.getAggregate("provisionedCapacity") == 19500L);
+        Assert.assertTrue((long)aggregator.getAggregate("provisionedCapacity") == 19500L);
 
         Iterator<URI> iter = CustomQueryUtility.filterDataObjectsFieldValueInSet(
                                                         this.dbClient,Volume.class,
@@ -756,10 +756,10 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 this.dbClient,Volume.class,
                 new String[]{"allocatedCapacity"},volFromPools.iterator() );
         Assert.assertTrue(aggregator.get_NRecords() == 2);
-        Assert.assertTrue(aggregator.getAggregate("allocatedCapacity") == 8500L);
+        Assert.assertTrue((long)aggregator.getAggregate("allocatedCapacity") == 8500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
                 this.dbClient,Volume.class,
                 new String[]{"provisionedCapacity"},volFromPools.iterator() );
-        Assert.assertTrue(aggregator.getAggregate("provisionedCapacity") == 17500L);
+        Assert.assertTrue((long)aggregator.getAggregate("provisionedCapacity") == 17500L);
     }
 }

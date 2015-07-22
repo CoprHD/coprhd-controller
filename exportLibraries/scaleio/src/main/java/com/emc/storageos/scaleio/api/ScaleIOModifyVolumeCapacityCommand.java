@@ -38,7 +38,7 @@ public class ScaleIOModifyVolumeCapacityCommand extends AbstractScaleIOQueryComm
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG;
+        return PARSING_CONFIG.clone(); //No need to check not null condition here
     }
 
     @Override

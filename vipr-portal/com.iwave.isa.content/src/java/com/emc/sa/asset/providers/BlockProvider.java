@@ -457,7 +457,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
             // VMAX SRDF protection
             if (protection.getSrdfRep() != null && protection.getSrdfRep().getSRDFTargetVolumes() != null
-                    && protection.getSrdfRep().getSRDFTargetVolumes().size() > 0) {
+                    && !protection.getSrdfRep().getSRDFTargetVolumes().isEmpty()) {
                 return getSrdfFailoverTargets(client, volume);
             }
         }
@@ -946,7 +946,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
             @Override
             public boolean acceptId(URI id) {
-                return client.blockVolumes().getFullCopies(id).size() > 0;
+                return !client.blockVolumes().getFullCopies(id).isEmpty();
             }
         });
         return createVolumeOptions(client, volumes);

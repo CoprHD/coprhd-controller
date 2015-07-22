@@ -90,9 +90,9 @@ public class LazyLoader {
         }
         ColumnField mappedByField = getMappedByField(lazyLoadedField, doType);
         if (mappedByField == null) {
-            throw new IllegalStateException(String.format("lazy loaded field %s in class %s has mapped by field %s that could not be found;"
+            throw new IllegalStateException(String.format("lazy loaded field %s in class %s could not be found;"
                     + " make sure the mappedBy argument in the @Relation annotation matches the @Name annotation on the mapped by field", 
-                    lazyLoadedFieldName, obj.getClass(), mappedByField.getName()));
+                    lazyLoadedFieldName, obj.getClass()));
         }
         Joiner j = queryObjects(obj, cb, lazyLoadedField, mappedByField, JOINER_ALIAS_TWO);
         if (collection != null) {
@@ -160,12 +160,7 @@ public class LazyLoader {
         // if only we had URISet extends AbstractChangeTrackingSet<URI>
         if (StringSet.class.isAssignableFrom(val.getClass()) &&
                 ((StringSet)val).iterator().hasNext()) {
-            try {
-                URI uri = new URI(((StringSet)val).iterator().next());
-                return true;
-            } catch (URISyntaxException e) {
-                return false;
-            }
+        	return true;
         }
         return false;
     }
@@ -209,9 +204,9 @@ public class LazyLoader {
                 
                 mappedByField = TypeMap.getDoType(lazyLoadedField.getMappedByType()).getColumnField(lazyLoadedField.getMappedByField());
                 if (mappedByField == null) {
-                    throw new IllegalStateException(String.format("lazy loaded field %s in class %s has mapped by field %s that could not be found;"
+                    throw new IllegalStateException(String.format("lazy loaded field %s in class %s could not be found;"
                             + " make sure the mappedBy argument in the @Relation annotation matches the @Name annotation on the mapped by field", 
-                            lazyLoadedFieldName, obj.getClass(), mappedByField.getName()));
+                            lazyLoadedFieldName, obj.getClass()));
                 }
                 Joiner j = new Joiner(dbClient);
                 j.join(obj.getClass(), JOINER_ALIAS_ONE, obj.getId()).join(JOINER_ALIAS_ONE, lazyLoadedField.getMappedByType(), JOINER_ALIAS_TWO, mappedByField.getName()).go();

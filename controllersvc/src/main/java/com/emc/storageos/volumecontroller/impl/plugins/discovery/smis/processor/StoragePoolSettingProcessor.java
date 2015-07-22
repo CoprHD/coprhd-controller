@@ -115,7 +115,7 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
                     if (isVmax3) {
                         processVMAX3SLO(device, settingInstance);
                     }
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             settingInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("Pool Setting Discovery failed for {}-->{}",
@@ -245,8 +245,9 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
         List<URI> settingURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getStoragePoolSettingByIDConstraint(settingInstance.getPropertyValue(
                         INSTANCEID).toString()));
-        if (settingURIs.size() > 0)
+        if (!settingURIs.isEmpty()) {
             setting = _dbClient.queryObject(StoragePoolSetting.class, settingURIs.get(0));
+        }
         return setting;
     }
 

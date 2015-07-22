@@ -137,7 +137,7 @@ public abstract class AbstractChangeTrackingSetMap<K> extends HashMap<String, Ab
         AbstractChangeTrackingSet<K> set = super.get(key);
         if (set != null) {
             set.removeNoTrack(value);
-            if (set.size() == 0) {
+            if (set.isEmpty()) {
                 super.remove(key);
             }
         }
@@ -172,7 +172,7 @@ public abstract class AbstractChangeTrackingSetMap<K> extends HashMap<String, Ab
      * @param newEntries
      */
     public void replace(Map<String, AbstractChangeTrackingSet<K>> newEntries) {
-        if ( newEntries == null || (newEntries.size() == 0 )) {
+        if ( newEntries == null || (newEntries.isEmpty() )) {
             clear();
             return;
         }

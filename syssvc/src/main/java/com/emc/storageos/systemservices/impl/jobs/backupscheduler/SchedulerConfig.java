@@ -122,7 +122,7 @@ public class SchedulerConfig {
         String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
         String usernameStr = propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
-        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWORD);
+        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
         String enableStr = propInfo.getProperty(BackupConstants.SCHEDULER_ENABLED);
 
         this.interval = ScheduleTimeRange.ScheduleInterval.DAY;
@@ -281,9 +281,9 @@ public class SchedulerConfig {
 
         List<URI> userPrefsIds = new ArrayList<>();
         for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
-            userPrefsIds.add(namedElement.id);
+            userPrefsIds.add(namedElement.getId());
         }
-        if (userPrefsIds.size() == 0) {
+        if (userPrefsIds.isEmpty()) {
             return null;
         }
 
@@ -296,7 +296,7 @@ public class SchedulerConfig {
         if (userPrefs.size() > 1) {
             throw new IllegalStateException("There should only be 1 user preferences object for a user");
         }
-        if (userPrefs.size() == 0) {
+        if (userPrefs.isEmpty()) {
             // if there isn't a user prefs object in the DB yet then we haven't saved one for this user yet.
             return null;
         }

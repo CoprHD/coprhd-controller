@@ -44,7 +44,7 @@ public class FileReadUtil {
             while ((line = reader.readLine()) != null) {
                 lines.add(line);
             }
-            if (lines.size() == 0) {
+            if (lines.isEmpty()) {
                 throw SyssvcException.syssvcExceptions.syssvcInternalError("File " + filePath + " is empty.");
             }
             return lines.toArray(new String[lines.size()]);

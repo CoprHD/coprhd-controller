@@ -66,7 +66,7 @@ public class SysClientFactory {
     /**
      * Coordinator client
      */
-    private static InternalApiSignatureKeyGenerator _keyGenerator;
+    private static volatile InternalApiSignatureKeyGenerator _keyGenerator;
     private static int _timeout;    //connection timeout
     private static int _readTimeout; // read timeout
 

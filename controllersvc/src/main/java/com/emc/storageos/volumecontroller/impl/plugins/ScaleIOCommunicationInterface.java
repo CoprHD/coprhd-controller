@@ -202,7 +202,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                         List<StoragePool> pools =
                                 queryActiveResourcesByAltId(_dbClient, StoragePool.class, "nativeGuid", nativeGuid);
                         StoragePool pool = null;
-                        if (pools.size() == 0) {
+                        if (pools.isEmpty()) {
                             log.info("Pool {} is new", storagePool);
                             pool = new StoragePool();
                             pool.setId(URIUtil.createId(StoragePool.class));

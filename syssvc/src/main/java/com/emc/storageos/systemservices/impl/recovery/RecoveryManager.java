@@ -832,7 +832,7 @@ public class RecoveryManager implements Runnable {
         	} else if (geoDbState.getStatus() == Status.IN_PROGRESS) {
         		log.info("geo db repair is in progress");
         		repairStatus = getSingleProgressStatus(geoDbState, localDbState, nodeRecovery, true);
-        	} else if (localDbState.getStatus()==Status.FAILED || localDbState.getStatus()==Status.FAILED) {
+        	} else if (localDbState.getStatus()==Status.FAILED || geoDbState.getStatus()==Status.FAILED) {
         		log.info("local or geo db repair failed");
         		repairStatus = new DbRepairStatus(Status.FAILED); 
         	} else if (localDbState.getStatus()==Status.SUCCESS && geoDbState.getStatus()==Status.SUCCESS) {

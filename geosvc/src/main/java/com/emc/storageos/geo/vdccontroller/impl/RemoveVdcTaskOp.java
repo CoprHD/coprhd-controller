@@ -164,7 +164,7 @@ public class RemoveVdcTaskOp  extends AbstractVdcTaskOp {
 
         //  set connection status to isolated if there is only one vdc in current geo system 
         if (newVdcList.size() == 1) {
-            if (syncParam.getVirtualDataCenters().size() > 0) {
+            if (!syncParam.getVirtualDataCenters().isEmpty()) {
                 VdcConfig vdcConfig = syncParam.getVirtualDataCenters().get(0);
                 vdcConfig.setConnectionStatus(ConnectionStatus.ISOLATED.toString());
                 vdcConfig.setVersion(new Date().getTime());

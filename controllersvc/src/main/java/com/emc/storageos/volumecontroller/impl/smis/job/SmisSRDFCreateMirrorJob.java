@@ -52,7 +52,7 @@ public class SmisSRDFCreateMirrorJob extends SmisJob {
             ServiceError error = SmisException.errors.jobFailed(e.getMessage());
             completer.error(jobContext.getDbClient(), error);
         } finally {
-            
+            log.info("updateStatus operation END");
         }
     }
     

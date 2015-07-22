@@ -51,11 +51,11 @@ public class SyncInfoBuilder {
                 target.getVersions() :  new ArrayList<SoftwareVersion>();
 
         // Basic validations
-        if (localCurrent == null || localVersions == null || localVersions.size() == 0) {
+        if (localCurrent == null || localVersions == null || localVersions.isEmpty()) {
             log.error("inconsistent local repository state");
             return new SyncInfo();
         }
-        if (targetCurrent == null || targetVersions == null || targetVersions.size() == 0) {
+        if (targetCurrent == null || targetVersions == null || targetVersions.isEmpty()) {
             log.error("inconsistent target repository state");
             return new SyncInfo();    
         }
@@ -210,7 +210,7 @@ public class SyncInfoBuilder {
     }
         }
         
-        if (upgradeFromVersionList.size()==0 || upgradeToVersionList.size()==0) {
+        if (upgradeFromVersionList.isEmpty() || upgradeToVersionList.isEmpty()) {
             return true; // If no version can upgrade to the target version or no version can be upgrade from the target version, target version is removable
         }
         

@@ -322,7 +322,9 @@ public class MigrationHandlerImpl implements MigrationHandler {
         try {
             log.info("Waiting for {} sec before retrying ...", WAIT_TIME_BEFORE_RETRY_MSEC / 1000);
             Thread.sleep(WAIT_TIME_BEFORE_RETRY_MSEC);
-        } catch (InterruptedException ex) { }
+        } catch (InterruptedException ex) {
+        	log.warn("Thread is interrupted during wait for retry", ex);
+        }
     	
     }
 
@@ -381,6 +383,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 try {
                     reader.close();
                 } catch (Exception e) {
+                	log.error("Fail to close buffer reader", e);
                 }
             }
         }
@@ -544,7 +547,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
                 String part2 = list2Itr.hasNext() ? list2Itr.next() : "0";
                 int compare = 0;
                 if (StringUtils.isNumeric(part1) && StringUtils.isNumeric(part2)) {
-                    compare = (new Integer(part1)).compareTo(new Integer(part2));
+                    compare = (Integer.valueOf(part1)).compareTo(Integer.valueOf(part2));
                 } else {
                     compare = part1.compareToIgnoreCase(part2);
                 }

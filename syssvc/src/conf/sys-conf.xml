@@ -44,8 +44,6 @@
     </bean>
 
     <bean id="logService" class="com.emc.storageos.systemservices.impl.resource.LogService">
-        <property name="coordinator" ref="coordinator" />
-        <property name="service" ref="serviceinfo" />
         <property name="exemptLoggerService" >
             <list>
                 <value>vasasvc</value>

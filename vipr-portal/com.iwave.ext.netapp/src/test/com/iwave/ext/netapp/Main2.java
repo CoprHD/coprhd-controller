@@ -14,6 +14,10 @@ import com.iwave.ext.netapp.model.CifsAccess;
 import com.iwave.ext.netapp.model.CifsAcl;
 import com.iwave.ext.netapp.model.ExportsRuleInfo;
 
+@SuppressWarnings({"squid:S2444"})
+/*
+ * Change to static reference will be made in the future release
+ */
 public class Main2 {
 
 	static private NetAppFacade netAppFacade = null;

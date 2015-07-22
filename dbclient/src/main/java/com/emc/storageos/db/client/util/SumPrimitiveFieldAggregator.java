@@ -10,6 +10,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.Row;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -24,7 +25,7 @@ public class SumPrimitiveFieldAggregator implements DbAggregatorItf{
 
 
     public String[] getAggregatedFields() {
-        return _fields;
+        return Arrays.copyOf(_fields, _fields.length);
     }
     /**
      * @return the aggregated value.

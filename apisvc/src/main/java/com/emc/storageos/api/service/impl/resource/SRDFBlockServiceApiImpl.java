@@ -249,7 +249,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                                                 .getFullMatchConstraint(
                                                         BlockConsistencyGroup.class, "label",
                                                         cgName));
-                        if (groups.size() == 0) {
+                        if (groups.isEmpty()) {
                         	newCGCreated = true;
                             // create CG
                             newConsistencyGroup = new BlockConsistencyGroup();
@@ -860,7 +860,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
         
         if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())
-                || (volume.getSrdfTargets() != null && volume.getSrdfTargets().size() > 0)) {
+                || (volume.getSrdfTargets() != null && !volume.getSrdfTargets().isEmpty())) {
             throw APIException.badRequests.srdfVolumeVPoolChangeNotSupported(volume.getId());
         }
         
@@ -960,7 +960,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             StorageSystem system = systemItr.next();
             
             if (null == system || system.getRemotelyConnectedTo() == null
-                    || system.getRemotelyConnectedTo().size() == 0) {
+                    || system.getRemotelyConnectedTo().isEmpty()) {
                 continue;
             }
             

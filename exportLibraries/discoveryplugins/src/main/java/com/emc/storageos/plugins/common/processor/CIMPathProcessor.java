@@ -45,7 +45,7 @@ public class CIMPathProcessor extends Processor {
             final Iterator<?> it = (Iterator<?>) resultObj;
             while (it.hasNext()) {
                 final CIMObjectPath path = (CIMObjectPath) it.next();
-                if (operation.get_method().contains(Constants._enum)) {
+                if (operation.getMethod().contains(Constants._enum)) {
                     CIMProperty<?> ccprop = path.getKey(Constants._CreationClassName);
                     String ccName = (String) ccprop.getValue();
                     _logger.debug("CCName :" + ccName);
@@ -57,12 +57,12 @@ public class CIMPathProcessor extends Processor {
                         if(serialID.toLowerCase().contains(((String) keyMap
                                 .get(Constants._serialID)).toLowerCase()))
                          {  
-                            addPath(keyMap, operation.get_result(), path);
+                            addPath(keyMap, operation.getResult(), path);
                             break;
                         }
                     }
                 } else {
-                    addPath(keyMap, operation.get_result(), path);
+                    addPath(keyMap, operation.getResult(), path);
                 }
             }
         } catch (Exception e) {

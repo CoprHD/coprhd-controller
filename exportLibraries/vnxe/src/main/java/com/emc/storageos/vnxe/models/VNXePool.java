@@ -37,7 +37,7 @@ public class VNXePool extends VNXeBase{
     private double sizeSubscribed = -1;
     private int alertThreshold;
     private float harvestHightThreshold;
-    private float HarvestLowThreshold;
+    private float harvestLowThreshold;
     private float snapHarvestHighThreshold;
     private boolean isFASTCacheEnabled;
     private List<PoolTier> tiers;
@@ -163,11 +163,11 @@ public class VNXePool extends VNXeBase{
 	}
 
 	public float getHarvestLowThreshold() {
-		return HarvestLowThreshold;
+		return harvestLowThreshold;
 	}
 
 	public void setHarvestLowThreshold(float harvestLowThreshold) {
-		HarvestLowThreshold = harvestLowThreshold;
+		this.harvestLowThreshold = harvestLowThreshold;
 	}
 
 	public float getSnapHarvestHighThreshold() {

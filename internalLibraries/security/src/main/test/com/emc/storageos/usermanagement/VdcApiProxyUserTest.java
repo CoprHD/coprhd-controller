@@ -28,7 +28,7 @@ public class VdcApiProxyUserTest extends TenantMode {
     private static ViPRCoreClient proxyClient;
 
     @BeforeClass
-    public static void setupProxyuser() throws Exception {
+    public synchronized static void setupProxyuser() throws Exception {
         logger.info("Setup for VdcApiProxyUserTest");
         String user =  getUserByRole(null, RoleOrAcl.SecurityAdmin);
         ViPRCoreClient client = new ViPRCoreClient(controllerNodeEndpoint, true)

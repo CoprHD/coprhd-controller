@@ -96,7 +96,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 			ClientConfig config = ClientConfig.getInstance();
 			_prop = config.getProperties();
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			System.out.println(e1);
 		}
 
 		try {
@@ -104,7 +104,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 					+ _prop.getProperty(ClientConfig.SERVICE_HOST)
 					+ ":9083/storageos-vasasvc/services/vasaService");
 		} catch (AxisFault e) {
-			e.printStackTrace();
+			System.out.println(e);
 		}
 
 	}
@@ -123,7 +123,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 			is = url.openStream();
 			keystore.load(is, password != null ? password.toCharArray() : null);
 			return keystore;
-		} catch (java.lang.Exception e) {
+		} 	catch (java.lang.Exception e) {
 			System.out.println("Could not create keystore " + e);
 			throw e;
 		} finally {
@@ -131,6 +131,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 				try {
 					is.close();
 				} catch (java.lang.Exception e) {
+					System.out.println(e);
 				}
 			}
 		}
@@ -307,8 +308,8 @@ public class VasaServiceTest extends junit.framework.TestCase {
 
 		String keyStoreFileURL = "file:"
 				+ _prop.getProperty(ClientConfig.KEYSTORE_PATH);
-		keystore = createKeyStore(new URL(keyStoreFileURL), "JKS",
-				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD));
+		keystore = createKeyStore(new URL(keyStoreFileURL), "JKS", //NOSONAR ("Lazy initialization of "static" fields should be "synchronized" : Synchronize this lazy initialization of 'keystore'")
+				_prop.getProperty(ClientConfig.KEYSTORE_PASSWORD)); 
 
 		String certificate = getCertificate(keystore,
 				_prop.getProperty(ClientConfig.CERT_ALIAS), true);
@@ -413,7 +414,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		StorageArray[] storageArrays = response.get_return();
 
 		if (storageArrays.length == 1) {
-			arrayId = storageArrays[0].getUniqueIdentifier();
+			arrayId = storageArrays[0].getUniqueIdentifier(); //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for arrayId”)
 			assertTrue(arrayId.startsWith(STORAGEARRAY_IDENTIFIER_PREFIX));
 		} else {
 			assertTrue(false);
@@ -447,7 +448,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForEntityResponse response = _stub
 				.queryUniqueIdentifiersForEntity(queryUniqueIdRequest);
 
-		proccessorIds = response.get_return();
+		proccessorIds = response.get_return(); //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for proccessorIds”)
 
 		if (proccessorIds.length > 0) {
 
@@ -501,7 +502,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForEntityResponse response = _stub
 				.queryUniqueIdentifiersForEntity(queryUniqueIdRequest);
 
-		portIds = response.get_return();
+		portIds = response.get_return(); //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for portIds”)
 
 		if (portIds.length > 0) {
 
@@ -596,7 +597,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForLunsResponse response = _stub
 				.queryUniqueIdentifiersForLuns(request);
 
-		volumeIds = response.get_return();
+		volumeIds = response.get_return(); //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for volumeIds”)
 
 		assertTrue(volumeIds.length > 0);
 	}
@@ -635,7 +636,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForFileSystemsResponse response = _stub
 				.queryUniqueIdentifiersForFileSystems(request);
 
-		fileSystemIds = response.get_return();
+		fileSystemIds = response.get_return(); //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for fileSystemIds”)
 
 		assertTrue(fileSystemIds.length > 0);
 
@@ -698,7 +699,7 @@ public class VasaServiceTest extends junit.framework.TestCase {
 		QueryUniqueIdentifiersForEntityResponse response = _stub
 				.queryUniqueIdentifiersForEntity(request);
 
-		storageCapabilityIds = response.get_return();
+		storageCapabilityIds = response.get_return(); //NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for storageCapabilityIds”)
 
 		assertTrue(storageCapabilityIds.length > 0);
 

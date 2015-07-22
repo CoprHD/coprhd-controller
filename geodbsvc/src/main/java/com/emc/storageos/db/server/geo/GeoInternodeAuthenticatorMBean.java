@@ -17,28 +17,31 @@ package com.emc.storageos.db.server.geo;
 
 import java.util.List;
 
+/**
+ * The API for blacklist
+ */
 public interface GeoInternodeAuthenticatorMBean {
-     public static final String MBEAN_NAME = "com.emc.storageos.db.server.geo:type=GeoInternodeAuthenticator";
+    static final String MBEAN_NAME = "com.emc.storageos.db.server.geo:type=GeoInternodeAuthenticator";
 	
     /**
      * Add node IPs to blacklist
      * 
-     * @param nodeList
+     * @param newBlacklist
      */
-     public void addToBlacklist(List<String> newBlacklist); 
+    void addToBlacklist(List<String> newBlacklist); 
 	
     /**
      * Remove give list of node IP from blacklist
      * 
      * @param nodeList
      */
-     public void removeFromBlacklist(List<String> nodeList);
+    void removeFromBlacklist(List<String> nodeList);
      
      /**
       * Get list of node IP in blacklist
       * 
       * @return
       */
-     public List<String> getBlacklist(); 
+    List<String> getBlacklist(); 
 
 }

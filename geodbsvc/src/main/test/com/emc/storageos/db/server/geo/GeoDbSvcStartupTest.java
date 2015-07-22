@@ -63,9 +63,9 @@ public class GeoDbSvcStartupTest {
     private static int RPC_PORT = 9260; // Thrift rpc port defined in
                                         // geodbtest-conf.yaml
 
-    static DbSvcRunner runner;
+    static volatile DbSvcRunner runner;
     
-    static DbClientImpl dbClient;
+    static volatile DbClientImpl dbClient;
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -151,7 +151,9 @@ public class GeoDbSvcStartupTest {
             if (!isRootTenantExists) {
                 try {
                     Thread.sleep(2000);
-                } catch (InterruptedException ex) {}
+                } catch (InterruptedException ex) {
+                	//Ignore this exception
+                }
 
             }
         } while (!isRootTenantExists && retryCount < 30);

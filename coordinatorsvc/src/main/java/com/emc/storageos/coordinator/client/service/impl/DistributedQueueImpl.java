@@ -102,7 +102,6 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                                and find a proper way instead of retrying during quick session reconnection. */
                             String lockPath = ZKPaths.makePath(_lockPath, lock);
                             _log.debug("Leave alone lock {} during quick session reconnection",lockPath);
-                            //client.delete().guaranteed().inBackground().forPath(lockPath);
                         }
                         
                         // needs to wake up consumer thread and rearm
@@ -145,7 +144,8 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
      * Wakes up main dispatch loop
      */
     private synchronized void notifyPendingChange() {
-        notifyAll();
+        // This is not a naked notify, we do status mutation outside this method, safe to suppress
+        notifyAll(); //NOSONAR("findbugs:NN_NAKED_NOTIFY")
     }
 
     /**
@@ -297,7 +297,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                         _log.info("Processing queue {} - #items: {}, #locks: {}",
                                 new Object[] {_name, children.size(), locks.size()});
                         children.removeAll(locks);
-                        if (children.size() == 0) {
+                        if (children.isEmpty()) {
                             wait();
                             needRescan = true;
                         } else if (_consumer.isBusy(_queueName)) {
@@ -312,7 +312,7 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
                         }
                     } while (needRescan);
                 }
-                if (children.size() > 0) {
+                if (!children.isEmpty()) {
                     // Note: multiple zkClients might see the same child at the same time,
                     // if one processChildren finish(deleted both queue item and lock) quickly,
                     // the other zkClients still be able to create lock but failed while handling 

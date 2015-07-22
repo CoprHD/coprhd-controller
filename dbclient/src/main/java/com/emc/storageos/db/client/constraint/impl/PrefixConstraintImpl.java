@@ -16,8 +16,6 @@
 package com.emc.storageos.db.client.constraint.impl;
 
 import java.net.URI;
-
-import com.netflix.astyanax.util.TimeUUIDUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -155,6 +155,21 @@ public class ReplicationUtils {
     }
     
     /**
+     * Refresh the given storagesystem.
+     * @param dbClient
+     * @param helper
+     * @param storage
+     */
+    public static void callEMCRefresh(SmisCommandHelper helper, StorageSystem storage) {
+        try {
+            _log.info("Refreshing storagesystem: {}", storage.getId());
+            helper.callRefreshSystem(storage, null);
+        } catch (Exception e) {
+            _log.error("Exception callEMCRefresh", e);
+        }
+    }
+    
+    /**
      * Gets the default ReplicationSettingData object from the system and updates
      * the ConsistentPointInTime property to true.
      *
@@ -170,10 +185,10 @@ public class ReplicationUtils {
 
         builder.addConsistentPointInTime();
         
-        // For 4.6 provider, we are creating target devices and target group before 
+        // For 4.6 providers and VMAX3 arrays, we are creating target devices and target group before 
         // calling 'CreateGroupReplica'. We need to create new target devices while
         // creating group replica only for 8.0 provider.
-        if (storage.getUsingSmis80()) {
+        if (storage.getUsingSmis80() && !storage.checkIfVmax3()) {
         	builder.addCreateNewTarget();
         }
         

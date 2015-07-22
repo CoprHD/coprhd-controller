@@ -352,6 +352,7 @@ public class ShellCommandExecutor implements CommandExecutor {
             }
         }
         catch (RuntimeException e) {
+        	LOG.error(e.getMessage(), e);
         }
         finally {
             shell = null;
@@ -363,6 +364,7 @@ public class ShellCommandExecutor implements CommandExecutor {
             }
         }
         catch (RuntimeException e) {
+        	LOG.error(e.getMessage(), e);
         }
         finally {
             session = null;

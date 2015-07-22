@@ -119,7 +119,7 @@ public class XIVStoragePortProcessor extends StorageProcessor {
                                 false, IP, device);
                         checkProtocolAlreadyExists(protocols, ISCSI);                        
                         keyMap.put(portInstance.getObjectPath().toString(), port);
-                        addPath(keyMap, operation.get_result(),
+                        addPath(keyMap, operation.getResult(),
                                 portInstance.getObjectPath());
                     } else {
                         _logger.debug("Unsupported Port : {}",

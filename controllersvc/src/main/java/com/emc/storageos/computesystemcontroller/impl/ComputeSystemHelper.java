@@ -136,7 +136,7 @@ public class ComputeSystemHelper {
                 Host.class, "label", "vcenterDataCenter");
         Set<URI> doNotDeleteclusters = new HashSet<URI>();
         for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
-            Host host = dbClient.queryObject(Host.class, hostUri.id);
+            Host host = dbClient.queryObject(Host.class, hostUri.getId());
             if (host != null && !host.getInactive()) {
                 if (NullColumnValueGetter.isNullURI(host.getComputeElement())) {
                     doDeactivateHost(dbClient, host);
@@ -154,7 +154,7 @@ public class ComputeSystemHelper {
         List<NamedElementQueryResultList.NamedElement> clustersUris = listChildren(dbClient, dataCenter.getId(),
                 Cluster.class, "label", "vcenterDataCenter");
         for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
-            Cluster cluster = dbClient.queryObject(Cluster.class, clusterUri.id);
+            Cluster cluster = dbClient.queryObject(Cluster.class, clusterUri.getId());
             if (cluster != null && !cluster.getInactive()) {
                 if (doNotDeleteclusters.contains(cluster.getId())) {
                     // do not delete clusters if hosts are not deleted, simply break DC link
@@ -198,7 +198,7 @@ public class ComputeSystemHelper {
         List<NamedElementQueryResultList.NamedElement> hostUris = listChildren(dbClient, cluster.getId(), 
                 Host.class, "label", "cluster");
         for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
-            Host host = dbClient.queryObject(Host.class, hostUri.id);
+            Host host = dbClient.queryObject(Host.class, hostUri.getId());
             if (host != null && !host.getInactive()) {
                 removeClusterFromHost(dbClient, host);
             }
@@ -255,7 +255,7 @@ public class ComputeSystemHelper {
             return true;
         }
 
-        return findExportsByHost(dbClient, hostId.toString()).size() > 0;
+        return !findExportsByHost(dbClient, hostId.toString()).isEmpty();
 	}
 
     /**
@@ -269,7 +269,7 @@ public class ComputeSystemHelper {
         		dbClient, ExportGroup.class, 
                 AlternateIdConstraint.Factory.getConstraint(
                         ExportGroup.class, "clusters", cluster.toString()));
-        return exportGroups.size() > 0;
+        return !exportGroups.isEmpty();
     }
 
     /**
@@ -282,7 +282,7 @@ public class ComputeSystemHelper {
                 dbClient, ExportGroup.class, 
                 AlternateIdConstraint.Factory.getConstraint(
                         ExportGroup.class, "initiators", iniId));
-        return exportGroups.size() > 0;
+        return !exportGroups.isEmpty();
     }
     
     /**
@@ -295,7 +295,7 @@ public class ComputeSystemHelper {
         List<NamedElementQueryResultList.NamedElement> datacenterUris = listChildren(dbClient, vcenterURI,
                 VcenterDataCenter.class, "label", "vcenter");
         for (NamedElementQueryResultList.NamedElement datacenterUri : datacenterUris) {
-            if (isDataCenterInUse(dbClient, datacenterUri.id)) {
+            if (isDataCenterInUse(dbClient, datacenterUri.getId())) {
             	return true;
             }
         }
@@ -314,7 +314,7 @@ public class ComputeSystemHelper {
         	List<NamedElementQueryResultList.NamedElement> hostUris = listChildren(dbClient, dataCenter.getId(),
                     Host.class, "label", "vcenterDataCenter");
             for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
-                Host host = dbClient.queryObject(Host.class, hostUri.id);
+                Host host = dbClient.queryObject(Host.class, hostUri.getId());
                 // ignore provisioned hosts
                 if (host != null && !host.getInactive() && NullColumnValueGetter.isNullURI(host.getComputeElement())
                         && isHostInUse(dbClient, host.getId())) {
@@ -324,8 +324,8 @@ public class ComputeSystemHelper {
             List<NamedElementQueryResultList.NamedElement> clustersUris = listChildren(dbClient, dataCenter.getId(),
                     Cluster.class, "label", "vcenterDataCenter");
             for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
-                Cluster cluster = dbClient.queryObject(Cluster.class, clusterUri.id);
-                if (cluster != null && !cluster.getInactive() && isClusterInExport(dbClient, clusterUri.id)) {
+                Cluster cluster = dbClient.queryObject(Cluster.class, clusterUri.getId());
+                if (cluster != null && !cluster.getInactive() && isClusterInExport(dbClient, clusterUri.getId())) {
                 	return true;
                 }
             }
@@ -500,7 +500,7 @@ public class ComputeSystemHelper {
         List<URI> out = Lists.newArrayList();
         if (namedElements != null) {
             for (NamedElement namedElement : namedElements) {
-                out.add(namedElement.id);
+                out.add(namedElement.getId());
             }
         }
         return out;

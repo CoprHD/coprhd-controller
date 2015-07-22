@@ -111,6 +111,8 @@ public enum ResourceOperationTypeEnum {
     UNEXPORT_FILE_SNAPSHOT     ("UNEXPORT FILESYSTEM SNAPSHOT", "unexport fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE ("DELETE FILESHARE SNAPSHOT",    "delete fileshare snapshot"),
     RESTORE_FILE_SNAPSHOT      ("RESTORE FILE SNAPSHOT",        "restore fileshare snapshot"),
+    WORKFLOW_RESUME ("WORKFLOW_RESUME", "Resume a workflow from suspended state"),
+    WORKFLOW_ROLLBACK ("WORKFLOW_ROLLBACK", "Rollback a workflow"),
     CREATE_KEYPOOL             ("CREATE KEYPOOL",     "create keypool operation"),
     DELETE_KEYPOOL             ("DELETE KEYPOOL",     "delete keypool operation"),
     UPDATE_KEYPOOL_ACCESSMODE  ("UPDATE KEYPOOL",     "update keypool operation"),

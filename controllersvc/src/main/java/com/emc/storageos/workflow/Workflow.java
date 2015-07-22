@@ -52,7 +52,10 @@ public class Workflow implements Serializable {
     TaskCompleter _taskCompleter;   // task completer to be called at end of workflow
     Boolean _nested = false;   // this workflow is nested, run from within another workflow
     URI _workflowURI;            // URI for Cassandra logging record
+    Boolean _suspendOnError = true;  // suspend on error (rather than rollback)
+    private WorkflowState _workflowState;
     Set<URI> _childWorkflows = new HashSet<URI>();	// workflowURI of child workflows
+    URI _suspendStep;            // Step to initiate workflow suspend
 
     // Define the serializable, persistent fields save in ZK
     private static final ObjectStreamField[] serialPersistentFields = {
@@ -73,6 +76,9 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_nested", Boolean.class),
             new ObjectStreamField("_stepMap",  Map.class),
             new ObjectStreamField("_stepStatusMap",  Map.class),
+            new ObjectStreamField("_suspendOnError", Boolean.class), 
+            new ObjectStreamField("_workflowState", WorkflowState.class), 
+            new ObjectStreamField("_suspendStep", URI.class)
     };
 
     private static final Logger _log = LoggerFactory.getLogger(Workflow.class);
@@ -107,6 +113,7 @@ public class Workflow implements Serializable {
         public StepStatus status;
         /** URI of Cassandra logging record. */
         URI workflowStepURI;
+        public boolean isRollbackStep = false;
         
         /**
          * Created COP-37 to track hashCode() implemenatation in this class.
@@ -133,6 +140,7 @@ public class Workflow implements Serializable {
             Step rb = new Step();
             rb.stepId = UUID.randomUUID().toString() + UUID.randomUUID().toString();
             rb.description = "Rollback " + this.description;
+            rb.isRollbackStep = true;
             rb.waitFor = null;
             rb.deviceURI = this.deviceURI;
             rb.deviceType = this.deviceType;
@@ -313,7 +321,7 @@ public class Workflow implements Serializable {
         _orchControllerName = orchControllerName;
         _orchMethod = methodName;
         _orchTaskId = taskId;
-        _workflowURI = workflowURI;
+        _workflowState = WorkflowState.CREATED;
     }
 
     /**
@@ -597,6 +605,22 @@ public class Workflow implements Serializable {
         }
         return map;
     }
+    
+    /**
+     * Gets the overall Workflow State based on the underlying step states.
+     * @return WorkflowState
+     */
+    public WorkflowState getWorkflowStateFromSteps() {
+    	String[] errorMessage = new String[1];
+    	StepState stepState = getOverallState(getStepStatusMap(), errorMessage);
+    	switch(stepState) {
+    	case SUCCESS: return WorkflowState.SUCCESS;
+    	case ERROR: return WorkflowState.ERROR;
+    	case CANCELLED: return WorkflowState.SUSPENDED_NO_ERROR;
+    	default:
+    		return getWorkflowState();
+    	}
+    }
 
     /**
      * Given a group of steps, determines an overall state. The precedence is:
@@ -743,6 +767,30 @@ public class Workflow implements Serializable {
 
     public void setService(WorkflowService _service) {
         this._service = _service;
+    }
+
+	public boolean isSuspendOnError() {
+		return _suspendOnError;
+	}
+
+	public void setSuspendOnError(boolean suspendOnError) {
+		this._suspendOnError = suspendOnError;
+	}
+
+	public WorkflowState getWorkflowState() {
+		return _workflowState;
+	}
+
+	public void setWorkflowState(WorkflowState workflowState) {
+		this._workflowState = workflowState;
+	}
+
+    public URI getSuspendStep() {
+        return _suspendStep;
+    }
+
+    public void setSuspendStep(URI suspendStep) {
+        this._suspendStep = suspendStep;
     }
 
 }

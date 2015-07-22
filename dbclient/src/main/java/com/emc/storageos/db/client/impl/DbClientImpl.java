@@ -1593,6 +1593,22 @@ public class DbClientImpl implements DbClient {
         updateOperation.setProgress(COMPLETED_PROGRESS);
         return updateTaskStatus(clazz, id, opId, updateOperation);
     }
+    
+    @Override
+    public Operation suspended(Class<? extends DataObject> clazz, URI id,
+    		String opId, String message) throws DatabaseException {
+    	Operation updateOperation = new Operation();
+    	updateOperation.suspended(message);
+    	return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
+    
+    @Override
+    public Operation suspended(Class<? extends DataObject> clazz, URI id,
+    		String opId) throws DatabaseException {
+    	Operation updateOperation = new Operation();
+    	updateOperation.suspended();
+    	return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
 
     @Override
     public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) {
@@ -1810,4 +1826,6 @@ public class DbClientImpl implements DbClient {
 		String fieldVersion = property.getReadMethod().getAnnotation(AllowedGeoVersion.class).version();
 		return VdcUtil.VdcVersionComparator.compare(fieldVersion, clazzVersion)>0? fieldVersion : clazzVersion;
 	}
+
+    
 }

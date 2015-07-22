@@ -2265,8 +2265,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_change_interval" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Change interval" />
-		<property name="description" value="Amount of time (in minutes) that a password must be in use before it can be changed.(valid value range is [0-1440], 0 allows changes immediately.)" />
+		<property name="label" value="Change Interval" />
+		<property name="description" value="Amount of time (in minutes) that a local user password must be in use before it can be changed.(valid value range is [0-1440], 0 allows changes immediately.)" />
 		<property name="type" value="uint16" />
 		<property name="tag" value="Controller" />
 		<property name="hidden" value="false" />
@@ -2279,7 +2279,7 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_min_length" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Minimum length" />
+		<property name="label" value="Minimum Length" />
 		<property name="description" value="Minimum number of characters that a local user password must contain. (0 means no minimum number is required.)" />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="0,6,7,8,9,10,11,12,13,14" />
@@ -2294,8 +2294,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_lowercase_alphabet" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Lowercase characters" />
-		<property name="description" value="Minimum number of lowercase alphabetic characters" />
+		<property name="label" value="Lowercase Character Number" />
+		<property name="description" value="Minimum number of lowercase alphabetic characters that a local user password must contain. (0 means no minimum number is required.)" />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Controller" />
@@ -2309,8 +2309,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_uppercase_alphabet" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Uppercase characters" />
-		<property name="description" value="Minimum number of uppercase alphabetic characters" />
+		<property name="label" value="Uppercase Character Number" />
+		<property name="description" value="Minimum number of uppercase alphabetic characters that a local user password must contain. (0 means no minimum number is required.)" />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Controller" />
@@ -2324,8 +2324,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_numeric_character" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Numeric characters" />
-		<property name="description" value="Minimum number of numeric characters" />
+		<property name="label" value="Numeric Character Number" />
+		<property name="description" value="Minimum number of numeric characters that a local user password must contain. (0 means no minimum number is required.)" />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Controller" />
@@ -2339,8 +2339,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_special_character" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Special characters" />
-		<property name="description" value="Minimum number of special characters" />
+		<property name="label" value="Special Character Number" />
+		<property name="description" value="Minimum number of special characters that a local user password must contain. (0 means no minimum number is required.)" />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Controller" />
@@ -2354,8 +2354,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_repeating_character" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Repeating characters" />
-		<property name="description" value="Maximum number of consecutive repeating characters" />
+		<property name="label" value="Repeating Character Number" />
+		<property name="description" value="Maximum number of consecutive repeating characters that a local user password can contain. (0 means disable repeating characters check)" />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Controller" />
@@ -2369,8 +2369,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_changed_character" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Characters to be changed" />
-		<property name="description" value="Minimum number of characters that  must be changed in a password." />
+		<property name="label" value="Characters Need Be Changed" />
+		<property name="description" value="Minimum number of characters that must be changed in local user password." />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="1,2,3,4" />
 		<property name="tag" value="Controller" />
@@ -2383,24 +2383,9 @@
 		<property name="value" value="2" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
-	<bean id="password_dictionary_rule" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Dictionary rule" />
-		<property name="description" value="Prevent the use of dictionary words (no to disable)" />
-		<property name="type" value="string" />
-		<property name="allowedValues" value="yes,no" />
-		<property name="tag" value="Controller" />
-		<property name="hidden" value="false" />
-		<property name="advanced" value="false" />
-		<property name="userMutable" value="false" />
-		<property name="userConfigurable" value="true" />
-		<property name="reconfigRequired" value="false" />
-		<property name="rebootRequired" value="false" />
-		<property name="value" value="no" />
-		<property name="controlNodeOnly" value="true" />
-	</bean>
 	<bean id="password_history_rule" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="History Rule" />
-		<property name="description" value="Number of unique passwords required before an old password can be reused.(0 means a password can be reused immediately.)" />
+		<property name="description" value="Number of unique passwords required before an old local user password can be reused.(0 means a password can be reused immediately.)" />
 		<property name="type" value="uint8" />
 		<property name="allowedValues" value="0,3,4,5" />
 		<property name="tag" value="Controller" />
@@ -2414,8 +2399,8 @@
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="password_expire_days" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Expire time" />
-		<property name="description" value="Number of days that a password can be in use before ViPR requires a password change.(valid value range is [14-365], 0 means the password will never expire.). WARNING:  Be sure to configure root and svcuser email before enabling Expire Time." />
+		<property name="label" value="Expire Time" />
+		<property name="description" value="Number of days that a local user password can be in use before ViPR requires a password change.(valid value range is [14-365], 0 means the password will never expire.). WARNING:  Be sure to configure root and svcuser email before enabling Expire Time." />
 		<property name="type" value="uint16" />
 		<property name="tag" value="Controller" />
 		<property name="hidden" value="false" />
@@ -2426,6 +2411,20 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="0" />
 		<property name="controlNodeOnly" value="true" />
+	</bean>
+	<bean id="workflow_suspend_on_error" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Suspend on workflow ERROR" />
+		<property name="description" value="Suspend on an ERROR in a workflow or task instead of rollback by default" />
+		<property name="type" value="boolean" />
+		<property name="tag" value="Controller" />
+		<property name="hidden" value="false" />
+		<property name="advanced" value="false" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="true" />
+		<property name="controlNodeOnly" value="false" />
 	</bean>
 	<bean id="compute_vmware_esx_version" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="VMware ESX Version" />
@@ -2616,9 +2615,9 @@
 				<entry key="password_special_character" value-ref="password_special_character" />
 				<entry key="password_repeating_character" value-ref="password_repeating_character" />
 				<entry key="password_changed_character" value-ref="password_changed_character" />
-				<entry key="password_dictionary_rule" value-ref="password_dictionary_rule" />
 				<entry key="password_history_rule" value-ref="password_history_rule" />
 				<entry key="password_expire_days" value-ref="password_expire_days" />
+				<entry key="workflow_suspend_on_error" value-ref="workflow_suspend_on_error" />
 				<entry key="compute_vmware_esx_version" value-ref="compute_vmware_esx_version" />
 			</map>
 		</property>

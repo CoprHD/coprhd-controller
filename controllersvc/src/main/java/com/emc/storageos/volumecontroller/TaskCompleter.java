@@ -154,12 +154,16 @@ public abstract class TaskCompleter implements Serializable {
      * @param message String message from controller
      * @throws DeviceControllerException
      */
-    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException{
+    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
         complete(dbClient, Status.error, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
     }
 
     public void error(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException{
         complete(dbClient, locker, Status.error, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
+    }
+    
+    public void suspended(DbClient dbClient, ControllerLockingService locker, ServiceCoded serviceCoded) throws DeviceControllerException {
+        complete(dbClient, locker, Status.suspended, serviceCoded!=null?serviceCoded:DeviceControllerException.errors.unforeseen());
     }
 
     public void statusReady(DbClient dbClient) throws DeviceControllerException {
@@ -196,6 +200,14 @@ public abstract class TaskCompleter implements Serializable {
                         dbClient.ready(_clazz, id, _opId);
                     else
                         dbClient.ready(_clazz, id, _opId, message);
+                }
+                break;
+            case suspended:
+                for (URI id : _ids) {
+                    if(message == null)
+                        dbClient.suspended(_clazz, id, _opId);
+                    else
+                        dbClient.suspended(_clazz, id, _opId, message);
                 }
                 break;
             default:
@@ -265,6 +277,7 @@ public abstract class TaskCompleter implements Serializable {
     protected void updateWorkflowStatus(Operation.Status status, ServiceCoded coded)
             throws WorkflowException {
         switch (status) {
+        case suspended:
         case error:
             WorkflowStepCompleter.stepFailed(getOpId(), coded);
             break;

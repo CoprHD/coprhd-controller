@@ -72,6 +72,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotBulkRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
@@ -137,6 +138,7 @@ public class BlockSnapshotService extends TaskResourceService {
      * @prereq
      * 
      * @param id
+     * @param param
      * 
      * @return
      */
@@ -145,7 +147,7 @@ public class BlockSnapshotService extends TaskResourceService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/{id}/protection/snapshot-sessions")
     @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public TaskList createSnapshotSession(@PathParam("id") URI id) {
+    public TaskList createSnapshotSession(@PathParam("id") URI id, SnapshotSessionCreateParam param) {
         return null;
     }
 

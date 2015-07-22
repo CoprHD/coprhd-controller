@@ -78,7 +78,8 @@ public enum ResourceTypeEnum {
     CUSTOM_CONFIG     ("controller_config", "/config/controller"),
     CONFIG_TYPE   ("config_type", "/config/controller/types"),
     SYS_EVENT   ("sysevent", ""),
-    USER_GROUP("user_group", "/vdc/admin/user-groups");
+    USER_GROUP("user_group", "/vdc/admin/user-groups"),
+    BLOCK_SNAPSHOT_SESSION    ("block_snapshot_session","/block/snapshot-sessions");
 
     private final String type;
     private final String service;

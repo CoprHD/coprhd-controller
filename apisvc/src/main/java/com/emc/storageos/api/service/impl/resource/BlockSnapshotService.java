@@ -130,6 +130,26 @@ public class BlockSnapshotService extends TaskResourceService {
     }
 
     /**
+     * 
+     * 
+     * @brief
+     * 
+     * @prereq
+     * 
+     * @param id
+     * 
+     * @return
+     */
+    @POST
+    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    public TaskList createSnapshotSession(@PathParam("id") URI id) {
+        return null;
+    }
+
+    /**
      * Get snapshot details
      *     
      * @prereq none

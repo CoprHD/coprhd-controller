@@ -1523,4 +1523,32 @@ public class VPlexApiClient {
             }
         }
     }
+    
+    
+    
+    
+    
+    
+    
+    public Map<String, String> getStorageVolumeInfoForDevice(String deviceName, String locality) throws VPlexApiException {
+        
+        if (null == deviceName || null == locality) {
+            String reason = "deviceName was " + deviceName + " and locality was " + locality;
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
+        }
+        
+        s_logger
+        .info("Request to find storage volume wwns for {} on VPLEX at {}",
+                deviceName, _baseURI);
+        
+        List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
+                .getStorageVolumesForDevice(deviceName, locality);
+        
+        Map<String, String> storageVolumeInfo = new HashMap<String, String>();
+        for (VPlexStorageVolumeInfo info : storageVolumes) {
+            storageVolumeInfo.put(info.getName(), info.getWwn());
+        }
+        
+        return storageVolumeInfo;
+    }
 }

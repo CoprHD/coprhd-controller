@@ -16,6 +16,7 @@ package com.emc.storageos.vplex.api;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -3194,4 +3195,81 @@ public class VPlexApiDiscoveryManager {
             }
         }
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(String deviceName, String locality) {
+        
+        long timer = new Date().getTime();
+        s_logger.info("Getting backend storage volume wwn info for {} volume {} from VPLEX at " 
+                    + _vplexApiClient.getBaseURI().toString(), locality, deviceName);
+        
+        StringBuilder uriBuilder = new StringBuilder();
+        if (VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equals(locality)) {
+            // format /vplex/clusters/*/devices
+            //        /DEVICE_NAME/components/*/components/*
+            uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            uriBuilder.append(VPlexApiConstants.URI_DEVICES.toString());
+            uriBuilder.append(deviceName);
+            uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+        } else if (VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME.equals(locality)) {
+            // format /vplex/distributed-storage/distributed-devices
+            //        /DEVICE_NAME/distributed-device-components/*/components/*/components/*
+            uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
+            uriBuilder.append(deviceName);
+            uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
+            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+        } else {
+            String reason = "invalid VPLEX locality for device " + deviceName + ": " + locality;
+            s_logger.error(reason);
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
+        }
+        
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
+        s_logger.info("Storage Volume Request URI is {}", requestURI.toString());
+        
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        String responseStr = response.getEntity(String.class);
+        int status = response.getStatus();
+        response.close();
+        
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(String.valueOf(status));
+        }
+
+        // Successful Response
+        List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
+        try {
+            storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexStorageVolumeInfo.class);
+        } catch (Exception e) {
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
+        }
+
+        s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
+        for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
+            s_logger.info("   name: {} wwn: {}", info.getName(), info.getWwn()); 
+        }
+        s_logger.info("fetching storage volume info took {}ms", new Date().getTime() - timer);
+        
+        return storageVolumeInfoList;
+    }
+
 }

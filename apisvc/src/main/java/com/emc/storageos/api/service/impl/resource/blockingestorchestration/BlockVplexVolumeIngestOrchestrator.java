@@ -100,13 +100,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         List<URI> associatedVolumes = new ArrayList<URI>();
         
         for (Entry<String, String> entry : backendVolumeMap.entrySet()) {
-            _logger.info("attempting to find unamanaged backend volume {} with wwn {}", 
+            _logger.info("attempting to find unmanaged backend volume {} with wwn {}", 
                     entry.getKey(), entry.getValue());
             
             String backendWwn = entry.getValue();
             URIQueryResultList results = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.
-                    Factory.getUnmanagedVolumeWwnConstraint(backendWwn), results);
+                    Factory.getUnmanagedVolumeWwnConstraint(
+                            BlockObject.normalizeWWN(backendWwn)), results);
             if (results.iterator() != null) {
                 for (URI uri : results) {
                     associatedVolumes.add(uri);
@@ -114,7 +115,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
         
-        _logger.info("found {} associated volumes for device {}", associatedVolumes.size(), deviceName);
+        _logger.info("found {} associated UnManagedVolume objects for device {}", associatedVolumes.size(), deviceName);
         
         // TODO obviously remove this
         if (associatedVolumes.size() == 0 || associatedVolumes.size() == 1 || associatedVolumes.size() == 2) {

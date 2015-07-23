@@ -691,7 +691,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
             _log.info(String.format("Request to create: %s virtual volume(s) %s", volumeMap.size(), volumeLabels));
-            long startTime = new Date().getTime();
+            long startTime = System.currentTimeMillis();
             // Make a call to re-discover storage system for storageSystemGuids
             client.rediscoverStorageSystems(storageSystemGuids);
             
@@ -770,7 +770,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             	VPlexApiException ex = VPlexApiException.exceptions.cantFindAllRequestedVolume();
             	throw ex;
             }
-            long elapsed = new Date().getTime() - startTime;
+            long elapsed = System.currentTimeMillis() - startTime;
             _log.info(String.format("TIMER: %s virtual volume(s) %s create took %f seconds", volumeMap.size(), volumeLabels.toString(), (double) elapsed / (double) 1000));
             WorkflowStepCompleter.stepSucceded(stepId);         
         } catch (VPlexApiException vae) {

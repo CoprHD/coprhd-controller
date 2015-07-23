@@ -1044,7 +1044,7 @@ public class VPlexApiDiscoveryManager {
      */
     Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes(List<VPlexClusterInfo> clusterInfoList, 
             List<VPlexVirtualVolumeInfo> virtualVolumeInfos,
-            Boolean fetchAtts, boolean retry) throws VPlexApiException {
+            boolean fetchAtts, boolean retry) throws VPlexApiException {
 
         if (virtualVolumeInfos == null) {
             throw VPlexApiException.exceptions.cantFindRequestedVolumeNull();

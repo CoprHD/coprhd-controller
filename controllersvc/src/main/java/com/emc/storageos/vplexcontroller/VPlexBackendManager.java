@@ -227,7 +227,7 @@ public class VPlexBackendManager {
             throws ControllerException {
         _log.info(String.format("Searching for existing ExportMasks between Vplex %s (%s) and Array %s (%s) in Varray %s",
                 vplex.getLabel(), vplex.getNativeGuid(), array.getLabel(), array.getNativeGuid(), varrayURI));
-        long startTime = new Date().getTime();
+        long startTime = System.currentTimeMillis();
         // Build the data structures used for analysis and validation.
         buildDataStructures(vplex, array, varrayURI);
         
@@ -346,7 +346,7 @@ public class VPlexBackendManager {
             // Determine ExportGroup
             exportGroup[0] = getExportGroup(lowestCountMask, _idToInitiatorMap.values(), 
                     vplex, array, varrayURI);
-            long elapsed = new Date().getTime() - startTime;
+            long elapsed = System.currentTimeMillis() - startTime;
             _log.info(String.format("Returning ExportMask %s (%s) took %f seconds", lowestCountMask.getMaskName(), lowestCountMask.getId(), (double) elapsed / (double) 1000));
             return lowestCountMask;
         

@@ -798,6 +798,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         unManagedVolumeInformation.put(SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
                 provCapacity);
         
+        // set volume wwn
+        if (null != info.getWwn()) {
+            StringSet wwn = new StringSet();  
+            wwn.add(String.valueOf(info.getWwn()));
+            unManagedVolumeInformation.put(SupportedVolumeInformation.WWN.toString(), wwn);
+        }
+        
         // set vplex virtual volume properties
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString(), TRUE);
         StringSet locality = new StringSet();

@@ -78,14 +78,16 @@ public abstract class AbstractBlockSnapshotSessionApiImpl implements BlockSnapsh
     
     /**
      * {@inheritDoc}
-     * TBD Reconcile with implementation in AbstractBlockServiceApi.
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj,
         List<BlockObject> sourceObjList, String name, BlockFullCopyManager fcManager) {
+        List<Volume> sourceVolumeList = new ArrayList<Volume>();
         for (BlockObject sourceObj : sourceObjList) {
             URI sourceObjURI = sourceObj.getId();
             if (URIUtil.isType(sourceObjURI, Volume.class)) {
+                Volume sourceVolume = (Volume) sourceObj;
+                sourceVolumeList.add(sourceVolume);
                 VirtualPool vpool = BlockSnapshotSessionUtils.querySnapshotSessionSourceVPool(sourceObj, _dbClient);
                 // Verify that array snapshots are allowed.
                 int maxNumberOfArraySnapsForSource = vpool.getMaxNativeSnapshots();
@@ -93,12 +95,12 @@ public abstract class AbstractBlockSnapshotSessionApiImpl implements BlockSnapsh
                     throw APIException.badRequests.maxNativeSnapshotsIsZero(vpool.getLabel());
                 // Verify the number of array snapshots does not exceed
                 // the limit for the platform.
-                if (getNumNativeSnapshots((Volume)sourceObj) >= vpool.getMaxNativeSnapshots()){
+                if (getNumNativeSnapshots(sourceVolume) >= vpool.getMaxNativeSnapshots()){
                     throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
                 }
                 
                 // Check for duplicate name.
-                checkForDuplicatSnapshotName(name, (Volume)sourceObj);
+                checkForDuplicatSnapshotName(name, sourceVolume);
             } else {
                 // TBD 
                 // What about when the source is a BlockSnapshot. It has no vpool
@@ -107,8 +109,17 @@ public abstract class AbstractBlockSnapshotSessionApiImpl implements BlockSnapsh
                 // cumulative and count against the max for the source.
             }    
         }
+        
+        // Some systems (vmax3) don't support array snapshots when there are active full
+        // copies sessions on the source.
+        // TBD What about snaps? I believe you can create a full copy from a BlockSnapshot.
+        // That would mean a snap could have an active full copy session and then the 
+        // user tries to create a snap of a snap.
+        URI requestSourceObjURI = requestedSourceObj.getId();
+        if (URIUtil.isType(requestSourceObjURI, Volume.class)) {
+            fcManager.validateSnapshotCreateRequest((Volume)requestedSourceObj, sourceVolumeList);
+        }
     }
-
     
     /**
      * {@inheritDoc}

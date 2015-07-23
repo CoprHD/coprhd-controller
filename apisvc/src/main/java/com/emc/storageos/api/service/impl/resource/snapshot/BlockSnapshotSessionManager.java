@@ -116,9 +116,17 @@ public class BlockSnapshotSessionManager {
      */
     private void createPlatformSpecificImpls(CoordinatorClient coordinator) {
         _snapshotSessionImpls.put(SnapshotSessionImpl.dflt.name(), new DefaultBlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.vmax.name(), new VMAXBlockSnapshotSessionApiImpl(_dbClient, coordinator));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vmax3.name(), new VMAX3BlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.vnx.name(), new VNXBlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.vnxe.name(), new VNXEBlockSnapshotSessionApiImpl(_dbClient, coordinator));
         _snapshotSessionImpls.put(SnapshotSessionImpl.hds.name(), new HDSBlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.openstack.name(), new OpenstackBlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.scaleio.name(), new ScaleIOBlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.xtremio.name(), new XtremIOBlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.xiv.name(), new XIVBlockSnapshotSessionApiImpl(_dbClient, coordinator));
         _snapshotSessionImpls.put(SnapshotSessionImpl.vplex.name(), new VPlexBlockSnapshotSessionApiImpl(_dbClient, coordinator));
+        _snapshotSessionImpls.put(SnapshotSessionImpl.rp.name(), new RPBlockSnapshotSessionApiImpl(_dbClient, coordinator));
     }
     
     /**
@@ -212,13 +220,10 @@ public class BlockSnapshotSessionManager {
         Project project, String name, boolean createInactive, int newTargetsCount, String newTargetCopyMode, Map<URI, String> existingTargetsMap,
         BlockSnapshotSessionApi snapSessionApiImpl, BlockFullCopyManager fcManager) {
         
-        // hds exported
-            // abstract impl
-                // vmax specific check for meta source object in CG for 4.x provider
-                // calls full copy manager to validate full copy issues.
-            // rp
-            // rpvplex - same as rp.
-        
+        // TBD RP and RP + VPLEX
+        // TBD Can be supported for other platform iff request specifies exactly one new target. 
+        // How does copy mode apply in this case.
+        // Maybe redirect to create snapshot API.       
         
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());

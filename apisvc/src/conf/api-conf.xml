@@ -268,15 +268,6 @@
          <property name="coordinator" ref="coordinator"/>
          <property name="blockScheduler" ref="srdfscheduler"/>
     </bean>
-    
-    <bean id="rpVPlexBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.RPVPlexBlockServiceApiImpl">
-         <property name="dbClient" ref="dbclient"/>
-         <property name="coordinator" ref="coordinator"/>
-         <property name="blockScheduler" ref="rpvplexscheduler"/>
-         <property name="rpHelper" ref="rphelper"/>
-         <property name ="vplexBlockServiceApiImpl" ref="vplexBlockServiceApiImpl"/>
-         <property name ="rpBlockServiceApiImpl" ref="rpBlockServiceApiImpl"/>
-    </bean>
 
     <bean id="vplexBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
@@ -352,7 +343,6 @@
            <entry key="vplex" value-ref="vplexBlockServiceApiImpl"/>
            <entry key="mirror" value-ref="blockMirrorServiceApiImpl" />
            <entry key="group" value-ref="defaultBlockServiceApiImpl" />
-           <entry key="rpvplex" value-ref="rpVPlexBlockServiceApiImpl" />
        </map>
        </property>
     </bean>

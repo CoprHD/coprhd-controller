@@ -160,10 +160,12 @@ public class RecoverPointScheduler implements Scheduler {
 	}
     
     /**
-     * @author sreekb
-     *
+     * This is a class used to reference the correct source and HA
+     * varrays and vpools if a swap is used on the RP+VPLEX vpool
+     * 
+     * @author hugheb2
      */
-    public class RPVPlexVarrayVpool {
+    public class SwapContainer {
         private VirtualArray srcVarray = null;
         private VirtualPool srcVpool = null;
         private VirtualArray haVarray = null;
@@ -255,7 +257,7 @@ public class RecoverPointScheduler implements Scheduler {
         // to hold at least one resource of the requested size.
         VirtualArray haVarray = null;
         VirtualPool haVpool = null; 
-        RPVPlexVarrayVpool container = null; 
+        SwapContainer container = null; 
         if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)){
         	container = swapSrcAndHAIfNeeded(varray, vpool);
         	varray = container.getSrcVarray();
@@ -466,12 +468,12 @@ public class RecoverPointScheduler implements Scheduler {
      * @param srcVpool Original src vpool
      * @return RPVPlexVarryVpool which contains references to the src varray, src vpool, ha varray, ha vpool
      */
-    private RPVPlexVarrayVpool swapSrcAndHAIfNeeded(VirtualArray srcVarray,
+    private SwapContainer swapSrcAndHAIfNeeded(VirtualArray srcVarray,
             VirtualPool srcVpool) {
         VirtualArray haVarray = null;
         VirtualPool haVpool = null;
         
-        RPVPlexVarrayVpool container = new RPVPlexVarrayVpool();        
+        SwapContainer container = new SwapContainer();        
         container.setSrcVarray(srcVarray);
         container.setSrcVpool(srcVpool);            
         container.setHaVarray(haVarray);
@@ -851,7 +853,7 @@ public class RecoverPointScheduler implements Scheduler {
        VirtualArray varray = dbClient.queryObject(VirtualArray.class, changeVpoolVolume.getVirtualArray());
 
        // Swap src and ha if the flag has been set on the vpool
-       RPVPlexVarrayVpool container = this.swapSrcAndHAIfNeeded(varray, newVpool);
+       SwapContainer container = this.swapSrcAndHAIfNeeded(varray, newVpool);
                
        CapacityMatcher capacityMatcher = new CapacityMatcher();
        Project project = dbClient.queryObject(Project.class, changeVpoolVolume.getProject());        
@@ -1115,7 +1117,7 @@ public class RecoverPointScheduler implements Scheduler {
     * @param haVpool
     * @param dbClient
     */
-   public static RPVPlexVarrayVpool setActiveProtectionAtHAVarray(RPVPlexVarrayVpool varrayVpool, DbClient dbClient) {                
+   public static SwapContainer setActiveProtectionAtHAVarray(SwapContainer varrayVpool, DbClient dbClient) {                
        // Refresh vpools in case previous activities have changed their temporal representation.
        VirtualArray srcVarray = varrayVpool.getSrcVarray();
        VirtualPool srcVpool = dbClient.queryObject(VirtualPool.class, varrayVpool.getSrcVpool().getId());
@@ -1226,7 +1228,7 @@ public class RecoverPointScheduler implements Scheduler {
        VirtualArray varray = dbClient.queryObject(VirtualArray.class, volume.getVirtualArray());
 
        // Swap src and ha if the flag has been set on the vpool
-       RPVPlexVarrayVpool container = this.swapSrcAndHAIfNeeded(varray, newVpool);
+       SwapContainer container = this.swapSrcAndHAIfNeeded(varray, newVpool);
                
        CapacityMatcher capacityMatcher = new CapacityMatcher();
        Project project = dbClient.queryObject(Project.class, volume.getProject());        

@@ -99,65 +99,65 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     private static final Logger _log = LoggerFactory.getLogger(RPVPlexBlockServiceApiImpl.class);
     public RPVPlexBlockServiceApiImpl() { super(DiscoveredDataObject.Type.rpvplex.name()); }
 
-    protected final static String CONTROLLER_SVC = "controllersvc";
-    protected final static String CONTROLLER_SVC_VER = "1";
+//    protected final static String CONTROLLER_SVC = "controllersvc";
+//    protected final static String CONTROLLER_SVC_VER = "1";
+//    
+//    private static final String VIRTUAL_ARRAYS_CONSTRAINT = "virtualArrays";
+//    private static final String UNKNOWN_VOL_TYPE = "unknown";
+//
+//    private static final String SRC_COPY_SUFFIX = " - Original Production";
+//    private static final String MP_ACTIVE_COPY_SUFFIX = " - Active Production";
+//    private static final String MP_STANDBY_COPY_SUFFIX  = " - Standby Production";
+//    
+//    private static final String PRIMARY_SRC_JOURNAL_SUFFIX = "-primary-source-journal";
+//    private static final String SECONDARY_SRC_JOURNAL_SUFFIX = "-secondary-source-journal";
+//    private static final String TGT_VOL_SUFFIX = "-target-";
+//    private static final String TGT_JOURNAL = "-target-journal-";
     
-    private static final String VIRTUAL_ARRAYS_CONSTRAINT = "virtualArrays";
-    private static final String UNKNOWN_VOL_TYPE = "unknown";
+//    private RPHelper _rpHelper;
+//
+//    public void setRpHelper(RPHelper rpHelper) {
+//        _rpHelper = rpHelper;
+//    }
+//    
+//    VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
+//    RPBlockServiceApiImpl rpBlockServiceApiImpl;   
+//
+//    public VPlexBlockServiceApiImpl getVplexBlockServiceApiImpl() {
+//		return vplexBlockServiceApiImpl;
+//	}
+//
+//	public void setVplexBlockServiceApiImpl(
+//			VPlexBlockServiceApiImpl vplexBlockServiceApiImpl) {
+//		this.vplexBlockServiceApiImpl = vplexBlockServiceApiImpl;
+//	}
+//
+//	public RPBlockServiceApiImpl getRpBlockServiceApiImpl() {
+//		return rpBlockServiceApiImpl;
+//	}
+//
+//	public void setRpBlockServiceApiImpl(RPBlockServiceApiImpl rpBlockServiceApiImpl) {
+//		this.rpBlockServiceApiImpl = rpBlockServiceApiImpl;
+//	}
+//
+//    protected CoordinatorClient _coordinator;
+//    @Override
+//    public void setCoordinator(CoordinatorClient locator) {
+//        _coordinator = locator;
+//    }
 
-    private static final String SRC_COPY_SUFFIX = " - Original Production";
-    private static final String MP_ACTIVE_COPY_SUFFIX = " - Active Production";
-    private static final String MP_STANDBY_COPY_SUFFIX  = " - Standby Production";
-    
-    private static final String PRIMARY_SRC_JOURNAL_SUFFIX = "-primary-source-journal";
-    private static final String SECONDARY_SRC_JOURNAL_SUFFIX = "-secondary-source-journal";
-    private static final String TGT_VOL_SUFFIX = "-target-";
-    private static final String TGT_JOURNAL = "-target-journal-";
-    
-    private RPHelper _rpHelper;
-
-    public void setRpHelper(RPHelper rpHelper) {
-        _rpHelper = rpHelper;
-    }
-    
-    VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
-    RPBlockServiceApiImpl rpBlockServiceApiImpl;   
-
-    public VPlexBlockServiceApiImpl getVplexBlockServiceApiImpl() {
-		return vplexBlockServiceApiImpl;
-	}
-
-	public void setVplexBlockServiceApiImpl(
-			VPlexBlockServiceApiImpl vplexBlockServiceApiImpl) {
-		this.vplexBlockServiceApiImpl = vplexBlockServiceApiImpl;
-	}
-
-	public RPBlockServiceApiImpl getRpBlockServiceApiImpl() {
-		return rpBlockServiceApiImpl;
-	}
-
-	public void setRpBlockServiceApiImpl(RPBlockServiceApiImpl rpBlockServiceApiImpl) {
-		this.rpBlockServiceApiImpl = rpBlockServiceApiImpl;
-	}
-
-    protected CoordinatorClient _coordinator;
-    @Override
-    public void setCoordinator(CoordinatorClient locator) {
-        _coordinator = locator;
-    }
-
-    /**
-     * Looks up controller dependency for given hardware
-     *
-     * @param clazz controller interface
-     * @param hw hardware name
-     * @param <T>
-     * @return
-     */
-    @Override
-    protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-    	return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
-    }
+//    /**
+//     * Looks up controller dependency for given hardware
+//     *
+//     * @param clazz controller interface
+//     * @param hw hardware name
+//     * @param <T>
+//     * @return
+//     */
+//    @Override
+//    protected <T extends Controller> T getController(Class<T> clazz, String hw) {
+//    	return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+//    }
 
     /**
      * Prepare Recommended Volumes for Protected scenarios only.

@@ -38,7 +38,6 @@ public class DiscoveredDataObject extends DataObject{
         vcenter,
         hds,
         ucs,
-        rpvplex,
         ibmxiv,
         openstack,
         vnxe,

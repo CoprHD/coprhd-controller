@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.commons.collections.iterators.EntrySetMapIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,12 +29,10 @@ import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -45,10 +42,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 /**
  * Responsible for ingesting vplex local and distributed virtual volumes.

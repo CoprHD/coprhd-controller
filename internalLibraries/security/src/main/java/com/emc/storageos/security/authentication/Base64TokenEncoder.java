@@ -262,7 +262,7 @@ public class Base64TokenEncoder implements TokenEncoder {
          * @param signature
          */
         // Not an real issue as no write op in class
-        public SignedToken(byte[] body, String signature) { // NOSONAR ("Suppressing: The user-supplied array 'body' is stored directly")
+        public SignedToken(final byte[] body, String signature) { // NOSONAR ("Suppressing: The user-supplied array 'body' is stored directly")
             _tokenBody = body;
             _signature = signature;
         }

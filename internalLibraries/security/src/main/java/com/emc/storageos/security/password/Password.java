@@ -172,7 +172,7 @@ public class Password {
 
     public long getLatestChangedTime() {
         List<Map.Entry<String,Long>> l = getSortedPasswordByTime();
-        if ( !CollectionUtils.isEmpty(l) ) {
+        if ( l != null && !l.isEmpty() ) {
             return l.get(0).getValue();
         } else {
             return 0;

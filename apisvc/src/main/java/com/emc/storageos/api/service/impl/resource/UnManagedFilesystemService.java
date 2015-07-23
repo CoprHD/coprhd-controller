@@ -208,7 +208,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
 		if ((null == param.getUnManagedFileSystems())				
 				|| (param.getUnManagedFileSystems().toString().length() == 0)
-				|| (param.getUnManagedFileSystems().size() < 1) 
+				|| (param.getUnManagedFileSystems().isEmpty()) 
 			    || (param.getUnManagedFileSystems().get(0).toString().isEmpty())) {
 			throw APIException.badRequests
 					.invalidParameterUnManagedFsListEmpty();
@@ -254,7 +254,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             VirtualPool cos = FileSystemIngestionUtil.getVirtualPoolForFileSystemCreateRequest(
                     project, param.getVpool(), _permissionsHelper, _dbClient);
             
-            if (null != cos.getVirtualArrays() &&  cos.getVirtualArrays().size() > 0 &&
+            if (null != cos.getVirtualArrays() &&  !cos.getVirtualArrays().isEmpty() &&
                     !cos.getVirtualArrays().contains(param.getVarray().toString())) {
                 throw APIException.internalServerErrors.virtualPoolNotMatchingVArray(param.getVarray());
             }
@@ -430,7 +430,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                           List<UnManagedFileExportRule> exports = queryDBFSExports(unManagedFileSystem);
                           _logger.info("Number of Exports Found : {} for UnManaged Fs path : {}", exports.size(), unManagedFileSystem.getMountPath());
                           
-                          if (exports.size() > 0){
+                          if (exports != null && !exports.isEmpty()){
                         	  for(UnManagedFileExportRule rule : exports){
                                   // Step 2 : Convert them to File Export Rule
                                   // Step 3 : Keep them as a list to store in db, down the line at a shot
@@ -468,7 +468,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                          List<UnManagedCifsShareACL> cifsACLs = queryDBCifsShares(unManagedFileSystem);
                           _logger.info("Number of Cifs ACL Found : {} for UnManaged Fs path : {}", cifsACLs.size(), unManagedFileSystem.getMountPath());
                           
-                          if (!cifsACLs.isEmpty() && cifsACLs.size() > 0){
+                          if (cifsACLs != null && !cifsACLs.isEmpty()){
                         	  for(UnManagedCifsShareACL umCifsAcl : cifsACLs){
                                   // Step 2 : Convert them to Cifs Share ACL
                                   // Step 3 : Keep them as a list to store in db, down the line at a shot
@@ -538,7 +538,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 ++i;
                 _logger.info("{} --> Saving New Cifs ACL to DB {}", i, acl);
             }
-            if(!fsCifsShareAcls.isEmpty() && fsCifsShareAcls.size() > 0) {
+            
+            if(fsCifsShareAcls != null && !fsCifsShareAcls.isEmpty()) {
                 _dbClient.createObject(fsCifsShareAcls);
             }
 
@@ -773,10 +774,10 @@ public class UnManagedFilesystemService extends TaggedResource {
         try {
             eventManager.recordEvents(event);
             _logger.info("Bourne {} event recorded", evtType);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _logger.error(
                     "Failed to record event. Event description: {}. Error:",
-                    evtType, th);
+                    evtType, ex);
         }
     }
 
@@ -820,7 +821,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             matchedPorts = returnAllPortsforStgArrayAndVArray(system, storagePortsForVArray);
         }
         
-        if(matchedPorts.size() > 0) {
+        if(matchedPorts != null && !matchedPorts.isEmpty() ) {
             //Shuffle Storageports and return the first one.            
             Collections.shuffle(matchedPorts);            
             sPort = _dbClient.queryObject(StoragePort.class, matchedPorts.get(0));

@@ -162,8 +162,8 @@ public class ExecutionWindows extends Controller {
         }        
         
         List<OrderRestRep> scheduledOrders = OrderUtils.getScheduledOrdersByExecutionWindow(uri(executionWindowForm.id));
-        if (Validation.hasErrors() || scheduledOrders.size() > 0) {
-            if (scheduledOrders.size() > 0) {
+        if (Validation.hasErrors() || !scheduledOrders.isEmpty()) {
+            if (!scheduledOrders.isEmpty()) {
                 renderArgs.put("error", MessagesUtils.get("executionWindow.deleted.containsScheduledOrders", scheduledOrders.size()));
             }
             response.status = 400;
@@ -181,7 +181,7 @@ public class ExecutionWindows extends Controller {
     }
 
     public static void events(int timezoneOffsetInMinutes, String start, String end) {
-        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant()));
+        List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows(uri(Models.currentAdminTenant())); //NOSONAR ("Suppressing Sonar violation of Method invoking inefficient number constructor. Method events is invoked with int which is not inefficient")
         DateTimeZone tz = TimeUtils.getLocalTimeZone(timezoneOffsetInMinutes);
         DateTimeFormatter formatter = ISODateTimeFormat.date().withZone(tz);
         DateTime startDateTime = DateTime.parse(start, formatter);

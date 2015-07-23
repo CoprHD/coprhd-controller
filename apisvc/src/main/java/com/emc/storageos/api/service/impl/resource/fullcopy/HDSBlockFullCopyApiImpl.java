@@ -65,7 +65,7 @@ public class HDSBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {        
-        if (fcSourceObjList.size() > 0) {
+        if (!fcSourceObjList.isEmpty()) {
             URI fcSourceObjURI = fcSourceObjList.get(0).getId();
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
                 // Not supported for snapshots.

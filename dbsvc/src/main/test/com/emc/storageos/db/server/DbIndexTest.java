@@ -96,6 +96,7 @@ import org.apache.cassandra.tools.NodeProbe;
 
 
 
+@SuppressWarnings("pmd:ArrayIsStoredDirectly")
 abstract class ObjectModifier <T extends DataObject> implements Runnable
 {
     // The synchronization object used by outside to communicate 
@@ -387,8 +388,8 @@ class SingleFieldIndexVerifier implements IndexVerifier {
                 
                 HashSet<String> setFromIndex = new HashSet<String>();
                 for (NamedElementQueryResultList.NamedElement elem : results) {
-                    if (elem.id.equals(obj.getId())) {
-                        setFromIndex.add(elem.name);
+                    if (elem.getId().equals(obj.getId())) {
+                        setFromIndex.add(elem.getName());
                     }
                 }
 
@@ -433,6 +434,7 @@ class SingleFieldIndexVerifier implements IndexVerifier {
 // This class holds the simple test cases that blindly set predefined values to single field,
 // complex test cases please use ObjectModifier<> directly instead.
 
+@SuppressWarnings("pmd:ArrayIsStoredDirectly")
 class IndexTestData {
     
     
@@ -504,10 +506,10 @@ class IndexTestData {
         if (a instanceof Map || b instanceof Map) {
             return equalsMap((Map)a, (Map)b);
         }
-        if (a instanceof Set && ((Set<?>) a).size() == 0) {
+        if (a instanceof Set && ((Set<?>) a).isEmpty()) {
             a = null;
         }
-        if (b instanceof Set && ((Set<?>) b).size() == 0) {
+        if (b instanceof Set && ((Set<?>) b).isEmpty()) {
             b = null;
         }
         return a == null || b == null ? a == b : a.equals(b);
@@ -795,8 +797,7 @@ public class DbIndexTest extends DbsvcTestBase {
                         try {
                             readySync.wait();
                         } catch (InterruptedException e) {
-                            // TODO Auto-generated catch block
-                            e.printStackTrace();
+                            _logger.warn("Thread is interrupted", e);
                         }
                     }
                     
@@ -843,8 +844,7 @@ public class DbIndexTest extends DbsvcTestBase {
              try {
                 threads[i].join();
             } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                _logger.warn("Thread is interrupted", e);
             }
          }
     }
@@ -1077,6 +1077,7 @@ public class DbIndexTest extends DbsvcTestBase {
     
 
     
+    @SuppressWarnings("pmd:ArrayIsStoredDirectly")
     static class TestData {
         public String name; // Name of the test case
         public Object[] initial; // Initial state in DB that two threads will read
@@ -1400,10 +1401,10 @@ public class DbIndexTest extends DbsvcTestBase {
         }
 
         protected boolean equalsObject(Object a, Object b) {
-            if (a instanceof Set && ((Set<?>) a).size() == 0) {
+            if (a instanceof Set && ((Set<?>) a).isEmpty()) {
                 a = null;
             }
-            if (b instanceof Set && ((Set<?>) b).size() == 0) {
+            if (b instanceof Set && ((Set<?>) b).isEmpty()) {
                 b = null;
             }
             return a == null || b == null ? a == b : a.equals(b);

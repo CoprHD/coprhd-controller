@@ -26,6 +26,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -207,6 +208,7 @@ public class CimListener implements IndicationListener {
                     try {
                         Thread.sleep(CimConstants.LISTENER_RETRY_INTERVAL);
                     } catch (InterruptedException ie) {
+                    	s_logger.error(ie.getMessage(),ie);
                     }
                 }
             }
@@ -270,8 +272,8 @@ public class CimListener implements IndicationListener {
                         return;
                     }
                 }
-            } catch (Throwable t) {
-                s_logger.error("Error discarding statiustical data update", t);
+            } catch (Exception ex) {
+                s_logger.error("Error discarding statiustical data update", ex);
                 return;
             }
 
@@ -298,6 +300,7 @@ public class CimListener implements IndicationListener {
                 try {
                     connectionName = new URL(url).getPath();
                 } catch (Exception e) {
+                	s_logger.error(e.getMessage(),e);
                 }
             }
 
@@ -553,7 +556,9 @@ public class CimListener implements IndicationListener {
 
         public void checkServerTrusted(X509Certificate[] chain, String authType)
                 throws CertificateException {
-            this.chain = chain;
+        	if(chain != null){
+        		this.chain = Arrays.copyOf(chain, chain.length);
+        	}
             tm.checkServerTrusted(chain, authType);
         }
     }

@@ -35,12 +35,12 @@ public class ClusterNodesUtil {
 
     // A reference to the coordinator client for retrieving the registered
     // Bourne nodes.
-    private static CoordinatorClient _coordinator;
+    private static volatile CoordinatorClient _coordinator;
 
     // A reference to the service for getting Bourne cluster information.
-    private static Service _service;
+    private static volatile Service _service;
 
-    private static CoordinatorClientExt _coordinatorExt;
+    private static volatile CoordinatorClientExt _coordinatorExt;
     
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
@@ -67,7 +67,7 @@ public class ClusterNodesUtil {
         List<NodeInfo> nodeInfoList = new ArrayList<NodeInfo>();
         List<String> validNodeIds = new ArrayList<String>();
         try {
-            if( nodeNames != null && nodeNames.size() > 0 ){
+            if( nodeNames != null && !nodeNames.isEmpty() ){
                 _log.info("Getting cluster node info for ids: {}", nodeNames);
             }
             else{
@@ -82,7 +82,7 @@ public class ClusterNodesUtil {
             for (Service svc : svcList) {
                 _log.debug("Got service with node id " + svc.getNodeName());
                 // if there are node ids requested
-                if (nodeNames != null && nodeNames.size() > 0 &&
+                if (nodeNames != null && !nodeNames.isEmpty() &&
                         !nodeNames.contains(svc.getNodeName())) {
                     continue;
                 }
@@ -100,7 +100,7 @@ public class ClusterNodesUtil {
         }
 
         //validate if all requested node ids information is retrieved
-        if(nodeNames != null && nodeNames.size() > 0 &&
+        if(nodeNames != null && !nodeNames.isEmpty() &&
                 !validNodeIds.containsAll(nodeNames)){
             nodeNames.removeAll(validNodeIds);
             throw APIException.badRequests.parameterIsNotValid("node id(s): "+nodeNames);

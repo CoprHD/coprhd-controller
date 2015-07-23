@@ -144,7 +144,7 @@ public class ComputeUtils {
 
     public static Cluster getCluster(String clusterName) {
         List<ClusterRestRep> clusters = execute(new FindCluster(clusterName));
-        if ((clusters == null) || (clusters.size() == 0)) {
+        if ((clusters == null) || (clusters.isEmpty())) {
             return null;
         }
         if (clusters.size() > 1) {
@@ -736,7 +736,7 @@ public class ComputeUtils {
     
     public static Map<String, URI> getHostNameBootVolume(List<Host> hosts) {
 
-        if (hosts == null || hosts.size() == 0) {
+        if (hosts == null || hosts.isEmpty()) {
             return Collections.emptyMap();
         }
 

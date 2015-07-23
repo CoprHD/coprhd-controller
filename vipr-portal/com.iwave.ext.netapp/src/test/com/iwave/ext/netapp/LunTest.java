@@ -19,6 +19,11 @@ import com.emc.storageos.services.util.EnvConfig;
  * @author sdorcas
  *
  */
+
+@SuppressWarnings({"squid:S2444"})
+/*
+ * Static field suppress, the fix will be made in the future release
+ */
 public class LunTest {
 
 	static private NaServer server = null;

@@ -450,7 +450,7 @@ public class LicenseManagerImpl implements LicenseManager{
                 licenseInfo.setTrialLicense(true);
             licenseInfoList.add(licenseInfo);
         }
-        if(licenseInfoList.size() > 0) {
+        if(!licenseInfoList.isEmpty()) {
     	    licenseList = new LicenseInfoListExt(licenseInfoList);            	    
     	    _coordinator.setTargetInfo(licenseList, checkClusterUpgradable);
         }
@@ -537,7 +537,7 @@ public class LicenseManagerImpl implements LicenseManager{
      */
     private void createLicenseObject(List<LicenseInfoExt> licenseInfoExts, License license) {
 
-        if (licenseInfoExts.size() == 0) {
+        if (licenseInfoExts.isEmpty()) {
             return;
         }
 

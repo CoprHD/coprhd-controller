@@ -25,10 +25,6 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
-import com.netflix.astyanax.util.RangeBuilder;
-import com.netflix.astyanax.util.TimeUUIDUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
@@ -37,17 +33,13 @@ import java.net.URI;
  *  Constrained query to get list of decommissioned object URIs of a given type
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
-    private static final Logger log = LoggerFactory.getLogger(AggregatedConstraintImpl.class);
 
     private Keyspace keyspace;
     private final ColumnFamily<String, IndexColumnName> cf;
     private final ColumnField field;
     private final String fieldName;
     private final String rowKey;
-    private final ColumnField groupByField;
-    private final String groupByValue;
     private final Class<? extends DataObject> entryType;
-    private final boolean classGroup;
 
 
     /*
@@ -59,14 +51,11 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
         super(clazz, field, groupByField.getName(),groupByValue);
 
         cf = field.getIndexCF();
-        this.groupByField = groupByField;
-        this.groupByValue = groupByValue;
         entryType = clazz;
         this.field = field;
         fieldName = field.getName();
-        classGroup = false;
 
-        rowKey = String.format("%s:%s",clazz.getSimpleName(),groupByValue.toString());
+        rowKey = String.format("%s:%s",clazz.getSimpleName(),groupByValue);
     }
 
     public AggregatedConstraintImpl(Class<? extends DataObject> clazz, ColumnField field) {
@@ -74,12 +63,9 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
         super(clazz, field);
 
         cf = field.getIndexCF();
-        groupByField = null;
-        groupByValue = null;
         entryType = clazz;
         this.field = field;
         fieldName = field.getName();
-        classGroup = true;
 
         rowKey = clazz.getSimpleName();
     }
@@ -110,8 +96,8 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
         return keyspace.prepareQuery(cf).getKey(rowKey)
                        .withColumnRange(
                                CompositeColumnNameSerializer.get().buildRange()
-                                       .greaterThanEquals(fieldName.toString())
-                                       .lessThanEquals(fieldName.toString())
+                                       .greaterThanEquals(fieldName)
+                                       .lessThanEquals(fieldName)
                                        .limit(pageCount)
                        );
 

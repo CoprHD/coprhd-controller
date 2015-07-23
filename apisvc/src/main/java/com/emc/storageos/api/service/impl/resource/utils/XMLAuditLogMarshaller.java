@@ -43,8 +43,8 @@ public class XMLAuditLogMarshaller implements AuditLogMarshaller {
     final static private Logger _staticLogger = LoggerFactory.getLogger(XMLAuditLogMarshaller.class);
 
     private static JAXBContext _context = null;
-    private static Locale locale = null;
-    private static ResourceBundle resb = null;
+    private static volatile Locale locale = null;
+    private static volatile ResourceBundle resb = null;
 
     static {
         try {

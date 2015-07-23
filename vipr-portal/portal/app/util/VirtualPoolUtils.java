@@ -255,12 +255,12 @@ public class VirtualPoolUtils {
     private static VirtualPoolPoolUpdateParam createPoolAssignments(Collection<String> addPools,
             Collection<String> removePools) {
         StoragePoolAssignmentChanges changes = new StoragePoolAssignmentChanges();
-        if (addPools != null && addPools.size() > 0) {
+        if (addPools != null && !addPools.isEmpty()) {
             StoragePoolAssignments add = new StoragePoolAssignments();
             add.getStoragePools().addAll(addPools);
             changes.setAdd(add);
         }
-        if (removePools != null && removePools.size() > 0) {
+        if (removePools != null && !removePools.isEmpty()) {
             StoragePoolAssignments remove = new StoragePoolAssignments();
             remove.getStoragePools().addAll(removePools);
             changes.setRemove(remove);

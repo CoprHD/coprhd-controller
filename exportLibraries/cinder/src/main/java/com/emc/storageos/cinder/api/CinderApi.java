@@ -439,8 +439,7 @@ public class CinderApi {
         if (initiator != null) {
             volumeAttach.initializeConnection.connector.initiator = initiator;
         } else if (wwpns != null) {
-        	String[] wwpnsClone = wwpns.clone();
-            volumeAttach.initializeConnection.connector.wwpns = wwpnsClone;
+            volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
         }
         volumeAttach.initializeConnection.connector.host = host;
         
@@ -529,8 +528,8 @@ public class CinderApi {
         if (initiator != null) {
             volumeDetach.terminateConnection.connector.initiator = initiator;
         } else if (wwpns != null) {
-        	String[] wwpnsClone = wwpns.clone();
-            volumeDetach.terminateConnection.connector.wwpns = wwpnsClone;
+            volumeDetach.terminateConnection.connector.wwpns = 
+            		Arrays.copyOf(wwpns, wwpns.length);
         }
         volumeDetach.terminateConnection.connector.host = host;
         

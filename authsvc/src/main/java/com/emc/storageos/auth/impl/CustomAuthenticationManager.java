@@ -418,12 +418,12 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                         return true;
                     }
                     // we have the same lastmodified timestamp
-                    if (!_lastKnownConfiguration.get(provider.getId()).equals(provider.getLast_modified())) {
+                    if (!_lastKnownConfiguration.get(provider.getId()).equals(provider.getLastModified())) {
                         return true;
                     }
                 }
             } else {
-                if (providers.size() > 0) {
+                if (!providers.isEmpty()) {
                     return true;
                 }
             }
@@ -438,7 +438,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         private void updateLastKnown(List<AuthnProvider> knownProviders) {
             _lastKnownConfiguration = new HashMap<URI, Long>();
             for (AuthnProvider provider: knownProviders) {
-                _lastKnownConfiguration.put(provider.getId(), provider.getLast_modified());
+                _lastKnownConfiguration.put(provider.getId(), provider.getLastModified());
             }
         }
 

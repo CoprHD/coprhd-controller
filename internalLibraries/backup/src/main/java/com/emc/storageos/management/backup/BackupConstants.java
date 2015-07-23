@@ -15,6 +15,8 @@
 
 package com.emc.storageos.management.backup;
 
+import java.io.File;
+
 /**
  * Constants for backup project
  */
@@ -38,7 +40,7 @@ public interface BackupConstants {
     public static final String COPIES_TO_KEEP = "backup_scheduler_copies_to_keep";
     public static final String UPLOAD_URL = "backup_external_location_url";
     public static final String UPLOAD_USERNAME = "backup_external_location_username";
-    public static final String UPLOAD_PASSWORD = "backup_external_location_password";
+    public static final String UPLOAD_PASSWD = "backup_external_location_password";
     public static final int DEFAULT_BACKUP_COPIES_TO_KEEP = 5;
     
     public static final int BACKUP_RETRY_COUNT = 3;
@@ -84,4 +86,6 @@ public interface BackupConstants {
 
     public static final String STORAGEOS_USER = "storageos";
     public static final String STORAGEOS_GROUP = "storageos";
+    
+    public static final File[] EMPTY_ARRAY = {};
 }

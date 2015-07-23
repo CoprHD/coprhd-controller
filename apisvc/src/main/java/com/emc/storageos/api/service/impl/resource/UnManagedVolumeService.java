@@ -228,7 +228,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             VirtualPool vpool = VolumeIngestionUtil.getVirtualPoolForVolumeCreateRequest(project, param.getVpool(),
                     _permissionsHelper, _dbClient);
             // allow ingestion for VPool without Virtual Arrays
-            if (null != vpool.getVirtualArrays() && vpool.getVirtualArrays().size() > 0 &&
+            if (null != vpool.getVirtualArrays() && !vpool.getVirtualArrays().isEmpty() &&
                     !vpool.getVirtualArrays().contains(param.getVarray().toString())) {
                 throw APIException.internalServerErrors.virtualPoolNotMatchingVArray(param.getVarray());
             }
@@ -547,7 +547,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             VirtualPool vpool = VolumeIngestionUtil.getVirtualPoolForVolumeCreateRequest(project,
                     exportIngestParam.getVpool(), _permissionsHelper, _dbClient);
             // allow ingestion for VPool without Virtual Arrays
-            if (null != vpool.getVirtualArrays() && vpool.getVirtualArrays().size() > 0
+            if (null != vpool.getVirtualArrays() && !vpool.getVirtualArrays().isEmpty()
                     && !vpool.getVirtualArrays().contains(exportIngestParam.getVarray().toString())) {
                 throw APIException.internalServerErrors.virtualPoolNotMatchingVArray(exportIngestParam.getVarray());
             }
@@ -628,7 +628,7 @@ public class UnManagedVolumeService extends TaskResourceService {
         } finally {
             // if we created an ExportGroup, but no volumes were ingested into
             // it, then we should clean it up in the database (CTRL-8520)
-            if (exportGroupCreated && ingestedObjects.size() == 0) {
+            if (exportGroupCreated && ingestedObjects.isEmpty()) {
                 _logger.info("an export group was created, but no volumes were ingested into it");
                 if (exportGroup.getVolumes() == null || exportGroup.getVolumes().isEmpty()) {
                     _logger.info("since no volumes are present, marking {} for deletion", 
@@ -744,10 +744,10 @@ public class UnManagedVolumeService extends TaskResourceService {
         try {
             eventManager.recordEvents(event);
             _logger.info("Bourne {} event recorded", evtType);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _logger.error(
                     "Failed to record event. Event description: {}. Error:",
-                    evtType, th);
+                    evtType, ex);
         }
     }
     

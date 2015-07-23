@@ -188,7 +188,7 @@ public class DbRepairJobState implements CoordinatorSerializable {
     @JsonIgnore
 	public boolean canResume(String clusterDigest, int maxRetryTimes, boolean crossVdc) {
 		return this.currentToken != null && this.currentRetry < maxRetryTimes
-               && this.currentDigest.equals(clusterDigest) && (this.currentCrossVdc | !crossVdc);
+               && this.currentDigest.equals(clusterDigest) && (this.currentCrossVdc == crossVdc);
 	}
     @JsonIgnore
 	private boolean isIntervalElapse(){

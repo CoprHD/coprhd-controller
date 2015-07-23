@@ -114,8 +114,8 @@ public class ConfigService {
     private CoordinatorClientExt _coordinator = null;
     private PropertiesMetadata _propsMetadata = null;
     private PropertiesConfigurationValidator _propertiesConfigurationValidator;
-    private static Properties defaultProperties;
-    private static Properties ovfProperties;
+    private Properties defaultProperties;
+    private Properties ovfProperties;
     private PropertyHandlers _propertyHandlers;
 
     @Context
@@ -159,7 +159,7 @@ public class ConfigService {
         _propertiesConfigurationValidator = propertiesConfigurationValidator;
     }
     
-    public static void setDefaultProperties(Properties defaults) {
+    public void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }
 
@@ -172,11 +172,11 @@ public class ConfigService {
      * @return  map containing key, value pair
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static Map<String, String> getPropertiesDefaults() {
+    public Map<String, String> getPropertiesDefaults() {
         return (Map)defaultProperties;
     }
 
-    public static void setOvfProperties(Properties ovfProps) {
+    public void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
     
@@ -185,7 +185,9 @@ public class ConfigService {
      * @return  map containing key, value pair
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static Map<String, String> getOvfProperties() {
+    // this can't be named after the default getter, since the return type is different with
+    // the argument type of the setter
+    public Map<String, String> getPropertiesOvf() {
         return (Map)ovfProperties;
     }
     
@@ -234,9 +236,9 @@ public class ConfigService {
 	    case CONFIG:
 	        return new PropertyInfoRestRep(getConfigProperties());    
         case OVF:
-        	return new PropertyInfoRestRep(getOvfProperties());
+        	return new PropertyInfoRestRep(getPropertiesOvf());
         case REDEPLOY:
-            Map<String, String> props = getOvfProperties();
+            Map<String, String> props = getPropertiesOvf();
 
             props.remove(MODE);
             props.remove(NODE_ID);
@@ -427,7 +429,7 @@ public class ConfigService {
         }
 
         InputStream isoStream = new ByteArrayInputStream(CreateISO.getBytes
-                (getOvfProperties(),getMutatedProps()));
+                (getPropertiesOvf(),getMutatedProps()));
 
         return Response.ok(isoStream).header("content-disposition","attachment; filename = config.iso").build();
     }
@@ -450,7 +452,7 @@ public class ConfigService {
         PropertyInfoExt targetPropInfo = new PropertyInfoExt();
         try {
             targetPropInfo.setProperties(mergeProps(getPropertiesDefaults(), getMutatedProps(maskSecretsProperties)));
-            targetPropInfo.getProperties().putAll(getOvfProperties());
+            targetPropInfo.getProperties().putAll(getPropertiesOvf());
         } catch (Exception e) {
             throw APIException.internalServerErrors.getObjectFromError("target property", "coordinator", e);
         }

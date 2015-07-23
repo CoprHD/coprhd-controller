@@ -232,7 +232,7 @@ public class VdcConfigHelper {
             dbClient.removeVdcNodesFromBlacklist(vdc);
         }
         
-        if (obsoletePeers.size() > 0) {
+        if (!obsoletePeers.isEmpty()) {
             // update peer ip to ZK so that geodbsvc could get it 
             notifyDbSvcWithObsoleteCassandraPeers(Constants.GEODBSVC_NAME, obsoletePeers);
             log.info("notify geodbsvc with {} obsolete cassandra peers", obsoletePeers.size());
@@ -1010,13 +1010,13 @@ public class VdcConfigHelper {
     private void setCassandraStrategyOptions(Map<String, String> options, boolean wait)
             throws CharacterCodingException, TException, NoSuchFieldException, IllegalAccessException, InstantiationException,
                    InterruptedException, ConnectionException, ClassNotFoundException {
-        int port = InternalDbClient.DbJmxClient.defaultThriftPort;
+        int port = InternalDbClient.DbJmxClient.DEFAULTTHRIFTPORT;
 
         log.info("The dbclient encrypted={}", dbClient.isGeoDbClientEncrypted());
 
         if (dbClient.isGeoDbClientEncrypted()) {
             CliOptions cliOptions = new CliOptions();
-            List<String> args = new ArrayList();
+            List<String> args = new ArrayList<String>();
 
             args.add("-h");
             args.add(LOCAL_HOST);
@@ -1043,7 +1043,6 @@ public class VdcConfigHelper {
 
         CliMain.connect(LOCAL_HOST, port);
 
-        // run 'use GeoStorageOS';
         String useGeoKeySpaceCmd = "use " + DbClientContext.GEO_KEYSPACE_NAME + ";";
         CliMain.processStatement(useGeoKeySpaceCmd);
 

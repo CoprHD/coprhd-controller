@@ -17,7 +17,7 @@
 
 	<!-- List of operations for this performance namespace -->
 	<bean id="volumeInfoDiscoverer" class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-		<property name="_operations">
+		<property name="operations">
 			<list>
 				<ref bean="computerSystem" />
 				
@@ -97,7 +97,7 @@
 	</bean>
 	
 	<bean id="getRemoteConnectivityCollection" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-comp" />
 
@@ -109,43 +109,43 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="connectivityCollection" />
-        <property name="_method" value="associatornames" />
-        <property name="_processor" ref="cimpathprocessor" />
+        <property name="result" value="connectivityCollection" />
+        <property name="method" value="associatornames" />
+        <property name="processor" ref="cimpathprocessor" />
         <property name="message" value="Invoking associatorNames to get Remote Connectivity Collections of Array"/>
 
     </bean>
 
     <bean id="resultClass-connectivityCollection" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="CIM_ConnectivityCollection" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="CIM_ConnectivityCollection" />
     </bean>
     
     <bean id="getFASTPolicies" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-fastpolicy" />
 		    </list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="enumerateInstanceNames" />
-		<property name="_processor" ref="fastpolicyProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="enumerateInstanceNames" />
+		<property name="processor" ref="fastpolicyProcessor" />
 		 <property name="message" value="Invoking enumerateInstances to get Fast Policies"/>
 	</bean>
 
 	<bean id="reference-fastpolicy" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="createCIMPath" />
-		<property name="_value" value="root/emc:CIM_TierPolicyRule" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="createCIMPath" />
+		<property name="value" value="root/emc:CIM_TierPolicyRule" />
 	</bean>
 	
 	<bean id="fastpolicyProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.FastPolicyProcessor" />
     
     <bean id="getStorageGroupsWithFAST" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-fastpolicies-vmax" />
 
@@ -157,30 +157,30 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="storageGroups" />
-        <property name="_method" value="associatornames" />
-        <property name="_processor" ref="sgswithFastProcessor" />
+        <property name="result" value="storageGroups" />
+        <property name="method" value="associatornames" />
+        <property name="processor" ref="sgswithFastProcessor" />
         <property name="message" value="Invoking associatorNames to get Storage Groups with FAST Array"/>
 
     </bean>
 
     <bean id="resultClass-StorageGroup" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="SE_DeviceMaskingGroup" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="SE_DeviceMaskingGroup" />
     </bean>
     
     <bean id="reference-fastpolicies-vmax" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="vmaxFASTPolicies" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="vmaxFASTPolicies" />
     </bean>
     
     <bean id="sgswithFastProcessor"
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.SGsWithFastProcessor" />
     
     <bean id="getVolumesinSG" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-storageGroups" />
 
@@ -196,9 +196,9 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="" />
-        <property name="_method" value="associatorPaths" />
-        <property name="_processor" ref="volumesInSGProcessor" />
+        <property name="result" value="" />
+        <property name="method" value="associatorPaths" />
+        <property name="processor" ref="volumesInSGProcessor" />
         <property name="message" value="Invoking associatorNames to get Volumes within SG of Array"/>
 
     </bean>
@@ -206,9 +206,9 @@
    
 
     <bean id="reference-storageGroups" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="storageGroups" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="storageGroups" />
     </bean>
     
     <bean id="volumesInSGProcessor"
@@ -217,7 +217,7 @@
     </bean>
 
     <bean id="getVNXVolumesWithFAST" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-fastpolicies-vnx" />
 
@@ -234,24 +234,24 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="autoTierVolumes" />
-        <property name="_method" value="associatorPaths" />
-        <property name="_processor" ref="vnxFastVolumesProcessor" />
+        <property name="result" value="autoTierVolumes" />
+        <property name="method" value="associatorPaths" />
+        <property name="processor" ref="vnxFastVolumesProcessor" />
         <property name="message" value="Invoking associatorNames to get Remote Connectivity Collections of Array"/>
 
     </bean>
     
     <bean id="timeout" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getIntValue32" />
-        <property name="_value" value="1200" />
-        <property name="_name" value="timeoutinSeconds" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue32" />
+        <property name="value" value="1200" />
+        <property name="name" value="timeoutinSeconds" />
     </bean>
 
     <bean id="reference-fastpolicies-vnx" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="vnxFASTPolicies" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="vnxFASTPolicies" />
     </bean>
     
     <bean id="vnxFastVolumesProcessor"
@@ -260,7 +260,7 @@
      </bean>
           
     <bean id="getVNXTierSetting" class="com.emc.storageos.plugins.common.domainmodel.Operation" >
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-autoTierVolumes" />
 				<ref bean="null" />
@@ -272,29 +272,29 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="associatorInstances" />
-		<property name="_processor" ref="vnxTierSettingProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="associatorInstances" />
+		<property name="processor" ref="vnxTierSettingProcessor" />
 		<property name="message" value="Invoking associatorInstances to get Storage Tiers of VMAX"/>
 	</bean>
 
 	<bean id="resultClass-volumeSetting" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="Clar_StorageVolumeSetting" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="Clar_StorageVolumeSetting" />
 	</bean>
 
 	<bean id="reference-autoTierVolumes" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="autoTierVolumes" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="autoTierVolumes" />
 	</bean>
 	
 	<bean id="tier-prop" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value" value="InitialStorageTierMethodology" />
-		<property name="_name" value="props" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value" value="InitialStorageTierMethodology" />
+		<property name="name" value="props" />
 	</bean>
 
 	<bean id="vnxTierSettingProcessor"
@@ -303,7 +303,7 @@
     
     <!-- SMI Call to get pool capabilities for an Array -->
 	<bean id="getPoolCapabilities" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-pools" />
 				<ref bean="null" />
@@ -315,25 +315,25 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="poolCapabilities" />
-		<property name="_method" value="associatorInstances" />
-		<property name="_processor" ref="poolCapabilitiesProcessor" />
+		<property name="result" value="poolCapabilities" />
+		<property name="method" value="associatorInstances" />
+		<property name="processor" ref="poolCapabilitiesProcessor" />
 		<property name="supportedVersion" value="8.x"/>
         <property name="message" value="Invoking associatorInstances for getting Storage Pool Capabilities"/>
 	</bean>
 	
 	<bean id="resultClass-poolCapabilities" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="EMC_StoragePoolCapabilities" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="EMC_StoragePoolCapabilities" />
 	</bean>
 	
 	<bean id="poolcapabilities-prop" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value"
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value"
 			value="InstanceID,ElementName" />
-		<property name="_name" value="prvcList" />
+		<property name="name" value="prvcList" />
 	</bean>
 	
 	<!-- Processors -->
@@ -342,7 +342,7 @@
 		
 	<!-- SMI Call to Pool Setting for an Array -->
 	<bean id="getPoolSettings" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-poolcapabilities" />
 				<ref bean="associatorClass-EMC_StorageSettingsAssociatedToCapabilities" />
@@ -354,38 +354,38 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="storagePoolSettings" />
-		<property name="_method" value="associatorInstances" />
-		<property name="_processor" ref="poolsettingProcessor" />
+		<property name="result" value="storagePoolSettings" />
+		<property name="method" value="associatorInstances" />
+		<property name="processor" ref="poolsettingProcessor" />
 		<property name="supportedVersion" value="8.x"/>
 		<property name="message" value="Invoking associatorInstances to get Pool Settings"/>
 	</bean>
 
 	<bean id="reference-poolcapabilities" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="poolCapabilities" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="poolCapabilities" />
 	</bean>
 
     <bean id="associatorClass-EMC_StorageSettingsAssociatedToCapabilities"
           class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="EMC_StorageSettingsAssociatedToCapabilities" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="EMC_StorageSettingsAssociatedToCapabilities" />
     </bean>
 
     <bean id="resultClass-poolSetting" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="EMC_StoragePoolSetting" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="EMC_StoragePoolSetting" />
 	</bean>
 
 	<bean id="poolsetting-prop" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value"
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value"
 			value="EMCPottedSetting,EMCRaidLevel,InstanceID,ExtentStripeLength,EMCFastSetting,EMCApproxAverageResponseTime,EMCSLO,EMCWorkload" />
-		<property name="_name" value="prvcList" />
+		<property name="name" value="prvcList" />
 	</bean>
 
 	<!-- Processors -->
@@ -394,7 +394,7 @@
     
      <!-- SMI Call to get ReplicationService from Array -->
     <bean id="getConnectivityRelationships" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-connectivityCollection" />
                 <ref bean="null" />
@@ -404,16 +404,16 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="volumeToRAGroup" />
-        <property name="_method" value="associatorNames" />
-        <property name="_processor" ref="remoteConnCollectionToVolumeProcessor" />
+        <property name="result" value="volumeToRAGroup" />
+        <property name="method" value="associatorNames" />
+        <property name="processor" ref="remoteConnCollectionToVolumeProcessor" />
         <property name="message" value="Invoking associatorNames to get Connectivity Collection relationShip Processor"/>
     </bean>
 
     <bean id="reference-connectivityCollection" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="connectivityCollection" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="connectivityCollection" />
     </bean>
     
      <!-- Processor -->
@@ -421,7 +421,7 @@
           class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteConnCollectionToVolumeProcessor" />
           
     <bean id="getTargetVolumes" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-volume-raGroup" />
                 <ref bean="resultClass-synchronized_sv_sv" />
@@ -432,29 +432,29 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="" />
-        <property name="_method" value="referenceInstances" />
-        <property name="_processor" ref="volumeToSynchronizedRefProcessor" />
+        <property name="result" value="" />
+        <property name="method" value="referenceInstances" />
+        <property name="processor" ref="volumeToSynchronizedRefProcessor" />
         <property name="message" value="Invoking referenceInstances to get RA Groups Copy Mode"/>
     </bean>
 
     <bean id="resultClass-synchronized_sv_sv" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="SE_StorageSynchronized_SV_SV" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="SE_StorageSynchronized_SV_SV" />
     </bean>
 
    <bean id="reference-volume-raGroup" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="volumeToRAGroup" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="volumeToRAGroup" />
     </bean>
     
     <bean id="copyModeProp" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringArrayValue" />
-        <property name="_value" value="Mode" />
-        <property name="_name" value="copyMode" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringArrayValue" />
+        <property name="value" value="Mode" />
+        <property name="name" value="copyMode" />
     </bean>
 
 
@@ -463,15 +463,15 @@
 
 	<!-- SMI-S Call to get Controller Configuration Service -->
 	<bean id="getControllerConfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-controllerconfigurationService" />
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="configurationService" />
-		<property name="_method" value="enumerateInstanceNames" />
-		<property name="_processor" ref="controllerConfigurationProcessor" />
+		<property name="result" value="configurationService" />
+		<property name="method" value="enumerateInstanceNames" />
+		<property name="processor" ref="controllerConfigurationProcessor" />
 		<property name="message" value="Invoking enumerateInstanceNames to get configuration service details."/>
 	</bean>
 
@@ -479,13 +479,13 @@
 		class="com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.fast.ControllerConfigurationProcessor" />
 
 	<bean id="reference-controllerconfigurationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="configurationService" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="configurationService" />
 	</bean>
 
 	<bean id="getMaskingViews" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-controllerconfigurationService" />
 				<ref bean="null" />
@@ -496,16 +496,16 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="maskingViews" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="cimpathprocessor" />
+		<property name="result" value="maskingViews" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="cimpathprocessor" />
 		<property name="message" value="Invoking associatorNames to get MaskingView details"/>
 	</bean>
 
 	<bean id="resultClass-lunMaskingProtocolController" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="EMC_LunMaskingSCSIProtocolController" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="EMC_LunMaskingSCSIProtocolController" />
 	</bean>
 
     <bean id="exportProcessor"
@@ -514,7 +514,7 @@
     </bean>
     
     <bean id="getDeviceMaskingGroups" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-controllerconfigurationService" />
 				<ref bean="null" />
@@ -524,8 +524,8 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="storagegroupprocessor" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="storagegroupprocessor" />
 		<property name="supportedVersion" value="8.x"/>
 		<property name="message" value="Invoking associatorNames to get StorageGroup details"/>
 	</bean>
@@ -535,7 +535,7 @@
     </bean>
     
     <bean id="getExports" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
            <list>
                 <ref bean="reference-maskingViews" />
                 <ref bean="null" />
@@ -553,21 +553,21 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="" />
-        <property name="_method" value="associators" />
-        <property name="_processor" ref="exportProcessor" />
+        <property name="result" value="" />
+        <property name="method" value="associators" />
+        <property name="processor" ref="exportProcessor" />
         <property name="message" value="Invoking associators to get Export information."/>
     </bean>
 
     <bean id="maxMaskingViewObjects" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getIntValue32" />
-        <property name="_value" value="100" />
-        <property name="_name" value="maxObjects" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue32" />
+        <property name="value" value="100" />
+        <property name="name" value="maxObjects" />
     </bean>
 
 	<bean id="getAlreadyExportedVolumes" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-maskingViews" />
 				<ref bean="null" />
@@ -577,21 +577,21 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="lunMaskingProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="lunMaskingProcessor" />
 	</bean>
 
 	<bean id="reference-maskingViews" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="maskingViews" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="maskingViews" />
 	</bean>
 
 	<bean id="resultClass-storageVolume" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="CIM_StorageVolume" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="CIM_StorageVolume" />
 	</bean>
 
 
@@ -601,22 +601,22 @@
 
 	<!-- SMI Call to get CIMObject Path for the System -->
 	<bean id="computerSystem" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-comp" />
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="ComputerSystem" />
-		<property name="_method" value="enumerateInstanceNames" />
-		<property name="_processor" ref="cimpathprocessor" />
+		<property name="result" value="ComputerSystem" />
+		<property name="method" value="enumerateInstanceNames" />
+		<property name="processor" ref="cimpathprocessor" />
 		<property name="message" value="Invoking EnumerateInstances of EMC_StorageSystem to find the right Array"/>
 	</bean>
 
 	<bean id="reference-comp" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="ComputerSystem" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="ComputerSystem" />
 	</bean>
 
 	<!-- Processors -->
@@ -625,7 +625,7 @@
 
 	<!-- SMI Call to get associated StoragePools for an Array -->
 	<bean id="getStoragePools" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-comp" />
 
@@ -637,16 +637,16 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="storagePools" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="storagePoolProcessor" />
+		<property name="result" value="storagePools" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="storagePoolProcessor" />
         <property name="message" value="Invoking associatorNames to get storagePools."/>
 	</bean>
 
 	<bean id="resultClass-storagePool" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="CIM_StoragePool" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="CIM_StoragePool" />
 	</bean>
 
 	<!-- Processors -->
@@ -655,7 +655,7 @@
 		
 	<!-- SMI Call to get associated StoragePools for an Array -->
 	<bean id="getReplicationGroups" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-comp" />
                 <ref bean="null" />
@@ -666,22 +666,22 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="replicationGroups" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="cimpathprocessor" />
+		<property name="result" value="replicationGroups" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="cimpathprocessor" />
         <property name="message" value="Invoking associatorNames to get replication groups" />
 	</bean>
 
 	<bean id="resultClass-replicationGroup" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="SE_ReplicationGroup" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="SE_ReplicationGroup" />
 	</bean>
 	
 	
 	<!-- SMI Call to get volumes part of existing CGs-->
 	<bean id="getVolumesPartOfReplicationGroups" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-replicationGroups" />
                 <ref bean="null" />
@@ -692,16 +692,16 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="storagePools" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="replicationGrouptoVolumeProcessor" />
+		<property name="result" value="storagePools" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="replicationGrouptoVolumeProcessor" />
         <property name="message" value="Invoking associatorNames to volumes of the ReplicationGroup." />
 	</bean>
 
 	<bean id="reference-replicationGroups" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="replicationGroups" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="replicationGroups" />
 	</bean>
 
 	<!-- Processors -->
@@ -710,7 +710,7 @@
 
     <!-- SMI Call to get ReplicationService from Array -->
     <bean id="getReplicationService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-comp" />
                 <ref bean="null" />
@@ -720,21 +720,21 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="replicationService" />
-        <property name="_method" value="associatorNames" />
-        <property name="_processor" ref="cimpathprocessor" />
+        <property name="result" value="replicationService" />
+        <property name="method" value="associatorNames" />
+        <property name="processor" ref="cimpathprocessor" />
         <property name="message" value="Invoking associatorNames to get Array's Replication Service"/>
     </bean>
 
     <bean id="resultClass-replicationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="CIM_ReplicationService" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="CIM_ReplicationService" />
     </bean>
 
 	<!-- SMI Call to get synchronization aspects -->
 	<bean id="getSynchronizationAspects" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-synchronizationAspect" />
 				<ref bean="bool-true" />
@@ -748,32 +748,32 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="enumerateInstances" />
-		<property name="_processor" ref="synchronizationAspectProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="enumerateInstances" />
+		<property name="processor" ref="synchronizationAspectProcessor" />
 		<property name="message" value="Call enumerateInstances to get Synchronization aspects" />
 	</bean>
 	
 	<bean id="reference-synchronizationAspect"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="createCIMPath" />
-		<property name="_value" value="root/emc:EMC_SynchronizationAspectForSource" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="createCIMPath" />
+		<property name="value" value="root/emc:EMC_SynchronizationAspectForSource" />
 	</bean>
 
 	<bean id="synchronizationaspect-propList" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value"
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value"
 			value="ElementName,SourceElement,SyncType" />
-		<property name="_name" value="prvcList" />
+		<property name="name" value="prvcList" />
 	</bean>
 
 	<bean id="maxReplicaObjects" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getIntValue32" />
-		<property name="_value" value="100" />
-		<property name="_name" value="maxObjects" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getIntValue32" />
+		<property name="value" value="100" />
+		<property name="name" value="maxObjects" />
 	</bean>
 
 	<bean id="synchronizationAspectProcessor"
@@ -781,7 +781,7 @@
 
     <!-- SMI call to get StorageSynchronized instances -->
     <bean id="getReplicationRelationshipInstances" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-replicationService" />
                 <ref bean="extrinsicMethodName-GetReplicationRelationshipInstances" />
@@ -790,47 +790,47 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="" />
-        <property name="_method" value="invokeMethod" />
-        <property name="_processor" ref="replicationRelationshipProcessor" />
+        <property name="result" value="" />
+        <property name="method" value="invokeMethod" />
+        <property name="processor" ref="replicationRelationshipProcessor" />
         <property name="message" value="Invoking GetReplicationRelationshipInstances"/>
     </bean>
 
     <bean id="reference-replicationService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="replicationService" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="replicationService" />
     </bean>
 
     <bean id="extrinsicMethodName-GetReplicationRelationshipInstances" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="GetReplicationRelationshipInstances" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="GetReplicationRelationshipInstances" />
     </bean>
 
     <bean id="cimArgArray-GetReplicationRelationshipInstances" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_value">
+        <property name="value">
             <list>
                 <ref bean="locality" />
                 <ref bean="type" />
             </list>
         </property>
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getCIMArgArray" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getCIMArgArray" />
     </bean>
 
     <bean id="locality" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getIntValue16_CIMWrapper" />
-        <property name="_value" value="2" /> <!-- Local only -->
-        <property name="_name" value="Locality" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue16CIMWrapper" />
+        <property name="value" value="2" /> <!-- Local only -->
+        <property name="name" value="Locality" />
     </bean>
 
     <bean id="type" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getIntValue16_CIMWrapper" />
-        <property name="_value" value="2" /> <!-- StorageSynchronized -->
-        <property name="_name" value="Type" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue16CIMWrapper" />
+        <property name="value" value="2" /> <!-- StorageSynchronized -->
+        <property name="name" value="Type" />
     </bean>
 
 	<bean id="replicationRelationshipProcessor"
@@ -839,27 +839,27 @@
 	<!-- General call to set supported VPools for replicas. The supported VPools of replicas will be the same as that of the source -->
 	<!-- This should be executed at the end of the unmanaged volume discovery -->
 	<bean id="setSupportedVPoolsForReplicas" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="volumeToReplica" />
 				<ref bean="dbclient" />
 			</list>
 		</property>
 		<property name="instance" ref="volumeDiscoveryPostProcessor" />
-		<property name="_method" value="setSupportedVPoolsForReplicas" />
+		<property name="method" value="setSupportedVPoolsForReplicas" />
 		<property name="message" value="Invoking setSupportedVPoolsForReplicas" />
 	</bean>
 
 	<bean id="volumeToReplica" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getListValue" />
-		<property name="_value" value="unManagedVolumesToLocalReplicaMap" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getListValue" />
+		<property name="value" value="unManagedVolumesToLocalReplicaMap" />
 	</bean>
 
 	<bean id="dbclient" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="dbClient" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="dbClient" />
 	</bean>
 
 	<bean id="volumeDiscoveryPostProcessor"
@@ -869,7 +869,7 @@
 
     <!-- SMI Call to get bound Storage volumes for VMAX2 Thin pools -->
     <bean id="getBoundStorageVolumesForVMAX2ThinPools" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-vmax2-thin-pools" />
                 <ref bean="resultClass-allocatedFromStoragePool" />
@@ -885,29 +885,29 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="" />
-        <property name="_method" value="references" />
-        <property name="_processor" ref="storageVolumeBoundPoolProcessor" />
+        <property name="result" value="" />
+        <property name="method" value="references" />
+        <property name="processor" ref="storageVolumeBoundPoolProcessor" />
         <property name="message" value="Invoking references to get bound Storage volumes for VMAX2 Thin pools"/>
     </bean>
     
     <bean id="reference-vmax2-thin-pools" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="vmax2ThinPools" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="vmax2ThinPools" />
     </bean>
     
     <bean id="resultClass-allocatedFromStoragePool" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="Symm_AllocatedFromStoragePool_VPP_SV" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="Symm_AllocatedFromStoragePool_VPP_SV" />
     </bean>
     
     <bean id="boundToThinStoragePoolProp" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringArrayValue" />
-        <property name="_value" value="EMCBoundToThinStoragePool,Dependent" />
-        <property name="_name" value="boundPool" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringArrayValue" />
+        <property name="value" value="EMCBoundToThinStoragePool,Dependent" />
+        <property name="name" value="boundPool" />
     </bean>
     
     <!-- Processors -->
@@ -916,7 +916,7 @@
 
 	<!-- SMI Call to get volume information using provider 4.x -->
 	<bean id="getStorageVolumesFor4x" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-pools" />
 
@@ -935,36 +935,36 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="storagevolumeviews" />
-		<property name="_method" value="associators" />
-		<property name="_processor" ref="storageVolumeInfoProcessor" />
+		<property name="result" value="storagevolumeviews" />
+		<property name="method" value="associators" />
+		<property name="processor" ref="storageVolumeInfoProcessor" />
 		<property name="supportedVersion" value="4.x"/>
 		<property name="message" value="Invoking associators to get Storage volumes using provider version 4.x"/>
 	</bean>
 
 	<bean id="resultClass-Volumes" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="SNIA_VolumeView" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="SNIA_VolumeView" />
 	</bean>
 	
 	<bean id="assocClass-EMC_AllocatedFromStoragePoolView" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="EMC_AllocatedFromStoragePoolView" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="EMC_AllocatedFromStoragePoolView" />
 	</bean>
 	
 	<bean id="volumeview-prop4x" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value"
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value"
 			value="EMCSVDataFormat,EMCSVIsMapped,SSElementName,EMCSVRecoverPointEnabled,EMCSVIsComposite,AFSPSpaceConsumed,SVUsage,EMCSVWWN,EMCSVThinlyProvisioned,SVBlockSize,SVConsumableBlocks,SVDeviceID,SVElementName,SVName,EMCSVIsBound" />
-		<property name="_name" value="prvcList" />
+		<property name="name" value="prvcList" />
 	</bean>
 	
 	<!-- SMI Call to get volume SpaceConsumed using 8.x -->
 	<bean id="getAllocatedFromStoragePoolsFor8x" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-vmax2pools" />
 				<ref bean="resultClass-EMC_AllocatedFromStoragePools" />
@@ -979,30 +979,30 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="references" />
-		<property name="_processor" ref="allocatedFromStoragePoolProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="references" />
+		<property name="processor" ref="allocatedFromStoragePoolProcessor" />
 		<property name="supportedVersion" value="8.x"/>
 		<property name="message" value="Invoking references to get AllocatedFromStoragePool from Storage Pools using provider 8.x"/>
 	</bean>
 
 	<bean id="reference-vmax2pools" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="vmax2pools" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="vmax2pools" />
 	</bean>
 
 	<bean id="resultClass-EMC_AllocatedFromStoragePools" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="EMC_AllocatedFromStoragePool" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="EMC_AllocatedFromStoragePool" />
 	</bean>
 
 	<bean id="allocatedFromStoragePool-prop" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value" value="SpaceConsumed" />
-		<property name="_name" value="prvcList" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value" value="SpaceConsumed" />
+		<property name="name" value="prvcList" />
 	</bean>
 
 	<!-- Processors -->
@@ -1012,7 +1012,7 @@
 
 	<!-- SMI Call to get volume information using provider 8.x -->
 	<bean id="getStorageVolumesFor8x" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-pools" />
 
@@ -1031,32 +1031,32 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="storagevolumeviews" />
-		<property name="_method" value="associators" />
-		<property name="_processor" ref="storageVolumeInfoProcessor" />
+		<property name="result" value="storagevolumeviews" />
+		<property name="method" value="associators" />
+		<property name="processor" ref="storageVolumeInfoProcessor" />
 		<property name="supportedVersion" value="8.x"/>
 		<property name="message" value="Invoking associators to get Storage volumes using provider version 8.x"/>
 	</bean>
 
 	<bean id="volumeview-prop8x" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value"
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value"
 			value="EMCDataFormat,EMCIsMapped,EMCRaidLevel,EMCRecoverPointEnabled,EMCIsComposite,EMCSpaceConsumed,Usage,EMCWWN,ThinlyProvisioned,BlockSize,ConsumableBlocks,DeviceID,ElementName,Name,EMCIsBound" />
-		<property name="_name" value="prvcList" />
+		<property name="name" value="prvcList" />
 	</bean>
 
 	<bean id="reference-pools" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="storagePools" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="storagePools" />
 	</bean>
 	
 	<bean id="maxObjects" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getIntValue32" />
-        <property name="_value" value="10" />
-        <property name="_name" value="maxObjects" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue32" />
+        <property name="value" value="10" />
+        <property name="name" value="maxObjects" />
     </bean>
 
 	<!-- Processors -->
@@ -1067,7 +1067,7 @@
 
 	<!-- SMI Call to get volume information -->
 	<bean id="getStorageVolumeFromView" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-volumeView" />
 
@@ -1079,27 +1079,27 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="storagevolumes" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="cimpathprocessor" />
+		<property name="result" value="storagevolumes" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="cimpathprocessor" />
 
 	</bean>
 
 	<bean id="resultClass-Volume" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="CIM_StorageVolume" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="CIM_StorageVolume" />
 	</bean>
 
 	<bean id="reference-volumeView" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="storagevolumeviews" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="storagevolumeviews" />
 	</bean>
 
 	<!-- SMI Call to get associated volume capabilities for an Array -->
 	<bean id="getVolumeCapabilities" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-volumes" />
 
@@ -1110,16 +1110,16 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="storageVolumeCapabilitiesProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="storageVolumeCapabilitiesProcessor" />
 
 	</bean>
 
 	<bean id="reference-volumes" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="storagevolumes" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="storagevolumes" />
 	</bean>
 
 	<!-- Processors -->
@@ -1128,7 +1128,7 @@
 
 	<!-- SMI Call to get associated StoragePools for an Array -->
 	<bean id="checkAutoTieringEnabled" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-maskingGroups" />
 
@@ -1139,22 +1139,22 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="associatorNames" />
-		<property name="_processor" ref="tierPolicyProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="associatorNames" />
+		<property name="processor" ref="tierPolicyProcessor" />
 
 	</bean>
 
 	<bean id="reference-maskingGroups" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="maskingGroups" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="maskingGroups" />
 	</bean>
 
 	<bean id="resultClass-tierPolicy" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value" value="CIM_TierPolicyRule" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value" value="CIM_TierPolicyRule" />
 	</bean>
 
 	<!-- Processors -->
@@ -1163,7 +1163,7 @@
 		
 	<!-- get Volume Access -->	
 	<bean id="getAccessState" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_arguments">
+		<property name="arguments">
 			<list>
 				<ref bean="reference-pools" />
 
@@ -1182,18 +1182,18 @@
 			</list>
 		</property>
 		<property name="instance" ref="cimClient" />
-		<property name="_result" value="" />
-		<property name="_method" value="associators" />
-		<property name="_processor" ref="accessProcessor" />
+		<property name="result" value="" />
+		<property name="method" value="associators" />
+		<property name="processor" ref="accessProcessor" />
 
 	</bean>
 	
     <bean id="volume-prop" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringArrayValue" />
-		<property name="_value"
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringArrayValue" />
+		<property name="value"
 			value="Access,StatusDescriptions" />
-		<property name="_name" value="props" />
+		<property name="name" value="props" />
 	</bean>
 
 	<!-- Processors -->
@@ -1204,23 +1204,23 @@
 		
 
 	<bean id="null" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getStringValue" />
-		<property name="_value">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getStringValue" />
+		<property name="value">
 			<null />
 		</property>
 	</bean>
 	<bean id="bool" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getBoolValue" />
-		<property name="_value" value="false" />
-		<property name="_name" value="qualifiers" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getBoolValue" />
+		<property name="value" value="false" />
+		<property name="name" value="qualifiers" />
 	</bean>
 	<bean id="bool-true" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getBoolValue" />
-		<property name="_value" value="true" />
-		<property name="_name" value="qualifiers" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getBoolValue" />
+		<property name="value" value="true" />
+		<property name="name" value="qualifiers" />
 	</bean>
 
 	<!-- ArgsCreator Instance -->
@@ -1233,9 +1233,9 @@
 
 	<!-- cimClient -->
 	<bean id="cimClient" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="cimClient" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="cimClient" />
 	</bean>
 	
 	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager"/>
@@ -1244,8 +1244,8 @@
 	<!-- Common for vnxBlock & VMAX -->
 	<bean id="block"
 		class="com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface">
-		<property name="_executor" ref="executor" />
-		<property name="_namespaces" ref="namespaces" />
+		<property name="executor" ref="executor" />
+		<property name="namespaces" ref="namespaces" />
 	</bean>
 
 	<bean id="commandgenerator"
@@ -1256,13 +1256,13 @@
 	<bean id="executor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.smis.SMIExecutor">
 
-		<property name="_util" ref="smiutility" />
-		<property name="_generator" ref="commandgenerator" />
+		<property name="util" ref="smiutility" />
+		<property name="generator" ref="commandgenerator" />
 	</bean>
 
     <!-- SMI-S call for associatorNames to get instance of element composition service for storage array -->
     <bean id="getElementCompositionService" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-comp" />   <!--  Array’s Object path in map , which already got populated from previous beans. -->
                 <ref bean="null" />
@@ -1272,22 +1272,22 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="elementCompositionService" />
-        <property name="_method" value="associatorNames" />
-        <property name="_processor" ref="cimpathprocessor" />   <!--  by default stores the object path in the above result key in Map -->
+        <property name="result" value="elementCompositionService" />
+        <property name="method" value="associatorNames" />
+        <property name="processor" ref="cimpathprocessor" />   <!--  by default stores the object path in the above result key in Map -->
         <property name="message" value="Invoking associatorNames to get ElementCompositionService of Array"/>
     </bean>
 
 
     <bean id="resultClass-ElementCompositionService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="EMC_ElementCompositionService" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="EMC_ElementCompositionService" />
     </bean>
 
     <!-- SMI-S call for associatorNames to get instances of storage volumes paths(EMC_StorageVolume) for storage volume views -->
     <bean id="getMetaVolumesPath" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-metaVolumesViewList" />
                 <ref bean="null" />
@@ -1297,22 +1297,22 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="metaVolumesList" />
-        <property name="_method" value="associatorNames" />
-        <property name="_processor" ref="cimpathprocessor" />   <!--  by default stores the object path in the above result key in Map -->
+        <property name="result" value="metaVolumesList" />
+        <property name="method" value="associatorNames" />
+        <property name="processor" ref="cimpathprocessor" />   <!--  by default stores the object path in the above result key in Map -->
         <property name="supportedVersion" value="4.x"/> <!--  only necessary for 4.x. For 8.x, metaVolumesList is set in getStorageVolumesFor8x -->       
         <property name="message" value="Invoking associatorNames to get StorageVolume path for meta volume."/>
     </bean>
 
     <bean id="reference-metaVolumesViewList" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="metaVolumesViewList" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="metaVolumesViewList" />
     </bean>
 
     <!-- SMI-S call to get cim object paths for composite elements for a given composite volume. -->
     <bean id="getCompositeElements" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-ElementCompositionService" />
                 <ref bean="intrinsicMethodName-GetCompositeElements" />
@@ -1321,9 +1321,9 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="" />
-        <property name="_method" value="invokeMethod" />
-        <property name="_processor" ref="metaVolumeMembersProcessor" />
+        <property name="result" value="" />
+        <property name="method" value="invokeMethod" />
+        <property name="processor" ref="metaVolumeMembersProcessor" />
         <!-- executionCycle: execute for each meta volume CIMObjectPath instance
               stored as an entry ("metaVolumesList", List<CIMObjectPath>) in the Map earlier. -->
         <property name="executionCycles" value="metaVolumesList"/>
@@ -1331,47 +1331,47 @@
     </bean>
 
     <bean id="reference-ElementCompositionService" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="elementCompositionService" /> <!-- key for cim path instance in the map -->
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="elementCompositionService" /> <!-- key for cim path instance in the map -->
     </bean>
 
     <bean id="intrinsicMethodName-GetCompositeElements" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="GetCompositeElements" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="GetCompositeElements" />
     </bean>
 
     <bean id="cimArgArray-getCompositeElements" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_value">
+        <property name="value">
             <list>
                 <ref bean="requestType" />
                 <ref bean="theElement" />
 
             </list>
         </property>
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getCIMArgArray" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getCIMArgArray" />
     </bean>
 
     <bean id="requestType" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getIntValue16_CIMWrapper" />
-        <property name="_value" value="2" />
-        <property name="_name" value="RequestType" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getIntValue16CIMWrapper" />
+        <property name="value" value="2" />
+        <property name="name" value="RequestType" />
     </bean>
 
     <bean id="theElement" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue_CIMWrapper" />
-        <property name="_value" value="metaVolumesList" />
-        <property name="_name" value="TheElement" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValueCIMWrapper" />
+        <property name="value" value="metaVolumesList" />
+        <property name="name" value="TheElement" />
     </bean>
 
     <bean id="cimoutputArray" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getCIMArrayValue" />
-        <property name="_value" value="" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getCIMArrayValue" />
+        <property name="value" value="" />
     </bean>
 
     <!-- Processor -->
@@ -1380,7 +1380,7 @@
 
     <!-- SMI-S call for associatorNames to get instances of paths for EMC_Meta -->
     <bean id="getEMCMetaPath" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="_arguments">
+        <property name="arguments">
             <list>
                 <ref bean="reference-metaVolumesList" />
                 <ref bean="null" />
@@ -1390,22 +1390,22 @@
             </list>
         </property>
         <property name="instance" ref="cimClient" />
-        <property name="_result" value="" />
-        <property name="_method" value="associatorNames" />
-        <property name="_processor" ref="metaVolumeTypeProcessor" />
+        <property name="result" value="" />
+        <property name="method" value="associatorNames" />
+        <property name="processor" ref="metaVolumeTypeProcessor" />
         <property name="message" value="Invoking associatorNames to get EMC_Meta path for meta volume."/>
     </bean>
 
     <bean id="reference-metaVolumesList" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="metaVolumesList" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="metaVolumesList" />
     </bean>
 
     <bean id="resultClass-EMCMeta" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getStringValue" />
-        <property name="_value" value="EMC_Meta" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getStringValue" />
+        <property name="value" value="EMC_Meta" />
     </bean>
 
     <bean id="metaVolumeTypeProcessor"

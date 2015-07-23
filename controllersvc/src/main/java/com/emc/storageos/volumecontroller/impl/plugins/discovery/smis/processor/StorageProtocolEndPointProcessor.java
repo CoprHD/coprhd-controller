@@ -79,7 +79,7 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                             iScsiPortName.split(COMMA_STR)[0].toLowerCase(), _dbClient, device);
                     createEthernetStoragePort(keyMap, port, endPointInstance,
                             portInstanceID, coordinator, newPorts, existingPorts);
-                    addPath(keyMap, operation.get_result(),
+                    addPath(keyMap, operation.getResult(),
                             endPointInstance.getObjectPath());
                 } catch (Exception e) {
                     _logger.warn("SCSI End Point Discovery failed for {}-->{}", "",
@@ -107,7 +107,6 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
             _logger.debug("# Pools used in invoking PoolMatcher during StorageProtoclEndPoint {}",Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
         } catch (Exception e) {
             _logger.error("SCSI End Point Discovery failed -->{}", getMessage(e));
-        } finally {
         }
     }
 

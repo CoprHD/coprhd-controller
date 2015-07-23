@@ -152,7 +152,7 @@ public class DataCollectionTest {
             versionChecker.setCoordinator(_coordinator);
         } catch (Exception e) {
             _logger.error("Failed to run setup. Exception - " + e.getMessage());
-            e.printStackTrace();
+            _logger.error(e.getMessage(), e);
         }
     }
 

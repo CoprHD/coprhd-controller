@@ -297,7 +297,9 @@ public class SchemaUtil {
             
             try {
                 Thread.sleep(retryIntervalSecs * 1000);
-            } catch (InterruptedException ex) { }    
+            } catch (InterruptedException ex) {
+            	_log.warn("Thread is interrupted during wait for retry", ex);
+            }    
         }
     }
     
@@ -783,8 +785,8 @@ public class SchemaUtil {
 
         CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
         Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
-        StringMap IPv4Addresses =  new StringMap();
-        StringMap IPv6Addresses =  new StringMap();
+        StringMap ipv4Addresses =  new StringMap();
+        StringMap ipv6Addresses =  new StringMap();
 
         String nodeId;
         int nodeIndex = 0;
@@ -793,13 +795,13 @@ public class SchemaUtil {
             nodeId = VDC_NODE_PREFIX + nodeIndex;
             DualInetAddress addr = cnode.getValue();
             if (addr.hasInet4())
-                IPv4Addresses.put(nodeId, addr.getInet4());
+            	ipv4Addresses.put(nodeId, addr.getInet4());
             if (addr.hasInet6())
-                IPv6Addresses.put(nodeId, addr.getInet6());
+            	ipv6Addresses.put(nodeId, addr.getInet6());
         }
 
-        vdc.setHostIPv4AddressesMap(IPv4Addresses);
-        vdc.setHostIPv6AddressesMap(IPv6Addresses);
+        vdc.setHostIPv4AddressesMap(ipv4Addresses);
+        vdc.setHostIPv6AddressesMap(ipv6Addresses);
 
         vdc.setLocal(true);
         dbClient.createObject(vdc);
@@ -884,14 +886,17 @@ public class SchemaUtil {
                 if (lock != null) {
                     try {
                         lock.release();
-                    } catch (Exception ignore) {
+                    } catch (Exception e) {
+                    	_log.error("Fail to release lock", e);
                     }
                 }
             }
             if (wait) {
                 try {
                     Thread.sleep(retryIntervalSecs * 1000);
-                } catch (InterruptedException ex) { }
+                } catch (InterruptedException ex) {
+                	_log.warn("Thread is interrupted during wait for retry", ex);
+                }
             }
         }
     }

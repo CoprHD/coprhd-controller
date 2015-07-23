@@ -56,8 +56,8 @@ public class SyncInfo {
     }
 
     public boolean isEmpty() {
-        return (_toInstall == null || _toInstall.size() == 0) &&
-                (_toRemove == null || _toRemove.size() == 0);
+        return (_toInstall == null || _toInstall.isEmpty()) &&
+                (_toRemove == null || _toRemove.isEmpty());
     }
 
     @Override

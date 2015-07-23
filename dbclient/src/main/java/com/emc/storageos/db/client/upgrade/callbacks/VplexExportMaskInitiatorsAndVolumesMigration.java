@@ -73,7 +73,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 							log.info("Looking at export mask "+  exportMask.getMaskName() + " Export Mask ID is :" + exportMask.getId()
 									+ "created by system is " + exportMask.getCreatedBySystem());
 							StringMap volumeMaps = exportMask.getVolumes();
-							if(volumeMaps != null && volumeMaps.size() > 0){
+							if(volumeMaps != null && !volumeMaps.isEmpty()){
 								Set<String> volumeIds = volumeMaps.keySet();
 								List<BlockObject> volumes = new ArrayList<BlockObject>();
 								for(String volumeId : volumeIds){
@@ -88,7 +88,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 								}
 								StringMap userAddedVolumesMap = exportMask.getUserAddedVolumes();
 
-								if(userAddedVolumesMap == null && volumes.size() > 0){
+								if(userAddedVolumesMap == null && !volumes.isEmpty()){
 									// If there is nothing in the userAddedVolumesMap then add all the
 									// volumes from the EXportMask Volumes list
 									log.info("Adding volumes to the userCreatedVolumes "+ volumes + "to the export mask " + exportMask.getMaskName() + 
@@ -132,7 +132,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 							// initiators list can be inconsistent when we are reusing existing
 							// storage view in which case createdBySystem will be false
 							// Add existing initiators to the initiators list if we can find Initiator object for those pwwn
-							if(exportMask.getExistingInitiators() != null && exportMask.getExistingInitiators().size() > 0 ){
+							if(exportMask.getExistingInitiators() != null && !exportMask.getExistingInitiators().isEmpty()){
 								StringSet existingInitiators = exportMask.getExistingInitiators();
 								List<URI> existingInitiatorsURIs = new ArrayList<URI>();
 								for(String pwwn : existingInitiators){
@@ -141,7 +141,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 										existingInitiatorsURIs.add(initiator.getId());
 									}
 								}
-								if (exportMask.getInitiators() == null && existingInitiatorsURIs.size() > 0) {
+								if (exportMask.getInitiators() == null && !existingInitiatorsURIs.isEmpty()) {
 									log.info("Adding existingInitiators to the initiators "+ existingInitiatorsURIs + "to the export mask " + exportMask.getMaskName() + 
 											"export mask ID is :" + exportMask.getId());
 									exportMask.setInitiators(StringSetUtil.uriListToStringSet(existingInitiatorsURIs));
@@ -199,7 +199,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 	 */
 	private ExportMask populateExportMaskUserAddedInitiators(ExportMask exportMask){
 
-		if(exportMask.getInitiators() !=null && exportMask.getInitiators().size() > 0){
+		if(exportMask.getInitiators() !=null && !exportMask.getInitiators().isEmpty()){
 			StringMap userAddedInitiatorsMap= exportMask.getUserAddedInitiators();
 			List<Initiator> initiators = new ArrayList<Initiator>();
 			for(String initiatorId : exportMask.getInitiators()){
@@ -210,7 +210,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 			}
 			// If there is nothing in the userAddedInitiatorsMap then add all the
 			// initiators from the ExportMask initiators list to the user added initiators
-			if(userAddedInitiatorsMap == null && initiators.size() > 0){
+			if(userAddedInitiatorsMap == null && !initiators.isEmpty()){
 				exportMask.addToUserCreatedInitiators(initiators);
 				log.info("Adding initiators to the userCreatedInitiators "+ initiators + "to the export mask " + exportMask.getMaskName() + 
 						"export mask ID is :" + exportMask.getId());

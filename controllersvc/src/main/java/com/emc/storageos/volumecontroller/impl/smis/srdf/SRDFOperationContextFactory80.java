@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.smis.srdf;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.ActiveSynchronizationsOnlyFilter;
-import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.AllStorageSyncsInCGCollector;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.collectors.CollectorStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.*;
 

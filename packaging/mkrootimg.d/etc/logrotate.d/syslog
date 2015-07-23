@@ -9,12 +9,12 @@
 # the firewall,acpid,NetworkManager log files
 # are used by syslog-ng and rsyslog only, the
 # other by all syslog daemons.
-/var/log/messages /var/log/allmessages /var/log/localmessages /var/log/warn /var/log/firewall /var/log/acpid /var/log/NetworkManager /var/log/systemevents {
+/var/log/messages /var/log/allmessages /var/log/localmessages /var/log/warn /var/log/firewall /var/log/acpid /var/log/NetworkManager /var/log/systemevents /var/log/cron{
     missingok
     notifempty
     sharedscripts
     postrotate
-        /etc/init.d/syslog reload > /dev/null
+        /usr/bin/systemctl reload syslog> /dev/null
     endscript
 }
 

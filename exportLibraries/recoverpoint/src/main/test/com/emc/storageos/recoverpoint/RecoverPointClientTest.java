@@ -53,34 +53,23 @@ public class RecoverPointClientTest {
 
     private static final int LOCAL_SITE_ID = 1;
     
-    private static FunctionalAPIImpl mockFunctionalAPIImpl;
-    private static RecoverPointClient rpClient;
-    private static Logger logger;
-    private static String bookmarkName;
-   
-    @BeforeClass
-    public static void setup() {
-    	bookmarkName = "BourneBookmark_";
-        Random randomnumber = new Random();
-        bookmarkName += Math.abs(randomnumber.nextInt());
-    	
-        logger = LoggerFactory.getLogger(RecoverPointClientTest.class);
-    }
-
+    private static final FunctionalAPIImpl mockFunctionalAPIImpl = createMock(FunctionalAPIImpl.class);;
+    private static RecoverPointClient rpClient = null;
+    private static final Logger logger = LoggerFactory.getLogger(RecoverPointClientTest.class);
     
     @Before
-    public void setupClient() {
+    public static synchronized void setupClient() {
         URI endpoint=null;
         try {
             endpoint = new URI(PRE_URI + RP_SITE_TO_USE + POST_URI);
         } catch (URISyntaxException e) {
             logger.error(e.getMessage(), e);
         }
-        
-        mockFunctionalAPIImpl = createMock(FunctionalAPIImpl.class);
-        rpClient = new RecoverPointClient(endpoint, RP_USERNAME, RP_PASSWORD);
-        rpClient.setFunctionalAPI(mockFunctionalAPIImpl);
-    }
+        if (rpClient == null) {
+        	rpClient = new RecoverPointClient(endpoint, RP_USERNAME, RP_PASSWORD);
+            rpClient.setFunctionalAPI(mockFunctionalAPIImpl);
+        }
+    }    
     
     @Test
     public void testLogger() {

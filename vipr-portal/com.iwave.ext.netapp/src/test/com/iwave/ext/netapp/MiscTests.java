@@ -23,13 +23,18 @@ import com.iwave.ext.netapp.model.SecurityRuleInfo;
 import com.emc.storageos.services.util.EnvConfig;
 
 
+@SuppressWarnings({"findbugs:WMI_WRONG_MAP_ITERATOR"})
+/*
+ * Code change for iterator will be made in future release 
+ */
+
 public class MiscTests {
 
     static private NetAppFacade netAppFacade = null;
     static private Server server = null;
     private static String host = EnvConfig.get("sanity", "netapp.host");
-    private static String portNumber = EnvConfig.get("sanity", "netapp.port");
-    private static String userName = EnvConfig.get("sanity", "netapp.username");
+    private static volatile String portNumber = EnvConfig.get("sanity", "netapp.port");
+    private static volatile String userName = EnvConfig.get("sanity", "netapp.username");
     private static String password = EnvConfig.get("sanity", "netapp.password");
     
     @BeforeClass

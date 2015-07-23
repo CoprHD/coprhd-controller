@@ -69,18 +69,18 @@ public class RemoteReplicationIngestor {
                 unManagedVolumeInformation);
         volume.setSrdfCopyMode(copyMode);
         volume.setSrdfGroup(URI.create(raGroup));
-        if (sourceUris.size() == 0) {
+        if (sourceUris.isEmpty()) {
             _logger.info("Source {} Not found for target {}", sourceVolumeId, volume.getId());
         } else {
             // check whether all targets of the source are ingested
             List<URI> sourceUnmanagedUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeInfoNativeIdConstraint(sourceUnManagedVolumeId));
-            if (sourceUnmanagedUris.size() > 0) {
+            if (!sourceUnmanagedUris.isEmpty()) {
                 UnManagedVolume sourceUnManagedVolume = dbClient.queryObject(UnManagedVolume.class, sourceUnmanagedUris.get(0));
                 if (null != sourceUnManagedVolume) {
                     StringSet targetUnManagedVolumeGuids = sourceUnManagedVolume.getVolumeInformation().get(
                             SupportedVolumeInformation.REMOTE_MIRRORS.toString());
-                    if (null != targetUnManagedVolumeGuids && targetUnManagedVolumeGuids.size() > 0) {
+                    if (null != targetUnManagedVolumeGuids && !targetUnManagedVolumeGuids.isEmpty()) {
                         StringSet targetVolumeNativeGuids = VolumeIngestionUtil.getListofVolumeIds(targetUnManagedVolumeGuids);
                         List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, dbClient);
                         targetUris.add(volume.getId());
@@ -161,7 +161,7 @@ public class RemoteReplicationIngestor {
         // find whether all targets are ingested
         StringSet targetUnManagedVolumeGuids = unManagedVolumeInformation.get(SupportedVolumeInformation.REMOTE_MIRRORS.toString());
         _logger.info("Type : {} --> Source Volume {}", type, srcVolume.getNativeGuid());
-        if (null != targetUnManagedVolumeGuids && targetUnManagedVolumeGuids.size() > 0) {
+        if (null != targetUnManagedVolumeGuids && !targetUnManagedVolumeGuids.isEmpty()) {
             StringSet targetVolumeNativeGuids = VolumeIngestionUtil.getListofVolumeIds(targetUnManagedVolumeGuids);
             // check whether target exists
             List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, dbClient);

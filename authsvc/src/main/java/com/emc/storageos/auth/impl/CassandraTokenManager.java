@@ -396,7 +396,7 @@ public class CassandraTokenManager extends CassandraTokenValidator implements To
                     _log.info("Marking for deletion: user record {} for username {}",
                             userRecord.getId().toString(), userName);
                     _dbClient.markForDeletion(userRecord);
-                } else if (pTokensToDelete.size() == 0) {
+                } else if (pTokensToDelete.isEmpty()) {
                     _log.info("No proxy tokens found. Marking for deletion: user record {} for username {}",
                             userRecord.getId().toString(), userName);
                     _dbClient.markForDeletion(userRecord);

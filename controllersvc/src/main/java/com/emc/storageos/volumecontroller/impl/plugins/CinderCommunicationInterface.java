@@ -201,7 +201,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                                 }
                                 else if (parameter.equalsIgnoreCase("admin_password")){
                                     updateKeyInProvider(providerKeys,
-                                            CinderConstants.KEY_CINDER_REST_PASSWORD, value);
+                                            CinderConstants.KEY_CINDER_REST_PASS_WORD, value);
                                     _logger.debug("REST password = {}", value);
                                 }
                                 else if (parameter.equalsIgnoreCase("admin_tenant_name")){
@@ -401,7 +401,7 @@ public class CinderCommunicationInterface extends ExtendedCommunicationInterface
                     oldToken = providerKeys.get(CinderConstants.KEY_CINDER_REST_TOKEN);
                     hostName = providerKeys.get(CinderConstants.KEY_CINDER_HOST_NAME);
                     restuserName = providerKeys.get(CinderConstants.KEY_CINDER_REST_USER);
-                    restPassword = providerKeys.get(CinderConstants.KEY_CINDER_REST_PASSWORD);
+                    restPassword = providerKeys.get(CinderConstants.KEY_CINDER_REST_PASS_WORD);
                     restBaseUri = providerKeys.get(CinderConstants.KEY_CINDER_REST_URI_BASE);
                     tenantName = providerKeys.get(CinderConstants.KEY_CINDER_TENANT_NAME);
                     tenantId = providerKeys.get(CinderConstants.KEY_CINDER_TENANT_ID);

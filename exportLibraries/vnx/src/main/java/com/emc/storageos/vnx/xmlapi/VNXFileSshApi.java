@@ -502,7 +502,9 @@ public class VNXFileSshApi {
             while(true){
                 while(in.available()>0){
                     int i=in.read(tmp, 0, BUFFER_SIZE);
-                    if(i<0)break;
+					if (i < 0) {
+						break;
+					}
                     cmdResults.append(new String(tmp, 0, i));
                 }
 
@@ -557,6 +559,7 @@ public class VNXFileSshApi {
                 try {
                     in.close();
                 } catch (IOException ignored) {
+                	_log.error("Exception occured while closing input stream due to ", ignored);
                 }
             }
 

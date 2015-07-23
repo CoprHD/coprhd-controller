@@ -79,7 +79,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private static final String VOLUME_NOT_FOUND = "Volume not found";
     private static final String ALREADY_MAPPED_TO = "already mapped to";
 
-    private static ScaleIOStorageDevice instance;
+    private static volatile ScaleIOStorageDevice instance;
 
     private DbClient dbClient;
     private ScaleIOCLIFactory scaleIOCLIFactory;

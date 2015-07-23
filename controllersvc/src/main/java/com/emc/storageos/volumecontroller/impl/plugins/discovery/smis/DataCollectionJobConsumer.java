@@ -301,7 +301,7 @@ public class DataCollectionJobConsumer extends
                         }
                         else {
                             if( null != provider.getStorageSystems()   &&
-                                0 < provider.getStorageSystems().size()   ) {
+                                !provider.getStorageSystems().isEmpty()   ) {
                                 provider.getStorageSystems().clear();
                             }
                             if( providerList.contains(provider.getId()) ) {
@@ -336,7 +336,9 @@ public class DataCollectionJobConsumer extends
                         // Manually trigger discoveries, if any new Arrays detected
                         triggerDiscoveryNew(storageSystemsCache);
                     }
-                } catch (Exception ex) {}
+                } catch (Exception ex) {
+                    _logger.error("Exception occurred while triggering discovery of new systems", ex);
+                }
             }
         }
         else {

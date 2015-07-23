@@ -157,7 +157,9 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
 					log.info(String.format("Owner %s blocking to wait for lock %s maxWaitSeconds %d", owner, lockKey, maxWaitSeconds));
 				}
 				Thread.sleep(SLEEP_MS_BETWEEN_ACQUIRE_ATTEMPTS);
-			} catch (Exception ex ){ }
+			} catch (Exception ex ){ 
+				log.error(ex.getMessage(),ex);
+			}
 			waitTime = System.currentTimeMillis() / 1000 - startTime;
 		} while (!acquired && waitTime < maxWaitSeconds);
 		if (waitTime >= maxWaitSeconds) {

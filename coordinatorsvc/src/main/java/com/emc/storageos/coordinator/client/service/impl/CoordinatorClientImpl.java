@@ -140,11 +140,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void setDbVersionInfo(DbVersionInfo info) {
         dbVersionInfo = info;
     }
-    
+
+    // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+    // This method is only called in tests and when Spring initialization, safe to suppress
+    @SuppressWarnings("squid:S2444")
     public static void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }
 
+    // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+    // This method is only called in tests and when Spring initialization, safe to suppress
+    @SuppressWarnings("squid:S2444")
     public static void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
@@ -541,7 +547,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String serviceRoot = String.format("%1$s/%2$s", name, version);
         List<String> servicePaths = lookupServicePath(serviceRoot);
 
-        if (servicePaths.size() == 0) {
+        if (servicePaths.isEmpty()) {
             throw CoordinatorException.retryables.cannotLocateService(String.format("%1$s/%2$s",
                     ZkPath.SERVICE.toString(), serviceRoot));
         }
@@ -934,8 +940,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         try {
             byte[] data = state.encodeAsString().getBytes("UTF-8");
-
-            for (boolean exist = _zkConnection.curator().checkExists().forPath(path) != null; ; exist = !exist) {
+            // This is reported because the for loop's stop condition and incrementer don't act on the same variable to make sure loop ends
+            // Here the loop can end (break or throw Exception) from inside, safe to suppress
+            for (boolean exist = _zkConnection.curator().checkExists().forPath(path) != null; ; exist = !exist) { //NOSONAR("squid:S1994")
                 try {
                     if (exist) {
                         _zkConnection.curator().setData().forPath(path, data);
@@ -1024,10 +1031,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         if (targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
             log.info("Control nodes' state POWERINGOFF");
             return ClusterInfo.ClusterState.POWERINGOFF;
-        } else if (differentConfigVersions.size() != 0) {
+        } else if (!differentConfigVersions.isEmpty()) {
             log.info("Control nodes' state UPDATING: {}", Strings.repr(targetPropertiesGiven));
             return ClusterInfo.ClusterState.UPDATING;
-        } else if (differentCurrents.size() == 0 && differentVersions.size() == 0) {
+        } else if (differentCurrents.isEmpty() && differentVersions.isEmpty()) {
             // check for the extra upgrading states
             if (isDbSchemaVersionChanged()) {
                 MigrationStatus status = getMigrationStatus();
@@ -1053,10 +1060,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             }
             log.info("Control nodes' state STABLE");
             return ClusterInfo.ClusterState.STABLE;
-        } else if (differentCurrents.size() == 0) {
+        } else if (differentCurrents.isEmpty()) {
             log.info("Control nodes' state SYNCING: {}", Strings.repr(differentVersions));
             return ClusterInfo.ClusterState.SYNCING;
-        } else if (differentVersions.size() == 0) {
+        } else if (differentVersions.isEmpty()) {
             log.info("Control nodes' state UPGRADING: {}", Strings.repr(differentCurrents));
             return ClusterInfo.ClusterState.UPGRADING;
         } else {

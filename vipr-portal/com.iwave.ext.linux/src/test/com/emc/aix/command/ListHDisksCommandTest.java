@@ -34,7 +34,7 @@ public class ListHDisksCommandTest {
     static ListHDisksCommand hdisksCommand = null;
     
     @BeforeClass
-    public static void setup() {
+    public synchronized static void setup() {
         CommandOutput commandOutput = new CommandOutput(output, null, 0);
         hdisksCommand = createMockBuilder(ListHDisksCommand.class).addMockedMethod("getOutput").createMock();
         EasyMock.expect(hdisksCommand.getOutput()).andReturn(commandOutput).anyTimes();

@@ -466,7 +466,7 @@ public class AuthnConfigurationService extends TaggedResource {
                 }
             }
         }
-        if (matchingTenants.size() > 0) {
+        if (!matchingTenants.isEmpty()) {
             throw APIException.badRequests.cannotDeleteAuthProviderWithTenants(matchingTenants.size(),
                     matchingTenants);
         }
@@ -487,7 +487,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         List<String> matchingUsers = checkRolesUsingDomains(vdcRoles, domains);
 
-        if (matchingUsers.size() > 0) {
+        if (!matchingUsers.isEmpty()) {
             throw APIException.badRequests.cannotDeleteAuthProviderWithVdcRoles(matchingUsers.size(), matchingUsers);
         }
     }
@@ -509,7 +509,7 @@ public class AuthnConfigurationService extends TaggedResource {
                     _permissionsHelper.convertToRoleAssignments(tenant.getRoleAssignments(), false);
 
             List<String> matchingUsers = checkRolesUsingDomains(tenantRoles, domains);
-            if (matchingUsers.size() > 0) {
+            if (!matchingUsers.isEmpty()) {
                 throw APIException.badRequests.cannotDeleteAuthProviderWithTenantRoles(tenant.getLabel(), matchingUsers.size(), matchingUsers);
             }
         }
@@ -781,7 +781,7 @@ public class AuthnConfigurationService extends TaggedResource {
      */
     private synchronized void persistProfileAndNotifyChange(AuthnProvider modifiedProvider,
             boolean newObject) {
-        modifiedProvider.setLast_modified(System.currentTimeMillis());
+        modifiedProvider.setLastModified(System.currentTimeMillis());
         if (newObject) {
             _dbClient.createObject(modifiedProvider);
         } else {

@@ -79,10 +79,10 @@ public abstract class VolumeTaskCompleter extends TaskLockingCompleter {
         try {
             eventManager.recordEvents(event);
             _logger.info("Bourne {} event recorded for Volume {}", evtType, id);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _logger.error(
                     "Failed to record event. Event description: {}. Error: ",
-                    evtType, th);
+                    evtType, ex);
         }
     }
 

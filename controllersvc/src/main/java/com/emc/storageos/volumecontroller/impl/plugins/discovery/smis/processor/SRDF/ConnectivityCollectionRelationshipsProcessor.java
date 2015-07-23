@@ -98,7 +98,7 @@ public class ConnectivityCollectionRelationshipsProcessor extends StorageProcess
 			}
 
 			if (null == remoteGroup.getVolumes()
-					|| remoteGroup.getVolumes().size() == 0) {
+					|| remoteGroup.getVolumes().isEmpty()) {
 				remoteGroup.setVolumes(new StringSet(volumeNativeGuids));
 			} else {
 				_log.debug("Existing Volumes {}",

@@ -67,27 +67,27 @@ public abstract class Executor {
      */
     protected Map<String, Object> _keyMap;
 
-    public void set_util(Util _util) {
+    public void setUtil(Util _util) {
         this._util = _util;
     }
 
-    public Util get_util() {
+    public Util getUtil() {
         return _util;
     }
 
-    public void set_keyMap(Map<String, Object> _keyMap) {
+    public void setKeyMap(Map<String, Object> _keyMap) {
         this._keyMap = _keyMap;
     }
 
-    public Map<String, Object> get_keyMap() {
+    public Map<String, Object> getKeyMap() {
         return _keyMap;
     }
 
-    public void set_generator(CommandGenerator _generator) {
+    public void setGenerator(CommandGenerator _generator) {
         this._generator = _generator;
     }
 
-    public CommandGenerator get_generator() {
+    public CommandGenerator getGenerator() {
         return _generator;
     }
 
@@ -112,7 +112,7 @@ public abstract class Executor {
      */
     public void execute(Namespace ns) throws BaseCollectionException {
         assert ns != null;
-        for (Object operationobj : ns.get_operations()) {
+        for (Object operationobj : ns.getOperations()) {
             Operation operation = (Operation) operationobj;
             executeOperation(operation);
         }
@@ -140,7 +140,7 @@ public abstract class Executor {
         // multiple Threads to complete its job without waiting.
         // Things which get shared across threads is only the ConcurrentMap,
         // hence haven't made it synchronized.
-        _processor = operation.get_processor();
+        _processor = operation.getProcessor();
         if (null != _processor) {
              List<Object> argsList = new ArrayList<Object>();
              argsList.add(Util.normalizedReadArgs(_keyMap, commandObj.retreiveArguments()));

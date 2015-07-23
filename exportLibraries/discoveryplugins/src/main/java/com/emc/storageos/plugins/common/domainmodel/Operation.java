@@ -36,35 +36,35 @@ public class Operation {
     private String _type;
     
 
-    public void set_arguments(List<Object> _arguments) {
+    public void setArguments(List<Object> _arguments) {
         this._arguments = _arguments;
     }
 
-    public List<Object> get_arguments() {
+    public List<Object> getArguments() {
         return _arguments;
     }
 
-    public void set_result(String _result) {
+    public void setResult(String _result) {
         this._result = _result;
     }
 
-    public String get_result() {
+    public String getResult() {
         return _result;
     }
 
-    public void set_method(String _method) {
+    public void setMethod(String _method) {
         this._method = _method;
     }
 
-    public String get_method() {
+    public String getMethod() {
         return _method;
     }
 
-    public void set_processor(Processor _processor) {
+    public void setProcessor(Processor _processor) {
         this._processor = _processor;
     }
 
-    public Processor get_processor() {
+    public Processor getProcessor() {
         return _processor;
     }
 
@@ -95,7 +95,7 @@ public class Operation {
         return _executionCycles;
     }
     
-    public void set_type(String _type) {
+    public void setType(String _type) {
         this._type = _type;
     }
     
@@ -104,7 +104,7 @@ public class Operation {
      * String.Class, CIMObjectPath.class
      * @return
      */
-    public String get_type() {
+    public String getType() {
         return _type;
     }
     

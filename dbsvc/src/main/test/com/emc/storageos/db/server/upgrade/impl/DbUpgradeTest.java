@@ -54,7 +54,7 @@ public class DbUpgradeTest extends DbMigrationTestBase {
     private static String annotationName = "com.emc.storageos.db.client.model.PrefixIndex";
 
     private static String columnName = "personality";
-    private static byte[] originalBytecodes = null;
+    private static volatile byte[] originalBytecodes = null;
 
     @Override
     protected String getSourceVersion() {
@@ -71,7 +71,9 @@ public class DbUpgradeTest extends DbMigrationTestBase {
         if (originalBytecodes == null) {
             ClassPool pool = ClassPool.getDefault();
             CtClass cc = pool.getCtClass(className);
-            originalBytecodes = cc.toBytecode();
+            //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+            //Junit test will be called in single thread by default, it's safe to ignore this violation
+            originalBytecodes = cc.toBytecode(); //NOSONAR ("squid:S2444")
         }
 
         hs.reload(className, originalBytecodes);

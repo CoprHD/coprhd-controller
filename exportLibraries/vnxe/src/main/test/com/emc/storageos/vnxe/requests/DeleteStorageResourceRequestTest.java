@@ -29,7 +29,9 @@ public class DeleteStorageResourceRequestTest {
     private static String password = EnvConfig.get("sanity", "vnxe.password");
 	@BeforeClass
     public static void setup() throws Exception {
+		synchronized (_client) {
 		_client = new KHClient(host, userName, password);
+	}
 	}
 	
 	//@Test

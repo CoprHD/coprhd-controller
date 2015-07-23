@@ -177,15 +177,15 @@ public class VNXeExportFileSystemJob extends VNXeJob{
         rule.setSecFlavor(fileExport.getSecurityType());
         
         if(fileExport.getPermissions().equals(FileShareExport.Permissions.ro.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
+        		&& fileExport.getClients()!=null && !fileExport.getClients().isEmpty()) {
         	rule.setReadOnlyHosts(new StringSet(fileExport.getClients()));
         }
         if(fileExport.getPermissions().equals(FileShareExport.Permissions.rw.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
+        		&& fileExport.getClients()!=null && !fileExport.getClients().isEmpty()) {
         	rule.setReadWriteHosts(new StringSet(fileExport.getClients()));
         }
         if(fileExport.getPermissions().equals(FileShareExport.Permissions.root.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
+        		&& fileExport.getClients()!=null && !fileExport.getClients().isEmpty()) {
         	rule.setRootHosts(new StringSet(fileExport.getClients()));
         }
         rule.setMountPoint(fileExport.getMountPoint());

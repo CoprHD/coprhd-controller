@@ -62,6 +62,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
 
     public static final int LUN_UNASSIGNED = -1;
     public static final String LUN_UNASSIGNED_STR = Integer.toHexString(LUN_UNASSIGNED);
+    public static final String LUN_UNASSIGNED_DECIMAL_STR = Integer.toString(LUN_UNASSIGNED);
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
@@ -103,7 +104,15 @@ public class ExportGroup extends DataObject implements ProjectResource {
         if (lun == null) {
             lun = LUN_UNASSIGNED;
         }
-        getVolumes().put(volume.toString(), lun.toString());
+
+        // Set volume's LUN only if it doesn't already exist
+        // or if currentLUN is unassigned
+        String lunString = lun.toString();
+        String currentLUN = getVolumes().get(volume.toString());
+        if (currentLUN == null || currentLUN.equals(LUN_UNASSIGNED_DECIMAL_STR)) {
+            getVolumes().put(volume.toString(), lunString);
+        }
+
         if (URIUtil.isType(volume, BlockSnapshot.class)) {
             if (_snapshots == null) {
                 _snapshots = new StringSet();
@@ -162,7 +171,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
     }
 
     public boolean hasInitiators() {
-       return _initiators != null && _initiators.size() > 0;
+       return _initiators != null && !_initiators.isEmpty();
     }
 
     public void addInitiators(List<URI> initiators) {

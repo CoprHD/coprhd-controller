@@ -56,7 +56,7 @@ public class ServiceCatalog extends Controller {
         if (category == null) {
             redirect(DocUtils.getDocumentationLink());
         }
-        Logger.debug("Redirecting to doc page for category: " + category.getName());
+        Logger.debug("Redirecting to doc page for category: " + category.getName()); //NOSONAR ("Suppressing Sonar violation of Possible null pointer deference of category. In the previous if condition, category being null is handled.")
         redirect(DocUtils.getCatalogDocumentationLink(category.getName()));
     }
 

@@ -60,8 +60,8 @@ public class FieldType{
             calendar.setTimeZone(TimeZone.getTimeZone(timeZoneStr));
             calendar.setTimeInMillis(Long.parseLong(timeInMillisStr));
         } catch(Exception e){
-            e.printStackTrace();
-            log.debug("Exception: ", e);
+        	System.err.println("Caught Exception: " + e);
+            log.error("Exception: ", e);
             return null;
         }
         return calendar;
@@ -72,8 +72,8 @@ public class FieldType{
         try{
             intNum = Integer.valueOf(str);
         } catch(Exception e){
-            e.printStackTrace();
-            log.debug("Exception: ", e);
+        	System.err.println("Caught Exception: " + e);
+            log.error("Exception: ", e);
             return null;
         }
         return intNum;
@@ -84,8 +84,8 @@ public class FieldType{
         try{
             longNum = new Long(str);
         } catch(Exception e){
-            e.printStackTrace();
-            log.debug("Exception in: ", e);
+        	System.err.println("Caught Exception: " + e);
+            log.error("Exception in: ", e);
             return null;
         }
         return longNum;
@@ -105,8 +105,8 @@ public class FieldType{
         try{
             wrapper = (T) clazz.newInstance(); 
         } catch(Exception e){
-            e.printStackTrace();
-            log.debug("Exception in: ", e);
+        	System.err.println("Caught Exception: " + e);
+            log.error("Exception in: ", e);
         }
         wrapper.setValue(value);
         try{
@@ -116,8 +116,8 @@ public class FieldType{
     
             marshaller.marshal(wrapper, node);
         } catch(Exception e){
-            e.printStackTrace();
-            log.debug("Exception in: ", e);
+        	System.err.println("Caught Exception: " + e);
+            log.error("Exception in: ", e);
         }
     }
 
@@ -128,8 +128,8 @@ public class FieldType{
             T object  = (T) unmarshaller.unmarshal(node);
             return object.getValue();
         } catch(Exception e){
-            e.printStackTrace();
-            log.debug("Exception in: ", e);
+        	System.err.println("Caught Exception: " + e);
+            log.error("Exception in: ", e);
         }
         return null;
     }

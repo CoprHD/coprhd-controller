@@ -221,11 +221,11 @@ public class VNXeCommunicationInterface extends
                 _logger.info("No of existing discovered NasServers {}",
                         nasServers.get(EXISTING).size());
                 
-                if(nasServers.get(NEW).size() > 0){
+                if(!nasServers.get(NEW).isEmpty()) {
                     _dbClient.createObject(nasServers.get(NEW));
                 }
           
-                if(nasServers.get(EXISTING).size() > 0){
+                if(!nasServers.get(EXISTING).isEmpty()) {
                     _dbClient.persistObject(nasServers.get(EXISTING));
                 }
                 _completer.statusPending(_dbClient,
@@ -237,12 +237,12 @@ public class VNXeCommunicationInterface extends
                 Map<String, List<StoragePort>> ports = discoverFileStoragePorts(
                         viprStorageSystem, client, nasServerIdMap);
                 
-                if(ports.get(NEW) != null && ports.get(NEW).size() > 0){
+                if(ports.get(NEW) != null && !ports.get(NEW).isEmpty()) {
                 	allNewPorts.addAll(ports.get(NEW));
                     _dbClient.createObject(ports.get(NEW));
                 }
           
-                if(ports.get(EXISTING) != null && ports.get(EXISTING).size() > 0){
+                if(ports.get(EXISTING) != null && !ports.get(EXISTING).isEmpty()) {
                 	allExistingPorts.addAll(ports.get(EXISTING));
                     _dbClient.persistObject(ports.get(EXISTING));
                 }
@@ -254,11 +254,11 @@ public class VNXeCommunicationInterface extends
                 Map<String, List<StorageHADomain>> sps = discoverStorageProcessors(
                         viprStorageSystem, client, spIdMap);
                 
-                if(sps.get(NEW).size() > 0){
+                if(!sps.get(NEW).isEmpty()) {
                     _dbClient.createObject(sps.get(NEW));
                 }
           
-                if(sps.get(EXISTING).size() > 0){
+                if(!sps.get(EXISTING).isEmpty()) {
                     _dbClient.persistObject(sps.get(EXISTING));
                 }
                 _completer.statusPending(_dbClient,
@@ -268,13 +268,13 @@ public class VNXeCommunicationInterface extends
                 Map<String, List<StoragePort>> iscsiPorts = discoverIscsiPorts(
                         viprStorageSystem, client, spIdMap);
                 boolean hasIscsiPorts = false;
-                if(iscsiPorts.get(NEW)!= null && iscsiPorts.get(NEW).size() > 0){
+                if(iscsiPorts.get(NEW)!= null && !iscsiPorts.get(NEW).isEmpty()) {
                 	allNewPorts.addAll(iscsiPorts.get(NEW));
                     hasIscsiPorts = true;
                     _dbClient.createObject(iscsiPorts.get(NEW));
                 }
           
-                if(iscsiPorts.get(EXISTING) != null && iscsiPorts.get(EXISTING).size() > 0){
+                if(iscsiPorts.get(EXISTING) != null && !iscsiPorts.get(EXISTING).isEmpty()) {
                 	allExistingPorts.addAll(iscsiPorts.get(EXISTING));
                     hasIscsiPorts = true;
                     _dbClient.persistObject(ports.get(EXISTING));
@@ -290,13 +290,13 @@ public class VNXeCommunicationInterface extends
                 Map<String, List<StoragePort>> fcPorts = discoverFcPorts(
                         viprStorageSystem, client, spIdMap);
                 boolean hasFcPorts = false;
-                if(fcPorts.get(NEW)!= null && fcPorts.get(NEW).size() > 0){
+                if(fcPorts.get(NEW)!= null && !fcPorts.get(NEW).isEmpty()) {
                 	allNewPorts.addAll(fcPorts.get(NEW));
                     hasFcPorts = true;
                     _dbClient.createObject(fcPorts.get(NEW));
                 }
           
-                if(fcPorts.get(EXISTING) != null && fcPorts.get(EXISTING).size() > 0){
+                if(fcPorts.get(EXISTING) != null && !fcPorts.get(EXISTING).isEmpty()){
                 	allExistingPorts.addAll(fcPorts.get(EXISTING));
                     hasFcPorts = true;
                     _dbClient.persistObject(ports.get(EXISTING));
@@ -330,7 +330,7 @@ public class VNXeCommunicationInterface extends
                         .size());
                 _logger.info("No of existing discovered pools {}",
                         pools.get(EXISTING).size());
-                if(pools.get(NEW).size() > 0){
+                if(!pools.get(NEW).isEmpty()){
                     allPools.addAll(pools.get(NEW));
                     _dbClient.createObject(pools.get(NEW));
                     StoragePoolAssociationHelper.setStoragePoolVarrays(
@@ -338,7 +338,7 @@ public class VNXeCommunicationInterface extends
                             _dbClient);
                 }
 
-                if(pools.get(EXISTING).size() > 0){
+                if(!pools.get(EXISTING).isEmpty()){
                     allPools.addAll(pools.get(EXISTING));
                     _dbClient.persistObject(pools.get(EXISTING));
                 }
@@ -362,21 +362,21 @@ public class VNXeCommunicationInterface extends
                     _logger.info("FASTVP is enabled");
                     HashMap<String, List<AutoTieringPolicy>> policies = discoverAutoTierPolicies(
                             viprStorageSystem, client);
-                    if (policies.get(NEW).size() >0) {
+                    if (!policies.get(NEW).isEmpty()) {
                         _dbClient.createObject(policies.get(NEW)); 
                     }
                     
-                    if (policies.get(EXISTING).size() >0) {
+                    if (!policies.get(EXISTING).isEmpty()) {
                         _dbClient.persistObject(policies.get(EXISTING)); 
                     }
                     
                     HashMap<String, List<StorageTier>> tiers = discoverStorageTier(
                             viprStorageSystem, client);
-                    if(tiers.get(NEW).size() > 0){
+                    if(!tiers.get(NEW).isEmpty()){
                         _dbClient.createObject(tiers.get(NEW));
                     }
 
-                    if(tiers.get(EXISTING).size() > 0){
+                    if(!tiers.get(EXISTING).isEmpty()){
                         _dbClient.persistObject(tiers.get(EXISTING));
                     }
                 }
@@ -726,7 +726,7 @@ public class VNXeCommunicationInterface extends
                 }
             }
             //get the supported protocol on the nasServer
-            if (cifsServers != null && cifsServers.size()>0) {
+            if (cifsServers != null && !cifsServers.isEmpty()) {
                 for (VNXeCifsServer cifsServer : cifsServers) {
                     if (cifsServer.getNasServer().getId()
                             .equals(nasServer.getId())) {
@@ -737,7 +737,7 @@ public class VNXeCommunicationInterface extends
                 }
             }
 
-            if (nfsServers != null && nfsServers.size()>0) {
+            if (nfsServers != null && !nfsServers.isEmpty()) {
                 for (VNXeNfsServer nfsServer : nfsServers) {
                     if (nfsServer.getNasServer().getId()
                             .equals(nasServer.getId())) {
@@ -823,7 +823,7 @@ public class VNXeCommunicationInterface extends
 
         // Retrieve the list of data movers interfaces for the VNX File device.
         List<VNXeFileInterface> interfaces = client.getFileInterfaces();
-        if (interfaces == null || interfaces.size() == 0) {
+        if (interfaces == null || interfaces.isEmpty()) {
             _logger.info("No file interfaces found for the system: {} ",
                     system.getId());
             return storagePorts;
@@ -1002,7 +1002,7 @@ public class VNXeCommunicationInterface extends
                 system.getId());
         // Retrieve the list of iscsi ports
         List<VNXeIscsiNode> ports = client.getAllIscsiPorts();
-        if (ports == null || ports.size() == 0) {
+        if (ports == null || ports.isEmpty()) {
             _logger.info("No iSCSI ports found for the system: {} ",
                     system.getId());
             return storagePorts;
@@ -1134,7 +1134,7 @@ public class VNXeCommunicationInterface extends
 
         // Retrieve the list of iscsi ports
         List<VNXeFCPort> ports = client.getAllFcPorts();
-        if (ports == null || ports.size() == 0) {
+        if (ports == null || ports.isEmpty()) {
             _logger.info("No FC ports found for the system: {} ",
                     system.getId());
             storagePorts.put(NEW, newStoragePorts);

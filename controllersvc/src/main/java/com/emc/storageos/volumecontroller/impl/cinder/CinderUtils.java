@@ -111,11 +111,11 @@ public class CinderUtils
 
             dbClient.persistObject(storagePool);
         } 
-        catch (DatabaseException ex) 
+        catch (Exception ex) 
         {
             _log.error(
                     String.format("Failed to update capacity of storage pool after volume provisioning operation."
-                    					+ " \n  Storage system: %s, storage pool %s .",
+                    					+ "%n  Storage system: %s, storage pool %s .",
                     					storageSystem.getId(), storagePool.getId()), ex);
         }
 
@@ -155,7 +155,7 @@ public class CinderUtils
 		StringMap endPointKeys = provider.getKeys();
 		
 		String hostName = endPointKeys.get(CinderConstants.KEY_CINDER_HOST_NAME);
-		String password = endPointKeys.get(CinderConstants.KEY_CINDER_REST_PASSWORD);
+		String password = endPointKeys.get(CinderConstants.KEY_CINDER_REST_PASS_WORD);
 		String userName = endPointKeys.get(CinderConstants.KEY_CINDER_REST_USER);
 		String tenantName = endPointKeys.get(CinderConstants.KEY_CINDER_TENANT_NAME);
 		String tenantId = endPointKeys.get(CinderConstants.KEY_CINDER_TENANT_ID);

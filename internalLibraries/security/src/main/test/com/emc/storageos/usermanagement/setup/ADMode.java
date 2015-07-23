@@ -8,6 +8,7 @@ package com.emc.storageos.usermanagement.setup;
 
 import com.emc.storageos.model.auth.AuthnCreateParam;
 import com.emc.storageos.model.auth.AuthnProviderRestRep;
+import com.emc.storageos.services.util.EnvConfig;
 import com.emc.storageos.usermanagement.util.ad.ADClient;
 import com.emc.storageos.usermanagement.util.ViPRClientHelper;
 import com.emc.storageos.usermanagement.util.XmlUtil;
@@ -15,9 +16,10 @@ import com.emc.vipr.client.ViPRCoreClient;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+
+
 
 
 import java.io.InputStream;
@@ -31,14 +33,13 @@ public class ADMode extends LocalUserMode {
 
     protected static AuthnProviderRestRep authnProviderRestRep;
     protected static ADClient adClient;
-    protected static String PASSWORD = "Password1";
-
+    protected static String PASSWORD = EnvConfig.get("sanity", "ad.manager.password");
     protected static String superUser;
     protected static String superUserPassword;
     protected static ViPRCoreClient superUserClient;
 
     @BeforeClass
-    public static void setup_ADModeBaseClass() throws Exception {
+    public synchronized static void setup_ADModeBaseClass() throws Exception {
 
         //get super user from parameter, better be AD user
         superUser = System.getProperty("SUPER_USER");
@@ -74,7 +75,7 @@ public class ADMode extends LocalUserMode {
     }
 
     @AfterClass
-    public static void teardown_ADModeBaseClass() throws Exception {
+    public synchronized static void teardown_ADModeBaseClass() throws Exception {
         adClient = null;
 
         if (!bAuthnProviderExisted) {

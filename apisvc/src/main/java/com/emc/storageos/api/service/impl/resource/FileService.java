@@ -911,7 +911,7 @@ public class FileService extends TaskResourceService {
     public SmbShareResponse getFileSystemShare(@PathParam("id") URI id,
                                                    @PathParam("shareName") String shareName) throws InternalException {
 
-        _log.info(String.format("Get SMB file share %s for file system: %d", shareName, id));
+        _log.info(String.format("Get SMB file share %s for file system: %s", shareName, id.toString()));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         ArgValidator.checkFieldNotNull(shareName, "shareName");
         FileShare fileShare = queryResource(id);

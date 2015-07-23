@@ -67,9 +67,11 @@ public class HostSupplierImpl implements Supplier<List<Host>> {
         for(int i = 1; i<= NUM_RETRY_COUNT; i++) {
             try {
                 hosts = internalGet();
-            }catch(RuntimeException ignore){}
+            }catch(RuntimeException ignore){
+            	_log.warn("ignore get host fail:{}", ignore.getMessage());
+            }
 
-            if((hosts == null) || (hosts.size() == 0)) {
+            if((hosts == null) || (hosts.isEmpty())) {
                 _log.warn("hostsupplier is empty. May be dbsvc hasn't started yet. waiting for " + sleepDuration + " msec");
                 try {
                     Thread.sleep(sleepDuration);

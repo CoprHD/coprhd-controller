@@ -81,7 +81,6 @@ public class PropertyInfoTest {
             Assert.assertTrue(props.getAllProperties().get("twoEquals").equals("abc==abc==abc"));
         } catch (DecodingException e) {
             Assert.assertTrue(false);
-            e.printStackTrace();
         } catch (Exception e) {
             Assert.assertTrue(false);
         }

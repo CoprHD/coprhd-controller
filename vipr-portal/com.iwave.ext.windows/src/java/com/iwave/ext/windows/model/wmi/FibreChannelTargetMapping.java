@@ -72,12 +72,12 @@ public class FibreChannelTargetMapping implements Serializable {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof FibreChannelTargetMapping) {
-            return equals((FibreChannelTargetMapping) obj);
+            return equalsFibreChannelTargetMapping((FibreChannelTargetMapping) obj);
         }
         return false;
     }
 
-    public boolean equals(FibreChannelTargetMapping mapping) {
+    public boolean equalsFibreChannelTargetMapping(FibreChannelTargetMapping mapping) {
         if (mapping == this) {
             return true;
         }

@@ -78,7 +78,7 @@ public class VNXFileInputRequestBuilder {
             try {
                 outputStream.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                _logger.error("Exception occurred while closing the stream due to ", e);
             }
         }
         return inputStream;

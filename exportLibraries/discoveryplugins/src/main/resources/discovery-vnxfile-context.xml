@@ -19,8 +19,8 @@
 
 	<bean id="vnxfilediscexecutor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor">
-		<property name="_generator" ref="commandgenerator" />
-		<property name="_util" ref="utility" />
+		<property name="generator" ref="commandgenerator" />
+		<property name="util" ref="utility" />
 	</bean>
 
 	<bean id="partitionManager" class="com.emc.storageos.plugins.common.PartitionManager" />
@@ -47,10 +47,10 @@
 	</bean>
 
 	<bean id="loginoperation" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-		<property name="_processor" ref="authprocessor" />
+		<property name="processor" ref="authprocessor" />
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="dologin" />
-		<property name="_arguments">
+		<property name="method" value="dologin" />
+		<property name="arguments">
 			<list>
 				<ref bean="authuri" />
 				<ref bean="username" />
@@ -62,8 +62,8 @@
 
 	<bean id="sessioncleanoperation" class="com.emc.storageos.plugins.common.domainmodel.Operation">
 		<property name="instance" ref="retriever" />
-		<property name="_method" value="disconnect" />
-		<property name="_arguments">
+		<property name="method" value="disconnect" />
+		<property name="arguments">
 			<list>
 				<ref bean="uri" />
 				<ref bean="cookie" />
@@ -100,45 +100,45 @@
 		class="com.emc.storageos.plugins.metering.vnxfile.VNXFileX509TrustManager" />
 
 	<bean id="authuri" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="authuri" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="authuri" />
 	</bean>
 
 	<bean id="username" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="username" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="username" />
 	</bean>
 
 	<bean id="password" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="password" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="password" />
 	</bean>
 
     <bean id="portnumber" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="_creator" ref="argscreator" />
-        <property name="_method" value="getReferenceValue" />
-        <property name="_value" value="portnumber" />
+        <property name="creator" ref="argscreator" />
+        <property name="method" value="getReferenceValue" />
+        <property name="value" value="portnumber" />
     </bean>
 
 	<bean id="cookie" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="Cookie" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="Cookie" />
 	</bean>
 
 	<bean id="session" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="CelerraConnector-Sess" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="CelerraConnector-Sess" />
 	</bean>
 
 	<bean id="uri" class="com.emc.storageos.plugins.common.domainmodel.Argument">
-		<property name="_creator" ref="argscreator" />
-		<property name="_method" value="getReferenceValue" />
-		<property name="_value" value="uri" />
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="uri" />
 	</bean>
 
 	<bean id="argscreator"

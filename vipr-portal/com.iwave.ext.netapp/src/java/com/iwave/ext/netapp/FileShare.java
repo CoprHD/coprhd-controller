@@ -32,6 +32,10 @@ import com.iwave.ext.netapp.utils.ExportRule;
  * @author sdorcas
  *
  */
+@SuppressWarnings({"findbugs:WMI_WRONG_MAP_ITERATOR"})
+/*
+ * Code change for iterator will be made in future release 
+ */
 public class FileShare {
 
 private Logger log = Logger.getLogger(getClass());
@@ -642,21 +646,21 @@ private Logger log = Logger.getLogger(getClass());
             
             //TODO: Account for AddAll hosts.
             //Add read-only hosts
-            if((expRule.getReadOnlyHosts() != null) && (expRule.getReadOnlyHosts().size() > 0)){
+            if((expRule.getReadOnlyHosts() != null) && (!expRule.getReadOnlyHosts().isEmpty())){
                 NaElement readOnly = new NaElement("read-only");
                 addHosts(readOnly, expRule.getReadOnlyHosts(), false);
                 naExportRule.addChildElem(readOnly);
             }
             
             // Add read-write hosts
-            if((expRule.getReadWriteHosts() != null) && (expRule.getReadWriteHosts().size() > 0)){
+            if((expRule.getReadWriteHosts() != null) && (!expRule.getReadWriteHosts().isEmpty())){
                 NaElement readWriteHosts = new NaElement("read-write");
                 addHosts(readWriteHosts, expRule.getReadWriteHosts(), false);
                 naExportRule.addChildElem(readWriteHosts);
             }
             
             // Add root hosts
-            if((expRule.getRootHosts() != null) && (expRule.getRootHosts().size() > 0)){
+            if((expRule.getRootHosts() != null) && (!expRule.getRootHosts().isEmpty())){
                 NaElement rootHosts = new NaElement("root");
                 addHosts(rootHosts, expRule.getRootHosts(), false);
                 naExportRule.addChildElem(rootHosts);
@@ -751,21 +755,21 @@ private Logger log = Logger.getLogger(getClass());
             
             //TODO: Account for AddAll hosts.
             //Add read-only hosts
-            if((expRule.getReadOnlyHosts() != null) && (expRule.getReadOnlyHosts().size() > 0)){
+            if((expRule.getReadOnlyHosts() != null) && (!expRule.getReadOnlyHosts().isEmpty())){
                 NaElement readOnly = new NaElement("read-only");
                 addHosts(readOnly, expRule.getReadOnlyHosts(), false);
                 naExportRule.addChildElem(readOnly);
             }
             
             // Add read-write hosts
-            if((expRule.getReadWriteHosts() != null) && (expRule.getReadWriteHosts().size() > 0)){
+            if((expRule.getReadWriteHosts() != null) && (!expRule.getReadWriteHosts().isEmpty())){
                 NaElement readWriteHosts = new NaElement("read-write");
                 addHosts(readWriteHosts, expRule.getReadWriteHosts(), false);
                 naExportRule.addChildElem(readWriteHosts);
             }
             
             // Add root hosts
-            if((expRule.getRootHosts() != null) && (expRule.getRootHosts().size() > 0)){
+            if((expRule.getRootHosts() != null) && (!expRule.getRootHosts().isEmpty())){
                 NaElement rootHosts = new NaElement("root");
                 addHosts(rootHosts, expRule.getRootHosts(), false);
                 naExportRule.addChildElem(rootHosts);

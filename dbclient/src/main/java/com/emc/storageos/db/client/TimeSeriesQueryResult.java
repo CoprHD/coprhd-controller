@@ -30,12 +30,12 @@ public interface TimeSeriesQueryResult<T extends TimeSeriesSerializer.DataPoint>
      *
      * @param data
      */
-    public void data(T data, long insertionTimeMs);
+    void data(T data, long insertionTimeMs);
 
     /**
      * Called when all data points have been retrieved
      */
-    public void done();
+    void done();
 
     /**
      * Called when an error is encountered during query.  Maybe called multiple
@@ -43,5 +43,5 @@ public interface TimeSeriesQueryResult<T extends TimeSeriesSerializer.DataPoint>
      *
      * @param e
      */
-    public void error(Throwable e);
+    void error(Throwable e);
 }

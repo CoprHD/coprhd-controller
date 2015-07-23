@@ -115,7 +115,7 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
             final PropertyMetadata propertyMetadata = metadata.get(key);
             if (propertyMetadata != null
                     && propertyMetadata.getRebootRequired() != null
-                    && propertyMetadata.getRebootRequired() == true) {
+                    && propertyMetadata.getRebootRequired().booleanValue()) {
                 return true;
             }
         }
@@ -135,7 +135,7 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
             final PropertyMetadata propertyMetadata = metadata.get(key);
             if (propertyMetadata != null
                 && propertyMetadata.getReconfigRequired() != null
-                && propertyMetadata.getReconfigRequired() == true) {
+                && propertyMetadata.getReconfigRequired().booleanValue()) {
                 return true;
             }
         }
@@ -189,7 +189,7 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
             final PropertyMetadata propertyMetadata = metadata.get(key);
             if (propertyMetadata != null
                     && propertyMetadata.getReconfigRequired() != null
-                    && propertyMetadata.getReconfigRequired() == true
+                    && propertyMetadata.getReconfigRequired().booleanValue()
                     && (propertyMetadata.getNotifiers() == null
                     || propertyMetadata.getNotifiers().length == 0)) {
                 return true;

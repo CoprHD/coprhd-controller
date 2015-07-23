@@ -8,7 +8,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
+import com.emc.sa.service.vipr.block.ExportVMwareBlockVolumeHelper;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ExportUpdateParam;
@@ -20,12 +22,14 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
     private URI exportId;
     private Collection<URI> volumeIds;
     private Integer hlu;
+    private Map<URI, Integer> volumeHlus;
 
-    public AddVolumesToExport(URI exportId, Collection<URI> volumeIds, Integer hlu) {
+    public AddVolumesToExport(URI exportId, Collection<URI> volumeIds, Integer hlu, Map<URI, Integer> volumeHlus) {
         super();
         this.exportId = exportId;
         this.volumeIds = volumeIds;
         this.hlu = hlu;
+        this.volumeHlus = volumeHlus;
         provideDetailArgs(exportId, volumeIds, hlu);
     }
 
@@ -37,7 +41,16 @@ public class AddVolumesToExport extends WaitForTask<ExportGroupRestRep> {
         for (URI volumeId : volumeIds) {
             VolumeParam volume = new VolumeParam(volumeId);
             if (currentHlu != null) {
-                volume.setLun(currentHlu);
+                if (currentHlu.equals(ExportVMwareBlockVolumeHelper.USE_EXISTING_HLU) && volumeHlus != null) {
+                    Integer volumeHlu = volumeHlus.get(volume.getId());
+                    if (volumeHlu == null) {
+                        volume.setLun(-1);
+                    } else {
+                        volume.setLun(volumeHlu);
+                    }
+                } else {
+                    volume.setLun(currentHlu);
+                }
             }
             if ((currentHlu != null) && (currentHlu > -1)) {
                 currentHlu++;

@@ -21,7 +21,8 @@ import java.util.regex.Pattern;
  * 
  */
 
-// Suppress the following two sonar warnings. the arrays are not modified outside of the class.
+// Suppress the following two sonar warnings. the following arrays are passed as arguments or returned as a result
+// and not modified outside of the class.  related arrays are: _values, _compiledPatterns.
 @SuppressWarnings({"pmd:ArrayIsStoredDirectly","pmd:MethodReturnsInternalArray"})
 public class GroupWhiteList {
     private String _type;

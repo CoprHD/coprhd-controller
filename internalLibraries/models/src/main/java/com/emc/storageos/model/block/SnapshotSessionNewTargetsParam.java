@@ -34,7 +34,7 @@ public class SnapshotSessionNewTargetsParam {
      * 
      * @valid none
      */
-    @XmlElement
+    @XmlElement(required = true)
     public Integer getCount() {
         return count;
     }

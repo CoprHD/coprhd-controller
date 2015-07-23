@@ -18,7 +18,20 @@ import com.emc.storageos.db.client.DbClient;
  */
 public class DefaultBlockSnapshotSessionApiImpl extends AbstractBlockSnapshotSessionApiImpl {
 
-    protected DefaultBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator) {
+    /**
+     * Protected default constructor.
+     */
+    protected DefaultBlockSnapshotSessionApiImpl() {
+        super();
+    }
+
+    /**
+     * Constructor.
+     * 
+     * @param dbClient A reference to a data base client.
+     * @param coordinator A reference to the coordinator client.
+     */
+    public DefaultBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator) {
         super(dbClient, coordinator);
     }
 }

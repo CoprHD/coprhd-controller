@@ -15,6 +15,12 @@ package com.emc.storageos.db.client.model;
  */
 @SuppressWarnings("serial")
 public class BlockSnapshotSession extends DataObject implements ProjectResourceSnapshot {
+    
+    // Enum defines copy modes for array snapshot sessions.
+    public enum CopyMode {
+        copy,
+        nocopy
+    }
 
     // The id of source Volume or BlockSnapshot for the array 
     // snapshot session.

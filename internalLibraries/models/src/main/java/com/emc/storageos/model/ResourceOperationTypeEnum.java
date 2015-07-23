@@ -279,7 +279,8 @@ public enum ResourceOperationTypeEnum {
     UPLOAD_BACKUP ("UPLOAD BACKUP", "upload ViPR backup to external location"),
     CREATE_VCENTER_CLUSTER   ("CREATE VCENTER CLUSTER",  "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER   ("UPDATE VCENTER CLUSTER",  "update a cluster in vCenter server"),
-    SYS_EVENT                ("SYSTEM EVENT", "System Event");
+    SYS_EVENT                ("SYSTEM EVENT", "System Event"),
+    CREATE_SNAPSHOT_SESSION  ("CREATE SNAPSHOT SESSION",  "create a snapshot session");
 
 
 

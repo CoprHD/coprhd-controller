@@ -78,5 +78,11 @@ public interface MethodNotAllowedExceptions {
     public MethodNotAllowedException notSupportedForXIV();    
 
     @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
-    public MethodNotAllowedException notSupportedForOpenstack();    
+    public MethodNotAllowedException notSupportedForOpenstack();
+
+    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
+    public MethodNotAllowedException notSupportedForVMAX();
+
+    @DeclareServiceCode(ServiceCode.API_METHOD_NOT_SUPPORTED)
+    public MethodNotAllowedException notSupportedForVNX();    
 }

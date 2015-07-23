@@ -18,7 +18,21 @@ import com.emc.storageos.db.client.DbClient;
  */
 public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
 
-    protected VMAX3BlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator) {
+    /**
+     * Private default constructor should not be called outside class.
+     */
+    @SuppressWarnings("unused")
+    private VMAX3BlockSnapshotSessionApiImpl() {
+        super();
+    }
+
+    /**
+     * Constructor.
+     * 
+     * @param dbClient A reference to a data base client.
+     * @param coordinator A reference to the coordinator client.
+     */
+    public VMAX3BlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator) {
         super(dbClient, coordinator);
     }
 }

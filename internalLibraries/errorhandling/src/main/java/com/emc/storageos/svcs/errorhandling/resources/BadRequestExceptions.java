@@ -2335,5 +2335,8 @@ public interface BadRequestExceptions {
     public BadRequestException invalidPrincipals(String details);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName); 
+    public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException invalidSnapshotSessionSource(final String sourceId);    
 }

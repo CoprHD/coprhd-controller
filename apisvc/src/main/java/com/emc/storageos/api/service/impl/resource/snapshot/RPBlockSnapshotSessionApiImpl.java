@@ -14,15 +14,14 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 
 /**
- * 
+ *
  */
-public class HDSBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
-
+public class RPBlockSnapshotSessionApiImpl extends AbstractBlockSnapshotSessionApiImpl{
     /**
      * Private default constructor should not be called outside class.
      */
     @SuppressWarnings("unused")
-    private HDSBlockSnapshotSessionApiImpl() {
+    private RPBlockSnapshotSessionApiImpl() {
         super();
     }
 
@@ -32,7 +31,7 @@ public class HDSBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      * @param dbClient A reference to a data base client.
      * @param coordinator A reference to the coordinator client.
      */
-    public HDSBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator) {
+    public RPBlockSnapshotSessionApiImpl(DbClient dbClient, CoordinatorClient coordinator) {
         super(dbClient, coordinator);
     }
 }

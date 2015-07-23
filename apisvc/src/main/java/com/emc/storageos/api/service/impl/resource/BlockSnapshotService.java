@@ -149,7 +149,7 @@ public class BlockSnapshotService extends TaskResourceService {
     @Path("/{id}/protection/snapshot-sessions")
     @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.ANY})
     public TaskList createSnapshotSession(@PathParam("id") URI id, SnapshotSessionCreateParam param) {
-        return getSnapshotSessionManager().createSnapshotSession(id, param);
+        return getSnapshotSessionManager().createSnapshotSession(id, param, getFullCopyManager());
     }
     
     /**

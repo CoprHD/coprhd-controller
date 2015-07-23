@@ -228,6 +228,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(volume, BlockSnapshot.class, field);
         }
         
+        public static ContainmentConstraint getParentSnapshotSessionConstraint(URI parentURI) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            ColumnField field = doType.getColumnField("parent");
+            return new ContainmentConstraintImpl(parentURI, BlockSnapshotSession.class, field);
+        }
+
         public static ContainmentConstraint getProjectBlockSnapshotConstraint(
                 URI project) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);

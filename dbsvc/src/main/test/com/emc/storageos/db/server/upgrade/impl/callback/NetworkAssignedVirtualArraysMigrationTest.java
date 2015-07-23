@@ -40,7 +40,7 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 public class NetworkAssignedVirtualArraysMigrationTest extends DbSimpleMigrationTestBase {
     
     // The URI of the varray array assigned to the test Network.
-    private static URI varrayURI = null;
+    private static volatile URI varrayURI = null;
     
     @BeforeClass
     public static void setup() throws IOException {

@@ -94,7 +94,7 @@ public class ExecutionLog extends ModelObject {
             return String.format("%s - %s - %s", date, level, message);
         }
         else {
-            return String.format("%s - %s - %s\n%s", date, level, message, stackTrace);
+            return String.format("%s - %s - %s%n%s", date, level, message, stackTrace);
         }
     }
 

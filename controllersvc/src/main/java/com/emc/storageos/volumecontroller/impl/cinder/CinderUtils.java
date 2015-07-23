@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.jcraft.jsch.Channel;
 import com.jcraft.jsch.ChannelSftp;

@@ -7,6 +7,8 @@ package com.emc.storageos.vplexcontroller;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
@@ -219,5 +222,38 @@ public class VPlexControllerUtils {
         
         log.info("VPLEX cluster name for cluster id {} is {}", clusterId, clusterName);
         return clusterName;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    public static Map<String, String> getStorageVolumeInfoForDevice(String deviceName, String locality, URI vplexUri, DbClient dbClient) {
+
+        Map<String, String> storageVolumeInfo = null;
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            storageVolumeInfo = client.getStorageVolumeInfoForDevice(deviceName, locality);
+        }
+        
+        log.info("Backend storage volume wwns for {} are {}", deviceName, storageVolumeInfo);
+        return storageVolumeInfo;
     }
 }

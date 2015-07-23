@@ -34,13 +34,12 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.iwave.ext.netapp.VolumeOptionType;
-import com.sun.org.apache.bcel.internal.generic.AllocationInstruction;
 
 /**
  * 
@@ -185,17 +184,25 @@ public abstract class ZeroRecordGenerator {
                 volURI = volumeURIs.get(0);
             }
             long allocatedCapacity =  0L;
+
+            BlockObject bo = BlockObject.fetch(client, volURI);
+            if ((bo instanceof Volume || bo instanceof BlockSnapshot) && bo.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+                _logger.debug("Skipping internal volume/snapshot:" + volURI);
+                return null;
+            }
+
             //if snap,process the parent volume
             if (!URIUtil.isType(volURI, Volume.class) && !URIUtil.isType(volURI, FileShare.class)) {
                 _logger.debug("Skipping Statistics for Snapshots :" + volURI);
-                BlockObject bo =  BlockObject.fetch(client, volURI);
                 if (bo instanceof BlockSnapshot) {
                     Volume parent = client.queryObject(Volume.class, ((BlockSnapshot)(bo)).getParent().getURI());
-                    _logger.info("Processing snapshot's parent Volume {}", parent.getNativeGuid());
-                    volURI = parent.getId();
-                    nativeGuid = parent.getNativeGuid();
-                    allocatedCapacity = ((BlockSnapshot)bo).getAllocatedCapacity();
-                    snapProcessed = true;
+                    if (parent != null && !parent.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+                        _logger.info("Processing snapshot's parent Volume {}", parent.getNativeGuid());
+                        volURI = parent.getId();
+                        nativeGuid = parent.getNativeGuid();
+                        allocatedCapacity = ((BlockSnapshot)bo).getAllocatedCapacity();
+                        snapProcessed = true;
+                    }
                 }
                 
             } 

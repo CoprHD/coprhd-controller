@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.blockorchestrationcontroller;
 
+import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
@@ -35,6 +36,12 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
 		
 	}
 
+    @Override
+    public void restoreVolume(URI storage, URI pool, URI volume,
+            URI snapshot, String taskId) throws ControllerException {
+        execOrchestration("restoreVolume", storage, pool, volume, snapshot, taskId);
+    }
+    
     @Override
     public void changeVirtualPool(List<VolumeDescriptor> volumes, String taskId)
             throws ControllerException {

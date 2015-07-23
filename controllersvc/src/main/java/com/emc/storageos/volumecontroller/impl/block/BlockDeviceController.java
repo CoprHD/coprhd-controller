@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -81,6 +82,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -170,6 +172,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
+    public static final String RESTORE_VOLUME_STEP = "restoreVolume";
+    private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
+    
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
@@ -1710,8 +1715,43 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    private static final String BLOCK_VOLUME_RESTORE_GROUP = "BlockDeviceRestoreVolume";
-    private static final String POST_BLOCK_VOLUME_RESTORE_GROUP = "PostBlockDeviceRestoreVolume";
+    @Override
+    public String addStepsForRestoreVolume(Workflow workflow, String waitFor,
+            URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String taskId,
+            BlockSnapshotRestoreCompleter completer) throws ControllerException {
+        
+        BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+        
+        URI parentVolumeURI = snap.getParent().getURI();
+        Volume associatedVPlexVolume = 
+                VPlexUtil.getVolumeByAssociatedVolume(parentVolumeURI, _dbClient);
+        
+        // Do nothing if this is not a native snapshot
+        // Do not add block restore steps if this is a snapshot of a VPlex volume.  The
+        // VPlex controller will add the required block restore steps.
+        if (NullColumnValueGetter.isNotNullValue(snap.getTechnologyType()) &&
+                !snap.getTechnologyType().equals(TechnologyType.NATIVE.toString()) ||
+                associatedVPlexVolume != null) {
+            return waitFor;
+        } 
+        
+        Workflow.Method restoreVolumeMethod = new Workflow.Method(
+                RESTORE_VOLUME_METHOD_NAME, storage, pool,
+                volume, snapshot, Boolean.TRUE);
+        workflow.createStep(RESTORE_VOLUME_STEP, String.format(
+                "Restore volume %s from snapshot %s",
+                volume, snapshot), waitFor,
+                storage, getDeviceType(storage),
+                BlockDeviceController.class, restoreVolumeMethod, null, null);
+        _log.info(
+                "Created workflow step to restore block volume {} from snapshot {}",
+                volume, snapshot);
+            
+        return RESTORE_VOLUME_STEP;
+    }
+    
+    private static final String BLOCK_VOLUME_RESTORE_GROUP = "BlockDeviceRestoreVolumeGroup";
+    private static final String POST_BLOCK_VOLUME_RESTORE_GROUP = "PostBlockDeviceRestoreVolumeGroup";
 
     @Override
     public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
@@ -1777,7 +1817,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     
     private boolean isNonSplitSRDFTargetVolume(Volume volume) {
     	_log.info("volume.getPersonality() : {} volume.getLinkStatus() : {} ",volume.getPersonality(),volume.getLinkStatus());
-		return (volume!=null && Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())
+		return (volume != null && !NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent()) && 
+		        Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())
 				&& !(Volume.LinkStatus.FAILED_OVER.name().equalsIgnoreCase(volume.getLinkStatus())
 				|| Volume.LinkStatus.SUSPENDED.name().equalsIgnoreCase(volume.getLinkStatus())
 				|| Volume.LinkStatus.SPLIT.name().equalsIgnoreCase(volume.getLinkStatus())));

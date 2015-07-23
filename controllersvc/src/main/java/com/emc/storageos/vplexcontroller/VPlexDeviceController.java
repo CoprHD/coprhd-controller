@@ -58,6 +58,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -217,6 +218,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ZONING_STEP = "zoning";
     private static final String REMOVE_INITIATOR_STEP = "removeInitiator";
     private static final String RESTORE_VOLUME_STEP = "restoreVolume";
+    private static final String RESTORE_VPLEX_VOLUME_STEP = "restoreVPlexVolume";
     private static final String INVALIDATE_CACHE_STEP = "invalidateCache";
     private static final String DETACH_MIRROR_STEP = "detachMirror";
     private static final String ATTACH_MIRROR_STEP = "attachMirror";
@@ -7434,6 +7436,40 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     ZONING_STEP, vplex.getId(), vplex.getSystemType(), this.getClass(), 
                     addToViewMethod, addToViewRollbackMethod, null);
         }
+    }
+    
+    @Override
+    public String addStepsForRestoreVolume(Workflow workflow,
+            String waitFor, URI storage, URI pool, URI volume, URI snapshotURI,
+            Boolean updateOpStatus, String opId,
+            BlockSnapshotRestoreCompleter completer) throws InternalException {
+        BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
+
+        URI parentVolumeURI = snapshot.getParent().getURI();
+        Volume associatedVPlexVolume = 
+                VPlexUtil.getVolumeByAssociatedVolume(parentVolumeURI, _dbClient);
+        
+        // Do nothing if this is not a native snapshot or the snapshot's parent is not
+        // a VPlex associated volume.
+        if ((NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) &&
+                !snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) ||
+                associatedVPlexVolume == null) {
+            return waitFor;
+        } 
+        
+        StorageSystem parentSystem = getDataObject(StorageSystem.class, storage, _dbClient);
+        Workflow.Method restoreVolumeMethod = new Workflow.Method(
+                RESTORE_VOLUME_METHOD_NAME, storage, snapshotURI);
+        workflow.createStep(RESTORE_VPLEX_VOLUME_STEP, String.format(
+                "Restore volume %s from snapshot %s",
+                volume, snapshotURI), waitFor,
+                storage, parentSystem.getSystemType(),
+                VPlexDeviceController.class, restoreVolumeMethod, null, null);
+        _log.info(
+                "Created workflow step to restore VPLEX backend volume {} from snapshot {}",
+                volume, snapshotURI);
+        
+        return RESTORE_VPLEX_VOLUME_STEP;
     }
     
     /**

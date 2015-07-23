@@ -52,17 +52,6 @@ public interface RPController extends ProtectionController {
                                Boolean createInactive, String task) throws InternalException;
 
     /**
-     * Restore an RP bookmark. This will enable the specified bookmark on the CG if the CG is not already enabled. This step is
-     * required for RP bookmark restores.
-     * @param protectionDevice RP protection system URI
-     * @param storageDevice storage device of the volume
-     * @param snapshotId snapshot URI
-     * @param task task ID
-     * @throws InternalException
-     */
-    public void restoreVolume(URI protectionDevice, URI storageDevice, URI snapshotId, String task) throws InternalException;
-
-    /**
      * Delete a snapshot
      *
      * @param protectionDevice RP protection system URI

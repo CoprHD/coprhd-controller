@@ -261,9 +261,9 @@ public class RPVPlexScheduler implements Scheduler {
                         
         if (srcCandidateStoragePools == null || srcCandidateStoragePools.isEmpty()) {
             // There are no matching storage pools found for the source varray
-            _log.error("No matching storage pools found for the source varray: {0}. There are no storage pools that " +
+            _log.error(String.format("No matching storage pools found for the source varray: %s. There are no storage pools that " +
                     "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to " +
-                    "hold at least one resource of the requested size.",srcVarray.getLabel());
+                    "hold at least one resource of the requested size.", srcVarray.getLabel()));
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(srcVpool.getId(), srcVarray.getId());            
         }
         

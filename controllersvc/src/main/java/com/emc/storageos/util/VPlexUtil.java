@@ -697,4 +697,29 @@ public class VPlexUtil {
         
         return initiators;
     }
+    
+    /**
+     * Gets the VPlex volume for the given associated VPlex volume.
+     * 
+     * @param associatedVolumeURI the associated volume URI.
+     * @param dbClient the database client.
+     * @return the VPlex volume.
+     */
+    public static Volume getVolumeByAssociatedVolume(URI associatedVolumeURI, DbClient dbClient) {
+        Volume vplexVolume = null;
+        URIQueryResultList queryResults = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+            .getVolumeByAssociatedVolumesConstraint(associatedVolumeURI.toString()),
+            queryResults);
+        
+        if (queryResults.iterator().hasNext()) {
+            URI vplexVolumeURI = queryResults.iterator().next();
+            
+            if (vplexVolumeURI != null) {
+                vplexVolume = dbClient.queryObject(Volume.class, vplexVolumeURI);
+            }
+        }
+        
+        return vplexVolume;
+    }
 }

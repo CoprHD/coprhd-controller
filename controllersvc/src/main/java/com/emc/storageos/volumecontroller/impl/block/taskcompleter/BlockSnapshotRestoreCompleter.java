@@ -42,6 +42,10 @@ public class BlockSnapshotRestoreCompleter extends BlockSnapshotTaskCompleter {
         super(BlockSnapshot.class, snapshot.getId(), task);
     }
     
+    public BlockSnapshotRestoreCompleter(URI snapshotURI, String task) {
+        super(BlockSnapshot.class, snapshotURI, task);
+    }
+    
     public BlockSnapshotRestoreCompleter(BlockSnapshot snapshot, String task, Boolean updateAndRecordOp) {
         super(BlockSnapshot.class, snapshot.getId(), task);
         _updateAndRecordOp = updateAndRecordOp;

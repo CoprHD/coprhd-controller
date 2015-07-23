@@ -408,7 +408,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         boolean canBeExpanded = false;
         try {
 
-            doApplyRecoverPointTag(storageSystem, volume, false );
+            _helper.doApplyRecoverPointTag(storageSystem, volume, false );
             // First of all check if we need to do cleanup of dangling meta volumes left from previous failed
             // expand attempt (may happen when rollback of expand failed due to smis connection issues -- typically cleanup
             // is done by expand rollback)
@@ -523,7 +523,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         MetaVolumeTaskCompleter metaVolumeTaskCompleter = new MetaVolumeTaskCompleter(
                 taskCompleter);
         try {
-            doApplyRecoverPointTag(storageSystem, volume, false);
+            _helper.doApplyRecoverPointTag(storageSystem, volume, false);
             CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storageSystem);
             CIMArgument[] inArgs = _helper.getExpandVolumeInputArguments(storageSystem, pool, volume,
                     size);
@@ -601,7 +601,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         volumes.get(0));
                 CIMInstance volumeInstance = _helper.checkExists(forProvider,
                         _cimPath.getBlockObjectPath(storageSystem, volume), false, false);
-                doApplyRecoverPointTag(storageSystem, volume, false);
+                _helper.doApplyRecoverPointTag(storageSystem, volume, false);
                 if (volumeInstance == null) {
                     // related volume state (if any) has been deleted. skip processing, if already
                     // deleted from array.
@@ -722,26 +722,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         _log.info(logMsgBuilder.toString());
-    }
-
-
-    /** Helper method to set/unset the volume with the "RecoverPoint" tag.
-     *  The boolean parameter flag determines if the operation is to set or unset the flag on the volume.
-     * @param storageSystem
-     * @param volume
-     * @param flag
-     * @throws Exception
-     */
-    public void doApplyRecoverPointTag(final StorageSystem storageSystem,
-                                       Volume volume, boolean flag) throws Exception {
-        // Set/Unset the RP tag (if applicable)
-        if (volume.checkForRp() && storageSystem.getSystemType() != null
-                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
-        	List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
-        	volumePathList.add( _cimPath.getBlockObjectPath(storageSystem, volume));
-        	
-            _helper.setRecoverPointTag(storageSystem, volumePathList, flag);
-        }
     }
 
     @Override
@@ -953,6 +933,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     "IO exception when trying to restore snapshot(s) on array %s",
                     storage.getSerialNumber());
             _log.error(message, e);
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doRestoreFromSnapshot",
+                    e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        } catch (Exception e) {
+            _log.error("Problem in doRestoreFromSnapshot: ", e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("doRestoreFromSnapshot",
                     e.getMessage());
             taskCompleter.error(_dbClient, error);

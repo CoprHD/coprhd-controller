@@ -668,6 +668,7 @@ public class StorageSystemService extends TaskResourceService {
         // check Storage system's compatibility for unmanaged resource discovery.
         // Trigger unmanaged resource discovery only when system is compatible.
         if ((Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(namespace) ||
+                Discovery_Namespaces.VOLUMES.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(namespace) ||
                 Discovery_Namespaces.UNMANAGED_FILESYSTEMS.name().equalsIgnoreCase(namespace)) && 
                 !CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storageSystem.getCompatibilityStatus())) {
@@ -1539,7 +1540,8 @@ public class StorageSystemService extends TaskResourceService {
     private boolean validateNameSpace(String nameSpace, StorageSystem storageSystem){
         boolean validNameSpace = false;
         
-        if (Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(nameSpace)) {
+        if (Discovery_Namespaces.VOLUMES.name().equalsIgnoreCase(nameSpace) ||
+                Discovery_Namespaces.BLOCK_SNAPSHOTS.name().equalsIgnoreCase(nameSpace)) {
             if (Type.vmax.name().equalsIgnoreCase(storageSystem.getSystemType()) ||
                     Type.vnxblock.name().equalsIgnoreCase(storageSystem.getSystemType())) {
                 return true;

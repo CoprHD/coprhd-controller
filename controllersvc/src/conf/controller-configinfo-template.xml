@@ -7,6 +7,7 @@
     <util:map id="configinfo" map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
         <entry key="Discovery-block-all" value="discovery-block-context.xml" />
         <entry key="Discovery-block-unmanaged_volumes" value="volumediscovery-block-context.xml" />
+        <entry key="Discovery-block-volumes" value="volumes-discovery-block-context.xml" />
         <entry key="Discovery-block-block_snapshots" value="snapshotdiscovery-block-context.xml" />
         <entry key="Discovery-vplex-unmanaged_volumes" value="discovery-vplex-context.xml" />
         <entry key="Discovery-netapp-unmanaged_filesystems" value="discovery-netapp-context.xml" />

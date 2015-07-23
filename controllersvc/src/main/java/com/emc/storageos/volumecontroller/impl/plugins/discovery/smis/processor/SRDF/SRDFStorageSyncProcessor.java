@@ -58,6 +58,7 @@ public class SRDFStorageSyncProcessor extends StorageProcessor {
                 try {
                     client.closeEnumeration(Constants.SYNC_PATH, synchronizedInstancePathChunks.getContext());
                 } catch (Exception e) {
+                    _log.warn("Exception occurred while closing enumeration", e);
                 }
             }
         }
@@ -107,7 +108,7 @@ public class SRDFStorageSyncProcessor extends StorageProcessor {
                             continue;
                         }
                     }
-                    addPath(keyMap, operation.get_result(), volumePath);
+                    addPath(keyMap, operation.getResult(), volumePath);
                 }
             } catch(Exception e) {
                 _log.error("Prerequiste Step for getting srdf storage synchronized relations failed :", e);

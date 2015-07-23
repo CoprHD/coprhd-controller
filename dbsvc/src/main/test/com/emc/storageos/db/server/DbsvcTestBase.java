@@ -56,6 +56,9 @@ import java.util.*;
 /**
  * Dbsvc unit test base
  */
+//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+//Junit test will be called in single thread by default, it's safe to ignore this violation
+@SuppressWarnings("squid:S2444")
 public class DbsvcTestBase {
     static {
         LoggingUtils.configureIfNecessary("dbtest-log4j.properties");

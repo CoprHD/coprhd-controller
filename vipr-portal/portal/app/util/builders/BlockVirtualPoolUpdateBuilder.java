@@ -150,10 +150,10 @@ public class BlockVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
         Set<String> remove = Sets.newHashSet(CollectionUtils.subtract(oldValues, newValues));
 
         RaidLevelChanges changes = new RaidLevelChanges();
-        if (add.size() > 0) {
+        if (!add.isEmpty()) {
             changes.setAdd(new RaidLevelAssignments(add));
         }
-        if (remove.size() > 0) {
+        if (!remove.isEmpty()) {
             changes.setRemove(new RaidLevelAssignments(remove));
         }
         virtualPool.setRaidLevelChanges(changes);

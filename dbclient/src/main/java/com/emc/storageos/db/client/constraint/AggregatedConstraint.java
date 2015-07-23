@@ -19,13 +19,11 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 
-import java.util.Date;
-
 /**
  *  Constrained query to get list of decommissioned object URIs of a given type
  */
 public interface AggregatedConstraint extends Constraint {
-    public static class Factory {
+    static class Factory {
 
         /**
          * query to get list of aggregated ids and corresponding values

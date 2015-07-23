@@ -54,7 +54,7 @@ public class DataObjectChangeAnalyzer {
      * @param obj2 Object
      * @return true iff equal
      */
-    private static boolean equals(Object obj1, Object obj2) {
+    private static boolean isEqual(Object obj1, Object obj2) {
         Object a = obj1;
         Object b = obj2;
         
@@ -254,7 +254,7 @@ public class DataObjectChangeAnalyzer {
                 } else if (type == StringSetMap.class) {
                     analyzeStringSetMaps((StringSetMap)obja, (StringSetMap) objb, key, changes);
                 } else {
-                    if (! equals(obja, objb)) {
+                    if (! isEqual(obja, objb)) {
                         Change change = new Change(key, obja, objb);
                         changes.put(key, change);
                     }

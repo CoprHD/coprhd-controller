@@ -37,7 +37,7 @@ public abstract class BaseLogManager {
     protected static final String BASE_URL_FORMAT = "http://%1$s:%2$s";
 
     // A reference to the configurable properties loader.
-    protected static LogSvcPropertiesLoader _propertiesLoader;
+    protected LogSvcPropertiesLoader _propertiesLoader;
 
     //Data specifying the parameters of the log request.
     protected LogRequestBase _logReqInfo;

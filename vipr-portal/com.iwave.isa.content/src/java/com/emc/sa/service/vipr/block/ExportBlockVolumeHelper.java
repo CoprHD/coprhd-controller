@@ -17,6 +17,7 @@ import static com.emc.sa.service.vipr.ViPRService.uris;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -126,8 +127,15 @@ public class ExportBlockVolumeHelper {
         }
 
         // Bulk update multiple volumes to single export
+        List<URI> volumeIds = Lists.newArrayList();
         for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
-            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey());
+            volumeIds.addAll(entry.getValue());
+        }
+        
+        Map<URI, Integer> volumeHlus = getVolumeHLUs(volumeIds);
+        
+        for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
+            BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus);
             logInfo("export.block.volume.add.existing", entry.getValue(), entry.getKey());
             if ((currentHlu != null) && (currentHlu > -1)) {
                 currentHlu += entry.getValue().size();
@@ -136,18 +144,18 @@ public class ExportBlockVolumeHelper {
 
         // Create new export with multiple volumes that don't belong to an export
         if (!newVolumes.isEmpty()) {
+            volumeHlus = getVolumeHLUs(newVolumes);
             URI exportId = null;
             if (cluster != null) {
-                exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster);
+                exportId = BlockStorageUtils.createClusterExport(projectId, virtualArrayId, newVolumes, currentHlu, cluster, volumeHlus);
             } else {
-                exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host);
+                exportId = BlockStorageUtils.createHostExport(projectId, virtualArrayId, newVolumes, currentHlu, host, volumeHlus);
             }
             ExportGroupRestRep export = BlockStorageUtils.getExport(exportId);
 
             // add this export to the list of exports we will return to the caller
             exports.add(export);
         }
-        
         //add host or cluster to the affected resources
         if (host != null) {
             ExecutionUtils.addAffectedResource(host.getId().toString());
@@ -211,5 +219,10 @@ public class ExportBlockVolumeHelper {
 
     public List<String> getVolumeIds() {
         return volumeIds;
+    }
+
+    protected Map<URI, Integer> getVolumeHLUs(List<URI> volumeIds) {
+        // only ExportVMwareBlockVolumeHelper supports setting HLUs for now
+        return Maps.newHashMap();
     }
 }

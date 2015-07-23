@@ -150,7 +150,7 @@ public class CachedResources<T extends DataObjectRestRep> {
             }
         }
         // Fetch any missing values and store them into the cache
-        if (fetchIds.size() > 0) {
+        if (!fetchIds.isEmpty()) {
             List<T> results = resources.getByIds(fetchIds, filter);
             for (T result : results) {
                 values.add(cache(result));

@@ -27,7 +27,7 @@ import com.emc.storageos.cimadapter.processors.CimIndicationProcessor;
 public class CelerraConnection extends CimConnection {
 
     // The list of message specifications for Celerra connections.
-    private static CelerraMessageSpecList s_messageSpecs;
+    private static volatile CelerraMessageSpecList s_messageSpecs;
 
     /**
      * Constructs a Celerra connection.

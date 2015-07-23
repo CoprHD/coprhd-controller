@@ -82,7 +82,7 @@ public abstract class ComputeFabricUplink extends DataObject {
 		if (null == this.vsans) {
 			setVsans(new StringSet());
 		}
-		if (0 < vsans.size()) {
+		if (!vsans.isEmpty()) {
 			this.vsans.addAll(vsans);
 		}
 	}

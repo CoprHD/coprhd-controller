@@ -486,8 +486,7 @@ public class HDSApiVolumeManager {
                         releaseLUSE(systemObjectID, logicalUnitObjectId);
                     }
                 } catch (Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                	log.error(e.getMessage(),e);
                 }
                 
             }
@@ -556,7 +555,9 @@ public class HDSApiVolumeManager {
         if (null == command || null == command.getStatus()
                 || HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
             Error error = javaResult.getBean(Error.class);
-            log.info("Error response received for messageID", command.getMessageID());
+            if(command !=null){
+            	log.info("Error response received for messageID", command.getMessageID());
+            }
             log.info("command failed with error code: {} with message {}",
                     error.getCode(), error.getDescription());
             throw HDSException.exceptions.errorResponseReceived(

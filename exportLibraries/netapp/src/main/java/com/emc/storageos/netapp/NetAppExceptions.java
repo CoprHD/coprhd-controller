@@ -5,10 +5,12 @@
 package com.emc.storageos.netapp;
 
 import java.net.URI;
+
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
+@SuppressWarnings({"squid:S00100"})
 /**
  * This interface holds all the methods used to create {@link NetAppException}s
  * <p/>
@@ -109,7 +111,7 @@ public interface NetAppExceptions {
             final String ip, final String message);
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
-    public NetAppException StatisticsCollectionfailed(final URI storageSystemId, final Throwable e);
+    public NetAppException statisticsCollectionfailed(final URI storageSystemId, final Throwable e);
     
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException listFileSystems(final String ip, final String message);

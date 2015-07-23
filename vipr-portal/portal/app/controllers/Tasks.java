@@ -169,7 +169,7 @@ public class Tasks extends Controller {
     private static List<TaskResourceRep> tasksLongPoll(Long lastUpdated, Boolean systemTasks) {
         while (true) {
             List<TaskResourceRep> taskResourceReps = taskPoll(lastUpdated, systemTasks);
-            if (taskResourceReps.size() > 0) {
+            if (!taskResourceReps.isEmpty()) {
                 return taskResourceReps;
             }
 
@@ -356,6 +356,8 @@ public class Tasks extends Controller {
         return taskSummaries;
     }
 
+    //"Suppressing Sonar violation of Field names should comply with naming convention"
+    @SuppressWarnings("squid:S00116")
     private static class TaskSummary {
         public URI id;
         public String opId;

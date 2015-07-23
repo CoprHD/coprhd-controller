@@ -90,16 +90,18 @@ public class FaultUtil {
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent() {
-      com.vmware.vim.vasa._1_0.LostEvent e = new com.vmware.vim.vasa._1_0.LostEvent();
-      wrap(e);
-      return e;
-   }
+   @SuppressWarnings("squid:S00100") //Suppressing Sonar violation for method naming convention 
+	public static com.vmware.vim.vasa._1_0.LostEvent LostEvent() {
+		com.vmware.vim.vasa._1_0.LostEvent e = new com.vmware.vim.vasa._1_0.LostEvent();
+		wrap(e);
+		return e;
+	}
 
    /**
     * @param error string
     * @param cause
     */
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention")  
    public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(String message, Throwable cause) {
       com.vmware.vim.vasa._1_0.LostEvent e = new com.vmware.vim.vasa._1_0.LostEvent(message, cause);
       wrap(e);
@@ -109,6 +111,7 @@ public class FaultUtil {
    /**
     * @param error string
     */
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
    public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(String message) {
       return FaultUtil.LostEvent(message, null);
    }
@@ -116,14 +119,16 @@ public class FaultUtil {
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.LostEvent LostEvent(Throwable cause) { 
       return FaultUtil.LostEvent("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument() {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument() { 
       com.vmware.vim.vasa._1_0.InvalidArgument e = new com.vmware.vim.vasa._1_0.InvalidArgument();
       wrap(e);
       return e;
@@ -133,7 +138,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.InvalidArgument e = new com.vmware.vim.vasa._1_0.InvalidArgument(message, cause);
       wrap(e);
       return e;
@@ -141,22 +147,25 @@ public class FaultUtil {
 
    /**
     * @param error string
-    */
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message) {
+    */ 
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(String message) { 
       return FaultUtil.InvalidArgument(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidArgument InvalidArgument(Throwable cause) { 
       return FaultUtil.InvalidArgument("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate() {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate() { 
       com.vmware.vim.vasa._1_0.InvalidCertificate e = new com.vmware.vim.vasa._1_0.InvalidCertificate();
       wrap(e);
       return e;
@@ -166,7 +175,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.InvalidCertificate e = new com.vmware.vim.vasa._1_0.InvalidCertificate(message, cause);
       wrap(e);
       return e;
@@ -175,21 +185,24 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message) {
-      return FaultUtil.InvalidCertificate(message, null);
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(String message) { 
+      return FaultUtil.InvalidCertificate(message, null); 
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.InvalidCertificate InvalidCertificate(Throwable cause) { 
       return FaultUtil.InvalidCertificate("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound() {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound() { 
       com.vmware.vim.vasa._1_0.NotFound e = new com.vmware.vim.vasa._1_0.NotFound();
       wrap(e);
       return e;
@@ -199,7 +212,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.NotFound e = new com.vmware.vim.vasa._1_0.NotFound(message, cause);
       wrap(e);
       return e;
@@ -208,21 +222,24 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound(String message) { 
       return FaultUtil.NotFound(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotFound NotFound(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.NotFound NotFound(Throwable cause) { 
       return FaultUtil.NotFound("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented() {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention")  
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented() { 
       com.vmware.vim.vasa._1_0.NotImplemented e = new com.vmware.vim.vasa._1_0.NotImplemented();
       wrap(e);
       return e;
@@ -232,7 +249,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.NotImplemented e = new com.vmware.vim.vasa._1_0.NotImplemented(message, cause);
       wrap(e);
       return e;
@@ -241,21 +259,24 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention")  
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(String message) { 
       return FaultUtil.NotImplemented(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.NotImplemented NotImplemented(Throwable cause) { 
       return FaultUtil.NotImplemented("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault() {
+	@SuppressWarnings("squid:S00100") //Suppressing("Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault() { 
       com.vmware.vim.vasa._1_0.StorageFault e = new com.vmware.vim.vasa._1_0.StorageFault();
       wrap(e);
       return e;
@@ -265,7 +286,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention") 
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.StorageFault e = new com.vmware.vim.vasa._1_0.StorageFault(message, cause);
       wrap(e);
       return e;
@@ -274,21 +296,24 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(String message) { 
       return FaultUtil.StorageFault(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.StorageFault StorageFault(Throwable cause) { 
       return FaultUtil.StorageFault("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm() {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm() { 
       com.vmware.vim.vasa._1_0.LostAlarm e = new com.vmware.vim.vasa._1_0.LostAlarm();
       wrap(e);
       return e;
@@ -298,7 +323,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.LostAlarm e = new com.vmware.vim.vasa._1_0.LostAlarm(message, cause);
       wrap(e);
       return e;
@@ -307,21 +333,24 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(String message) { 
       return FaultUtil.LostAlarm(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.LostAlarm LostAlarm(Throwable cause) { 
       return FaultUtil.LostAlarm("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin() {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin() { 
       com.vmware.vim.vasa._1_0.InvalidLogin e = new com.vmware.vim.vasa._1_0.InvalidLogin();
       wrap(e);
       return e;
@@ -331,7 +360,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.InvalidLogin e = new com.vmware.vim.vasa._1_0.InvalidLogin(message, cause);
       wrap(e);
       return e;
@@ -340,21 +370,24 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(String message) { 
       return FaultUtil.InvalidLogin(message, null);
    }
 
    /**
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(Throwable cause) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.InvalidLogin InvalidLogin(Throwable cause) { 
       return FaultUtil.InvalidLogin("", cause);
    }
 
    /**
     * @param none
     */
-   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession() {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession() { 
       com.vmware.vim.vasa._1_0.InvalidSession e = new com.vmware.vim.vasa._1_0.InvalidSession();
       wrap(e);
       return e;
@@ -364,7 +397,8 @@ public class FaultUtil {
     * @param error string
     * @param cause
     */
-   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message, Throwable cause) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message, Throwable cause) { 
       com.vmware.vim.vasa._1_0.InvalidSession e = new com.vmware.vim.vasa._1_0.InvalidSession(message, cause);
       wrap(e);
       return e;
@@ -373,13 +407,15 @@ public class FaultUtil {
    /**
     * @param error string
     */
-   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message) {
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
+   public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(String message) { 
       return FaultUtil.InvalidSession(message, null);
    }
 
    /**
     * @param cause
     */
+	@SuppressWarnings("squid:S00100") //("Suppressing Sonar violation for method naming convention")
    public static com.vmware.vim.vasa._1_0.InvalidSession InvalidSession(Throwable cause) {
       return FaultUtil.InvalidSession("", cause);
    }

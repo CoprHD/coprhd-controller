@@ -66,7 +66,6 @@ public class DummyEventRetriever implements EventRetriever {
             events = getDummyEvents();
         } catch (URISyntaxException e) {
             _logger.error("Error getting events", e);
-            e.printStackTrace();
         }
 
        

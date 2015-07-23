@@ -312,10 +312,10 @@ public class ComputeSystems extends ViprResourceController {
         public String userName;
 
         @MaxSize(2048)
-        public String password = "";
+        public String password = "";//NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
         @MaxSize(2048)
-        public String confirmPassword = "";
+        public String confirmPassword = "";//NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
         
         public String vlanList;
 
@@ -324,6 +324,7 @@ public class ComputeSystems extends ViprResourceController {
 
         public boolean unregistered;
 
+       
         public ComputeSystemForm(ComputeSystemRestRep computeSystem) {
             this.id = computeSystem.getId().toString();
             this.name = computeSystem.getName();
@@ -334,7 +335,7 @@ public class ComputeSystems extends ViprResourceController {
             this.osInstallNetwork = computeSystem.getOsInstallNetwork();
             this.vlanList = computeSystem.getOsInstallNetwork();
             this.userName = computeSystem.getUsername();
-            this.password = ""; // the platform will never return the real password
+            this.password = ""; // the platform will never return the real password //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
             this.unregistered = RegistrationStatus.isUnregistered(computeSystem
                     .getRegistrationStatus());
 

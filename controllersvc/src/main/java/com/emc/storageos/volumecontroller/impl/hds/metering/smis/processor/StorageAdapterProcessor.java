@@ -39,7 +39,7 @@ public class StorageAdapterProcessor extends Processor {
 			final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
 			while (it.hasNext()) {
 				CIMInstance adapterInstance = it.next();
-				addPath(keyMap, operation.get_result(), adapterInstance.getObjectPath());
+				addPath(keyMap, operation.getResult(), adapterInstance.getObjectPath());
 			}
 		} catch (Exception e) {
 			_logger.error("Fetching Adapter Information failed -->{}", getMessage(e));

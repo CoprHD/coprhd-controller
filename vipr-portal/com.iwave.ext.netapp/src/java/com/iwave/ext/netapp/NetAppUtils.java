@@ -19,7 +19,7 @@ public class NetAppUtils {
     
     public static void output(NaElement elem, int level) {
         List<NaElement> children = elem.getChildren();
-        if (children != null && children.size() > 0) {
+        if (children != null && !children.isEmpty()) {
             for (NaElement child : children) {
                 output(child, (level + 1));
             }

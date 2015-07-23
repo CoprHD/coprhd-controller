@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -97,8 +98,7 @@ public class Documenter {
                     }
                     entries.add(new DocumenterEntry(interfaze, method, status, sce, parameters));
                 } catch (final Exception e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    _log.error(String.format("Fail to create document entry for method: %s", method), e);
                 }
             }
         }
@@ -249,8 +249,7 @@ public class Documenter {
             try {
                 return new URI("sos:uri:" + index);
             } catch (final URISyntaxException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                _log.error(String.format("Fail to instantiate URI with \"sos:uri:%s\"", index), e);
             }
         } else if (clazz.isAssignableFrom(Date.class)) {
             final Calendar calendar = Calendar.getInstance();
@@ -328,7 +327,7 @@ public class Documenter {
         }
 
         public Object[] getParameters() {
-            return parameters;
+            return Arrays.copyOf(parameters, parameters.length);
         }
 
         public String getParametersAsString() {
@@ -352,10 +351,10 @@ public class Documenter {
             this.interfaze = interfaze;
             this.method = method;
             this.status = status;
-            this.parameters = parameters;
             this.code = sce.getServiceCode();
             this.summary = code.getSummary();
             this.message = sce.getMessage();
+            this.parameters = (parameters != null) ? Arrays.copyOf(parameters, parameters.length) : null;
         }
     }
 }

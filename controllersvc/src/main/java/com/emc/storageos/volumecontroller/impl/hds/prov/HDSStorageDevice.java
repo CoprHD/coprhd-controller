@@ -158,7 +158,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                 "Create Volume Start - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
                 storagePool.getNativeGuid()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s , IsThinlyProvisioned: %s",
+            logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s",
                     volume.getLabel(), volume.getThinlyProvisioned()));
 
             if ((label == null) && (volumes.size() == 1)) {
@@ -229,7 +229,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             "Create Volumes End - Array:%s, Pool:%s", storageSystem.getSerialNumber(),
             storagePool.getNativeGuid()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());
     }
@@ -297,7 +297,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             MetaVolumeRecommendation recommendation, VolumeExpandCompleter volumeCompleter)
             throws DeviceControllerException {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "Expand Meta Volume Start - Array:%s, Pool:%s \n    Volume: %s, id: %s",
+                "Expand Meta Volume Start - Array:%s, Pool:%s %n Volume: %s, id: %s",
                 storageSystem.getSerialNumber(), storagePool.getNativeId(), metaHead.getLabel(),
                 metaHead.getId()));
         log.info(logMsgBuilder.toString());
@@ -350,7 +350,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             String systemObjectId = HDSUtils.getSystemObjectID(storageSystem);
             log.info("volumes size: {}", volumes.size());
             for (Volume volume : volumes) {
-                logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+                logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
                 String logicalUnitObjectId = HDSUtils.getLogicalUnitObjectId(
                         volume.getNativeId(), storageSystem);
                 LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(systemObjectId,
@@ -419,7 +419,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
         StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "Delete Volume End - Array: %s", storageSystem.getSerialNumber()));
         for (Volume volume : volumes) {
-            logMsgBuilder.append(String.format("\nVolume:%s", volume.getLabel()));
+            logMsgBuilder.append(String.format("%nVolume:%s", volume.getLabel()));
         }
         log.info(logMsgBuilder.toString());
     }
@@ -716,7 +716,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     .loadStepData(sourceStepId);
             if (metaMembers != null && !metaMembers.isEmpty()) {
                 log.info(String.format(
-                        "doCleanupMetaMembers: Members stored for meta volume: \n   %s",
+                        "doCleanupMetaMembers: Members stored for meta volume: %n %s",
                         metaMembers));
                 // Check if volumes still exist in array and if it is not composite member (already
                 // added to the meta volume)
@@ -736,7 +736,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
                     log.info("doCleanupMetaMembers: No meta members to cleanup in array.");
                 } else {
                     log.info(String
-                            .format("doCleanupMetaMembers: Members to cleanup in array: \n   %s",
+                            .format("doCleanupMetaMembers: Members to cleanup in array: %n   %s",
                                     volumeIds));
                     // Prepare parameters and call method to delete meta members from array
                    
@@ -890,7 +890,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
             try {
                 HDSApiClient hdsApiClient = hdsApiFactory.getClient(HDSUtils.getHDSServerManagementServerInfo(storage),
                         storage.getSmisUserName(), storage.getSmisPassword());
-                logMsgBuilder.append(String.format("\nVolume:%s , IsThinlyProvisioned: %s, tieringPolicy: %s",
+                logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s, tieringPolicy: %s",
                         volume.getLabel(), volume.getThinlyProvisioned(), volume.getAutoTieringPolicyUri()));
                 LogicalUnit logicalUnit = hdsApiClient.getLogicalUnitInfo(systemObjectID,
                         HDSUtils.getLogicalUnitObjectId(volume.getNativeId(), storage));

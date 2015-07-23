@@ -74,18 +74,20 @@ public class AuthenticationResource {
     public static final String FROM_PORTAL = "portal";
     public static final String DUMMY_HOST_NAME = "vipr";
 
-    private final String UTF8_ENCODING = "UTF-8";
+    private static final String UTF8_ENCODING = "UTF-8";
     private static final String AUTH_FORM_LOGIN_PAGE_ACTION = "action=\"";
     public static final  String AUTH_REALM_NAME = "ViPR";
     private static final String FORM_LOGIN_DOC_PATH = "storageos-authsvc/docs/login.html";
-    private static final String FORM_CHANGE_PASSWORD_DOC_PATH = "storageos-authsvc/docs/changePassword.html";
+
+    private static final String FORM_CHANGE_PASSWORD_DOC_PATH = "storageos-authsvc/docs/changePassword.html";  //NOSONAR ("Variable NAME contains substring password, but no sensitive information in the value.")
 
     private static final String FORM_LOGIN_HTML_ENT = "(<input\\s*id=\"username\")";
     private static final String FORM_LOGIN_AUTH_ERROR_ENT = "<div class=\"alert alert-danger\">{0}</div>";
     private static final String FORM_SUCCESS_ENT = "<div class=\"alert alert-success\">{0}</div>";
     private static final String FORM_INFO_ENT = "<div class=\"alert alert-info\">{0}</div>";
     private static final String FORM_LOGIN_BAD_CREDS_ERROR = "Invalid Username or Password";
-    private static final String FORM_NOT_MATCH_CONFIRM_PASSWORD = "password don't match confirm password";
+
+    private static final String FORM_NOT_MATCH_CONFIRM_PASSWORD = "password don't match confirm password";  //NOSONAR ("Variable NAME contains substring password, but no sensitive information in the value.")
     private static final String FORM_INVALID_LOGIN_LIMIT_ERROR = "Exceeded invalid login limit";
     private static final String FORM_INVALID_AUTH_TOKEN_ERROR = "Remote VDC token has either expired or was issued to a local user that is restricted to their home VDC only.  Please relogin.";
     private static final String FORM_LOGIN_POST_NO_SERVICE_ERROR = "The POST request to formlogin does not have service query parameter";
@@ -484,7 +486,7 @@ public class AuthenticationResource {
         StorageOSUser user = getUserFromContext();
         if (user != null) {
             if (StringUtils.isNotBlank(username)) {
-                boolean isTargetUserLocal = StorageOSLocalAuthenticationHandler.exists(username);
+                boolean isTargetUserLocal = _localUsers.containsKey(username);
                 boolean hasRestrictedSecurityAdmin = _permissionsHelper.userHasGivenRole(user, URI.create(user.getTenantId()), Role.RESTRICTED_SECURITY_ADMIN);
                 boolean hasSecurityAdmin = _permissionsHelper.userHasGivenRole(user, URI.create(user.getTenantId()), Role.SECURITY_ADMIN);
                 // if the user is security admin or restricted sec admin (if the user to be logged out is just local)

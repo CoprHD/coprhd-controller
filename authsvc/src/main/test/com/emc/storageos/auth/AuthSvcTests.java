@@ -167,7 +167,7 @@ public class AuthSvcTests extends ApiTestBase {
     }
 
     @Before
-    public void setup() throws Exception {
+    public synchronized void setup() throws Exception {
         initLoadBalancer(true);
         baseAuthServiceURL = baseUrls.get(0);
         baseApiServiceURL = baseUrls.get(0);
@@ -480,7 +480,7 @@ public class AuthSvcTests extends ApiTestBase {
         }
 
         WebResource rRoot =
-                createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, true).resource(baseAuthServiceURL);
+                createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, true).resource(baseAuthServiceURL);
         rRoot.path("/login").get(ClientResponse.class);
 
         // post authProvider
@@ -488,7 +488,7 @@ public class AuthSvcTests extends ApiTestBase {
 
         // login with a user from ldap
         WebResource rSanityUser =
-                createHttpsClient(ROOTUSER, AD_PASSWORD, true).resource(
+                createHttpsClient(ROOTUSER, AD_PASS_WORD, true).resource(
                         baseAuthServiceURL);
         rSanityUser.path("/login").get(ClientResponse.class);
         TenantResponse tenant = rSanityUser.path("/tenant").get(TenantResponse.class);
@@ -680,7 +680,9 @@ public class AuthSvcTests extends ApiTestBase {
             try {
                 Thread.sleep(2000);
                 System.out.println("Waiting for stable cluster state.");
-            } catch (InterruptedException e) { }
+            } catch (InterruptedException e) {
+                // Empty on purpose
+            }
             resp = rRoot.path("/upgrade/cluster-state").get(ClientResponse.class);
             info = resp.getEntity(String.class);
             if (info.contains("<cluster_state>STABLE</cluster_state>")) {

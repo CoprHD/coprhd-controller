@@ -180,7 +180,7 @@ public abstract class BaseLogSvcResource {
      * with their actual names.
      */
     protected List<String> getLogNamesFromAlias(List<String> logNames) {
-        if (logNames == null || logNames.size() == 0) {
+        if (logNames == null || logNames.isEmpty()) {
             return logNames;
         }
 

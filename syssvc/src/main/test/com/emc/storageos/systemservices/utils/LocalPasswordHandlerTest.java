@@ -36,7 +36,7 @@ import com.emc.storageos.systemservices.impl.util.LocalPasswordHandler;
 
 public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
 
-    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
+    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
 
     /**
      * local user sysmonitor
@@ -84,9 +84,9 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
     }
  
     @Test
-    public void testSetAndVerifyUserPassword() throws CoordinatorClientException, LocalRepositoryException {
+    public void testSetAndVerifyUserPassword() throws Exception {
 
-        String newPassword = "newPassword123";
+        String newPassword = "newPassword123";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
         
         LocalPasswordHandler ph  = getPasswordHandler();
         
@@ -96,9 +96,9 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
     }
 
     @Test
-    public void testResetUserPassword() throws CoordinatorClientException, LocalRepositoryException {
+    public void testResetUserPassword() throws Exception {
 
-        String resetPassword = "freshPassword123";
+        String resetPassword = "freshPassword123";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
         
         LocalPasswordHandler ph  = getPasswordHandler();
         
@@ -106,7 +106,8 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
         changeAndVerifyUserPassword(LOCAL_PROXYUSER, resetPassword, "encrypted", ph);      
     }
     
-    private void changeAndVerifyUserPassword(String username, String password, String security, LocalPasswordHandler ph) {
+    private void changeAndVerifyUserPassword(String username, String password, String security, LocalPasswordHandler ph)
+            throws Exception{
     	
     	if (security.equals("hashed")) {
     		ph.setUserPassword(username, password, false);
@@ -117,13 +118,8 @@ public class LocalPasswordHandlerTest extends LocalPasswordHandlerTestBase {
     	}
     	else if (security.equals("encrypted")) {
     		ph.setUserEncryptedPassword(LOCAL_PROXYUSER, password, false);
-            String storedPassword = "";
-            try {
-    		    storedPassword = _encryptionProvider.decrypt(Base64.decodeBase64(_passwordProps.getProperty(
-    					String.format(SYSTEM_ENCPASSWORD_FORMAT, username)).getBytes("UTF-8")));
-    		} catch (UnsupportedEncodingException e) {
-
-    		}
+            String storedPassword = _encryptionProvider.decrypt(Base64.decodeBase64(_passwordProps.getProperty(
+                    String.format(SYSTEM_ENCPASSWORD_FORMAT, username)).getBytes("UTF-8")));
             Assert.assertTrue(storedPassword.equals(password));          
     	}
     	

@@ -96,6 +96,7 @@ public class WorkPoolImpl implements WorkPool {
             try {
                 _zkClient.delete().guaranteed().withVersion(stat.getVersion()).forPath(lockPath);
             } catch (KeeperException.NoNodeException ignore) {
+                _log.debug("Caught exception but ignoring it", ignore);
             } catch (KeeperException.BadVersionException ignore) {
                 // someone else took it
                // Ignore exception, don't re-throw
@@ -235,11 +236,11 @@ public class WorkPoolImpl implements WorkPool {
                     }
                     try {
                         _assignmentListener.assigned(assigned);
-                    } catch (Throwable e) {
+                    } catch (Exception e) {
                         _log.warn("Assignment listener threw", e);
                     }
                     // take unassigned work
-                    workSet.remove(assignedSet);
+                    workSet.removeAll(assignedSet);
                     Iterator<String> unassignedIt = workSet.iterator();
                     while (unassignedIt.hasNext()) {
                         String lockPath = lockPath(unassignedIt.next());

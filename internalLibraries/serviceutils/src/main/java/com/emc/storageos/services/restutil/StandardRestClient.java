@@ -21,11 +21,14 @@ import javax.ws.rs.core.MediaType;
 
 import org.codehaus.jettison.json.JSONObject;
 
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class StandardRestClient implements RestClientItf {
     protected Client _client;
@@ -33,6 +36,7 @@ public abstract class StandardRestClient implements RestClientItf {
     protected String _password;
     protected String _authToken;
     protected URI _base;
+    private static Logger log = LoggerFactory.getLogger(StandardRestClient.class);
     
     @Override
     public ClientResponse get(URI uri) throws InternalException {
@@ -99,7 +103,7 @@ public abstract class StandardRestClient implements RestClientItf {
     
     protected <T> T getResponseObject(Class<T> clazz, ClientResponse response) throws Exception {
         JSONObject resp = response.getEntity(JSONObject.class);
-        T respObject = new Gson().fromJson(resp.toString(), clazz);
+        T respObject = new Gson().fromJson(SecurityUtils.sanitizeJsonString(resp.toString()), clazz);
         return respObject;
     }
     

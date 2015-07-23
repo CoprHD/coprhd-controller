@@ -24,7 +24,7 @@ public class VPlexApiConstants {
     // Constants define the headers required when making HTTP requests to the
     // VPlex Management Station using the Element Manager API.
     public static final String USER_NAME_HEADER = "Username";
-    public static final String PASSWORD_HEADER = "Password";
+    public static final String PASS_WORD_HEADER = "Password";
     public static final String LOCATION_HEADER = "Location";
     public static final String CONNECTION_HEADER = "Connection";
     public static final String CONNECTION_HEADER_VALUE_CLOSE = "close";
@@ -304,5 +304,8 @@ public class VPlexApiConstants {
     // VPLEX API error response fragment used to check if 
     // the failure were due to duplicate storage view
     public static final String DUPLICATE_STORAGE_VIEW_ERROR_FRAGMENT = "failed with Status 537: Duplicate view";
+
+    // delimiter for cause in VPLEX API error responses
+    public static final String CAUSE_DELIM = "cause:";
 
 }

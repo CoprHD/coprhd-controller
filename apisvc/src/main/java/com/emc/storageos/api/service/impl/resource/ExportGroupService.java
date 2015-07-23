@@ -153,7 +153,7 @@ public class ExportGroupService extends TaskResourceService {
     private static final int MAX_VOLUME_COUNT = 100;
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
     
-    private static BlockStorageScheduler _blockStorageScheduler;
+    private static volatile BlockStorageScheduler _blockStorageScheduler;
     public void setBlockStorageScheduler( BlockStorageScheduler blockStorageScheduler) {
         if ( _blockStorageScheduler == null) {
             _blockStorageScheduler = blockStorageScheduler;
@@ -188,7 +188,7 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     // Block service implementations
-    static private Map<String, ExportGroupServiceApi> _exportGroupServiceApis;
+    static volatile private Map<String, ExportGroupServiceApi> _exportGroupServiceApis;
 
     static public void setExportGroupServiceApis(
             Map<String, ExportGroupServiceApi> serviceInterfaces) {
@@ -390,7 +390,7 @@ public class ExportGroupService extends TaskResourceService {
      * @return
      */
     private boolean hasItems (Collection<? extends Object> col) {
-        return col !=null && col.size() > 0;
+        return col !=null && !col.isEmpty();
     }
     
     /**
@@ -1331,7 +1331,7 @@ public class ExportGroupService extends TaskResourceService {
                 throw APIException.badRequests.uniqueLunsOrNoLunValue();           
         } else  {
             // luns is either empty or have something that is assigned
-            if (luns.size() > 0) {
+            if (!luns.isEmpty()) {
                 // if the previous ones were assigned, this one should be assigned
                 // and have a different lun id from the others
                 if (luns.contains(lun) || lun.equals(ExportGroup.LUN_UNASSIGNED))
@@ -1376,7 +1376,7 @@ public class ExportGroupService extends TaskResourceService {
         // Set the initiators for this export group, which will be
         // included in the response for the export group.
         StringSet initiatorIds = export.getInitiators();
-        if ((initiatorIds != null) && (initiatorIds.size() != 0)) {
+        if ((initiatorIds != null) && !initiatorIds.isEmpty()) {
             List<URI> initiatorURIs = new ArrayList<URI>();
             for (String initiatorId : initiatorIds) {
                 initiatorURIs.add(URI.create(initiatorId));
@@ -1795,7 +1795,7 @@ public class ExportGroupService extends TaskResourceService {
             VirtualArray varray, Collection<URI> volumes, List<URI> allHosts) {
 
         Set<URI> vplexStorageSystemURIs = new HashSet<URI>();
-        if (allHosts.size() != 0) {
+        if (!allHosts.isEmpty()) {
             for (URI uri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, uri);
                 if (blockObject == null)
@@ -1810,7 +1810,7 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         ExportGroupServiceApi exportGroupServiceApi = null;
-        if (vplexStorageSystemURIs.size() != 0) {
+        if (!vplexStorageSystemURIs.isEmpty()) {
             exportGroupServiceApi = getExportGroupServiceImpl(DiscoveredDataObject.Type.vplex
                     .name());
         } else {
@@ -1875,7 +1875,7 @@ public class ExportGroupService extends TaskResourceService {
     private void validateVolumeLunIdParam(List<VolumeParam> volumes) {
         int numDeviceNumbers = 0;
         int volumeListSize = 0;
-        if (volumes != null && volumes.size() > 0) {
+        if (volumes != null && !volumes.isEmpty()) {
             volumeListSize = volumes.size();
             for (VolumeParam volParam : volumes) {
                 if (volParam.getLun() != ExportGroup.LUN_UNASSIGNED) {
@@ -2341,7 +2341,7 @@ public class ExportGroupService extends TaskResourceService {
         List<URI> out = Lists.newArrayList();
         if (namedElements != null) {
             for (NamedElement namedElement : namedElements) {
-                out.add(namedElement.id);
+                out.add(namedElement.getId());
             }
         }
         return out;

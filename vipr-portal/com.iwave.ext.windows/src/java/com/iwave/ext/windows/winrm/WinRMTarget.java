@@ -150,10 +150,10 @@ public class WinRMTarget {
             // Check to see if the response is a SOAP fault
             SOAPFault fault = getSOAPFault(content);
             if (fault != null) {
-                String WMIErrorMsg = getWMIError(fault);
+                String wMIErrorMsg = getWMIError(fault);
 
-                if (WMIErrorMsg != null) {
-                    throw new WinRMSoapException(WMIErrorMsg, fault);
+                if (wMIErrorMsg != null) {
+                    throw new WinRMSoapException(wMIErrorMsg, fault);
                 } else {
                     throw new WinRMSoapException(fault);
                 }

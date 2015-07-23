@@ -322,9 +322,9 @@ public class CIMConnectionFactory {
         
         try {
             _evtMgr.recordEvents(event);
-        } catch (Throwable th) {
+        } catch (Exception ex) {
             _log.error("Failed to record event. Event description: {}. Error: {}.",
-                    description, th);
+                    description, ex);
         }
     }
 

@@ -66,7 +66,7 @@ public class VmaxFastInitialPlacementSelectionMatcher extends ConditionalAttribu
         List<StoragePool> filteredPools = raidLevelMatcher.runMatchStoragePools(allPools, attributeMap);
         filteredPools = driveTypeMatcher.runMatchStoragePools(filteredPools, attributeMap);
         //if matching pools is 0, then return all the Pools, randomly a tier will be chosen as initial placement tier.  
-        if (filteredPools.size() == 0) {
+        if (filteredPools.isEmpty()) {
             _logger.info("No Pools found matching initial placement Criteria ,returning all  Pools : {} ", Joiner
                     .on("\t").join(getNativeGuidFromPools(allPools)));
             return allPools;

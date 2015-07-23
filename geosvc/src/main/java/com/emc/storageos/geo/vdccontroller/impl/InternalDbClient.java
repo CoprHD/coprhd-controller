@@ -35,9 +35,6 @@ import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.netflix.astyanax.Keyspace;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.ddl.KeyspaceDefinition;
-import com.sun.tools.attach.AgentInitializationException;
-import com.sun.tools.attach.AgentLoadException;
-import com.sun.tools.attach.AttachNotSupportedException;
 import org.apache.cassandra.locator.EndpointSnitchInfoMBean;
 import org.apache.cassandra.service.StorageServiceMBean;
 import org.slf4j.Logger;
@@ -58,11 +55,11 @@ import com.emc.storageos.db.server.geo.GeoInternodeAuthenticatorMBean;
  */
 public class InternalDbClient extends DbClientImpl {
     private static final Logger log = LoggerFactory.getLogger(InternalDbClient.class);
-    private static int WAIT_INTERVAL_IN_SEC = 60;
-    private static int DB_RING_TIMEOUT = 10 * 60 * 1000; // 10 mins
-    private static int DB_STABLE_TIMEOUT = 30 * 60 * 1000; // 30 mins
-    private static int WAIT_QUERY_NODE_REPAIR_BEGIN = 5 * 60 * 1000; //query every 5min
-    private static int WAIT_QUERY_NODE_REPAIR_PROGRESS = 5 * 1000; //query every 5S
+    private static final int WAIT_INTERVAL_IN_SEC = 60;
+    private static final int DB_RING_TIMEOUT = 10 * 60 * 1000; // 10 mins
+    private static final int DB_STABLE_TIMEOUT = 30 * 60 * 1000; // 30 mins
+    private static final int WAIT_QUERY_NODE_REPAIR_BEGIN = 5 * 60 * 1000; //query every 5min
+    private static final int WAIT_QUERY_NODE_REPAIR_PROGRESS = 5 * 1000; //query every 5S
     private static String LOCALHOST="127.0.0.1";
     
     @Deprecated
@@ -93,7 +90,7 @@ public class InternalDbClient extends DbClientImpl {
         } 
         ctx = KeyspaceUtil.isGlobal(clazz) ? geoContext : localContext;
         if (!ctx.isInitDone()) {
-            String serviceName = ctx.equals(geoContext) ? Constants.GEODBSVC_NAME : Constants.GEODBSVC_NAME;
+            String serviceName = ctx.equals(geoContext) ? Constants.GEODBSVC_NAME : Constants.DBSVC_NAME;
             log.info("Initialize db context {}", serviceName);
             setupContext(ctx, serviceName);
         }
@@ -179,7 +176,7 @@ public class InternalDbClient extends DbClientImpl {
 
         DbJmxClient geoInstance = null;
         try {
-            geoInstance = new DbJmxClient(ip, DbJmxClient.defaultGeoPort);
+            geoInstance = new DbJmxClient(ip, DbJmxClient.DEFAULTGEOPORT);
         } catch (Exception e) {
             throw new IllegalStateException(String.format("Not able to connect via JMX %s", ip));
         }
@@ -230,6 +227,7 @@ public class InternalDbClient extends DbClientImpl {
                 }
                 TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
             } catch (InterruptedException ex) {
+            	//Ignore this exception
             } catch (Exception ex) {
                 log.error("Exception checking DB cluster status", ex);
             }
@@ -266,6 +264,7 @@ public class InternalDbClient extends DbClientImpl {
                 }
                 TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
             } catch (InterruptedException ex) {
+            	//Ignore this exception
             } catch (Exception ex) {
                 log.error("Exception checking DB cluster status", ex);
             }
@@ -296,6 +295,7 @@ public class InternalDbClient extends DbClientImpl {
                 }
                 TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
             } catch (InterruptedException ex) {
+            	//Ignore this exception
             } catch (Exception ex) {
                 log.error("Exception checking DB cluster status", ex);
             }
@@ -368,7 +368,7 @@ public class InternalDbClient extends DbClientImpl {
         for (String nodeIp : liveNodes) {
             DbJmxClient jmxClient = getJmxClient(nodeIp);
             List<String> blacklist = jmxClient.getBlacklist();
-            if (blacklist.size() > 0) {
+            if (!blacklist.isEmpty()) {
                 result.put(nodeIp, blacklist);
                 log.info("Get blacklist {} for node {}", blacklist, nodeIp);
             }
@@ -384,11 +384,11 @@ public class InternalDbClient extends DbClientImpl {
      * The JMX client of Cassandra
      */ 
     public static class DbJmxClient {
-        private static final String fmtUrl = "service:jmx:rmi://%s:7300/jndi/rmi://%s:%d/jmxrmi";
-        private static final String ssObjName = "org.apache.cassandra.db:type=StorageService";
-        private static final int defaultPort = 7199;
-        private static final int defaultGeoPort = 7299;
-        public static final int defaultThriftPort = 9260;
+        private static final String FMTURL = "service:jmx:rmi://%s:7300/jndi/rmi://%s:%d/jmxrmi";
+        private static final String SSOBJNAME = "org.apache.cassandra.db:type=StorageService";
+        private static final int DEFAULTPORT = 7199;
+        private static final int DEFAULTGEOPORT = 7299;
+        public static final int DEFAULTTHRIFTPORT = 9260;
         final String host;
         final int port;
         private String username;
@@ -423,7 +423,7 @@ public class InternalDbClient extends DbClientImpl {
         public DbJmxClient(String host) throws IOException, InterruptedException
         {
             this.host = host;
-            this.port = defaultPort;
+            this.port = DEFAULTPORT;
             connect();
         }
 
@@ -433,7 +433,7 @@ public class InternalDbClient extends DbClientImpl {
          * @throws IOException on connection failures
          */
         private void connect() throws IOException {
-            JMXServiceURL jmxUrl = new JMXServiceURL(String.format(fmtUrl, host, host, port));
+            JMXServiceURL jmxUrl = new JMXServiceURL(String.format(FMTURL, host, host, port));
             Map<String,Object> env = new HashMap<String,Object>();
             if (username != null) {
                 String[] creds = { username, password };
@@ -444,7 +444,7 @@ public class InternalDbClient extends DbClientImpl {
             mbeanServerConn = jmxc.getMBeanServerConnection();
 
             try {
-                ObjectName name = new ObjectName(ssObjName);
+                ObjectName name = new ObjectName(SSOBJNAME);
                 ssProxy = JMX.newMBeanProxy(mbeanServerConn, name, StorageServiceMBean.class);
                 snitchProxy = JMX.newMBeanProxy(mbeanServerConn, new ObjectName("org.apache.cassandra.db:type=EndpointSnitchInfo"), EndpointSnitchInfoMBean.class);
                 internodeAuthProxy = JMX.newMBeanProxy(mbeanServerConn, new ObjectName(GeoInternodeAuthenticatorMBean.MBEAN_NAME), GeoInternodeAuthenticatorMBean.class);
@@ -462,8 +462,7 @@ public class InternalDbClient extends DbClientImpl {
          */
         public List<String> getDcLiveNodes(String dcId) {
             // An easy way is to iterate the host ips, but need figure it out in ipv4/6 support later
-            List<String> dcLiveNodes = new ArrayList();
-            List<String> allLiveNodes = getLiveNodes();
+            List<String> dcLiveNodes = new ArrayList<String>();
 
             Map<InetAddress, Float> ownerships;
             try {
@@ -499,8 +498,7 @@ public class InternalDbClient extends DbClientImpl {
          */
         public List<String> getDcNodeFullOwnership(String dcId) {
             // An easy way is to iterate the host ips, but need figure it out in ipv4/6 support later
-            List<String> fullOwners = new ArrayList();
-            List<String> allLiveNodes = getLiveNodes();
+            List<String> fullOwners = new ArrayList<String>();
             Map<InetAddress, Float> ownerships;
             try {
                 ownerships = effectiveOwnership(null);
@@ -535,8 +533,6 @@ public class InternalDbClient extends DbClientImpl {
          */
         public boolean isRingOwnedBy(String dcId) {
             // An easy way is to iterate the host ips, but need figure it out in ipv4/6 support later
-            List<String> fullOwners = new ArrayList();
-            List<String> allLiveNodes = getLiveNodes();
             Map<InetAddress, Float> ownerships;
             try {
                 ownerships = effectiveOwnership(null);

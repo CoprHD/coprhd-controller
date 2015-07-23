@@ -20,14 +20,13 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.DataObject;
 
-import java.net.URI;
 import java.util.Date;
 
 /**
  *  Constrained query to get list of decommissioned object URIs of a given type
  */
 public interface DecommissionedConstraint extends Constraint {
-    public static class Factory {
+    class Factory {
         /**
          * query to get list of decommissioned object URIs of a given type
          * @param clazz type of objects to query

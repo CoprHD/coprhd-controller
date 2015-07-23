@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 public class SpecialCharInAccountTest {
 
     @Test
-    public void StringReplacementWith$In() {
+    public void stringReplacementWith$In() {
 
         String username = "f$red@secqe.com";
         String filter1 = "userPrincipalName=%u";

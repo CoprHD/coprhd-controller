@@ -149,7 +149,7 @@ public class InternalDbClientImpl extends InternalDbClient {
             }
         }
         
-        logAndPrintToScreen(String.format("\nTotally check %d cfs, %d rows are dirty.\n",
+        logAndPrintToScreen(String.format("%nTotally check %d cfs, %d rows are dirty.%n",
                 cfCount, dirtyCount));
 		return dirtyCount == 0;
     }

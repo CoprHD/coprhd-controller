@@ -149,7 +149,7 @@ public abstract class BlockIngestOrchestrator{
      *         volume's export's initiators' protocols
      */
     protected void checkVPoolValidForExportInitiatorProtocols(VirtualPool vpool, UnManagedVolume unManagedVolume) {
-        if (unManagedVolume.getInitiatorUris().size() == 0) {
+        if (unManagedVolume.getInitiatorUris().isEmpty()) {
             _logger.info("unmanaged volume {} has no initiators, so no need to verify vpool protocols",
                     unManagedVolume.getNativeGuid());
             return;
@@ -435,7 +435,7 @@ public abstract class BlockIngestOrchestrator{
         if (null != autoTierPolicyId) {
             List<URI> autoTierPolicyURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getAutoTieringPolicyByNativeGuidConstraint(autoTierPolicyId));
-            if (autoTierPolicyURIs.size() > 0) {
+            if (!autoTierPolicyURIs.isEmpty()) {
                 volume.setAutoTieringPolicyUri(autoTierPolicyURIs.get(0));
             }
         }
@@ -646,7 +646,7 @@ public abstract class BlockIngestOrchestrator{
             _logger.debug("Finding unmanagedvolume {} in vipr db", parentVolumeNativeGUID);
             List<URI> parentUnmanagedUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeInfoNativeIdConstraint(parentVolumeNativeGUID));
-            if (parentUnmanagedUris.size() > 0) {
+            if (!parentUnmanagedUris.isEmpty()) {
                 _logger.debug("Found unmanagedvolume {} in vipr db", parentVolumeNativeGUID);
                 rootUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, parentUnmanagedUris.get(0));
                 unManagedVolumeInformation = rootUnManagedVolume.getVolumeInformation();
@@ -665,7 +665,7 @@ public abstract class BlockIngestOrchestrator{
                 //Native guid might correspond to ViPR object, find if there is still a unmanaged volume corresponding to the parent
                 parentUnmanagedUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                         .getVolumeInfoNativeIdConstraint(parentVolumeNativeGUID.replace(VolumeIngestionUtil.VOLUME, VolumeIngestionUtil.UNMANAGEDVOLUME)));
-                if (parentUnmanagedUris.size() > 0) {
+                if (!parentUnmanagedUris.isEmpty()) {
                     _logger.debug("Found ingested volume {} in vipr db", parentVolumeNativeGUID);
                     rootUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, parentUnmanagedUris.get(0));
                     unManagedVolumeInformation = rootUnManagedVolume.getVolumeInformation();
@@ -877,7 +877,7 @@ public abstract class BlockIngestOrchestrator{
         
         
         if(foundIngestedReplicas.size() == expectedIngestedReplicas.size()) {
-            if(null != rootBlockObject && foundIngestedReplicas.size() > 0) {
+            if(null != rootBlockObject && !foundIngestedReplicas.isEmpty()) {
                 parentReplicaMap.put(rootBlockObject, foundIngestedReplicas);
                 unManagedVolumeGUIDs.add(unManagedVolumeNativeGUID);
                 unManagedVolumeGUIDs.addAll(unmanagedReplicaGUIDs);

@@ -39,7 +39,7 @@ import com.emc.storageos.db.server.DbsvcTestBase;
  */
 public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
     private static final Logger _log = LoggerFactory.getLogger(DbMigrationTestBase.class);
-    protected static HotSwapper hs = null;
+    protected static volatile HotSwapper hs = null;
 
     /**
      * @return the DB version upgraded from
@@ -89,7 +89,9 @@ public abstract class DbMigrationTestBase extends DbSimpleMigrationTestBase {
 
     protected void setupDB() throws Exception {
         if (hs == null) {
-            hs = new HotSwapper(8000);
+            //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+            //Junit test will be called in single thread by default, it's safe to ignore this violation
+            hs = new HotSwapper(8000); //NOSONAR ("squid:S2444")
         }
         super.setupDB();
     }

@@ -4,19 +4,24 @@
  */
 package com.emc.storageos.usermanagement.util.ad;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
 
-
 public class MySSLSocketFactory extends SSLSocketFactory
 {
+    Logger log = LoggerFactory.getLogger(this.getClass());
+
     private SSLSocketFactory socketFactory;
     public MySSLSocketFactory()
     {
@@ -24,7 +29,7 @@ public class MySSLSocketFactory extends SSLSocketFactory
             SSLContext ctx = SSLContext.getInstance("TLS");
             ctx.init(null, new TrustManager[]{ new DummyTrustManager()}, new SecureRandom());
             socketFactory = ctx.getSocketFactory();
-        } catch ( Exception ex ){ ex.printStackTrace(System.err);  /* handle exception */ }
+        } catch ( Exception ex ){ log.error("Error in new MySSLSocketFactory", ex);  /* handle exception */ }
     }
     public static SocketFactory getDefault(){
         return new MySSLSocketFactory();

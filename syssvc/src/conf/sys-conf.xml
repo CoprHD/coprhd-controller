@@ -44,8 +44,6 @@
     </bean>
 
     <bean id="logService" class="com.emc.storageos.systemservices.impl.resource.LogService">
-        <property name="coordinator" ref="coordinator" />
-        <property name="service" ref="serviceinfo" />
         <property name="exemptLoggerService" >
             <list>
                 <value>vasasvc</value>
@@ -97,14 +95,7 @@
                     </property>
                 </bean>
                 <ref bean="logService"/>
-                <bean class="com.emc.storageos.systemservices.impl.resource.ConfigService">
-                    <property name="proxy" ref="coordinatorclientext" />
-                    <property name="propsMetadata" ref="metadata"/>
-                    <property name="propertiesConfigurationValidator" ref="propertiesConfigurationValidator" />
-                    <property name="defaultProperties" ref="defaultProperties"/>
-                    <property name="ovfProperties" ref="ovfProperties"/>
-                    <property name="propertyHandlers" ref="propertyHandlers"/>
-                </bean>
+                <ref bean="configService"/>
                 <bean class="com.emc.storageos.systemservices.impl.resource.ControlService">
                     <property name="proxy" ref="coordinatorclientext" />
                 </bean>
@@ -132,15 +123,17 @@
     <bean id="localPasswordHandler" class="com.emc.storageos.systemservices.impl.util.LocalPasswordHandler">
         <property name="passwordUtils" ref="passwordUtils" />
         <property name="localUsers" ref="localUserMap"/>
-        <property name="configService" ref="passwordConfigService"/>
+        <property name="configService" ref="configService"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>
         <property name="dbClient" ref="dbclient"/>
     </bean>
-    
-    <bean id="passwordConfigService" class="com.emc.storageos.systemservices.impl.resource.ConfigService">
+
+    <bean id="configService" class="com.emc.storageos.systemservices.impl.resource.ConfigService">
         <property name="proxy" ref="coordinatorclientext" />
-        <property name="propsMetadata" ref="metadata"/> 
+        <property name="propsMetadata" ref="metadata"/>
         <property name="propertiesConfigurationValidator" ref="propertiesConfigurationValidator" />
+        <property name="defaultProperties" ref="defaultProperties"/>
+        <property name="ovfProperties" ref="ovfProperties"/>
         <property name="propertyHandlers" ref="propertyHandlers"/>
     </bean>
                         

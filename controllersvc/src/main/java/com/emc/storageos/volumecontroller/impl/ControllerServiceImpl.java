@@ -118,15 +118,15 @@ public class ControllerServiceImpl implements ControllerService {
     @Autowired
     private CustomConfigHandler customConfigHandler;
 
-    private static DistributedQueue<QueueJob> _jobQueue = null;
+    private static volatile DistributedQueue<QueueJob> _jobQueue = null;
     private QueueJobTracker _jobTracker;
     private Map<String, String> _configInfo;
-    private static ApplicationContext _context;
-    private static DistributedQueue<DataCollectionJob> _discoverJobQueue = null;
-    private static DistributedQueue<DataCollectionJob> _computeDiscoverJobQueue = null;
-    private static DistributedQueue<DataCollectionJob> _scanJobQueue = null;
-    private static DistributedQueue<DataCollectionJob> _meteringJobQueue = null;
-    private static DistributedQueue<DataCollectionJob> _monitoringJobQueue = null;
+    private static volatile ApplicationContext _context;
+    private static volatile DistributedQueue<DataCollectionJob> _discoverJobQueue = null;
+    private static volatile DistributedQueue<DataCollectionJob> _computeDiscoverJobQueue = null;
+    private static volatile DistributedQueue<DataCollectionJob> _scanJobQueue = null;
+    private static volatile DistributedQueue<DataCollectionJob> _meteringJobQueue = null;
+    private static volatile DistributedQueue<DataCollectionJob> _monitoringJobQueue = null;
     private CIMConnectionFactory _cimConnectionFactory;
     private VPlexApiFactory _vplexApiFactory;
     private HDSApiFactory hdsApiFactory;
@@ -134,11 +134,11 @@ public class ControllerServiceImpl implements ControllerService {
     private VNXeApiClientFactory _vnxeApiClientFactory;
     private SmisCommandHelper _helper;
     private XIVSmisCommandHelper _xivSmisCommandHelper;
-    private static DataCollectionJobConsumer _scanJobConsumer;
-    private static DataCollectionJobConsumer _discoverJobConsumer;
-    private static DataCollectionJobConsumer _computeDiscoverJobConsumer;
-    private static DataCollectionJobConsumer _meteringJobConsumer;
-    private static DataCollectionJobScheduler _jobScheduler;
+    private static volatile DataCollectionJobConsumer _scanJobConsumer;
+    private static volatile DataCollectionJobConsumer _discoverJobConsumer;
+    private static volatile DataCollectionJobConsumer _computeDiscoverJobConsumer;
+    private static volatile DataCollectionJobConsumer _meteringJobConsumer;
+    private static volatile DataCollectionJobScheduler _jobScheduler;
     private MonitoringJobConsumer _monitoringJobConsumer;
     private ConnectionStateListener zkConnectionStateListenerForMonitoring;
     private DataObjectScanner _doScanner;

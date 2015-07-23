@@ -52,7 +52,7 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
 
             case ready:
 
-                if (null != srcVolumes && null != tgtVolumes && srcVolumes.size() > 0 && tgtVolumes.size() > 0) {
+                if (null != srcVolumes && null != tgtVolumes && !srcVolumes.isEmpty() && !tgtVolumes.isEmpty()) {
                     for (Volume sourceVol : srcVolumes) {
                         sourceVol.setPersonality(NullColumnValueGetter.getNullStr());
                         sourceVol.setAccessState(Volume.VolumeAccessState.READWRITE.name());

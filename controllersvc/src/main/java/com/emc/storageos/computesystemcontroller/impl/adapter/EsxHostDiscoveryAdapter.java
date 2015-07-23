@@ -276,7 +276,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             discoverConnectedHostInitiators(hostSystem, targetHost,
                     oldInitiators, addedInitiators);
 
-            if (oldInitiators.size() > 0 || addedInitiators.size() > 0) {
+            if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty()) {
                 Collection<URI> oldInitiatorIds = Lists
                         .newArrayList(Collections2
                                 .transform(oldInitiators,
@@ -364,7 +364,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             }
         }
 
-        if (oldInitiators.size() > 0) {
+        if (!oldInitiators.isEmpty()) {
             clearScaleIOInitiators(oldInitiators);
         }
     }

@@ -167,8 +167,8 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
         builder.setLimit(pageSize);
         if (granularity.ordinal() < _bucketGranularity.ordinal()) {
             // finer than specified granularity
-            DateTime start = null;
-            DateTime end = null;
+            DateTime start = DateTime.now();
+            DateTime end = DateTime.now();
             switch (granularity) {
                 case MONTH:
                     start = new DateTime(time.getYear(), time.getMonthOfYear(), 1, 0, 0, DateTimeZone.UTC);

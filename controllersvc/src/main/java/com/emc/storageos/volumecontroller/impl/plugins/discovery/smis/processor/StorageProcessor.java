@@ -656,6 +656,7 @@ public abstract class StorageProcessor extends PoolProcessor {
                 try {
                     client.closeEnumeration(objPath, instChunks.getContext());
                 } catch (Exception e) {
+                    _logger.warn("Exception occurred while closing enumeration", e);
                 }
             }
         }

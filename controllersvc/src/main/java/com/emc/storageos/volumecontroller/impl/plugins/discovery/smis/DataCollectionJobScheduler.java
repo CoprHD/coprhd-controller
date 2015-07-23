@@ -503,7 +503,9 @@ public class DataCollectionJobScheduler {
                         job.setTaskError(_dbClient,
                                   DeviceControllerErrors.dataCollectionErrors.failedToEnqueue(job.getType(),e));
                     }
-                    catch (Exception io){}
+                    catch (Exception ex){
+                        _logger.warn("Exception occurred while updating task status", ex);
+                    }
                 }
             }
 

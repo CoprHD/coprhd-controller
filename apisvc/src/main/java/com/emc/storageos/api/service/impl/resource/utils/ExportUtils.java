@@ -315,7 +315,7 @@ public class ExportUtils {
                     // We want to check if there are any ports in this export group for this initiator
                     List<StoragePort> portsInExportGroupVarray = filterPortsInVarray(
                             exportGroup, exportMask.getStorageDevice(), initiatorPorts);
-                    if (portsInExportGroupVarray.size() > 0) {
+                    if (!portsInExportGroupVarray.isEmpty()) {
                         for (StoragePort port : portsInExportGroupVarray) {
                             list.add(createInitiatorTargetRefRep(exportGroup, blockObject, hlu,
                                     initiator, port, initiatorZoneRefs.get(port)));
@@ -551,7 +551,7 @@ public class ExportUtils {
             }
         }
         if (exportMask.getExistingInitiators() != null && 
-            exportMask.getExistingInitiators().size() > 0) {
+            !exportMask.getExistingInitiators().isEmpty()) {
             for (String initStr : exportMask.getExistingInitiators()) {
                 if (!initiators.containsKey(initStr)) {
                     initStr = Initiator.toPortNetworkId(initStr);

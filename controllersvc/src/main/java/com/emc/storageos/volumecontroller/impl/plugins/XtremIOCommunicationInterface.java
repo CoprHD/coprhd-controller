@@ -355,7 +355,7 @@ public class XtremIOCommunicationInterface extends
                 @SuppressWarnings("deprecation")
                 List<URI> initiatorUris = _dbClient
                         .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()));                
-                if (initiatorUris.size() == 0) {
+                if (initiatorUris.isEmpty()) {
                     continue;
                 } else {
                 	Initiator initiatorObj = _dbClient.queryObject(Initiator.class, initiatorUris.get(0));

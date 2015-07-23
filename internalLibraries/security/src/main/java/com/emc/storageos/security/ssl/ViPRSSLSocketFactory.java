@@ -25,6 +25,7 @@ import javax.net.SocketFactory;
 import javax.net.ssl.*;
 
 import com.emc.storageos.security.helpers.SecurityUtil;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,13 +52,15 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
      * @param coordinatorClient
      *            the coordinatorClient to set
      */
-    public static void setCoordinatorClient(CoordinatorClient coordinatorClient) {
+    public synchronized static void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         ViPRSSLSocketFactory.coordinatorClient = coordinatorClient;
     }
 
     public ViPRSSLSocketFactory(CoordinatorClient coordinator) {
-        coordinatorClient = coordinator;
-        init();
+        synchronized(this) {
+            coordinatorClient = coordinator;
+            init();
+        }
     }
 
     private void init() {

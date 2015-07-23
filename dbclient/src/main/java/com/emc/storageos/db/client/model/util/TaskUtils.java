@@ -59,7 +59,7 @@ public class TaskUtils {
         Iterator<NamedElementQueryResultList.NamedElement> it = results.iterator();
         while (it.hasNext()) {
             NamedElementQueryResultList.NamedElement element = it.next();
-            uris.add(new NamedURI(element.id, element.name));
+            uris.add(new NamedURI(element.getId(), element.getName()));
         }
 
         return uris;

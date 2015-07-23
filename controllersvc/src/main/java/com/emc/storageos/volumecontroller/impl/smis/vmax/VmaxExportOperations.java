@@ -442,7 +442,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             					_helper.deleteMaskingGroup(storage, childGroupName,
             							SmisCommandHelper.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
-            					if (isVmax3 && volumeDeviceIds.size() > 0) { 
+            					if (isVmax3 && !volumeDeviceIds.isEmpty()) { 
             						// We need to add volumes back to appropriate parking storage group.
             						addVolumesToParkingStorageGroup(storage, policyName, volumeDeviceIds); 
             					}
@@ -1187,7 +1187,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                         // If we found volumes in phantom storage groups associated with this policy, we need to remove them
                         // from the phantom storage group.
-                        if (volumesToRemove.size() > 0) {
+                        if (!volumesToRemove.isEmpty()) {
                             _log.info(String.format("Going to remove volumes %s from phantom storage group %s",
                                     Joiner.on("\t").join(volumesToRemove), storageGroupName));
 
@@ -1266,7 +1266,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             ExportMask exportMask =
                     _dbClient.queryObject(ExportMask.class, exportMaskURI);
             
-            if (targetURIList != null && targetURIList.size() > 0 &&
+            if (targetURIList != null && !targetURIList.isEmpty() &&
                     !exportMask.hasTargets(targetURIList)) {
                 _log.info("Adding targets...");
                 //always get the port group from the masking view
@@ -1416,7 +1416,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             						"RemoveMembers", inArgs, outArgs, null);
             			}
             		}
-            		if (targetURIList!= null && targetURIList.size() > 0) {
+            		if (targetURIList!= null && !targetURIList.isEmpty()) {
             			_log.info("Removing targets...");
 
             			ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
@@ -1528,7 +1528,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         matchingInitiators.add(normalizedName);
                     }
                 }
-                builder.append(String.format("\nXM:%s I:{%s}", name,
+                builder.append(String.format("%nXM:%s I:{%s}", name,
                         Joiner.on(',').join(initiatorPorts)));
                 if (!matchingInitiators.isEmpty()) {
                     // Look up ExportMask by deviceId/name and storage URI
@@ -1653,11 +1653,11 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 Set existingVolumes = (mask.getExistingVolumes() != null) ?
                         mask.getExistingVolumes().keySet() : Collections.emptySet();
 
-                        builder.append(String.format("\nXM object: %s I{%s} V:{%s}\n", name,
+                        builder.append(String.format("%nXM object: %s I{%s} V:{%s}%n", name,
                                 Joiner.on(',').join(existingInitiators),
                                 Joiner.on(',').join(existingVolumes)));
 
-                builder.append(String.format("XM discovered: %s I:{%s} V:{%s}\n", name,
+                builder.append(String.format("XM discovered: %s I:{%s} V:{%s}%n", name,
                         Joiner.on(',').join(discoveredPorts),
                         Joiner.on(',').join(discoveredVolumes.keySet())));
 
@@ -1754,15 +1754,15 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
                 
                 builder.append(
-                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}\n",
+                        String.format("XM refresh: %s initiators; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(initiatorsToAdd),
                                 Joiner.on(',').join(initiatorsToRemove)));
                 builder.append(
-                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}\n",
+                        String.format("XM refresh: %s volumes; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(volumesToAdd.keySet()),
                                 Joiner.on(',').join(volumesToRemove)));
                 builder.append(
-                        String.format("XM refresh: %s ports; add:{%s} remove:{%s}\n",
+                        String.format("XM refresh: %s ports; add:{%s} remove:{%s}%n",
                                 name, Joiner.on(',').join(storagePortsToAdd),
                                 Joiner.on(',').join(storagePortsToRemove)));
 
@@ -2436,7 +2436,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
             List<CIMObjectPath> existingMembers = getExistingMaskingGroupMembers(storage, maskingGroupPath,
                     associatorName);
             _log.debug("MaskingGroupPath {} has {} existing members.", maskingGroupPath, existingMembers.size());
-            if(existingMembers.size() > 0) {
+            if(!existingMembers.isEmpty()) {
                 List<String> existingMemberIds = getMaskingGroupMemberIdsFromPaths(existingMembers, groupType);
                 List<String> expectedMemberIds = getMaskingGroupMemberIdsFromPaths(expectedMembers, groupType);
                 expectedMemberIds.removeAll(existingMemberIds);
@@ -2802,12 +2802,12 @@ public class VmaxExportOperations implements ExportMaskOperations {
             // If there aren't any MaskingView to which this IG belongs,
             // then we can look for related IGs (if any) and delete it,
             // if there aren't any.
-            if (associatedMaskingViews.size() == 0) {
+            if (associatedMaskingViews.isEmpty()) {
                 _log.info(String.format("IG %s is not associated to any Masking View",
                         igDeviceId));
                 // get associated IGs
                 List<CIMObjectPath> associatedIGs = getAssociatedParentIGs(storage, igPath);
-                if (associatedIGs.size() == 0) {
+                if (associatedIGs.isEmpty()) {
                     // We got here: this means that there are no masking views or
                     // associated IGs for this IG that we are checking. It is a
                     // candidate for deletion, so we will attempt that...
@@ -3079,7 +3079,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         volumesInExistingStorageGroups);
                 _log.debug("Remaining Volumes, for which new Storage Group needs to be created",Joiner.on("\t").join(diff));
                 // need to construct a new group for remaining volumes.
-                if (diff.size() > 0) {
+                if (!diff.isEmpty()) {
                     VolumeURIHLU[] volumeURIHLU = ControllerUtils.constructVolumeUriHLUs(
                             diff, expectedVolumeHluMap);
                     groupName = generateStorageGroupName(storage, mask, initiators,  storageGroupPolicyLimitsParam);
@@ -3196,7 +3196,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     volumesInExistingStorageGroups);
             _log.debug("Remaining Volumes, for which new Storage Group needs to be created",Joiner.on("\t").join(diff));
             // need to construct a new group for remaining volumes.
-            if (diff.size() > 0) {
+            if (!diff.isEmpty()) {
                 VolumeURIHLU[] volumeURIHLU = ControllerUtils.constructVolumeUriHLUs(
                         diff, expectedVolumeHluMap);
                 // TODO: VMAX3 customized names
@@ -3734,7 +3734,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
         if (exportMaskInitiators.size() == initiatorNames.size()) {
             exportMaskInitiators.removeAll(initiatorNames);
-            if (exportMaskInitiators.size() == 0) {
+            if (exportMaskInitiators.isEmpty()) {
                 return true;
             }
         }
@@ -4272,7 +4272,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     givenNativeGuids);
             Set<String> diff = Sets.difference(returnedNativeGuids,
                     givenNativeGuids);
-            return diff.size() == 0;
+            return (diff.isEmpty());
         } finally {
             volumePathItr.close();
         }
@@ -4337,7 +4337,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
          * Though the volumes are associated with other non-fast, non-cascading masking views,
          * we can remove volumes from phantom SG as we are removing its Policy.
          */
-        if (volumesToRemove.size() > 0) {
+        if (!volumesToRemove.isEmpty()) {
             _log.info(String.format("Going to remove volumes %s from phantom storage group %s",
                     Joiner.on("\t").join(volumesToRemove), phantomSGName));
 

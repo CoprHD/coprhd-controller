@@ -55,10 +55,12 @@ public class IsilonSmartConnectInfoV2 {
         StringBuilder str = new StringBuilder();
         if(settings!= null) {
             for(IsilonSmartZone zone: settings ) {
-                str.append("service_ip: " + zone.getServiceIp());
-                if(zone != null)str.append(", zones: " + zone.toString());
+            	if(zone != null){
+            		str.append("service_ip: " + zone.getServiceIp().toString());
+            		str.append(", zones: " + zone.toString());
                 str.append("Port: " + zone.getPorts());
             }
+        }
         }
         return str.toString();
     }

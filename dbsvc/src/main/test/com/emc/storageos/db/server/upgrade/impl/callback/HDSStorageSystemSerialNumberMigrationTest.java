@@ -45,8 +45,8 @@ import static junit.framework.Assert.assertTrue;
 public class HDSStorageSystemSerialNumberMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(HDSStorageSystemSerialNumberMigrationTest.class);
 
-    private static StorageSystem hdsStorageSystem;
-    private static StorageSystem otherStorageSystem;
+    private static volatile StorageSystem hdsStorageSystem;
+    private static volatile StorageSystem otherStorageSystem;
     
 
     @BeforeClass

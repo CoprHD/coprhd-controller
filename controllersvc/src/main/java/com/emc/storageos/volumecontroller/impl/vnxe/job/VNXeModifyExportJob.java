@@ -284,15 +284,15 @@ public class VNXeModifyExportJob extends VNXeJob{
 		dest.setExportPath(exportPath);
 		dest.setSecFlavor(orig.getSecFlavor());
 		dest.setAnon(orig.getAnon());
-		if (orig.getReadOnlyHosts()!=null && orig.getReadOnlyHosts().size() > 0){
+		if (orig.getReadOnlyHosts()!=null && !orig.getReadOnlyHosts().isEmpty()){
 			dest.setReadOnlyHosts(new StringSet(orig.getReadOnlyHosts()));
 			_logger.info("Read Only Hosts {}", dest.getReadOnlyHosts());
 		}
-		if (orig.getReadWriteHosts()!=null && orig.getReadWriteHosts().size() > 0){
+		if (orig.getReadWriteHosts()!=null && !orig.getReadWriteHosts().isEmpty()){
 			dest.setReadWriteHosts(new StringSet(orig.getReadWriteHosts()));
 			_logger.info("Read Write Hosts {}", dest.getReadWriteHosts());
 		}
-		if (orig.getRootHosts()!=null && orig.getRootHosts().size() > 0){
+		if (orig.getRootHosts()!=null && !orig.getRootHosts().isEmpty()){
 			dest.setRootHosts(new StringSet(orig.getRootHosts()));
 			_logger.info("Root hosts {}", dest.getRootHosts());
 		}

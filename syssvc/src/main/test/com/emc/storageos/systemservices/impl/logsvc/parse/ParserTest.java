@@ -116,7 +116,7 @@ public class ParserTest {
     }
 
     @Test
-    public void testNginxErrorLog(){
+    public void testNginxErrorLog() throws Exception {
         LogReader reader = null;
 
         String regexStr = ".*server: localhost, request:.*";
@@ -133,11 +133,7 @@ public class ParserTest {
         String filePath = nginxErrorLogPath;//"/opt/storageos/logs/nginx_error.log";
         String baseName = "nginx";
 
-        try{
-            reader = new LogReader(filePath, request, status, baseName);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+        reader = new LogReader(filePath, request, status, baseName);
         final LogMessage log = reader.readNextLogMessage();
 
         assertTrue("log is null", log != null);
@@ -154,7 +150,7 @@ public class ParserTest {
     }
 
     @Test
-    public void testNginxAccessLog(){
+    public void testNginxAccessLog() throws Exception {
         LogReader reader = null;
 
         String regexStr = ".*login HTTP.*";
@@ -171,11 +167,7 @@ public class ParserTest {
         String filePath = nginxAccessLogPath; //"/opt/storageos/logs/nginx_access.log";
         String baseName = "nginx";
 
-        try{
-            reader = new LogReader(filePath, request, status, baseName);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+        reader = new LogReader(filePath, request, status, baseName);
         final LogMessage log = reader.readNextLogMessage();
 
         assertTrue("log is null", log != null);
@@ -193,7 +185,7 @@ public class ParserTest {
     }
 
     @Test
-    public void testParticularLog(){
+    public void testParticularLog() throws Exception {
         LogReader reader = null;
 
         LogRequest request = new LogRequest.Builder().build();
@@ -203,11 +195,7 @@ public class ParserTest {
         String filePath = particularLogPath;
         String baseName = "log";
 
-        try{
-            reader = new LogReader(filePath, request, status, baseName);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
+        reader = new LogReader(filePath, request, status, baseName);
         final LogMessage log = reader.readNextLogMessage();
 
         assertTrue("log is null", log != null);

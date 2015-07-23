@@ -93,8 +93,8 @@ public class SnapshotReplicationRelationshipProcessor extends StorageProcessor {
                 BlockSnapshot snapshot = checkSnapShotExistsInDB(nativeGuid,
                         _dbClient);
                 if (snapshot != null && !snapshot.hasConsistencyGroup()) {
-                    if (updateSettingsInstance(instance, snapshot) |
-                            updateNeedsCopyToTarget(instance, snapshot) |
+                    if (updateSettingsInstance(instance, snapshot) ||
+                            updateNeedsCopyToTarget(instance, snapshot) ||
                             updateIsSyncActive(instance, snapshot)) {
                         _logger.debug("Update Snapshot {}", snapshot.getLabel());
                         _updateSnapshotList.add(snapshot);

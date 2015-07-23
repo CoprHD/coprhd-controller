@@ -60,7 +60,7 @@ public class HostIpPortRequests extends KHRequests<VNXeHostIpPort>{
     	VNXeHostIpPort result = null;
     	List<VNXeHostIpPort> ipPortList = getDataForObjects(VNXeHostIpPort.class);
     	//it should just return 1
-    	if (ipPortList!= null && ipPortList.size()>0) {
+    	if (ipPortList!= null && !ipPortList.isEmpty()) {
     		result =ipPortList.get(0);
     	} else {
     		_logger.info("No hostIpPort found using the address: " +address);

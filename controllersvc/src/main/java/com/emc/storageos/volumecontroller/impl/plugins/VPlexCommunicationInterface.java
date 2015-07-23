@@ -732,6 +732,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.setStorageSystemUri(vplex.getId());
         volume.setNativeGuid(info.getPath());
         volume.setLabel(info.getName());
+        volume.setWwn(info.getWwn());
         
         volume.getUnmanagedExportMasks().clear();
         volume.getInitiatorUris().clear();
@@ -797,13 +798,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 provCapacity);
         unManagedVolumeInformation.put(SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(),
                 provCapacity);
-        
-        // set volume wwn
-        if (null != info.getWwn()) {
-            StringSet wwn = new StringSet();  
-            wwn.add(String.valueOf(info.getWwn()));
-            unManagedVolumeInformation.put(SupportedVolumeInformation.WWN.toString(), wwn);
-        }
         
         // set vplex virtual volume properties
         unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString(), TRUE);

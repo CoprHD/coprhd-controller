@@ -9,6 +9,7 @@ import java.net.URI;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
@@ -40,6 +41,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
     private StringSet _initiatorNetworkIds;
     
     private StringSet storagePortUris;
+    
+    private String _wwn;
     
     public enum SupportedVolumeCharacterstics {
         
@@ -97,7 +100,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         SYSTEM_TYPE("SystemType", "SystemType"),
         RAID_LEVEL("SSElementName", "EMCRaidLevel"),
         STORAGE_POOL("PoolUri", "PoolUri"),
-        WWN("EMCSVWWN", "EMCWWN"),
         NATIVE_GUID("NativeGuid", "NativeGuid"),
         AUTO_TIERING_POLICIES("PolicyRuleName", "PolicyRuleName"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
@@ -285,6 +287,17 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
 
     public void setStoragePortUris(StringSet storagePortUris) {
         this.storagePortUris = storagePortUris;
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("wwn")
+    public String getWwn() {
+        return _wwn;
+    }
+
+    public void setWwn(String wwn) {
+        _wwn = BlockObject.normalizeWWN(wwn);
+        setChanged("wwn");
     }
 
     public enum Types{

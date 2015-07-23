@@ -114,8 +114,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         snapShot.setVirtualArray(virtualArray.getId());
         snapShot.setProject(new NamedURI(project.getId(), snapShot.getLabel()));
 
-        String wwn = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.WWN.toString(), unManagedVolumeInformation);
-        snapShot.setWWN(wwn);
+        snapShot.setWWN(unManagedVolume.getWwn());
         
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(), unManagedVolume.getVolumeInformation());

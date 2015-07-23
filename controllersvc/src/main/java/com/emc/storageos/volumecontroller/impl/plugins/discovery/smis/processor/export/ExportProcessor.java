@@ -28,7 +28,6 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger32;
 import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
@@ -38,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
@@ -49,9 +47,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.ZoneInfo;
 import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.client.util.iSCSIUtility;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -66,9 +61,6 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Sets;
-import com.google.common.collect.Sets.SetView;
 
 /**
  * Processor used for retrieving masking constructs and creating UnManagedExportMask objects.

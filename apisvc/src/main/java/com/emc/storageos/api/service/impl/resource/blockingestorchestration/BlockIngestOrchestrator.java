@@ -344,9 +344,7 @@ public abstract class BlockIngestOrchestrator{
         volume.setProvisionedCapacity(Long.parseLong(provisionedCapacity));
         volume.setCapacity(Long.parseLong(provisionedCapacity));
 
-        String wwn = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.WWN.toString(),
-                unManagedVolume.getVolumeInformation());
-        volume.setWWN(wwn);
+        volume.setWWN(unManagedVolume.getWwn());
         updateBlockObjectNativeIds(volume, unManagedVolume);
         setProtocol(pool, volume, vPool);
 

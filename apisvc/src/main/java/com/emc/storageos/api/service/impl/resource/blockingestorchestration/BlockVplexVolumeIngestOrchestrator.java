@@ -14,21 +14,28 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.commons.collections.iterators.EntrySetMapIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -38,8 +45,11 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 /**
  * Responsible for ingesting vplex local and distributed virtual volumes.
  */
@@ -79,6 +89,43 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(virtualArray.getLabel(), unManagedVolume.getLabel());
         }
 
+        String deviceName = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
+                    unManagedVolume.getVolumeInformation());
+        
+        String locality = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
+                    unManagedVolume.getVolumeInformation());
+        
+        Map<String, String> backendVolumeMap = 
+                VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                        deviceName, locality, 
+                        unManagedVolume.getStorageSystemUri(), _dbClient);
+        
+        List<URI> associatedVolumes = new ArrayList<URI>();
+        
+        for (Entry<String, String> entry : backendVolumeMap.entrySet()) {
+            _logger.info("attempting to find unamanaged backend volume {} with wwn {}", 
+                    entry.getKey(), entry.getValue());
+            
+            String backendWwn = entry.getValue();
+            URIQueryResultList results = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.
+                    Factory.getUnmanagedVolumeWwnConstraint(backendWwn), results);
+            if (results.iterator() != null) {
+                for (URI uri : results) {
+                    associatedVolumes.add(uri);
+                }
+            }
+        }
+        
+        _logger.info("found {} associated volumes for device {}", associatedVolumes.size(), deviceName);
+        
+        // TODO obviously remove this
+        if (associatedVolumes.size() == 0 || associatedVolumes.size() == 1 || associatedVolumes.size() == 2) {
+            throw IngestionException.exceptions.generalException("throwing exception to stop ingestion during testing!!!!!");
+        }
+        
         return super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                 unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
     }

@@ -85,6 +85,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     private static final String SVELEMENT_NAME                       = "SVElementName";
     private static final String NAME                                 = "Name";
     private static final String THINLY_PROVISIONED                   = "ThinlyProvisioned";
+    
     private AccessProfile       _profile;
 
     private PartitionManager    _partitionManager;
@@ -966,6 +967,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             unManagedVolume.getUnmanagedExportMasks().clear();
             unManagedVolume.getInitiatorUris().clear();
             unManagedVolume.getInitiatorNetworkIds().clear();
+            
+            Object wwn = getCIMPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME_ALT);
+            if (null == wwn) {
+                wwn = getCIMPropertyValue(volumeInstance, SmisConstants.CP_WWN_NAME);
+            }
+            unManagedVolume.setWwn(String.valueOf(wwn));
+            
             if (created) {
                 _unManagedVolumesInsert.add(unManagedVolume);
             } else {

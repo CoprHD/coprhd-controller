@@ -83,24 +83,24 @@ public class BlockObjectMultipleConsistencyGroupsMigrationTest extends DbSimpleM
     private static final Logger log = LoggerFactory.getLogger(BlockObjectMultipleConsistencyGroupsMigrationTest.class);
 
     // Empty CG
-    private static URI emptyCgURI = null;
+    private static volatile URI emptyCgURI = null;
     
     // Used for RP+VPlex result verification
-    private static URI rpVplexPrimaryConsistencyGroupURI = null; 
+    private static volatile URI rpVplexPrimaryConsistencyGroupURI = null; 
     private static HashMap<URI, URI> rpVplexVolumeToCgMapping = new HashMap<URI, URI>();
     
     // Used for VPlex result verification
-    private static URI vplexConsistencyGroupURI = null; 
+    private static volatile URI vplexConsistencyGroupURI = null; 
     private static List<URI> vplexVolumeURIs = new ArrayList<URI>();
     
     // Used for RP result verification
-    private static URI rpConsistencyGroupURI = null; 
-    private static URI rpConsistencyGroupURI2 = null;
-    private static URI rpConsistencyGroupURI3 = null;
+    private static volatile URI rpConsistencyGroupURI = null; 
+    private static volatile URI rpConsistencyGroupURI2 = null;
+    private static volatile URI rpConsistencyGroupURI3 = null;
     private static List<URI> rpVolumeURIs = new ArrayList<URI>();
     
     // Used for Local Array result verification
-    private static URI localArrayConsistencyGroupURI = null;
+    private static volatile URI localArrayConsistencyGroupURI = null;
     private static List<URI> blockVolumeURIs = new ArrayList<URI>();
     
     // Used for BlockSnapshot result verification

@@ -527,7 +527,7 @@ public class StorageProvider extends DataObject {
 	                    storage.setActiveProviderURI(new URI(iter.next()));
 	                }
 	                catch (URISyntaxException ex)  {
-	                	logger.error("URISyntaxException occurred", ex.getMessage());
+	                	logger.error("URISyntaxException occurred: {}", ex.getMessage());
 	                }
 	            }
 	            else {

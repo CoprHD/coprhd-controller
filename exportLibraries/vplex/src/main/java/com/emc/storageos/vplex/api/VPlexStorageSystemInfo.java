@@ -43,10 +43,13 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
     
    
 
-    public boolean matches( String storageSystemNativeGuid ) {
+    public boolean matches( String storageSystemNativeGuid )
+    {
 
 
-        if (storageSystemNativeGuid.endsWith(getUniqueId())) {
+        if (storageSystemNativeGuid.endsWith(getUniqueId())
+        	|| storageSystemNativeGuid.contains(getUniqueId()))
+        {
             return true;
         }
         

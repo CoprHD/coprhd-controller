@@ -2,6 +2,7 @@
 # Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
 #
+
 export BOURNE_IPADDR=10.247.78.237
 export BOURNE_DATA_IPADDR=10.247.78.239
 SECURITY="--uid wuser1@SANITY.LOCAL --secret=U5/1LIqgWRhG+LXArN0/xLFWleMk3nFNW1d1Vdsv"

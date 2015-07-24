@@ -3,6 +3,7 @@
 # Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
 #
+
 # Returns the FCZoneReference structures that indicate what zones are present for a selected set of hosts.
 # These are looked up by initiator WWN (from the host or hosts) and looking for possible storage port pairings.
 # The script has pre-defined lists of storage ports for losam082, vplex154nbr2, and the vplex ports which

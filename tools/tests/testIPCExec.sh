@@ -2,6 +2,7 @@
 # Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
 #
+
 cd /tmp
 cp /opt/storageos/lib/storageos-datasvcipc.jar .
 cp /opt/storageos/lib/storageos-common.jar .

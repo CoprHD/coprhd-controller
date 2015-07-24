@@ -1,0 +1,6 @@
+config_version=1396386253347
+system_connectemc_transport=None
+network_nameservers=10.254.66.23,10.254.66.24
+network_dnsservers=10.254.140.21,10.254.140.22
+system_root_authorizedkeys2=somekey
+fakeprop=someval

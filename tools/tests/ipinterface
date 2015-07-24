@@ -1,0 +1,211 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# ipinterface cli functions
+#----------------------------------------------------------------------
+
+def ipinterface_create(args):
+    bourne.connect(args.ip)
+    task = bourne.ipinterface_create(args.host, args.protocol, args.ipaddress, args.netmask, args.prefix, args.scope)
+    print task
+
+def ipinterface_delete(args):
+    bourne.connect(args.ip)
+    res = bourne.ipinterface_delete(args.name)
+    print res
+
+def ipinterface_show(args):
+    bourne.connect(args.ip)
+    ipinterface = bourne.ipinterface_show(args.name)
+    print ipinterface
+
+def ipinterface_query(args):
+    bourne.connect(args.ip)
+    print bourne.ipinterface_query(args.name)
+
+def ipinterface_list(args):
+    bourne.connect(args.ip)
+    ipinterface_display_hdr()
+    res = bourne.ipinterface_list(args.host)
+    host = bourne.host_query(args.host)
+    for r in res:
+        ipinterface = bourne.api('GET', r['link']['href'], None)
+        ipinterface_display(ipinterface)
+
+#
+# display ipinterface in list form
+#
+ipinterface_display_fmt = '{0:16s} {1:6s} {2:6s} {3:6s} {4:6s} {5:65s} {6:s}'
+def ipinterface_display_hdr():
+    print ipinterface_display_fmt.format('ip_address', 'netmask', 'prefix', 'scope', 'active', 'host', 'id')
+
+def ipinterface_display(ipinterface):
+    try:
+        prefix = ipinterface['prefix_length']
+    except:
+        prefix = '---'
+    try:
+        scope = ipinterface['scope_id']
+    except:
+        scope = '---'
+    try:
+        netmask = ipinterface['netmask']
+    except:
+        netmask = '---'
+    print ipinterface_display_fmt.format(ipinterface['ip_address'], netmask, prefix, scope, 'NO' if ipinterface['inactive'] else 'YES',
+              ipinterface['host']['id'], ipinterface['id'])
+
+# tag
+def ipinterface_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.ipinterface_query(args.name)
+    print 'Tagging ipinterface', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+# search
+def ipinterface_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching ipinterface with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+def ipinterface_register(args):
+    bourne.connect(args.ip)
+    res = bourne.ipinterface_register(args.name)
+    print res
+
+def ipinterface_deregister(args):
+    bourne.connect(args.ip)
+    res = bourne.ipinterface_deregister(args.name)
+    print res
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# ipinterface <cmd> <cmd_args>
+parser = argparse.ArgumentParser(description = 'Bourne ipinterface cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | register | deregister)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# ipinterface create host protocol port node
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('host',            help = 'host label or URI')
+create.add_argument('protocol',        help = 'FC or ISCSI', default = None)
+create.add_argument('ipaddress',       help = 'Interface IPv4 or IPv6')
+create.add_argument('--netmask',       help = 'IPv4 netmask')
+create.add_argument('--prefix',        help = 'IPv6 prefix length')
+create.add_argument('--scope',         help = 'IPv6 scope Id')
+
+# ipinterface delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of ipinterface in the format host_name/ip_address')
+
+# ipinterface show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of ipinterface in the format host_name/ip_address')
+
+# ipinterface query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of ipinterface in the format host_name/ip_address')
+
+# ipinterface list host
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('host',	help = 'host name', default = None)
+
+# tag 
+resource_type="ipinterface"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+# register
+register = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+register.add_argument('name', help = 'name of ipinterface in the format host_name/ip_address')
+
+# deregister
+deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deregister.add_argument('name', help = 'name of ipinterface in the format host_name/ip_address')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        ipinterface_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        ipinterface_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        ipinterface_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        ipinterface_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        ipinterface_list(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        ipinterface_tag(args)
+    elif (cmd == "search"):
+        args = search.parse_args()
+        ipinterface_search(args)
+    elif(cmd == "register"):
+        args = register.parse_args()
+        ipinterface_register(args)
+    elif(cmd == "deregister"):
+        args = deregister.parse_args()
+        ipinterface_deregister(args)
+
+    else:
+        parser.print_help()
+except:
+    raise

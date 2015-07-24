@@ -1,0 +1,47 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import sys
+import os
+import zlib
+import base64
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+if len(sys.argv) != 2:
+    print 'Parameter error.'
+    exit(2)
+
+try:
+    f = open(sys.argv[1], 'r')
+except Exception, e:
+    print 'Failed to open file', sys.argv[1]
+    exit(2)
+
+d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+
+for line in f:
+    # skip header and footer line
+    if (line.startswith('\\CECSTART\\')):
+        continue
+    elif (line.startswith('\\CECEND\\')):
+        break
+
+    s = base64.b64decode(line)
+    out = d.decompress(s)
+
+    sys.stdout.write(out)
+
+f.close()
+sys.exit(0)

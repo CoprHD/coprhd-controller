@@ -1,0 +1,212 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# neighborhood cli functions
+#----------------------------------------------------------------------
+
+def neighborhood_list(args):
+    bourne.connect(args.ip)
+    neighborhood_display_hdr
+    nhs = bourne.neighborhood_list()
+    for nh in nhs:
+        neighborhood = bourne.neighborhood_show(nh['id'])
+        neighborhood_display(neighborhood)
+
+def neighborhood_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.neighborhood_query(args.name)
+    neighborhood = bourne.neighborhood_show(uri)
+    print neighborhood
+
+def neighborhood_query(args):
+    bourne.connect(args.ip)
+    print bourne.neighborhood_query(args.name)
+
+def neighborhood_create(args):
+    bourne.connect(args.ip)
+    neighborhood = bourne.neighborhood_create(args.label, args.autoSanZoning, args.protectionType)
+    print neighborhood
+
+def neighborhood_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.neighborhood_query(args.name)
+    res = bourne.neighborhood_delete(uri)
+    print res
+    
+def neighborhood_allow(args):
+    bourne.connect(args.ip)
+    uri = bourne.neighborhood_query(args.name)
+    res = bourne.neighborhood_add_acl(uri, args.tenant)
+    print res    
+
+def neighborhood_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.neighborhood_query(args.name)
+    print 'Tagging neighborhood ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def neighborhood_search(args):
+    bourne.connect(args.ip)
+    if (args.initiator_port):
+        print 'Searching neighborhood with ' + args.initiator_port
+        array = bourne.neighborhood_search(args.initiator_port)
+    else:
+        print 'Searching neighborhood with ' + args.prefix
+        array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#
+# display neighborhood in list form
+#
+neighborhood_display_fmt = '{0:32s} {1:8s} {2:s}'
+
+def neighborhood_display_hdr():
+    print neighborhood_display_fmt.format('name', 'active', 'id')
+
+def neighborhood_display(nh):
+    print neighborhood_display_fmt.format(nh['name'], 'NO' if nh['inactive'] else 'YES', nh['id'])
+
+def neighborhood_storageports(args):
+    bourne.connect(args.ip)
+    storageports_display_hdr
+    uri = bourne.neighborhood_query(args.name)
+    ports = bourne.neighborhood_storageports(uri)
+    for port in ports:
+        storageport_display(port)
+
+storageport_display_fmt = '{0:32s} {1:s}'
+
+def storageports_display_hdr():
+    print storageport_display_fmt.format('name', 'id')
+
+def storageport_display(port):
+    print storageport_display_fmt.format(port['name'], port['id'])
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# neighborhood <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list | storageports)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# neighborhood create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',	help = 'name of neighborhood')
+create.add_argument('--autoSanZoning',	metavar = 'autoSanZoning',	help = 'Boolean to allow automatic SAN zoning', default='true')
+create.add_argument('--protectionType',	metavar = 'protectionType',	help = 'Protection type of the devices associated with this vArray', default='Protected')
+
+# neighborhood delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of neighborhood to be deleted')
+
+# neighborhood show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of neighborhood')
+
+# neighborhood query label
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of neighborhood')
+
+# neighborhood list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# neighborhood allow name tenant
+allow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+allow.add_argument('name',	help = 'name of neighborhood')
+allow.add_argument('tenant',    help = 'tenant to add use access for')
+
+# tag 
+resource_type="varray"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag', default=None)
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+search.add_argument('--initiator_port', metavar = 'initiator_port',help = 'search via initiator_port', default=None)
+
+# neighborhood storageports name
+storageports = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+storageports.add_argument('name',	help = 'name of neighborhood')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        neighborhood_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        neighborhood_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        neighborhood_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        neighborhood_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        neighborhood_list(args)
+    elif (cmd == "allow"):
+        args = allow.parse_args()
+        neighborhood_allow(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        neighborhood_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        neighborhood_search(args)
+    elif(cmd == "storageports"):
+        args = storageports.parse_args()
+        neighborhood_storageports(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

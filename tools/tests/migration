@@ -1,0 +1,142 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2013 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# migration cli functions
+#----------------------------------------------------------------------
+
+def migration_create(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.volume)
+    source_system_uri = bourne.storagedevice_query(args.sourceSystem)
+    target_system_uri = bourne.storagedevice_query(args.targetSystem)
+    cos_uri = ''
+    if (args.cos):
+        cos_uri = bourne.cos_query('block', args.cos)
+
+    start = time.time()
+    t = bourne.migration_create(volume_uri, source_system_uri, target_system_uri, cos_uri)
+    total = time.time() - start
+    if (t['state'] == 'ready'):
+        print 'Migration with id ' + t['resource']['id'] + ' succeeded.'
+        print 'Migration took ' + '{0:.2f}'.format(total), ' Seconds to complete.'
+    else:
+        print 'Migration failed.'
+
+def migration_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.migration_query(args.name)
+    migration = bourne.migration_show(uri)
+    bourne.pretty_print_json(migration)
+
+def migration_query(args):
+    bourne.connect(args.ip)
+    print bourne.migration_query(args.name)
+
+def migration_list(args):
+    bourne.connect(args.ip)
+    migration_display_hdr()
+    migration_reps = bourne.migration_list()
+    for migration_rep in migration_reps:
+        migration = bourne.migration_show(migration_rep['id'])
+        migration_display(migration)
+
+# Display migrations in list form
+migration_display_fmt = '{0:20s} {1:25s} {2:25s} {3:25s} {4:30s} {5:15s} {6:15s} {7:s}'
+
+def migration_display_hdr():
+    print migration_display_fmt.format('name', 'volume', 'source', 'target', 'start', 'status', 'percent done', 'id')
+    print migration_display_fmt.format('----', '------', '------', '------', '-----', '------', '------------', '--')
+
+def migration_display(migration):
+    print migration_display_fmt.format(
+              migration['name'],
+              bourne.volume_name(migration['volume']['id']),
+              bourne.volume_name(migration['source']['id']),
+              bourne.volume_name(migration['target']['id']),
+              migration['start_time'],
+              migration['status'],
+		migration['percent_done'],
+              migration['id'])
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# migration <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne migration cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | show | list)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# migration create volume sourcesystem targetsystem cos
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('volume',		help = 'project name/volume name for VPlex volume')
+create.add_argument('sourceSystem',	help = 'name of the source storage system')
+create.add_argument('targetSystem',	help = 'name of the target storage system')
+create.add_argument('--cos',		help = 'name of the cos')
+
+# migration query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of migration')
+
+# migration show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of migration')
+
+# migration list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        migration_create(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        migration_query(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        migration_show(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        migration_list(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

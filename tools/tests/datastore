@@ -1,0 +1,166 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import json
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# datastore cli functions
+#----------------------------------------------------------------------
+# OBJCTRL_INSECURE_PORT           = '9010'
+# OBJCTRL_PORT                    = '9011'
+
+# for now we don't support multiple commodity device creation in a single operation
+def datastore_create(args):
+    bourne.connect(args.ip)
+
+    cos_file = None
+    if(args.filecos):
+        cos_file    = bourne.cos_query('file', args.filecos)
+
+    bourne.connect(args.ip)
+    cos_uri     = bourne.objcos_query(args.cos)
+    (o, s) = bourne.datastore_create(args.type, args.label, cos_uri, cos_file, args.size, args.mountpoint)
+
+    if (args.type == 'commodity'):
+        for task in s:
+            if (task['state'] == 'ready'):
+                    print 'Data Store created with id ' + task['resource']['id']
+            else:
+                raise Exception('Commodity Data Store create failed.')
+    else:
+        if (s['state'] == 'ready'):
+            print 'Data Store created with id ' + o['resource']['id']
+        else:
+            raise Exception('Data Store create failed.')
+
+def datastore_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.datastore_query(args.type, args.name)
+    res = bourne.datastore_delete(uri, args.type)
+    print res
+
+def datastore_show(args):
+    bourne.connect(args.ip)
+    vol = bourne.datastore_show(args.type, args.id)
+    bourne.pretty_print_json(vol)
+
+def datastore_query(args):
+    bourne.connect(args.ip)
+    print bourne.datastore_query(args.type, args.name)
+
+def datastore_list(args):
+    bourne.connect(args.ip)
+    datastores = bourne.datastore_list()
+    for pool in datastores:
+        bourne.pretty_print_json(pool)
+
+def datastore_bulkget(args):
+    bourne.connect(args.ip)
+    print bourne.datastore_bulkget()
+
+def datastore_bulkpost(args):
+    bourne.connect(args.ip)
+    ids = bourne.datastore_bulkgetids()
+    print bourne.datastore_bulkpost(ids)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# datastore <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne datastore cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | query | list | bulkget | bulkpost)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# datastore create label project cos size
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('type',         help = 'device type')
+create.add_argument('label',		help = 'label of data store')
+create.add_argument('cos',		help = 'cos name for data store')
+create.add_argument('--filecos',	help = 'associated file cos')
+create.add_argument('--size',		help = 'size of data store')
+create.add_argument('--mountpoint', help = 'mount point for NFS server share (optional)')
+
+# datastore delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of data store to be deleted')
+delete.add_argument('type',       help = 'device type')
+
+# datastore query label
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'full pathname of data store')
+query.add_argument('type',       help = 'device type')
+
+# datastore list project
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('type',       help = 'device type')
+show.add_argument('id',       help='ID of data store')
+
+# datastore bulk get
+bulkget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# datastore bulk post
+bulkpost = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        datastore_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        datastore_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        datastore_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        datastore_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        datastore_list(args)
+    elif (cmd == "bulkget"):
+        args = bulkget.parse_args()
+        datastore_bulkget(args)
+    elif (cmd == "bulkpost"):
+        args = bulkpost.parse_args()
+        datastore_bulkpost(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

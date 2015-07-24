@@ -1,0 +1,232 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# protection system cli functions
+#----------------------------------------------------------------------
+
+def protectionsystem_create(args):
+    bourne.connect(args.ip)
+    start = time.time()
+    resp = bourne.protectionsystem_create(args.name, args.system_type, args.ip_address, args.port_number, 
+					     args.user_name, args.password,       
+				             args.registration_mode)
+    total = time.time() - start
+    print "protection system create took", "{0:.2f}".format(total), "seconds to complete"
+    if (resp['state'] == 'ready'):
+        print 'protection system created with id ' + resp['resource']['id']
+    else:
+        print 'protection system create failed.'
+
+
+def protectionsystem_list(args):
+    bourne.connect(args.ip)
+    systems = bourne.protectionsystem_list()
+    protectionsystem_display_hdr()
+    for system in systems['protection_system']:
+        protectionsystem = bourne.protectionsystem_show(system['id'])
+        protectionsystem_display(protectionsystem)
+
+#
+# display protection system in list form
+#
+protectionsystem_display_fmt = '{0:21s} {1:15s} {2:15s} {3:15s} {4:6s} {5:8s} {6:s}'
+
+def protectionsystem_display_hdr():
+    print protectionsystem_display_fmt.format('name', 'ip', 'site2 ip', 'version', 'active', 'status', 'id')
+
+def protectionsystem_display(system):
+    secondary_ip = "None"
+    try:
+       secondary_ip = system['secondary_ip'];
+    except:
+       secondary_ip = "None"
+
+    major_version = "None"
+    try:
+       major_version = system['major_version'];
+    except:
+       major_version = "Unknown"
+
+    print protectionsystem_display_fmt.format(system['name'], 
+						  system['ip_address'], 
+						  secondary_ip,
+						  major_version,
+						  'NO' if system['inactive'] else 'YES', 
+						  system['job_discovery_status'],
+						  system['id'])
+
+def protectionsystem_discover(args):
+    bourne.connect(args.ip)
+    uri = bourne.protectionsystem_query(args.name)
+    print bourne.protectionsystem_discover(uri, args.ignore_error)
+
+def protectionsystem_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.protectionsystem_query(args.name)
+    print bourne.protectionsystem_show(uri)
+
+def protectionsystem_query(args):
+    bourne.connect(args.ip)
+    print bourne.protectionsystem_query(args.name)
+
+def protectionsystem_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.protectionsystem_query(args.name)
+    print bourne.protectionsystem_delete(uri)
+
+def protectionsystem_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.protectionsystem_query(args.name)
+    print 'Tagging protectionsystem ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def protectionsystem_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching protectionsystem with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+def protectionsystem_update(args):
+    bourne.connect(args.ip)
+    uri  = bourne.protectionsystem_query(args.name)
+    bourne.protectionsystem_update(uri, args.cluster, args.addvarrays, args.rmvarrays)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# protectionsystem <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne protection system cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# protectionsystem create name system_type ip_address user_name password registration_mode
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',		help = 'name of protection system')
+create.add_argument('system_type',	help = 'type, e.g rp')
+create.add_argument('ip_address',	help = 'protection system IP')
+create.add_argument('port_number',	help = 'protection system port')
+create.add_argument('user_name',	help = 'admin user')
+create.add_argument('password',		help = 'password for admin user')
+create.add_argument('registration_mode',     help = 'registration mode')
+
+#  protectionsystems list project
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# protectionsystem discover
+discover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+discover.add_argument('--ignore_error', action='store_true', help='If specified, will ignore failure')
+discover.add_argument('name', help='name of the protectionsystem')
+
+# protectionsystem show 
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name', help='name of the protectionsystem')
+
+# protectionsystem query 
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name', help='name of the protectionsystem')
+
+# protectionsystem delete 
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name', help='name of the protectionsystem')
+
+# tag 
+resource_type="protection_system"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+# port update port
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('--name',           help = 'Protection System Name that should be processed')
+update.add_argument('--cluster',        help = 'Cluster ID that should be processed')
+update.add_argument('--addvarrays',     help = 'Add virtual array assignments')
+update.add_argument('--rmvarrays',      help = 'Remove virtual array assignments')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        protectionsystem_create(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        protectionsystem_list(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        protectionsystem_show(args)
+    elif (cmd == "discover"):
+        args = discover.parse_args()
+        protectionsystem_discover(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        protectionsystem_query(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        protectionsystem_delete(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        protectionsystem_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        protectionsystem_search(args)
+    elif(cmd == "update"):
+        args = update.parse_args()
+        protectionsystem_update(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

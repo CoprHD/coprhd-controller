@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# Returns the FCZoneReference structures that indicate what zones are present for a selected set of hosts.
+# These are looked up by initiator WWN (from the host or hosts) and looking for possible storage port pairings.
+# The script has pre-defined lists of storage ports for losam082, vplex154nbr2, and the vplex ports which
+# are selected by the tzone variable. It should be set to tzone1, tzone2, tzone12, or vplex.
+# You can specify a host:
+# zonerefs lglw2211 -- it will look up the initiator wwns using the initiator command
+# You can look for references for all the defaulted hosts (host1 ... host18):
+# zonerefs
+
+[ "$tzone" = "" ]  && { echo "tzone neighborhood not supplied"; exit 2; }
+args=$*
+if [ "$args" = "" ]; then args=`hosts list $tenant | awk '/^host/ { print $1; }'` ; fi
+tzone1ports="500601693EA059B0 500601613EA059B0 500601603EA059B0 500601683EA059B0"
+tzone2ports="500009730017855C 5000097300178519"
+vplexports="50001442607DC400 5000144260037D00 50001442607DC401 5000144260037D01 50001442607DC402 5000144260037D02 50001442607DC403 5000144260037D03 50001442707DC400 5000144270037D00 50001442707DC401 5000144270037D01 50001442707DC402 5000144270037D02 50001442707DC403 5000144270037D03"
+# Get the initiator wwpns from the host in $1
+getinitiators() {
+    initiator list $1 | grep YES | awk ' { print $1; }'
+}
+for host in $args; do
+  # echo $host
+  inits=`getinitiators $host`
+  # echo $inits
+      for init in $inits; do
+      if [ $tzone = "tzone1" ]; then
+          for port in $tzone1ports; do
+            networksystem zonereferences $init $port | grep -v "group not found"
+          done
+      fi
+      if [ $tzone = "tzone2" ]; then
+          for port in $tzone2ports; do
+            networksystem zonereferences $init $port | grep -v "group not found"
+          done
+      fi
+      if [ $tzone = "tzone12" ]; then
+          for port in $tzone1ports; do
+            networksystem zonereferences $init $port | grep -v "group not found"
+          done
+          for port in $tzone2ports; do
+            networksystem zonereferences $init $port | grep -v "group not found"
+          done
+      fi
+      if [ $tzone = "vplex" ]; then
+        for port in $vplexports; do
+            networksystem zonereferences $init $port | grep -v "group not found"
+        done
+      fi
+  done
+done
+exit 0
+

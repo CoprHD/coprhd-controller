@@ -1,0 +1,344 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2013 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import time
+from string import Template
+from bourne import *
+
+URI_SERVICES_BASE               = ''
+URI_BLOCK_CONSISTENCY_GROUP_BASE    = URI_SERVICES_BASE  + '/block/consistency-groups'
+URI_BLOCK_CONSISTENCY_GROUP         = URI_BLOCK_CONSISTENCY_GROUP_BASE + '/{0}'
+URI_BLOCK_CONSISTENCY_GROUP_DELETE  = URI_BLOCK_CONSISTENCY_GROUP + '/deactivate'
+
+#----------------------------------------------------------------------
+# consistency group cli functions
+#----------------------------------------------------------------------
+
+def consistency_group_create(args):
+    bourne.connect(args.ip)
+    project_uri = bourne.project_query(args.project)
+    start = time.time()
+    blockconsistencygroup = bourne.block_consistency_group_create(project_uri, args.label)
+	
+def consistency_group_update(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    s = bourne.block_consistency_group_update(group_uri, args.add, args.remove)
+    print s
+		
+def consistency_group_delete(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.name)
+    print "Deleting BlockConsistencyGroup " + str(group_uri)
+    start = time.time()
+    (o, s) = bourne.block_consistency_group_delete(group_uri)
+    total = time.time() - start
+    if (s["state"] == 'ready'):
+        print "BlockConsistencyGroup deleted successfully in", "{0:.2f}".format(total), "seconds"
+    else:
+        print 'BlockConsistencyGroup delete failed '
+	bourne.pretty_print_json(s) 
+
+def consistency_group_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_consistency_group_query(args.name)
+    group = bourne.block_consistency_group_show(uri)
+    bourne.pretty_print_json(group)
+    
+def consistency_group_bulk(args):
+    bourne.connect(args.ip)
+    ids = bourne.block_consistency_group_bulkgetids()
+    bourne.pretty_print_json(ids)
+    bulk = bourne.block_consistency_group_bulkpost(ids)
+    bourne.pretty_print_json(bulk)        
+    
+def consistency_group_check_volume(args):
+    bourne.connect(args.ip)
+    requested_volume_uri = bourne.volume_query(args.project + "/" + args.volume)
+    project_uri = bourne.project_query(args.project)
+
+    group_uri = bourne.block_consistency_group_query(args.name)
+    
+    print "Checking volume %s in consistency group %s. Expected? %s" % (requested_volume_uri, group_uri, args.expected)
+    
+    group = bourne.block_consistency_group_show(group_uri)
+   
+    print "Consistency Group: " + str(group)	
+	 
+    volumes = group["volumes"]
+    
+    print "Volumes in consistency group: " + str(volumes)
+    
+    present = False	
+    
+    for volume in volumes:
+        volumeId = volume["id"]
+        print "Volume %s is present in the group" % (volumeId)
+        if volumeId == requested_volume_uri:
+            present = True
+
+    if present and not args.expected:
+         raise Exception("Volume %s is still present in the consistency group" % (requested_volume_uri)); 
+    if not present and args.expected:
+         raise Exception("Volume %s is not present in the consistency group" % (requested_volume_uri));
+
+def consistency_group_delete_with_volumes(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.name)
+    expectedErrorMsg = "BlockConsistencyGroup " + group_uri + " has active references of type Volume"
+    return bourne.api_check_error('POST', URI_BLOCK_CONSISTENCY_GROUP_DELETE.format(group_uri), 400, 1020, expectedErrorMsg)
+        
+def consistency_group_check_volume_create_error(args): 
+    bourne.connect(args.ip)
+    project_uri = bourne.project_query(args.project)
+    cos_uri     = bourne.cos_query('block', args.cos)
+    nh_uri      = bourne.neighborhood_query(args.neighborhood)
+    cons_grp_uri = None
+    cgProjectId = None
+    
+    
+    if(args.consistencyGroup):
+        cons_grp_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
+     
+    volumeCount = 1
+    if (args.count):
+        volumeCount = args.count
+    
+    expected_statuscode = 400        
+    if (args.statuscode):
+        expected_statuscode = int(args.statuscode)
+   
+    expected_servicecode = 1008         
+    if (args.servicecode):
+        expected_servicecode = int(args.servicecode)            
+    eroorMessageTemplate = Template(args.error)
+     
+    if (args.consistencyGroupProject):
+        cgProjectId =  bourne.project_query(args.consistencyGroupProject)
+
+    expectedErrorMsg = eroorMessageTemplate.substitute(cgid=cons_grp_uri, cosid=cos_uri, projid=cgProjectId)
+    parms = {
+            'name'              : args.label,
+            'varray'      : nh_uri,
+            'project'           : project_uri,
+            'vpool'               : cos_uri,
+            'size'              : args.size,
+            'count'             : volumeCount,
+            'consistency_group' : cons_grp_uri
+        }
+
+    return bourne.api_check_error('POST', URI_VOLUME_LIST, expected_statuscode, expected_servicecode, expectedErrorMsg, parms)
+
+def consistency_group_snapshot_create(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    print "Creating Consistency Group Snapshot " + str(args.name)
+    start = time.time()
+    (o, s) = bourne.block_consistency_group_snapshot_create(group_uri, args.name, args.createInactive)
+    total = time.time() - start
+    if (s["state"] == 'ready'):
+        print "Consistency Group Snapshot created successfully in", "{0:.2f}".format(total), "seconds"
+    else:
+        print 'Consistency Group Snapshot creation failed '
+    bourne.pretty_print_json(s) 
+    
+def consistency_group_snapshot_activate(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    snapshot_uri = bourne.block_consistency_group_snapshot_query(group_uri, args.name)
+    print "Activating Consistency Group Snapshot " + str(args.name)
+    start = time.time()
+    (o, s) = bourne.block_consistency_group_snapshot_activate(group_uri, snapshot_uri)
+    total = time.time() - start
+    if (s["state"] == 'ready'):
+        print "Consistency Group Snapshot activated successfully in", "{0:.2f}".format(total), "seconds"
+    else:
+        print 'Consistency Group Snapshot activation failed '
+    bourne.pretty_print_json(s)
+
+def consistency_group_snapshot_deactivate(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    snapshot_uri = bourne.block_consistency_group_snapshot_query(group_uri, args.name)
+    print "Deactivating Consistency Group Snapshot " + str(args.name)
+    start = time.time()
+    tasks = bourne.block_consistency_group_snapshot_deactivate(group_uri, snapshot_uri)
+    total = time.time() - start
+    for task in tasks:
+        name = task['resource']['name']
+        id = task['resource']['id']
+        s = task['state']
+        if (s == 'ready'):
+            print "Consistency Group Snapshot " + name + ' ' + id + " deactivated successfully in", "{0:.2f}".format(total), "seconds"
+        else:
+            print "Consistency Group Snapshot " + name + ' ' + id + " deactivation failed "
+        bourne.pretty_print_json(task)   
+ 
+def consistency_group_snapshot_restore(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    snapshot_uri = bourne.block_consistency_group_snapshot_query(group_uri, args.name)
+    print "Restoring Consistency Group Snapshot " + str(args.name)
+    start = time.time()
+    (o, s) = bourne.block_consistency_group_snapshot_restore(group_uri, snapshot_uri)
+    total = time.time() - start
+    if (s["state"] == 'ready'):
+        print "Consistency Group Snapshot restored successfully in", "{0:.2f}".format(total), "seconds"
+    else:
+        print 'Consistency Group Snapshot restore failed '
+    bourne.pretty_print_json(s)         
+             
+def consistency_group_snapshot_show(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    snapshot_uri = bourne.block_consistency_group_snapshot_query(group_uri, args.name)
+    snapshot = bourne.block_consistency_group_snapshot_show(group_uri, snapshot_uri)
+    bourne.pretty_print_json(snapshot) 
+
+def consistency_group_snapshot_list(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    uris = bourne.block_consistency_group_snapshot_list(group_uri)
+    for uri in uris:
+        snapshot = bourne.block_consistency_group_snapshot_show(group_uri, uri)
+        bourne.pretty_print_json(snapshot)
+		            
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# consistency group cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne blockconsistencygroups cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | show | delete | check_volume | delete_with_volumes | check_volume_error)')
+parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bourne', default=bourne_ip)
+
+# consistency group create fsuri [--ip ipaddr]
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('project', help = 'name of the project to use in blockconsistencygroup')
+create.add_argument('label', help = 'label/name for blockconsistencygroup')
+
+# consistency group show   uri [--ip ipaddr]
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name', help = 'name of blockconsistencygroup')
+
+# consistency group bulk [--ip ipaddr]
+bulk = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# consistency group update parser
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('group', help = 'name of consistency group')
+update.add_argument('--add', dest='add')
+update.add_argument('--remove', dest='remove')
+
+# consistency group delete   uri [--ip ipaddr]
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name', help = 'name of blockconsistencygroup')
+
+checkVolume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+checkVolume.add_argument('project', help = 'name of the project to use in blockconsistencygroup')
+checkVolume.add_argument("volume", help = "Volume to check")
+checkVolume.add_argument('name', help = 'name of blockconsistencygroup')
+checkVolume.add_argument('--expected', dest='expected',action='store_true')
+checkVolume.add_argument('--no-expected', dest='expected',action='store_false')
+checkVolume.set_defaults(expected=True)
+
+# error handling
+checkVolumeCreateError = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+checkVolumeCreateError.add_argument('label',        help = 'label of volume')
+checkVolumeCreateError.add_argument('project',        help = 'container project name')
+checkVolumeCreateError.add_argument('neighborhood',    help = 'neighborhood where volume is created')
+checkVolumeCreateError.add_argument('cos',        help = 'cos name for volume')
+checkVolumeCreateError.add_argument('size',        help = 'size of volume')
+checkVolumeCreateError.add_argument('error',        help = 'expected error message')
+checkVolumeCreateError.add_argument('--count',        help = 'Number of volumes to create')
+checkVolumeCreateError.add_argument('--consistencyGroup', help = 'add the volume to the specified consistency group for snapshot operations')
+checkVolumeCreateError.add_argument('--consistencyGroupProject', help = 'Consistency group project')
+checkVolumeCreateError.add_argument('--statuscode', help = 'expected status code')
+checkVolumeCreateError.add_argument('--servicecode', help = 'expected servcie code')
+
+# consistency group snapshot arguments parser
+snapshotOperation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotOperation.add_argument('group', help = 'name of consistency group')
+snapshotOperation.add_argument('name', help = 'name for new consistency group snapshot')
+snapshotOperation.add_argument('--createInactive', dest='createInactive',action='store_true')
+snapshotOperation.set_defaults(createInactive=False)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        consistency_group_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        consistency_group_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        consistency_group_show(args)
+    elif (cmd == "bulk"):
+        args = bulk.parse_args()
+        consistency_group_bulk(args)    
+    elif (cmd == "check_volume"):
+        args = checkVolume.parse_args()
+        consistency_group_check_volume(args)
+    elif (cmd == "delete_with_volumes"):
+        args = delete.parse_args()
+        consistency_group_delete_with_volumes(args)
+    elif (cmd == "check_volume_error"):
+        args = checkVolumeCreateError.parse_args()
+        consistency_group_check_volume_create_error(args)  
+    elif (cmd == "create_snapshot"):
+        args = snapshotOperation.parse_args()
+        consistency_group_snapshot_create(args)  
+    elif (cmd == "activate_snapshot"):
+        args = snapshotOperation.parse_args()
+        consistency_group_snapshot_activate(args)
+    elif (cmd == "deactivate_snapshot"):
+        args = snapshotOperation.parse_args()
+        consistency_group_snapshot_deactivate(args)
+    elif (cmd == "restore_snapshot"):
+        args = snapshotOperation.parse_args()
+        consistency_group_snapshot_restore(args)
+    elif (cmd == "show_snapshot"):
+        args = snapshotOperation.parse_args()
+        consistency_group_snapshot_show(args)
+    elif (cmd == "list_snapshots"):
+        args = snapshotOperation.parse_args()
+        consistency_group_snapshot_list(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        consistency_group_update(args)		
+    else:
+        parser.print_help()
+
+except:
+    raise
+

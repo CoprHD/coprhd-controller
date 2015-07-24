@@ -1,0 +1,445 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# fileshare cli functions
+#----------------------------------------------------------------------
+
+def fileshare_create(args):
+    bourne.connect(args.ip)
+    project_uri = bourne.project_query(args.project)
+    nh_uri	= bourne.neighborhood_query(args.neighborhood)
+    cos_uri     = bourne.cos_query('file', args.cos)
+    s = bourne.fileshare_create(args.label, project_uri, nh_uri, cos_uri, args.size, args.protocols, args.protection)
+    if (s['state'] == 'ready'):
+        print 'Fileshare created with id ' + s['resource']['id']
+    else:
+        print 'Fileshare create failed.'
+
+def fileshare_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+
+    isForceDelete = 'false'
+    print "ForceDelete --> ", args.forceDelete
+    if (args.forceDelete):
+        isForceDelete = args.forceDelete
+
+    print "Deleting: ", uri, isForceDelete
+    res = bourne.fileshare_delete(uri,isForceDelete)
+    print res
+
+def fileshare_export(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    s = bourne.fileshare_export(uri, args.endpoints, args.type, args.perm, args.rootuser,
+				     args.protocol, args.comments)
+    if (s['state'] == 'ready'):
+        print 'Fileshare export done.'
+    else:
+        print 'Fileshare export failed.'
+
+def fileshare_export_update(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    s = bourne.fileshare_export_update(uri, args.operation, args.securityflavor, args.user, args.roothosts, args.readonlyhosts, args.readwritehosts, args.subDir)
+    if (s['state'] == 'ready'):
+        print 'Fileshare export update done.'
+    else:
+        print 'Fileshare export update failed.'
+
+def fileshare_unexport(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    s = bourne.fileshare_unexport(uri)
+    if (s['state'] == 'ready'):
+        print 'File System unexport done.'
+    else:
+        print 'File System unexport failed.'
+
+def fileshare_expand(args):
+    bourne.connect(args.ip)
+    print args.name
+    uri = bourne.fileshare_query(args.name)
+    print uri
+    s = bourne.fileshare_expand(uri, args.size)
+
+    if (s['state'] == 'ready'):
+        print 'Fileshare expand done.'
+    else:
+        print 'Fileshare expand failed.'
+
+def fileshare_share(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    s = bourne.fileshare_share(uri, args.sharename, args.description)
+    if (s['state'] == 'ready'):
+        print 'Fileshare SMB share create done.'
+    else:
+        print 'Fileshare SMB share create failed.'
+
+def fileshare_share_acl(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    s = bourne.fileshare_share_acl(uri, args.sharename, args.user, args.permission, args.domain, args.group, args.operation)
+    if (s['state'] == 'ready'):
+        print 'Fileshare SMB share  ACL create done.'
+    else:
+        print 'Fileshare SMB share ACL create failed.'
+
+def fileshare_acl_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    fs_acl = bourne.fileshare_acl_show(uri, args.sharename)
+    bourne.pretty_print_json(fs_acl)
+
+def fileshare_acl_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    s = bourne.fileshare_acl_delete(uri, args.sharename)
+    if (s['state'] == 'ready'):
+        print 'Fileshare ACL delete done.'
+    else:
+        print 'Fileshare ACL delete failed.'
+
+def fileshare_unshare(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    s = bourne.fileshare_unshare(uri, args.sharename)
+    if (s['state'] == 'ready'):
+        print 'Fileshare unshare done.'
+    else:
+        print 'Fileshare unshare failed.'
+
+def fileshare_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.name)
+    fs = bourne.fileshare_show(uri)
+    bourne.pretty_print_json(fs)
+
+def fileshare_query(args):
+    bourne.connect(args.ip)
+    print bourne.fileshare_query(args.name)
+
+def fileshare_list(args):
+    bourne.connect(args.ip)
+    uris = bourne.fileshare_list(args.project)
+    for uri in uris:
+        fs = bourne.fileshare_show(uri["id"])
+        bourne.pretty_print_json(fs)
+
+def fileshare_bulkget(args):
+    bourne.connect(args.ip)
+    print "Bulk get fileshare test ..."
+    res = bourne.fileshare_bulkget()
+    fss = res['filesystem']
+    for fs in fss:
+        print fs['id'], fs['name']
+    print "Bulk get fileshare completed"
+
+def fileshare_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        print args.name
+        print bourne.fileshare_query(args.name)
+        args.id = bourne.fileshare_query(args.name)
+    print 'Tagging fileshare ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def fileshare_search(args):
+    bourne.connect(args.ip)
+    results = bourne.fileshare_search(args.name, args.project, args.tag)
+    print 'Searching fileshare ...'
+    if (len(results['resource']) == 0):
+        raise Exception('Fileshare not found')
+    else:
+        print 'Result: ', results['resource']
+
+def fileshare_create_quota_dir(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.label)
+    s = bourne.fileshare_create_quota_dir(uri, args.dirname, args.size, args.oplock, args.sec)
+    if (s['state'] == 'ready'):
+        print 'Quota dir created with id ' + s['resource']['id']
+    else:
+        print 'Quota dir create failed.'
+
+def fileshare_delete_quota_dir(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.label)
+    quotauri = bourne.fileshare_quota_dir_query(uri, args.dirname)
+    isForceDelete = 'false'
+    print "ForceDelete --> ", args.forceDelete
+    if (args.forceDelete):
+        isForceDelete = args.forceDelete
+
+    print "Deleting: ", quotauri, isForceDelete
+    res = bourne.fileshare_delete_quota_dir(quotauri,isForceDelete)
+    print res
+
+def fileshare_update_quota_dir(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.label)
+    quotauri = bourne.fileshare_quota_dir_query(uri, args.dirname)
+    s = bourne.fileshare_update_quota_dir(quotauri, args.size, args.oplock, args.sec)
+    if (s['state'] == 'ready'):
+        print 'Quota dir updated with id ' + s['resource']['id']
+    else:
+        print 'Quota dir update failed.'
+
+def fileshare_show_quota_dir(args):
+    bourne.connect(args.ip)
+    uri = bourne.fileshare_query(args.label)
+    quotauri = bourne.fileshare_quota_dir_query(uri, args.dirname)
+    s = bourne.fileshare_show_quota_dir(quotauri)
+    print s
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# fileshare <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne FileShare cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | export | modexport | unexport | expand | share | unshare | show | list | search)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# fileshare create label project cos size
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',		help = 'label of fileshare')
+create.add_argument('project',		help = 'container project name')
+create.add_argument('neighborhood',	help = 'neighborhood where fileshare should be created')
+create.add_argument('cos',		help = 'cos name for fileshare')
+create.add_argument('size',		help = 'size of fileshare')
+create.add_argument('--protocols',      help = 'file share access storage protocols', nargs='*')
+create.add_argument('--protection',     help = 'data protection level for this file share')
+
+# fileshare delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of fileshare to be deleted')
+delete.add_argument('--forceDelete', help = 'optional to delete fileshare forecbly, default false ')
+
+# fileshare export uri host
+export = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+export.add_argument('name',		help = 'name of fileshare for export/unexport')
+export.add_argument('endpoints',	help = 'list of client endpoints (ip|net|netgroup)', nargs='*')
+export.add_argument('--type',		help = 'security type (sys | krb5 | krb5i | krb5p), default sys',
+					default='sys')
+export.add_argument('--perm',		help = 'file share access permissions (ro | rw | root), default rw',
+					default = 'rw')
+export.add_argument('--rootuser',	help = 'root user mapping for anonymous accesses, default nobody',
+                                   default = 'nobody')
+export.add_argument('--protocol',	help = 'access protocol for this export (NFS | CIFS), default NFS',
+					default = 'NFS')
+export.add_argument('--comments',	help = 'Description of Export (Olnly for ISILON and VNX)',
+					default = '')
+
+# fileshare unexport uri host
+unexport = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+unexport.add_argument('name',		help = 'name of fileshare for unexport')
+
+# fileshare export update uri host
+export_update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+export_update.add_argument('name', help = 'name of fileshare for exportModify')
+export_update.add_argument('--operation', help = 'operation to performed add, modify, delete')
+export_update.add_argument('--securityflavor', help = 'security type (sys | krb5 | krb5i | krb5p)', default = 'krb5')
+export_update.add_argument('--user', help = 'user for the export , default anon', default = 'root')
+export_update.add_argument('--roothosts', help = 'root hosts',default = '', nargs='*')
+export_update.add_argument('--readonlyhosts', help = 'readonly hosts',default = '',nargs='*')
+export_update.add_argument('--readwritehosts', help = 'readwrite hosts',default = '', nargs='*')
+export_update.add_argument('--subDir', help = 'optional subdirectory path' ,default = '')
+
+#fileshare expand uri size
+expand = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+expand.add_argument('name',		help = 'name of fileshare for expansion')
+expand.add_argument('size',	        help = 'expand size of fileshare')
+
+# fileshare share uri sharename
+share = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+share.add_argument('name',		help = 'name of file system for share/unshare')
+share.add_argument('sharename',		help = 'sharename to share/unshare')
+share.add_argument('--description',		help = 'description')
+
+# fileshare share_acl uri sharename
+share_acl = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+share_acl.add_argument('name',        help = 'name of file system for share ACL')
+share_acl.add_argument('sharename',        help = 'sharename to set ACL')
+share_acl.add_argument('--user',        help = 'user for which setting permission ')
+share_acl.add_argument('--permission',        help = 'permission type')
+share_acl.add_argument('--domain',        help = 'Domain for the ACL', default = '')
+share_acl.add_argument('--group',        help = 'Group for the ACL', default = '')
+share_acl.add_argument('--operation',        help = 'operation to be performed Add,Modify,Delete for ACL')
+
+# fileshare ACL show uri sharename
+share_acl_show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+share_acl_show.add_argument('name',        help = 'name of fileshare')
+share_acl_show.add_argument('sharename',        help = 'Fileshare sharename to show ACL')
+
+# fileshare ACL Delete uri sharename
+share_acl_delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+share_acl_delete.add_argument('name',        help = 'name of file system for share ACl delete')
+share_acl_delete.add_argument('sharename',        help = 'Fileshare sharename to delete ACL')
+
+# fileshare unshare uri sharename
+unshare = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+unshare.add_argument('name',		help = 'name of file system for share/unshare')
+unshare.add_argument('sharename',		help = 'sharename to share/unshare')
+
+# fileshare show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of fileshare')
+
+# fileshare query label
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'full pathname of fileshare')
+
+# fileshare list project
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('project',	help = 'container project name')
+
+# fileshare bulkget
+bulkget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# tag 
+resource_type="fileshare"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--name',    metavar = 'name', help = 'name for search ', default=None)
+search.add_argument('--tag',     metavar = 'tag',    help = 'tag for search ', default=None)
+search.add_argument('--scope',   metavar = 'scope',    help = 'tenant for tag search ', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search within project', default=None)
+
+# fileshare quota dir create label project cos size
+create_quota_dir = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create_quota_dir.add_argument('label',		help = 'label of fileshare')
+create_quota_dir.add_argument('dirname',	help = 'Name of quota directory to be created')
+create_quota_dir.add_argument('--sec',		help = 'security style unix,ntfs, mixed')
+create_quota_dir.add_argument('--size',		help = 'quota size of directory')
+create_quota_dir.add_argument('--oplock',      help = 'oplock to be enable or not')
+
+# fileshare quota dir create label project cos size
+update_quota_dir = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update_quota_dir.add_argument('label',		help = 'label of fileshare')
+update_quota_dir.add_argument('dirname',	help = 'Name of quota directory to be updated')
+update_quota_dir.add_argument('--sec',		help = 'security style unix,ntfs, mixed')
+update_quota_dir.add_argument('--size',		help = 'quota size of directory')
+update_quota_dir.add_argument('--oplock',      help = 'oplock to be enable or not')
+
+# fileshare quota dir create label project cos size
+show_quota_dir = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show_quota_dir.add_argument('label',		help = 'label of fileshare')
+show_quota_dir.add_argument('dirname',	help = 'Name of quota directory to be updated')
+
+# fileshare quota dir create label project cos size
+delete_quota_dir = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete_quota_dir.add_argument('label',		help = 'label of fileshare')
+delete_quota_dir.add_argument('dirname',	help = 'Name of quota directory to be updated')
+delete_quota_dir.add_argument('--forceDelete',      help = 'force delete the quota dir')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        fileshare_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        fileshare_delete(args)
+    elif (cmd == "export"):
+        args = export.parse_args()
+        fileshare_export(args)
+    elif (cmd == "export_update"):
+        args = export_update.parse_args()
+        fileshare_export_update(args)
+    elif (cmd == "unexport"):
+        args = unexport.parse_args()
+        fileshare_unexport(args)
+    elif (cmd == "expand"):
+        args = expand.parse_args()
+        fileshare_expand(args)
+    elif (cmd == "share"):
+        args = share.parse_args()
+        fileshare_share(args)
+    elif (cmd == "share_acl"):
+        args = share_acl.parse_args()
+        fileshare_share_acl(args)
+    elif (cmd == "share_acl_show"):
+        args = share_acl_show.parse_args()
+        fileshare_acl_show(args)
+    elif (cmd == "share_acl_delete"):
+        args = share_acl_delete.parse_args()
+        fileshare_acl_delete(args)
+    elif (cmd == "unshare"):
+        args = unshare.parse_args()
+        fileshare_unshare(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        fileshare_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        fileshare_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        fileshare_list(args)
+    elif (cmd == "bulkget"):
+        args = bulkget.parse_args()
+        fileshare_bulkget(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        fileshare_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        fileshare_search(args)
+    elif(cmd == "create_quota_dir"):
+        args = create_quota_dir.parse_args()
+        fileshare_create_quota_dir(args)
+    elif(cmd == "update_quota_dir"):
+        args = update_quota_dir.parse_args()
+        fileshare_update_quota_dir(args)
+    elif(cmd == "delete_quota_dir"):
+        args = delete_quota_dir.parse_args()
+        fileshare_delete_quota_dir(args)
+    elif(cmd == "show_quota_dir"):
+        args = show_quota_dir.parse_args()
+        fileshare_show_quota_dir(args)    
+    else:
+        parser.print_help()
+
+except:
+    raise

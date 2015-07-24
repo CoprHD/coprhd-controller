@@ -1,0 +1,586 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# volume cli functions
+#----------------------------------------------------------------------
+
+def volume_create(args):
+    bourne.connect(args.ip)
+    project_uri = bourne.project_query(args.project)
+    cos_uri     = bourne.cos_query('block', args.cos)
+    nh_uri      = bourne.neighborhood_query(args.neighborhood)
+    cons_grp_uri= ''
+    if (args.consistencyGroup):
+    	cons_grp_uri = bourne.block_consistency_group_get_id_by_name(args.consistencyGroup)
+
+    volumeCount = 1
+    if (args.count):
+        volumeCount = args.count
+
+    isThinVolume = 'false'
+    if (args.thinVolume):
+        isThinVolume = args.thinVolume
+   
+    start = time.time()
+    tr_list = bourne.volume_create(args.label, project_uri, nh_uri, cos_uri, args.size, isThinVolume, volumeCount,
+                                  args.protocols, args.protection, cons_grp_uri)
+    total = time.time() - start
+    print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
+    #print 'Volume_create debug : ' + str(s)
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Volume created with id ' + tr['resource']['id']
+        else:
+            print 'Volume create failed.'
+
+def volume_full_copy(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    start = time.time()
+    tr_list = bourne.volume_full_copy(args.label, uri, args.count, args.create_inactive)
+    total = time.time() - start
+     
+    print "Volume full copy took", "{0:.2f}".format(total), "seconds to complete"
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Volume full copy created with id ' + tr['resource']['id']
+        else:
+            print 'Volume full copy create failed.'
+
+def volume_full_copy_resync(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    start = time.time()
+    tr_list = bourne.volume_full_copy_resync(uri)
+    total = time.time() - start
+    print "Volume full copy resync took", "{0:.2f}".format(total), "seconds to complete"
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Volume full copy resync successful.'
+        else:
+            print 'Volume full copy resync failed.'
+
+def volume_full_copy_restore(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    start = time.time()
+    tr_list = bourne.volume_full_copy_restore(uri)
+    total = time.time() - start
+    print "Volume full copy restore took", "{0:.2f}".format(total), "seconds to complete"
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Volume full copy restore successful.'
+        else:
+            print 'Volume full copy restore failed.'
+
+def volume_full_copy_list(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    full_copies=bourne.volume_full_copies(uri)
+    bourne.pretty_print_json(full_copies)
+
+def volume_full_copy_check_progress(args):
+    bourne.connect(args.ip)
+    source_uri = bourne.volume_query(args.source)
+    uri = bourne.volume_query(args.name)
+    start = time.time()
+    resp = bourne.volume_full_copy_check_progress(source_uri, uri)
+    total = time.time() - start
+    print "Volume full copy check progress took", "{0:.2f}".format(total), "seconds to complete"
+    print "Progress: " + str(resp['protection']['full_copies']['percent_synced'])
+
+def volume_activate(args):
+    bourne.connect(args.ip)
+    source_uri = bourne.volume_query(args.source)
+    uri = bourne.volume_query(args.name)
+    start = time.time()
+    tr = bourne.volume_activate(source_uri, uri)
+    total = time.time() - start
+    print "Volume full copy activate took", "{0:.2f}".format(total), "seconds to complete"
+    if (tr['state'] == 'ready'):
+        print 'Volume full copy activate completed'
+    else:
+        print 'Volume full copy activate failed'
+
+def volume_detach(args):
+    bourne.connect(args.ip)
+    source_uri = bourne.volume_query(args.source)
+    uri = bourne.volume_query(args.name)
+    start = time.time()
+    tr = bourne.volume_detach(source_uri, uri)
+    total = time.time() - start
+    print "Volume full copy detach took", "{0:.2f}".format(total), "seconds to complete"
+    if (tr['state'] == 'ready'):
+        print 'Volume full copy detach completed'
+    else:
+        print 'Volume full copy detach failed'
+
+def volume_change_cos(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    cos_uri = bourne.cos_query('block', args.cos)
+    start = time.time()
+    tr = bourne.volume_change_cos(uri, cos_uri)
+    total = time.time() - start
+    print "Volume CoS change took", "{0:.2f}".format(total), "seconds to complete"
+    if (tr['state'] == 'ready'):
+        print 'Volume CoS change succeeded'
+    else:
+        print 'Volume CoS change failed.'
+
+def volume_change_cos_matches(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    res = bourne.volume_change_cos_matches(uri)
+    coses = res['vpool']
+    cos_matches_display_hdr()
+    for c in coses:
+        cos_matches_display(c)
+
+def volume_change_nh(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    nh_uri = bourne.neighborhood_query(args.nh)
+    start = time.time()
+    tr = bourne.volume_change_nh(uri, nh_uri)
+    total = time.time() - start
+    print "Volume NH change took", "{0:.2f}".format(total), "seconds to complete"
+    if (tr['state'] == 'ready'):
+        print 'Volume Nh change succeeded'
+    else:
+        print 'Volume Nh change failed.'
+
+def volume_expand(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    start = time.time()
+    s = bourne.volume_expand(uri, args.size)
+    total = time.time() - start
+    print "Volume expand took", "{0:.2f}".format(total), "seconds to complete"
+    #print 'Volume_create debug : ' + str(s)
+    if (s['state'] == 'ready'):
+        print "Volume expanded with id " + s['resource']['id'] + ". "
+    else:
+        print "Volume expand failed. "
+
+def volume_delete(args):
+    bourne.connect(args.ip)
+    uris = []
+    if (args.project):
+        res = bourne.volume_list(args.name)
+        for r in res:
+            uri = r['id']
+            vol = bourne.volume_show(uri)
+            # Only remove active volumes
+            if (not vol['inactive']):
+                uris.append(uri)
+    else:
+        names = args.name.split(',')
+        for name in names:
+            print "Querying for volume: " + name
+            uri = bourne.volume_query(name)
+            vol = bourne.volume_show(uri)
+            # Only remove active volumes
+            if (not vol['inactive']):
+                uris.append(uri)
+    start = time.time()
+    if (len(uris) > 1):
+        print "Multi volume delete"
+        (o, s, m) = bourne.volume_multi_delete(uris, args.wait, args.vipronly)
+    elif (len(uris) == 1):
+        print "Single volume delete"
+        (o, s, m) = bourne.volume_delete(uris[0], args.wait, args.vipronly)
+    else:
+        print "No active volumes to delete"
+        o = "There were no active volumes to delete"
+    total = time.time() - start
+    if (args.wait):
+       print "Volume delete took", "{0:.2f}".format(total), "seconds to complete"
+       print "Volume delete ended with status " + s + ". " + m
+    else:
+       print o
+
+def volume_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    vol_op = bourne.volume_show(uri)
+    bourne.pretty_print_json(vol_op)
+
+def volume_query(args):
+    bourne.connect(args.ip)
+    bourne.volume_query(args.name)
+
+def volume_list(args):
+    bourne.connect(args.ip)
+    vol_display_hdr()
+    res = bourne.volume_list(args.project)
+    for r in res:
+        vol = bourne.volume_show(r['id'])
+        vol_display(vol)
+
+def volume_bulkget(args):
+    bourne.connect(args.ip)
+    print "Bulk get volume test ..."
+    res = bourne.volume_bulkget()
+    vols = res['volume']
+    vol_display_hdr()
+    for v in vols:
+        vol_display(v)
+    print "Bulk get volume completed"
+
+def volume_exports(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    exports=bourne.volume_exports(uri)
+    if (args.v):
+        printexports(exports)
+    else:
+        bourne.pretty_print_json(exports)
+
+def volume_change_link(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    copy_uri = bourne.volume_query(args.copyURI)
+    changelink=bourne.volume_change_link(uri, args.operation, copy_uri, args.type)
+    print "Volume change link operation completed"
+
+def volume_verify(args):
+    bourne.connect(args.ip)
+    uri = bourne.volume_query(args.name)
+    changelink=bourne.volume_verify(uri, args.field, args.value)
+
+def volume_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.volume_query(args.name)
+    print 'Tagging volume ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def volume_search(args):
+    bourne.connect(args.ip)
+    results = bourne.volume_search(args.name, args.project, args.tag, args.wwn)
+    print 'Searching volume ...'
+    if (len(results['resource']) == 0):
+        raise Exception('Volume not found ')
+    else:
+        print 'Result: ', results['resource']
+
+#
+# display volumes in list form
+#
+vol_display_fmt = '{0:50s} {1:6s} {2:6s} {3:4s} {4:26s} {5:16s} {6:62s} {7:32s} {8:11s} {9:12s} {10:10s}'
+
+def vol_display_hdr():
+    print vol_display_fmt.format('name', 'rqsize', 'alsize', 'act', 'vpool', 'varray', 'id', 'wwn', 'personality', 'access_state', 'link_status')
+    print vol_display_fmt.format('----', '------', '------', '---', '-----', '------', '--', '---', '-----------', '------------', '-----------')
+
+def vol_display(vol):
+    personality = 'N/A';
+    if 'protection' in vol.keys():
+       if vol['protection'] == None:
+          personality = 'N/A';
+       elif 'recoverpoint' in vol['protection'].keys():
+          personality = vol['protection']['recoverpoint']['personality'];
+       elif 'srdf' in vol['protection'].keys():
+          personality = vol['protection']['srdf']['personality'];
+
+    print vol_display_fmt.format(
+              vol['name'],
+              str(vol['requested_capacity_gb']),
+              str(vol['allocated_capacity_gb']),
+              'NO' if vol['inactive'] else 'YES',
+              bourne.cos_name('block', vol['vpool']['id']),
+              bourne.neighborhood_name(vol['varray']['id']),
+              vol['id'],
+              vol['wwn'] if 'wwn' in vol.keys() else 'N/A',
+              personality,
+              vol['access_state'] if 'access_state' in vol.keys() else 'N/A',
+              vol['link_status'] if 'link_status' in vol.keys() else 'N/A')
+
+exports_display_fmt = '{0:32s} {1:32s} {2:64s}'
+
+def printexports(arg):
+    printexports_hdr();
+    exports = arg['itl'];
+    for exp in exports:
+        try:
+            initiator = exp['initiator']['port']
+        except:
+            initiator = '---'
+        try:
+            port = exp['target']['port']
+        except:
+            port = '---'
+        try:
+            zone = exp['san_zone_name']
+        except:
+            zone = '---'
+        print exports_display_fmt.format(initiator, port, zone)
+    
+def printexports_hdr():
+        print exports_display_fmt.format('initiator', 'target', 'zone name')
+        print exports_display_fmt.format('---------', '------', '---------')
+
+
+# display cos matches
+#
+cos_matches_display_fmt = '{0:42s} {1:8s} {2:7s} {3:30s}'
+
+def cos_matches_display_hdr():
+    print cos_matches_display_fmt.format('name', 'type', 'allowed', 'reason')
+    print cos_matches_display_fmt.format('----', '----', '-------', '------')
+
+def cos_matches_display(cos):
+    if (cos['allowed']):
+        print cos_matches_display_fmt.format(
+              cos['name'],
+              cos['vpool_type'],
+              'YES' if cos['allowed'] else 'NO',
+              "N/A")
+    else:
+        print cos_matches_display_fmt.format(
+              cos['name'],
+              cos['vpool_type'],
+              'YES' if cos['allowed'] else 'NO',
+	      cos['not_allowed_reason'])
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# volume <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne volume cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | expand | change_cos_matches | change_cos | change_link | full_copy | full_copy_list | verify | exports)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# volume create label project cos size
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',		help = 'label of volume')
+create.add_argument('project',		help = 'container project name')
+create.add_argument('neighborhood',	help = 'neighborhood where volume is created')
+create.add_argument('cos',		help = 'cos name for volume')
+create.add_argument('size',		help = 'size of volume')
+create.add_argument('--count',		help = 'Number of volumes to create')
+create.add_argument('--protocols',      help = 'volume access storage protocols', nargs='*')
+create.add_argument('--protection',     help = 'data protection level for this volume')
+create.add_argument('--consistencyGroup', help = 'add the volume to the specified consistancy group for snapshot operations')
+create.add_argument('--thinVolume', help = 'boolean indication if volume is thin or thick')
+
+# volume full_copy label name
+full_copy = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+full_copy.add_argument('label', help = 'label of volume full copy')
+full_copy.add_argument('name', help = 'Create full copy of the given source volume')
+full_copy.add_argument('--count', help = 'Number of full copies to create')
+full_copy.add_argument('--create_inactive', help = 'This option allows the full copy to be created without activating the synchronization')
+
+# volume full_copy_resync
+full_copy_resync = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+full_copy_resync.add_argument('name', help = 'URI or full pathname of volume')
+
+# volume full_copy_restore
+full_copy_restore = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+full_copy_restore.add_argument('name', help = 'URI or full pathname of volume')
+
+# volume full copy list
+full_copy_list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+full_copy_list.add_argument('name',        help = 'URI or full pathname of volume')
+
+# volume full_copy_check_progress source target
+full_copy_check_progress = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+full_copy_check_progress.add_argument('source', help = 'Name of the source volume')
+full_copy_check_progress.add_argument('name', help = 'Name of the full copy volume to be activated')
+
+# volume activate name
+activate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+activate.add_argument('source', help = 'Name of the source volume')
+activate.add_argument('name', help = 'Name of the full copy volume to be activated')
+
+# volume detach name
+detach = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+detach.add_argument('source', help = 'Name of the source volume')
+detach.add_argument('name', help = 'Name of the full copy volume to be detached')
+
+# volume change_cos label cos
+change_cos = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+change_cos.add_argument('name',	help = 'name of volume whose cos is modified')
+change_cos.add_argument('cos', help = 'name of the cos')
+
+# volume change_cos_matches
+change_cos_matches = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+change_cos_matches.add_argument('name',	help = 'name of volume whose cos may be modified')
+
+# volume change_nh label nh
+change_nh = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+change_nh.add_argument('name',	help = 'name of volume whose nh is modified')
+change_nh.add_argument('nh', help = 'name of the nh')
+
+# volume expand uri
+expand = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+expand.add_argument('name',	help = 'name of volume to be deleted')
+expand.add_argument('size', help = 'volume expand size')
+
+# volume delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of volume to be deleted')
+delete.add_argument('--wait', action='store_true', help = 'wait for the operation to complete')
+delete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
+delete.add_argument('--project', help = 'delete all volumes in the project', action='store_true')
+
+# volume show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of volume')
+
+# volume query label
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'full pathname of volume')
+
+# volume list project
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('project',	help = 'container project name')
+
+# volume exports
+export_args = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+export_args.add_argument('name',	help = 'URI or full pathname of volume')
+export_args.add_argument('--v', action='store_true',	help = 'verbose listing.')
+
+# volume change_link
+change_link = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+change_link.add_argument('name',		help = 'URI or full pathname of volume')
+change_link.add_argument('operation',	help = 'operation: stop, start, failover, failover_test, pause, resume')
+change_link.add_argument('copyURI', help = 'URI of copy to perform operation on')
+change_link.add_argument('type', help = 'type of protection for the source volume')
+
+# volume verify
+verify = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+verify.add_argument('name',		help = 'URI or full pathname of volume')
+verify.add_argument('field',	help = 'field to compare against')
+verify.add_argument('value',    help = 'value to compare against')
+
+# volume bulkget
+bulkget = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# tag 
+resource_type="volume"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--name',    metavar = 'name', help = 'name for search ', default=None)
+search.add_argument('--tag',     metavar = 'tag',    help = 'tag for search ', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search within project', default=None)
+search.add_argument('--wwn', metavar = 'wwn',help = 'search for volume with given wwn', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        volume_create(args)
+    elif (cmd == "full_copy"):
+        args = full_copy.parse_args()
+        volume_full_copy(args)
+    elif (cmd == "full_copy_resync"):
+        args = full_copy_resync.parse_args()
+        volume_full_copy_resync(args)
+    elif (cmd == "full_copy_restore"):
+        args = full_copy_restore.parse_args()
+        volume_full_copy_restore(args)
+    elif (cmd == "full_copy_list"):
+        args = full_copy_list.parse_args()
+        volume_full_copy_list(args)
+    elif (cmd == "full_copy_check_progress"):
+        args = full_copy_check_progress.parse_args()
+        volume_full_copy_check_progress(args)
+    elif (cmd == "activate"):
+        args = activate.parse_args()
+        volume_activate(args)
+    elif (cmd == "detach"):
+        args = detach.parse_args()
+        volume_detach(args)
+    elif (cmd == "change_cos"):
+        args = change_cos.parse_args()
+        volume_change_cos(args)
+    elif (cmd == "change_cos_matches"):
+        args = change_cos_matches.parse_args()
+        volume_change_cos_matches(args)
+    elif (cmd == "change_nh"):
+        args = change_nh.parse_args()
+        volume_change_nh(args)
+    elif (cmd == "expand"):
+        args = expand.parse_args()
+        volume_expand(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        volume_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        volume_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        volume_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        volume_list(args)
+    elif (cmd == "exports"):
+        args = export_args.parse_args()
+        volume_exports(args)
+    elif (cmd == "change_link"):
+        args = change_link.parse_args()
+        volume_change_link(args)
+    elif (cmd == "bulkget"):
+        args = bulkget.parse_args()
+        volume_bulkget(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        volume_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        volume_search(args)
+    elif(cmd == "verify"):
+        args = verify.parse_args()
+        volume_verify(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

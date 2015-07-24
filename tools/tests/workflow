@@ -1,0 +1,217 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import datetime
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# workflow cli functions
+#----------------------------------------------------------------------
+
+def print_workflows(wflows):
+    try:
+        wflows = sorted(wflows, key=lambda wf: wf['creation_time'])
+    except:
+        print 'sort exception'
+    for wf in wflows:
+        #print wf
+        print wf['id'], 'creation_time:', format_date(wf['creation_time'])
+        # print 'name: ' + wf['name']
+        print '    completed: ' + str(wf['completed'])
+        try:
+            print '    state: ' + wf['completion_state']
+        except:
+            x = None
+        try:
+            print '    message: ' + wf['completion_message']
+        except:
+            x = None
+        print '    controller: ' + wf['orchestration_controller_name']
+        print '    method: ' + wf['orchestration_method']
+	print ' '
+
+def workflow_list(args):
+    bourne.connect(args.ip)
+    wflowx = bourne.workflow_list()
+    wflows = wflowx['workflow']
+    print_workflows(wflows)
+
+def workflow_recent(args):
+    bourne.connect(args.ip)
+    wflowx = bourne.workflow_recent()
+    wflows = wflowx['workflow']
+    print_workflows(wflows)
+
+def getfield(array, field):
+    ret = ""
+    try:
+        ret = array[field]
+    except:
+        ret = ""
+    return ret
+
+def format_date(str):
+    if (str == ""):
+        return ""
+    return datetime.datetime.utcfromtimestamp(float(str)/1000.0).strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]
+
+def print_steps(steps):
+    for step in steps:
+        # print step;
+        start = str(getfield(step, 'start_time'))
+        end = str(getfield(step, 'end_time'))
+        print ' '
+        print step['id']
+        print step['step_id']
+        print '    ' + step['execute_method'] + ' state: ' + step['state']
+        print '    ' + step['description']
+        print '    ' + step['system_id'] + ' ' + step['system_type']
+        try:
+	    print '    ' + step['message']
+        except:
+	    print '    ' + "<No Message>"
+        print '    ' + 'start: ' + format_date(start) + ' end: ' + format_date(end)
+        children = step['child_workflows']
+        for child in children:
+            print '    child-workflow: ' + child['id']
+
+def workflow_steps(args):
+    bourne.connect(args.ip)
+    stepsx = bourne.workflow_steps(args.id)	
+    #print stepsx
+    steps = stepsx['workflow_step']
+    try: 
+        steps = sorted(steps, key=lambda step: step['start_time'])
+    except:
+        print 'sort exception'
+    print_steps(steps)
+
+def workflow_tree(args):
+    bourne.connect(args.ip)
+    wflowx = bourne.workflow_list()
+    wfs = wflowx['workflow']
+    try:
+        wfs = sorted(wfs, key=lambda wf: wf['creation_time'])
+    except:
+        print 'sort exception'
+    for wf in wfs:
+        if (args.active_only and wf['completed']):
+           continue
+        _workflow_node(wf, '')    
+
+steps_stack = []
+
+def _workflow_node(wf, spaces):
+    if (wf):
+        print spaces + ' '
+        print spaces + wf['id'], format_date(wf['creation_time'])
+        print spaces + '    completed: ' + str(wf['completed'])
+        try:
+            print spaces + '    state: ' + wf['completion_state']
+        except:
+            x = None
+        try:
+            print spaces + '    message: ' + wf['completion_message']
+        except:
+            x = None
+        print spaces + '    controller: ' + wf['orchestration_controller_name']
+        print spaces + '    method: ' + wf['orchestration_method']
+        wflowx = bourne.workflow_steps(wf['id'])
+        if (type(wflowx) is dict):
+            steps = wflowx['workflow_step']
+            try: 
+                steps = sorted(steps, key=lambda step: step['start_time'])
+            except:
+                print 'sort exception'
+            for step in steps:
+                _workflow_step_node(step, spaces)
+
+def _workflow_step_node(step, spaces):
+    if (step):
+        start = str(getfield(step, 'start_time'))
+        end = str(getfield(step, 'end_time'))
+        print spaces + ' '
+        print spaces + '        ' + step['step_id']
+        print spaces + '             ' + step['execute_method'] + ' state: ' + step['state']
+        print spaces + '             ' + step['description']
+        print spaces + '             ' + step['system_id'] + ' ' + step['system_type']
+        print spaces + '             ' + step['message']
+        print spaces + '             ' + 'start: ' + format_date(start) + ' end: ' + format_date(end)
+        children=step['child_workflows']
+        if (children != []):
+            for child in children:
+                print spaces + '             ' + 'child-workflow: ' + child['id']
+                childwf=bourne.workflow_get(child['id'])
+                _workflow_node(childwf, spaces + '             ')
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# network <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (list | recent | steps)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# workflow steps id
+steps = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+steps.add_argument('id',	help = 'ID of workflow')
+
+# workflow list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# workflow recent
+recent = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# workflow tree
+tree = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tree.add_argument('--active_only',	help = 'Only display tre of active workflows', action='store_true')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "list"):
+        args = list.parse_args()
+        workflow_list(args)
+    elif (cmd == "steps"):
+        args = steps.parse_args()
+        workflow_steps(args)
+    elif (cmd == "recent"):
+        args = list.parse_args()
+        workflow_recent(args)
+    elif (cmd == "tree"):
+        args = tree.parse_args()
+        workflow_tree(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

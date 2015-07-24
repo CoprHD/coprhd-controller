@@ -1,0 +1,1050 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2012-2013 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import sys
+import os
+import time
+import datetime
+import random
+import ConfigParser
+import sysmgr as SysMgr
+from subprocess import Popen, PIPE
+
+# used as part of send_alert
+TEST_STR = "TestString"
+
+# storing the current date time
+NOW = datetime.datetime.today()
+
+# properties to set
+PROP_ONE= "system_sysmonitor_encpassword"
+PROP_ONE_DEFAULT_VALUE = "$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0"
+PROP_ONE_VALUE="test_password" + str(NOW.minute) + str(NOW.second)
+PROP_TWO="system_proxyuser_encpassword"
+PROP_TWO_VALUE='proxy_' + PROP_ONE_VALUE
+DNS_PROP_NAME="network_nameservers"
+NTP_PROP_NAME="network_ntpservers"
+DNS_NTP_PROPS_FILE='dns_ntp_props_file'
+
+SYSTEM_UPDATE_REPO_PROP = "system_update_repo"
+
+SYSTEM_UPDATE_USERNAME_PROP="system_update_username"
+SYSTEM_UPDATE_USERNAME_PROP_VALUE="ssulliva" 
+SYSTEM_UPDATE_PASSWORD_PROP="system_update_password"
+SYSTEM_UPDATE_PASSWORD_PROP_VALUE="Password1"
+
+# stat constants
+CONTROL_SERVICES = ["coordinatorsvc","dbsvc","authsvc","apisvc","controllersvc","syssvc","sasvc","portalsvc","geosvc","geodbsvc"]
+ACCEPTABLE_DISK_IDS = ["sda","sdb","sdc"]
+DIAG_TESTS = set(['Network interface','Network routing','DNS','NTP'])
+
+# test suites
+LOGGING_TESTS = ["syssvc_get_logs", "syssvc_log_levels"]
+LICENSING_TESTS = ["syssvc_verify_license"]
+CALLHOME_TESTS = ["syssvc_call_home_events", "syssvc_get_esrs_configuration"]
+PROPERTY_TESTS = ["save_properties_original_values", "syssvc_set_properties",
+    "syssvc_get_properties", "syssvc_reset_properties", "restore_properties_original_values",
+    "get_props_metadata"]
+VERSION_TESTS = ["syssvc_set_directory_repo_properties", "syssvc_verify_targetversion", 
+    "syssvc_disable_version_check"]
+UPGRADE_TESTS = ["syssvc_install_image", "syssvc_remove_image"]
+CLI_TESTS = ["get_cli_tar"]
+STATS_TESTS = ["syssvc_get_stats", "syssvc_get_health", "syssvc_get_diagnostics"]
+SVC_CONTROL_TESTS = ["syssvc_restart_service"]
+NODE_CONTROL_TESTS = ["syssvc_reboot_node"]
+
+VIPR_APPLIANCE_TEST_SUITE = LOGGING_TESTS + LICENSING_TESTS + CALLHOME_TESTS + PROPERTY_TESTS + VERSION_TESTS + UPGRADE_TESTS + CLI_TESTS + STATS_TESTS + SVC_CONTROL_TESTS + NODE_CONTROL_TESTS
+VIPR_DEVKIT_TEST_SUITE = LOGGING_TESTS + LICENSING_TESTS + CALLHOME_TESTS + PROPERTY_TESTS + VERSION_TESTS + CLI_TESTS + STATS_TESTS + SVC_CONTROL_TESTS
+COPRHD_DEVKIT_TEST_SUITE = LOGGING_TESTS + LICENSING_TESTS + PROPERTY_TESTS + CLI_TESTS + STATS_TESTS + SVC_CONTROL_TESTS
+TEST_SUITES = {"vipr_appliance":VIPR_APPLIANCE_TEST_SUITE, "vipr_devkit":VIPR_DEVKIT_TEST_SUITE, "coprhd_devkit":COPRHD_DEVKIT_TEST_SUITE}
+
+#----------------------------------------------------------------------
+# Helper class and functions
+#----------------------------------------------------------------------
+class Arguments:
+    
+    def __init__(self, ip, log = '', dryrun=False, severity= '', scope='', start = '', end = '', node = '', regular = '', message = '', accept = 'application/json', force = '', properties_file = '', properties = '', contact = '', maxcount = '', hostname='', primary_email='', smtp_server='', sender_email='', version='', breadth='', depth='', sleep='', length='', license_text='', verbose='0', source = '', eventid = '', node_id = '', name = '', expir_in_min='', type = 'application/json',category = '',resource_id = '', op_id = '', forceAttachLogs=False):
+        self.ip = ip
+        self.port = SysMgr.DEFAULT_SYSMGR_PORT
+        self.log = log
+        self.dryrun = dryrun;
+        self.severity = severity
+        self.scope = scope
+        self.start = start
+        self.end = end
+        self.node = node
+        self.regular = regular
+        self.message = message
+        self.accept = accept
+        self.force = force
+        self.properties_file = properties_file
+        self.properties = properties
+        self.contact = contact
+        self.maxcount = maxcount        
+        self.hostname = hostname
+        self.primary_email = primary_email
+        self.smtp_server = smtp_server
+        self.sender_email = sender_email
+        self.version = version
+        self.breadth = breadth
+        self.depth = depth
+        self.wait_for_stable = ''
+        self.sleep = sleep
+        self.length = length
+        self.license_text = license_text
+        self.license_file = ''
+        self.verbose = verbose
+        self.source = source
+        self.eventid = eventid
+        self.node_id = node_id
+        self.name = name
+        self.expir_in_min = expir_in_min
+        self.type = type
+        self.category = category
+        self.forceAttachLogs = forceAttachLogs
+
+def datetime_from_now(min):
+    diff = datetime.timedelta(minutes=min)
+    return (NOW - diff).strftime("%Y-%m-%d_%H:%M:%S")
+
+def syssvc_get_logs(node=''):
+    test_name = "Getting logs"
+    if node:
+         test_name += " for node: " + node
+    test_start(test_name)
+    args = Arguments(bourne_ip, log='syssvc',start=datetime_from_now(30), severity='7', regular='\s', node=node)
+    SysMgr.get_logs(args)
+    args = Arguments(bourne_ip, log='syssvc', dryrun=True, start=datetime_from_now(30), severity='7', regular='\s', node=node)
+    SysMgr.get_logs(args)
+    test_done(test_name)
+
+def syssvc_log_levels():
+    test_name = "Getting/Setting log levels"
+    test_start(test_name)
+    args = Arguments(bourne_ip, log='syssvc', node='')
+    SysMgr.get_log_levels(args)
+    args = Arguments(bourne_ip, log='syssvc', severity='8', expir_in_min='1', scope='0', node='')
+    SysMgr.set_log_levels(args)
+    test_done(test_name)
+
+def syssvc_call_home_events():
+    # configure connectemc to use the ftps transport
+    if is_licensed():       
+        syssvc_create_syr_heartbeat_event()
+        syssvc_create_syr_alert_event()
+        syssvc_configure_connectemc_ftps()
+        syssvc_create_syr_alert_event()
+        syssvc_create_syr_heartbeat_event()
+        syssvc_create_syr_registration_event()
+        #SMTP Configuration now done in common_setup in sanity
+    else:
+        print "The call home test is known to fail on devkit"
+
+def syssvc_verify_license():
+    test_name = "Verifying license"
+    test_start(test_name)
+    #Object and Controller License now added in common_setup in sanity 
+
+    # validate that the product is now licensed.
+    if not is_licensed():
+        print "The system license test is known to fail on devkit"
+   
+    test_done(test_name)
+        
+def add_license():
+    test_name = "Adding License to System"
+    test_start(test_name)
+    if os.environ.get('USE_TRIAL_LICENSE') == '1':
+        args = Arguments(bourne_ip, license_text=TRIAL_LICENSE_FILE)
+    else:
+        args = Arguments(bourne_ip, license_text=LICENSE_FILE)
+    SysMgr.add_license(args)
+    test_done(test_name)
+
+def is_licensed():
+    args = Arguments(bourne_ip)
+    license_resp=SysMgr.get_license(args) 
+    controller_license = False
+    block_license = False
+    is_licensed = False
+    features = []
+
+    if 'license_feature' in license_resp:
+        if type(license_resp['license_feature']) is list:
+            features = license_resp['license_feature']
+        else:
+             features.append(license_resp['license_feature'])
+
+                 
+    for feature in features:
+        if feature['model'] == 'ViPR_Controller':
+            is_licensed=feature['licensed_ind']
+            controller_license = True
+        elif feature['model'] == 'ViPR_Block':
+            is_licensed=feature['licensed_ind']
+            block_license = True
+   
+     # validate that the product is now licensed.
+    if is_licensed <> "true":
+        return False
+    else:
+        if controller_license and block_license:
+            return True
+        else:
+            return False
+
+def syssvc_configure_connectemc_ftps():
+    if IPV6_ONLY:
+        return True
+    test_name = "Configuring connectemc for ftps"
+    test_start(test_name)
+    args = Arguments(bourne_ip, hostname=FTPS_IP_ADDRESS, sender_email=SMTP_SENDER_EMAIL)	
+    SysMgr.configure_connectemc_ftps(args)
+
+    # wait for nodes to become stable
+
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+    test_done(test_name)
+
+def syssvc_create_syr_alert_event():
+    test_name = "Creating SYR alert event"
+    test_start(test_name)
+    args = Arguments(bourne_ip, log='controllersvc',start=datetime_from_now(30), severity='7', regular='\s', accept='application/xml', message=TEST_STR, contact=SMTP_SENDER_EMAIL)
+    SysMgr.send_alert(args)
+    test_done(test_name)
+
+def syssvc_create_syr_heartbeat_event():
+    test_name = "Creating SYR heartbeat event"
+    test_start(test_name)
+    args = Arguments(bourne_ip)
+    SysMgr.send_heartbeat(args)
+    test_done(test_name)
+
+def syssvc_create_syr_registration_event():
+    test_name = "Creating SYR registration event"
+    test_start(test_name)
+    args = Arguments(bourne_ip)
+    SysMgr.send_registration(args)
+    test_done(test_name)
+
+def syssvc_create_syr_license_expiration_event():
+    test_name = "Creating SYR license expiration event"
+    test_start(test_name)
+    args = Arguments(bourne_ip)
+    SysMgr.send_expiration(args)
+    test_done(test_name)
+
+def syssvc_create_syr_capacity_exceeded_event():
+    test_name = "Creating SYR capacity exceeded event"
+    test_start(test_name)
+    args = Arguments(bourne_ip)
+    SysMgr.send_capacity_exceeded(args)
+    test_done(test_name)
+
+
+def syssvc_get_esrs_configuration():
+    test_name = "Retrieving ESRS configuration"
+    if is_licensed():
+        test_start(test_name)
+        args = Arguments(bourne_ip)
+        SysMgr.get_esrsconfig(args)
+    else:
+        print "The get esrs configuration test is known to fail on devkit"
+    test_done(test_name)
+
+def syssvc_configure_connectemc_smtp():
+    test_name = "Configuring connectemc for smtp"  
+    test_start(test_name)
+    args = Arguments(bourne_ip, primary_email=SMTP_PRIMARY_EMAIL, smtp_server=SMTP_SERVER, sender_email=SMTP_SENDER_EMAIL)
+    SysMgr.configure_connectemc_smtp(args)
+    # wait for nodes to become stable
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=30, length=3000))
+    test_done(test_name)
+
+#save original values of system_sysmonitor_encpassword and system_proxyuser_encpassword
+def save_properties_original_values():
+    test_name = "Saving property original values"
+    test_start(test_name)
+    print "About to get props"
+    args = Arguments(bourne_ip)
+    originalProps = SysMgr.get_props(args)
+    print "Got props"
+    # Get system properties and save to file
+    f = open('originalProps', 'w')
+    if 'properties' in originalProps:
+        entries = originalProps['properties']['entry']
+        for entry in entries:
+            if entry['key'] == PROP_ONE:
+                writeLine = PROP_ONE + '=' + entry['value']
+                f.write(writeLine)
+                f.write('\n')
+            if entry['key'] == PROP_TWO:
+                writeLine = PROP_TWO + '=' + entry['value']
+                f.write(writeLine)
+                f.write('\n')
+    f.close()
+    test_done(test_name)
+
+def write_props_to_file():
+    f = open('props', 'w')
+    writeLine = PROP_ONE + '=' + PROP_ONE_VALUE
+    writeProxyLine = PROP_TWO + '=' + PROP_TWO_VALUE
+    print(writeLine)
+    print(writeProxyLine)
+    f.write(writeLine)
+    f.write('\n')
+    f.write(writeProxyLine)
+    f.close()
+
+def write_dns_ntp_props_to_file(write_dns=False,write_ntp=False):
+    f = open(DNS_NTP_PROPS_FILE, 'w')
+    
+    if write_dns:
+        writeLine = DNS_PROP_NAME + '=' + DNS_PROP_VALUE + '\n'
+        print(writeLine)
+        f.write(writeLine)
+    if write_ntp:
+        writeLine = NTP_PROP_NAME + '=' + NTP_PROP_VALUE + '\n'
+        print(writeLine)
+        f.write(writeLine)
+    f.close()
+    
+def write_catalog_repo_props_to_file():
+    f = open('catalog_repo_props', 'w')
+    repoLine = SYSTEM_UPDATE_REPO_PROP + '=' + SYSTEM_UPDATE_CATALOG_URL
+    usernameLine = SYSTEM_UPDATE_USERNAME_PROP + '=' + SYSTEM_UPDATE_USERNAME_PROP_VALUE
+    passwordLine = SYSTEM_UPDATE_PASSWORD_PROP + '=' + SYSTEM_UPDATE_PASSWORD_PROP_VALUE
+
+    f.write(repoLine)
+    f.write('\n')
+    f.write(usernameLine)
+    f.write('\n')
+    f.write(passwordLine)
+    f.close()
+
+def write_directory_repo_props_to_file():
+    f = open('directory_repo_props', 'w')
+    repoLine = SYSTEM_UPDATE_REPO_PROP + '=' + SYSTEM_UPDATE_DIRECTORY_URL
+
+    f.write(repoLine)
+    f.write('\n')
+    f.close()
+
+
+def verify_props(props, orig_props):
+    test_name = "Verifying if properties are updated"
+    test_start(test_name)
+    if 'properties' in props:
+        entries = props['properties']['entry']
+        for entry in entries:
+            if entry['key'] == PROP_ONE:
+                if entry['value'] == PROP_ONE_VALUE:
+                    print 'Property '+ PROP_ONE +' changed successfully'
+                else:
+                    raise Exception('Property value did not change. Failed to update property: '+PROP_ONE)
+            if entry['key'] == PROP_TWO:
+                if 'properties' in orig_props:
+                   orig_entries = orig_props['properties']['entry']
+                   for orig_entry in orig_entries:
+                       if orig_entry['key'] == PROP_TWO:
+                           if entry['value'] != orig_entry['value']:
+                               print 'Property ' + PROP_TWO + ' changed successfully'
+                           else:
+                               raise Exception('Property value did not change. Failed to update property: '+PROP_TWO)
+    test_done(test_name)
+
+def verify_ovf_props(props):
+    test_name = "Verifying if all ovf properties present in api return"
+    test_start(test_name)
+    for prop in ['network_vip', 'network_netmask', 'network_gateway', 'network_vip6', 'network_prefix_length', 'network_gateway6', 'node_count']:
+         if 'properties' in props:
+             entries = props['properties']['entry']
+             check = 'false'
+             for entry in entries:
+                 if entry['key'] == prop:
+                     check = 'true'
+             if check == 'false':
+                 raise Exception("All expected properties not found. /config/properties api default behavior failed to return all ovf properties: " + prop)
+
+    test_done(test_name)
+
+def verify_config_props(props):
+    test_name = "Verifying if all configuration properties present in api return"
+    test_start(test_name)
+    for prop in ['system_root_encpassword', 'system_root_authorizedkeys2', 'system_connectemc_ftps_hostname',
+                 'network_ntpservers', 'network_nameservers', 'system_update_repo']:
+         if 'properties' in props:
+             entries = props['properties']['entry']
+             check = 'false'
+             for entry in entries:
+                 if entry['key'] == prop:
+                     check = 'true'
+             if check == 'false':
+                 raise Exception("All expected properties not found. /config/properties api failed to return all configuration properties: " + prop)
+    
+    test_done(test_name)
+
+def verify_only_ovf_props(props):
+    test_name = "Verifying if only ovf properties are present in api return"
+    test_start(test_name)
+    isAppliance=os.getenv('TEST_APPLIANCE', 'yes')
+    for prop in ['system_root_encpassword', 'system_root_authorizedkeys2', 'system_connectemc_ftps_hostname',
+                 'network_ntpservers', 'network_nameservers', 'system_update_repo']:
+         if 'properties' in props:
+             entries = props['properties']['entry']
+             for entry in entries:
+                 if entry['key'] == prop:
+                     if isAppliance == 'yes': 
+                         raise Exception("Configuration properties found in returned properties. Make sure TEST_APPLIANCE=0 if running against devkit. /config/properties?category=ovf failed to only return ovf properties:" + prop)
+                     elif isAppliance == 'no' and prop != 'network_ntpservers' and prop != 'network_nameservers':
+                         raise Exception("Configuration properties found in returned properties. Make sure TEST_APPLIANCE=1 if running against appliance. /config/properties?category=ovf failed to only return ovf properties:" + prop)      
+    test_done(test_name)
+
+def verify_only_config_props(props):
+    test_name = "Verifying if only configuration properties are present in api return"
+    test_start(test_name)
+    for prop in ['network_vip', 'network_netmask', 'network_gateway', 'network_vip6', 'network_prefix_length', 'network_gateway6', 'node_count']:
+         if 'properties' in props:
+             entries = props['properties']['entry']
+             for entry in entries:
+                 if entry['key'] == prop:
+                     raise Exception("OVF properties found in returned properties. /config/properties?category=config failed to only return configuration properties:" + prop)
+    test_done(test_name)
+
+def verify_get_props(props):
+    test_name = "Verifying if /config/properties default behavior returns all the properties"
+    test_start(test_name)
+    verify_ovf_props(props)
+    verify_config_props(props)
+    test_done(test_name)
+
+def verify_get_all_props(props):
+    test_name = "Verifying if /config/properties?category=all returns all the properties"
+    test_start(test_name)
+    verify_ovf_props(props)
+    verify_config_props(props)
+    test_done(test_name)    
+
+def verify_get_config_props(props):
+    test_name = "Verifying if /config/properties?category=config returns only the configuration properties"
+    test_start(test_name)
+    verify_config_props(props)
+    verify_only_config_props(props)
+    test_done(test_name)
+
+def verify_get_ovf_props(props):
+    test_name = "Verifying if /config/properties?category=ovf returns only the ovf properties"
+    test_start(test_name)
+    verify_ovf_props(props)
+    verify_only_ovf_props(props)
+    test_done(test_name)
+
+def verify_get_mutated_props(props):
+    test_name = "Verifying if /config/properties?category=mutated returns properties that have been mutated"
+    test_start(test_name)
+    check1 = 'false'
+    check2 = 'false'
+    if 'properties' in props:
+        entries = props['properties']['entry']
+        for entry in entries:
+            if entry['key'] == PROP_ONE:
+                check1 = 'true'
+            if entry['key'] == PROP_TWO:
+                check2 = 'true'
+    if 'check1' == 'false':
+        raise Exception("Override Properties do not have entry for mutated property:" + PROP_ONE)
+    if 'check2' == 'false':
+        raise Exception("Override Properties do not have entry for mutated property:" + PROP_TWO)
+
+    test_done(test_name)
+
+def verify_get_props_api(props, all_props, config_props, ovf_props, mutated_props):
+    test_name = "Verifying if properties get is returning correct content"
+    test_start(test_name)
+    verify_get_props(props)
+    verify_get_all_props(all_props)
+    verify_get_config_props(config_props)
+    verify_get_ovf_props(ovf_props)
+    verify_get_mutated_props(mutated_props)
+    test_done(test_name)
+
+def syssvc_get_properties():
+    test_name = "Get properties"
+    test_start(test_name)
+    write_props_to_file()
+    args = Arguments(bourne_ip, properties_file='props')
+    SysMgr.set_props(args)
+
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+
+    args = Arguments(bourne_ip, properties_file='props')
+    props = SysMgr.get_props(args)
+    args = Arguments(bourne_ip, category={'category': 'all'}, properties_file='props')
+    all_props = SysMgr.get_props(args)
+    args = Arguments(bourne_ip, category={'category': 'config'}, properties_file='props')
+    config_props = SysMgr.get_props(args)
+    args = Arguments(bourne_ip, category={'category':'ovf'}, properties_file='props')
+    ovf_props = SysMgr.get_props(args)
+    args = Arguments(bourne_ip, category={'category':'mutated'}, properties_file='props')
+    mutated_props = SysMgr.get_props(args)
+    args = Arguments(bourne_ip, category={'category':'obsolete'}, properties_file='props')
+
+    verify_get_props_api(props, all_props, config_props, ovf_props, mutated_props)
+    test_done(test_name)
+
+def verify_reset_props(props):
+    test_name = "Verifying if properties are reset to default values"
+    test_start(test_name)
+    if 'properties' in props:
+        entries = props['properties']['entry']
+        for entry in entries:
+            if entry['key'] == PROP_ONE:
+                if entry['value'] == PROP_ONE_DEFAULT_VALUE:
+                    print 'Property '+ PROP_ONE +' is reset successfully'
+                else:
+                    raise Exception('Failed to reset property: '+PROP_ONE)
+    test_done(test_name)
+
+def syssvc_reset_properties():
+    test_name = "Resetting properties"
+    test_start(test_name)
+    SysMgr.reset_props(Arguments(bourne_ip, properties=PROP_ONE))
+
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+
+    # verifying if reset is done successfully
+    props = SysMgr.get_props(Arguments(bourne_ip))
+    verify_reset_props(props)
+
+    test_done(test_name)
+
+def syssvc_set_properties():
+    test_name = "Updating properties"
+    test_start(test_name)
+    write_props_to_file()
+    args = Arguments(bourne_ip, properties_file='props')
+    orig_props = SysMgr.get_props(args)
+    SysMgr.set_props(args)
+
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+
+    props = SysMgr.get_props(args)
+    verify_props(props, orig_props)
+    test_done(test_name)
+
+def syssvc_set_dns_ntp_properties():
+    args = Arguments(bourne_ip, properties_file=DNS_NTP_PROPS_FILE)
+    props = SysMgr.get_props(args)
+    # If DNS is not already configured then
+    # configure it to the corporate DNS
+    # servers
+    if 'properties' in props:
+        entries = props['properties']['entry']
+        set_dns = False
+        set_ntp = False
+        outputString = ""
+        for entry in entries:
+            if entry['key'] == DNS_PROP_NAME: 
+                if entry['value']:  
+                    print "DNS already configured: " +  entry['value'] 
+                else:
+                    set_dns=True
+                    outputString = "Setting DNS to " + DNS_PROP_VALUE + "."                 
+            if entry['key'] == NTP_PROP_NAME:
+                if entry['value']:  
+                    print "NTP already configured: " +  entry['value'] 
+                else:
+                    set_ntp=True
+                    outputString += "Setting NTP to " + NTP_PROP_VALUE + "." 
+        if set_dns or set_ntp:
+            write_dns_ntp_props_to_file(write_dns=set_dns, write_ntp=set_ntp)
+            test_start(outputString)
+            SysMgr.set_props(args)
+            SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1800))
+            test_done(test_name)
+
+
+def syssvc_set_catalog_repo_properties():
+    test_name = "Updating remote repository properties to test catalog"
+    test_start(test_name)
+    write_catalog_repo_props_to_file()
+    args = Arguments(bourne_ip, properties_file='catalog_repo_props')
+    SysMgr.set_props(args)
+
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+
+    props = SysMgr.get_props(args)
+    test_done(test_name)
+
+def syssvc_set_directory_repo_properties():
+    test_name = "Updating remote repository properties to apache directory"
+    test_start(test_name)
+    write_directory_repo_props_to_file()
+    args = Arguments(bourne_ip, properties_file='directory_repo_props')
+    SysMgr.set_props(args)
+
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+
+    props = SysMgr.get_props(args)
+    test_done(test_name)
+    
+def syssvc_disable_version_check():
+    test_name = "Disable remote repository check"
+    test_start(test_name)
+    args = Arguments(bourne_ip)
+    SysMgr.disable_update_check(args)
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+    state = SysMgr.get_cluster_state(Arguments(bourne_ip, force='1'))
+    if 'new_versions' in state:
+        raise Exception("New versions still present after check was disabled")
+    test_done(test_name)
+    
+def restore_properties_original_values():
+    test_name = "Restoring property original values"
+    test_start(test_name)
+    args = Arguments(bourne_ip, properties_file='originalProps')
+    SysMgr.set_props(args)
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=10, length=1200))
+    test_done(test_name)
+
+def get_props_metadata():
+    test_name = "Getting property metadata"
+    args = Arguments(bourne_ip)
+    SysMgr.get_props_metadata(args)
+    test_done(test_name)
+
+def syssvc_verify_targetversion():
+    test_name = "Verifying target version"
+    test_start(test_name)
+    # get target version
+    args = Arguments(bourne_ip)
+    resp = SysMgr.get_target_version(args)
+    targetversion = resp['target_version']
+    
+    args = Arguments(bourne_ip, force='1')
+    state = SysMgr.get_cluster_state(args)
+    if 'target_state' in state:
+        # target section
+        targetState = state['target_state']
+        currentVersion = targetState['current_version']
+        availableVersions = targetState['available_versions']['available_version']
+
+    if (targetversion != currentVersion):
+        raise Exception("TargetVersion is not same as current version")
+    test_done(test_name)
+
+def syssvc_install_image(version = None):
+    test_name = "Installing image"
+    test_start(test_name)
+    newVersions = ''
+    state = SysMgr.get_cluster_state(Arguments(bourne_ip, force='1'))
+    if 'target_state' in state:
+        targetState = state['target_state']
+        availableVersions = targetState['available_versions']['available_version']
+    newVersions = None
+    if version:
+        newVersions = version
+    elif 'new_versions' in state:
+        if state.get('new_versions') is not None:
+            newVersions = state.get('new_versions')['new_version']
+        else:
+            newVersions = None
+
+    if newVersions:
+        if type(availableVersions) is not list:
+            availableCount = 1
+        else:
+            availableCount = len(availableVersions)
+
+        if (availableCount < 4):
+            if type(newVersions) is not list:
+                installVersion = newVersions
+            else:
+                installVersion = newVersions[0]
+
+            print "Installing version: " + installVersion
+            installArgs = Arguments(bourne_ip, force='1', version=installVersion)
+            SysMgr.install(installArgs)
+            SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=30, length=2400))
+            verify_install_image(installVersion)
+    test_done(test_name)
+
+def verify_install_image(version):
+    test_name = "Verifying installed image"
+    test_start(test_name)
+    response = SysMgr.get_cluster_state(Arguments(bourne_ip,force='1'))
+    availableVersions = get_node_available_versions('control_nodes',response)
+    if not availableVersions or version not in availableVersions:
+        raise Exception('The installed version is not found in the list of available versions on control node.')
+    test_done(test_name)
+
+def get_node_available_versions(node, clusterState):
+    availableVersions = []
+    if node in clusterState:
+        entry = clusterState[node]['entry']
+        if type(entry) is list:
+            entry = entry[0]
+        if entry['value']['available_versions']:
+            availableVersions =  entry['value']['available_versions']['available_version']
+            if type(availableVersions) is not list:
+                availableVersions = [availableVersions]
+    return availableVersions
+
+def syssvc_remove_image():
+    test_name = "Removing image"
+    test_start(test_name)
+    state = SysMgr.get_cluster_state(Arguments(bourne_ip,force='1'))
+    if 'removable_versions' in state:
+        if state.get('removable_versions') is not None:
+            removables = state.get('removable_versions')['removable_version']
+        else:
+            removables = None
+
+        if removables:
+            if type(removables) is not list:
+                removeVersion = removables
+            else:
+                removeVersion = removables[0]
+
+            print "Removing version: " + removeVersion
+            removeArgs = Arguments(bourne_ip, force='1', version=removeVersion)
+            SysMgr.remove(removeArgs)
+
+            SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=30, length=1200))
+            verify_remove_image(removeVersion)
+    test_done(test_name)
+
+def verify_remove_image(version):
+    test_name = "Verifying removed image"
+    test_start(test_name)
+    response = SysMgr.get_cluster_state(Arguments(bourne_ip,force='1'))
+    availableVersions = get_node_available_versions('control_nodes',response)
+    if availableVersions and version in availableVersions:
+        raise Exception('The removed version is still there in the list of available versions on control node.')
+    test_done(test_name)
+
+def syssvc_get_health():
+    test_name = "Getting cluster health"
+    test_start(test_name)
+    
+    #Verify if health is Good for all nodes and services
+    nodes = []
+    good = 'Good'
+    nodes = get_nodes_health()
+
+    for n in nodes:
+        nodeid = n['node_id']
+        if n['status'] != good:
+            raise Exception('Error: Node ' + nodeid +' is '+ n['status'])
+        services = []
+        if type(n['service_health_list']['service_health']) is not list:
+            services.append(n['service_health_list']['service_health'])
+        else:
+            services = n['service_health_list']['service_health']
+ 
+        for s in services:
+            if s['status'] != good:
+                raise Exception('Error: Service '+ s['name'] + ' on node ' + n['node_id'] + ' is ' + s['status'])
+    test_done(test_name)
+
+def get_cli_tar():
+    # test GET cli
+    test_name = "Getting cli tar"
+    test_start(test_name)
+    args = Arguments(bourne_ip)
+    SysMgr.get_cli_tar(args)
+    test_done(test_name)
+
+def syssvc_get_stats():
+    test_name = "Getting cluster stats"
+    test_start(test_name)
+    resp = SysMgr.get_stats(Arguments(bourne_ip))
+
+    #Verify node and service stats
+    node_stats = []
+    if type(resp['node_stats_list']['node_stats']) is not list:
+        node_stats.append(resp['node_stats_list']['node_stats'])
+    else:
+        node_stats = resp['node_stats_list']['node_stats']
+    
+    for node_stat in node_stats:
+        # Verify node stats
+        nodeid = node_stat['node_id']
+        if len(nodeid) == 0 or len(node_stat['ip']) == 0:
+            raise Exception("Node id or ip not found")
+
+        services = CONTROL_SERVICES
+        service_stats = []
+
+        if type(node_stat['service_stats_list']['service_stats']) is not list:
+            service_stats.append(node_stat['service_stats_list']['service_stats'])
+        else:
+            service_stats = node_stat['service_stats_list']['service_stats']
+        for stats in service_stats:
+            service_name = stats['name']
+            if service_name in services:
+                services.remove(service_name)
+            if 'status' not in stats:
+                raise Exception("Status is not available for service: "+service_name+" on node "+nodeid+".Please check if it is running.")
+            if stats['status']['start_time_seconds'] == 0:
+                raise Exception("Start time is 0 for service: "+service_name)
+        if len(services) > 0:
+            raise Exception("Stats are not found for these services: "+str(services)+" on node "+nodeid+".Please check if they are running.")
+
+        #Verify disk stats
+        disk_stats = []
+        dstats = node_stat['disk_io_stats_list']['disk_io_stats']
+        if type(dstats) is not list:
+            disk_stats.append(dstats)
+        else:
+            disk_stats = dstats
+        for disk_stat in disk_stats:
+            disk_id = disk_stat['disk_id']
+            if len(disk_id) == 0 or disk_id not in ACCEPTABLE_DISK_IDS:
+                raise Exception("Invalid disk id: "+disk_id)
+
+    test_done(test_name)
+
+def syssvc_get_diagnostics():
+    test_name = "Getting diagnostics"
+    test_start(test_name)
+    resp = SysMgr.get_diagnostics(Arguments(bourne_ip,verbose='1'))
+
+    node_diag = []
+    diags = resp['node_diagnostics_list']['node_diagnostics']
+    if type(diags) is not list:
+        node_diag.append(diags)
+    else:
+        node_diag = diags
+
+    for diag in node_diag:
+        tests = set([])
+        nodeid = diag['node_id']
+        if len(nodeid) == 0 or len(diag['ip']) == 0:
+            raise Exception("Node id or ip not found")
+        for test in diag['tests']['test']:
+            tests.add(test['name'])
+        diff = DIAG_TESTS.difference(tests)
+        if len(diff) > 0:
+            raise Exception("Diagnostics are not found for these tests: "+str(diff)+" on node: "+nodeid)
+
+    test_done(test_name)
+
+def syssvc_get_storage():
+    test_name = "Getting storage stats"
+    test_start(test_name)
+    resp = SysMgr.get_storage(Arguments(bourne_ip))
+    test_done(test_name)
+
+def check_health_for_service(nodes_health, node_id, service_name):
+    good = 'Good'
+    for n in nodes_health:
+        if n['node_id'] == node_id:
+            if n['status'] != good:
+                return False
+            services = []
+            if type(n['service_health_list']['service_health']) is not list:
+                services.append(n['service_health_list']['service_health'])
+            else:
+                services = n['service_health_list']['service_health']
+
+            for s in services:
+                if s['name'] == service_name:
+                     if s['status'] != good:
+                         return False
+                     else:
+                         return True
+    return False
+
+def syssvc_restart_service():
+    test_name = "Restarting service"
+    test_start(test_name)
+    good = 'Good'
+    nodes = get_nodes_health()
+
+    #Find a healthy node and healthy service to restart
+    nodeid = ""
+    servicename = ""
+    for n in nodes:
+        nodeid = n['node_id']
+        if n['status'] != good:
+            continue
+        services = []
+        if type(n['service_health_list']['service_health']) is not list:
+            services.append(n['service_health_list']['service_health'])
+        else:
+            services = n['service_health_list']['service_health']
+
+        for s in services:
+            if s['status'] == good and s['name'] != 'syssvc':
+                servicename = s['name']
+                break
+        if nodeid != "" and servicename != "":
+            break
+
+    if nodeid != "" and servicename != "":
+        SysMgr.restart_service(Arguments(bourne_ip,node_id=nodeid,name=servicename))
+
+        #Check service is back alive       
+        max_try_count = 10
+        count = 0
+        while True:
+            nodes = get_nodes_health()
+            if not check_health_for_service(nodes, nodeid, servicename):
+                count += 1
+            else:
+                break
+            if count >= max_try_count:
+                raise Exception('Error: Service ' + servicename + ' on Node ' + nodeid + ' failed to restart')
+            else:
+                time.sleep(30)
+    print 'Successfully retarted service ' + servicename + ' on Node ' + nodeid
+    test_done(test_name)
+
+def syssvc_reboot_node():
+    test_name = "Rebooting node"
+    test_start(test_name)
+
+    #Find a healthy node to restart
+    nodes = get_nodes_health()
+    selected = random.randint(0, len(nodes)-1)
+    nodeid = nodes[selected]['node_id']
+
+    SysMgr.reboot_node(Arguments(bourne_ip,node_id=nodeid))
+    time.sleep(10)
+    SysMgr.wait_for_stable_state(Arguments(bourne_ip, sleep=30, length=1200))
+    print 'Successfully rebooted node ' + nodeid
+    test_done(test_name)
+
+def get_nodes_health():
+    resp  = SysMgr.get_health(Arguments(bourne_ip))
+    nodes = []
+    if type(resp['node_health_list']['node_health']) is not list:
+        nodes.append(resp['node_health_list']['node_health'])
+    else:
+        nodes = resp['node_health_list']['node_health']
+    return nodes
+
+def test_start(name):
+    global test_name
+    test_name = name
+    print " >> "+name+" start."
+
+def test_done(name):
+    print " << "+name+" stop."
+
+def test_fail(name):
+    print " << "+name+" failed."
+
+def setup():
+    if not is_licensed():       
+        syssvc_configure_connectemc_smtp()
+        syssvc_set_dns_ntp_properties()
+        add_license()
+
+def setup_coprhd():
+    syssvc_set_dns_ntp_properties()
+
+#
+# Source a shell config file
+# All the variables should be exported to be visible here
+#
+def source(config_file):
+    pipe = Popen("/bin/bash %s/source.sh %s" % (os.path.dirname(os.path.realpath(__file__)), config_file), stdout=PIPE, shell=True)
+    data = pipe.communicate()[0]
+
+    env = {}
+    for line in data.split('\x00'):
+        line_splits = line.split("=", 1)
+        if len(line_splits) == 2:
+            env[line_splits[0]] = line_splits[1]
+    os.environ.update(env)
+    return env
+
+def usage():
+    print """
+Usage: syssvc <configuration_file> <bourne_ip> [setup]
+E.g.:  syssvc sanity.conf 192.168.1.12
+"""
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+try:
+    if len(sys.argv) < 3:
+        usage()
+        sys.exit(1)
+
+    config_path = sys.argv[1]
+    bourne_ip = sys.argv[2]
+    if not os.path.isfile(config_path):
+        usage()
+        sys.exit(1)
+
+    source(os.path.abspath(config_path))
+    DEPLOYMENT_TYPE = 'coprhd_devkit'
+    if 'DEPLOYMENT_TYPE' in os.environ:
+        DEPLOYMENT_TYPE = os.environ['DEPLOYMENT_TYPE']
+    IPV6_ONLY = 'BOURNE_IPV6_MODE' in os.environ
+    if not IPV6_ONLY:  
+        DNS_PROP_VALUE=os.environ['DNS_PROP_VALUE']
+        NTP_PROP_VALUE=os.environ['NTP_PROP_VALUE']
+    else: 
+        DNS_PROP_VALUE=os.environ['DNS_PROP_VALUE6']
+        NTP_PROP_VALUE=os.environ['NTP_PROP_VALUE6']
+    if DEPLOYMENT_TYPE.startswith('vipr_'):
+        SMTP_PRIMARY_EMAIL = os.environ['SMTP_PRIMARY_EMAIL']
+        SMTP_SERVER = os.environ['SMTP_SERVER']
+        SMTP_SENDER_EMAIL = os.environ['SMTP_SENDER_EMAIL']
+        FTPS_IP_ADDRESS = os.environ['FTPS_IP_ADDRESS']
+        LICENSE_FILE = os.environ['LICENSE_FILE']
+        SYSTEM_UPDATE_CATALOG_URL = os.environ['SYSTEM_UPDATE_CATALOG_URL']
+        if not IPV6_ONLY:  
+            SYSTEM_UPDATE_DIRECTORY_URL=os.environ['SYSTEM_UPDATE_DIRECTORY_URL']
+        else: 
+            SYSTEM_UPDATE_DIRECTORY_URL=os.environ['SYSTEM_UPDATE_DIRECTORY_URL6']
+
+    SysMgr.set_verbose(False)
+    if len(sys.argv) >= 4:
+        cmd = sys.argv[3]
+        if cmd == "setup":
+            if DEPLOYMENT_TYPE.startswith('vipr_'):
+                setup()
+            else:
+                setup_coprhd()
+            sys.exit(0)
+        elif cmd == "set_prop":
+            if len(sys.argv) >= 6:
+                property = sys.argv[4]
+                value = sys.argv[5]
+                args = Arguments(bourne_ip, properties=property+"="+value)
+                SysMgr.set_props(args)
+            sys.exit(0)
+        else:
+            print "Unrecognized command: " + cmd
+            sys.exit(1)
+
+    if DEPLOYMENT_TYPE.startswith('vipr_'):
+        CONTROL_SERVICES += ['vasasvc']
+
+    print "**** Starting syssvc sanity tests for " + DEPLOYMENT_TYPE + " ****"
+
+    for test_case in TEST_SUITES[DEPLOYMENT_TYPE]:
+        globals()[test_case]()
+
+    print "**** Finished syssvc sanity tests for " + DEPLOYMENT_TYPE + " ****"
+
+except Exception, e:
+    print e
+    test_fail(test_name)
+    sys.exit(1)
+

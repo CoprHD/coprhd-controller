@@ -1,0 +1,301 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# security cli functions
+#----------------------------------------------------------------------
+
+def security_login(args):
+    bourne.connect(args.ip)
+    bourne.login(user = args.user, password = args.password)
+    print "logged in as user " + args.user
+
+def security_add_tenant_role(args):
+    bourne.connect(args.ip)
+    bourne.security_add_tenant_role(args.tenant, args.type, args.id, args.role)
+
+def security_remove_tenant_role(args):
+    bourne.connect(args.ip)
+    bourne.security_remove_tenant_role(args.tenant, args.type, args.id, args.role)
+
+def security_add_zone_role(args):
+    bourne.connect(args.ip)
+    bourne.security_add_zone_role(args.type, args.id, args.role)
+    
+def security_logout(args):
+    bourne.connect(args.ip)
+    bourne.security_logout()	
+
+def security_add_authn_provider(args):
+    bourne.connect(args.ip)
+    print 'Creating authentication provider: ', bourne.authn_provider_create(args.mode, args.urls, args.managerdn, args.managerpwd, args.searchbase, args.searchfilter, args.groupattr, args.name, args.domains, args.whitelist, args.searchscope, args.group_object_classes, args.group_member_attributes)
+
+def security_get_authn_provider(args):
+    bourne.connect(args.ip)
+    print 'Got this id back: ', bourne.authn_provider_query(args.name), ' for this name: ', args.name	    
+
+def security_update_authn_provider(args):
+    bourne.connect(args.ip)
+    print 'Updating aithentication provider: ', bourne.authn_provider_update(args.newName)
+
+def security_tag_authn_provider(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.authn_provider_query(args.name)
+    print 'Tagging authentication provider: ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def security_search_authn_provider(args):
+    bourne.connect(args.ip)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching authentication provider with ', args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+def security_verify_user(args):
+    bourne.connect(args.ip)
+    bourne.verify_user(args.user)
+
+def security_verify_user_roles(args):
+    bourne.connect(args.ip)
+    bourne.verify_user_roles(args.roles)
+
+def security_test_proxy_token(args):
+    bourne.connect(args.ip)
+    bourne.test_proxy_token()
+
+def security_test_firewall(args):
+    bourne.test_firewall(args.ip)
+
+def security_test_formlogin(args):
+    bourne.connect(args.ip)
+    bourne.test_formlogin(user = args.user, password = args.password)
+    print "Tested formlogin - OK"
+
+def security_test_vulnerability(args):
+    bourne.connect(args.ip)
+    bourne.test_vulnerability(user = args.user, password = args.password)
+    print "Tested vulnerability - OK"
+
+def security_test_password_change(args):
+    bourne.connect(args.ip)
+    bourne.test_password_change(user = args.user, password = args.password)
+    print "Tested password change - OK"
+
+def security_test_tenant_access_permissions(args):
+    bourne.connect(args.ip)
+    bourne.test_tenant_access_permissions(user = args.user, password = args.password)
+
+def security_test_tenant_duplicate_message(args):
+    bourne.connect(args.ip)
+    bourne.test_tenant_duplicate_message(args.domain, args.subtenantName, args.expectTenantID)
+
+def security_test_tenant_domain_update(args):
+    bourne.connect(args.ip)
+    bourne.test_tenant_domain_update(user = args.user, password = args.password, domain = args.domain, key = args.key, value = args.value)
+
+def security_test_logout(args):
+    bourne.connect(args.ip)
+    bourne.test_logout(user = args.user)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# security <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne KeyPool cli usage.')
+parser.add_argument('cmd', help = 'cmd = (login) user password')
+parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bourne', default=bourne_ip)
+
+# security login
+login = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+login.add_argument('user',    help = 'user to log in as')
+login.add_argument('password',    help = 'users password')
+
+# security logout
+logout = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#security add role
+add_tenant_role = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_tenant_role.add_argument('type',      help = 'type of object [group, subject-id]')
+add_tenant_role.add_argument('id',        help = 'ID of object to assign role to (i.e. username or group name)')
+add_tenant_role.add_argument('role',      help = 'tenant role to assign [TENANT_ADMIN, PROJECT_ADMIN]')
+add_tenant_role.add_argument('--tenant',    help = 'tenant to apply role assignment to', default = None)
+
+#security add role
+add_zone_role = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_zone_role.add_argument('type',      help = 'type of object [group, subject-id]')
+add_zone_role.add_argument('id',        help = 'ID of object to assign role to (i.e. username or group name)')
+add_zone_role.add_argument('role',      help = 'zone role to assign [SYSTEM_MONITOR, SYSTEM_ADMIN, SECURITY_ADMIN, or TENANT_ADMIN]')
+
+#security add authn provider
+add_authn_provider = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_authn_provider.add_argument('mode',         help = 'ad or ldap')
+add_authn_provider.add_argument('urls',         help = 'server url, for example: ldap://10.10.10.123')
+add_authn_provider.add_argument('managerdn',    help = 'Manager user distinguished name, for example: CN=Administrator,CN=Users,DC=sanity,DC=local')
+add_authn_provider.add_argument('managerpwd',   help = 'Manager user password')
+add_authn_provider.add_argument('searchbase',   help = 'Path where the ldap search begins.  For example: CN=Users,DC=sanity,DC=local')
+add_authn_provider.add_argument('searchfilter', help = 'Filter for the ldap search.  For example: userPrincipalName=%%u')
+add_authn_provider.add_argument('groupattr',    help = 'Group attribute.  For example: CN')
+add_authn_provider.add_argument('name',         help = 'Name for the configuration.  Can be anything.')
+add_authn_provider.add_argument('domains',      help = 'Domains that the configuration will be using. These need to not exist yet in the system.')
+add_authn_provider.add_argument('whitelist',    help = 'When specified, the list of groups to be released in the attributes.  Example: *Admins*')
+add_authn_provider.add_argument('searchscope',  help = 'Scope in the AD/LDAP to search of the user and group objects.  Example: ONE LEVEL, SUBTREE')
+add_authn_provider.add_argument('--group_object_classes',    metavar = 'group_object_classes', help = 'When specified, ldap mode authn provider can use groups from ldap. Default is None. Example: groupOfNames', default = None)
+add_authn_provider.add_argument('--group_member_attributes',    metavar = 'group_member_attributes', help = 'When specified, ldap mode authn provider can use groups from ldap. Default is None. Example: member', default = None)
+
+#security get authn provider
+get_authn_provider = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+get_authn_provider.add_argument('name',      help = 'under construction')
+
+# update the provider's certificate
+update_authn_provider = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update_authn_provider.add_argument('newName',      help = 'Provider name')
+
+# tag the provider
+resource_type="authnprovider"
+tag_authn_provider = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag_authn_provider.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag_authn_provider.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag_authn_provider.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag_authn_provider.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search the provider
+search_authn_provider = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search_authn_provider.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search_authn_provider.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching authn provider', default=None)
+search_authn_provider.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search_authn_provider.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search_authn_provider.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+verify_user =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+verify_user.add_argument('user',    help = 'verify that this is the logged in user')
+
+verify_user_roles =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+verify_user_roles.add_argument('roles',   help = 'verify the logged in user has these roles')
+
+test_proxy_token =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+test_firewall =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+test_formlogin =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+test_formlogin.add_argument('user',    help = 'user to log in as')
+test_formlogin.add_argument('password',    help = 'users password')
+
+test_tenant_duplicate_message_args =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+test_tenant_duplicate_message_args.add_argument('domain',    help = 'the domain name to test on')
+test_tenant_duplicate_message_args.add_argument('subtenantName',    help = 'the test subtenant name to test on')
+test_tenant_duplicate_message_args.add_argument('expectTenantID',    help = 'the test should or should not expect the tenant ID in the error message')
+
+test_tenant_domain_update_args =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+test_tenant_domain_update_args.add_argument('user',    help = 'user to log in as')
+test_tenant_domain_update_args.add_argument('password',    help = 'users password')
+test_tenant_domain_update_args.add_argument('domain',    help = 'the domain name to test on')
+test_tenant_domain_update_args.add_argument('key',    help = 'the attribute key')
+test_tenant_domain_update_args.add_argument('value',    help = 'the attribute value')
+
+test_logout =  argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+test_logout.add_argument('user',    help = 'user to log out')
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if  (cmd == "login"):
+        args = login.parse_args()
+        security_login(args)
+    elif(cmd == "add_tenant_role"):
+        args = add_tenant_role.parse_args()
+        security_add_tenant_role(args)  
+    elif(cmd == "invalid_login"):
+        args = login.parse_args()
+        security_invalid_login(args)
+    elif(cmd == "remove_tenant_role"):
+        args = add_tenant_role.parse_args()
+        security_remove_tenant_role(args)  
+    elif(cmd == "add_zone_role"):
+        args = add_zone_role.parse_args()
+        security_add_zone_role(args)
+    elif(cmd == "logout"):
+        args = logout.parse_args()
+        security_logout(args)      
+    elif(cmd == "add_authn_provider"):
+        args = add_authn_provider.parse_args()
+        security_add_authn_provider(args)
+    elif(cmd == "get_authn_provider"):
+        args = get_authn_provider.parse_args()
+        security_get_authn_provider(args)
+    elif(cmd == "update_authn_provider"):
+        args = update_authn_provider.parse_args()
+        security_update_authn_provider(args)
+    elif(cmd == "tag_authn_provider"):
+        args = tag_authn_provider.parse_args()
+        security_tag_authn_provider(args)
+    elif(cmd == "search_authn_provider"):
+        args = search_authn_provider.parse_args()
+        security_search_authn_provider(args)
+    elif(cmd == "verify_user"):
+        args = verify_user.parse_args()
+        security_verify_user(args)
+    elif(cmd == "verify_user_roles"):
+        args = verify_user_roles.parse_args()
+        security_verify_user_roles(args)
+    elif(cmd == "test_proxy_token"):
+        args = test_proxy_token.parse_args()
+        security_test_proxy_token(args)
+    elif(cmd == "test_firewall"):
+        args = test_firewall.parse_args()
+        security_test_firewall(args)
+    elif(cmd == "test_formlogin"):
+        args = test_formlogin.parse_args()
+        security_test_formlogin(args)
+    elif(cmd == "test_vulnerability"):
+        args = test_formlogin.parse_args()
+        security_test_vulnerability(args)
+    elif(cmd == "test_password_change"):
+        args = test_formlogin.parse_args()
+        security_test_password_change(args)
+    elif(cmd == "test_tenant_access_permissions"):
+        args = test_formlogin.parse_args()
+        security_test_tenant_access_permissions(args)
+    elif(cmd == "test_tenant_duplicate_message"):
+        args = test_tenant_duplicate_message_args.parse_args()
+        security_test_tenant_duplicate_message(args)
+    elif(cmd == "test_tenant_domain_update"):
+        args = test_tenant_domain_update_args.parse_args()
+        security_test_tenant_domain_update(args)
+    elif(cmd == "test_logout"):
+        args = test_logout.parse_args()
+        security_test_logout(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+    

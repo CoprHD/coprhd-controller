@@ -1,0 +1,204 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# tenant cli functions
+#----------------------------------------------------------------------
+
+def project_create(args):
+    bourne.connect(args.ip)
+    project = bourne.project_create(args.label, args.tenant)
+    print project
+
+def project_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.project_query(args.name)
+    res = bourne.project_delete(uri)
+    print res
+
+def project_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.project_query(args.name)
+    project = bourne.project_show(uri)
+    print project
+
+def project_query(args):
+    bourne.connect(args.ip)
+    print bourne.project_query(args.name)
+
+def project_list(args):
+    bourne.connect(args.ip)
+    project_display_hdr()
+    res = bourne.project_list(args.tenant)
+    for r in res:
+        project = bourne.project_show(r['id'])
+        project_display(project)
+
+def project_nuke(args):
+    bourne.connect(args.ip)
+    projects = bourne.project_list(args.tenant)
+    for project in projects:
+        projectDetails = bourne.project_show(project['id'])
+        print "nuking project "+ projectDetails['name']
+        uris = bourne.volume_list(projectDetails['id'])
+        for uri in uris:
+            vol = bourne.volume_show(uri)
+            print "nuking volume "+vol['id']
+            bourne.volume_delete(vol['id'])
+    bourne.project_delete(project['id']);
+    
+def project_allow(args):
+    bourne.connect(args.ip)
+    res = bourne.project_add_acl(args.name, args.subject)
+    print res   
+
+#
+# display project in list form
+#
+project_display_fmt = '{0:32s} {1:8s} {2:16s} {3:s}'
+
+def project_display_hdr():
+    print project_display_fmt.format('name', 'active', 'owner', 'id')
+
+def project_display(project):
+    print project_display_fmt.format(project['name'], 'NO' if project['inactive'] else 'YES',
+              project['owner'], project['id'])
+
+def project_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.project_query(args.name)
+    print 'Tagging project ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def project_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching project with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# project <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne project cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list |nuke)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# project create label --tenant tenant
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',	help = 'label for the project')
+create.add_argument('--tenant', help = 'tenant name', default = None)
+
+# project delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of project')
+
+# project show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of project')
+
+# project query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of project')
+
+# project list --tenant tenant
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('--tenant',	help = 'tenant name', default = None)
+
+# project nuke --tenant tenant
+nuke = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+nuke.add_argument('name',	help = 'project name', default = None)
+
+# project allow name subject
+allow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+allow.add_argument('name',	help = 'name of project')
+allow.add_argument('subject',    help = 'user to add all acl for')
+
+# tag 
+resource_type="project"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        project_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        project_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        project_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        project_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        project_list(args)
+    elif (cmd == "nuke"):
+        args = nuke.parse_args()
+        project_nuke(args)
+    elif (cmd == "allow"):
+        args = allow.parse_args()
+        project_allow(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        project_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        project_search(args)
+    else:
+        parser.print_help()
+except:
+    raise

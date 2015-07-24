@@ -1,0 +1,274 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# snapshot cli functions
+#----------------------------------------------------------------------
+
+def snapshot_create(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.name)
+    print 'Volume uri: ' + volume_uri
+    start = time.time()
+    (o, s, m) = bourne.block_snapshot_create(volume_uri, args.label, args.create_inactive, args.type)
+    total = time.time() - start
+    if (s == 'ready'):
+        print "Snapshot created successfully in", "{0:.2f}".format(total), "seconds"
+        for info in o['task']:
+           print "     " + info['resource']['name'] + ' ' + info['resource']['id']
+    else:
+        print 'Volume snapshot create failed. ' + s + "\n" + m
+
+def snapshot_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    start = time.time()
+    tasks = bourne.block_snapshot_delete(uri)
+    total = time.time() - start
+    print "Delete snapshot completed in", "{0:.2f}".format(total), "seconds"
+    for task in tasks:
+        name= task['resource']['name']
+        id = task['resource']['id']
+        s = task['state']
+        m = task['message']
+        print "     " + name + ' ' + id + " status is " + s + ", " + m
+
+def snapshot_list(args):
+    bourne.connect(args.ip)
+    volume_uri = bourne.volume_query(args.name)
+    uris = bourne.block_snapshot_list(volume_uri)
+    snap_display_hdr()
+    for uri in uris:
+        snapshot = bourne.block_snapshot_show(uri)
+        snap_display(snapshot)
+
+def snapshot_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    snapshot = bourne.block_snapshot_show(uri)
+    bourne.pretty_print_json(snapshot)
+
+def snapshot_query(args):
+    bourne.connect(args.ip)
+    print bourne.block_snapshot_query(args.name)
+
+def snapshot_export(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    (o, s, m) = bourne.block_snapshot_export(uri, args.protocol, args.portname, args.nodename, args.lun,
+                                 args.hostid)
+    bourne.pretty_print_json(o) 
+    if (s == 'ready'):
+        print 'Volume export done.'
+    else:
+        print 'Volume export failed. ' + s + "\n" + m
+
+def snapshot_unexport(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    (o, s, m) = bourne.block_snapshot_unexport(uri, args.protocol, args.portname, args.nodename, args.lun,
+                                 args.hostid)
+    bourne.pretty_print_json(o);
+    if (s == 'ready'):
+        print 'Volume unexport done.'
+    else:
+        print 'Volume unexport failed. ' + s + "\n" + m
+
+def snapshot_restore(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    start = time.time()
+    (o, s, m) = bourne.block_snapshot_restore(uri)
+    total = time.time() - start
+    print "Restore snapshot completed in", "{0:.2f}".format(total), "seconds, status is " + s + "\n" + m
+
+def snapshot_activate(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    start = time.time()
+    (o, s, m) = bourne.block_snapshot_activate(uri)
+    total = time.time() - start
+    print "Activate snapshot completed in", "{0:.2f}".format(total), "seconds, status is " + s + "\n" + m
+
+def snapshot_exports(args):
+    bourne.connect(args.ip)
+    uri = bourne.block_snapshot_query(args.name)
+    bourne.pretty_print_json(bourne.block_snapshot_exports(uri))
+
+#
+# display blocksnapshots in list form
+#
+snap_display_fmt = '{0:12s} {1:14s} {2:13s} {3:13s} {4:7s} {5:16s}'
+
+def snap_display_hdr():
+    print snap_display_fmt.format('name', 'is_sync_active', 'source_device', 'target_device', 'active', 'id')
+    print snap_display_fmt.format('----', '--------------', '-------------', '-------------', '------', '--')
+
+def snap_display(snap):
+    print snap_display_fmt.format(
+              snap['name'],
+              str(snap['is_sync_active']),
+              str(snap['source_native_id']),
+              str(snap['native_id']),
+              'NO' if snap['inactive'] else 'YES',
+              snap['id'])
+
+def snapshot_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.block_snapshot_query(args.name)
+    print 'Tagging snapshot ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def snapshot_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching snapshot with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# snap cmd cmd_args [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne snapshot cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | list | query | show | restore | activate)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# snapshot create fsuri snaplabel [--ip ipaddr]
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name', help = 'name of volume for snapshot')
+create.add_argument('label', help = 'label for snapshot')
+create.add_argument('--type', help = 'This option creates a bookmark of a specific type, such as rp')
+create.add_argument('--create_inactive', help = 'This option allows the snapshot to be create by without activating the synchronization')
+
+# snapshot delete uri [--ip ipaddr]
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name', help = 'name of snapshot')
+
+# snapshot list   fsuri [--ip ipaddr]
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('name', help = 'name of volume for snapshot lists')
+
+# snapshot export uri host
+# snapshot unexport uri host
+export = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+export.add_argument('name',	help = 'name of volume for export/unexport')
+export.add_argument('protocol',	help = 'block protocol (FC | iSCSI)')
+export.add_argument('portname',	help = 'initiator port name (e.g. FC PWWN)')
+export.add_argument('lun',	help = 'logical unit number')
+export.add_argument('hostid',	help = 'host indentifier')
+export.add_argument('--nodename',	help = 'initiator node name (e.g. FC NWWN)')
+
+# snapshot show   uri [--ip ipaddr]
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name', help = 'name of snapshot')
+
+# snapshot query   uri [--ip ipaddr]
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name', help = 'Full pathname of snapshot')
+
+restore = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+restore.add_argument('name', help = 'name of volume for snapshot')
+
+activate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+activate.add_argument('name', help = 'name of snapshot')
+
+exports = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+exports.add_argument('name', help = 'name of snapshot')
+
+# tag 
+resource_type="block_snapshot"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        snapshot_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        snapshot_delete(args)
+    elif (cmd == "export"):
+        args = export.parse_args()
+        snapshot_export(args)
+    elif (cmd == "unexport"):
+        args = export.parse_args()
+        snapshot_unexport(args)
+    elif (cmd =="list"):
+        args = list.parse_args()
+        snapshot_list(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        snapshot_show(args)
+    elif (cmd == "restore"):
+        args = restore.parse_args()
+        snapshot_restore(args)
+    elif (cmd == "activate"):
+        args = activate.parse_args()
+        snapshot_activate(args)
+    elif (cmd == "exports"):
+        args = exports.parse_args()
+        snapshot_exports(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        snapshot_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        snapshot_search(args)
+    else:
+        parser.print_help()
+
+except:
+    raise

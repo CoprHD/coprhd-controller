@@ -1,0 +1,128 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2014 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+import random
+import uuid
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# retentionclass <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne retention classes cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | update | list | delete)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# retention class create
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('namespace', help = 'namespace of the tenant')
+create.add_argument('name',	help = 'name of the retention class')
+create.add_argument('period',	help = 'retention period of the class')
+
+# retention class get
+get = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+get.add_argument('namespace', help = 'namespace of the tenant')
+get.add_argument('name',   help = 'name of the retention class')
+
+# retention class update
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('namespace', help = 'namespace of the tenant')
+update.add_argument('name',	 help = 'name of the retention class')
+update.add_argument('period',    help = 'new retention period')
+
+# retention class list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('namespace', help = 'namespace of the tenant')
+
+def retention_class_create(args):
+    bourne.connect(args.ip)
+    bourne.retention_class_create(args.namespace, args.name, args.period)
+
+def retention_class_update(args):
+    bourne.connect(args.ip)
+    bourne.retention_class_update(args.namespace, args.name, args.period)
+
+def retention_class_get(args):
+    bourne.connect(args.ip)
+    print(bourne.retention_class_get(args.namespace, args.name))
+
+def retention_class_list(args):
+    bourne.connect(args.ip)
+    print (bourne.retention_class_list(args.namespace))
+
+def print_error(arg):
+    raise Exception('Failed: ' + arg)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if(cmd == "create"):
+        args = create.parse_args()
+        retention_class_create(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        retention_class_update(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        retention_class_list(args)
+    elif (cmd == "get"):
+        args = get.parse_args()
+        retention_class_get(args)
+    elif (cmd == "sanity"):
+        args = get.parse_args()
+        x = 0
+        loops = 5
+        bourne.connect(bourne_ip)
+        nameclass = []
+        while ( x < loops ):
+            nameclass.append(args.name + str(uuid.uuid1()))
+            print "create retention class: "+ nameclass[x]
+            bourne.retention_class_create(args.namespace, nameclass[x], x+1)
+            resp = (bourne.retention_class_get(args.namespace, nameclass[x]))
+            if (resp['period'] != x+1):
+                print_error('create retention')
+            bourne.retention_class_update(args.namespace, nameclass[x], x)
+            resp_1 = bourne.retention_class_get(args.namespace, nameclass[x])
+            if (resp_1['period'] != x):
+                print_error('update retention')
+            bourne.retention_class_update(args.namespace, nameclass[x], x+2)
+            resp_2 = bourne.retention_class_get(args.namespace, nameclass[x])
+            if (resp_2['period'] != x+2):
+                print_error('update retention')
+            x=x+1
+    	list = bourne.retention_class_list(args.namespace)['retention_class']
+        def name(x): return x['name']
+        list_name = map(name, list)
+        for x in nameclass:
+            if x not in list_name:
+                print_error('retention class list')
+	print('Retention class is passed')
+    else:
+        parser.print_help()
+except:
+    raise

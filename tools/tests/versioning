@@ -1,0 +1,113 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+S3_PORT                         = '9021'
+
+#----------------------------------------------------------------------
+# versioning cli functions
+#----------------------------------------------------------------------
+
+def versioning_get(args):
+    bourne.connect(bourne_data_ip, S3_PORT)
+    print bourne.bucket_versioning_get(args.namespace, args.bucket,
+                                       args.uid, args.secret)
+
+def versioning_put(args):
+    bourne.connect(bourne_data_ip, S3_PORT)
+    bourne.bucket_versioning_put(args.namespace, args.bucket, args.status,
+                                 args.uid, args.secret)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+try:
+    bourne_data_ip = os.environ['BOURNE_DATA_IPADDR']
+except:    
+    bourne_data_ip = bourne_ip
+
+# versioning <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne versioning status cli usage.')
+parser.add_argument('cmd', help = 'cmd = (get | put)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+parser.add_argument('--uid', metavar = 'uid', help = 'user id', default = 'sysadmin')
+parser.add_argument('--secret', metavar = 'secret', help = 'user secret key', default = 'secret')
+
+# get versioning status
+get = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+get.add_argument('namespace', help = 'namespace of the tenant')
+get.add_argument('bucket',	help = 'name of the bucket')
+
+# set versioning status
+put = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+put.add_argument('namespace', help = 'namespace of the tenant')
+put.add_argument('bucket',	help = 'name of the bucket')
+put.add_argument('status',	help = 'status of versioning (Enabled | Suspended)')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "get"):
+        args = get.parse_args()
+        versioning_get(args)
+    elif (cmd == "put"):
+        args = put.parse_args()
+        versioning_put(args)
+    elif (cmd == "sanity"):
+        args = get.parse_args()
+        bourne.connect(bourne_data_ip, S3_PORT)
+
+        status = bourne.bucket_versioning_get(args.namespace, args.bucket,
+                                              args.uid, args.secret)
+        print "original versioning status:", status
+
+        # set versioning status in a loop
+        loops = 1
+        status_change_list = ["Enabled", "Suspended"] * loops
+        for status_to_set in status_change_list:
+            print "set to versioning status:", status_to_set
+            bourne.bucket_versioning_put(args.namespace, args.bucket, status_to_set,
+                                         args.uid, args.secret)
+            status = bourne.bucket_versioning_get(args.namespace, args.bucket,
+                                                  args.uid, args.secret)
+            if status != status_to_set:
+                print "expect", status_to_set, "get", status
+                time.sleep(15)
+                status = bourne.bucket_versioning_get(args.namespace, args.bucket,
+                                                      args.uid, args.secret)
+                print "after sleep", status
+                if status != status_to_set:
+                    raise Exception("set versioning failed")
+    else:
+        parser.print_help()
+except:
+    raise

@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# script to clean up all data stores
+# this will delete or atempt to delete all data stores!
+
+./datastore list|grep id\":.*Hosting|cut -d\" -f4|
+while read op
+ do
+ echo $op
+    ./datastore delete $op
+ done

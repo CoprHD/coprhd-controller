@@ -1,0 +1,117 @@
+#!/bin/sh
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# Basic Cleanup script
+# ==============================================================
+# Uncomment the below line to get tracing output for this script
+#set -x
+
+Usage()
+{
+    echo 'Usage: cleanup'
+    exit 2
+}
+
+# The token file name will have a suffix which is this shell's PID
+# It will allow to run the sanity in parallel
+export BOURNE_TOKEN_FILE="/tmp/token$$.txt"
+BOURNE_SAVED_TOKEN_FILE="/tmp/token_saved.txt"
+
+PATH=$(dirname $0):/bin:/usr/bin:/usr/local/bin
+OPTION=$1
+
+BOURNE_IPS=${1:-$BOURNE_IPADDR}
+IFS=',' read -ra BOURNE_IP_ARRAY <<< "$BOURNE_IPS"
+BOURNE_IP=${BOURNE_IP_ARRAY[0]}
+IP_INDEX=0
+
+macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`
+if [ "$macaddr" = "" ] ; then
+    macaddr=`/sbin/ifconfig en0 | /usr/bin/awk '/ether/ { print $2 }'`
+fi
+ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
+export BOURNE_API_SYNC_TIMEOUT=700
+export BOURNE_IP=10.247.97.235
+
+if [ "$BOURNE_IP" = "localhost" ]; then
+    SHORTENED_HOST="ip-$ipaddr"
+fi
+SHORTENED_HOST=${SHORTENED_HOST:=`echo $BOURNE_IP | awk -F. '{ print $1 }'`}
+: ${TENANT=tenant}
+: ${PROJECT=sanity}
+SYSADMIN=root
+SYSADMIN_PASSWORD=${VIPR_ROOT_PASSWORD:-ChangeMe}
+
+login() {
+    security login $SYSADMIN $SYSADMIN_PASSWORD
+    TENANT=`tenant root | tail -1`
+    echo "Tenant is ${TENANT}";
+}
+
+cleanup() {
+    login
+    # this will need some work.  don't know how to log into each one.
+    for tenant in `tenant list | grep TenantOrg | awk '{print $1}'`
+    do
+       echo "cleaning tenant ${tenant}..."
+       for project in `project list --tenant ${tenant} | grep YES | awk '{print $4}'`
+       do
+         echo "cleaning project ${project}..."
+
+         for exportgroup in `export_group list ${project} | grep YES | awk '{print $5}'`
+	   do
+	   echo "examining export group ${exportgroup}..."
+	   export_group show ${exportgroup} | grep internal | grep true > /dev/null
+	   if [ $? -ne 0 ]
+	       then
+               echo "cleaning export group ${exportgroup}..."
+               export_group delete ${exportgroup}
+	   else
+               echo "export group ${exportgroup} is internal, not cleaning..."
+	   fi
+         done
+         
+         if [ "${OPTION}" != "exports" ]
+	     then
+	     for volume in `volume list ${project} | grep YES | awk '{print $7}'`
+	       do
+	       for snapshot in `blocksnapshot list ${volume} | grep YES | awk '{print $6}'`
+		 do
+		 echo "deleting snapshot ${snapshot}..."
+		 blocksnapshot delete ${snapshot}
+	       done
+	     done
+
+	     uris=`volume list ${project} | grep SOURCE | grep YES | awk '{print $7}'`
+	     if [ "${uris}" != "" ]
+	     then
+		 echo "cleaning volume(s) ${uris}..."
+		 if [ "${OPTION}" != "nomulti" ]
+		 then
+		     uriscomma=`echo ${uris} | sed 's/ /,/g'`
+		     volume delete ${uriscomma} --wait
+		 else
+		     for uri in ${uris}
+		     do
+			 echo "deleting volume ${uri}..."
+			 volume delete ${uri} --wait
+		     done
+		 fi			 
+	     fi
+
+	     uris=`volume list ${project} | grep "N/A" | grep -v journal | grep YES | awk '{print $7}'`
+	     if [ "${uris}" != "" ]
+		 then
+		 echo "cleaning volume(s) ${uris}..."
+		 uriscomma=`echo ${uris} | sed 's/ /,/g'`
+		 volume delete ${uriscomma} --wait
+	     fi
+         fi
+       done
+    done    
+}
+
+cleanup;
+exit;

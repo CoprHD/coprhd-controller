@@ -1,0 +1,14 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+# script to clean up all data stores
+# this will delete or atempt to delete all data stores!
+
+fileshare list webstorage|grep id\":|grep urn:|cut -d\" -f4|
+while read fs
+ do
+ echo $fs
+ fileshare delete $fs
+ done

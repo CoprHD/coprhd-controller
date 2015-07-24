@@ -1,0 +1,294 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# transportzone cli functions
+#----------------------------------------------------------------------
+
+def transportzone_create(args):
+    bourne.connect(args.ip)
+    neighborhood_uri = bourne.neighborhood_query(args.neighborhood)
+    transportzone = bourne.transportzone_create(args.label, neighborhood_uri, args.type)
+    if(BOURNE_DEBUG == '1'):
+        print transportzone
+
+def transportzone_create2(args):
+    bourne.connect(args.ip)
+    transportzone = bourne.transportzone_create2(args.label, args.type, args.neighborhoods, args.endpoints)
+    if(BOURNE_DEBUG == '1'):
+        print transportzone
+
+def transportzone_update(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_queryall(args.label)
+    transportzone = bourne.transportzone_update(uri, args.newLabel, args.addNeighborhoods, args.remNeighborhoods, args.addEndpoints, args.remEndpoints)
+    print transportzone
+
+def transportzone_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_queryall(args.name)
+    res = bourne.transportzone_delete(uri, args.force)
+    print res
+
+def transportzone_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_query(args.name)
+    transportzone = bourne.transportzone_show(uri)
+    bourne.pretty_print_json(transportzone)
+
+def transportzone_query(args):
+    bourne.connect(args.ip)
+    print bourne.transportzone_query(args.name)
+
+def transportzone_list(args):
+    bourne.connect(args.ip)
+    neighborhood_uri = bourne.neighborhood_query(args.neighborhood)
+    tz_display_hdr()
+    refs = bourne.transportzone_list(neighborhood_uri)
+    for ref in refs:
+        uri = ref['id']
+        transportzone = bourne.transportzone_show(uri)
+        tz_display(transportzone)
+
+def transportzone_assign(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_queryall(args.name)
+    neighborhood_uri = bourne.neighborhood_query(args.neighborhood)
+    tzone = bourne.transportzone_assign(uri, neighborhood_uri)
+
+def transportzone_unassign(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_query(args.name)
+    tzone = bourne.transportzone_unassign(uri)
+
+def transportzone_listall(args):
+    bourne.connect(args.ip)
+    tzones = bourne.transportzone_listall()
+    for tzone in tzones:
+      print tzone['name']
+
+def transportzone_add(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_query(args.name)
+    res = bourne.transportzone_add(uri, args.endpoints)
+    print res
+
+def transportzone_remove(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_query(args.name)
+    res = bourne.transportzone_remove(uri, args.endpoints)
+    print res
+
+def transportzone_register(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_queryall(args.name)
+    print bourne.transportzone_register(uri)
+
+def transportzone_deregister(args):
+    bourne.connect(args.ip)
+    uri = bourne.transportzone_queryall(args.name)
+    print bourne.transportzone_deregister(uri)
+#
+# display transportzone in list form
+#
+tz_display_fmt = '{0:8s} {1:32s}'
+
+def tz_display_hdr():
+    print tz_display_fmt.format('name', 'id', 'endpoints')
+
+def tz_display(tz):
+    print tz_display_fmt.format(tz['name'], tz['id'])
+    bourne.pretty_print_json(tz['endpoints_discovered'])
+
+def transportzone_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.transportzone_query(args.name)
+    print 'Tagging transportzone: ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def transportzone_search(args):
+    bourne.connect(args.ip)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching transportzone with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# transportzone <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne transportzone cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | listall | assign | unassign | add | remove | register | deregister)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# transportzone create label --neighborhood neighborhood
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',	help = 'label for the transportzone')
+create.add_argument('neighborhood',	help = 'neighborhood name')
+create.add_argument('--type',	help = 'type of transport zone: FC|IP')
+
+# transportzone create label --neighborhood neighborhood
+create2 = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create2.add_argument('label',	help = 'label for the transportzone')
+create2.add_argument('type',	help = 'type of transport zone: FC|IP')
+create2.add_argument('--neighborhoods',	help = 'comma separated label for the virtual arrays')
+create2.add_argument('--endpoints',	help = 'comma-separated list of valid enpoints: WWN, IQN, IP, etc.')
+
+# transportzone create label --neighborhood neighborhood
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('label',	help = 'label for the transportzone')
+update.add_argument('--newLabel',	help = 'new label')
+update.add_argument('--addNeighborhoods',	help = 'comma separated label for the virtual arrays to be added')
+update.add_argument('--remNeighborhoods',	help = 'comma separated label for the virtual arrays to be remmoved')
+update.add_argument('--addEndpoints',	help = 'comma-separated list of valid enpoints: WWN, IQN, IP, etc. to be added')
+update.add_argument('--remEndpoints',	help = 'comma-separated list of valid enpoints: WWN, IQN, IP, etc. to be removed')
+
+# transportzone delete uri [--force force]
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of transportzone')
+delete.add_argument('--force',    help = 'force delete of manually created Transport Zone', default='false')
+
+# transportzone show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of transportzone')
+
+# transportzone query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of transportzone')
+
+# transportzone list --neighborhood neighborhood
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('neighborhood',	help = 'neighborhood name')
+
+# transportzone listall
+listall = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+assign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+assign.add_argument('name',    help = 'transport zone name')
+assign.add_argument('neighborhood',   help = 'neighborhood name')
+
+unassign = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+unassign.add_argument('name',    help = 'transport zone name')
+
+# transportzone add endpoint
+add = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add.add_argument('name',	help = 'name of transportzone')
+add.add_argument('endpoints',   help = 'transport zone endpoints to be added', nargs='*')
+
+# transportzone remove endpoint
+remove = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+remove.add_argument('name',	help = 'name of transportzone')
+remove.add_argument('endpoints',   help = 'transport zone endpoints to be removed', nargs='*')
+
+# tag 
+resource_type="network"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+# register
+register = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+register.add_argument('name', help = 'name of transportzone')
+
+# deregister
+deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deregister.add_argument('name', help = 'name of transportzone')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        transportzone_create(args)
+    elif (cmd == "create2"):
+        args = create2.parse_args()
+        transportzone_create2(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        transportzone_update(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        transportzone_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        transportzone_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        transportzone_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        transportzone_list(args)
+    elif (cmd == "listall"):
+        args = listall.parse_args()
+        transportzone_listall(args)
+    elif (cmd == "assign"):
+        args = assign.parse_args()
+        transportzone_assign(args)
+    elif (cmd == "unassign"):
+        args = unassign.parse_args()
+        transportzone_unassign(args)
+    elif (cmd == "add"):
+        args = add.parse_args()
+        transportzone_add(args)
+    elif (cmd == "remove"):
+        args = remove.parse_args()
+        transportzone_remove(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        transportzone_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        transportzone_search(args)
+    elif(cmd == "register"):
+        args = register.parse_args()
+        transportzone_register(args)
+    elif(cmd == "deregister"):
+        args = deregister.parse_args()
+        transportzone_deregister(args)
+    else:
+        parser.print_help()
+except:
+    raise

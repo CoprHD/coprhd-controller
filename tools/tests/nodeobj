@@ -1,0 +1,195 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# nodeobj cli functions
+# This test script will be replaced by objcontrol specific test script
+#----------------------------------------------------------------------
+
+OBJCONTROLSVC_SECURE_PORT=9443
+def node_create(args):
+    bourne.connect(args.ip, OBJCONTROLSVC_SECURE_PORT)
+    bourne.node_create(args.name)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# nodeobj <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne nodeobj cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# tenant create name
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',	help = 'name of nodeobj')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        node_create(args)
+    else:
+        parser.print_help()
+except:
+    raise
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# tenant cli functions
+#----------------------------------------------------------------------
+
+OBJCONTROLSVC_SECURE_PORT=9443
+OBJCONTROLSVC_PORT=9090
+def node_create(args):
+    bourne.connect(args.ip, OBJCONTROLSVC_SECURE_PORT)
+    bourne.node_create(args.name)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# nodeobj <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne nodeobj cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# tenant create name
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',	help = 'name of nodeobj')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        node_create(args)
+    else:
+        parser.print_help()
+except:
+    raise
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# tenant cli functions
+#----------------------------------------------------------------------
+
+OBJCONTROLSVC_SECURE_PORT=9443
+OBJCONTROLSVC_PORT=9090
+def node_create(args):
+    bourne.connect(args.ip, OBJCONTROLSVC_SECURE_PORT)
+    bourne.node_create(args.name)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# nodeobj <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne nodeobj cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# tenant create name
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',	help = 'name of nodeobj')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "create"):
+        args = create.parse_args()
+        node_create(args)
+    else:
+        parser.print_help()
+except:
+    raise

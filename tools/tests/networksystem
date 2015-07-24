@@ -1,0 +1,289 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# network system cli functions
+#----------------------------------------------------------------------
+
+def networksystem_list(args):
+    bourne.connect(args.ip)
+    systems = bourne.networksystem_list()
+    for system in systems:
+        print system
+
+def networksystem_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.name)
+    network = bourne.networksystem_show(uri)	
+    bourne.pretty_print_json(network)
+
+def networksystem_query(args):
+    bourne.connect(args.ip)
+    print bourne.networksystem_query(args.name)
+
+def networksystem_inventory(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.name)
+    physical_inventory = bourne.networksystem_physical_inventory(uri)
+    print physical_inventory
+
+def networksystem_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.name)
+    print uri;
+    res = bourne.networksystem_delete(uri)
+    print res
+
+def networksystem_create(args):
+    bourne.connect(args.ip)
+    s = bourne.networksystem_create(args.label, args.type, args.devip, args.devport,
+                 args.username, args.password, args.smisip, args.smisport,
+                 args.smisuser, args.smispw, args.smisssl)
+    if (s['state'] == 'ready'):
+        print 'Network system discovered with id ' + s['resource']['id']
+    else:
+        print 'Network system discovery failed.'
+
+def networksystem_update(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.label)
+    network = bourne.networksystem_update(args.label, args.type, args.devip, args.devport,
+                 args.username, args.password, uri, args.smisip, args.smisport,
+                 args.smisuser, args.smispw, args.smisssl)
+    print network
+
+
+def networksystem_list_connections(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.name)
+    connections = bourne.networksystem_list_connections(uri, args.fabricid)
+    conns = connections['fc_endpoint']
+    connection_display_fmt='{0:10s} {1:25s} {2:25s} {3:25s} {4:25s} {5:25s} {6:s}'
+    print connection_display_fmt.format('fabric','remote wwpn','wwnn','interface','switch','fabric_wwn','alias')
+    for conn in conns:
+        fabric = conn['fabric_id']
+        remPort = conn['remote_port_name']
+        remNode = conn['remote_node_name']
+        intf = conn['switch_interface']
+        switch = conn['switch_name']
+        fabricwwn = conn['fabric_wwn']
+        try:
+           alias = conn['remote_port_alias']
+        except:
+           alias = '---'
+
+        print connection_display_fmt.format(fabric, remPort, remNode, intf, switch, fabricwwn,alias)
+
+def networksystem_discover(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.name)
+    network = bourne.networksystem_discover(uri)
+    print network
+
+def networksystem_zonereferences(args):
+    bourne.connect(args.ip)
+    references = bourne.networksystem_zonereferences(args.initiator, args.target)
+    refs=references['fc_zone_reference']
+    for ref in refs:
+        fabric=ref['fabricId']
+        zone= ref['zoneName']
+        groupid = ref['groupUri']
+        try:
+            group = bourne.export_group_show(groupid)
+            groupname = group['name']
+        except:
+            groupname = '<group not found>'
+        volid = ref['volumeUri']
+        volume = bourne.volume_show(volid)
+        volname = volume['name']
+        print fabric, zone, groupname, volname
+
+def networksystem_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.networksystem_query(args.name)
+    print 'Tagging networksystem ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def networksystem_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching networksystem with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+def networksystem_register(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.name)
+    print bourne.networksystem_register(uri)
+
+def networksystem_deregister(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.name)
+    print bourne.networksystem_deregister(uri)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# network <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | update | delete | show | list | list_connections | discover | zonereferences | register | deregister)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# network create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',		help = 'label for network system')
+create.add_argument('type',		    help = 'network system type')
+create.add_argument('--devip',		help = 'network system IP address')
+create.add_argument('--devport',	help = 'network system tcp port')
+create.add_argument('--username',	help = 'network system user name')
+create.add_argument('--password',	help = 'network system password')
+create.add_argument('--smisip',		help = 'SMIS provider IP address')
+create.add_argument('--smisport',	help = 'SMIS provider TCP port')
+create.add_argument('--smisuser',	help = 'SMIS provider user name')
+create.add_argument('--smispw',	    help = 'SMIS provider password')
+create.add_argument('--smisssl',	help = 'SMIS provider use ssl true or false')
+
+# network system delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'Name of network system to be deleted')
+
+# network system show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'Name of network system ')
+
+# network system query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'Name of network system ')
+
+# network system list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# network system inventory
+inventory = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+inventory.add_argument('name',	help = 'Name of network system ')
+
+# network system list connections name
+list_connections = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list_connections.add_argument('name',	help = 'Name of network system ')
+list_connections.add_argument('--fabricid', help = 'Fabric name or id ', default='')
+
+# network system discover
+discover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+discover.add_argument('name',	help = 'Name of network system ')
+
+# show zone references
+zonereferences = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+zonereferences.add_argument('initiator', help = 'Initiator WWPN')
+zonereferences.add_argument('target', help = 'Target WWPN')
+
+# tag 
+resource_type="network_system"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+# register
+register = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+register.add_argument('name', help = 'name of network system')
+
+# deregister
+deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deregister.add_argument('name', help = 'name of network system')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        networksystem_create(args)
+    elif (cmd == "update"):
+        args = create.parse_args();
+        networksystem_update(args);
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        networksystem_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        networksystem_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        networksystem_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        networksystem_list(args)
+    elif (cmd == "list_connections"):
+        args = list_connections.parse_args()
+        networksystem_list_connections(args)
+    elif (cmd == "discover"):
+        args = discover.parse_args()
+        networksystem_discover(args)
+    elif (cmd == "inventory"):
+        args = inventory.parse_args()
+        networksystem_inventory(args)
+    elif (cmd == "zonereferences"):
+        args = zonereferences.parse_args()
+        networksystem_zonereferences(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        networksystem_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        networksystem_search(args)
+    elif(cmd == "register"):
+        args = register.parse_args()
+        networksystem_register(args)
+    elif(cmd == "deregister"):
+        args = deregister.parse_args()
+        networksystem_deregister(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

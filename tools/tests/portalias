@@ -1,0 +1,148 @@
+#!/usr/bin/python
+
+#
+# Copyright (c) 2012 EMC Corporation
+# All Rights Reserved
+#
+# This software contains the intellectual property of EMC Corporation
+# or is licensed to EMC Corporation from third parties.  Use of this
+# software and the intellectual property contained therein is expressly
+# limited to the terms and conditions of the License Agreement under which
+# it is provided by or on behalf of EMC.
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# network system cli functions
+#----------------------------------------------------------------------
+
+def portalias_create(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    s = bourne.portalias_create(uri, args.fabricid, args.aliases)
+    print s
+    if (s['state'] == 'ready'):
+        print 'Aliases are created'
+    else:
+        print 'Aliasses failed to create.'
+
+def portalias_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    s = bourne.portalias_delete(uri, args.fabricid, args.aliases)
+    print s
+    if (s['state'] == 'ready'):
+        print 'Aliases are delete'
+    else:
+        print 'Aliasses failed to delete.'
+        
+def portalias_update(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    s = bourne.portalias_update(uri, args.fabricid, args.aliases_update)
+    print s
+    if (s['state'] == 'ready'):
+        print 'Aliases are updated'
+    else:
+        print 'Aliasses failed to update.'
+        
+
+def portalias_list(args):
+    bourne.connect(args.ip)
+    uri = bourne.networksystem_query(args.ns)
+    aliases_list = bourne.portalias_list(uri, args.fabricid)
+    aliases = aliases_list['wwn_alias']
+    alias_display_fmt='{0:64s} {1:s}'
+    print alias_display_fmt.format('Name (alias)','Address (WWN)')
+    print alias_display_fmt.format('------------','-------------')
+    for alias in aliases:
+        try:
+            name = alias['name']
+        except:
+            name = ''
+
+        try:
+            address = alias['address']
+        except:
+            address = ''
+
+        if  ( (not args.name) and (not args.address) ) or (args.name and args.address and (args.name in name ) and ( args.address in address ) ) or  (args.name and not args.address and args.name in name) or (not args.name and args.address and args.address in address ):
+            print alias_display_fmt.format(name, address)
+		
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# network <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | update | delete | list)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# create port aliases
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('ns',           help = 'Name of network system ')
+create.add_argument('--fabricid',   help = 'Name of fabric.  Only needed if specified network system is a Brocade')
+create.add_argument('--aliases',    help = 'list of aliases tuples of <name, address>.  Each tuple is separated by a number sign (#) e.g., alias_1,address1#alias_2,address2')
+
+# update port aliases
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('ns',           help = 'Name of network system ')
+update.add_argument('--fabricid',   help = 'Name of fabric.  Only needed if specified network system is a Brocade')
+update.add_argument('--aliases_update',    help = 'list of aliases tuples of <name, new_address,address,new_name>.  Each tuple is separated by a number sign (#) e.g., alias_1,new_address1,address1#alias_2,new_address2,,new_alias2.  NOTE: In an alias update tuple, while "name" is required, the rest are optional')
+
+
+# delete port aliases
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('ns',           help = 'Name of network system ')
+delete.add_argument('--fabricid',   help = 'Name of fabric.  Only needed if specified network system is a Brocade')
+delete.add_argument('--aliases',    help = 'list of aliases tuples of <name, address>.  Each tuple is separated by a number sign (#) e.g., alias_1,address1#alias_2. NOTE:  In an alias tuple, "name" is required, where as "address" is optional')
+
+
+# list of port aliases for a network system
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('ns',         help = 'Name of network system')
+list.add_argument('--fabricid', help = 'Name of fabric.  Only needed if specified network system is a Brocade')
+list.add_argument('--name',     help = 'List only aliases contain the provided name')
+list.add_argument('--address',  help = 'List only aliases with wwn contain the provided address')
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        portalias_create(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        portalias_update(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        portalias_delete(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        portalias_list(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

@@ -1,0 +1,12 @@
+network_1_ipaddr=10.247.100.1
+network_2_ipaddr=10.247.100.2
+network_3_ipaddr=10.247.100.3
+network_gateway6=
+network_gateway=10.247.96.1
+network_netmask=255.255.248.0
+network_prefix_length=64
+network_vip6=::0
+network_vip=10.247.100.0
+node_count=3
+node_id=vipr2
+

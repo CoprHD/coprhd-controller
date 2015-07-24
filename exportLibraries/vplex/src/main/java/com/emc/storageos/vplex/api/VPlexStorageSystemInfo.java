@@ -45,10 +45,10 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
 
     public boolean matches( String storageSystemNativeGuid )
     {
-
-
+    	s_logger.info(String.format("Matching the storageSystemNativeGuid %s with %s",
+    			                    storageSystemNativeGuid, getUniqueId()));
         if (storageSystemNativeGuid.endsWith(getUniqueId())
-        	|| storageSystemNativeGuid.contains(getUniqueId()))
+        	|| storageSystemNativeGuid.contains(getUniqueId().trim()))
         {
             return true;
         }

@@ -373,6 +373,8 @@ public class CinderExportOperations implements ExportMaskOperations {
         String[] fcInitiatorsWwnns = mapSettingVsValues.get(WWNNS);
 
         for (Volume volume : volumes) {
+        	
+        	boolean isVplexVolume = isVplex(volume);
             // cinder generated volume ID
             String volumeId = volume.getNativeId();
             int targetLunId = -1;
@@ -400,15 +402,23 @@ public class CinderExportOperations implements ExportMaskOperations {
                 log.info("Got response : {}", attachResponse.connection_info.toString());
                 targetLunId = attachResponse.connection_info.data.target_lun;
 
-                volumeToInitiatorTargetMap.put(volume, attachResponse.connection_info.data.initiator_target_map);
+                if(!isVplexVolume)
+                {
+                	volumeToInitiatorTargetMap.put(volume,
+                			                       attachResponse.connection_info.data.initiator_target_map);
+                }
+                
             }
 
-            volumeToTargetLunMap.put(volume.getId(),
-                    Integer.valueOf(targetLunId));
+            volumeToTargetLunMap.put(volume.getId(), Integer.valueOf(targetLunId));
             
-            //After the successful export, create or modify the storage ports
-            CinderStoragePortOperations storagePortOperationsInstance = CinderStoragePortOperations.getInstance(storage, dbClient);
-            storagePortOperationsInstance.invoke(attachResponse);
+            if(!isVplexVolume)
+            {
+            	//After the successful export, create or modify the storage ports
+                CinderStoragePortOperations storagePortOperationsInstance = CinderStoragePortOperations.getInstance(storage, dbClient);
+                storagePortOperationsInstance.invoke(attachResponse);
+            }
+            
         }
     }
 
@@ -469,6 +479,19 @@ public class CinderExportOperations implements ExportMaskOperations {
                 cinderApi.detachVolume(volumeId, null, fcInitiatorsWwpns, fcInitiatorsWwnns, host);
             }
         }
+    }
+    
+    /***
+     * Check if the request is for vplex.
+     * @param volume
+     * @return
+     */
+    private boolean isVplex(Volume volume)
+    {
+    	boolean isVplex = false;
+    	VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+    	isVplex = VirtualPool.vPoolSpecifiesHighAvailability(vpool);
+    	return isVplex;
     }
 
     private void splitInitiatorsByProtocol(List<Initiator> initiatorList,

@@ -7457,13 +7457,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             return waitFor;
         } 
         
-        StorageSystem parentSystem = getDataObject(StorageSystem.class, storage, _dbClient);
+        URI vplexSystemURI = associatedVPlexVolume.getStorageController();
+        StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexSystemURI);
+        
         Workflow.Method restoreVolumeMethod = new Workflow.Method(
-                RESTORE_VOLUME_METHOD_NAME, storage, snapshotURI);
+                RESTORE_VOLUME_METHOD_NAME, vplexSystemURI, snapshotURI);
         workflow.createStep(RESTORE_VPLEX_VOLUME_STEP, String.format(
                 "Restore volume %s from snapshot %s",
                 volume, snapshotURI), waitFor,
-                storage, parentSystem.getSystemType(),
+                vplexSystemURI, vplexSystem.getSystemType(),
                 VPlexDeviceController.class, restoreVolumeMethod, null, null);
         _log.info(
                 "Created workflow step to restore VPLEX backend volume {} from snapshot {}",

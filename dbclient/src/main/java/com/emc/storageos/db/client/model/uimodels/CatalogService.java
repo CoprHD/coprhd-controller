@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.client.model.uimodels;
 
+import com.emc.storageos.db.client.model.AlternateId;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.NamedRelationIndex;
@@ -96,6 +97,7 @@ public class CatalogService extends ModelObjectWithACLs implements Cloneable, So
         setChanged(EXECUTION_WINDOW_REQUIRED);
     }
 
+    @AlternateId("ServiceCatalogToExecutionWindow")
     @Name(DEFAULT_EXECUTION_WINDOW_ID)
     public NamedURI getDefaultExecutionWindowId() {
         return defaultExecutionWindowId;

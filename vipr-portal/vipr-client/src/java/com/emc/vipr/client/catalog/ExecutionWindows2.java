@@ -128,7 +128,7 @@ public class ExecutionWindows2 extends AbstractCatalogBulkResources<ExecutionWin
      *        the ID of the execution window
      */    
     public List<NamedRelatedResourceRep> getCatalogServices(URI executionWindowId) {
-        CatalogServiceList response = client.get(CatalogServiceList.class, PathConstants.CATALOG_SUB_SERVICES_URL, executionWindowId);
+        CatalogServiceList response = client.get(CatalogServiceList.class, PathConstants.EXECUTION_WINDOWS2_SERVICE_URL, executionWindowId);
         return defaultList(response.getCatalogServices());
     } 
     

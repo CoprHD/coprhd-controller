@@ -47,7 +47,7 @@ public class CatalogServiceFinder extends ModelFinder<CatalogService> {
         
         List<CatalogService> results = Lists.newArrayList();
         
-        List<NamedElement> catalogServiceIds = client.findBy(CatalogService.class, CatalogService.DEFAULT_EXECUTION_WINDOW_ID, executionWindowId);
+        List<NamedElement> catalogServiceIds = client.findByAlternateId(CatalogService.class, CatalogService.DEFAULT_EXECUTION_WINDOW_ID, executionWindowId.toString() + ":ExecutionWindow");
         if (catalogServiceIds != null) {
             results.addAll(findByIds(toURIs(catalogServiceIds)));
         }        

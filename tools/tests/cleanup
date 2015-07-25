@@ -34,7 +34,6 @@ if [ "$macaddr" = "" ] ; then
 fi
 ipaddr=`/sbin/ifconfig eth0 | /usr/bin/perl -nle 'print $1 if(m#inet addr:(.*?)\s+#);' | tr '.' '-'`
 export BOURNE_API_SYNC_TIMEOUT=700
-export BOURNE_IP=10.247.97.235
 
 if [ "$BOURNE_IP" = "localhost" ]; then
     SHORTENED_HOST="ip-$ipaddr"

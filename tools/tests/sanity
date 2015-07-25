@@ -464,13 +464,6 @@ COS_MIRROR_WITH_2_MIRRORS=cosmirror_max_2
 COS_MIRROR_BEFORE_CHANGE=cosmirror_before_change
 COS_MIRROR_AFTER_CHANGE=cosmirror_after_change
 COS_MIRROR_VNX=cosmirror_vnx
-# MIRROR_SMIS_DEV=VMAX-MIRROR-PROVIDER
-# MIRROR_SMIS_IP=10.247.99.74
-# MIRROR_DEV=vmax_dev
-# MIRROR_IP=10.247.99.74
-# MIRROR_USER=admin
-# MIRROR_PASSWD='#1Password'
-# MIRROR_NATIVEGUID=SYMMETRIX+000198700406
 
 #
 # Export group configuration
@@ -3858,7 +3851,7 @@ vmaxblock_tests()
     block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_VOLUME $COS_VMAXBLOCK $VMAX_VOLUME $COS_VMAXBLOCK
     # meta_volume_block_tests $VMAXEXPORT_GROUP $VMAXEXPORT_GROUP_HOST $VMAX_META_VOLUME $COS_VMAXBLOCK $VMAX_META_VOLUME $COS_VMAXBLOCK
     volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THIN   # work only for concatenate, stripe tbd
-    # Tests for thick meta can not be ran on VMAX10K provider. To run change provider to lglw9075 (VMAX40K provider)
+    # Tests for thick meta can not be ran on VMAX10K provider.
     #    volume_expand_test $VMAX_VOLUME $COS_VMAXBLOCK_THICK   # works for concatenate and stripe
 
     if [ "${AUTH}" != "local" -a "${AUTH}" != "ipv6" ]
@@ -4572,7 +4565,6 @@ security_tests()
 
 VMAX3_FC_NATIVEGUID=SYMMETRIX+000196700567
 VMAX3_FC_SMIS_DEV=VMAX3_FC_SMIS_DEV
-VMAX3_FC_SMIS_IP=10.247.166.179
 VMAX3_FC_PORTS_A="FA-1D FA-3D"
 VMAX3_FC_PORTS_B="FA-2D FA-4D"
 COS_VMAX3BLOCK_FC=COS_VMAX3BLOCK_FC
@@ -5387,8 +5379,8 @@ sec_start_ldap_server()
 vdc_federation_setup()
 {
 	if [ "$VDC_ENDPOINT_B" == "$VDC_DEFAULT_ENDPOINT" ] ; then
-        echo -e "\nFail: Usage of vdc sanity test is like:\n ./sanity 10.247.97.vdc1 vdc 10.247.97.vdc2"
-        echo -e "\nOr you can test more vdcs use:\n ./sanity 10.247.97.vdc1 vdc 10.247.97.vdc2 10.247.97.vdc3"
+        echo -e "\nFail: Usage of vdc sanity test is like:\n ./sanity 255.254.253.vdc1 vdc 255.254.253.vdc2"
+        echo -e "\nOr you can test more vdcs use:\n ./sanity 255.254.253.vdc1 vdc 255.254.253.vdc2 255.254.253.vdc3"
         exit 1
     fi
 

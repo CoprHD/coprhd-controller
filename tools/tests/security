@@ -146,7 +146,7 @@ add_zone_role.add_argument('role',      help = 'zone role to assign [SYSTEM_MONI
 #security add authn provider
 add_authn_provider = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 add_authn_provider.add_argument('mode',         help = 'ad or ldap')
-add_authn_provider.add_argument('urls',         help = 'server url, for example: ldap://10.10.10.123')
+add_authn_provider.add_argument('urls',         help = 'server url, for example: ldap://X.X.X.X')
 add_authn_provider.add_argument('managerdn',    help = 'Manager user distinguished name, for example: CN=Administrator,CN=Users,DC=sanity,DC=local')
 add_authn_provider.add_argument('managerpwd',   help = 'Manager user password')
 add_authn_provider.add_argument('searchbase',   help = 'Path where the ldap search begins.  For example: CN=Users,DC=sanity,DC=local')

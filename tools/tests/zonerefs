@@ -9,7 +9,7 @@
 # The script has pre-defined lists of storage ports for losam082, vplex154nbr2, and the vplex ports which
 # are selected by the tzone variable. It should be set to tzone1, tzone2, tzone12, or vplex.
 # You can specify a host:
-# zonerefs lglw2211 -- it will look up the initiator wwns using the initiator command
+# zonerefs X.X.X.X -- it will look up the initiator wwns using the initiator command
 # You can look for references for all the defaulted hosts (host1 ... host18):
 # zonerefs
 

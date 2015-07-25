@@ -567,7 +567,7 @@ if __name__=="__main__":
 
     main_parser = argparse.ArgumentParser(
                   add_help = False, 
-                  epilog = 'Ex: sysmgr.py login --ip 10.247.100.15'
+                  epilog = 'Ex: sysmgr.py login --ip X.X.X.X'
                   )
     main_parser.add_argument('--ip', metavar = 'ipaddr', help = 'IP address of a ViPR system', default=bourne_ip)
     

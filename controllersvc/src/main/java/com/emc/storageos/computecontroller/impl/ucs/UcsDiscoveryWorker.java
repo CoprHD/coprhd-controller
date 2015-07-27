@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computecontroller.impl.ucs;
@@ -1194,7 +1194,7 @@ public class UcsDiscoveryWorker {
 	 	}
  	
     	
-        if (lsbootStorage.getContent() != null && !lsbootStorage.getContent().isEmpty()){
+        if (lsbootStorage.getContent() != null && lsbootStorage.getContent().size()> 0){
         	for (Serializable e : lsbootStorage.getContent()) {
                 if (e instanceof JAXBElement<?>) {
                     if( ( (JAXBElement)e).getValue() instanceof LsbootSanImage){
@@ -1823,13 +1823,7 @@ public class UcsDiscoveryWorker {
         String wwn = seedWwn.substring(6,seedWwn.length());
         return "24:"+ Long.toHexString(parseNumber(portChannelId).longValue()).toUpperCase()+":"+wwn;
     }
-    /**
-     * Created COPP-38 to track the sonar issue.
-     * @param vsanList
-     * @param fcInterfaceMap
-     * @return
-     */
-    @SuppressWarnings({"squid:S2175"})
+
     private Map<String, Set<String>> getUnpinnedVSans(List<SwVsan> vsanList, Map<String, SwFcSanEp> fcInterfaceMap){
         Map <String,Set <String>> switchWiseVsan = new HashMap<>();
 
@@ -1850,9 +1844,7 @@ public class UcsDiscoveryWorker {
             if (vsanList == null) continue;
 
             if (vsanSet.contains(swInterfaces.getPortVsanId())){
-                vsanList.remove(swInterfaces.getPortVsanId()); 
-                //vasnList contains swVsan and this code tries to remove the String element which is not correct
-                
+                vsanList.remove(swInterfaces.getPortVsanId());
             }
         }
         return switchWiseVsan;
@@ -1873,15 +1865,13 @@ public class UcsDiscoveryWorker {
 	}
 
 	private void persistDataObjects(List<DataObject> objects) {
-		if (!objects.isEmpty()){
+		if (!objects.isEmpty())
 			_dbClient.persistObject(objects);
-		}
 	}
 
 	private void deleteDataObjects(List<DataObject> objects) {
-		if (!objects.isEmpty()){
+		if (objects.size() > 0)
 			_dbClient.markForDeletion(objects);
-		}
 	}
 
     private URL getUcsmURL(ComputeSystem cs) {

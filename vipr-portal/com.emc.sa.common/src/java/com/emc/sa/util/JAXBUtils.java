@@ -29,7 +29,7 @@ public class JAXBUtils {
 
     private static final Logger LOG = Logger.getLogger(JAXBUtils.class);
 
-    private static JAXBContext CONTEXT;
+    private static volatile JAXBContext CONTEXT;
 
     /** Serialize the given object to XML */
     public static String marshal(Object obj) throws JAXBException {

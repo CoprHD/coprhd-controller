@@ -55,8 +55,8 @@ public class OrderNumberSequenceImpl implements OrderNumberSequence {
                         LOG.warn("node already exists: ", e);
                     }
                 }
-                // TODO : Intialize from Database?
-                dataMgr.putData(COUNTER_PATH, 0l);
+                // TODO : Initialize from Database?
+                dataMgr.putData(COUNTER_PATH, 0L);
             }
         } catch (Exception e) {
             throw new RuntimeException("Starting OrderNumber Sequence",e);

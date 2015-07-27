@@ -16,8 +16,8 @@ public class SSLUtil {
     private static Logger log = LoggerFactory.getLogger(SSLUtil.class);
     
     private static boolean trustAllEnabled = false;
-    private static SSLContext trustAllContext;
-    private static NullHostNameVerifier hostnameVerifier;
+    private static volatile SSLContext trustAllContext;
+    private static volatile NullHostNameVerifier hostnameVerifier;
 
     public static void setSSLSocketFactory(SSLSocketFactory factory) {
         HttpsURLConnection.setDefaultSSLSocketFactory(factory);

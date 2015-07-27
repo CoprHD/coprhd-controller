@@ -21,7 +21,7 @@ public class ViPRServiceTest {
     // Valid conversion patterns
     private static final String CONVERSIONS = "bBhHsScCdoxXeEfgGaAtT%";
     private static Pattern MESSAGE_FORMAT = Pattern.compile("\\%[^" + CONVERSIONS + "]*[" + CONVERSIONS + "]");
-    private static ResourceBundle MESSAGES;
+    private static volatile ResourceBundle MESSAGES;
 
     @BeforeClass
     public static void loadMessages() {

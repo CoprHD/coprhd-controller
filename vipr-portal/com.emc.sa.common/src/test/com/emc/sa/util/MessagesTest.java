@@ -33,12 +33,9 @@ public class MessagesTest {
         Assert.assertEquals("Two", child.get("message"));
 
         // Message that is not in the parent, only in the child
-        try {
             parent.get("child");
             Assert.fail("Parent bundle should not have contained 'child' key");
-        }
-        catch (MissingResourceException e) {
-        }
+       
         Assert.assertEquals("Child", child.get("child"));
 
         // Messages that is in the parent, not in the child but accessible through parent

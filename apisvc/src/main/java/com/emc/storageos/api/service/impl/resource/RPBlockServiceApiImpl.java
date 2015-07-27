@@ -131,11 +131,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     protected CoordinatorClient _coordinator;    
     protected VPlexBlockServiceApiImpl vplexBlockServiceApiImpl;
 
-    // BBB - remove?
+    // TODO BBB - remove? it's on the parent
     @Autowired
     protected PermissionsHelper _permissionsHelper = null;
 
-    // BBB - remove?
+    // TODO BBB - remove? it's on the parent
     @Autowired
     protected DependencyChecker _dependencyChecker;
 

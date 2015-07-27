@@ -22,7 +22,7 @@ public class NodesDataTable extends DataTable {
 
     public static class Nodes {
         String name;
-        Strinf id;
+        String id;
         String ip;
         String status;
         String type;

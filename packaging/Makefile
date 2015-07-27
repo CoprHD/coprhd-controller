@@ -210,7 +210,7 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
                                    $(OVFBUILD_OVF_PROPERTY_INCLUDES)
 CONTROLLER_OVF_DEFINITIONS       := storageos-properties-ovfenv.def
                ITER_DEFINITIONS  := storageos-properties-iterable.def
-CONTROLLER_PROPERTY_DEFINITIONS  := $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
+CONTROLLER_PROPERTY_DEFINITIONS  := $(ITER_DEFINITIONS) $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
     OVF_PROPERTY_METADATA_BEANS   = $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var.xml \
                                     $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var-template.xml
                  CONFIG_DEFAULTS  = $(BUILD_BASE)/etc/config.defaults

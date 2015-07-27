@@ -43,6 +43,12 @@ public class CatalogServiceFinder extends ModelFinder<CatalogService> {
         return findPermissions(this.clazz, user, tenantId, filterBy);
     }    
     
+    /**
+     * Find all catalog service which are marked to run within an execution window. 
+     * 
+     * @param executionWindowId 
+     * @return list of catalog service
+     */
     public List<CatalogService> findByExecutionWindow(URI executionWindowId) {
         
         List<CatalogService> results = Lists.newArrayList();
@@ -50,11 +56,19 @@ public class CatalogServiceFinder extends ModelFinder<CatalogService> {
         List<NamedElement> catalogServiceIds = client.findByAlternateId(CatalogService.class, CatalogService.DEFAULT_EXECUTION_WINDOW_ID, executionWindowId.toString() + ":ExecutionWindow");
         if (catalogServiceIds != null) {
             results.addAll(findByIds(toURIs(catalogServiceIds)));
-        }        
-
+        }
+        
+        // remove any service that isn't required to run in execution windows
+        List<CatalogService> toRemove = Lists.newArrayList();
+        for (CatalogService service : results) {
+        	if (!service.getExecutionWindowRequired()) {
+        		toRemove.add(service);
+        	}
+        }
+        results.removeAll(toRemove);
+        
         SortedIndexUtils.sort(results);
         
         return results;
     }
-    
 }

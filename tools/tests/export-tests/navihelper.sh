@@ -55,7 +55,16 @@ sgblocksize=`expr ${sgblocksize} + 1`
 sgblockstart=`expr ${sgline} + ${sgblocksize} - 1`
 head -${sgblockstart} /tmp/verify.txt | tail -${sgblocksize} > /tmp/verify2.txt
 num_inits=`grep "$INITIATOR_PATTERN" /tmp/verify2.txt | awk '{print $1}' | sort -u | wc -l | awk '{print $1}'`
-num_luns=`egrep "[0-9].              .*[0-9].*" /tmp/verify2.txt | wc -l`
+# The verify2.txt file should have something like this:
+#
+# HLU/ALU Pairs:
+#
+#  HLU Number     ALU Number
+#  ----------     ----------
+#    1695            1695
+#
+# We are trying to match the line with HLU and ALU numbers
+num_luns=`perl -nle 'print if (m#\s+\d+\s+\d+#)' /tmp/verify2.txt | wc -l`
 failed=false
 
 if [ ${num_inits} -ne ${NUM_INITIATORS} ]

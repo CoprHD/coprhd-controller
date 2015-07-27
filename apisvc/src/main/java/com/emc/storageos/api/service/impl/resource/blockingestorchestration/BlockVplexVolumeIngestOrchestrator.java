@@ -115,7 +115,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
         
-        _logger.info("found {} associated UnManagedVolume objects for device {}", associatedVolumes.size(), deviceName);
+        _logger.info("for VPLEX UnManagedVolume {} found these associated volumes: " + associatedVolumes, unManagedVolume.getId());
+        
+        
+        
+        // TODO: ingest backend volumes and export masks
+        
+        
         
         // TODO obviously remove this
         if (associatedVolumes.size() == 0 || associatedVolumes.size() == 1 || associatedVolumes.size() == 2) {

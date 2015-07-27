@@ -1,6 +1,9 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/*
+ * This computer code is copyright 2013 EMC Corporation. All rights reserved.
  */
 package com.emc.storageos.recoverpoint;
 

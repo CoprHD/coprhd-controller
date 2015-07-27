@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.utils;
@@ -14,6 +24,7 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -316,7 +327,7 @@ public class Documenter {
         }
 
         public Object[] getParameters() {
-            return parameters;
+            return Arrays.copyOf(parameters, parameters.length);
         }
 
         public String getParametersAsString() {
@@ -340,10 +351,10 @@ public class Documenter {
             this.interfaze = interfaze;
             this.method = method;
             this.status = status;
-            this.parameters = parameters;
             this.code = sce.getServiceCode();
             this.summary = code.getSummary();
             this.message = sce.getMessage();
+            this.parameters = (parameters != null) ? Arrays.copyOf(parameters, parameters.length) : null;
         }
     }
 }

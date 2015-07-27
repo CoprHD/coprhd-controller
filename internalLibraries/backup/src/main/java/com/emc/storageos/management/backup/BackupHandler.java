@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ * Copyright (c) 2014 EMC Corporation 
+ * All Rights Reserved 
+ *
+ * This software contains the intellectual property of EMC Corporation 
+ * or is licensed to EMC Corporation from third parties.  Use of this 
+ * software and the intellectual property contained therein is expressly 
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.backup;
@@ -13,6 +23,7 @@ import java.io.IOException;
 public abstract class BackupHandler {
 
     protected BackupType backupType;
+    protected BackupContext backupContext;
 
     /**
      * Gets backup data type
@@ -28,6 +39,21 @@ public abstract class BackupHandler {
      */
     public void setBackupType(BackupType backupType) {
         this.backupType = backupType;
+    }
+    
+    /**
+     * Gets backup context
+     */
+    public BackupContext getBackupContext() {
+        return this.backupContext;
+    }    
+
+    /**
+    * Sets backup context
+    * @param backupContext
+    */
+    public void setBackupContext(BackupContext backupContext) {
+        this.backupContext = backupContext;
     }
 
     /**
@@ -62,7 +88,7 @@ public abstract class BackupHandler {
      *          The name of the backup file
      */
     protected void checkBackupFileExist(final String backupTag, final String fullBackupTag) {
-        File backupFolder = new File(BackupManager.backupDir, backupTag);
+        File backupFolder = new File(backupContext.getBackupDir(), backupTag);
         if (!backupFolder.exists())
             return;
         File backupFile = new File(backupFolder, fullBackupTag + BackupConstants.COMPRESS_SUFFIX);

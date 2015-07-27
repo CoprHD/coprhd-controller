@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2008-2014 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2008-2014 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -57,21 +67,21 @@ public class VdcOpLog extends DataObject {
 
     @Name("opParam")
     public byte[] getOperationParam() {
-        return operationParam;
+        return operationParam.clone();
     }
 
     public void setOperationParam(byte[] operationParam) {
-        this.operationParam = operationParam;
+        this.operationParam = operationParam.clone();
         setChanged("opParam");
     }
 
     @Name("vdcConfig")
     public byte[] getVdcConfigInfo() {
-        return vdcConfigInfo;
+        return vdcConfigInfo.clone();
     }
 
     public void setVdcConfigInfo(byte[] vdcConfigInfo) {
-        this.vdcConfigInfo = vdcConfigInfo;
+        this.vdcConfigInfo = vdcConfigInfo.clone();
         setChanged("vdcConfig");
     }
 

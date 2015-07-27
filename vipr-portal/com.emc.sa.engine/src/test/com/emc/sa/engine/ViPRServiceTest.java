@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine;
@@ -21,7 +21,7 @@ public class ViPRServiceTest {
     // Valid conversion patterns
     private static final String CONVERSIONS = "bBhHsScCdoxXeEfgGaAtT%";
     private static Pattern MESSAGE_FORMAT = Pattern.compile("\\%[^" + CONVERSIONS + "]*[" + CONVERSIONS + "]");
-    private static ResourceBundle MESSAGES;
+    private static volatile ResourceBundle MESSAGES;
 
     @BeforeClass
     public static void loadMessages() {

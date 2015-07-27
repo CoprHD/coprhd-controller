@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.password;
@@ -22,7 +22,7 @@ public class ValidationApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(ValidationApiTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String password="ChangeMe"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's default ViPR password.")
+    private static String password="ChangeMe"; // NOSONAR ("Suppressing: removing this hard-coded password since it's default ViPR password.")
 
     @BeforeClass
     public synchronized static void setupPasswordValidation() throws Exception {

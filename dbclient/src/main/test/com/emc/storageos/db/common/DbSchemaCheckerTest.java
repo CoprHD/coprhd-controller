@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common;
@@ -63,13 +73,14 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
 
             Assert.assertEquals(sw1.getBuffer().toString(), sw2.getBuffer().toString());
         } catch (Exception e) {
-            e.printStackTrace();
+        	log.error("testSchemaConsistent failed:", e);
             Assert.fail();
         } finally {
             try {
                 sw1.close();
                 sw2.close();
             } catch (IOException e) {
+            	log.warn("IO close exception:{}", e);
             }
         }
     }
@@ -86,20 +97,21 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
 
             jc = JAXBContext.newInstance(SchemaUT.class);
             Marshaller m = jc.createMarshaller();
-            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, new Boolean(true));
+            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
             StringWriter sw = new StringWriter();
             m.marshal(schemaUT, sw);
 
             writer.write(sw.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+        	log.error("testSchemaCheckRoundTrip failed:{}", e);
             Assert.fail();
         } finally {
             try {
                 if (writer != null)
                 writer.close();
             } catch (IOException e) {
+            	log.warn("IO close exception:{}", e);
             }
         }
 
@@ -113,7 +125,7 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
 
             Assert.assertEquals(srcSchema, schemas.getSchemas().get(0));
         } catch (Exception e) {
-            e.printStackTrace();
+        	log.error("testSchemaCheckRoundTrip failed:{}", e);
             Assert.fail();
         }
     }

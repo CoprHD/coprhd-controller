@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ *  software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of 
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -165,7 +175,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
             setTenantId(newDao.getTenantId());
         }
         // update group info
-        if (newDao.getGroups() == null || newDao.getGroups().size() == 0) {
+        if (newDao.getGroups() == null || newDao.getGroups().isEmpty()) {
             if (_groups != null) {
                 _groups.clear();
             }
@@ -190,7 +200,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
             }
         }
         // update attributes
-        if (newDao.getAttributes() == null || newDao.getAttributes().size() == 0) {
+        if (newDao.getAttributes() == null || newDao.getAttributes().isEmpty()) {
             if (_attributes != null) {
                 _attributes.clear();
             }

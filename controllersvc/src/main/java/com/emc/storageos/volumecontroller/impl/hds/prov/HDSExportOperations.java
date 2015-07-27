@@ -1,6 +1,16 @@
 /*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/*
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.hds.prov;
 
@@ -1691,16 +1701,18 @@ public class HDSExportOperations implements ExportMaskOperations {
      * @return
      */
     private URI getHDSServerManagementServerInfo(StorageSystem system) {
-        Object[] uriParams = new Object[3];
+    	String protocol;
+    	String providerIP;
+    	int port;
         if (Boolean.TRUE.equals(system.getSmisUseSSL())) {
-            uriParams[0] = HDSConstants.HTTPS_URL;
+        	protocol = HDSConstants.HTTPS_URL;
         } else {
-            uriParams[0] = HDSConstants.HTTP_URL;
+        	protocol = HDSConstants.HTTP_URL;
         }
-        uriParams[1] = system.getSmisProviderIP();
-        uriParams[2] = system.getSmisPortNumber();
+        providerIP = system.getSmisProviderIP();
+        port = system.getSmisPortNumber();
         URI uri = URI.create(String.format("%1$s://%2$s:%3$d/service/StorageManager",
-                uriParams)); //NOSONAR ("Ignore String.format sonar voilation")
+        		protocol,providerIP,port)); 
         log.info("HiCommand DM server url to query: {}", uri);
         return uri;
     }

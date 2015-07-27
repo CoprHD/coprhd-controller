@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.common;
@@ -55,7 +55,9 @@ public class VdcUtil {
     }
     
     public static void setDbClient(DbClient dbclient) {
-        dbClient = dbclient;
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //only called once when spring initialization, so it's safe to ignore sonar violation
+        dbClient = dbclient; //NOSONAR (squid:S2444)
     }
 
     public static String getFirstVdcId() {
@@ -232,7 +234,7 @@ public class VdcUtil {
 				String part2 = parts2[index];
 				int result = 0;
 				if(StringUtils.isNumeric(part1) && StringUtils.isNumeric(part2)){
-					result = (new Integer(part1)).compareTo(new Integer(part2));
+					result = (Integer.valueOf(part1).compareTo(Integer.valueOf(part2)));
 				}else{
 					result = part1.compareToIgnoreCase(part2);
 					

@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.upgrade;
 
@@ -196,7 +206,9 @@ public class InternalDbClient extends DbClientImpl {
 
         return inmemKeyList;
     }
-
+    
+    //only used during migration stage in single thread, so it's safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public <T extends DataObject> void migrateToGeoDb(Class<T> clazz) {
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {

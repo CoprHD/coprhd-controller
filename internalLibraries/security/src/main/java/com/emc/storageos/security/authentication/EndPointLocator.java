@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.authentication;
 
@@ -16,6 +26,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.exceptions.SecurityException;
+import org.springframework.util.CollectionUtils;
 
 /**
  * 
@@ -102,9 +113,9 @@ public class EndPointLocator {
      */
     public URI getAnEndpoint() {
         List<URI> endpoints = getServiceEndpointList();
-        if (endpoints == null || endpoints.size() < 1) {
-            throw SecurityException.retryables.requiredServiceUnvailable(_svcInfo
-                    .getServiceName());
+        if (endpoints.isEmpty()) {
+            _log.error("Service endpoint list is empty");
+            throw SecurityException.retryables.requiredServiceUnvailable(_svcInfo.getServiceName());
         }
 
         // extract an end point

@@ -46,7 +46,8 @@ public class IngestUnmanagedFilesystems extends ViPRExecutionTask<List<NamedRela
     private List<NamedRelatedResourceRep> ingestInChunks(FileSystemIngest ingest) {
         List<NamedRelatedResourceRep> results = Lists.newArrayList();
         int i = 1;
-        for (Iterator<URI> ids = unmanagedFilesystemIds.iterator(); ids.hasNext(); i++) {
+        for (Iterator<URI> ids = unmanagedFilesystemIds.iterator(); ids.hasNext(); ) {
+        	i++;
             URI id = ids.next();
             ingest.getUnManagedFileSystems().add(id);
             if (i == IngestUnexportedUnmanagedVolumes.INGEST_CHUNK_SIZE || !ids.hasNext()) {

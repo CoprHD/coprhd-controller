@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine;
@@ -282,7 +282,7 @@ public class ExecutionEngineMonitor extends SingletonService {
     }
 
     private String getOrdersPath(String engineId) {
-        return String.format("%s/orders", getEnginePath(engineId), "orders");
+        return String.format("%s/%s", getEnginePath(engineId), "orders");
     }
 
     private String getOrderPath(String engineId, Order order) {

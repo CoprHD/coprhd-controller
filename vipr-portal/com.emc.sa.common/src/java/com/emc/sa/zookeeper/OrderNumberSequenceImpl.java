@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.zookeeper;
@@ -55,8 +55,8 @@ public class OrderNumberSequenceImpl implements OrderNumberSequence {
                         LOG.warn("node already exists: ", e);
                     }
                 }
-                // TODO : Intialize from Database?
-                dataMgr.putData(COUNTER_PATH, 0l);
+                // TODO : Initialize from Database?
+                dataMgr.putData(COUNTER_PATH, 0L);
             }
         } catch (Exception e) {
             throw new RuntimeException("Starting OrderNumber Sequence",e);

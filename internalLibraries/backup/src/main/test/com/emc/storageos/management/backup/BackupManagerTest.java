@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ * Copyright (c) 2014 EMC Corporation
+ * All Rights Reserved 
+ *
+ * This software contains the intellectual property of EMC Corporation 
+ * or is licensed to EMC Corporation from third parties.  Use of this 
+ * software and the intellectual property contained therein is expressly 
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.backup;
@@ -33,8 +43,10 @@ public class BackupManagerTest extends BackupTestBase {
     @BeforeClass
     public static void setUp() {
         Assert.assertNotNull(backupManager.getBackupHandler());
-        Assert.assertNotNull(backupManager.getBackupDir());
-        backupFolder = backupManager.getBackupDir();
+        Assert.assertNotNull(backupManager.getBackupContext().getBackupDir());
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //Junit test will be called in single thread by default, it's safe to ignore this violation
+        backupFolder = backupManager.getBackupContext().getBackupDir(); //NOSONAR ("squid:S2444")
     }
 
     @Test(expected = IllegalArgumentException.class)

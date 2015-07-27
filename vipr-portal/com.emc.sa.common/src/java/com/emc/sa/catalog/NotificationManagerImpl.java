@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.catalog;
@@ -234,7 +234,7 @@ public class NotificationManagerImpl implements NotificationManager {
                 log.debug(String.format("Approval POST succeeded: %s, %s %s", approvalUrl, response.getStatus(), response.getEntity(String.class)));
             }
         } catch(ClientHandlerException e) {
-            log.error(String.format("Approval POST failed: %s, %s", approvalUrl, e.getCause(), e.getMessage()));
+            log.error(String.format("Approval POST failed: %s, %s, %s", approvalUrl, e.getCause(), e.getMessage()));
         }
     }
     

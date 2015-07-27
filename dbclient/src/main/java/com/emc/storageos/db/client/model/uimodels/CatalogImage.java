@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.uimodels;
@@ -48,11 +48,11 @@ public class CatalogImage extends ModelObject implements TenantDataObject {
 
     @Name(DATA)
     public byte[] getData() {
-        return data;
+        return data.clone();
     }
 
     public void setData(byte[] data) {
-        this.data = data;
+        this.data = data.clone();
         setChanged(DATA);
     }
 

@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -288,14 +298,14 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
                 _connectedVirtualArrays == null ? "[]" : _connectedVirtualArrays.toArray(), 
                 _taggedVirtualArrays == null ? "[]" : _taggedVirtualArrays.toArray()});
 
-        if ((_assignedVirtualArrays != null) && (_assignedVirtualArrays.size() != 0)) {
+        if ((_assignedVirtualArrays != null) && (!_assignedVirtualArrays.isEmpty())) {
             s_logger.debug("updateVirtualArrayTags: replacing with assigned {}", _assignedVirtualArrays.size());
             _taggedVirtualArrays.replace(_assignedVirtualArrays);
             s_logger.debug("updateVirtualArrayTags is taking assigned varrays: added {} removed {}",
                 (_taggedVirtualArrays.getAddedSet() != null)?_taggedVirtualArrays.getAddedSet().size():"0",
                 (_taggedVirtualArrays.getRemovedSet() != null)?_taggedVirtualArrays.getRemovedSet().size():"0");
         } else if ((_connectedVirtualArrays != null)
-                && (_connectedVirtualArrays.size() != 0)) {
+                && (!_connectedVirtualArrays.isEmpty())) {
             s_logger.debug("updateVirtualArrayTags: replacing with connected {}", _connectedVirtualArrays.size());
             _taggedVirtualArrays.replace(_connectedVirtualArrays);
            s_logger.debug("updateVirtualArrayTags is taking connected varrays: added {} removed {}",

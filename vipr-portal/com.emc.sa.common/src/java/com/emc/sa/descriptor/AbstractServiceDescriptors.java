@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.descriptor;
+
+import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,11 +19,11 @@ public abstract class AbstractServiceDescriptors implements ServiceDescriptors {
     protected abstract ServiceDefinition getServiceDefinition(String serviceId);
 
     public String[] getBundleNames() {
-        return bundleNames;
+    	return safeArrayCopy(bundleNames);
     }
 
     public void setBundleNames(String[] bundleNames) {
-        this.bundleNames = bundleNames;
+        this.bundleNames = safeArrayCopy(bundleNames);
     }
 
     protected ClassLoader getClassLoader() {

@@ -1,15 +1,17 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.zookeeper;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.emc.sa.model.dao.ModelClient;
 
 /**
  */
 public class InMemoryOrderNumberSequence implements OrderNumberSequence {
-    private Long currentOrderNumber;
+    private AtomicLong currentOrderNumber = new AtomicLong();
 
     private ModelClient MODELS;
 
@@ -21,8 +23,6 @@ public class InMemoryOrderNumberSequence implements OrderNumberSequence {
 
     @Override
     public long nextOrderNumber() {
-        synchronized (currentOrderNumber) {
-            return currentOrderNumber++;
-        }
+    	return currentOrderNumber.getAndIncrement();
     }
 }

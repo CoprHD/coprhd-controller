@@ -1,7 +1,17 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
+/**
+ *  Copyright (c) 2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ **/
 package com.emc.storageos.recoverpoint.utils;
 
 import java.io.File;
@@ -225,9 +235,9 @@ public class RecoverPointConnection {
             // especially this ;-)
             keystoreName = System.getProperty("user.home") + System.getProperty("file.separator") + "keystore.ImportKey";
         }
-        String keystorePassword = "changeit";
+        String keystore_pass = "changeit";
         // initializing keystore
-        KeyStore ks = createAndLoadKeyStore(keystoreName, keystorePassword);
+        KeyStore ks = createAndLoadKeyStore(keystoreName, keystore_pass);
         java.security.cert.Certificate ksCrt = ks.getCertificate(alias);
         if (ksCrt != null) {
             ks.deleteEntry(alias);
@@ -239,7 +249,7 @@ public class RecoverPointConnection {
         // Save the new keystore contents
         FileOutputStream out = new FileOutputStream(keystoreName);
         try {
-            ks.store(out, keystorePassword.toCharArray());
+            ks.store(out, keystore_pass.toCharArray());
         } finally {
             out.close();
         }

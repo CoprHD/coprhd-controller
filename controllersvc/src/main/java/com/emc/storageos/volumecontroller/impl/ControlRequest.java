@@ -1,6 +1,16 @@
 /*
- * Copyright (c) 2008-2011 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2008-2011 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl;
@@ -52,12 +62,12 @@ public class ControlRequest implements Serializable {
     public String getQueueName() {
         return (String) _req.get(QUEUE_NAME);
     }
-
+    @SuppressWarnings({"squid:S2118"})
     public byte[] serialize() {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ObjectOutputStream oout = new ObjectOutputStream(out);
-            oout.writeObject(_req);
+            oout.writeObject(_req); // Can not write non-serializable object(Map)
             return out.toByteArray();
         } catch (Exception e) {
             throw new IllegalStateException(e);

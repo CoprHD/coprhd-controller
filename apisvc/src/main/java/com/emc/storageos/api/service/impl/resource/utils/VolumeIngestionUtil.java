@@ -2062,6 +2062,18 @@ public class VolumeIngestionUtil {
         return blockObject;
     }
     
+    @SuppressWarnings("rawtypes")
+    public static Class getBlockObjectClass(UnManagedVolume unManagedVolume) {
+        Class blockObjectClass = Volume.class;
+        if(VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
+            blockObjectClass = BlockSnapshot.class;
+        } else if(VolumeIngestionUtil.isMirror(unManagedVolume)) {
+            blockObjectClass = BlockMirror.class;
+        }
+        
+        return blockObjectClass;
+    }
+    
     public static Set<String> getUnIngestedReplicas(StringSet replicaVoluemGUIDs, List<BlockObject> replicaObjects) {
         StringSet replicas = new StringSet();
         for(BlockObject replica : replicaObjects) {

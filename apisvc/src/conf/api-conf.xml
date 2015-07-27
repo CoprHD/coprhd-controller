@@ -512,6 +512,10 @@
                     <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
                 </bean>
                 
+                <bean class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVplexVolumeIngestOrchestrator">
+                    <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
+                </bean>
+                
                 <bean class="com.emc.storageos.api.service.impl.resource.UnManagedFilesystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

@@ -13,6 +13,8 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
 
 import org.slf4j.Logger;
@@ -34,6 +37,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -45,6 +49,9 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 /**
  * Responsible for ingesting vplex local and distributed virtual volumes.
@@ -61,6 +68,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     // maps each virtual array's URI to the cluster id (1 or 2) it connects to
     private Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
     
+    // maps storage system URIs to StorageSystem objects
+    private Map<String, StorageSystem> systemMap = new HashMap<String, StorageSystem>();
+    
+    private IngestStrategyFactory ingestStrategyFactory;
+    
+    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
+        this.ingestStrategyFactory = ingestStrategyFactory;
+    }
+
     @Override
     public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache,StorageSystem system, UnManagedVolume unManagedVolume,
             VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesToBeDeleted, 
@@ -90,9 +106,67 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             
             if (null != associatedVolumes && !associatedVolumes.isEmpty()) {
                 validateAssociatedVolumes(vPool, project, tenant, associatedVolumes);
+
+                Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
+                Map<String, BlockObject> vplexCreatedObjectMap = new HashMap<String, BlockObject>();
+                Map<String, List<DataObject>> vplexUpdatedObjectMap = new HashMap<String, List<DataObject>>();
                 
-                // synchronously ingest backend volumes
-                // synchronously ingest backend export masks
+                for (URI associatedVolumeUri : associatedVolumes) {
+                    UnManagedVolume associatedVolume = _dbClient.queryObject(UnManagedVolume.class,
+                            associatedVolumeUri);
+                    _logger.info("Ingestion started for exported vplex backend unmanagedvolume {}", associatedVolume.getNativeGuid());
+                    
+                    
+                    // TODO how to track this as task(s)?
+                    // String taskId = UUID.randomUUID().toString();
+                    // Operation operation = _dbClient.createTaskOpStatus(UnManagedVolume.class, 
+                    //        associatedVolumeUri, taskId, ResourceOperationTypeEnum.INGEST_EXPORTED_BLOCK_OBJECTS);  // TODO: new enum
+                    
+                    try {
+                        
+                        URI storageSystemUri = associatedVolume.getStorageSystemUri();
+                        StorageSystem associatedSystem =  systemMap.get(storageSystemUri.toString());
+                        if (null == associatedSystem) {
+                            associatedSystem = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
+                            systemMap.put(storageSystemUri.toString(), associatedSystem);
+                        }
+                        //Build the Strategy , which contains reference to Block object & export orchestrators
+                        IngestStrategy ingestStrategy =  ingestStrategyFactory.buildIngestStrategy(associatedVolume);
+                        
+                        //TODO try to find ways to reduce parameters
+                        @SuppressWarnings("unchecked")
+                        BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, 
+                                associatedSystem, associatedVolume, vPool, virtualArray, 
+                                project, tenant, unManagedVolumesToBeDeleted, vplexCreatedObjectMap, 
+                                vplexUpdatedObjectMap, true, VolumeIngestionUtil.getBlockObjectClass(associatedVolume), taskStatusMap);
+                        
+                        _logger.info("Ingestion ended for exported unmanagedvolume {}", associatedVolume.getNativeGuid());
+                        if (null == blockObject)  {
+                            throw IngestionException.exceptions.generalVolumeException(
+                                    associatedVolume.getLabel(), "check the logs for more details");
+                        }
+                        
+                        //TODO come up with a common response object to hold snaps/mirrors/clones
+                        createdObjectMap.put(blockObject.getNativeGuid(), blockObject);
+                        processedUnManagedVolumeMap.put(associatedVolume.getNativeGuid(), associatedVolume);
+                    } catch ( APIException ex ) {
+                        _logger.warn(ex.getLocalizedMessage(), ex);
+//                        _dbClient.error(UnManagedVolume.class, associatedVolumeUri, taskId, ex);
+                    } catch ( Exception ex ) {
+                        _logger.warn(ex.getLocalizedMessage(), ex);
+//                        _dbClient.error(UnManagedVolume.class, associatedVolumeUri, 
+//                                taskId, IngestionException.exceptions.generalVolumeException(
+//                                        associatedVolume.getLabel(), ex.getLocalizedMessage()));
+                    }
+                    
+//                    TaskResourceRep task = toTask(associatedVolume, taskId, operation);
+//                    taskMap.put(associatedVolume.getId().toString(), task);
+                }
+                
+                
+                
+                // ingestBackendExportMasks();
+                
             }
         } catch (Exception ex) {
             

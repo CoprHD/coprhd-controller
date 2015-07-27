@@ -6,7 +6,7 @@
 
 # VPLEX EXPORT Test
 # This can be run from within sanity, or standalone after sanity has initiatlized the system.
-# For loggin in use: super_sanity@sanity.local P@ssw0rd
+# For loggin in use: user@domain.com Password
 #
 # This script sets up two VPLEX environments, a cross-connected one, and non cross-connected on,
 # using four Varrays. The Varrays are: VAcc1, VAcc2,  and  VAnc1, VAnc2.
@@ -57,7 +57,7 @@ tenant=${tenant:-standalone}
 }
 # The altVipr variable allows use of another ViPR instance for Brownfield scenarios.
 [ "$altVipr" ] || {
-    altVipr="--ip lglw2213.lss.emc.com"
+    altVipr="--ip ${ALTERNATE_COPRHD}"
 }
 [ "$macaddr" ] || {
     macaddr=`/sbin/ifconfig eth0 | /usr/bin/awk '/HWaddr/ { print $5 }'`

@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -83,7 +84,33 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             
             throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(virtualArray.getLabel(), unManagedVolume.getLabel());
         }
+        
+        try {
+            List<URI> associatedVolumes = getAssociatedVolumes(unManagedVolume);
+            
+            if (null != associatedVolumes && !associatedVolumes.isEmpty()) {
+                validateAssociatedVolumes(vPool, project, tenant, associatedVolumes);
+                
+                // synchronously ingest backend volumes
+                // synchronously ingest backend export masks
+            }
+        } catch (Exception ex) {
+            
+            // TODO: error handlin'
+            _logger.error("error!!!", ex);
+        }
+        
+        // TODO obviously remove this
+        boolean tickles = true;
+        if (tickles) {
+            throw IngestionException.exceptions.generalException("throwing exception to stop ingestion during testing!!!!!");
+        }
+        
+        return super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
+                unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
+    }
 
+    private List<URI> getAssociatedVolumes(UnManagedVolume unManagedVolume) {
         String deviceName = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),
                     unManagedVolume.getVolumeInformation());
@@ -116,22 +143,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
         
         _logger.info("for VPLEX UnManagedVolume {} found these associated volumes: " + associatedVolumes, unManagedVolume.getId());
-        
-        
-        
-        // TODO: ingest backend volumes and export masks
-        
-        
-        
-        // TODO obviously remove this
-        if (associatedVolumes.size() == 0 || associatedVolumes.size() == 1 || associatedVolumes.size() == 2) {
-            throw IngestionException.exceptions.generalException("throwing exception to stop ingestion during testing!!!!!");
-        }
-        
-        return super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
-                unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz, taskStatusMap);
+        return associatedVolumes;
     }
 
+    private void validateAssociatedVolumes(VirtualPool vPool, Project project,
+            TenantOrg tenant, List<URI> associatedVolumes) throws Exception {
+        // validation
+        // check if selected vpool can contain all the backend volumes
+        // check quotas
+        
+        
+        
+        // check for Quotas
+        long unManagedVolumesCapacity = VolumeIngestionUtil.getTotalUnManagedVolumeCapacity(_dbClient, associatedVolumes);
+        _logger.info("UnManagedVolume provisioning quota validation successful");
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vPool, project, tenant, unManagedVolumesCapacity, "volume");
+        VolumeIngestionUtil.checkIngestionRequestValidForUnManagedVolumes(associatedVolumes, vPool, _dbClient);
+    }
+    
     @Override
     protected void updateBlockObjectNativeIds(BlockObject blockObject, UnManagedVolume unManagedVolume) {
         String label = unManagedVolume.getLabel();

@@ -57,21 +57,21 @@ public class VdcOpLog extends DataObject {
 
     @Name("opParam")
     public byte[] getOperationParam() {
-        return operationParam;
+        return operationParam.clone();
     }
 
     public void setOperationParam(byte[] operationParam) {
-        this.operationParam = operationParam;
+        this.operationParam = operationParam.clone();
         setChanged("opParam");
     }
 
     @Name("vdcConfig")
     public byte[] getVdcConfigInfo() {
-        return vdcConfigInfo;
+        return vdcConfigInfo.clone();
     }
 
     public void setVdcConfigInfo(byte[] vdcConfigInfo) {
-        this.vdcConfigInfo = vdcConfigInfo;
+        this.vdcConfigInfo = vdcConfigInfo.clone();
         setChanged("vdcConfig");
     }
 

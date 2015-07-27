@@ -22,6 +22,9 @@ public class DbSchemaInterceptorTest {
 	
 	private static DbSchemaScannerInterceptor interceptor = null;
 	
+	//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+	//Junit test will be called in single thread by default, it's safe to ignore this violation
+	@SuppressWarnings("squid:S2444")
 	@Before
 	public void setup(){
 		interceptor = new DbSchemaInterceptorImpl();

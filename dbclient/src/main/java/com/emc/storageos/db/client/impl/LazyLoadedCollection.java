@@ -103,7 +103,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
      */
     @Override
     public boolean contains(Object o) {
-        return getCollection().contains(o);
+    	//Inappropriate "Collection" calls should not be made
+    	//it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of DataObject
+        return getCollection().contains(o); //NOSONAR ("squid:S2175")
     }
 
     /* (non-Javadoc)
@@ -155,7 +157,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
             mappedByUriSet.remove(((DataObject)o).getId().toString());
             mappedByUriSet.setCallback(cb);
        }
-        return getCollection().remove(o);
+    	//Inappropriate "Collection" calls should not be made
+    	//it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of DataObject
+        return getCollection().remove(o); //NOSONAR ("squid:S2175")
     }
 
     /* (non-Javadoc)

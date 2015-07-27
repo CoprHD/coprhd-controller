@@ -48,11 +48,11 @@ public class CatalogImage extends ModelObject implements TenantDataObject {
 
     @Name(DATA)
     public byte[] getData() {
-        return data;
+        return data.clone();
     }
 
     public void setData(byte[] data) {
-        this.data = data;
+        this.data = data.clone();
         setChanged(DATA);
     }
 

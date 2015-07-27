@@ -175,10 +175,14 @@ public class DbClientImpl implements DbClient {
         _dbVersionInfo = dbVersionInfo;
     }
 
+    //only called once when Spring initialization, so it's safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public void setCoordinatorClient(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
+    //only called once when Spring initialization, so it's safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
     }
@@ -188,6 +192,9 @@ public class DbClientImpl implements DbClient {
      *
      * @param encryptionProvider
      */
+    
+    //only called once when Spring initialization, so it's safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public void setGeoEncryptionProvider(EncryptionProvider encryptionProvider) {
         _geoEncryptionProvider = encryptionProvider;
     }
@@ -197,6 +204,8 @@ public class DbClientImpl implements DbClient {
      *
      * @param encryptionProvider
      */
+    //only called once when Spring initialization, so it's safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public void setEncryptionProvider(EncryptionProvider encryptionProvider) {
         _encryptionProvider = encryptionProvider;
     }

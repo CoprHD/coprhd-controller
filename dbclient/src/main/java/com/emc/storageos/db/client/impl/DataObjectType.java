@@ -197,12 +197,12 @@ public class DataObjectType {
                                 " does not have a valid value or referenced another indexed field");
                     }
                     ((AggregateDbIndex) index).addGroupByField(_columnFieldMap.get(groupByName));
-                    if (groupField.getDependentFields() != null) {
+                    if (groupField != null && groupField.getDependentFields() != null) {
                     	groupField.getDependentFields().add(field);
                     }
                     field.getRefFields().add(groupField);
                 }
-                if(field.getRefFields().size()>0) {
+                if(!field.getRefFields().isEmpty()) {
                     _preprocessedFields.add(field);
                 }
             }

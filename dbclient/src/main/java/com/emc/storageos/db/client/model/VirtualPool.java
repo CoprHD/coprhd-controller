@@ -394,7 +394,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void addProtocols(final Set<String> protocols) {
         if (null == _protocols)
             setProtocols(new StringSet());
-        if (0 < protocols.size()) {
+        if (!protocols.isEmpty()) {
             _protocols.addAll(protocols);
         }
     }
@@ -564,7 +564,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         if (null != _assignedStoragePools) {
             _assignedStoragePools.replace(assignedPools);
         } else {
-            if (null != assignedPools && 0 < assignedPools.size()) {
+            if (null != assignedPools && !assignedPools.isEmpty()) {
                 setAssignedStoragePools(new StringSet());
                 _assignedStoragePools.addAll(assignedPools);
             }
@@ -593,7 +593,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         if (null != _matchedStoragePools) {
             _matchedStoragePools.replace(matchedPools);
         } else {
-            if (null != matchedPools && 0 < matchedPools.size()) {
+            if (null != matchedPools && !matchedPools.isEmpty()) {
                 setMatchedStoragePools(new StringSet());
                 _matchedStoragePools.addAll(matchedPools);
             }
@@ -639,7 +639,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         if (null != _invalidMatchedPools) {
             _invalidMatchedPools.replace(invalidPools);
         } else {
-            if (null != invalidPools && 0 < invalidPools.size()) {
+            if (null != invalidPools && !invalidPools.isEmpty()) {
                 setInvalidMatchedPools(new StringSet());
                 _invalidMatchedPools.addAll(invalidPools);
             }

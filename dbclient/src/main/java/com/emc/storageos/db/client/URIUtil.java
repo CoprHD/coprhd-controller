@@ -10,6 +10,8 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -18,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class URIUtil {
+    private static final Logger log = LoggerFactory.getLogger(URIUtil.class);
     private static final int VDC_PARTS_COUNT = 4;
 
 	private static final String[] MODEL_PACKAGES = new String[]{"com.emc.storageos.db.client.model", "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects"};
@@ -76,6 +79,7 @@ public class URIUtil {
                 return Thread.currentThread().getContextClassLoader().loadClass(modelPackage+"."+typeName);
             }
             catch (ClassNotFoundException ignore) {
+                log.warn("load class failed:{}", ignore);
             }
         }
 

@@ -256,7 +256,7 @@ public class Network extends DiscoveredDataObject {
     			removed.add(key);
     		}
     	}
-    	if (removed.size() > 0) setChanged("endpoints");
+    	if (!removed.isEmpty()) setChanged("endpoints");
     	return removed;
     }
     

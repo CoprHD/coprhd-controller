@@ -130,6 +130,7 @@ public class DbServiceStatusChecker {
                 }
                 Thread.sleep(WAIT_INTERVAL_IN_SEC * 1000);
             } catch (InterruptedException ex) {
+                log.warn("InterruptedException:{}", ex);
             } catch (FatalCoordinatorException ex){
             	log.error("fatal coodinator exception", ex);
             	throw ex;
@@ -241,6 +242,7 @@ public class DbServiceStatusChecker {
                 // check every 30 seconds and there's no timeout
                 Thread.sleep(WAIT_INTERVAL_IN_SEC * 30 * 1000);
             } catch (InterruptedException ex) {
+                log.warn("InterruptedException:{}", ex);
             } catch (Exception ex) {
                 log.error("exception checking db status", ex);
             }
@@ -258,6 +260,7 @@ public class DbServiceStatusChecker {
                 }
                 Thread.sleep(WAIT_INTERVAL_IN_SEC * 1000);
             } catch (InterruptedException ex) {
+                log.warn("InterruptedException:{}", ex);
             } catch (Exception ex) {
                 log.error("exception checking db status", ex);
             }

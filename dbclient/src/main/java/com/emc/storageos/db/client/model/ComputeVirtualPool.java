@@ -107,7 +107,7 @@ public class ComputeVirtualPool extends DataObjectWithACLs implements GeoVisible
         if (null != _matchedComputeElements) {
                 _matchedComputeElements.replace(matchedComputeElements);
         } else {
-            if (null != matchedComputeElements && 0 < matchedComputeElements.size()) {
+            if (null != matchedComputeElements && !matchedComputeElements.isEmpty()) {
                 setMatchedComputeElements(new StringSet());
                 _matchedComputeElements.addAll(matchedComputeElements);
             }

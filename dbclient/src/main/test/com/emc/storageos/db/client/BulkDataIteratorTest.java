@@ -61,7 +61,7 @@ public class BulkDataIteratorTest {
                 protected void run() throws DatabaseException {
                     currentIt = null;
                     getNextBatch();
-                    while(nextBatch.size() > 0) {
+                    while(!nextBatch.isEmpty()) {
                         List<String> data = prepareQueryData();
                         currentIt = data.iterator();
                         break;

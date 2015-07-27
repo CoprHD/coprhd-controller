@@ -220,11 +220,11 @@ public class AuthnProvider extends DataObject {
     }
 
     @Name("lastModified")
-    public Long getLast_modified() {
+    public Long getLastModified() {
         return _lastModified;
     }
 
-    public void setLast_modified(Long lastModified) {
+    public void setLastModified(Long lastModified) {
         _lastModified = lastModified;
         setChanged("lastModified");
     }

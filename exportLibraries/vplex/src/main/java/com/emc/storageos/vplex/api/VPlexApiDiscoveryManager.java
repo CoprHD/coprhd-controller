@@ -1083,11 +1083,7 @@ public class VPlexApiDiscoveryManager {
                             clusterToVirtualVolumeMap.get(virtualVolumeInfo.getClusters().get(0));
                     for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
                         s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
-                        // We use contains as at times the passed name is only
-                        // a portion of the virtual volume name for example, it
-                        // may be the name of one of the storage volumes used by
-                        // the virtual volume.
-                        if (volumeInfo.getName().contains(virtualVolumeInfo.getName())) {
+                        if (volumeInfo.getName().equals(virtualVolumeInfo.getName())) {
                             s_logger.info("Found virtual volume {}", volumeInfo.getName());
                             foundVirtualVolumes.put(virtualVolumeInfo.getName(), volumeInfo);
                             // Remove the found virtual volume from the virtualVolumesToFind Map
@@ -1101,8 +1097,9 @@ public class VPlexApiDiscoveryManager {
                 } 
 
                 if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
-                    s_logger.warn("Virtual volumes not found on try {} of {}", retryCount,
-                            VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES);
+                    s_logger.warn(String.format("Virtual volumes %s not found on try %d of %d", 
+                            geAllVolumeNamesFromMap(virtualVolumesToFind),
+                            retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES));
                     VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
                 } else {
                     break;
@@ -1137,6 +1134,23 @@ public class VPlexApiDiscoveryManager {
         return null;
     }
 
+    /**
+     * This method returns all volume names from the map.
+     * 
+     * @param virtualVolumesToFind Map of Volume name to volume info
+     * @return returns all volume names from the Map
+     */
+    private String geAllVolumeNamesFromMap(Map<String, VPlexVirtualVolumeInfo> virtualVolumesToFind) {
+        StringBuffer volumesBuffer = new StringBuffer();
+        if (!virtualVolumesToFind.isEmpty()) {
+            Set<String> volumeNames = virtualVolumesToFind.keySet();
+            for (String volumeName : volumeNames) {
+                volumesBuffer.append(volumeName).append(" ");
+            }
+        }
+        return volumesBuffer.toString();
+    }
+    
     /**
      * Get the storage system info for the cluster with the passed name.
      * 

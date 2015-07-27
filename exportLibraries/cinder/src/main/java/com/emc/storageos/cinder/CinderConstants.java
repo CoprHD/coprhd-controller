@@ -31,7 +31,7 @@ public interface CinderConstants {
     public static String REST_API_VERSION_2 = "/v2";
     public static String DEFAULT_API_VERSION = REST_API_VERSION_2; //By default using v2
     
-    public final static String KEY_CINDER_HOST_NAME = "CINDER_HOST_NAME";
+    public final static String KEY_CINDER_HOST_NAME = "CINDER_HOST_NAME";        
     public final static String KEY_CINDER_REST_PASS_WORD = "REST_PASSWORD";           
     public final static String KEY_CINDER_REST_USER = "REST_USERNAME";           
     public final static String KEY_CINDER_REST_URI_BASE = "REST_URI_BASE";           

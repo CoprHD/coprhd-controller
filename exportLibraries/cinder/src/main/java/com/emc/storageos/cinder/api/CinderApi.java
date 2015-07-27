@@ -529,7 +529,7 @@ public class CinderApi {
             volumeDetach.terminateConnection.connector.initiator = initiator;
         } else if (wwpns != null) {
             volumeDetach.terminateConnection.connector.wwpns = 
-            		Arrays.copyOf(wwpns, wwpns.length);;
+            		Arrays.copyOf(wwpns, wwpns.length);
         }
         volumeDetach.terminateConnection.connector.host = host;
         

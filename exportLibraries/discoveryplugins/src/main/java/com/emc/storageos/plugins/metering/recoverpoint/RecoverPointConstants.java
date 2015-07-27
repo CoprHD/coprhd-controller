@@ -16,7 +16,7 @@ public final class RecoverPointConstants {
     public static final String DBCLIENT = "dbClient";
     public static final String STATS = "Stats";
     public static final String USERNAME = "username";
-    public static final String PASSWORD = "password";
+    public static final String PASS_WORD = "password";
     public static final String COOKIE = "Cookie";
     
     public static final String PLUS_SEPERATOR = "\\+";

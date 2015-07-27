@@ -31,8 +31,8 @@ public class IsilonApiTest {
     private static String uri = EnvConfig.get("sanity", "isilon.uri");
     private static String userName = EnvConfig.get("sanity", "isilon.username");
     private static String password = EnvConfig.get("sanity", "isilon.password");
-    private static IsilonApi _client;
-    private static IsilonApiFactory _factory = new IsilonApiFactory();
+    private static volatile IsilonApi _client;
+    private static volatile IsilonApiFactory _factory = new IsilonApiFactory();
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -100,6 +100,7 @@ public class IsilonApiTest {
              share = _client.getShare(shareId);
              Assert.assertTrue("Deleted SMB share still gettable.", false);
         } catch (IsilonException e) {
+        	_log.error(e.getMessage(),e);
         }
 
         // Test smb share for snapshots
@@ -130,6 +131,7 @@ public class IsilonApiTest {
              }
              Assert.assertTrue("Deleted SMB share still gettable.", false);
         } catch (IsilonException e) {
+        	_log.error(e.getMessage(),e);
         }
 
         _client.deleteSnapshot(snap_id);
@@ -138,7 +140,7 @@ public class IsilonApiTest {
             IsilonSnapshot snap3 = _client.getSnapshot(snap_id);
             Assert.assertTrue("deleted snapshot still exists", false);
         } catch (IsilonException ie) {
-            // success
+        	_log.error(ie.getMessage(),ie);
         }
         _client.deleteDir(_test_path, true);
     }
@@ -411,6 +413,7 @@ public class IsilonApiTest {
             _client.getExport(snapExport1Id);
             Assert.assertTrue("Deleted snap export still gettable", false);
         } catch (IsilonException ex) {
+        	_log.error(ex.getMessage(),ex);
         }
 
         // modify file system export

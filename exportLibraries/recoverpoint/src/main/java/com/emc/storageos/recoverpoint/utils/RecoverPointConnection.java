@@ -225,9 +225,9 @@ public class RecoverPointConnection {
             // especially this ;-)
             keystoreName = System.getProperty("user.home") + System.getProperty("file.separator") + "keystore.ImportKey";
         }
-        String keystorePassword = "changeit";
+        String keystore_pass = "changeit";
         // initializing keystore
-        KeyStore ks = createAndLoadKeyStore(keystoreName, keystorePassword);
+        KeyStore ks = createAndLoadKeyStore(keystoreName, keystore_pass);
         java.security.cert.Certificate ksCrt = ks.getCertificate(alias);
         if (ksCrt != null) {
             ks.deleteEntry(alias);
@@ -239,7 +239,7 @@ public class RecoverPointConnection {
         // Save the new keystore contents
         FileOutputStream out = new FileOutputStream(keystoreName);
         try {
-            ks.store(out, keystorePassword.toCharArray());
+            ks.store(out, keystore_pass.toCharArray());
         } finally {
             out.close();
         }

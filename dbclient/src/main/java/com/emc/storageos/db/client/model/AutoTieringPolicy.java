@@ -174,7 +174,7 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
             _pools.clear();
         else
             setPools(new StringSet());
-        if (pools.size() > 0)
+        if (!pools.isEmpty())
             _pools.addAll(pools);
     }
 

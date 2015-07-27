@@ -237,7 +237,7 @@ public class KeyCertificateAlgorithmValuesHolder {
     /**
      * @param algo the securedRandomAlgorithm to set
      */
-    public static void setSecuredRandomAlgorithm(String algo) {
+    public static synchronized void setSecuredRandomAlgorithm(String algo) {
         securedRandomAlgorithm = algo;
         log.info("SecuredRandom's Algorithm is {}", algo);
     }

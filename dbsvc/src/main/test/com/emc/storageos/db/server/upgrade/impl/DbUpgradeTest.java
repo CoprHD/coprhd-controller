@@ -54,7 +54,7 @@ public class DbUpgradeTest extends DbMigrationTestBase {
     private static String annotationName = "com.emc.storageos.db.client.model.PrefixIndex";
 
     private static String columnName = "personality";
-    private static byte[] originalBytecodes = null;
+    private static volatile byte[] originalBytecodes = null;
 
     @Override
     protected String getSourceVersion() {

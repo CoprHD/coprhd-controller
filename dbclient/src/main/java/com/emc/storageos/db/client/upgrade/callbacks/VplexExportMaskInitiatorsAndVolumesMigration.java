@@ -132,7 +132,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 							// initiators list can be inconsistent when we are reusing existing
 							// storage view in which case createdBySystem will be false
 							// Add existing initiators to the initiators list if we can find Initiator object for those pwwn
-							if(exportMask.getExistingInitiators() != null && exportMask.getExistingInitiators().size() > 0 ){
+							if(exportMask.getExistingInitiators() != null && !exportMask.getExistingInitiators().isEmpty()){
 								StringSet existingInitiators = exportMask.getExistingInitiators();
 								List<URI> existingInitiatorsURIs = new ArrayList<URI>();
 								for(String pwwn : existingInitiators){
@@ -199,7 +199,7 @@ public class VplexExportMaskInitiatorsAndVolumesMigration extends BaseCustomMigr
 	 */
 	private ExportMask populateExportMaskUserAddedInitiators(ExportMask exportMask){
 
-		if(exportMask.getInitiators() !=null && exportMask.getInitiators().size() > 0){
+		if(exportMask.getInitiators() !=null && !exportMask.getInitiators().isEmpty()){
 			StringMap userAddedInitiatorsMap= exportMask.getUserAddedInitiators();
 			List<Initiator> initiators = new ArrayList<Initiator>();
 			for(String initiatorId : exportMask.getInitiators()){

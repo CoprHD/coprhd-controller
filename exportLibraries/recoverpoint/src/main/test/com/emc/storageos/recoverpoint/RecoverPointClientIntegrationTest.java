@@ -1,9 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2011 EMC Corporation
  * All Rights Reserved
- */
-/*
- * This computer code is copyright 2011 EMC Corporation. All rights reserved.
  */
 package com.emc.storageos.recoverpoint;
 
@@ -81,15 +78,15 @@ public class RecoverPointClientIntegrationTest {
    
 
     private static final String FAKE_WWN = "6006016018C12D00";
-    private static volatile RecoverPointClient rpClient;
-    private static volatile Logger logger;
+    private static RecoverPointClient rpClient;
+    private static Logger logger;
 
     private static final String preURI = "https://";
     private static final String postURI = ":7225/fapi/version4_1" + "?wsdl";
 
     private static final String site2InternalSiteName = "";
     
-    private static volatile String Bookmarkname = "";
+    private static String Bookmarkname = "";
 
     @BeforeClass
     public static void setup() {

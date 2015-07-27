@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.isilon.restapi;
@@ -41,8 +31,8 @@ public class IsilonApiTest {
     private static String uri = EnvConfig.get("sanity", "isilon.uri");
     private static String userName = EnvConfig.get("sanity", "isilon.username");
     private static String password = EnvConfig.get("sanity", "isilon.password");
-    private static volatile IsilonApi _client;
-    private static volatile IsilonApiFactory _factory = new IsilonApiFactory();
+    private static IsilonApi _client;
+    private static IsilonApiFactory _factory = new IsilonApiFactory();
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -110,7 +100,6 @@ public class IsilonApiTest {
              share = _client.getShare(shareId);
              Assert.assertTrue("Deleted SMB share still gettable.", false);
         } catch (IsilonException e) {
-        	_log.error(e.getMessage(),e);
         }
 
         // Test smb share for snapshots
@@ -141,7 +130,6 @@ public class IsilonApiTest {
              }
              Assert.assertTrue("Deleted SMB share still gettable.", false);
         } catch (IsilonException e) {
-        	_log.error(e.getMessage(),e);
         }
 
         _client.deleteSnapshot(snap_id);
@@ -150,7 +138,7 @@ public class IsilonApiTest {
             IsilonSnapshot snap3 = _client.getSnapshot(snap_id);
             Assert.assertTrue("deleted snapshot still exists", false);
         } catch (IsilonException ie) {
-        	_log.error(ie.getMessage(),ie);
+            // success
         }
         _client.deleteDir(_test_path, true);
     }
@@ -423,7 +411,6 @@ public class IsilonApiTest {
             _client.getExport(snapExport1Id);
             Assert.assertTrue("Deleted snap export still gettable", false);
         } catch (IsilonException ex) {
-        	_log.error(ex.getMessage(),ex);
         }
 
         // modify file system export

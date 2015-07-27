@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.management.backup;
 
@@ -52,25 +42,57 @@ public class BackupManager implements BackupManagerMBean {
     private static final String DF_COMMAND = "/bin/df";
     private static final long DF_COMMAND_TIMEOUT = 120000; 
     private static final String SPACE_VALUE = "\\s+";
-    
-    private BackupContext backupContext;
-    private CoordinatorClient coordinatorClient;
+
+    static File backupDir;
+    static String nodeName;
+
+    static List<String> vdcList;
+    static CoordinatorClient coordinatorClient;
+
     private BackupHandler backupHandler;
+    private Integer backupUsedDiskMaxPercentage;
+    private Integer backupDisabledDiskUsedPercentage; 
 
     /**
-     * Sets backup context
-     * @param backupContext
+     * Sets local location which stores backup files
+     * @param backupDirParam
+     *      The new location path
      */
-    public void setBackupContext(BackupContext backupContext) {
-        this.backupContext = backupContext;
+    public void setBackupDir(final File backupDirParam) {
+        if (backupDirParam == null) {
+            log.error("Invalid backup location: null");
+            return;
+        }
+        if (!backupDirParam.exists()) {
+            if (!backupDirParam.mkdirs())
+                log.error("Can't create backup folder: {}", backupDirParam.getAbsolutePath());
+            else
+                log.info("ViPR backup folder is created: {}", backupDirParam.getAbsoluteFile());
+        }
+        backupDir = backupDirParam;
     }
 
     /**
-     * Gets backup context
+     * Gets backup directory
      */
-    public BackupContext getBackupContext() {
-        return this.backupContext;
-    } 
+    public File getBackupDir() {
+        return backupDir;
+    }
+
+    /**
+     * Sets name of current node
+     * @param nodeNameParam
+     *          The name of node
+     */
+    public void setNodeName(String nodeNameParam) {
+        Preconditions.checkArgument(nodeNameParam != null && !nodeNameParam.trim().isEmpty(),
+                "ViPR node name is invalid");
+        nodeName = nodeNameParam;
+    }
+
+    public void setVdcList(List<String> vdcList) {
+        BackupManager.vdcList = vdcList;
+    }
 
     /**
     * Sets coordinator client
@@ -139,9 +161,9 @@ public class BackupManager implements BackupManagerMBean {
     }
 
     private void checkBackupDir() {
-        if (!backupContext.getBackupDir().exists() && !backupContext.getBackupDir().mkdirs())
+        if (!backupDir.exists() && !backupDir.mkdirs())
             throw BackupException.fatals.failedToCreateBackupFolder(
-            		backupContext.getBackupDir().getAbsolutePath());
+                    backupDir.getAbsolutePath());
     }
 
     /**
@@ -160,7 +182,7 @@ public class BackupManager implements BackupManagerMBean {
         long currentSize = 0;
         long backupQuotaByte = getQuotaGb() * BackupConstants.GIGABYTE;
 
-        File[] backupFiles = backupContext.getBackupDir().listFiles();
+        File[] backupFiles = backupDir.listFiles();
         if (backupFiles != null && backupFiles.length != 0) {
             for (File file : backupFiles) {                
                 if (!file.isDirectory()) {
@@ -297,8 +319,10 @@ public class BackupManager implements BackupManagerMBean {
      *          The file to save the md5 result
      */
     private void computeMd5(File targetFile, String md5FileName) {
-        Preconditions.checkArgument(targetFile != null && targetFile.exists(), "Invalid File");
-        Preconditions.checkArgument(md5FileName != null && !md5FileName.trim().isEmpty(), "Invalid File");
+        Preconditions.checkArgument(targetFile != null && targetFile.exists(),
+                String.format("Invalid File %s", targetFile.getAbsolutePath()));
+        Preconditions.checkArgument(md5FileName != null && !md5FileName.trim().isEmpty(),
+                String.format("Invalid File %s", targetFile.getAbsolutePath()));
         PrintWriter out = null;
         try {
             File md5File = new File(targetFile.getParentFile(), md5FileName);
@@ -322,7 +346,7 @@ public class BackupManager implements BackupManagerMBean {
     public List<BackupSetInfo> list() {
         checkBackupDir();
         List<BackupSetInfo> backupSetInfoList = new ArrayList<BackupSetInfo>();
-        File[] backupDirs = backupContext.getBackupDir().listFiles();
+        File[] backupDirs = backupDir.listFiles();
         if (backupDirs == null || backupDirs.length == 0)
             return backupSetInfoList;
         for (File dir : backupDirs) {
@@ -338,10 +362,10 @@ public class BackupManager implements BackupManagerMBean {
                 continue;
             for (File file : backupFiles) {
                 BackupSetInfo backupSetInfo = new BackupSetInfo();
-                backupSetInfo.setName(file.getName());
-                backupSetInfo.setCreateTime(file.lastModified());
-                backupSetInfo.setSize(file.length());
-                backupSetInfoList.add(backupSetInfo);
+		backupSetInfo.setName(file.getName());
+		backupSetInfo.setCreateTime(file.lastModified());
+		backupSetInfo.setSize(file.length());
+		backupSetInfoList.add(backupSetInfo);
             }
         }
         log.info("Backup is listed successfully: {}", backupSetInfoList);
@@ -355,7 +379,7 @@ public class BackupManager implements BackupManagerMBean {
                 && backupTag.length() < 256,
                 "Invalid backup name: %s", backupTag);
         checkBackupDir();
-        File[] backupFiles = backupContext.getBackupDir().listFiles(new FilenameFilter() {
+        File[] backupFiles = backupDir.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
                 File file = new File(dir, name);

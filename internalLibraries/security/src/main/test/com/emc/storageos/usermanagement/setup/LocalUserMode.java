@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.setup;
@@ -19,7 +19,7 @@ import java.util.Properties;
 public class LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(LocalUserMode.class);
 
-    protected static String rootPassword = "ChangeMe"; // NOSONAR ("Suppressing: removing this hard-coded password since it's default vipr's password")
+    protected static String rootPassword = "ChangeMe"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's default vipr's password")
     protected static String controllerNodeEndpoint;
     protected static String dataNodeEndpoint;
     protected static ViPRSystemClient systemClient;

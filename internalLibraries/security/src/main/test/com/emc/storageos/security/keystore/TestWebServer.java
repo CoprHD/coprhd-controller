@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.keystore;
 
@@ -46,7 +36,7 @@ public class TestWebServer {
     private SslSelectChannelConnector _securedConnector = null;
     public static final int _securePort = 9930;
     public final KeyCertificateEntry _keyAndCert;
-    public static final String _keystorePassword = EnvConfig.get("sanity", "keystore.password"); // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
+    public static final String _keystorePassword = EnvConfig.get("sanity", "keystore.password"); //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
     private Server _server;
     private final Application _app = new TestApplication();
     private final String[] _ciphers = { "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",

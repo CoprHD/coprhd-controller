@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
+ * All Rights Reserved
  */
 
 package com.emc.storageos.management.backup;
@@ -288,7 +278,7 @@ public class ZkBackupHandler extends BackupHandler {
 
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
-        File targetDir = new File(backupContext.getBackupDir(), backupTag);
+        File targetDir = new File(BackupManager.backupDir, backupTag);
         File targetFolder = new File(targetDir, fullBackupTag);
         try {
             ValidationUtil.validateFile(zkDir, FileType.Dir,

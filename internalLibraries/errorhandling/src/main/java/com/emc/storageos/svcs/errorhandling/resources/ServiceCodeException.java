@@ -1,10 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.svcs.errorhandling.resources;
 
-import java.util.Arrays;
 import java.util.Locale;
 
 import javax.ws.rs.core.Response.StatusType;
@@ -84,7 +83,7 @@ public class ServiceCodeException extends RuntimeException implements StatusCode
         super(cause);
         _serviceCode = code;
         _pattern = pattern;
-        _parameters = (parameters != null) ? Arrays.copyOf(parameters, parameters.length) : null;
+        _parameters = parameters;
     }
 
     @Override

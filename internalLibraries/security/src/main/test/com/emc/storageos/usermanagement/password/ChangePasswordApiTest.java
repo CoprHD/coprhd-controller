@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.password;
@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 public class ChangePasswordApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordPolicyConfigTest.class);
-    private String oldPassword="ChangeMe";  // NOSONAR ("Suppressing: removing this hard-coded password since it's vipr's default password")
-    private String newValidPassword = "Vipr1@emc.com";  // NOSONAR ("Suppressing: removing this hard-coded password since it's a temp vipr's password for testing")
+    private String oldPassword="ChangeMe";  //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's vipr's default password")
+    private String newValidPassword = "Vipr1@emc.com";  //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's a temp vipr's password for testing")
 
     @Test
     public void nonLocalUser() throws Exception {

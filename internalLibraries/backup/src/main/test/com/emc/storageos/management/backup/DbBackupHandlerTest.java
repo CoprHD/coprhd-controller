@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
+ * All Rights Reserved
  */
 
 package com.emc.storageos.management.backup;
@@ -31,17 +21,14 @@ public class DbBackupHandlerTest extends BackupTestBase {
 
     @BeforeClass
     public static void setUp() {
-        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-        //Junit test will be called in single thread by default, it's safe to ignore this violation
-        dbBackupHandler = (DbBackupHandler) backupManager.getBackupHandler(); //NOSONAR ("squid:S2444")
+        dbBackupHandler = (DbBackupHandler) backupManager.getBackupHandler();
     }
 
     @Test
     public void testCreateBackup() {
         final String snapshotTag = UUID.randomUUID().toString();
         dbBackupHandler.createBackup(snapshotTag);
-        File[] cfFolders = dbBackupHandler.getValidKeyspace().listFiles();
-        for (File cfFolder : FileUtil.toSafeArray(cfFolders)) {
+        for (File cfFolder : dbBackupHandler.getValidKeyspace().listFiles()) {
             File[] snapshots = cfFolder.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
@@ -70,7 +57,7 @@ public class DbBackupHandlerTest extends BackupTestBase {
         File dbBackup = null;
         try {
             dbBackup = dbBackupHandler.dumpBackup(snapshotTag, fullBackupTag);
-            File[] backupDir = backupManager.getBackupContext().getBackupDir().listFiles(new FilenameFilter() {
+            File[] backupDir = backupManager.getBackupDir().listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
                     return dir.isDirectory() && name.equals(snapshotTag);
@@ -90,7 +77,7 @@ public class DbBackupHandlerTest extends BackupTestBase {
             Assert.assertEquals(1, backupFolder.length);
             Assert.assertTrue(backupFolder[0].isDirectory());
 
-            String[] subBackups = backupManager.getBackupContext().getBackupDir().list();
+            String[] subBackups = backupManager.getBackupDir().list();
             Assert.assertNotNull(subBackups);
             Assert.assertTrue(subBackups.length > 0);
         } finally {

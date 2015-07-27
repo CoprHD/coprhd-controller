@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.ssh;
@@ -28,22 +18,18 @@ public class SSHKeyPair implements Serializable {
     private byte[] publicKey;
 
     public byte[] getPublicKey() {
-        // Not a real issue as no write outside
-        return publicKey; // NOSONAR ("Suppressing: Returning may expose an internal array")
+        return publicKey;
     }
 
-    // Not a real issue as no write in class
-    public void setPublicKey(byte[] publicKey) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    public void setPublicKey(byte[] publicKey) {
         this.publicKey = publicKey;
     }
 
     public byte[] getPrivateKey() {
-        // Not a real issue as no write outside
-        return privateKey; // NOSONAR ("Suppressing: Returning may expose an internal array")
+        return privateKey;
     }
 
-    // Not a real issue as no write in class
-    public void setPrivateKey(byte[] privateKey) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    public void setPrivateKey(byte[] privateKey) {
         this.privateKey = privateKey;
     }
 

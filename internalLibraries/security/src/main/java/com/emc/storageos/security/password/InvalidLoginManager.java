@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password;
@@ -50,7 +40,7 @@ public class InvalidLoginManager {
     private static final long MIN_TO_MSECS = 60 * 1000;
     private static final String INVALID_LOGIN_CLEANER_LOCK = "invalid_login_cleaner_lock";
     private static final String INVALID_LOGIN_VERSION = "_2.0";
-    public static final String OLD_PASSWORD_INVALID_ERROR = "Old password is invalid"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just an error message")
+    public static final String OLD_PASSWORD_INVALID_ERROR = "Old password is invalid"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just an error message")
     private final ScheduledExecutorService _invalidLoginCleanupExecutor = Executors.newScheduledThreadPool(1);
 
     

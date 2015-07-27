@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2014 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.backup.util;
@@ -35,14 +25,12 @@ public class ZipUtilTest {
 
     private static final int DEFAULT_FILE_SIZE = 1024;
     private static final int DEFAULT_DIRECTORY_NUM = 3;
-    private static final String TEST_FOLDER = "zipTestFolder";
     private static File testDir;
+    private static final String TEST_FOLDER = "zipTestFolder";
 
     @BeforeClass
     public static void setUp() throws IOException {
-    	//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-    	//Junit test will be called in single thread by default, it's safe to ignore this violation
-        testDir = new File(TEST_FOLDER);  //NOSONAR ("squid:S2444")
+        testDir = new File(TEST_FOLDER);
         tearDown();
         if (testDir.exists())
             FileUtils.deleteDirectory(testDir);
@@ -88,16 +76,14 @@ public class ZipUtilTest {
         if (!tmpFolder.exists())
             Assert.assertTrue(tmpFolder.mkdir());
         ZipUtil.unpack(targetZip, tmpFolder);
-        File[] folders = tmpFolder.listFiles();
-        
-        for (File folder : FileUtil.toSafeArray(folders)) {
+        for (File folder : tmpFolder.listFiles()) {
             Assert.assertTrue(folder.exists());
             Assert.assertTrue(folder.isDirectory());
             File[] files = folder.listFiles();
-            for (File subFolder : FileUtil.toSafeArray(files)) {
+            for (File subFolder : files) {
                 Assert.assertTrue(subFolder.isDirectory());
                 File[] tmpFiles = subFolder.listFiles();
-                for (File tmpFile : FileUtil.toSafeArray(tmpFiles)) {
+                for (File tmpFile : tmpFiles) {
                     Assert.assertTrue(tmpFile.isFile());
                     Assert.assertEquals(checksum, FileUtils.checksumCRC32(tmpFile));
                 }

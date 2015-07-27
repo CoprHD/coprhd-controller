@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.management.backup;
 
@@ -59,20 +49,22 @@ import com.google.common.base.Preconditions;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
+    private static final String BACKUP_NAME_FORMAT =
+            "%s" + BackupConstants.BACKUP_NAME_DELIMITER + "%s";
     private static final String BACKUP_LOCK = "backup";
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String BACKUP_FILE_PERMISSION = "644";
-    private static final int LOCK_TIMEOUT = 1000;
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts; 
     private List<Integer> ports;
     private CoordinatorClient coordinatorClient;
+    private static final int LOCK_TIMEOUT = 1000;
     private int quorumSize;
     private List<String> vdcList;
-    private File backupDir;
+    private static File backupDir;
 
     /**
      * Default constructor.
@@ -140,29 +132,27 @@ public class BackupOps {
      * @return map of node name to IP address for each ViPR host
      */
     private Map<String, String> getHosts() {
-        if (hosts == null || hosts.isEmpty()) {
-            hosts = initHosts();
-        }
-        return hosts;
-    }
-    
-    private synchronized Map<String, String> initHosts() {
         if (hosts != null && !hosts.isEmpty()) {
             return hosts;
         }
-        CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-        hosts = new TreeMap<>();
-        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-            try {
-                String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
-                DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
-                String host = normalizeDualInetAddress(inetAddress);
-                hosts.put(nodeName, host);
-            } catch (Exception ex) {
-                throw BackupException.fatals.failedToGetHost(nodeName, ex);
+        synchronized (this) {
+            if (hosts != null && !hosts.isEmpty()) {
+                return hosts;
             }
+            CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
+            hosts = new TreeMap<>();
+            for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+                try {
+                    String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
+                    DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
+                    String host = normalizeDualInetAddress(inetAddress);
+                    hosts.put(nodeName, host);
+                } catch (Exception ex) {
+                    throw BackupException.fatals.failedToGetHost(nodeName, ex);
+                }
+            }
+            this.quorumSize = hosts.size() / 2 + 1;
         }
-        this.quorumSize = hosts.size() / 2 + 1;
         return hosts;
     }
 
@@ -172,28 +162,23 @@ public class BackupOps {
      * @return map of node name to IP address(both IPv4 and IPv6 if configured)
      *         for each ViPR host
      */
-    //Suppress Sonar violation of Multithreaded correctness
-    //This is a get method, it's thread safe
-    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     private Map<String, String> getHostsWithDualInetAddrs() {
-        if (dualAddrHosts == null || dualAddrHosts.isEmpty()) {
-            dualAddrHosts = initDualAddrHosts();
-        }
-        return dualAddrHosts;
-    }
-    
-    private synchronized Map<String, String> initDualAddrHosts() {
         if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
             return dualAddrHosts;
         }
-        dualAddrHosts = new TreeMap<>();
-        CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-            String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeName));
-            if (normalizedHost == null)
-                throw BackupException.fatals
-                        .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
-            dualAddrHosts.put(nodeName, normalizedHost);
+        synchronized (this) {
+            if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
+                return dualAddrHosts;
+            }
+            dualAddrHosts = new TreeMap<>();
+            CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
+            for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+                String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeName));
+                if (normalizedHost == null)
+                    throw BackupException.fatals
+                            .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
+                dualAddrHosts.put(nodeName, normalizedHost);
+            }
         }
         return dualAddrHosts;
     }

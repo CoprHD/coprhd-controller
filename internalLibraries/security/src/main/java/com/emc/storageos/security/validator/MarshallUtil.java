@@ -16,8 +16,6 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -28,8 +26,6 @@ import java.io.StringWriter;
 import java.util.List;
 
 public class MarshallUtil {
-
-    private static Logger log = LoggerFactory.getLogger(MarshallUtil.class);
 
     /**
      * leveraging TenantOrgRestRep's JAXB representation, converts given tenant's user-mapping to a string.
@@ -73,7 +69,7 @@ public class MarshallUtil {
             TenantOrgRestRep response = (TenantOrgRestRep) unmarshaller.unmarshal(new StringReader(strUserMappings));
             userMappingList = BasePermissionsHelper.UserMapping.fromParamList(response.getUserMappings());
         } catch (JAXBException e) {
-            log.error("An error occurred when converting string {} to list. Cause: {}", strUserMappings, e);
+
         }
 
         return  userMappingList;

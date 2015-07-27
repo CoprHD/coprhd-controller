@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.util;
@@ -87,6 +87,7 @@ public class XmlUtil {
             return tClass.cast(jaxbUnmarshaller.unmarshal(inputStream));
         } catch (JAXBException je) {
             _log.error("Unable to parse XML content.", je);
+            je.printStackTrace();
         } finally {
             try {
                 if(inputStream != null) {

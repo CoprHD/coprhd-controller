@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2014 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.backup;
@@ -33,9 +23,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-//This is a CLI application and main method will not be called by multiple threads
-@SuppressWarnings("squid:S2444")
 public class BackupCmd {
 
     private static final Logger log = LoggerFactory.getLogger(BackupCmd.class);
@@ -93,14 +80,16 @@ public class BackupCmd {
         options.addOption(purgeOption);
     }
 
-    private static void initRestoreManager() {
+    private static RestoreManager initRestoreManager() {
         if (restoreManager == null) {
             ApplicationContext context = new ClassPathXmlApplicationContext("backup-restore-conf.xml");
             restoreManager = context.getBean("restoreManager", RestoreManager.class);
         }
+        return restoreManager;
     }
 
-    private static void initCommandLine(String[] args) {
+    public static void main(String[] args) {
+        restoreManager = initRestoreManager();
         CommandLineParser parser = new PosixParser();
         HelpFormatter formatter = new HelpFormatter();
         try {
@@ -109,11 +98,11 @@ public class BackupCmd {
             cli = parser.parse(options, args);
             if (cli.getOptions().length == 0)
                 throw new IllegalArgumentException(
-                        String.format("Invalid argument: %s%n", Arrays.toString(args)));
+                        String.format("Invalid argument: %s\n", Arrays.toString(args)));
             String[] invalidArgs = cli.getArgs();
             if (invalidArgs != null && invalidArgs.length != 0){
                 throw new IllegalArgumentException(
-                        String.format("Invalid argument: %s%n", Arrays.toString(invalidArgs)));
+                        String.format("Invalid argument: %s\n", Arrays.toString(invalidArgs)));
             }
         } catch (Exception p) {
             System.err.print(p.getMessage());
@@ -121,10 +110,6 @@ public class BackupCmd {
             formatter.printHelp(TOOL_NAME, options);
             System.exit(-1);
         }
-    }
-
-    public static void main(String[] args) {    	
-    	init(args);
 
         try {
             createBackup();
@@ -141,17 +126,16 @@ public class BackupCmd {
         System.exit(0);
     }
 
-    private static void init(String[] args) {
-    	initCommandLine(args);
-        initRestoreManager();
-        initBackupOps();
-    }
-
-    private static void initBackupOps() {
+    /**
+     * Singleton method to get BackupOps instance
+     * @return the instance of BackupOps
+     */
+    private static synchronized BackupOps getBackupOps() {
         if (backupOps == null) {
             ApplicationContext context = new ClassPathXmlApplicationContext("backup-client-conf.xml");
             backupOps = context.getBean("backupOps", BackupOps.class);
         }
+        return backupOps;
     }
 
     private static void createBackup() {
@@ -167,7 +151,7 @@ public class BackupCmd {
         }
 
         System.out.println("Start to create backup...");
-        backupOps.createBackup(backupName, force);
+        getBackupOps().createBackup(backupName, force);
         System.out.println(
                 String.format("Backup (%s) is created successfully", backupName));
     }
@@ -176,7 +160,7 @@ public class BackupCmd {
         if (!cli.hasOption(CommandType.list.name()))
             return;
         System.out.println("Start to list backup...");
-        List<BackupSetInfo> backupList = backupOps.listBackup();
+        List<BackupSetInfo> backupList = getBackupOps().listBackup();
         System.out.println(
                 String.format("Backups are listed successfully, total: %d", backupList.size()));
         if (backupList.isEmpty())
@@ -208,7 +192,7 @@ public class BackupCmd {
             return;
         System.out.println("Start to delete backup...");
         String backupName = cli.getOptionValue(CommandType.delete.name());
-        backupOps.deleteBackup(backupName);
+        getBackupOps().deleteBackup(backupName);
         System.out.println(
                 String.format("Backup (%s) is deleted successfully", backupName));
     }
@@ -259,7 +243,7 @@ public class BackupCmd {
             return;
         }
         System.out.println("Start to get quota of backup...");
-        int quota = backupOps.getQuotaGb();
+        int quota = getBackupOps().getQuotaGb();
         System.out.println(String.format("Quota of backup is: %d GB", quota));
     }
 }

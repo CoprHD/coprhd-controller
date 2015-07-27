@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.helpers;
 
@@ -71,12 +61,10 @@ public class DefaultSecurityService implements SecurityService {
 
     @Override
     public String[] getCipherSuite() {
-        // Not a real issue as no write outside
-        return ciphers; // NOSONAR ("Suppressing: Returning 'ciphers' may expose an internal array")
+        return ciphers;
     }
 
-    // Not a real issue as no write in class
-    public void setCiphers(String[] ciphers) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
+    public void setCiphers(String[] ciphers) {
         this.ciphers = ciphers;
     }
 }

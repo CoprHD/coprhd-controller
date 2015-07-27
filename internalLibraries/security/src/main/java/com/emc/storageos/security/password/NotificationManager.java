@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password;
@@ -99,7 +89,7 @@ public class NotificationManager {
      * to be expired.
      */
     private class PasswordExpireMailNotifier implements Runnable {
-        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
+        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
 
         @Override
         public void run() {

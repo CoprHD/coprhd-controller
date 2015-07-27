@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password;
@@ -19,17 +9,17 @@ package com.emc.storageos.security.password;
 public class Constants {
 
     // keys in storageos-properties-config.def
-    public static final String PASSWORD_CHANGE_INTERVAL = "password_change_interval"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_MIN_LENGTH = "password_min_length"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_LOWERCASE_NUMBER = "password_lowercase_alphabet"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_UPPERCASE_NUMBER = "password_uppercase_alphabet"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_NUMERIC_NUMBER = "password_numeric_character"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_SPECIAL_NUMBER = "password_special_character"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_REPEATING_NUMBER = "password_repeating_character"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_CHANGED_NUMBER = "password_changed_character"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_PREVENT_DICTIONARY = "password_dictionary_rule"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_REUSE_NUMBER = "password_history_rule"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
-    public static final String PASSWORD_EXPIRE_DAYS = "password_expire_days"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_CHANGE_INTERVAL = "password_change_interval"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_MIN_LENGTH = "password_min_length"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_LOWERCASE_NUMBER = "password_lowercase_alphabet"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_UPPERCASE_NUMBER = "password_uppercase_alphabet"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_NUMERIC_NUMBER = "password_numeric_character"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_SPECIAL_NUMBER = "password_special_character"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_REPEATING_NUMBER = "password_repeating_character"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_CHANGED_NUMBER = "password_changed_character"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_PREVENT_DICTIONARY = "password_dictionary_rule"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_REUSE_NUMBER = "password_history_rule"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+    public static final String PASSWORD_EXPIRE_DAYS = "password_expire_days"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
     public static final String ROOT_EXPIRY_DAYS = "system_root_expiry_date";
     public static final String SVCUSER_EXPIRY_DAYS = "system_svcuser_expiry_date";
     public static final String SYSTEM_UPDATE_CHECK_FREQUENCY_HOURS = "system_update_check_frequency_hours";

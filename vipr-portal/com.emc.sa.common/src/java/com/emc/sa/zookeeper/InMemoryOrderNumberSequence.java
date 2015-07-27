@@ -11,7 +11,6 @@ import com.emc.sa.model.dao.ModelClient;
  */
 public class InMemoryOrderNumberSequence implements OrderNumberSequence {
     private AtomicLong currentOrderNumber = new AtomicLong();
-    private Long currentOrderNumber;
 
     private ModelClient MODELS;
 

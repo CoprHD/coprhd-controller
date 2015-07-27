@@ -15,6 +15,7 @@
 package com.emc.storageos.vplex.api.clientdata;
 
 import java.io.Serializable;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.vplex.api.VPlexApiBackendSystemType;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
-import com.emc.storageos.vplex.api.clientdata.formatter.*;
+import com.emc.storageos.vplex.api.clientdata.formatter.DefaultVplexVolumeNameFormatter;
+import com.emc.storageos.vplex.api.clientdata.formatter.XtremioVplexVolumeNameFormatter;
 
 /**
  * Bean specifying native volume information. Is passed from the client to
@@ -51,6 +53,9 @@ public class VolumeInfo implements Serializable {
     
     // Whether or not the volume is thin provisioned.
     private boolean _isThin = false;
+    
+    //ITL List
+    private List<String> ITLs;
 
     /**
      * Constructor.
@@ -62,15 +67,27 @@ public class VolumeInfo implements Serializable {
      * @param true if the volume is thin provisioned, false otherwise
      */
     public VolumeInfo(String storageSystemNativeGuid, String storageSystemType, 
-            String volumeWWN, String volumeNativeId, boolean isThin) {
+            String volumeWWN, String volumeNativeId, boolean isThin,
+            List<String> itls) {
         _storageSystemNativeGuid = storageSystemNativeGuid;
         setSystemType(storageSystemType);
         _volumeWWN = volumeWWN;
         _volumeNativeId = volumeNativeId;
         _isThin = isThin;
+        ITLs = itls;
     }
     
-    /**
+    public List<String> getITLs()
+    {
+		return ITLs;
+	}
+
+	public void setITLs(List<String> iTLs)
+	{
+		ITLs = iTLs;
+	}
+
+	/**
      * Getter for the storage system native guid.
      * 
      * @return The storage system native guid.

@@ -692,9 +692,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
                 for (Volume storageVolume : volumeMap.get(vplexVolume)) {
                     StorageSystem storage = storageMap.get(storageVolume.getStorageController());
+                    List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
                     VolumeInfo info = new VolumeInfo(storage.getNativeGuid(), storage.getSystemType(),
                             storageVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                            storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue());                    
+                            storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue(), itls);                    
                     if (storageVolume.getVirtualArray().equals(vplexVolumeVarrayURI)) {
                         // We always want the source backend volume identified first. It
                         // may not be first in the map as the map is derived from the 
@@ -1170,9 +1171,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
                 StorageSystem volumeSystem = getDataObject(StorageSystem.class,
                     volume.getStorageController(), _dbClient);
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
                 VolumeInfo vInfo = new VolumeInfo(volumeSystem.getNativeGuid(), volumeSystem.getSystemType(), volume
                     .getWWN().toUpperCase().replaceAll(":", ""), volume.getNativeId(),
-                    volume.getThinlyProvisioned().booleanValue());
+                    volume.getThinlyProvisioned().booleanValue(), itls);
                 nativeVolumeInfoList.add(vInfo);
             }
 
@@ -4724,10 +4726,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 migrationTarget.getStorageController(), _dbClient);
             _log.info("Storage system for migration target is {}",
                 migrationTarget.getStorageController());
+            List<String> itls = VPlexControllerUtils.getVolumeITLs(migrationTarget);
             VolumeInfo nativeVolumeInfo = new VolumeInfo(
                 targetStorageSystem.getNativeGuid(), targetStorageSystem.getSystemType(), migrationTarget.getWWN()
                     .toUpperCase().replaceAll(":", ""), migrationTarget.getNativeId(),
-                    migrationTarget.getThinlyProvisioned().booleanValue());
+                    migrationTarget.getThinlyProvisioned().booleanValue(), itls);
 
             // Get the migration associated with the target.
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
@@ -5421,10 +5424,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Make the call to create the (non-distributed) virtual volume.
             if (existingVolume != null) {
                 StorageSystem array = getDataObject(StorageSystem.class, existingVolume.getStorageController(), _dbClient);
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(existingVolume);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue());
+                        existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue(), itls);
                 vinfos.add(vinfo);
                 
                 virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null);
@@ -5462,9 +5466,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     vplexVolume.getVirtualArray(), vplexVolume.getStorageController(),
                     _dbClient);
                 StorageSystem array = getDataObject(StorageSystem.class, newVolume.getStorageController(), _dbClient);
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(newVolume);
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         newVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue());
+                        newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue(), itls);
                 virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED.getName();
@@ -6908,9 +6913,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
             StorageSystem mirrorVolumeSystem = getDataObject(StorageSystem.class,
                 mirrorVolume.getStorageController(), _dbClient);
+            List<String> itls = VPlexControllerUtils.getVolumeITLs(mirrorVolume);
             VolumeInfo mirrorInfo = new VolumeInfo(mirrorVolumeSystem.getNativeGuid(), mirrorVolumeSystem.getSystemType(),
                 mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue());
+                mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
             _log.info("Prepared mirror volume info");
 
             // Get the cluster id for this storage volume.
@@ -8451,9 +8457,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 long totalAllocated = storageVolume.getAllocatedCapacity();
                 long totalProvisioned = storageVolume.getProvisionedCapacity();
                 StorageSystem storage = storageMap.get(storageVolume.getStorageController());
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
                 VolumeInfo vinfo = new VolumeInfo(storage.getNativeGuid(), storage.getSystemType(),
                         storageVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue());
+                        storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue(), itls);
 
                 // Update rollback information.
                 rollbackData.add(vinfo);

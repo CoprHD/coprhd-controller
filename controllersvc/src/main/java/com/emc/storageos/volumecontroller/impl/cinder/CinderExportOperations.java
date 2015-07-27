@@ -37,6 +37,8 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.StringSetUtil;
@@ -93,7 +95,9 @@ public class CinderExportOperations implements ExportMaskOperations {
                 volumes.add(volume);
             }
 
-            attachVolumesToInitiators(storage, volumes, initiatorList, volumeToTargetLunMap, volumeToFCInitiatorTargetMap);
+            attachVolumesToInitiators(storage, volumes, initiatorList,
+            		                  volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
+            		                  exportMask);
 
             //Update targets in the export mask
             if(!volumeToFCInitiatorTargetMap.isEmpty())
@@ -193,7 +197,9 @@ public class CinderExportOperations implements ExportMaskOperations {
             //Map to store volume to initiatorTargetMap
             Map<Volume, Map<String, List<String>>> volumeToFCInitiatorTargetMap = new HashMap<Volume, Map<String, List<String>>>();
 
-            attachVolumesToInitiators(storage, volumes, initiatorList, volumeToTargetLunMap, volumeToFCInitiatorTargetMap);
+            attachVolumesToInitiators(storage, volumes, initiatorList,
+            		                  volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
+            		                  exportMask);
 
             //Update targets in the export mask
             if(!volumeToFCInitiatorTargetMap.isEmpty())
@@ -276,7 +282,9 @@ public class CinderExportOperations implements ExportMaskOperations {
             //Map to store volume to initiatorTargetMap
             Map<Volume, Map<String, List<String>>> volumeToFCInitiatorTargetMap = new HashMap<Volume, Map<String, List<String>>>();
 
-            attachVolumesToInitiators(storage, volumeList, initiators, volumeToTargetLunMap, volumeToFCInitiatorTargetMap);
+            attachVolumesToInitiators(storage, volumeList, initiators,
+            		                  volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
+            		                  exportMask);
 
             //Update targets in the export mask
             if(!volumeToFCInitiatorTargetMap.isEmpty())
@@ -355,7 +363,8 @@ public class CinderExportOperations implements ExportMaskOperations {
     private void attachVolumesToInitiators(StorageSystem storage,
             List<Volume> volumes, List<Initiator> initiators,
             Map<URI, Integer> volumeToTargetLunMap,
-            Map<Volume, Map<String, List<String>>> volumeToInitiatorTargetMap) throws Exception {
+            Map<Volume, Map<String, List<String>>> volumeToInitiatorTargetMap,
+            ExportMask exportMask) throws Exception {
         CinderEndPointInfo ep = CinderUtils.getCinderEndPoint(
                 storage.getActiveProviderURI(), dbClient);
         log.debug("Getting the cinder APi for the provider with id  {}",
@@ -420,6 +429,10 @@ public class CinderExportOperations implements ExportMaskOperations {
             }
             
         }
+        
+        //Add ITLs to volume objects
+        createITLMappingInVolume(volumeToTargetLunMap, exportMask);
+        
     }
 
     /**
@@ -842,4 +855,53 @@ public class CinderExportOperations implements ExportMaskOperations {
 
         return varrayTaggedStoragePortWWNs;
     }
+    
+    /**
+     * Create Initiator Target LUN Mapping as an extension in volume object
+     * 
+     * @param volume - volume in which ITL to be added
+     * @param exportMask - exportMask in which the volume is to be added
+     * @param targetLunId - integer value of host LUN id on which volume is accessible.
+     */
+    private void createITLMappingInVolume(Map<URI, Integer> volumeToTargetLunMap, ExportMask exportMask)
+    {
+    	log.debug("START - createITLMappingInVolume");
+    	for (URI volumeURI : volumeToTargetLunMap.keySet())
+    	{
+            Integer targetLunId = volumeToTargetLunMap.get(volumeURI);
+            Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+            
+            StringSetMap zoningMap = exportMask.getZoningMap();
+        	Set<String> zoningMapKeys = zoningMap.keySet();
+        	int initiatorIndex = 0;
+        	for(String initiator : zoningMapKeys)
+        	{
+        		Initiator initiatorObj = dbClient.queryObject(Initiator.class, URI.create(initiator));
+        		String initiatorWWPN = initiatorObj.getInitiatorPort().replaceAll(CinderConstants.COLON, "");
+        		StringSet targetPorts = zoningMap.get(initiator);
+        		int targetIndex = 0;
+        		for(String target : targetPorts)
+        		{
+        			StoragePort targetPort = dbClient.queryObject(StoragePort.class, URI.create(target));
+        			String targetPortWWN = targetPort.getPortNetworkId().replaceAll(CinderConstants.COLON, "");
+        			
+        			//Format is - <InitiatorWWPN>-<TargetWWPN>-<LunId>
+        			String itl = initiatorWWPN +"-"+ targetPortWWN +"-"+ String.valueOf(targetLunId);
+        			
+        			log.info(String.format("Adding ITL %", itl));
+        			//ITL keys will be formed as ITL-00, ITL-01, ITL-10, ITL-11 so on
+        			volume.getExtensions().put(CinderConstants.PREFIX_ITL+String.valueOf(initiatorIndex)+String.valueOf(targetIndex), itl);
+        			targetIndex++;
+        		}
+        		
+        		initiatorIndex++;
+        	}
+        	
+        }
+    	
+    	log.debug("END - createITLMappingInVolume");
+            
+    }
+    	
+    	
 }

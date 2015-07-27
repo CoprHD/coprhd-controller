@@ -49,22 +49,20 @@ import com.google.common.base.Preconditions;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
-    private static final String BACKUP_NAME_FORMAT =
-            "%s" + BackupConstants.BACKUP_NAME_DELIMITER + "%s";
     private static final String BACKUP_LOCK = "backup";
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String BACKUP_FILE_PERMISSION = "644";
+    private static final int LOCK_TIMEOUT = 1000;
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts; 
     private List<Integer> ports;
     private CoordinatorClient coordinatorClient;
-    private static final int LOCK_TIMEOUT = 1000;
     private int quorumSize;
     private List<String> vdcList;
-    private static File backupDir;
+    private File backupDir;
 
     /**
      * Default constructor.
@@ -132,10 +130,13 @@ public class BackupOps {
      * @return map of node name to IP address for each ViPR host
      */
     private Map<String, String> getHosts() {
-        if (hosts != null && !hosts.isEmpty()) {
+        if (hosts == null || hosts.isEmpty()) {
+            hosts = initHosts();
+        }
             return hosts;
         }
-        synchronized (this) {
+    
+    private synchronized Map<String, String> initHosts() {
             if (hosts != null && !hosts.isEmpty()) {
                 return hosts;
             }
@@ -152,7 +153,6 @@ public class BackupOps {
                 }
             }
             this.quorumSize = hosts.size() / 2 + 1;
-        }
         return hosts;
     }
 
@@ -162,11 +162,17 @@ public class BackupOps {
      * @return map of node name to IP address(both IPv4 and IPv6 if configured)
      *         for each ViPR host
      */
+    //Suppress Sonar violation of Multithreaded correctness
+    //This is a get method, it's thread safe
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     private Map<String, String> getHostsWithDualInetAddrs() {
-        if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
+        if (dualAddrHosts == null || dualAddrHosts.isEmpty()) {
+            dualAddrHosts = initDualAddrHosts();
+        }
             return dualAddrHosts;
         }
-        synchronized (this) {
+    
+    private synchronized Map<String, String> initDualAddrHosts() {
             if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
                 return dualAddrHosts;
             }
@@ -179,7 +185,6 @@ public class BackupOps {
                             .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
                 dualAddrHosts.put(nodeName, normalizedHost);
             }
-        }
         return dualAddrHosts;
     }
 

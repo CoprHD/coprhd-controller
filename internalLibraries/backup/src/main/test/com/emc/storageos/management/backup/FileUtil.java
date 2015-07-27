@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 
 public class FileUtil {
+	private static final File[] EMPTY_ARRAY = {};
 
     private FileUtil() {}
 
@@ -56,5 +57,9 @@ public class FileUtil {
                 FileChannel fChannel = fOut.getChannel()) {
             fChannel.write(ByteBuffer.allocate(1), length-1);
         }
+    }
+    
+    public static File[] toSafeArray(File[] files) {
+    	return (files == null) ? EMPTY_ARRAY : files;  	
     }
 }

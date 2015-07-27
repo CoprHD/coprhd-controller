@@ -21,14 +21,17 @@ public class DbBackupHandlerTest extends BackupTestBase {
 
     @BeforeClass
     public static void setUp() {
-        dbBackupHandler = (DbBackupHandler) backupManager.getBackupHandler();
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //Junit test will be called in single thread by default, it's safe to ignore this violation
+        dbBackupHandler = (DbBackupHandler) backupManager.getBackupHandler(); //NOSONAR ("squid:S2444")
     }
 
     @Test
     public void testCreateBackup() {
         final String snapshotTag = UUID.randomUUID().toString();
         dbBackupHandler.createBackup(snapshotTag);
-        for (File cfFolder : dbBackupHandler.getValidKeyspace().listFiles()) {
+        File[] cfFolders = dbBackupHandler.getValidKeyspace().listFiles();
+        for (File cfFolder : FileUtil.toSafeArray(cfFolders)) {
             File[] snapshots = cfFolder.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
@@ -57,7 +60,7 @@ public class DbBackupHandlerTest extends BackupTestBase {
         File dbBackup = null;
         try {
             dbBackup = dbBackupHandler.dumpBackup(snapshotTag, fullBackupTag);
-            File[] backupDir = backupManager.getBackupDir().listFiles(new FilenameFilter() {
+            File[] backupDir = backupManager.getBackupContext().getBackupDir().listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
                     return dir.isDirectory() && name.equals(snapshotTag);
@@ -77,7 +80,7 @@ public class DbBackupHandlerTest extends BackupTestBase {
             Assert.assertEquals(1, backupFolder.length);
             Assert.assertTrue(backupFolder[0].isDirectory());
 
-            String[] subBackups = backupManager.getBackupDir().list();
+            String[] subBackups = backupManager.getBackupContext().getBackupDir().list();
             Assert.assertNotNull(subBackups);
             Assert.assertTrue(subBackups.length > 0);
         } finally {

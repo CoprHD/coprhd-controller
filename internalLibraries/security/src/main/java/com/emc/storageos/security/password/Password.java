@@ -9,6 +9,7 @@ package com.emc.storageos.security.password;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.text.MessageFormat;
 import java.util.*;
@@ -161,7 +162,7 @@ public class Password {
 
     public long getLatestChangedTime() {
         List<Map.Entry<String,Long>> l = getSortedPasswordByTime();
-        if (l != null && l.size() > 0) {
+        if ( l != null && !l.isEmpty() ) {
             return l.get(0).getValue();
         } else {
             return 0;

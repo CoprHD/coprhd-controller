@@ -19,8 +19,8 @@ public class PasswordValidationTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordValidationTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String svcuserOldPassword = "ChangeMe"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's vipr's default password")
-    private static String svcuserPassword = "Emc2@southborough"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's temp vipr's password")
+    private static String svcuserOldPassword = "ChangeMe"; // NOSONAR ("Suppressing: removing this hard-coded password since it's vipr's default password")
+    private static String svcuserPassword = "Emc2@southborough"; // NOSONAR ("Suppressing: removing this hard-coded password since it's temp vipr's password")
 
     @BeforeClass
     public synchronized static void setupPasswordValidation() throws Exception {

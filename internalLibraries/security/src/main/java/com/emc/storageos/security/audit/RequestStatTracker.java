@@ -3,7 +3,6 @@
  * All Rights Reserved
  */
 
-
 package com.emc.storageos.security.audit;
 
 import java.text.MessageFormat;

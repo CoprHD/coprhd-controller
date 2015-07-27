@@ -40,7 +40,7 @@ public class InvalidLoginManager {
     private static final long MIN_TO_MSECS = 60 * 1000;
     private static final String INVALID_LOGIN_CLEANER_LOCK = "invalid_login_cleaner_lock";
     private static final String INVALID_LOGIN_VERSION = "_2.0";
-    public static final String OLD_PASSWORD_INVALID_ERROR = "Old password is invalid"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just an error message")
+    public static final String OLD_PASSWORD_INVALID_ERROR = "Old password is invalid"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just an error message")
     private final ScheduledExecutorService _invalidLoginCleanupExecutor = Executors.newScheduledThreadPool(1);
 
     

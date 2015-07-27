@@ -51,7 +51,7 @@ public abstract class APIException extends RuntimeException implements StatusCod
         this._code = code;
         this._bundleName = detailBase;
         this._key = detailKey;
-        this._parameters = detailParams;
+        this._parameters = (detailParams != null) ? Arrays.copyOf(detailParams, detailParams.length) : null;
     }
 
     @Override

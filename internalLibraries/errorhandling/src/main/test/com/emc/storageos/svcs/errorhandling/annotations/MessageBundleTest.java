@@ -7,6 +7,7 @@ package com.emc.storageos.svcs.errorhandling.annotations;
 
 import static java.text.MessageFormat.format;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -40,7 +41,8 @@ public class MessageBundleTest extends AbstractBundleTest {
         for (final String key : bundle.keySet()) {
             final String pattern = bundle.getString(key);
             try {
-                new MessageFormat(pattern);
+            	MessageFormat format = new MessageFormat(pattern);
+            	assertNotNull(format);
             } catch (final IllegalArgumentException e) {
                 failures.put(key, pattern);
             }

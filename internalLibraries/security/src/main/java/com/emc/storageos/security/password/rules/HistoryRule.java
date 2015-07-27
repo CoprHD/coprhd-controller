@@ -10,6 +10,7 @@ import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import java.text.MessageFormat;
 import java.util.List;
@@ -44,8 +45,8 @@ public class HistoryRule implements Rule {
 
         String text = password.getPassword();
         List<String> previousPasswords = password.getPreviousPasswords(historySize);
-        if (previousPasswords == null || previousPasswords.size() == 0) {
-            _log.info("pass, no previous password");
+        if (previousPasswords.isEmpty() ) {
+            _log.info("Pass since no password in history list.");
             return;
         }
 

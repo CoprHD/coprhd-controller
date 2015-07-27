@@ -27,7 +27,7 @@ public abstract class InternalException extends RuntimeException implements Serv
         this._code = code;
         this._bundleName = detailBase;
         this._key = detailKey;
-        this._parameters = detailParams;
+        this._parameters = (detailParams != null) ? Arrays.copyOf(detailParams, detailParams.length) : null;
     }
 
     protected InternalException(final ServiceCode code, final Throwable cause,

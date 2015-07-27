@@ -4,7 +4,6 @@
  */
 
 
-
 package com.emc.storageos.services.restutil;
 
 import com.sun.jersey.api.client.ClientResponse;

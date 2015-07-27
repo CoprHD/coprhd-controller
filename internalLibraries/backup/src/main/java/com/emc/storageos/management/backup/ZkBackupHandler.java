@@ -278,7 +278,7 @@ public class ZkBackupHandler extends BackupHandler {
 
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
-        File targetDir = new File(BackupManager.backupDir, backupTag);
+        File targetDir = new File(backupContext.getBackupDir(), backupTag);
         File targetFolder = new File(targetDir, fullBackupTag);
         try {
             ValidationUtil.validateFile(zkDir, FileType.Dir,

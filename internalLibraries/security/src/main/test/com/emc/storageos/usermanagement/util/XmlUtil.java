@@ -87,7 +87,6 @@ public class XmlUtil {
             return tClass.cast(jaxbUnmarshaller.unmarshal(inputStream));
         } catch (JAXBException je) {
             _log.error("Unable to parse XML content.", je);
-            je.printStackTrace();
         } finally {
             try {
                 if(inputStream != null) {

@@ -93,7 +93,8 @@ public abstract class AbstractSecuredWebServer {
         _unsecuredConnector = unsecuredConnector;
     }
 
-    public void setCiphersToInclude(String[] ciphers) {
+    // Not a real issue as no write in class
+    public void setCiphersToInclude(String[] ciphers) { // NOSONAR ("Suppressing: The user-supplied array 'ciphers' is stored directly.")
         _ciphers = ciphers;
     }
 

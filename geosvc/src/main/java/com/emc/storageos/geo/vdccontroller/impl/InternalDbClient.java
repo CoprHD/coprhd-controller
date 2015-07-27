@@ -227,6 +227,7 @@ public class InternalDbClient extends DbClientImpl {
                 }
                 TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
             } catch (InterruptedException ex) {
+            	//Ignore this exception
             } catch (Exception ex) {
                 log.error("Exception checking DB cluster status", ex);
             }
@@ -263,6 +264,7 @@ public class InternalDbClient extends DbClientImpl {
                 }
                 TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
             } catch (InterruptedException ex) {
+            	//Ignore this exception
             } catch (Exception ex) {
                 log.error("Exception checking DB cluster status", ex);
             }
@@ -293,6 +295,7 @@ public class InternalDbClient extends DbClientImpl {
                 }
                 TimeUnit.SECONDS.sleep(WAIT_INTERVAL_IN_SEC);
             } catch (InterruptedException ex) {
+            	//Ignore this exception
             } catch (Exception ex) {
                 log.error("Exception checking DB cluster status", ex);
             }

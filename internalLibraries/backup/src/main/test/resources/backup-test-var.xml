@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  *
  * This software contains the intellectual property of EMC Corporation
@@ -13,20 +13,18 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <import resource="classpath:coordinatorclient-var.xml"/>
-    <import resource="classpath:backup-var.xml"/>
-
-    <bean id="backupManager" class="com.emc.storageos.management.backup.BackupManager" init-method="init" destroy-method="shutdown">
-        <property name="backupHandler" ref="backupHandler"/>
-        <property name="coordinatorClient" ref="coordinator"/>
-        <property name="backupContext" ref="backupContext"/>
-    </bean>
-    
     <bean id="backupContext" class="com.emc.storageos.management.backup.BackupContext">
         <property name="backupDir" ref="backupFolder"/>
-        <property name="nodeName" ref="nodeName"/>
-        <property name="vdcList" ref="vdcList"/>
+        <property name="nodeName" value="standalone"/>
+        <property name="vdcList">
+            <list value-type="java.lang.String">
+                <value>vdc1</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="backupFolder" class="java.io.File">
+        <constructor-arg value="build/data/backup"/>
     </bean>
 
 </beans>
-

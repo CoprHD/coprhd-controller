@@ -206,7 +206,9 @@ public class InternalDbClient extends DbClientImpl {
 
         return inmemKeyList;
     }
-
+    
+    //only used during migration stage in single thread, so it's safe to suppress
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public <T extends DataObject> void migrateToGeoDb(Class<T> clazz) {
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {

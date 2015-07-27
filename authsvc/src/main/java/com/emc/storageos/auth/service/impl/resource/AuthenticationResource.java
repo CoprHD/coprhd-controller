@@ -79,9 +79,7 @@ public class AuthenticationResource {
     public static final  String AUTH_REALM_NAME = "ViPR";
     private static final String FORM_LOGIN_DOC_PATH = "storageos-authsvc/docs/login.html";
 
-    // Variable NAME contains substring "password", but no sensitive information in the value.
-    @SuppressWarnings("squid:S2068")
-    private static final String FORM_CHANGE_PASSWORD_DOC_PATH = "storageos-authsvc/docs/changePassword.html";
+    private static final String FORM_CHANGE_PASSWORD_DOC_PATH = "storageos-authsvc/docs/changePassword.html";  //NOSONAR ("Variable NAME contains substring password, but no sensitive information in the value.")
 
     private static final String FORM_LOGIN_HTML_ENT = "(<input\\s*id=\"username\")";
     private static final String FORM_LOGIN_AUTH_ERROR_ENT = "<div class=\"alert alert-danger\">{0}</div>";
@@ -89,9 +87,7 @@ public class AuthenticationResource {
     private static final String FORM_INFO_ENT = "<div class=\"alert alert-info\">{0}</div>";
     private static final String FORM_LOGIN_BAD_CREDS_ERROR = "Invalid Username or Password";
 
-    // Variable NAME contains substring "password", but no sensitive information in the value.
-    @SuppressWarnings("squid:S2068")
-    private static final String FORM_NOT_MATCH_CONFIRM_PASSWORD = "password don't match confirm password";
+    private static final String FORM_NOT_MATCH_CONFIRM_PASSWORD = "password don't match confirm password";  //NOSONAR ("Variable NAME contains substring password, but no sensitive information in the value.")
     private static final String FORM_INVALID_LOGIN_LIMIT_ERROR = "Exceeded invalid login limit";
     private static final String FORM_INVALID_AUTH_TOKEN_ERROR = "Remote VDC token has either expired or was issued to a local user that is restricted to their home VDC only.  Please relogin.";
     private static final String FORM_LOGIN_POST_NO_SERVICE_ERROR = "The POST request to formlogin does not have service query parameter";

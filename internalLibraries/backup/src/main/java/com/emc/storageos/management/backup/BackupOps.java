@@ -59,22 +59,20 @@ import com.google.common.base.Preconditions;
 
 public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
-    private static final String BACKUP_NAME_FORMAT =
-            "%s" + BackupConstants.BACKUP_NAME_DELIMITER + "%s";
     private static final String BACKUP_LOCK = "backup";
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
     private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String BACKUP_FILE_PERMISSION = "644";
+    private static final int LOCK_TIMEOUT = 1000;
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
     private Map<String, String> dualAddrHosts; 
     private List<Integer> ports;
     private CoordinatorClient coordinatorClient;
-    private static final int LOCK_TIMEOUT = 1000;
     private int quorumSize;
     private List<String> vdcList;
-    private static File backupDir;
+    private File backupDir;
 
     /**
      * Default constructor.
@@ -142,27 +140,29 @@ public class BackupOps {
      * @return map of node name to IP address for each ViPR host
      */
     private Map<String, String> getHosts() {
+        if (hosts == null || hosts.isEmpty()) {
+            hosts = initHosts();
+        }
+        return hosts;
+    }
+    
+    private synchronized Map<String, String> initHosts() {
         if (hosts != null && !hosts.isEmpty()) {
             return hosts;
         }
-        synchronized (this) {
-            if (hosts != null && !hosts.isEmpty()) {
-                return hosts;
+        CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
+        hosts = new TreeMap<>();
+        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+            try {
+                String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
+                DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
+                String host = normalizeDualInetAddress(inetAddress);
+                hosts.put(nodeName, host);
+            } catch (Exception ex) {
+                throw BackupException.fatals.failedToGetHost(nodeName, ex);
             }
-            CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-            hosts = new TreeMap<>();
-            for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-                try {
-                    String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
-                    DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
-                    String host = normalizeDualInetAddress(inetAddress);
-                    hosts.put(nodeName, host);
-                } catch (Exception ex) {
-                    throw BackupException.fatals.failedToGetHost(nodeName, ex);
-                }
-            }
-            this.quorumSize = hosts.size() / 2 + 1;
         }
+        this.quorumSize = hosts.size() / 2 + 1;
         return hosts;
     }
 
@@ -172,23 +172,28 @@ public class BackupOps {
      * @return map of node name to IP address(both IPv4 and IPv6 if configured)
      *         for each ViPR host
      */
+    //Suppress Sonar violation of Multithreaded correctness
+    //This is a get method, it's thread safe
+    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     private Map<String, String> getHostsWithDualInetAddrs() {
+        if (dualAddrHosts == null || dualAddrHosts.isEmpty()) {
+            dualAddrHosts = initDualAddrHosts();
+        }
+        return dualAddrHosts;
+    }
+    
+    private synchronized Map<String, String> initDualAddrHosts() {
         if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
             return dualAddrHosts;
         }
-        synchronized (this) {
-            if (dualAddrHosts != null && !dualAddrHosts.isEmpty()) {
-                return dualAddrHosts;
-            }
-            dualAddrHosts = new TreeMap<>();
-            CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-            for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-                String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeName));
-                if (normalizedHost == null)
-                    throw BackupException.fatals
-                            .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
-                dualAddrHosts.put(nodeName, normalizedHost);
-            }
+        dualAddrHosts = new TreeMap<>();
+        CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
+        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+            String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeName));
+            if (normalizedHost == null)
+                throw BackupException.fatals
+                        .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
+            dualAddrHosts.put(nodeName, normalizedHost);
         }
         return dualAddrHosts;
     }

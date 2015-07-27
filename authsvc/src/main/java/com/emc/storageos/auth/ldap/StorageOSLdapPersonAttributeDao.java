@@ -583,7 +583,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         }
 
         //Add the user's group based on the attributes.
-        AddUserGroupsToUserGroupList(permissionsHelper, domain, storageOSUser);
+        addUserGroupsToUserGroupList(permissionsHelper, domain, storageOSUser);
 
         return new UserAndTenants(storageOSUser, mapUserToTenant(domain, storageOSUser, userMappingAttributes, tenantToMappingMap, failureReason));
     }
@@ -808,7 +808,7 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
      * @param storageOSUser to be updated with the list of user
      *                      group to the storageos user's group list.
      */
-    private void AddUserGroupsToUserGroupList(BasePermissionsHelper permissionsHelper, String domain, StorageOSUserDAO storageOSUser) {
+    private void addUserGroupsToUserGroupList(BasePermissionsHelper permissionsHelper, String domain, StorageOSUserDAO storageOSUser) {
         if (StringUtils.isBlank(domain)) {
             _log.error("Invalid domain {} to search user group", domain);
             return;

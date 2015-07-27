@@ -57,11 +57,11 @@ public class NamespaceInfo extends DataObject {
     @XmlElement
     @Name("headMetaData")
     public byte[] getHeadMetadata() {
-        return _headMetaData;
+        return _headMetaData.clone();
     }
 
     public void setHeadMetadata(byte[] headMetadata) {
-        _headMetaData = headMetadata;
+        _headMetaData = headMetadata.clone();
         setChanged("headMetaData");
     }
 

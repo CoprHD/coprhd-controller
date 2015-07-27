@@ -171,7 +171,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
     }
 
     public boolean hasInitiators() {
-       return _initiators != null && _initiators.size() > 0;
+       return _initiators != null && !_initiators.isEmpty();
     }
 
     public void addInitiators(List<URI> initiators) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -29,7 +29,7 @@ public class JAXBUtils {
 
     private static final Logger LOG = Logger.getLogger(JAXBUtils.class);
 
-    private static volatile JAXBContext CONTEXT;
+    private static JAXBContext CONTEXT;
 
     /** Serialize the given object to XML */
     public static String marshal(Object obj) throws JAXBException {

@@ -33,8 +33,8 @@ public class MiscTests {
     static private NetAppFacade netAppFacade = null;
     static private Server server = null;
     private static String host = EnvConfig.get("sanity", "netapp.host");
-    private static volatile String portNumber = EnvConfig.get("sanity", "netapp.port");
-    private static volatile String userName = EnvConfig.get("sanity", "netapp.username");
+    private static String portNumber = EnvConfig.get("sanity", "netapp.port");
+    private static String userName = EnvConfig.get("sanity", "netapp.username");
     private static String password = EnvConfig.get("sanity", "netapp.password");
     
     @BeforeClass

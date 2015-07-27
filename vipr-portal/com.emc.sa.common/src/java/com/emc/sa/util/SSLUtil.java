@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -16,8 +16,8 @@ public class SSLUtil {
     private static Logger log = LoggerFactory.getLogger(SSLUtil.class);
     
     private static boolean trustAllEnabled = false;
-    private static volatile SSLContext trustAllContext;
-    private static volatile NullHostNameVerifier hostnameVerifier;
+    private static SSLContext trustAllContext;
+    private static NullHostNameVerifier hostnameVerifier;
 
     public static void setSSLSocketFactory(SSLSocketFactory factory) {
         HttpsURLConnection.setDefaultSSLSocketFactory(factory);

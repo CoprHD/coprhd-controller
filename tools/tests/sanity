@@ -131,11 +131,6 @@ case $SS in
     Usage
 esac
 
-#SMTP Configuration Parameters
-SMTP_PRIMARY_EMAIL="emailalertesg@emc.com"
-SMTP_SERVER="mailhub.lss.emc.com"
-SMTP_SENDER_EMAIL="DONOTREPLY@emc.com"
-
 # Webstorage parameters taken from the environment if set.
 WS_SETUP_FILESHARE_COUNT=${WS_SETUP_FILESHARE_COUNT:-1}
 WS_SETUP_ISILON_FS_SIZE=${WS_SETUP_ISILON_FS_SIZE:-104857600000}

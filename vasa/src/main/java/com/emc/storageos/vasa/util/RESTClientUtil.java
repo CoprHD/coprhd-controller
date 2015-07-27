@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-13 EMC Corporation
+ * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.vasa.util;

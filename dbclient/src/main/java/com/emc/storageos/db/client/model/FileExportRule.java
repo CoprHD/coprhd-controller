@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -68,7 +68,7 @@ public class FileExportRule extends ExportRule {
 
 	private String getHostsPrintLog(Set<String> hosts) {
 		StringBuilder sb = new StringBuilder();
-		if (hosts != null && !hosts.isEmpty()) {
+		if (hosts != null && hosts.size() > 0) {
 			for (String endPoint : hosts) {
 				sb.append("{").append(endPoint).append("}");
 			}

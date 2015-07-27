@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client;
@@ -20,8 +10,6 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -30,7 +18,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class URIUtil {
-    private static final Logger log = LoggerFactory.getLogger(URIUtil.class);
     private static final int VDC_PARTS_COUNT = 4;
 
 	private static final String[] MODEL_PACKAGES = new String[]{"com.emc.storageos.db.client.model", "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects"};
@@ -89,7 +76,6 @@ public class URIUtil {
                 return Thread.currentThread().getContextClassLoader().loadClass(modelPackage+"."+typeName);
             }
             catch (ClassNotFoundException ignore) {
-                log.warn("load class failed:{}", ignore);
             }
         }
 

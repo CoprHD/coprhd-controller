@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -107,7 +107,7 @@ public class ComputeVirtualPool extends DataObjectWithACLs implements GeoVisible
         if (null != _matchedComputeElements) {
                 _matchedComputeElements.replace(matchedComputeElements);
         } else {
-            if (null != matchedComputeElements && !matchedComputeElements.isEmpty()) {
+            if (null != matchedComputeElements && 0 < matchedComputeElements.size()) {
                 setMatchedComputeElements(new StringSet());
                 _matchedComputeElements.addAll(matchedComputeElements);
             }

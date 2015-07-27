@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.common;
 
@@ -140,7 +130,6 @@ public class DbServiceStatusChecker {
                 }
                 Thread.sleep(WAIT_INTERVAL_IN_SEC * 1000);
             } catch (InterruptedException ex) {
-                log.warn("InterruptedException:{}", ex);
             } catch (FatalCoordinatorException ex){
             	log.error("fatal coodinator exception", ex);
             	throw ex;
@@ -252,7 +241,6 @@ public class DbServiceStatusChecker {
                 // check every 30 seconds and there's no timeout
                 Thread.sleep(WAIT_INTERVAL_IN_SEC * 30 * 1000);
             } catch (InterruptedException ex) {
-                log.warn("InterruptedException:{}", ex);
             } catch (Exception ex) {
                 log.error("exception checking db status", ex);
             }
@@ -270,7 +258,6 @@ public class DbServiceStatusChecker {
                 }
                 Thread.sleep(WAIT_INTERVAL_IN_SEC * 1000);
             } catch (InterruptedException ex) {
-                log.warn("InterruptedException:{}", ex);
             } catch (Exception ex) {
                 log.error("exception checking db status", ex);
             }

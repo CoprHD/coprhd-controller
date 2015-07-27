@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -489,7 +479,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         else
             _supportedRaidLevels.clear();
         
-        if(!raidLevels.isEmpty())
+        if(raidLevels.size() > 0)
         _supportedRaidLevels.addAll(raidLevels);
         
     }
@@ -532,7 +522,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
             _tiers.clear();
         else
             setTiers(new StringSet());
-        if(!tiers.isEmpty())
+        if(tiers.size() > 0)
             _tiers.addAll(tiers);
     }
 
@@ -551,7 +541,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
             _supportedDriveTypes.clear();
         else
             setSupportedDriveTypes(new StringSet());
-        if(!driveTypes.isEmpty())
+        if(driveTypes.size() > 0)
             _supportedDriveTypes.addAll(driveTypes);
     }
 

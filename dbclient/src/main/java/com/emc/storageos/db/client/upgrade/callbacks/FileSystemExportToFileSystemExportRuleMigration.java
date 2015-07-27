@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.upgrade.callbacks;
@@ -79,7 +69,7 @@ public class FileSystemExportToFileSystemExportRuleMigration extends
 				FileShare fileShare = fileShareListIterator.next();
 				// Create FS Export Rule for export Map
 				List<FileExportRule> fsExpRules = createFSExportRules(fileShare);
-				if (null != fsExpRules && !fsExpRules.isEmpty()) {
+				if (null != fsExpRules && fsExpRules.size() > 0) {
 					log.debug("Persisting new File Export rule(s): {}",
 							fsExpRules);
 					dbClient.createObject(fsExpRules);
@@ -96,7 +86,7 @@ public class FileSystemExportToFileSystemExportRuleMigration extends
 				Snapshot snapshot = snapshotListIterator.next();
 				// Create FS Export Rule for export Map
 				List<FileExportRule> snapshotExpRules = createSnapshotExportRules(snapshot);
-				if (null != snapshotExpRules && !snapshotExpRules.isEmpty()) {
+				if (null != snapshotExpRules && snapshotExpRules.size() > 0) {
 					log.debug("Persisting new Snapshot Export rule(s): {}",
 							snapshotExpRules);
 					dbClient.createObject(snapshotExpRules);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -97,7 +97,7 @@ public class FCZoneReference extends DataObject {
 	 */
 	public static String makeEndpointsKey(List<String> endpoints) {
 		StringBuilder key = new StringBuilder();
-		if (endpoints.isEmpty()) return NULL_KEY;
+		if (endpoints.size() < 1) return NULL_KEY;
 		TreeSet<String> set = new TreeSet<String>();
 		set.addAll(endpoints);
 		Iterator<String> iter = set.iterator();

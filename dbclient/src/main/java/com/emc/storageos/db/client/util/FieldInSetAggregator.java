@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -16,12 +16,8 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.net.URI;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-
 public class FieldInSetAggregator implements DbAggregatorItf{
-    private static final Logger log = LoggerFactory.getLogger(FieldInSetAggregator.class);
+
     private ColumnField  _columnField;
     private String _field;
     private List<URI> _list;
@@ -61,9 +57,7 @@ public class FieldInSetAggregator implements DbAggregatorItf{
                 try {
                     _list.add(new URI(row.getKey()));
                 }
-                catch(URISyntaxException ex) {
-                    log.warn("URI syntax error:{}", ex);
-                }
+                catch(URISyntaxException ex) {}
             }
         }
     }

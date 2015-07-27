@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -82,7 +82,7 @@ public abstract class ComputeFabricUplink extends DataObject {
 		if (null == this.vsans) {
 			setVsans(new StringSet());
 		}
-		if (!vsans.isEmpty()) {
+		if (0 < vsans.size()) {
 			this.vsans.addAll(vsans);
 		}
 	}

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -113,9 +103,7 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
      */
     @Override
     public boolean contains(Object o) {
-    	//Inappropriate "Collection" calls should not be made
-    	//it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of DataObject
-        return getCollection().contains(o); //NOSONAR ("squid:S2175")
+        return getCollection().contains(o);
     }
 
     /* (non-Javadoc)
@@ -167,9 +155,7 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
             mappedByUriSet.remove(((DataObject)o).getId().toString());
             mappedByUriSet.setCallback(cb);
        }
-    	//Inappropriate "Collection" calls should not be made
-    	//it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of DataObject
-        return getCollection().remove(o); //NOSONAR ("squid:S2175")
+        return getCollection().remove(o);
     }
 
     /* (non-Javadoc)

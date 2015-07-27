@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common;
@@ -50,7 +40,7 @@ public class DbSchemaChecker {
             + "by %s against ViPR version %s, at %s\n"
             + "Please DO NOT modify the content.\n-->\n";
 
-    static void usage() {
+    static void Usage() {
         log.info("dbchecker [-i ignored-pkg1:ignored-pkg2:...] [-l geo|all] schema-file" +
                 " pkg1:pkg2");
         log.info("           -i: packages to ignore during schema comparison");
@@ -86,7 +76,7 @@ public class DbSchemaChecker {
             if (args[i].equals("-i")) {
                 ignoredPkgs = args[++i].split(":");
                 if (ignoredPkgs.length == 0) {
-                    usage();
+                    Usage();
                     throw new IllegalArgumentException("no ignored packages provided");
                 }
                 continue;
@@ -104,7 +94,7 @@ public class DbSchemaChecker {
                     schemaLock = SchemaLockType.valueOf(lock.toUpperCase());
                     log.info("Schema lock:{}", schemaLock);
                 } catch (IllegalArgumentException e) {
-                    usage();
+                    Usage();
                     throw new IllegalArgumentException("Invalid schema lock: "+lock);
                 }
                 continue;
@@ -126,11 +116,11 @@ public class DbSchemaChecker {
         }
 
         if (baseCallbackFile==null || currentCallbackFile==null){
-        	usage();
+        	Usage();
         	throw new IllegalArgumentException("no migraton callback file provided");
         }
         if (schemaFile == null || pkgs.length == 0) {
-            usage();
+            Usage();
             throw new IllegalArgumentException("no schema file or packages provided");
         }
         

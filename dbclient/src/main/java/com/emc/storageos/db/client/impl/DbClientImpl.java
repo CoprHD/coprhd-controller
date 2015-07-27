@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -184,15 +174,11 @@ public class DbClientImpl implements DbClient {
     public void setDbVersionInfo(DbVersionInfo dbVersionInfo) {
         _dbVersionInfo = dbVersionInfo;
     }
-    
-    //only called once when Spring initialization, so it's safe to suppress
-    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
+
     public void setCoordinatorClient(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
-    //only called once when Spring initialization, so it's safe to suppress
-    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
     }
@@ -202,9 +188,6 @@ public class DbClientImpl implements DbClient {
      *
      * @param encryptionProvider
      */
-    
-    //only called once when Spring initialization, so it's safe to suppress
-    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public void setGeoEncryptionProvider(EncryptionProvider encryptionProvider) {
         _geoEncryptionProvider = encryptionProvider;
     }
@@ -214,8 +197,6 @@ public class DbClientImpl implements DbClient {
      *
      * @param encryptionProvider
      */
-    //only called once when Spring initialization, so it's safe to suppress
-    @SuppressWarnings("findbugs:IS2_INCONSISTENT_SYNC")
     public void setEncryptionProvider(EncryptionProvider encryptionProvider) {
         _encryptionProvider = encryptionProvider;
     }

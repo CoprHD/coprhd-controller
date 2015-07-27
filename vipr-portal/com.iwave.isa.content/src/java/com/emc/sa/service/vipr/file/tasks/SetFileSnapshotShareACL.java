@@ -4,6 +4,8 @@
  */
 package com.emc.sa.service.vipr.file.tasks;
 
+import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
+
 import java.net.URI;
 
 import com.emc.sa.service.vipr.file.FileStorageUtils;
@@ -22,7 +24,7 @@ public class SetFileSnapshotShareACL extends WaitForTask<FileSnapshotRestRep> {
     public SetFileSnapshotShareACL(URI fileSystemId, String shareName, FileSystemACLs[] acls) {
         this.shareName = shareName;
         this.fileSystemId = fileSystemId;
-        this.acls = acls;
+        this.acls = safeArrayCopy(acls);
         provideDetailArgs(fileSystemId, shareName);
     }
 

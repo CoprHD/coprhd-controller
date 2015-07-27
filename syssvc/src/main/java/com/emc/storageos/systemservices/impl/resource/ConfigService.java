@@ -655,9 +655,9 @@ public class ConfigService {
             
             if (targetProps.containsKey(key) && !targetProps.get(key).equals(value)) {
                 updateProps.addProperty(key, value);
-            } //else if (!targetProps.containsKey(key)) {
-            	//updateProps.addProperty(key, value);
-           // }
+            } else if (!targetProps.containsKey(key)) {
+            	updateProps.addProperty(key, value);
+            }
         }
 
         return updateProps;

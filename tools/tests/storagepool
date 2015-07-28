@@ -1,0 +1,228 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# storage cli functions
+#----------------------------------------------------------------------
+
+def storagepool_delete(args):
+    bourne.connect(args.ip)
+    uri  = bourne.storagepool_query(args.pool)
+    res = bourne.storagepool_delete(uri)
+    print res
+
+def storagepool_show(args):
+    bourne.connect(args.ip)
+    name = args.pool
+    (systemname, poolname) = name.split('/', 1)
+    systemuri  = bourne.storagedevice_query(systemname)
+    pooluri  = bourne.storagepool_query(name)
+    pool = bourne.storagepool_show(systemuri, pooluri)
+    bourne.pretty_print_json(pool)
+
+def storagepool_query(args):
+    bourne.connect(args.ip)
+    print bourne.storagepool_query(args.pool)
+
+def storagepool_list(args):
+    bourne.connect(args.ip)
+    uri  = bourne.storagedevice_query(args.storage)
+    storagepools = bourne.storagepool_list(uri)
+    for pool in storagepools:
+        if (args.full):
+            print pool['name']
+            pool_attrs=bourne.storagepool_show(uri, pool['id'])
+            bourne.pretty_print_json(pool_attrs)
+        elif (args.volume_type):
+            pool_attrs=bourne.storagepool_show(uri, pool['id'])
+            if (args.volume_type == pool_attrs['supported_resource_types']):
+                print pool['name']
+                bourne.pretty_print_json(pool_attrs)
+        else:
+            print pool
+
+def storagepool_register(args):
+    bourne.connect(args.ip)
+    print args.storage
+    uri  = bourne.storagedevice_querybynativeguid(args.storage)
+    pooluris = bourne.storagepool_list(uri)
+    print pooluris
+    for pooluri in pooluris:
+        pool = bourne.storagepool_register(uri, pooluri['id'])
+        print pool
+
+def storagepool_deregister(args):
+    bourne.connect(args.ip)
+    print bourne.storagepool_deregister(args.pool)
+
+def storagepool_update(args):
+    bourne.connect(args.ip)
+    nhadd = []
+    nhrem = []
+    print args.storage
+    uri  = bourne.storagedevice_querybynativeguid(args.storage)
+    if (args.nhadd):
+        nhuri = bourne.neighborhood_query(args.nhadd)
+        nhadd = [ nhuri ]
+    if (args.nhrem):
+        nhuri = bourne.neighborhood_query(args.nhrem)
+        nhrem = [ nhuri ]
+    if (args.pool):
+        pool_uri = bourne.storagepool_query(args.pool)
+        pool = bourne.storagepool_update(pool_uri, nhadd, nhrem, args.max_resources)
+    else:
+        pools = bourne.storagepool_list(uri)
+        for pool_info in pools:
+            # Check if update has to be applied to a pool that
+            # supports a certain type of volume type
+            if (args.volume_type):
+                pool_attrs = bourne.storagepool_show(uri, pool_info['id'])
+                # volume_type values: THICK_ONLY, THIN_ONLY, and THIN_AND_THICK
+                if (args.volume_type == pool_attrs['supported_resource_types']):
+                    pool = bourne.storagepool_update(pool_info['id'], nhadd, nhrem, args.max_resources)
+            else:
+                # Apply to all the pools then
+                print "applying to pool:" + pool_info['name']
+                pool = bourne.storagepool_update(pool_info['id'], nhadd, nhrem, args.max_resources)
+
+def storagepool_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.storagepool_query(args.name)
+    print 'Tagging storagepool ' +  args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def storagepool_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching storagepool with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# storage <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne Storage Pool cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | show | list | register | deregister)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# pool register argument
+register = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+register.add_argument('storage',  help = 'Name of storage device')
+
+# pool deregister argument
+deregister = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deregister .add_argument('pool',	help = 'Name of storage pool (storage-system/pool)')
+
+# pool update argument
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('storage',  help = 'Name of storage device')
+update.add_argument('--type',  help = 'Type of CoS , block or file')
+update.add_argument('--nhadd', help = 'Added neighborhood associations')
+update.add_argument('--nhrem', help = 'Removed neighborhood associations')
+update.add_argument('--pool',  help = 'Apply against a specific pool on storage array')
+update.add_argument('--volume_type', help = 'Apply against pool that has the specified supported_resource_types')
+update.add_argument('--max_resources', help = 'Maximum number of resources permitted in the pool')
+
+# pool show name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('pool',	help = 'Name of storage pool (storage-system/pool)')
+
+# pool list name
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('storage',	help = 'Name of storage device')
+group = list.add_mutually_exclusive_group()
+group.add_argument('--full', action = 'store_true', help = 'Display the full pool info')
+group.add_argument('--volume_type', help = 'Display full pool info for those pools that support the volume_type')
+
+# pool show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('pool',	help = 'Name of storage pool (storage-system/pool)')
+
+# pool query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('pool',	help = 'Name of storage pool (storage-system/pool)')
+
+# tag 
+resource_type="storage_pool"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "delete"):
+        args = delete.parse_args()
+        storagepool_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        storagepool_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        storagepool_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        storagepool_list(args)
+    elif (cmd == "register"):
+        args = register.parse_args()
+        storagepool_register(args)
+    elif (cmd == "deregister"):
+        args = deregister.parse_args()
+        storagepool_deregister(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        storagepool_update(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        storagepool_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        storagepool_search(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

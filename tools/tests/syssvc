@@ -177,7 +177,6 @@ def is_licensed():
             features = license_resp['license_feature']
         else:
              features.append(license_resp['license_feature'])
-
                  
     for feature in features:
         if feature['model'] == 'ViPR_Controller':
@@ -188,7 +187,7 @@ def is_licensed():
             block_license = True
    
      # validate that the product is now licensed.
-    if is_licensed <> "true":
+    if not is_licensed:
         return False
     else:
         if controller_license and block_license:
@@ -275,16 +274,15 @@ def save_properties_original_values():
     # Get system properties and save to file
     f = open('originalProps', 'w')
     if 'properties' in originalProps:
-        entries = originalProps['properties']['entry']
-        for entry in entries:
-            if entry['key'] == PROP_ONE:
-                writeLine = PROP_ONE + '=' + entry['value']
-                f.write(writeLine)
-                f.write('\n')
-            if entry['key'] == PROP_TWO:
-                writeLine = PROP_TWO + '=' + entry['value']
-                f.write(writeLine)
-                f.write('\n')
+        entries = originalProps['properties']
+        if PROP_ONE in entries:
+            writeLine = PROP_ONE + '=' + entries[PROP_ONE]
+            f.write(writeLine)
+            f.write('\n')
+        if PROP_TWO in entries:
+            writeLine = PROP_TWO + '=' + entries[PROP_TWO]
+            f.write(writeLine)
+            f.write('\n')
     f.close()
     test_done(test_name)
 
@@ -338,22 +336,17 @@ def verify_props(props, orig_props):
     test_name = "Verifying if properties are updated"
     test_start(test_name)
     if 'properties' in props:
-        entries = props['properties']['entry']
-        for entry in entries:
-            if entry['key'] == PROP_ONE:
-                if entry['value'] == PROP_ONE_VALUE:
-                    print 'Property '+ PROP_ONE +' changed successfully'
-                else:
-                    raise Exception('Property value did not change. Failed to update property: '+PROP_ONE)
-            if entry['key'] == PROP_TWO:
-                if 'properties' in orig_props:
-                   orig_entries = orig_props['properties']['entry']
-                   for orig_entry in orig_entries:
-                       if orig_entry['key'] == PROP_TWO:
-                           if entry['value'] != orig_entry['value']:
-                               print 'Property ' + PROP_TWO + ' changed successfully'
-                           else:
-                               raise Exception('Property value did not change. Failed to update property: '+PROP_TWO)
+        entries = props['properties']
+        if entries[PROP_ONE] == PROP_ONE_VALUE:
+            print 'Property '+ PROP_ONE +' changed successfully'
+        else:
+            raise Exception('Property value did not change. Failed to update property: '+PROP_ONE)
+        if 'properties' in orig_props:
+            orig_entries = orig_props['properties']
+            if entries[PROP_TWO] != orig_entries[PROP_TWO]:
+                print 'Property ' + PROP_TWO + ' changed successfully'
+            else:
+                raise Exception('Property value did not change. Failed to update property: '+PROP_TWO)
     test_done(test_name)
 
 def verify_ovf_props(props):
@@ -361,12 +354,8 @@ def verify_ovf_props(props):
     test_start(test_name)
     for prop in ['network_vip', 'network_netmask', 'network_gateway', 'network_vip6', 'network_prefix_length', 'network_gateway6', 'node_count']:
          if 'properties' in props:
-             entries = props['properties']['entry']
-             check = 'false'
-             for entry in entries:
-                 if entry['key'] == prop:
-                     check = 'true'
-             if check == 'false':
+             entries = props['properties']
+             if not prop in entries:
                  raise Exception("All expected properties not found. /config/properties api default behavior failed to return all ovf properties: " + prop)
 
     test_done(test_name)
@@ -377,12 +366,8 @@ def verify_config_props(props):
     for prop in ['system_root_encpassword', 'system_root_authorizedkeys2', 'system_connectemc_ftps_hostname',
                  'network_ntpservers', 'network_nameservers', 'system_update_repo']:
          if 'properties' in props:
-             entries = props['properties']['entry']
-             check = 'false'
-             for entry in entries:
-                 if entry['key'] == prop:
-                     check = 'true'
-             if check == 'false':
+             entries = props['properties']
+             if not prop in entries:
                  raise Exception("All expected properties not found. /config/properties api failed to return all configuration properties: " + prop)
     
     test_done(test_name)
@@ -394,13 +379,12 @@ def verify_only_ovf_props(props):
     for prop in ['system_root_encpassword', 'system_root_authorizedkeys2', 'system_connectemc_ftps_hostname',
                  'network_ntpservers', 'network_nameservers', 'system_update_repo']:
          if 'properties' in props:
-             entries = props['properties']['entry']
-             for entry in entries:
-                 if entry['key'] == prop:
-                     if isAppliance == 'yes': 
-                         raise Exception("Configuration properties found in returned properties. Make sure TEST_APPLIANCE=0 if running against devkit. /config/properties?category=ovf failed to only return ovf properties:" + prop)
-                     elif isAppliance == 'no' and prop != 'network_ntpservers' and prop != 'network_nameservers':
-                         raise Exception("Configuration properties found in returned properties. Make sure TEST_APPLIANCE=1 if running against appliance. /config/properties?category=ovf failed to only return ovf properties:" + prop)      
+             entries = props['properties']
+             if prop in entries:
+                 if isAppliance == 'yes': 
+                     raise Exception("Configuration properties found in returned properties. Make sure TEST_APPLIANCE=0 if running against devkit. /config/properties?category=ovf failed to only return ovf properties:" + prop)
+                 elif isAppliance == 'no' and prop != 'network_ntpservers' and prop != 'network_nameservers':
+                     raise Exception("Configuration properties found in returned properties. Make sure TEST_APPLIANCE=1 if running against appliance. /config/properties?category=ovf failed to only return ovf properties:" + prop)      
     test_done(test_name)
 
 def verify_only_config_props(props):
@@ -408,10 +392,9 @@ def verify_only_config_props(props):
     test_start(test_name)
     for prop in ['network_vip', 'network_netmask', 'network_gateway', 'network_vip6', 'network_prefix_length', 'network_gateway6', 'node_count']:
          if 'properties' in props:
-             entries = props['properties']['entry']
-             for entry in entries:
-                 if entry['key'] == prop:
-                     raise Exception("OVF properties found in returned properties. /config/properties?category=config failed to only return configuration properties:" + prop)
+             entries = props['properties']
+             if prop in entries:
+                 raise Exception("OVF properties found in returned properties. /config/properties?category=config failed to only return configuration properties:" + prop)
     test_done(test_name)
 
 def verify_get_props(props):
@@ -445,18 +428,12 @@ def verify_get_ovf_props(props):
 def verify_get_mutated_props(props):
     test_name = "Verifying if /config/properties?category=mutated returns properties that have been mutated"
     test_start(test_name)
-    check1 = 'false'
-    check2 = 'false'
+    entries = {}
     if 'properties' in props:
-        entries = props['properties']['entry']
-        for entry in entries:
-            if entry['key'] == PROP_ONE:
-                check1 = 'true'
-            if entry['key'] == PROP_TWO:
-                check2 = 'true'
-    if 'check1' == 'false':
+        entries = props['properties']
+    if not PROP_ONE in entries:
         raise Exception("Override Properties do not have entry for mutated property:" + PROP_ONE)
-    if 'check2' == 'false':
+    if not PROP_TWO in entries:
         raise Exception("Override Properties do not have entry for mutated property:" + PROP_TWO)
 
     test_done(test_name)
@@ -499,13 +476,11 @@ def verify_reset_props(props):
     test_name = "Verifying if properties are reset to default values"
     test_start(test_name)
     if 'properties' in props:
-        entries = props['properties']['entry']
-        for entry in entries:
-            if entry['key'] == PROP_ONE:
-                if entry['value'] == PROP_ONE_DEFAULT_VALUE:
-                    print 'Property '+ PROP_ONE +' is reset successfully'
-                else:
-                    raise Exception('Failed to reset property: '+PROP_ONE)
+        entries = props['properties']
+        if entries[PROP_ONE] == PROP_ONE_DEFAULT_VALUE:
+            print 'Property '+ PROP_ONE +' is reset successfully'
+        else:
+            raise Exception('Failed to reset property: '+PROP_ONE)
     test_done(test_name)
 
 def syssvc_reset_properties():
@@ -542,23 +517,20 @@ def syssvc_set_dns_ntp_properties():
     # configure it to the corporate DNS
     # servers
     if 'properties' in props:
-        entries = props['properties']['entry']
+        entries = props['properties']
         set_dns = False
         set_ntp = False
         outputString = ""
-        for entry in entries:
-            if entry['key'] == DNS_PROP_NAME: 
-                if entry['value']:  
-                    print "DNS already configured: " +  entry['value'] 
-                else:
-                    set_dns=True
-                    outputString = "Setting DNS to " + DNS_PROP_VALUE + "."                 
-            if entry['key'] == NTP_PROP_NAME:
-                if entry['value']:  
-                    print "NTP already configured: " +  entry['value'] 
-                else:
-                    set_ntp=True
-                    outputString += "Setting NTP to " + NTP_PROP_VALUE + "." 
+        if entries[DNS_PROP_NAME]:  
+            print "DNS already configured: " +  entries[NTP_PROP_NAME] 
+        else:
+            set_dns=True
+            outputString = "Setting DNS to " + DNS_PROP_VALUE + "."                 
+        if entries[NTP_PROP_NAME]:  
+            print "NTP already configured: " +  entries[NTP_PROP_NAME] 
+        else:
+            set_ntp=True
+            outputString += "Setting NTP to " + NTP_PROP_VALUE + "." 
         if set_dns or set_ntp:
             write_dns_ntp_props_to_file(write_dns=set_dns, write_ntp=set_ntp)
             test_start(outputString)
@@ -630,7 +602,6 @@ def syssvc_verify_targetversion():
         # target section
         targetState = state['target_state']
         currentVersion = targetState['current_version']
-        availableVersions = targetState['available_versions']['available_version']
 
     if (targetversion != currentVersion):
         raise Exception("TargetVersion is not same as current version")
@@ -643,13 +614,13 @@ def syssvc_install_image(version = None):
     state = SysMgr.get_cluster_state(Arguments(bourne_ip, force='1'))
     if 'target_state' in state:
         targetState = state['target_state']
-        availableVersions = targetState['available_versions']['available_version']
+        availableVersions = targetState['available_versions']
     newVersions = None
     if version:
         newVersions = version
     elif 'new_versions' in state:
         if state.get('new_versions') is not None:
-            newVersions = state.get('new_versions')['new_version']
+            newVersions = state.get('new_versions')
         else:
             newVersions = None
 
@@ -676,7 +647,7 @@ def verify_install_image(version):
     test_name = "Verifying installed image"
     test_start(test_name)
     response = SysMgr.get_cluster_state(Arguments(bourne_ip,force='1'))
-    availableVersions = get_node_available_versions('control_nodes',response)
+    availableVersions = get_node_available_versions('target_state',response)
     if not availableVersions or version not in availableVersions:
         raise Exception('The installed version is not found in the list of available versions on control node.')
     test_done(test_name)
@@ -684,13 +655,15 @@ def verify_install_image(version):
 def get_node_available_versions(node, clusterState):
     availableVersions = []
     if node in clusterState:
-        entry = clusterState[node]['entry']
-        if type(entry) is list:
-            entry = entry[0]
-        if entry['value']['available_versions']:
-            availableVersions =  entry['value']['available_versions']['available_version']
-            if type(availableVersions) is not list:
-                availableVersions = [availableVersions]
+        entry = clusterState[node]
+        for value in entry.itervalues():
+            if type(entry) is not dict:
+                continue
+            if entry['available_versions']:
+                availableVersions =  entry['available_versions']
+                if type(availableVersions) is not list:
+                    availableVersions = [availableVersions]
+                break
     return availableVersions
 
 def syssvc_remove_image():
@@ -699,7 +672,7 @@ def syssvc_remove_image():
     state = SysMgr.get_cluster_state(Arguments(bourne_ip,force='1'))
     if 'removable_versions' in state:
         if state.get('removable_versions') is not None:
-            removables = state.get('removable_versions')['removable_version']
+            removables = state.get('removable_versions')
         else:
             removables = None
 
@@ -721,7 +694,7 @@ def verify_remove_image(version):
     test_name = "Verifying removed image"
     test_start(test_name)
     response = SysMgr.get_cluster_state(Arguments(bourne_ip,force='1'))
-    availableVersions = get_node_available_versions('control_nodes',response)
+    availableVersions = get_node_available_versions('target_state',response)
     if availableVersions and version in availableVersions:
         raise Exception('The removed version is still there in the list of available versions on control node.')
     test_done(test_name)
@@ -740,10 +713,10 @@ def syssvc_get_health():
         if n['status'] != good:
             raise Exception('Error: Node ' + nodeid +' is '+ n['status'])
         services = []
-        if type(n['service_health_list']['service_health']) is not list:
-            services.append(n['service_health_list']['service_health'])
+        if type(n['service_health_list']) is not list:
+            services.append(n['service_health_list'])
         else:
-            services = n['service_health_list']['service_health']
+            services = n['service_health_list']
  
         for s in services:
             if s['status'] != good:
@@ -765,10 +738,10 @@ def syssvc_get_stats():
 
     #Verify node and service stats
     node_stats = []
-    if type(resp['node_stats_list']['node_stats']) is not list:
-        node_stats.append(resp['node_stats_list']['node_stats'])
+    if type(resp['node_stats_list']) is not list:
+        node_stats.append(resp['node_stats_list'])
     else:
-        node_stats = resp['node_stats_list']['node_stats']
+        node_stats = resp['node_stats_list']
     
     for node_stat in node_stats:
         # Verify node stats
@@ -779,10 +752,10 @@ def syssvc_get_stats():
         services = CONTROL_SERVICES
         service_stats = []
 
-        if type(node_stat['service_stats_list']['service_stats']) is not list:
-            service_stats.append(node_stat['service_stats_list']['service_stats'])
+        if type(node_stat['service_stats_list']) is not list:
+            service_stats.append(node_stat['service_stats_list'])
         else:
-            service_stats = node_stat['service_stats_list']['service_stats']
+            service_stats = node_stat['service_stats_list']
         for stats in service_stats:
             service_name = stats['name']
             if service_name in services:
@@ -796,7 +769,7 @@ def syssvc_get_stats():
 
         #Verify disk stats
         disk_stats = []
-        dstats = node_stat['disk_io_stats_list']['disk_io_stats']
+        dstats = node_stat['disk_io_stats_list']
         if type(dstats) is not list:
             disk_stats.append(dstats)
         else:
@@ -814,7 +787,7 @@ def syssvc_get_diagnostics():
     resp = SysMgr.get_diagnostics(Arguments(bourne_ip,verbose='1'))
 
     node_diag = []
-    diags = resp['node_diagnostics_list']['node_diagnostics']
+    diags = resp['node_diagnostics_list']
     if type(diags) is not list:
         node_diag.append(diags)
     else:
@@ -825,7 +798,7 @@ def syssvc_get_diagnostics():
         nodeid = diag['node_id']
         if len(nodeid) == 0 or len(diag['ip']) == 0:
             raise Exception("Node id or ip not found")
-        for test in diag['tests']['test']:
+        for test in diag['tests']:
             tests.add(test['name'])
         diff = DIAG_TESTS.difference(tests)
         if len(diff) > 0:
@@ -846,10 +819,10 @@ def check_health_for_service(nodes_health, node_id, service_name):
             if n['status'] != good:
                 return False
             services = []
-            if type(n['service_health_list']['service_health']) is not list:
-                services.append(n['service_health_list']['service_health'])
+            if type(n['service_health_list']) is not list:
+                services.append(n['service_health_list'])
             else:
-                services = n['service_health_list']['service_health']
+                services = n['service_health_list']
 
             for s in services:
                 if s['name'] == service_name:
@@ -873,10 +846,10 @@ def syssvc_restart_service():
         if n['status'] != good:
             continue
         services = []
-        if type(n['service_health_list']['service_health']) is not list:
-            services.append(n['service_health_list']['service_health'])
+        if type(n['service_health_list']) is not list:
+            services.append(n['service_health_list'])
         else:
-            services = n['service_health_list']['service_health']
+            services = n['service_health_list']
 
         for s in services:
             if s['status'] == good and s['name'] != 'syssvc':
@@ -922,10 +895,10 @@ def syssvc_reboot_node():
 def get_nodes_health():
     resp  = SysMgr.get_health(Arguments(bourne_ip))
     nodes = []
-    if type(resp['node_health_list']['node_health']) is not list:
-        nodes.append(resp['node_health_list']['node_health'])
+    if type(resp['node_health_list']) is not list:
+        nodes.append(resp['node_health_list'])
     else:
-        nodes = resp['node_health_list']['node_health']
+        nodes = resp['node_health_list']
     return nodes
 
 def test_start(name):

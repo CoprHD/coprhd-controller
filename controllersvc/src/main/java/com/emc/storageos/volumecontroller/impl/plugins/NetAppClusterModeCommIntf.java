@@ -1205,15 +1205,21 @@ public class NetAppClusterModeCommIntf extends
                 HashMap<String, HashSet<UnManagedSMBFileShare>> unMangedSMBFileShareMapSet = getAllCifsShares(listShares);
 
                 for (String key : unMangedSMBFileShareMapSet.keySet()) {
-                    String filesystem = key;
                     unManagedSMBFileShareHashSet = unMangedSMBFileShareMapSet.get(key);
-                    _logger.info("FileSystem Path {}", filesystem);
-
+                    String filesystem = key;
                     String nativeId = filesystem;
+
+                    //get a filesystem name from the path
+                    int index = filesystem.indexOf('/', 1);
+                    if( -1 !=  index){
+                        filesystem = filesystem.substring(0, index);
+                        _logger.info("Unmanaged FileSystem Name {}", filesystem);
+                    }
+
                     String fsUnManagedFsNativeGuid = NativeGUIDGenerator
                             .generateNativeGuidForPreExistingFileSystem(
                                     storageSystem.getSystemType(), storageSystem
-                                            .getSerialNumber().toUpperCase(), nativeId);
+                                            .getSerialNumber().toUpperCase(), filesystem);
 
                     UnManagedFileSystem unManagedFs = checkUnManagedFileSystemExistsInDB(fsUnManagedFsNativeGuid);
                     boolean fsAlreadyExists = unManagedFs == null ? false : true;

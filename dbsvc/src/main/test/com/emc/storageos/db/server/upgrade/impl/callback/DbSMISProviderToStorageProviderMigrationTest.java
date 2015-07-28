@@ -43,7 +43,7 @@ public class DbSMISProviderToStorageProviderMigrationTest extends DbSimpleMigrat
     private static final Logger log = LoggerFactory.getLogger(DbSMISProviderToStorageProviderMigrationTest.class);
 
     // Constants for testing VPLEX storage systems.
-    private static URI VPLEX_SYS_ID;
+    private static volatile URI VPLEX_SYS_ID;
     private static final int VPLEX_SYS_PORT = 443;
     private static final String VPLEX_SYS_LABEL = "vplex";
     private static final String VPLEX_SYS_IP = "10.247.96.154";

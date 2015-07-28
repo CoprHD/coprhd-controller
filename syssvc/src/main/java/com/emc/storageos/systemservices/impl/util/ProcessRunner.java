@@ -105,7 +105,7 @@ public class ProcessRunner implements AutoCloseable {
                     capture.append("\n");
 
                     StringWriter sw = new StringWriter();
-                    e.printStackTrace(new PrintWriter(sw));
+                    e.printStackTrace(new PrintWriter(sw)); //NOSONAR ("squid:S1148 Suppressing sonar violation of no printStackTrace")
                     capture.append(sw.toString());
                 }
             }

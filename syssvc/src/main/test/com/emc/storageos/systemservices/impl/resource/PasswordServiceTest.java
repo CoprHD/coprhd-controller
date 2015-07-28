@@ -73,7 +73,7 @@ public class PasswordServiceTest {
     public PropertyInfoExt _passwordProps = new PropertyInfoExt();
     public PropertiesMetadata _propertiesMetadata = new PropertiesMetadata();
     private DummyEncryptionProvider provider;
-    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";
+    private static final String SYSTEM_ENCPASSWORD_FORMAT = "system_%s_encpassword";  //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
     Map<String, String> propertiesMap;
 
     /**
@@ -583,20 +583,17 @@ public class PasswordServiceTest {
     	}
     }
 
-    private CoordinatorClient getCoordinatorClient() {
+    private CoordinatorClient getCoordinatorClient() throws Exception {
         DummyCoordinatorClient client = new DummyCoordinatorClient();
 
-        try {
-            ZkConnection zkConn = new ZkConnection();
-            List<URI> uris = new ArrayList();
-            uris.add(new URI("coordinator://localhost:2181"));
-            zkConn.setServer(uris);
-            zkConn.setTimeoutMs(10000);
-            zkConn.build();
+        ZkConnection zkConn = new ZkConnection();
+        List<URI> uris = new ArrayList();
+        uris.add(new URI("coordinator://localhost:2181"));
+        zkConn.setServer(uris);
+        zkConn.setTimeoutMs(10000);
+        zkConn.build();
 
-            client.setZkConnection(zkConn);
-        }catch (URISyntaxException | IOException e) {
-        }
+        client.setZkConnection(zkConn);
 
         return client;
     }

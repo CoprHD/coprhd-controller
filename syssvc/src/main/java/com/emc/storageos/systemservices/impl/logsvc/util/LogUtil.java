@@ -66,7 +66,7 @@ public class LogUtil {
         for(File f : files) {
         	logger.debug("file path: " + f.getAbsolutePath());
         }
-        if (files.size() > 0) {
+        if (!files.isEmpty()) {
             Collections.sort(files, new LogFileComparator());
             for (File file : files) {
                 if (fileInTimeRange(file, start, end) < 0) {

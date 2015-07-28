@@ -42,22 +42,22 @@ public class PropertiesConfigurationValidatorTest extends
                     "10.247.96.256", false);
             Assert.fail();
         } catch (BadRequestException e) {
-
+            Assert.assertTrue(true);
         }        
         try {
             validator.getValidPropValue("network_gateway",
                     "xxx", false);
             Assert.fail();
         } catch (BadRequestException e) {
-
+            Assert.assertTrue(true);
         }
         try {
             validator.getValidPropValue("network_gateway",
                     "2620:0:170:2842::1", false);
             Assert.fail();
         } catch (BadRequestException e) {
-
-    }
+            Assert.assertTrue(true);
+        }
     }
     
 
@@ -68,19 +68,19 @@ public class PropertiesConfigurationValidatorTest extends
             validator.getValidPropValue("network_gateway6", "G620:0:170:2842::1", false);  
             Assert.fail();
         } catch (BadRequestException e) {
-            
+            Assert.assertTrue(true);
         }
         try {
             validator.getValidPropValue("network_gateway6", "xxxx", false);  
             Assert.fail();
         } catch (BadRequestException e) {
-            
+            Assert.assertTrue(true);
         }
         try {
             validator.getValidPropValue("network_gateway6", "10.247.100.11", false);  
             Assert.fail();
         } catch (BadRequestException e) {
-            
+            Assert.assertTrue(true);
         }
     }
     
@@ -94,7 +94,7 @@ public class PropertiesConfigurationValidatorTest extends
                     "lglaf020.lss.emc.com/ovf/Bourne/", true);
             Assert.fail();
         } catch (Exception e) {
-
+            Assert.assertTrue(true);
         }
     }
 
@@ -108,7 +108,7 @@ public class PropertiesConfigurationValidatorTest extends
                     "noemail", true);
             Assert.fail();
         } catch (Exception e) {
-
+            Assert.assertTrue(true);
         }
     }
 
@@ -123,6 +123,7 @@ public class PropertiesConfigurationValidatorTest extends
                     longString, true);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
         Assert.assertTrue(validator.getValidPropValue("network_ntpservers",
                 validString, true) != null);
@@ -137,6 +138,7 @@ public class PropertiesConfigurationValidatorTest extends
             validator.getValidPropValue("network_ntpservers", shortString, true);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
 
         Assert.assertTrue(validator.getValidPropValue("network_ntpservers",
@@ -150,6 +152,7 @@ public class PropertiesConfigurationValidatorTest extends
             validator.getValidPropValue("config_version", "bad version", true);
             Assert.fail();
         } catch (Exception e) {
+            Assert.assertTrue(true);
         }
     }
 

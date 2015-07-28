@@ -144,7 +144,8 @@ public class DistributedQueueImpl<T> implements DistributedQueue<T> {
      * Wakes up main dispatch loop
      */
     private synchronized void notifyPendingChange() {
-        notifyAll();
+        // This is not a naked notify, we do status mutation outside this method, safe to suppress
+        notifyAll(); //NOSONAR("findbugs:NN_NAKED_NOTIFY")
     }
 
     /**

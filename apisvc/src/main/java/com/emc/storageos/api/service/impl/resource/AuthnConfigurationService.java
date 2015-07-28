@@ -781,7 +781,7 @@ public class AuthnConfigurationService extends TaggedResource {
      */
     private synchronized void persistProfileAndNotifyChange(AuthnProvider modifiedProvider,
             boolean newObject) {
-        modifiedProvider.setLast_modified(System.currentTimeMillis());
+        modifiedProvider.setLastModified(System.currentTimeMillis());
         if (newObject) {
             _dbClient.createObject(modifiedProvider);
         } else {

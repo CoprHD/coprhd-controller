@@ -68,7 +68,9 @@ public abstract class DbServiceTestBase {
             URI.create("thrift://localhost:9160"));
 
     protected static void removeDb() throws Exception {
-        dataDir = new File("./dbtest");
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //Junit test will be called in single thread by default, it's safe to ignore this violation
+        dataDir = new File("./dbtest"); //NOSONAR ("squid:S2444")
         if (dataDir.exists() && dataDir.isDirectory()) {
             cleanDirectory(dataDir);
         }

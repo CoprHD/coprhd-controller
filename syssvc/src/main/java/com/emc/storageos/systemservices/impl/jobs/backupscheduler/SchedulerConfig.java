@@ -283,7 +283,7 @@ public class SchedulerConfig {
         for (NamedElementQueryResultList.NamedElement namedElement : queryResults) {
             userPrefsIds.add(namedElement.getId());
         }
-        if (userPrefsIds.size() == 0) {
+        if (userPrefsIds.isEmpty()) {
             return null;
         }
 
@@ -296,7 +296,7 @@ public class SchedulerConfig {
         if (userPrefs.size() > 1) {
             throw new IllegalStateException("There should only be 1 user preferences object for a user");
         }
-        if (userPrefs.size() == 0) {
+        if (userPrefs.isEmpty()) {
             // if there isn't a user prefs object in the DB yet then we haven't saved one for this user yet.
             return null;
         }

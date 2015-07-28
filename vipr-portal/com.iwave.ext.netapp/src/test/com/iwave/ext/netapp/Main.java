@@ -103,7 +103,7 @@ public class Main {
 			deleteNFSExport(exportPath);
 		}
 		catch(Exception e){
-			e.printStackTrace();
+			System.out.println("Failed to delete NFS Export" + e.getMessage());
 		}
         
         

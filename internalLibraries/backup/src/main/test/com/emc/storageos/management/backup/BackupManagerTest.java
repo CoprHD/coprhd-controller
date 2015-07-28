@@ -43,8 +43,10 @@ public class BackupManagerTest extends BackupTestBase {
     @BeforeClass
     public static void setUp() {
         Assert.assertNotNull(backupManager.getBackupHandler());
-        Assert.assertNotNull(backupManager.getBackupDir());
-        backupFolder = backupManager.getBackupDir();
+        Assert.assertNotNull(backupManager.getBackupContext().getBackupDir());
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //Junit test will be called in single thread by default, it's safe to ignore this violation
+        backupFolder = backupManager.getBackupContext().getBackupDir(); //NOSONAR ("squid:S2444")
     }
 
     @Test(expected = IllegalArgumentException.class)

@@ -3976,7 +3976,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (volume != null && storageSystem != null) {
                 boolean vplexDistBackingVolume = false;
                 Volume associatedVPlexVolume = 
-                        VPlexUtil.getVolumeByAssociatedVolume(volumeURI, _dbClient);
+                        Volume.fetchVplexVolume(_dbClient, volume);
                 if (associatedVPlexVolume != null &&
                         associatedVPlexVolume.getAssociatedVolumes() != null &&
                         associatedVPlexVolume.getAssociatedVolumes().size() == 2) {
@@ -4054,7 +4054,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (volume != null && storageSystem != null) {
                 boolean vplexDistBackingVolume = false;
                 Volume associatedVPlexVolume = 
-                        VPlexUtil.getVolumeByAssociatedVolume(volumeURI, _dbClient);
+                        Volume.fetchVplexVolume(_dbClient, volume);
                 if (associatedVPlexVolume != null &&
                         associatedVPlexVolume.getAssociatedVolumes() != null &&
                         associatedVPlexVolume.getAssociatedVolumes().size() == 2) {
@@ -4087,7 +4087,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP,
                             rpSystem.getId(), volume.getId(), rsetParams);
             
-                    waitFor = workflow.createStep(STEP_POST_VOLUME_RESTORE, "Post volume restore from snapshot, delete replication set step for RP: " + volume.toString(),
+                    waitFor = workflow.createStep(STEP_POST_VOLUME_RESTORE, "Post volume restore from snapshot, re-create replication set step for RP: " + volume.toString(),
                             waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                             recreateRSetExecuteMethod, rollbackMethodNullMethod(), stepId);
                     
@@ -4121,7 +4121,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     
                     String stepId = workflow.createStepId();
                     Workflow.Method restoreVolumeFromSnapshotMethod = new Workflow.Method(METHOD_RESTORE_VOLUME_STEP,
-                            rpSystem.getId(), volume, completer);
+                            rpSystem.getId(), storage, snapshot, completer);
             
                     waitFor = workflow.createStep(null, "Restore volume from RP snapshot: " + volume.toString(),
                             waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
@@ -4145,7 +4145,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return true if the step completed successfully, false otherwise.
      * @throws InternalException
      */
-    public boolean restoreVolume(URI protectionDevice, URI storageDevice, URI snapshotID, String stepId, BlockSnapshotRestoreCompleter completer) throws InternalException {
+    public boolean restoreVolume(URI protectionDevice, URI storageDevice, URI snapshotID, BlockSnapshotRestoreCompleter completer, String stepId) throws InternalException {
         try {
             _log.info("Restoring bookmark on the RP CG");
 

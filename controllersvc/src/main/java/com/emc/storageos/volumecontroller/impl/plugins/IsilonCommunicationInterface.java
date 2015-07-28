@@ -701,10 +701,22 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         UnManagedCifsShareACL existingACL = null;
                         List<UnManagedCifsShareACL> tempunManagedCifsShareACL = new ArrayList<UnManagedCifsShareACL>();
                         int noOfShares = 0;
-                        HashSet<String> smbShares = allSMBShares.get(fs.getPath());
-                        if(smbShares != null && !smbShares.isEmpty()) {
+                        String fspathname = fs.getPath();
+                        HashSet<String> smbShares = allSMBShares.get(fspathname);
+                        //get all shares for given file system path
+                        HashSet<String> temphashSet = new HashSet<String>();
+                        for (String entry : allSMBShares.keySet()) {
+
+                            if(entry.startsWith(fspathname)) {
+                                _log.info("filesystem path : {} and share path: {}", fs.getPath(), entry);
+                                temphashSet.addAll(allSMBShares.get(entry));
+                                noOfShares += 1;
+                            }
+                        }
+
+                        if(!temphashSet.isEmpty()) {
                             //get UnManaged ACL and also set the shares in fs object
-                            getUnmanagedCifsShareACL(unManagedFs, smbShares,
+                            getUnmanagedCifsShareACL(unManagedFs, temphashSet,
                                     tempunManagedCifsShareACL, storagePort, fs.getName(), isilonApi);
                             noOfShares += 1;
                             if (!tempunManagedCifsShareACL.isEmpty()) {

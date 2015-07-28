@@ -82,8 +82,8 @@ public class ScaleIOCLIFactory {
     /**
      * Routine will check if the SIO instance has changed versions. This is to support the use-case
      * where an existing SIO instance is upgraded.
-     *
-     * @param provider   [in] - StorageProvider object representing the primary MDM
+     * 
+     * @param provider [in] - StorageProvider object representing the primary MDM
      * @param currentCLI [in] - ScaleIOCLI object representing the current CLI in use
      * @return ScaleIOCLI - Either a new one (if the version changed) or same as currentCLI
      */
@@ -111,7 +111,7 @@ public class ScaleIOCLIFactory {
     /**
      * Routine will create a new ScaleIOCLI instance with all the appropriate attributes
      * filled in based on the StorageProvider object passed in.
-     *
+     * 
      * @param provider [in] - StorageProvider object representing the primary MDM
      * @return ScaleIOCLI object - newly created
      */
@@ -136,7 +136,7 @@ public class ScaleIOCLIFactory {
 
     /**
      * Updates the cli object with the username/password from the StorageProvider.
-     *
+     * 
      * @param cli ScaleIOCLI object to update
      * @param provider StorageProvider to get username/password
      */
@@ -155,7 +155,7 @@ public class ScaleIOCLIFactory {
     /**
      * Updates the cli object with the MDM (Secondary)
      * username/password from the StorageProvider.
-     *
+     * 
      * @param cli ScaleIOCLI object to update
      * @param provider StorageProvider to get secondary username/password
      */

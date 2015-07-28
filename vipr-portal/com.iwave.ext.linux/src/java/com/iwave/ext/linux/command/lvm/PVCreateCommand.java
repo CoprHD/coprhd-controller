@@ -14,13 +14,13 @@ import com.iwave.ext.linux.command.LinuxCommand;
  */
 public class PVCreateCommand extends LinuxCommand {
     public static final String DEVICE = "device";
-    
+
     public PVCreateCommand() {
         setCommand(CommandConstants.PVCREATE);
         addVariable(DEVICE);
         setRunAsRoot(true);
     }
-    
+
     public void setDevice(String device) {
         setVariableValue(DEVICE, device);
     }

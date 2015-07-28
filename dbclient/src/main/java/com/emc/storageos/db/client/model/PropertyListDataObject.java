@@ -14,9 +14,6 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.model.valid.EnumType;
-import java.util.Calendar;
-
 /**
  * Class to store arbitrary auxiliary resources in the database
  * It stores all data as string values in the StringMap
@@ -24,12 +21,12 @@ import java.util.Calendar;
 @Cf("PropertyListDataObject")
 public class PropertyListDataObject extends DataObject {
 
-    private StringMap  _resourceData;
-    private String     _type;
+    private StringMap _resourceData;
+    private String _type;
 
     @Name("resourceData")
     public StringMap getResourceData() {
-        if (_resourceData == null)  {
+        if (_resourceData == null) {
             _resourceData = new StringMap();
         }
         return _resourceData;
@@ -42,13 +39,12 @@ public class PropertyListDataObject extends DataObject {
     @Name("resourceType")
     @AlternateId("AltIdIndex")
     public String getResourceType() {
-            return _type;
+        return _type;
     }
 
     public void setResourceType(String type) {
         _type = type;
         setChanged("resourceType");
     }
-
 
 }

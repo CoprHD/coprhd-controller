@@ -21,7 +21,6 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.storageos.security.password.Constants;
 
-import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.i18n.Messages;
 import play.mvc.Controller;
@@ -48,24 +47,24 @@ public class ChangePassword extends Controller {
     }
 
     public static void validatePasswords(String oldPassword, String password, String fieldName) {
-    	String validation = PasswordUtil.validatePasswordforUpdate(oldPassword, password);
+        String validation = PasswordUtil.validatePasswordforUpdate(oldPassword, password);
         if (StringUtils.isNotBlank(validation)) {
-            Validation.addError(fieldName , validation);
-        } 
+            Validation.addError(fieldName, validation);
+        }
         if (Validation.hasErrors()) {
             renderJSON(ValidationResponse.collectErrors());
-        }    
+        }
         else {
             renderJSON(ValidationResponse.valid());
         }
-        
+
     }
-    
+
     public static String getPasswordValidPromptRule() {
-    	String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_UPDATE_PROMPT);
+        String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_UPDATE_PROMPT);
         return promptString;
     }
-    
+
     public static class PasswordForm {
         public String oldPassword;
         public String newPassword;

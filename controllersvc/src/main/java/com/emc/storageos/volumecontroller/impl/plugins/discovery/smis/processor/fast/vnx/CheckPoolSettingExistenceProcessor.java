@@ -94,7 +94,7 @@ public class CheckPoolSettingExistenceProcessor extends PoolProcessor {
                     .get(Constants.VNXPOOLCAPABILITIES_TIER);
             while (it.hasNext()) {
                 CIMInstance settingInstance = it.next();
-                _logger.debug("settingInstance :{}",settingInstance);
+                _logger.debug("settingInstance :{}", settingInstance);
                 int tierMethodology = Integer.parseInt(settingInstance.getPropertyValue(
                         Constants.INITIAL_STORAGE_TIER_METHODOLOGY).toString());
                 int tierSelection = Integer.parseInt(settingInstance.getPropertyValue(
@@ -102,12 +102,12 @@ public class CheckPoolSettingExistenceProcessor extends PoolProcessor {
                 String poolSettingId = settingInstance.getPropertyValue(
                         Constants.INSTANCEID).toString();
                 // remove already existing settings from list
-                
+
                 if (checkPoolSettingExistsBasedOnTierMethodology(tierMethodology, pool,
                         poolSettingId) && tierSelection == Constants.RELATIVE_PERFORMANCE_ORDER) {
                     poolSettingsList.remove(poolCapabilitiesPath.toString() + Constants.HYPEN + tierMethodology);
                 }
-                
+
             }
         } catch (Exception e) {
             _logger.error("CheckPoolExistence Processor failed:", e);
@@ -131,49 +131,50 @@ public class CheckPoolSettingExistenceProcessor extends PoolProcessor {
             return poolChanged;
         }
         switch (tierMethodology) {
-        case Constants.NO_DATA_MOVEMENT:
-            if (null == pool.getNoDataMovementId()
-                    || !pool.getNoDataMovementId().equalsIgnoreCase(poolSettingId)) {
-                pool.setNoDataMovementId(poolSettingId);
-            }
-            poolChanged = true;
-            break;
-        case Constants.AUTO_TIER:
-            if (null == pool.getAutoTierSettingId()
-                    || !pool.getAutoTierSettingId().equalsIgnoreCase(poolSettingId)) {
-                pool.setAutoTierSettingId(poolSettingId);
-            }
-            poolChanged = true;
-            break;
-        case Constants.HIGH_AVAILABLE_TIER:
-            if (null == pool.getHighAvailableTierId()
-                    || !pool.getHighAvailableTierId().equalsIgnoreCase(poolSettingId)) {
-                pool.setHighAvailableTierId(poolSettingId);
-            }
-            poolChanged = true;
-            break;
-        case Constants.LOW_AVAILABLE_TIER:
-            if (null == pool.getLowAvailableTierId()
-                    || !pool.getLowAvailableTierId().equalsIgnoreCase(poolSettingId)) {
-                pool.setLowAvailableTierId(poolSettingId);
-            }
-            poolChanged = true;
-            break;
-        case Constants.START_HIGH_THEN_AUTO_TIER:
-            if (null == pool.getStartHighThenAutoTierId()
-                    || !pool.getStartHighThenAutoTierId().equalsIgnoreCase(poolSettingId)) {
-                pool.setStartHighThenAutoTierId(poolSettingId);
-            }
-            poolChanged = true;
-            break;        
-        default:
-            _logger.warn(
-                    "Found Invalid Storage tier methodology '{}' for Storage Pool {}",
-                    tierMethodology, pool.getId());
-            break;
+            case Constants.NO_DATA_MOVEMENT:
+                if (null == pool.getNoDataMovementId()
+                        || !pool.getNoDataMovementId().equalsIgnoreCase(poolSettingId)) {
+                    pool.setNoDataMovementId(poolSettingId);
+                }
+                poolChanged = true;
+                break;
+            case Constants.AUTO_TIER:
+                if (null == pool.getAutoTierSettingId()
+                        || !pool.getAutoTierSettingId().equalsIgnoreCase(poolSettingId)) {
+                    pool.setAutoTierSettingId(poolSettingId);
+                }
+                poolChanged = true;
+                break;
+            case Constants.HIGH_AVAILABLE_TIER:
+                if (null == pool.getHighAvailableTierId()
+                        || !pool.getHighAvailableTierId().equalsIgnoreCase(poolSettingId)) {
+                    pool.setHighAvailableTierId(poolSettingId);
+                }
+                poolChanged = true;
+                break;
+            case Constants.LOW_AVAILABLE_TIER:
+                if (null == pool.getLowAvailableTierId()
+                        || !pool.getLowAvailableTierId().equalsIgnoreCase(poolSettingId)) {
+                    pool.setLowAvailableTierId(poolSettingId);
+                }
+                poolChanged = true;
+                break;
+            case Constants.START_HIGH_THEN_AUTO_TIER:
+                if (null == pool.getStartHighThenAutoTierId()
+                        || !pool.getStartHighThenAutoTierId().equalsIgnoreCase(poolSettingId)) {
+                    pool.setStartHighThenAutoTierId(poolSettingId);
+                }
+                poolChanged = true;
+                break;
+            default:
+                _logger.warn(
+                        "Found Invalid Storage tier methodology '{}' for Storage Pool {}",
+                        tierMethodology, pool.getId());
+                break;
         }
-        if (poolChanged)
+        if (poolChanged) {
             _dbClient.persistObject(pool);
+        }
         return poolChanged;
     }
 

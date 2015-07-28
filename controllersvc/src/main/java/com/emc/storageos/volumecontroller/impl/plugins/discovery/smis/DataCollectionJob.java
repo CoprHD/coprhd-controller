@@ -27,7 +27,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
  */
 public abstract class DataCollectionJob implements Serializable {
 
-
     private static final long serialVersionUID = 3080188098065596509L;
 
     public static enum JobOrigin {
@@ -49,15 +48,15 @@ public abstract class DataCollectionJob implements Serializable {
 
     public abstract void schedule(DbClient dbClient);
 
-    public abstract void setTaskError(DbClient dbClient,ServiceCoded code);
+    public abstract void setTaskError(DbClient dbClient, ServiceCoded code);
 
-    public abstract void setTaskReady(DbClient dbClient,String message);
+    public abstract void setTaskReady(DbClient dbClient, String message);
 
     public abstract void updateTask(DbClient dbClient, String message);
 
     public abstract boolean isActiveJob(DbClient dbClient);
 
-   public boolean isSchedulerJob() {
+    public boolean isSchedulerJob() {
         return (_origin == JobOrigin.SCHEDULER);
     }
 

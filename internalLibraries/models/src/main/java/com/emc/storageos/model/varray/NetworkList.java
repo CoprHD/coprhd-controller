@@ -25,15 +25,17 @@ import java.util.List;
 public class NetworkList {
     private List<NamedRelatedResourceRep> networks;
 
-    public NetworkList() {}
-    
+    public NetworkList() {
+    }
+
     public NetworkList(List<NamedRelatedResourceRep> networks) {
         this.networks = networks;
     }
 
     /**
-     * List of network objects that exist in ViPR. Each 
+     * List of network objects that exist in ViPR. Each
      * network contains an id, name, and link.
+     * 
      * @valid none
      */
     @XmlElement(name = "network")

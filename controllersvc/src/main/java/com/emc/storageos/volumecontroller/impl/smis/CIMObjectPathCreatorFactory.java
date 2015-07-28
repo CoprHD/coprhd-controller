@@ -39,7 +39,7 @@ import com.emc.storageos.plugins.common.Constants;
  */
 public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     private final static Logger _log = LoggerFactory.getLogger(CIMObjectPathCreatorFactory.class);
-    
+
     @Override
     public CIMObjectPath getElementCompositionSvcPath(StorageSystem storageDevice) {
         CIMObjectPath elementCompositionSvcPath;
@@ -59,7 +59,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         }
         return elementCompositionSvcPath;
     }
-    
+
     @Override
     public CIMObjectPath getConfigSvcPath(StorageSystem storageDevice) {
         CIMObjectPath configSvcPath;
@@ -80,9 +80,10 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         }
         return configSvcPath;
     }
-    
+
     @Override
-    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem, BlockObject target) {
+    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem,
+            BlockObject target) {
         CIMObjectPath sourcePath = cimAdapter.getBlockObjectPath(sourceSystem, sourceSystem, source);
         CIMObjectPath targetPath = cimAdapter.getBlockObjectPath(targetSystem, sourceSystem, target);
         CIMProperty[] propKeys = { cimPropertyFactory.string(CP_SYNCED_ELEMENT, targetPath.toString()),
@@ -91,7 +92,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(
                 SE_STORAGE_SYNCHRONIZED_SV_SV, getCimConnectionFactory().getNamespace(sourceSystem), propKeys);
     }
-    
+
     @Override
     public CIMObjectPath getGroupSynchronized(CIMObjectPath sourceGroup, CIMObjectPath targetGroup) {
         // TODO Intention is to eventually rely on known group names...
@@ -101,7 +102,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
                 cimPropertyFactory.string(CP_SYSTEM_ELEMENT, sourceGroup.toString()) };
         return CimObjectPathCreator.createInstance(SE_GROUP_SYNCHRONIZED_RG_RG, ROOT_EMC_NAMESPACE, propKeys);
     }
-    
+
     @Override
     public CIMObjectPath getControllerConfigSvcPath(StorageSystem storageDevice) {
         CIMProperty[] configSvcPropKeys = {
@@ -115,7 +116,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(prefixWithParamName(CONTROLLER_CONFIGURATION_SERVICE),
                 getCimConnectionFactory().getNamespace(storageDevice), configSvcPropKeys);
     }
-    
+
     @Override
     public CIMObjectPath getTierPolicySvcPath(StorageSystem storageDevice) {
         CIMProperty[] configSvcPropKeys = {
@@ -129,21 +130,22 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(prefixWithParamName(TIER_POLICY_SERVICE),
                 cimConnectionFactory.getNamespace(storageDevice), configSvcPropKeys);
     }
-    
+
     @Override
     public CIMObjectPath getTierPolicyRulePath(StorageSystem storageDevice, String policyName) {
         CIMProperty[] configSvcPropKeys = {
                 cimPropertyFactory.string(CP_CREATION_CLASS_NAME,
-                        prefixWithParamName(storageDevice.checkIfVmax3()? STORAGE_POOL_SETTING :TIER_POLICY_RULE)),
+                        prefixWithParamName(storageDevice.checkIfVmax3() ? STORAGE_POOL_SETTING : TIER_POLICY_RULE)),
                 cimPropertyFactory.string(CP_POLICY_NAME, SmisUtils.translate(storageDevice, policyName)),
                 cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME,
                         prefixWithParamName(STORAGE_SYSTEM)),
                 cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(storageDevice))
         };
-        return CimObjectPathCreator.createInstance(prefixWithParamName(storageDevice.checkIfVmax3() ? STORAGE_POOL_SETTING : TIER_POLICY_RULE),
+        return CimObjectPathCreator.createInstance(prefixWithParamName(storageDevice.checkIfVmax3() ? STORAGE_POOL_SETTING
+                : TIER_POLICY_RULE),
                 cimConnectionFactory.getNamespace(storageDevice), configSvcPropKeys);
     }
-    
+
     @Override
     public CIMObjectPath getControllerReplicationSvcPath(StorageSystem storageDevice) {
         CIMProperty[] replicationSvcKeys = {
@@ -155,7 +157,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(prefixWithParamName(REPLICATION_SERVICE),
                 cimConnectionFactory.getNamespace(storageDevice), replicationSvcKeys);
     }
-    
+
     @Override
     public CIMObjectPath getStorageProtectionSvcPath(StorageSystem storageDevice) {
         CIMProperty[] replicationSvcKeys = {
@@ -167,7 +169,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(prefixWithParamName(PROTECTION_SERVICE),
                 cimConnectionFactory.getNamespace(storageDevice), replicationSvcKeys);
     }
-    
+
     @Override
     public CIMObjectPath getReplicationServiceCapabilitiesPath(StorageSystem storageDevice) {
         CIMProperty[] propKeys = {
@@ -187,7 +189,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         };
         return CimObjectPathCreator.createInstance(SE_SYSTEM_REGISTRATION_SERVICE, cimConnectionFactory.getNamespace(storage), properties);
     }
-    
+
     @Override
     public CIMObjectPath[] getClarProtocolControllers(StorageSystem storageDevice, String protocolControllerName) throws Exception {
         List<CIMObjectPath> list = new ArrayList<CIMObjectPath>();
@@ -205,7 +207,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         CIMObjectPath[] array = {};
         return list.toArray(array);
     }
-  
+
     @Override
     public CIMObjectPath[] getVolumePaths(StorageSystem storageDevice, String[] volumeNames) throws Exception {
         ArrayList<CIMObjectPath> theElementsList = new ArrayList<CIMObjectPath>();
@@ -224,7 +226,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         volArray = theElementsList.toArray(volArray);
         return volArray;
     }
-    
+
     @Override
     public CIMObjectPath[] getTargetPortPaths(StorageSystem storageDevice, List<URI> targetURIList) throws Exception {
         CIMObjectPath protocolEndpointPath = CimObjectPathCreator.createInstance(CIM_PROTOCOL_ENDPOINT,
@@ -232,14 +234,14 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         List<CIMObjectPath> objectPaths = new ArrayList<CIMObjectPath>();
         Set<String> portSet = new HashSet<String>();
         for (URI target : targetURIList) {
-           StoragePort storagePort = dbClient.queryObject(StoragePort.class, target);
-           String portName;
-           if (storagePort.getTransportType().equals("FC")) {
-              portName = storagePort.getPortNetworkId().replaceAll(":", "");
-           } else {
-              portName = storagePort.getPortEndPointID();
-           }
-           portSet.add(portName);
+            StoragePort storagePort = dbClient.queryObject(StoragePort.class, target);
+            String portName;
+            if (storagePort.getTransportType().equals("FC")) {
+                portName = storagePort.getPortNetworkId().replaceAll(":", "");
+            } else {
+                portName = storagePort.getPortEndPointID();
+            }
+            portSet.add(portName);
         }
         CloseableIterator<CIMInstance> iterator =
                 cimConnectionFactory.getConnection(storageDevice).getCimClient().enumerateInstances(
@@ -255,7 +257,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         objectPathArray = objectPaths.toArray(objectPathArray);
         return objectPathArray;
     }
-    
+
     @Override
     public CIMObjectPath[] getInitiatorPaths(StorageSystem storageDevice, String[] initiatorNames) throws Exception {
         CIMObjectPath[] initiatorPortPaths = {};
@@ -277,17 +279,20 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
     public CIMObjectPath getMaskingViewPath(StorageSystem storageDevice, String groupName) {
         CIMProperty[] mvKeys = {
                 cimPropertyFactory.string(CP_CREATION_CLASS_NAME, prefixWithParamName(LUN_MASKING_VIEW)),
-                cimPropertyFactory.string(CP_DEVICE_ID, storageDevice.getUsingSmis80() ? groupName : prefixWithSystemName(storageDevice.getSerialNumber()).concat("+").concat(groupName)),
+                cimPropertyFactory.string(CP_DEVICE_ID,
+                        storageDevice.getUsingSmis80() ? groupName : prefixWithSystemName(storageDevice.getSerialNumber()).concat("+")
+                                .concat(groupName)),
                 cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_SYSTEM)),
-                cimPropertyFactory.string(CP_SYSTEM_NAME, SmisUtils.translate(storageDevice, prefixWithSystemName(storageDevice.getSerialNumber())))
+                cimPropertyFactory.string(CP_SYSTEM_NAME,
+                        SmisUtils.translate(storageDevice, prefixWithSystemName(storageDevice.getSerialNumber())))
         };
         return CimObjectPathCreator.createInstance(prefixWithParamName(LUN_MASKING_VIEW),
                 cimConnectionFactory.getNamespace(storageDevice), mvKeys);
     }
-    
+
     @Override
     public CIMObjectPath getLunMaskingProtocolControllerPath(StorageSystem storage,
-                                                             ExportMask exportMask) {
+            ExportMask exportMask) {
         String creationClass = prefixWithParamName(LUN_MASKING_SCSI_PROTOCOL_CONTROLLER);
         String storageSystem = prefixWithParamName(STORAGE_SYSTEM);
         String systemName = SmisUtils.translate(storage, prefixWithSystemName(storage.getSerialNumber()));
@@ -300,10 +305,10 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(creationClass, cimConnectionFactory.getNamespace(storage),
                 keys);
     }
-    
+
     @Override
     public CIMObjectPath getBlockObjectPath(StorageSystem storage, StorageSystem source, BlockObject blockObject) {
-        
+
         @SuppressWarnings("rawtypes")
         CIMProperty[] volumeKeys = {
                 cimPropertyFactory.string(CP_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_VOLUME)),
@@ -314,7 +319,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(null, null, null,
                 cimConnectionFactory.getNamespace(storage), prefixWithParamName(STORAGE_VOLUME), volumeKeys);
     }
-    
+
     @Override
     public CIMObjectPath getBlockObjectPath(StorageSystem storage, BlockObject blockObject) {
         @SuppressWarnings("rawtypes")
@@ -327,7 +332,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         return CimObjectPathCreator.createInstance(prefixWithParamName(STORAGE_VOLUME),
                 cimConnectionFactory.getNamespace(storage), volumeKeys);
     }
-    
+
     @Override
     public CIMObjectPath getVolumePath(StorageSystem storage, String nativeId) {
         CIMProperty[] volumeKeys = {
@@ -336,26 +341,28 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
                 cimPropertyFactory.string(CP_SYSTEM_CREATION_CLASS_NAME, prefixWithParamName(STORAGE_SYSTEM)),
                 cimPropertyFactory.string(CP_SYSTEM_NAME, getSystemName(storage))
         };
-        return CimObjectPathCreator.createInstance(prefixWithParamName(STORAGE_VOLUME), cimConnectionFactory.getNamespace(storage), volumeKeys);
+        return CimObjectPathCreator.createInstance(prefixWithParamName(STORAGE_VOLUME), cimConnectionFactory.getNamespace(storage),
+                volumeKeys);
     }
-    
+
     @Override
     public CIMObjectPath getReplicationGroupPath(StorageSystem storage, String groupName) {
-       return getReplicationGroupPath(storage, storage.getSerialNumber(), groupName);
+        return getReplicationGroupPath(storage, storage.getSerialNumber(), groupName);
     }
-    
+
     @Override
     public CIMObjectPath getReplicationGroupPath(StorageSystem activeProviderStorageProxy, String serialNumber, String groupName) {
         // VMAX V3, e.g., 000196700567+EMC_SMI_RG1414546375042
-        String groupInstanceName = activeProviderStorageProxy.getUsingSmis80()? String.format("%s+%s", serialNumber, groupName)
+        String groupInstanceName = activeProviderStorageProxy.getUsingSmis80() ? String.format("%s+%s", serialNumber, groupName)
                 : String.format("%s+1+%s%s", groupName, getSystemNamePrefix(), serialNumber);
 
         CIMProperty[] replicationGroupKeys = {
                 cimPropertyFactory.string(CP_INSTANCE_ID, groupInstanceName)
         };
-        return CimObjectPathCreator.createInstance(SE_REPLICATION_GROUP, cimConnectionFactory.getNamespace(activeProviderStorageProxy), replicationGroupKeys);
+        return CimObjectPathCreator.createInstance(SE_REPLICATION_GROUP, cimConnectionFactory.getNamespace(activeProviderStorageProxy),
+                replicationGroupKeys);
     }
-    
+
     @Override
     public CIMObjectPath getReplicationGroupObjectPath(StorageSystem storage, String instanceId) {
         CIMProperty[] replicationGroupKeys = {
@@ -363,16 +370,17 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         };
         return CimObjectPathCreator.createInstance(SE_REPLICATION_GROUP, cimConnectionFactory.getNamespace(storage), replicationGroupKeys);
     }
-    
+
     @Override
     public CIMObjectPath getSyncAspectPath(StorageSystem storage, String aspectInstanceId) {
         CIMProperty[] syncAspectKeys = {
                 cimPropertyFactory.string(CP_INSTANCE_ID, aspectInstanceId)
         };
-        return CimObjectPathCreator.createInstance(storage.checkIfVmax3() ? SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE : CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE,
+        return CimObjectPathCreator.createInstance(storage.checkIfVmax3() ? SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE
+                : CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE,
                 cimConnectionFactory.getNamespace(storage), syncAspectKeys);
     }
-    
+
     @Override
     public CIMObjectPath getStoragePoolPath(StorageSystem storage, StoragePool storagePool) {
         StringBuffer poolInstanceId = new StringBuffer(storage.getNativeGuid());
@@ -380,15 +388,15 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         CIMProperty[] poolKeys = { cimPropertyFactory.string(CP_INSTANCE_ID, SmisUtils.translate(storage, poolInstanceId.toString())) };
         return CimObjectPathCreator.createInstance(storagePool.getPoolClassName(), cimConnectionFactory.getNamespace(storage), poolKeys);
     }
-    
-     @Override
-     public CIMObjectPath getPoolSettingPath(StorageSystem storage, String poolSettingID) {
+
+    @Override
+    public CIMObjectPath getPoolSettingPath(StorageSystem storage, String poolSettingID) {
         CIMProperty[] poolsettingkeys = {
                 cimPropertyFactory.string(CP_INSTANCE_ID, poolSettingID)
         };
         return CimObjectPathCreator.createInstance(CLAR_STORAGE_POOL_SETTING, cimConnectionFactory.getNamespace(storage), poolsettingkeys);
     }
-    
+
     @Override
     public CIMObjectPath getSyncSettingsPath(StorageSystem storage, CIMObjectPath volumePath, String aspectInstanceId) {
         CIMObjectPath syncAspectPath = cimAdapter.getSyncAspectPath(storage, aspectInstanceId);
@@ -396,10 +404,11 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
                 cimPropertyFactory.reference(CP_MANAGED_ELEMENT, volumePath),
                 cimPropertyFactory.reference(CP_SETTING_DATA, syncAspectPath)
         };
-        return CimObjectPathCreator.createInstance(storage.checkIfVmax3() ? SYMM_SETTINGS_DEFINE_STATE_SV_SAFS : CLAR_SETTINGS_DEFINE_STATE_SV_SAFS,
+        return CimObjectPathCreator.createInstance(storage.checkIfVmax3() ? SYMM_SETTINGS_DEFINE_STATE_SV_SAFS
+                : CLAR_SETTINGS_DEFINE_STATE_SV_SAFS,
                 cimConnectionFactory.getNamespace(storage), settingsKeys);
     }
-    
+
     @Override
     public CIMObjectPath getGroupSynchronizedPath(StorageSystem storage, String consistencyGroupName, String snapGroupName) {
         CIMObjectPath snapGroup = cimAdapter.getReplicationGroupPath(storage, snapGroupName);
@@ -408,18 +417,20 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
                 cimPropertyFactory.reference(CP_SYNCED_ELEMENT, snapGroup),
                 cimPropertyFactory.reference(CP_SYSTEM_ELEMENT, consistencyGroup)
         };
-        return CimObjectPathCreator.createInstance(SE_GROUP_SYNCHRONIZED_RG_RG, cimConnectionFactory.getNamespace(storage), groupSynchronizedKeys);
+        return CimObjectPathCreator.createInstance(SE_GROUP_SYNCHRONIZED_RG_RG, cimConnectionFactory.getNamespace(storage),
+                groupSynchronizedKeys);
     }
-    
+
     @Override
     public CIMObjectPath getSyncAspectForSourceGroupPath(StorageSystem storage, String aspectInstanceId) {
         CIMProperty[] syncAspectKeys = {
                 cimPropertyFactory.string(CP_INSTANCE_ID, aspectInstanceId)
         };
         return CimObjectPathCreator
-                .createInstance(storage.checkIfVmax3() ? SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP : CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP, cimConnectionFactory.getNamespace(storage), syncAspectKeys);
+                .createInstance(storage.checkIfVmax3() ? SYMM_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP
+                        : CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE_GROUP, cimConnectionFactory.getNamespace(storage), syncAspectKeys);
     }
-    
+
     @Override
     public CIMObjectPath getGroupSynchronizedSettingsPath(StorageSystem storage, String groupName, String settingsInstance) {
         CIMObjectPath group = cimAdapter.getReplicationGroupPath(storage, groupName);
@@ -428,9 +439,10 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
                 cimPropertyFactory.reference(CP_MANAGED_ELEMENT, group),
                 cimPropertyFactory.reference(CP_SETTING_DATA, syncAspect)
         };
-        return CimObjectPathCreator.createInstance(storage.checkIfVmax3() ? SYMM_SETTINGS_DEFINE_STATE_RG_SAFS : CLAR_SETTINGS_DEFINE_STATE_RG_SAFS, cimConnectionFactory.getNamespace(storage), settingsKeys);
+        return CimObjectPathCreator.createInstance(storage.checkIfVmax3() ? SYMM_SETTINGS_DEFINE_STATE_RG_SAFS
+                : CLAR_SETTINGS_DEFINE_STATE_RG_SAFS, cimConnectionFactory.getNamespace(storage), settingsKeys);
     }
-    
+
     /**
      * Convenience method to get the CIMObject related to the StorageSystem
      * 
@@ -447,7 +459,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         };
         return CimObjectPathCreator.createInstance(storageSystemClassName, cimConnectionFactory.getNamespace(storage), properties);
     }
-    
+
     @Override
     public CIMObjectPath objectPath(String namespace, String name, CIMProperty[] keys) {
         CIMObjectPath path;
@@ -458,7 +470,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         }
         return path;
     }
-    
+
     @Override
     public CIMObjectPath getStorageHardwareIDManagementService(StorageSystem storage) {
         String creationClassName = prefixWithParamName(STORAGE_HARDWARE_ID_MGMT_SVC);
@@ -470,7 +482,7 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         };
         return CimObjectPathCreator.createInstance(creationClassName, cimConnectionFactory.getNamespace(storage), properties);
     }
-    
+
     @Override
     public CIMObjectPath getPrivilegeManagementService(StorageSystem storage) {
         CIMProperty[] properties = {
@@ -481,10 +493,10 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
         };
         return CimObjectPathCreator.createInstance(CP_CLAR_PRIVILEGE_MGMT_SVC, cimConnectionFactory.getNamespace(storage), properties);
     }
-    
+
     @Override
     public CIMObjectPath getRemoteReplicationCollection(StorageSystem system,
-                                                        RemoteDirectorGroup group) {
+            RemoteDirectorGroup group) {
         String instanceId = group.getNativeGuid().replace("REMOTEGROUP", "NAME");
         if (system.getUsingSmis80()) {
             instanceId = SmisUtils.translate(system, instanceId.replace(system.getSerialNumber() + "+NAME+", ""));
@@ -505,7 +517,10 @@ public class CIMObjectPathCreatorFactory extends AbstractCIMObjectPathFactory {
 
     public CIMObjectPath getMaskingGroupPath(StorageSystem storageDevice, String groupName, MASKING_GROUP_TYPE groupType) throws Exception {
         CIMProperty[] groupKeys = {
-                cimPropertyFactory.string(CP_INSTANCE_ID, SmisUtils.translate(storageDevice, prefixWithSystemName(storageDevice.getSerialNumber()).concat("+").concat(groupName))),
+                cimPropertyFactory.string(
+                        CP_INSTANCE_ID,
+                        SmisUtils.translate(storageDevice,
+                                prefixWithSystemName(storageDevice.getSerialNumber()).concat("+").concat(groupName))),
         };
         return CimObjectPathCreator.createInstance(groupType.name(),
                 cimConnectionFactory.getNamespace(storageDevice), groupKeys);

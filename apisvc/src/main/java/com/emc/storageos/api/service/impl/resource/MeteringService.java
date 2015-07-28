@@ -51,7 +51,6 @@ public class MeteringService extends ResourceService {
     public static final String HOUR_BUCKET_TIME_FORMAT = "yyyy-MM-dd'T'HH";
     public static final String MINUTE_BUCKET_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm";
 
-
     public static final String BAD_TIMEBUCKET_MSG = "Error: time_bucket parameter format supplied is not valid.\n"
             + "Acceptable formats: yyyy-MM-dd'T'HH , yyyy-MM-dd'T'HH:mm";
 
@@ -63,17 +62,18 @@ public class MeteringService extends ResourceService {
         this._statRetriever = _statRetriever;
     }
 
-    /**     
+    /**
      * Retrieves the bulk metering stats for all resources in a specified time bucket (minute or hour).
-     *
-     * @param time_bucket required Time bucket for retrieval of stats. Acceptable formats are: yyyy-MM-dd'T'HH for hour bucket, yyyy-MM-dd'T'HH:mm for minute bucket
+     * 
+     * @param time_bucket required Time bucket for retrieval of stats. Acceptable formats are: yyyy-MM-dd'T'HH for hour bucket,
+     *            yyyy-MM-dd'T'HH:mm for minute bucket
      * @brief List metering statistics for time period
      * @return - Output stream of stats or an error status.
      */
     @GET
     @Path("/stats")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = {Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN })
     public Response getStats(
             @QueryParam("time_bucket") final String timeBucketParam,
             @Context HttpHeaders header) {
@@ -99,33 +99,33 @@ public class MeteringService extends ResourceService {
         TimeBucket granularity = TimeBucket.HOUR;
 
         try {
-            //we reduce the length by 2 here to account for single quote in yyyy-MM-dd'T'HH format
-            if ((null != timeBucketParam ) && (timeBucketParam.length() == HOUR_BUCKET_TIME_FORMAT.length() - 2)) {
+            // we reduce the length by 2 here to account for single quote in yyyy-MM-dd'T'HH format
+            if ((null != timeBucketParam) && (timeBucketParam.length() == HOUR_BUCKET_TIME_FORMAT.length() - 2)) {
                 timeBucket = dfHourFormat.parseDateTime(timeBucketParam);
                 granularity = TimeSeriesMetadata.TimeBucket.HOUR;
-            } else if ((null != timeBucketParam ) && (timeBucketParam.length() == MINUTE_BUCKET_TIME_FORMAT
+            } else if ((null != timeBucketParam) && (timeBucketParam.length() == MINUTE_BUCKET_TIME_FORMAT
                     .length() - 2)) {
                 timeBucket = dfMinuteFormat.parseDateTime(timeBucketParam);
                 granularity = TimeSeriesMetadata.TimeBucket.MINUTE;
             } else {
-            	throw APIException.badRequests.invalidTimeBucket(timeBucketParam );
+                throw APIException.badRequests.invalidTimeBucket(timeBucketParam);
             }
         } catch (final IllegalArgumentException e) {
-        	throw APIException.badRequests.invalidTimeBucket(timeBucketParam, e);
+            throw APIException.badRequests.invalidTimeBucket(timeBucketParam, e);
         }
 
         if (timeBucket == null) {
-        	throw APIException.badRequests.invalidTimeBucket(timeBucketParam );
+            throw APIException.badRequests.invalidTimeBucket(timeBucketParam);
         }
 
         return Response.ok(
-                    getStreamData(timeBucket, granularity, mediaType),
-                    mediaType).build();
+                getStreamData(timeBucket, granularity, mediaType),
+                mediaType).build();
     }
 
     /**
      * Retrieves the bulk metering statistics for the given query params.
-     *
+     * 
      * @param timeBucket
      *            - time_bucket for retrieval of stats
      * @param granularity
@@ -148,7 +148,7 @@ public class MeteringService extends ResourceService {
                     _statRetriever.getBulkStats(timeBucket, granularity,
                             mediaType, out);
                 } catch (final Exception e) {
-                   throw APIException.internalServerErrors.meteringStatsError(e.getMessage(),e);
+                    throw APIException.internalServerErrors.meteringStatsError(e.getMessage(), e);
                 } finally {
                     out.close();
                 }

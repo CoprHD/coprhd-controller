@@ -76,20 +76,20 @@ public class XmlDiffTest {
     }
 
     @Test
-    public void testElementAdd()  {
+    public void testElementAdd() {
         Element oldElement = oldDocument.getRootElement().getChild("add").clone();
         Element newElement = newDocument.getRootElement().getChild("add").clone();
         boolean ret = XmlDiff.compareElement(oldElement, newElement);
         Assert.assertFalse(ret);
-        Assert.assertEquals(oldElement.getChildren().size()+1, newElement.getChildren().size());
+        Assert.assertEquals(oldElement.getChildren().size() + 1, newElement.getChildren().size());
     }
 
     @Test
-    public void testElementRemove()  {
+    public void testElementRemove() {
         Element oldElement = oldDocument.getRootElement().getChild("remove").clone();
         Element newElement = newDocument.getRootElement().getChild("remove").clone();
         boolean ret = XmlDiff.compareElement(oldElement, newElement);
         Assert.assertFalse(ret);
-        Assert.assertEquals(oldElement.getChildren().size()-1, newElement.getChildren().size());
+        Assert.assertEquals(oldElement.getChildren().size() - 1, newElement.getChildren().size());
     }
 }

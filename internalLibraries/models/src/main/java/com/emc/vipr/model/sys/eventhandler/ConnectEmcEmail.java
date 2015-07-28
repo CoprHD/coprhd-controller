@@ -14,8 +14,6 @@
  */
 package com.emc.vipr.model.sys.eventhandler;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -37,7 +35,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     private final static String LOGIN = "login";
     private final static String CRAM_MD5 = "cram-md5";
     private final static String PLAIN = "plain";
-    
+
     /**
      * Optional, SMTP server or relay for sending email
      */
@@ -49,7 +47,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     public void setEmailServer(String emailServer) {
         this.emailServer = emailServer;
     }
-    
+
     /**
      * Optional, SMTP server port. If set to 0, the default SMTP port is used (25, or 465 if TLS/SSL is enabled)
      */
@@ -61,7 +59,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     public void setPort(String port) {
         this.port = port;
     }
-    
+
     /**
      * Optional, e-mail address where you can be contacted
      */
@@ -73,6 +71,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     public void setPrimaryEmailAddress(String primaryEmailAddress) {
         this.primaryEmailAddress = primaryEmailAddress;
     }
+
     /**
      * Optional, e-mail address for the ConnectEMC Service notifications
      */
@@ -84,6 +83,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     public void setNotifyEmailAddress(String notifyEmailAddress) {
         this.notifyEmailAddress = notifyEmailAddress;
     }
+
     /**
      * Optional, From email address for sending email messages
      */
@@ -95,9 +95,10 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     public void setEmailSender(String emailSender) {
         this.emailSender = emailSender;
     }
-    
+
     /**
      * Optional, Authentication type for connecting to the SMTP server
+     * 
      * @valid LOGIN
      * @valid CRAM_MD5
      * @valid PLAIN
@@ -117,6 +118,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
             this.smtpAuthType = PLAIN;
         }
     }
+
     /**
      * Optional, Username for authenticating with the SMTP server
      */
@@ -128,6 +130,7 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     public void setUserName(String userName) {
         this.userName = userName;
     }
+
     /**
      * Optional, Password for authenticating with the SMTP server
      */
@@ -139,10 +142,12 @@ public class ConnectEmcEmail extends ConnectEmcEmailFtpsBase {
     public void setPassword(String password) {
         this.password = password;
     }
+
     /**
      * Optional, Use TLS/SSL for the SMTP server connections
+     * 
      * @valid NO (DEFAULT)
-     * @valid YES 
+     * @valid YES
      */
     @XmlElement(name = "start_tls_ind")
     public String getStartTls() {

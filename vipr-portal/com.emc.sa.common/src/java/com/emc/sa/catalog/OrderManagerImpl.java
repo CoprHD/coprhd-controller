@@ -79,59 +79,59 @@ import com.google.common.collect.Maps;
 
 @Component
 public class OrderManagerImpl implements OrderManager {
-    
+
     private static final Logger log = Logger.getLogger(OrderManagerImpl.class);
-    
+
     @Autowired
     private ModelClient client;
-    
+
     @Autowired
-    private OrderExecutionQueue orderExecutionQueue;    
-    
+    private OrderExecutionQueue orderExecutionQueue;
+
     @Autowired
-    private OrderCompletionQueue orderCompletionQueue;    
-    
-    @Resource(name="tokenManager")
+    private OrderCompletionQueue orderCompletionQueue;
+
+    @Resource(name = "tokenManager")
     private TokenManager tokenManager;
 
     @Autowired
     private OrderNumberSequence orderNumberSequence;
-    
+
     @Autowired
     private CatalogServiceManager catalogServiceManager;
-    
+
     @Autowired
-    private ApprovalManager approvalManager;    
-    
+    private ApprovalManager approvalManager;
+
     @Autowired
     private NotificationManager notificationManager;
-    
+
     @Autowired
-    private ServiceDescriptors serviceDescriptors;    
-    
+    private ServiceDescriptors serviceDescriptors;
+
     @Autowired
-    private AssetOptionsManager assetOptionsManager;    
-    
+    private AssetOptionsManager assetOptionsManager;
+
     @PostConstruct
     private void init() throws Exception {
         orderCompletionQueue.listenForRequests(new OrderCompletionConsumer(this));
     }
-    
+
     public Order getOrderById(URI id) {
         if (id == null) {
             return null;
         }
 
         Order order = client.orders().findById(id);
-        
+
         return order;
     }
-    
+
     public Order createOrder(Order order, List<OrderParameter> orderParameters, StorageOSUser user) {
-        
+
         CatalogService catalogService = catalogServiceManager.getCatalogServiceById(order.getCatalogServiceId());
         ServiceDescriptor serviceDescriptor = serviceDescriptors.getDescriptor(Locale.getDefault(), catalogService.getBaseService());
-        
+
         order.setOrderNumber(getNextOrderNumber());
         order.setSummary(catalogService.getTitle());
         if (catalogService.getExecutionWindowRequired()) {
@@ -140,15 +140,15 @@ public class OrderManagerImpl implements OrderManager {
         order.setMessage("");
         order.setSubmittedByUserId(user.getUserName());
         order.setOrderStatus(OrderStatus.PENDING.name());
-        createExecutionState(order, user);        
-        
+        createExecutionState(order, user);
+
         client.save(order);
-        
-        Map<String,String> assetOptions = getAssetValues(serviceDescriptor, orderParameters);
+
+        Map<String, String> assetOptions = getAssetValues(serviceDescriptor, orderParameters);
         for (OrderParameter orderParameter : orderParameters) {
             ServiceField serviceField = findServiceField(serviceDescriptor, orderParameter.getLabel());
             String friendlyLabel = serviceField.getLabel();
-            
+
             StringBuilder friendlyValue = new StringBuilder();
             List<String> values = TextUtils.parseCSV(orderParameter.getValue());
             for (String value : values) {
@@ -157,19 +157,19 @@ public class OrderManagerImpl implements OrderManager {
                 }
                 friendlyValue.append(getFriendlyValue(serviceField, value, assetOptions, user));
             }
-            
+
             orderParameter.setFriendlyLabel(friendlyLabel);
             orderParameter.setFriendlyValue(friendlyValue.toString());
             createOrderParameter(orderParameter);
         }
-        
+
         return order;
     }
-    
+
     public void createOrderParameter(OrderParameter orderParameter) {
         client.save(orderParameter);
     }
-    
+
     // For 'asset' type fields, put in the label instead of the actual value.
     // This prevents the receipt page from having things like FileSystem: 123
     private String getFriendlyValue(ServiceField serviceField, String value, Map<String, String> assetValues, StorageOSUser user) {
@@ -183,14 +183,14 @@ public class OrderManagerImpl implements OrderManager {
                     String optionLabel = serviceField.getOptions().get(labels[i]);
                     if (StringUtils.isNotBlank(optionLabel)) {
                         labels[i] = optionLabel;
-                    }                    
+                    }
                 }
             }
             return StringUtils.join(labels, ",");
         }
         return "";
     }
-    
+
     private boolean canGetResourceLabel(String resourceId) {
         switch (ResourceType.fromResourceId(resourceId)) {
             case VOLUME:
@@ -222,7 +222,7 @@ public class OrderManagerImpl implements OrderManager {
                 return false;
         }
     }
-    
+
     private String getOptionLabelForAsset(String key, String assetType, Map<String, String> assetValues, StorageOSUser user) {
         try {
             if (canGetResourceLabel(key)) {
@@ -238,94 +238,92 @@ public class OrderManagerImpl implements OrderManager {
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error(String.format("Error getting label for asset %s", key), e);
         }
 
         return key;
     }
-    
+
     protected String getResourceLabel(String resourceId) {
         DataObject dataObject = null;
         try {
             URI id = uri(resourceId);
             switch (ResourceType.fromResourceId(resourceId)) {
-            case VOLUME:
-                dataObject = client.findById(Volume.class, id);
-                break;
-            case PROJECT:
-                dataObject = client.findById(Project.class, id);
-                break;
-            case HOST:
-                dataObject = client.findById(Host.class, id);
-                break;
-            case CLUSTER:
-                dataObject = client.findById(Cluster.class, id);
-                break;
-            case QUOTA_DIRECTORY:
-                dataObject = client.findById(QuotaDirectory.class, id);
-                break;
-            case VIRTUAL_ARRAY:
-                dataObject = client.findById(VirtualArray.class, id);
-                break;
-            case VIRTUAL_POOL:
-                dataObject = client.findById(VirtualPool.class, id);
-                break;
-            case CONSISTENCY_GROUP:
-                dataObject = client.findById(BlockConsistencyGroup.class, id);
-                break;
-            case STORAGE_SYSTEM:
-                dataObject = client.findById(StorageSystem.class, id);
-                break;
-            case EXPORT_GROUP:
-                dataObject = client.findById(ExportGroup.class, id);
-                break;
-            case FILE_SHARE:
-                dataObject = client.findById(FileShare.class, id);
-                break;
-            case FILE_SNAPSHOT:
-                dataObject = client.findById(Snapshot.class, id);
-                break;
-            case BLOCK_SNAPSHOT:
-                dataObject = client.findById(BlockSnapshot.class, id);
-                break;
-            case VCENTER:
-                dataObject = client.findById(Vcenter.class, id);
-                break;
-            case VCENTER_DATA_CENTER:
-                dataObject = client.findById(VcenterDataCenter.class, id);
-                break;
-            case SMIS_PROVIDER:
-                dataObject = client.findById(StorageProvider.class, id);
-                break;
-            case STORAGE_POOL:
-                dataObject = client.findById(StoragePool.class, id);
-                break;
-            case NETWORK_SYSTEM:
-                dataObject = client.findById(Network.class, id);
-                break;
-            case PROTECTION_SYSTEM:
-                dataObject = client.findById(ProtectionSystem.class, id);
-                break;
-            case UNMANAGED_VOLUME:
-                dataObject = client.findById(UnManagedVolume.class, id);
-                break;
-            case UNMANAGED_FILESYSTEM:
-                dataObject = client.findById(UnManagedFileSystem.class, id);
-                break;
-            case UNMANAGED_EXPORTMASK:
-                dataObject = client.findById(UnManagedExportMask.class, id);
-                break;
-            case BLOCK_CONTINUOUS_COPY:
-                dataObject = client.findById(BlockMirror.class, id);
-                break;
-            case VPLEX_CONTINUOUS_COPY:
-                dataObject = client.findById(VplexMirror.class, id);
-                break;
+                case VOLUME:
+                    dataObject = client.findById(Volume.class, id);
+                    break;
+                case PROJECT:
+                    dataObject = client.findById(Project.class, id);
+                    break;
+                case HOST:
+                    dataObject = client.findById(Host.class, id);
+                    break;
+                case CLUSTER:
+                    dataObject = client.findById(Cluster.class, id);
+                    break;
+                case QUOTA_DIRECTORY:
+                    dataObject = client.findById(QuotaDirectory.class, id);
+                    break;
+                case VIRTUAL_ARRAY:
+                    dataObject = client.findById(VirtualArray.class, id);
+                    break;
+                case VIRTUAL_POOL:
+                    dataObject = client.findById(VirtualPool.class, id);
+                    break;
+                case CONSISTENCY_GROUP:
+                    dataObject = client.findById(BlockConsistencyGroup.class, id);
+                    break;
+                case STORAGE_SYSTEM:
+                    dataObject = client.findById(StorageSystem.class, id);
+                    break;
+                case EXPORT_GROUP:
+                    dataObject = client.findById(ExportGroup.class, id);
+                    break;
+                case FILE_SHARE:
+                    dataObject = client.findById(FileShare.class, id);
+                    break;
+                case FILE_SNAPSHOT:
+                    dataObject = client.findById(Snapshot.class, id);
+                    break;
+                case BLOCK_SNAPSHOT:
+                    dataObject = client.findById(BlockSnapshot.class, id);
+                    break;
+                case VCENTER:
+                    dataObject = client.findById(Vcenter.class, id);
+                    break;
+                case VCENTER_DATA_CENTER:
+                    dataObject = client.findById(VcenterDataCenter.class, id);
+                    break;
+                case SMIS_PROVIDER:
+                    dataObject = client.findById(StorageProvider.class, id);
+                    break;
+                case STORAGE_POOL:
+                    dataObject = client.findById(StoragePool.class, id);
+                    break;
+                case NETWORK_SYSTEM:
+                    dataObject = client.findById(Network.class, id);
+                    break;
+                case PROTECTION_SYSTEM:
+                    dataObject = client.findById(ProtectionSystem.class, id);
+                    break;
+                case UNMANAGED_VOLUME:
+                    dataObject = client.findById(UnManagedVolume.class, id);
+                    break;
+                case UNMANAGED_FILESYSTEM:
+                    dataObject = client.findById(UnManagedFileSystem.class, id);
+                    break;
+                case UNMANAGED_EXPORTMASK:
+                    dataObject = client.findById(UnManagedExportMask.class, id);
+                    break;
+                case BLOCK_CONTINUOUS_COPY:
+                    dataObject = client.findById(BlockMirror.class, id);
+                    break;
+                case VPLEX_CONTINUOUS_COPY:
+                    dataObject = client.findById(VplexMirror.class, id);
+                    break;
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error(String.format("Error getting resource %s", resourceId), e);
         }
 
@@ -335,13 +333,13 @@ public class OrderManagerImpl implements OrderManager {
             return resourceId;
         }
     }
-    
+
     /**
      * Allows manipulation of the string returned from the DataObjectResponse.getName()
      */
     private String augmentDataObjectName(DataObject dataObject) {
         if (dataObject instanceof Host) {
-            URI clusterResource = ((Host)dataObject).getCluster();
+            URI clusterResource = ((Host) dataObject).getCluster();
             if (clusterResource != null) {
                 Cluster cluster = client.findById(Cluster.class, clusterResource);
                 if (cluster != null) {
@@ -351,7 +349,7 @@ public class OrderManagerImpl implements OrderManager {
         }
         return dataObject.getLabel();
     }
-    
+
     private Map<String, String> getAssetValues(ServiceDescriptor descriptor, List<OrderParameter> orderParameters) {
         Map<String, String> assetOptionParams = Maps.newHashMap();
         if (descriptor != null && orderParameters != null) {
@@ -366,7 +364,7 @@ public class OrderManagerImpl implements OrderManager {
         }
         return assetOptionParams;
     }
-    
+
     private ServiceField findServiceField(ServiceDescriptor serviceDescriptor, String serviceFieldName) {
         for (ServiceField serviceField : serviceDescriptor.getAllFieldList()) {
             if (StringUtils.equalsIgnoreCase(serviceFieldName, serviceField.getName())) {
@@ -375,7 +373,7 @@ public class OrderManagerImpl implements OrderManager {
         }
         return null;
     }
-    
+
     private OrderParameter findOrderParameter(String serviceFieldName, List<OrderParameter> orderParameters) {
         for (OrderParameter orderParameter : orderParameters) {
             if (serviceFieldName.equals(orderParameter.getLabel())) {
@@ -384,7 +382,7 @@ public class OrderManagerImpl implements OrderManager {
         }
         return null;
     }
-    
+
     private ExecutionState createExecutionState(Order order, StorageOSUser user) {
         ExecutionState state = new ExecutionState();
         String proxyToken = tokenManager.getProxyToken(user);
@@ -394,31 +392,31 @@ public class OrderManagerImpl implements OrderManager {
         order.setExecutionStateId(state.getId());
         return state;
     }
-    
+
     public void updateOrder(Order order) {
         client.save(order);
     }
-    
+
     public void deleteOrder(Order order) {
         client.delete(order);
     }
-    
+
     public List<Order> getOrders(URI tenantId) {
         return client.orders().findAll(tenantId.toString());
     }
-    
+
     public List<Order> getUserOrders(StorageOSUser user) {
         return client.orders().findByUserId(user.getUserName());
     }
-    
+
     public List<Order> findOrdersByStatus(URI tenantId, OrderStatus orderStatus) {
         return client.orders().findByOrderStatus(tenantId.toString(), orderStatus);
     }
-    
+
     public List<Order> findOrdersByTimeRange(URI tenantId, Date startTime, Date endTime) {
         return client.orders().findByTimeRange(tenantId, startTime, endTime);
     }
-    
+
     public List<ExecutionLog> getOrderExecutionLogs(Order order) {
         ExecutionState executionState = getOrderExecutionState(order.getExecutionStateId());
         List<ExecutionLog> logs = client.executionLogs().findByIds(executionState.getLogIds());
@@ -432,87 +430,85 @@ public class OrderManagerImpl implements OrderManager {
         Collections.sort(logs, CreationTimeComparator.OLDEST_FIRST);
         return logs;
     }
-    
+
     public ExecutionState getOrderExecutionState(URI executionStateId) {
         return client.executionStates().findById(executionStateId);
     }
-    
+
     public List<OrderParameter> getOrderParameters(URI orderId) {
         List<OrderParameter> parameters = client.orderParameters().findByOrderId(orderId);
         SortedIndexUtils.sort(parameters);
         return parameters;
     }
-    
+
     public List<OrderAndParams> getOrdersAndParams(List<URI> ids) {
         List<OrderAndParams> ordersAndParams =
                 new ArrayList<OrderAndParams>();
         if (ids == null) {
             return null;
         }
-        
-        for (URI id: ids) {
+
+        for (URI id : ids) {
             Order order = client.orders().findById(id);
             if (order != null) {
-                List<OrderParameter> params = 
+                List<OrderParameter> params =
                         getOrderParameters(order.getId());
-                OrderAndParams orderAndParams = 
+                OrderAndParams orderAndParams =
                         new OrderAndParams();
                 orderAndParams.setOrder(order);
                 orderAndParams.setParameters(params);
                 ordersAndParams.add(orderAndParams);
             }
         }
-        
+
         return ordersAndParams;
     }
-    
+
     private void submitOrderToQueue(Order order) {
         try {
             orderExecutionQueue.putItem(new OrderMessage(order.getId().toString()));
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             log.error(String.format("Unable to send order %s to Order Execution queue", order.getId()), e);
-            failOrder(order, "Unable to send order to Order Execution queue", e);            
+            failOrder(order, "Unable to send order to Order Execution queue", e);
             throw new RuntimeException(e);
         }
     }
 
-    
     public String getNextOrderNumber() {
-        return Long.toString(orderNumberSequence.nextOrderNumber());        
+        return Long.toString(orderNumberSequence.nextOrderNumber());
     }
-    
+
     public void processOrder(Order order) {
         CatalogService service = catalogServiceManager.getCatalogServiceById(order.getCatalogServiceId());
         OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
         switch (status) {
-        case PENDING:
-            processPendingOrder(order, service);
-            break;
-        case APPROVAL:
-            processApprovalOrder(order, service);
-            break;
-        case APPROVED:
-            processApprovedOrder(order, service);
-            break;
-        case REJECTED:
-            processRejectedOrder(order, service);
-            break;
-        case SCHEDULED:
-            processScheduledOrder(order, service);
-            break;
-        case CANCELLED:
-            processCancelledOrder(order, service);
-            break;
-        case SUCCESS:
-            processSuccessOrder(order, service);
-            break;
-        case ERROR:
-            processErrorOrder(order, service);
-            break;
+            case PENDING:
+                processPendingOrder(order, service);
+                break;
+            case APPROVAL:
+                processApprovalOrder(order, service);
+                break;
+            case APPROVED:
+                processApprovedOrder(order, service);
+                break;
+            case REJECTED:
+                processRejectedOrder(order, service);
+                break;
+            case SCHEDULED:
+                processScheduledOrder(order, service);
+                break;
+            case CANCELLED:
+                processCancelledOrder(order, service);
+                break;
+            case SUCCESS:
+                processSuccessOrder(order, service);
+                break;
+            case ERROR:
+                processErrorOrder(order, service);
+                break;
         }
     }
-    
+
     private void processPendingOrder(Order order, CatalogService service) {
         if (Boolean.TRUE.equals(service.getApprovalRequired())) {
             requireApproval(order, service);
@@ -524,17 +520,17 @@ public class OrderManagerImpl implements OrderManager {
             submitOrderToQueue(order);
         }
     }
-    
+
     private void processApprovalOrder(Order order, CatalogService service) {
         ApprovalRequest approval = approvalManager.findFirstApprovalsByOrderId(order.getId());
         ApprovalStatus status = ApprovalStatus.valueOf(approval.getApprovalStatus());
         switch (status) {
-        case APPROVED:
-            approveOrder(order, service);
-            break;
-        case REJECTED:
-            rejectOrder(order, service);
-            break;
+            case APPROVED:
+                approveOrder(order, service);
+                break;
+            case REJECTED:
+                rejectOrder(order, service);
+                break;
         }
     }
 
@@ -557,7 +553,7 @@ public class OrderManagerImpl implements OrderManager {
 
     private void processScheduledOrder(Order order, CatalogService service) {
         ApprovalRequest approval = approvalManager.findFirstApprovalsByOrderId(order.getId());
-        notificationManager.notifyUserOfOrderStatus(order, service, approval);        
+        notificationManager.notifyUserOfOrderStatus(order, service, approval);
     }
 
     private void processCancelledOrder(Order order, CatalogService service) {
@@ -574,7 +570,7 @@ public class OrderManagerImpl implements OrderManager {
         ApprovalRequest approval = approvalManager.findFirstApprovalsByOrderId(order.getId());
         notificationManager.notifyUserOfOrderStatus(order, service, approval);
     }
-    
+
     private void approveOrder(Order order, CatalogService service) {
         order.setOrderStatus(OrderStatus.APPROVED.name());
         updateOrder(order);
@@ -587,14 +583,13 @@ public class OrderManagerImpl implements OrderManager {
         processRejectedOrder(order, service);
     }
 
-    
     private void scheduleOrder(Order order, CatalogService service) {
         log.info(String.format("Order %s is scheduled", order.getId()));
         order.setOrderStatus(OrderStatus.SCHEDULED.name());
         updateOrder(order);
         processScheduledOrder(order, service);
     }
-    
+
     private void requireApproval(Order order, CatalogService service) {
         log.info(String.format("Order %s requires approval", order.getId()));
         order.setOrderStatus(OrderStatus.APPROVAL.name());
@@ -605,10 +600,10 @@ public class OrderManagerImpl implements OrderManager {
         approvalRequest.setOrderId(order.getId());
         approvalRequest.setTenant(order.getTenant());
         approvalManager.createApproval(approvalRequest);
-        
+
         notificationManager.notifyApproversOfApprovalRequest(order, service, approvalRequest);
     }
-    
+
     private void failOrder(Order order, String message, Throwable e) {
         ExecutionLog failedLog = new ExecutionLog();
         failedLog.setMessage(message);
@@ -627,6 +622,5 @@ public class OrderManagerImpl implements OrderManager {
         order.setOrderStatus(OrderStatus.ERROR.name());
         updateOrder(order);
     }
-    
 
 }

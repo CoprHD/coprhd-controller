@@ -26,13 +26,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.hds.HDSException;
 
-
 public class SmooksUtil {
-    
+
     private static final Logger log = LoggerFactory.getLogger(SmooksUtil.class);
-    
+
     /**
      * This initializes the Smooks & parse the given inputStream and returns the javaResult.
+     * 
      * @param inputStream : Response in inputStream received from server.
      * @param configFile : Smooks configuration file.
      * @return
@@ -52,7 +52,7 @@ public class SmooksUtil {
             log.debug("Parsing completed");
         } catch (Exception e) {
             log.error("Unable to parse the response received from server.", e);
-           throw HDSException.exceptions.unableToParseResponse();
+            throw HDSException.exceptions.unableToParseResponse();
         } finally {
             if (null != smooks) {
                 smooks.close();

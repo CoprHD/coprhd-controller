@@ -13,7 +13,6 @@
  * it is provided by or on behalf of EMC.
  */
 
-
 package com.emc.storageos.db.client.model;
 
 import java.io.Serializable;
@@ -21,19 +20,19 @@ import java.net.URI;
 
 /**
  * 
- *   Authentication token obtained after successfully authenticating
+ * Authentication token obtained after successfully authenticating
  */
 @NoInactiveIndex
 @Cf("Token")
 public class Token extends BaseToken implements Serializable {
     private static final long serialVersionUID = 1L;
-    
+
     // all timestamps are in minutes
     private Long _lastAccessTime;
     private Long _expirationTime;
     private String _extensions;
     private Long _cacheExpirationTime;
-    
+
     /**
      * This user id is the user id directly associated with the token.
      * Corresponds to the user that will become the active user in the
@@ -48,6 +47,7 @@ public class Token extends BaseToken implements Serializable {
 
     /**
      * Return value of indexed field
+     * 
      * @return
      */
     @Name("indexed")
@@ -63,6 +63,7 @@ public class Token extends BaseToken implements Serializable {
 
     /**
      * Returns the value of the field called '_userId'.
+     * 
      * @return Returns the _userId.
      */
     @Name("userid")
@@ -73,6 +74,7 @@ public class Token extends BaseToken implements Serializable {
 
     /**
      * Sets the field called '_userId' to the given value.
+     * 
      * @param userId The _userId to set.
      */
     public void setUserId(URI userId) {
@@ -107,13 +109,14 @@ public class Token extends BaseToken implements Serializable {
 
     /**
      * Sets the field called '_extensions' to the given value.
+     * 
      * @param extensions The _extensions to set.
      */
     public void setExtensions(String extensions) {
         _extensions = extensions;
         setChanged("extensions");
     }
-    
+
     @Name("cacheExpirationTime")
     public Long getCacheExpirationTime() {
         return _cacheExpirationTime;

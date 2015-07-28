@@ -30,13 +30,14 @@ public class ComputeVirtualPoolAssignments {
     /**
      * Default Constructor.
      */
-    public ComputeVirtualPoolAssignments() {}
+    public ComputeVirtualPoolAssignments() {
+    }
 
     public ComputeVirtualPoolAssignments(Set<String> computeElements) {
         this.computeElements = computeElements;
     }
 
-     /**
+    /**
      * The list of compute elements to be added to or removed from the compute virtual pool
      * 
      * @valid none
@@ -53,5 +54,5 @@ public class ComputeVirtualPoolAssignments {
     public void setComputeElements(Set<String> computeElements) {
         this.computeElements = computeElements;
     }
-    
+
 }

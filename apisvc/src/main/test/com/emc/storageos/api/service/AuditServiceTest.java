@@ -123,13 +123,12 @@ public class AuditServiceTest {
                 introspector);
 
         AuditLogs auditLogs = mapper.readValue(new File(JsonTestOutputFile),
-        		AuditLogs.class);
+                AuditLogs.class);
 
         Assert.assertEquals(100, auditLogs.auditLogs.size());
         deleteIfExists(JsonTestOutputFile);
     }
 
-    
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

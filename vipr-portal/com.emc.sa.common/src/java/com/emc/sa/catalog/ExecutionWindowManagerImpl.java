@@ -18,44 +18,44 @@ import com.emc.sa.model.dao.ModelClient;
 public class ExecutionWindowManagerImpl implements ExecutionWindowManager {
 
     private static final Logger log = Logger.getLogger(ExecutionWindowManagerImpl.class);
-    
+
     @Autowired
     private ModelClient client;
-    
+
     public ExecutionWindow getExecutionWindowById(URI id) {
         if (id == null) {
             return null;
         }
 
         ExecutionWindow executionWindow = client.executionWindows().findById(id);
-        
+
         return executionWindow;
-    }   
-    
+    }
+
     public void createExecutionWindow(ExecutionWindow executionWindow) {
         client.save(executionWindow);
     }
-    
+
     public void updateExecutionWindow(ExecutionWindow executionWindow) {
         client.save(executionWindow);
     }
-    
+
     public void deleteExecutionWindow(ExecutionWindow executionWindow) {
         client.delete(executionWindow);
-    }    
-    
+    }
+
     public List<ExecutionWindow> getExecutionWindows(URI tenantId) {
         return client.executionWindows().findAll(tenantId.toString());
     }
-    
+
     public ExecutionWindow getExecutionWindow(String name, URI tenantId) {
-        List<ExecutionWindow> windows =  getExecutionWindows(tenantId);
-        for (ExecutionWindow executionWindow: windows) {
+        List<ExecutionWindow> windows = getExecutionWindows(tenantId);
+        for (ExecutionWindow executionWindow : windows) {
             if (name.equals(executionWindow.getLabel())) {
                 return executionWindow;
             }
         }
         return null;
     }
-    
+
 }

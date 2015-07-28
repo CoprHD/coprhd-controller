@@ -19,10 +19,6 @@ import javax.xml.bind.annotation.*;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
-import org.codehaus.jackson.annotate.JsonProperty;
-
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "quota_directory")
@@ -33,10 +29,11 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     private String nativeId;
     private Boolean oplock;
     private String securityStyle;
-    
+
     /**
      * native id of quota dir.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -46,7 +43,7 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     public void setNativeId(String nativeId) {
         this.nativeId = nativeId;
     }
-    
+
     /**
      * Specifies whether or not oplocks enabled or not.
      * 
@@ -63,11 +60,11 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     public void setOpLock(Boolean oplock) {
         this.oplock = oplock;
     }
-    
-    
+
     /**
      * Total capacity of the file system in GB
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "quota_size_gb")
     public String getQuotaSize() {
@@ -80,7 +77,8 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
 
     /**
      * Total capacity of the file system in GB
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement(name = "security_style")
     public String getSecurityStyle() {
@@ -90,10 +88,11 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     public void setSecurityStyle(String securityStyle) {
         this.securityStyle = securityStyle;
     }
-    
+
     /**
      * URI for the project containing the parent file system.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getProject() {
@@ -106,7 +105,8 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
 
     /**
      * URI for the project containing the parent file system.
-     * @valid none 
+     * 
+     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getParentFileSystem() {
@@ -116,5 +116,5 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     public void setParentFileSystem(RelatedResourceRep fs) {
         this.parentFileSystem = fs;
     }
-    
+
 }

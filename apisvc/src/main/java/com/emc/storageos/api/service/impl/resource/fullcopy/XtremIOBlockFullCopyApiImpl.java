@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.List;
 
@@ -32,16 +31,16 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * The ExtremeIO storage system implementation for the block full copy API.
  */
 public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
-    
+
     /**
      * Constructor
      * 
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
-     * @param scheduler A reference to a scheduler. 
+     * @param scheduler A reference to a scheduler.
      */
     public XtremIOBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
 
@@ -60,16 +59,16 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         throw APIException.methodNotAllowed.notSupportedForExtremeIO();
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
-        throw APIException.methodNotAllowed.notSupportedForExtremeIO();        
+            String name, boolean createInactive, int count, String taskId) {
+        throw APIException.methodNotAllowed.notSupportedForExtremeIO();
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -101,7 +100,7 @@ public class XtremIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
         throw APIException.methodNotAllowed.notSupportedForExtremeIO();
     }
-    
+
     /**
      * {@inheritDoc}
      */

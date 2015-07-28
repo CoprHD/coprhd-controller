@@ -31,7 +31,6 @@ import com.emc.storageos.cimadapter.connections.cim.CimCompositeID;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 
-
 /**
  * Encapsulates a CIM indication as a table of name/value pairs.
  */
@@ -42,7 +41,7 @@ public class CimIndicationSet {
 
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
-        .getLogger(CimIndicationSet.class);
+            .getLogger(CimIndicationSet.class);
 
     /**
      * Constructs a CimIndicationSet from the given indication.
@@ -342,119 +341,119 @@ public class CimIndicationSet {
         }
         if (p.getDataType().isArray()) {
             switch (type) {
-            case CIMDataType.REFERENCE:
+                case CIMDataType.REFERENCE:
 
-                // CIM object path array
-                for (Object o : (Object[]) p.getValue()) {
-                    if (o instanceof CIMObjectPath) {
-                        processObjectPath(name, (CIMObjectPath) o);
+                    // CIM object path array
+                    for (Object o : (Object[]) p.getValue()) {
+                        if (o instanceof CIMObjectPath) {
+                            processObjectPath(name, (CIMObjectPath) o);
+                        }
                     }
-                }
-                break;
+                    break;
 
-            case CIMDataType.OBJECT:
+                case CIMDataType.OBJECT:
 
-                // CIM object instance array
-                int count = 0;
-                for (Object o : (Object[]) p.getValue()) {
-                    if (o instanceof CIMInstance) {
-                        processInstance(name + count, (CIMInstance) o);
-                        count++;
+                    // CIM object instance array
+                    int count = 0;
+                    for (Object o : (Object[]) p.getValue()) {
+                        if (o instanceof CIMInstance) {
+                            processInstance(name + count, (CIMInstance) o);
+                            count++;
+                        }
                     }
-                }
-                if (count > 0) {
-                    set(name + CimConstants.COUNT_KEY, Integer.toString(count));
-                }
-                break;
-
-            default:
-
-                // Array of scalars
-                StringBuilder buffer = new StringBuilder();
-                for (Object o : (Object[]) p.getValue()) {
-                    if (o == null) {
-                        continue;
+                    if (count > 0) {
+                        set(name + CimConstants.COUNT_KEY, Integer.toString(count));
                     }
-                    buffer.append(',');
-                    buffer.append(o.toString());
-                }
+                    break;
 
-                if (buffer.length() > 1) {
-                    // Remove the leading comma
-                    set(name, buffer.substring(1));
-                } else {
-                    // Empty array
-                    return;
-                }
+                default:
+
+                    // Array of scalars
+                    StringBuilder buffer = new StringBuilder();
+                    for (Object o : (Object[]) p.getValue()) {
+                        if (o == null) {
+                            continue;
+                        }
+                        buffer.append(',');
+                        buffer.append(o.toString());
+                    }
+
+                    if (buffer.length() > 1) {
+                        // Remove the leading comma
+                        set(name, buffer.substring(1));
+                    } else {
+                        // Empty array
+                        return;
+                    }
             }
         } else {
             switch (type) {
-            case CIMDataType.DATETIME:
-                // Date/time is converted to long. Milliseconds are truncated.
-                // s_logger.debug("Date time property is {}", name);
-                Calendar c = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-                String dateTimeStr = p.getValue().toString();
-                // s_logger.debug("Date time value is {}", dateTimeStr);
-                try {
-                    CIMDateTimeAbsolute cd = new CIMDateTimeAbsolute(dateTimeStr);
-                    c.set(cd.getYear(), cd.getMonth() - 1, cd.getDay(), cd.getHour(),
-                        cd.getMinute(), cd.getSecond());
-                    c.set(Calendar.MILLISECOND, 0);
-                } catch (Exception e) {
-                    // It seems that date time properties may not be set and the
-                    // value causes an exception when you create a
-                    // CIMDateTimeAbsolute. Just set the date to the start of
-                    // the epoch for this error condition.
-                    s_logger.debug("Date and time are not set for property {}.", name);
-                    c.setTimeInMillis(0);
-                }
-                //s_logger.debug("Date for property {} is {}", name, c.getTime().toString());
-                set(name, String.valueOf(c.getTimeInMillis()));
-                break;
-
-            case CIMDataType.REFERENCE:
-
-                // CIM object path
-                processObjectPath(name, (CIMObjectPath) p.getValue());
-                break;
-
-            case CIMDataType.OBJECT:
-
-                // CIM object instance
-                processInstance(name, (CIMInstance) p.getValue());
-                break;
-
-            case CIMDataType.STRING:
-
-                // String. Check to see if it represents
-                // an object path. If so, try to process
-                // it as an object path. No matter what,
-                // fall to the default, so that it can
-                // be processed as an ordinary scalar.
-                String value = p.getValue().toString();
-
-                // Start with an inexpensive test.
-                // Does it look anything like a WBEM URI?
-                if (value.indexOf('/') != -1) {
-                    // Confirm with an expensive test.
-                    // Can we make a CIMObjectPath from it?
-                    CIMObjectPath path = null;
+                case CIMDataType.DATETIME:
+                    // Date/time is converted to long. Milliseconds are truncated.
+                    // s_logger.debug("Date time property is {}", name);
+                    Calendar c = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+                    String dateTimeStr = p.getValue().toString();
+                    // s_logger.debug("Date time value is {}", dateTimeStr);
                     try {
-                        path = CimObjectPathCreator.createInstance(value);
+                        CIMDateTimeAbsolute cd = new CIMDateTimeAbsolute(dateTimeStr);
+                        c.set(cd.getYear(), cd.getMonth() - 1, cd.getDay(), cd.getHour(),
+                                cd.getMinute(), cd.getSecond());
+                        c.set(Calendar.MILLISECOND, 0);
                     } catch (Exception e) {
-                    	s_logger.error(e.getMessage(), e);
+                        // It seems that date time properties may not be set and the
+                        // value causes an exception when you create a
+                        // CIMDateTimeAbsolute. Just set the date to the start of
+                        // the epoch for this error condition.
+                        s_logger.debug("Date and time are not set for property {}.", name);
+                        c.setTimeInMillis(0);
                     }
-                    if (path != null) {
-                        processObjectPath(name, path);
+                    // s_logger.debug("Date for property {} is {}", name, c.getTime().toString());
+                    set(name, String.valueOf(c.getTimeInMillis()));
+                    break;
+
+                case CIMDataType.REFERENCE:
+
+                    // CIM object path
+                    processObjectPath(name, (CIMObjectPath) p.getValue());
+                    break;
+
+                case CIMDataType.OBJECT:
+
+                    // CIM object instance
+                    processInstance(name, (CIMInstance) p.getValue());
+                    break;
+
+                case CIMDataType.STRING:
+
+                    // String. Check to see if it represents
+                    // an object path. If so, try to process
+                    // it as an object path. No matter what,
+                    // fall to the default, so that it can
+                    // be processed as an ordinary scalar.
+                    String value = p.getValue().toString();
+
+                    // Start with an inexpensive test.
+                    // Does it look anything like a WBEM URI?
+                    if (value.indexOf('/') != -1) {
+                        // Confirm with an expensive test.
+                        // Can we make a CIMObjectPath from it?
+                        CIMObjectPath path = null;
+                        try {
+                            path = CimObjectPathCreator.createInstance(value);
+                        } catch (Exception e) {
+                            s_logger.error(e.getMessage(), e);
+                        }
+                        if (path != null) {
+                            processObjectPath(name, path);
+                        }
                     }
-                }
 
-                // Continue processing this as an ordinary scalar
+                    // Continue processing this as an ordinary scalar
 
-            default:
+                default:
 
-                // Should be an ordinary scalar
-                set(name, p.getValue().toString());
+                    // Should be an ordinary scalar
+                    set(name, p.getValue().toString());
             }
         }
     }
@@ -532,7 +531,7 @@ public class CimIndicationSet {
                 int i = Integer.parseInt(get(key));
                 tag = CimAlertType.toString(i);
             } catch (NumberFormatException e) {
-            	s_logger.error(e.getMessage(),e);
+                s_logger.error(e.getMessage(), e);
             }
 
             set(CimConstants.ALERT_TYPE_TAG_KEY, tag);

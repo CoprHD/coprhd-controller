@@ -5,22 +5,21 @@
 package com.iwave.ext.linux.model;
 
 public class LinuxVersion {
-    
+
     private LinuxDistribution distribution;
     private String version;
-    
+
     public LinuxVersion(LinuxDistribution distro, String version)
     {
-       setDistribution(distro);
-       setVersion(version);
-    }
-    
-    @Override
-    public String toString() {
-        return String.format("%s %s", distribution, version );
+        setDistribution(distro);
+        setVersion(version);
     }
 
-    
+    @Override
+    public String toString() {
+        return String.format("%s %s", distribution, version);
+    }
+
     public LinuxDistribution getDistribution() {
         return distribution;
     }
@@ -37,28 +36,30 @@ public class LinuxVersion {
         this.version = version;
     }
 
-
     public enum LinuxDistribution {
-        SUSE("SuSE"), 
+        SUSE("SuSE"),
         REDHAT("RHEL"),
         UNKNOWN("N/A");
-        
+
         private String name;
+
         private LinuxDistribution(String name) {
             this.setName(name);
         }
+
         public String getName() {
             return name;
         }
+
         public void setName(String name) {
             this.name = name;
         }
-        
+
         @Override
         public String toString() {
             return name;
         }
-        
+
         public static LinuxDistribution fromName(String name) {
             if (SUSE.getName().equals(name)) {
                 return SUSE;
@@ -68,9 +69,8 @@ public class LinuxVersion {
             }
             else {
                 return UNKNOWN;
-            }                          
+            }
         }
     }
-    
 
 }

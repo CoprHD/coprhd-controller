@@ -20,26 +20,29 @@ public class VirtualArrayParam {
     private BlockSettings blockSettings;
     private ObjectSettings objectSettings;
 
-    public VirtualArrayParam() {}
+    public VirtualArrayParam() {
+    }
 
-    @XmlElement(name="block_settings")
+    @XmlElement(name = "block_settings")
     public BlockSettings getBlockSettings() {
         if (blockSettings == null) {
             blockSettings = new BlockSettings();
         }
         return blockSettings;
     }
+
     public void setBlockSettings(BlockSettings blockSettings) {
         this.blockSettings = blockSettings;
     }
 
-    @XmlElement(name="object_settings")
+    @XmlElement(name = "object_settings")
     public ObjectSettings getObjectSettings() {
         if (objectSettings == null) {
             objectSettings = new ObjectSettings();
         }
         return objectSettings;
     }
+
     public void setObjectSettings(ObjectSettings objectSettings) {
         this.objectSettings = objectSettings;
     }
@@ -54,17 +57,18 @@ public class VirtualArrayParam {
      * @valid true
      * @valid false
      */
-    @XmlElement(name="auto_san_zoning", required = false)
+    @XmlElement(name = "auto_san_zoning", required = false)
     @Deprecated
     public Boolean getAutoSanZoning() {
         return getBlockSettings().getAutoSanZoning();
     }
+
     @Deprecated
     public void setAutoSanZoning(Boolean autoSanZoning) {
         getBlockSettings().setAutoSanZoning(autoSanZoning);
     }
 
-    @XmlElement(name="device_registered", required = false)
+    @XmlElement(name = "device_registered", required = false)
     @Deprecated
     public Boolean getDeviceRegistered() {
         return getObjectSettings().getDeviceRegistered();
@@ -77,7 +81,7 @@ public class VirtualArrayParam {
     /**
      * varray protection type
      */
-    @XmlElement(name="protection_type", required = false)
+    @XmlElement(name = "protection_type", required = false)
     @Deprecated
     public String getProtectionType() {
         return getObjectSettings().getProtectionType();

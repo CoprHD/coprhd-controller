@@ -25,14 +25,15 @@ import java.util.List;
 /**
  * List of all file system virtual pools, returned as a response
  * to a REST request.
- *
+ * 
  */
 @XmlRootElement(name = "bulk_file_vpools")
 public class FileVirtualPoolBulkRep extends BulkRestRep {
     private List<FileVirtualPoolRestRep> virtualPools;
 
-    /** 
+    /**
      * List of all virtual pools of File System type.
+     * 
      * @valid none
      */
     @XmlElement(name = "file_vpool")

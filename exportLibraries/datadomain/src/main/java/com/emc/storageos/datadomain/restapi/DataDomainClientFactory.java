@@ -23,10 +23,10 @@ import java.net.URI;
 /**
  * Created by zeldib on 1/30/14.
  */
-public class DataDomainClientFactory extends RestClientFactory{
+public class DataDomainClientFactory extends RestClientFactory {
 
     @Override
-    protected RestClientItf createNewRestClient(URI endpoint, String username, String password,com.sun.jersey.api.client.Client client){
-        return new DataDomainClient(endpoint,username,password,client);
+    protected RestClientItf createNewRestClient(URI endpoint, String username, String password, com.sun.jersey.api.client.Client client) {
+        return new DataDomainClient(endpoint, username, password, client);
     }
 }

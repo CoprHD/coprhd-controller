@@ -19,14 +19,15 @@ package com.emc.storageos.coordinator.client.model;
  * ConfigVersion is only published as a node level object in UpgradeService
  * According to CoordinatorClassInfo's requirement, only attribute is necessary.
  * To comply with other similar classes, we gave it a dummy id and kind.
- *      "global", "upgradeconfigversion"
+ * "global", "upgradeconfigversion"
  */
 public class ConfigVersion implements CoordinatorSerializable {
-    private static final String ENCODING_INVALID   = "";
+    private static final String ENCODING_INVALID = "";
 
     private String _configVersion = null;
 
-    public ConfigVersion() {}
+    public ConfigVersion() {
+    }
 
     public ConfigVersion(String configVersion) {
         _configVersion = configVersion;

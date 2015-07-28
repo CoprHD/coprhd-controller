@@ -102,17 +102,17 @@ public class VdcConfigHelper {
     public static final String ENCRYPTION_CONFIG_ID = "geoid";
     public static final String LOCAL_HOST = "127.0.0.1";
 
-    private final static int NODE_CHECK_TIMEOUT = 60*1000; // one minute
+    private final static int NODE_CHECK_TIMEOUT = 60 * 1000; // one minute
 
     // All the compatible versions, current version is v2.2
     private static final List<SoftwareVersion> compatibleVersions = Collections.unmodifiableList(
             Arrays.asList(new SoftwareVersion("vipr-2.0.0.0.*"),
-                          new SoftwareVersion("vipr-2.1.0.0.*"),
-                          new SoftwareVersion("vipr-2.1.0.1.*"),
-                          new SoftwareVersion("vipr-2.2.0.0.*"),
-                          new SoftwareVersion("vipr-2.3.0.0.*")));
+                    new SoftwareVersion("vipr-2.1.0.0.*"),
+                    new SoftwareVersion("vipr-2.1.0.1.*"),
+                    new SoftwareVersion("vipr-2.2.0.0.*"),
+                    new SoftwareVersion("vipr-2.3.0.0.*")));
 
-    private static final int NODE_REACHABLE_TIMEOUT = 30*1000; // 30 seconds
+    private static final int NODE_REACHABLE_TIMEOUT = 30 * 1000; // 30 seconds
     private static final int NODE_REACHABLE_PORT = 4443;
 
     // CTRL-2859,3393 Add reboot delay to allow sync process to succeed
@@ -127,7 +127,7 @@ public class VdcConfigHelper {
 
     @Autowired
     private CoordinatorClient coordinator;
-    
+
     @Autowired
     private GeoClientCacheManager geoClientCache;
 
@@ -144,7 +144,7 @@ public class VdcConfigHelper {
     public void setGeoClientCacheManager(GeoClientCacheManager clientCache) {
         this.geoClientCache = clientCache;
     }
- 
+
     public void setCoordinatorClient(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
     }
@@ -165,7 +165,7 @@ public class VdcConfigHelper {
     /**
      * This method should be invoked by VDC controller on the same node, since the VDC controller
      * cannot clean up the db of the current VDC, just need to sync the VDC records.
-     *
+     * 
      * @param newVdcConfigList a list of VDC records to sync up with.
      */
     public void syncVdcConfig(List<VdcConfig> newVdcConfigList) {
@@ -174,7 +174,7 @@ public class VdcConfigHelper {
 
     /**
      * Sync Vdc config to local db. It writes new vdc list to local db and triggers
-     * vdc config properties update on each node.  
+     * vdc config properties update on each node.
      * 
      * @param newVdcConfigList - new vdc config list
      * @param assignedVdcId - vdc short id for a newly joined vdc. Otherwise null
@@ -182,7 +182,7 @@ public class VdcConfigHelper {
     public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId) {
         syncVdcConfig(newVdcConfigList, assignedVdcId, false);
     }
-    
+
     public void syncVdcConfig(List<VdcConfig> newVdcConfigList, String assignedVdcId, boolean isRecover) {
         // query existing vdc list from db
         // The new queryByType method returns an iterative list, convert it to a "real"
@@ -191,15 +191,15 @@ public class VdcConfigHelper {
         for (URI vdcId : dbClient.queryByType(VirtualDataCenter.class, true)) {
             vdcIdList.add(vdcId);
         }
-        
+
         // compare newVdcConfigList with what in local db. finally vdcIdList contains
         // vdc that are going to be removed from local db
         for (VdcConfig config : newVdcConfigList) {
             if (vdcIdList.contains(config.getId())) {
-                vdcIdList.remove(config.getId()); 
-                mergeVdcConfig(config, isRecover); 
+                vdcIdList.remove(config.getId());
+                mergeVdcConfig(config, isRecover);
             } else {
-                // not contains in vdcIdList - it is a new vdc and we should insert to db  
+                // not contains in vdcIdList - it is a new vdc and we should insert to db
                 VirtualDataCenter newVdc = fromConfigParam(config);
                 if (config.getId().toString().equals(assignedVdcId)) {
                     newVdc.setLocal(true);
@@ -210,9 +210,9 @@ public class VdcConfigHelper {
                 }
             }
         }
-        
+
         // check vdc that are going to be removed
-        ArrayList<String> obsoletePeers = new ArrayList<String>(); 
+        ArrayList<String> obsoletePeers = new ArrayList<String>();
         for (URI removeVdcId : vdcIdList) {
             log.warn("vdc config {} is being removed", removeVdcId);
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, removeVdcId);
@@ -228,12 +228,12 @@ public class VdcConfigHelper {
                 obsoletePeers.addAll(addressesMap.values());
                 log.info("add {} peers to obsolete list", addressesMap.size());
             }
-            
+
             dbClient.removeVdcNodesFromBlacklist(vdc);
         }
-        
+
         if (!obsoletePeers.isEmpty()) {
-            // update peer ip to ZK so that geodbsvc could get it 
+            // update peer ip to ZK so that geodbsvc could get it
             notifyDbSvcWithObsoleteCassandraPeers(Constants.GEODBSVC_NAME, obsoletePeers);
             log.info("notify geodbsvc with {} obsolete cassandra peers", obsoletePeers.size());
         }
@@ -246,18 +246,18 @@ public class VdcConfigHelper {
 
         // trigger syssvc to update the vdc config to all the nodes in the current vdc
         // add a small deley so that sync process can finish
-        wakeupExecutor.schedule(new Runnable(){
+        wakeupExecutor.schedule(new Runnable() {
             public void run() {
                 for (Service syssvc : coordinator.locateAllServices(
-                        ((CoordinatorClientImpl)coordinator).getSysSvcName(),
-                        ((CoordinatorClientImpl)coordinator).getSysSvcVersion(), null, null)) {
+                        ((CoordinatorClientImpl) coordinator).getSysSvcName(),
+                        ((CoordinatorClientImpl) coordinator).getSysSvcVersion(), null, null)) {
                     try {
                         log.info("waking up node: {}", syssvc.getNodeName());
                         SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                                 syssvc.getEndpoint());
                         sysClient.setCoordinatorClient(coordinator);
                         sysClient.post(SysClientFactory.URI_WAKEUP_PROPERTY_MANAGER, null, null);
-                    } catch(Exception e) {
+                    } catch (Exception e) {
                         log.error("Error waking up node: {} Cause:", syssvc.getNodeName(), e);
                     }
                 }
@@ -268,7 +268,7 @@ public class VdcConfigHelper {
     public void syncVdcConfigPostSteps(VdcPostCheckParam checkParam) {
         // TODO: verify network strategy
         String type = checkParam.getConfigChangeType();
-        VdcConfig.ConfigChangeType configChangeType  = VdcConfig.ConfigChangeType.valueOf(type);
+        VdcConfig.ConfigChangeType configChangeType = VdcConfig.ConfigChangeType.valueOf(type);
 
         switch (configChangeType) {
             case CONNECT_VDC:
@@ -307,8 +307,8 @@ public class VdcConfigHelper {
                 // Not in the list of connected vdc
                 // Some records not exist in server side, something must be wrong
                 if ((vdc.getConnectionStatus() != null) &&
-                     (vdc.getConnectionStatus() == ConnectionStatus.ISOLATED ||
-                      vdc.getConnectionStatus() == ConnectionStatus.CONNECTED)) {
+                        (vdc.getConnectionStatus() == ConnectionStatus.ISOLATED ||
+                        vdc.getConnectionStatus() == ConnectionStatus.CONNECTED)) {
                     throw new IllegalStateException("some connected vdc status is not correct, sync vdc config must failed");
                 }
             } else {
@@ -326,7 +326,7 @@ public class VdcConfigHelper {
         for (VirtualDataCenter vdc : connectedVdc) {
             // mark as CONNECTED if currently not
             if ((vdc.getConnectionStatus() == null) ||
-                 (vdc.getConnectionStatus() != ConnectionStatus.CONNECTED)) {
+                    (vdc.getConnectionStatus() != ConnectionStatus.CONNECTED)) {
                 vdc.setConnectionStatus(ConnectionStatus.CONNECTED);
                 vdc.setRepStatus(GeoReplicationStatus.REP_ALL);
                 dbClient.updateAndReindexObject(vdc);
@@ -363,26 +363,27 @@ public class VdcConfigHelper {
         URIQueryResultList tenants = new URIQueryResultList();
 
         dbClient.queryByConstraint(
-                    ContainmentConstraint.Factory.getTenantOrgSubTenantConstraint(URI.create(TenantOrg.NO_PARENT)),
-                    tenants);
+                ContainmentConstraint.Factory.getTenantOrgSubTenantConstraint(URI.create(TenantOrg.NO_PARENT)),
+                tenants);
         if (tenants.iterator().hasNext()) {
             return tenants.iterator().next();
-        } 
+        }
         return null;
     }
 
     public void resetStaleLocalObjects() {
-        Class[] resetClasses = new Class[]{Token.class, StorageOSUserDAO.class, PasswordHistory.class, CustomConfig.class, TenantOrg.class};
+        Class[] resetClasses = new Class[] { Token.class, StorageOSUserDAO.class, PasswordHistory.class, CustomConfig.class,
+                TenantOrg.class };
         for (Class clazz : resetClasses) {
-             List<URI> idList = dbClient.queryByType(clazz, true);
-             log.info("Reset data object {}", clazz);
-             for (URI key : idList) {
-                  DataObject obj = dbClient.queryObject((Class<? extends DataObject>)clazz, key);
-                  dbClient.removeObject(obj);
-                  log.info("Remove {}", key);
+            List<URI> idList = dbClient.queryByType(clazz, true);
+            log.info("Reset data object {}", clazz);
+            for (URI key : idList) {
+                DataObject obj = dbClient.queryObject((Class<? extends DataObject>) clazz, key);
+                dbClient.removeObject(obj);
+                log.info("Remove {}", key);
             }
         }
-    }  
+    }
 
     public String getGeoEncryptionKey() {
         Configuration config = coordinator.queryConfiguration(ENCRYPTION_CONFIG_KIND,
@@ -405,7 +406,8 @@ public class VdcConfigHelper {
     private void mergeVdcConfig(VdcConfig targetVdc) {
         mergeVdcConfig(targetVdc, false);
     }
-    private void mergeVdcConfig(VdcConfig targetVdc, boolean isRecover){
+
+    private void mergeVdcConfig(VdcConfig targetVdc, boolean isRecover) {
         VirtualDataCenter srcVdc = dbClient.queryObject(VirtualDataCenter.class,
                 targetVdc.getId());
 
@@ -416,125 +418,137 @@ public class VdcConfigHelper {
         }
 
         boolean isChanged = false;
-        
+
         log.info("mergeVdcConfig - Vdc connection status {}, new status {}",
                 srcVdc.getConnectionStatus(), targetVdc.getConnectionStatus());
-        if (! isEqual(srcVdc.getConnectionStatus(), targetVdc.getConnectionStatus())) {
+        if (!isEqual(srcVdc.getConnectionStatus(), targetVdc.getConnectionStatus())) {
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC connection status changes from {} to {} " +
-                        "according to remote VDC config.", srcVdc.getConnectionStatus(), 
+                        "according to remote VDC config.", srcVdc.getConnectionStatus(),
                         targetVdc.getConnectionStatus());
-            if (targetVdc.getConnectionStatus() != null)
-                srcVdc.setConnectionStatus(Enum.valueOf(ConnectionStatus.class,targetVdc.getConnectionStatus()));
+            }
+            if (targetVdc.getConnectionStatus() != null) {
+                srcVdc.setConnectionStatus(Enum.valueOf(ConnectionStatus.class, targetVdc.getConnectionStatus()));
+            }
         }
 
-        if (! isEqual(srcVdc.getRepStatus(), targetVdc.getRepStatus())) {
+        if (!isEqual(srcVdc.getRepStatus(), targetVdc.getRepStatus())) {
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC rep status changes from {} to {} " +
-                        "according to remote VDC config.", srcVdc.getRepStatus(), 
+                        "according to remote VDC config.", srcVdc.getRepStatus(),
                         targetVdc.getRepStatus());
-            if (targetVdc.getRepStatus() != null)
-                srcVdc.setRepStatus(Enum.valueOf(GeoReplicationStatus.class,targetVdc.getRepStatus()));
+            }
+            if (targetVdc.getRepStatus() != null) {
+                srcVdc.setRepStatus(Enum.valueOf(GeoReplicationStatus.class, targetVdc.getRepStatus()));
+            }
         }
-        
-        if (! isEqual(srcVdc.getVersion(), targetVdc.getVersion())) {
+
+        if (!isEqual(srcVdc.getVersion(), targetVdc.getVersion())) {
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC version changes from {} to {} according to " +
                         "remote VDC config.", srcVdc.getVersion(), targetVdc.getVersion());
+            }
             srcVdc.setVersion(targetVdc.getVersion());
         }
 
-        if (! isEqual(srcVdc.getHostCount(), targetVdc.getHostCount())) {
+        if (!isEqual(srcVdc.getHostCount(), targetVdc.getHostCount())) {
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC host count changes from {} to {} according to " +
-                        "remote VDC config.", srcVdc.getHostCount(), 
+                        "remote VDC config.", srcVdc.getHostCount(),
                         targetVdc.getHostCount());
+            }
             srcVdc.setHostCount(targetVdc.getHostCount());
         }
 
         // TODO: need to revisit this logic
         HashMap<String, String> tgtHostList = targetVdc.getHostIPv4AddressesMap();
-        if (! isEqual(srcVdc.getHostIPv4AddressesMap(), tgtHostList)) {
-            if (srcVdc.getLocal())
+        if (!isEqual(srcVdc.getHostIPv4AddressesMap(), tgtHostList)) {
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC host list changes from {} to {} according to remote " +
                         " VDC config.", srcVdc.getHostIPv4AddressesMap(), targetVdc.getHostIPv4AddressesMap());
+            }
             srcVdc.getHostIPv4AddressesMap().replace(tgtHostList);
             log.info("after merge src IPv4={}", srcVdc.getHostIPv4AddressesMap());
             isChanged = true;
         }
 
         tgtHostList = targetVdc.getHostIPv6AddressesMap();
-        if (! isEqual(srcVdc.getHostIPv6AddressesMap(), tgtHostList)) {
-            if (srcVdc.getLocal())
+        if (!isEqual(srcVdc.getHostIPv6AddressesMap(), tgtHostList)) {
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC host list changes from {} to {} according to remote " +
                         " VDC config.", srcVdc.getHostIPv6AddressesMap(), targetVdc.getHostIPv6AddressesMap());
+            }
             srcVdc.getHostIPv6AddressesMap().replace(tgtHostList);
             isChanged = true;
         }
 
-        if (! isEqual(srcVdc.getLabel(), targetVdc.getName())) {
+        if (!isEqual(srcVdc.getLabel(), targetVdc.getName())) {
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC label changes from {} to {} according to remote " +
                         " VDC config.", srcVdc.getLabel(), targetVdc.getName());
+            }
             srcVdc.setLabel(targetVdc.getName());
         }
 
-        if (! isEqual(srcVdc.getDescription(), targetVdc.getDescription())) {
+        if (!isEqual(srcVdc.getDescription(), targetVdc.getDescription())) {
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC description changes from {} to {} according to " +
-                        "remote VDC config.", srcVdc.getDescription(), 
+                        "remote VDC config.", srcVdc.getDescription(),
                         targetVdc.getDescription());
+            }
             srcVdc.setDescription(targetVdc.getDescription());
         }
 
-        if (! isEqual(srcVdc.getApiEndpoint(), targetVdc.getApiEndpoint())) {
+        if (!isEqual(srcVdc.getApiEndpoint(), targetVdc.getApiEndpoint())) {
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC API endpoint changes from {} to {} according to " +
-                        "remote VDC config.", srcVdc.getApiEndpoint(), 
+                        "remote VDC config.", srcVdc.getApiEndpoint(),
                         targetVdc.getApiEndpoint());
+            }
             srcVdc.setApiEndpoint(targetVdc.getApiEndpoint());
         }
 
-        if (! isEqual(srcVdc.getSecretKey(), targetVdc.getSecretKey())) {
+        if (!isEqual(srcVdc.getSecretKey(), targetVdc.getSecretKey())) {
             srcVdc.setSecretKey(targetVdc.getSecretKey());
             isChanged = true;
-            if (srcVdc.getLocal())
+            if (srcVdc.getLocal()) {
                 log.warn("The local VDC security key changes from {} to {} according to " +
-                        "remote VDC config.", srcVdc.getSecretKey(), 
-                        targetVdc.getSecretKey()); 
+                        "remote VDC config.", srcVdc.getSecretKey(),
+                        targetVdc.getSecretKey());
+            }
         }
 
-        if (! isEqual(srcVdc.getShortId(), targetVdc.getShortId())) {
+        if (!isEqual(srcVdc.getShortId(), targetVdc.getShortId())) {
             isChanged = true;
             log.warn("Short id of VDC {} changes from {} to {} according to remote VDC " +
-                    "config.", new Object[] {srcVdc.getId(), srcVdc.getShortId(),
-                    targetVdc.getShortId()});
+                    "config.", new Object[] { srcVdc.getId(), srcVdc.getShortId(),
+                    targetVdc.getShortId() });
             srcVdc.setShortId(targetVdc.getShortId());
         }
 
-        if (! isEqual(srcVdc.getGeoCommandEndpoint(), targetVdc.getGeoCommandEndpoint())) {
+        if (!isEqual(srcVdc.getGeoCommandEndpoint(), targetVdc.getGeoCommandEndpoint())) {
             isChanged = true;
             log.warn("GeoCommandEndpoint of VDC {} changes from {} to {} according to remote VDC " +
-                    "config.", new Object[] {srcVdc.getGeoCommandEndpoint(), srcVdc.getGeoCommandEndpoint(),
-                    targetVdc.getGeoCommandEndpoint()});
+                    "config.", new Object[] { srcVdc.getGeoCommandEndpoint(), srcVdc.getGeoCommandEndpoint(),
+                    targetVdc.getGeoCommandEndpoint() });
             srcVdc.setGeoCommandEndpoint(targetVdc.getGeoCommandEndpoint());
         }
 
         if (!isEqual(srcVdc.getGeoDataEndpoint(), targetVdc.getGeoDataEndpoint())) {
             isChanged = true;
             log.warn("GeoDataEndpoint of VDC {} changes from {} to {} according to remote VDC " +
-                    "config.", new Object[] {srcVdc.getGeoDataEndpoint(), srcVdc.getGeoDataEndpoint(),
-                    targetVdc.getGeoDataEndpoint()});
+                    "config.", new Object[] { srcVdc.getGeoDataEndpoint(), srcVdc.getGeoDataEndpoint(),
+                    targetVdc.getGeoDataEndpoint() });
             srcVdc.setGeoDataEndpoint(targetVdc.getGeoDataEndpoint());
         }
-        
+
         // If this vdc is isolated, should then reset repstatus to rep_none
         log.info("Checking if Vdc {} is isolated ...{}", targetVdc.getId(), targetVdc.getConnectionStatus());
         if (targetVdc.getConnectionStatus().equals(ConnectionStatus.ISOLATED.toString())) {
@@ -543,20 +557,23 @@ public class VdcConfigHelper {
             srcVdc.setRepStatus(GeoReplicationStatus.REP_NONE);
         }
 
-        if (isChanged)
+        if (isChanged) {
             dbClient.updateAndReindexObject(srcVdc);
+        }
     }
 
     private VirtualDataCenter fromConfigParam(VdcConfig config) {
         VirtualDataCenter vdc = new VirtualDataCenter();
 
         vdc.setId(config.getId());
-        if (config.getConnectionStatus() != null)
+        if (config.getConnectionStatus() != null) {
             vdc.setConnectionStatus(Enum.valueOf(ConnectionStatus.class, config.getConnectionStatus()));
-        
-        if (config.getRepStatus() != null)
+        }
+
+        if (config.getRepStatus() != null) {
             vdc.setRepStatus(Enum.valueOf(GeoReplicationStatus.class, config.getRepStatus()));
-        
+        }
+
         vdc.setVersion(config.getVersion());
         vdc.setShortId(config.getShortId());
         vdc.setHostCount(config.getHostCount());
@@ -576,8 +593,7 @@ public class VdcConfigHelper {
         vdc.setApiEndpoint(config.getApiEndpoint());
         vdc.setSecretKey(config.getSecretKey());
         vdc.setLocal(false);
-        
-        
+
         vdc.setGeoCommandEndpoint(config.getGeoCommandEndpoint());
         vdc.setGeoDataEndpoint(config.getGeoDataEndpoint());
 
@@ -585,14 +601,15 @@ public class VdcConfigHelper {
     }
 
     private boolean isEqual(Object src, Object tgt) {
-        if (src == null)
+        if (src == null) {
             return tgt == null;
+        }
 
         return src.equals(tgt);
     }
 
     /**
-     * Notify dbsvc with a list of obsolete cassandra peers, so that it could remove them before start 
+     * Notify dbsvc with a list of obsolete cassandra peers, so that it could remove them before start
      * 
      * @param peerList
      */
@@ -600,23 +617,25 @@ public class VdcConfigHelper {
         String result = StringUtils.join(peerList.iterator(), ",");
         updateDbSvcConfig(svcName, Constants.OBSOLETE_CASSANDRA_PEERS, result);
     }
-    
+
     public void updateDbSvcConfig(String svcName, String key, String value) {
         String kind = coordinator.getDbConfigPath(svcName);
         try {
             List<Configuration> configs = coordinator.queryAllConfiguration(kind);
             if (configs == null) {
-                String errMsg = "No "+svcName+" config found in the current vdc";
+                String errMsg = "No " + svcName + " config found in the current vdc";
                 log.error(errMsg);
                 throw new IllegalStateException(errMsg);
             }
 
             for (Configuration config : configs) {
-                if (config.getId() == null)
-                    //version Znodes, e.g., /config/dbconfig/1.1
+                if (config.getId() == null) {
+                    // version Znodes, e.g., /config/dbconfig/1.1
                     continue;
-                if (config.getId().equals(Constants.GLOBAL_ID))
+                }
+                if (config.getId().equals(Constants.GLOBAL_ID)) {
                     continue;
+                }
                 config.setConfig(key, value);
                 coordinator.persistServiceConfiguration(config);
             }
@@ -625,7 +644,7 @@ public class VdcConfigHelper {
         }
     }
 
-    public void persistVdcCert(KeyStore keystore, String alias, String certstr, Boolean certchain)  {
+    public void persistVdcCert(KeyStore keystore, String alias, String certstr, Boolean certchain) {
         // put vdc cert into trust-store
         log.info("Persisting cert of vdc {} into local trust-store ...", alias);
         try {
@@ -661,7 +680,7 @@ public class VdcConfigHelper {
                 if (!certificateVersionHelper.updateCertificateVersion()) {
                     throw SecurityException.fatals.failedToUpdateKeyCertificateEntry();
                 }
-            } else if(vdcCertListParam.getCmd().equals(VdcCertListParam.CMD_ADD_CERT)) {
+            } else if (vdcCertListParam.getCmd().equals(VdcCertListParam.CMD_ADD_CERT)) {
                 Boolean newVdc = false;
                 VirtualDataCenter vdc = VdcUtil.getLocalVdc();
                 log.info("current status of local vdc is {}", vdc.getConnectionStatus().toString());
@@ -676,7 +695,7 @@ public class VdcConfigHelper {
 
                 if (newVdc) {
                     // add all connected vdcs' certs into target vdc trust-store
-                    for (VdcCertParam certParam: vdcCertListParam.getVdcCerts()) {
+                    for (VdcCertParam certParam : vdcCertListParam.getVdcCerts()) {
                         persistVdcCert(keystore, certParam.getVdcId().toString(), certParam.getCertificate(), false);
                     }
                 } else {
@@ -687,7 +706,7 @@ public class VdcConfigHelper {
         } catch (CertificateException e) {
             log.error(e.getMessage(), e);
             throw APIException.badRequests.failedToLoadCertificateFromString(
-                                vdcCertListParam.getTargetVdcCert(), e);
+                    vdcCertListParam.getTargetVdcCert(), e);
         } catch (KeyStoreException e) {
             log.error(e.getMessage(), e);
             throw APIException.badRequests.failedToStoreCertificateInKeyStore(e);
@@ -723,26 +742,28 @@ public class VdcConfigHelper {
 
     /**
      * Cehck to see if the local cluster is stable
+     * 
      * @return true if state is STABLE
      */
     public boolean isClusterStable() {
- 	log.info("Checking if local cluster is stable...");
-        return ((((DbClientImpl)dbClient).getCoordinatorClient().getControlNodesState() == ClusterInfo.ClusterState.STABLE) &&
-                isGeodbServiceStable());
+        log.info("Checking if local cluster is stable...");
+        return ((((DbClientImpl) dbClient).getCoordinatorClient().getControlNodesState() == ClusterInfo.ClusterState.STABLE) && isGeodbServiceStable());
     }
-   
+
     /**
      * Check to see if all nodes' geodbsvc is up and running
+     * 
      * @return true if service count equals node count
      */
     public boolean isGeodbServiceStable() {
         List<Service> services = coordinator.locateAllServices(Constants.GEODBSVC_NAME, dbClient.getSchemaVersion(), null, null);
-        log.info("Checking if all geosvcs are up, geosvc count-{}, node count-{}",services.size(), ((CoordinatorClientImpl)coordinator).getNodeCount());
-        return (((CoordinatorClientImpl)coordinator).getNodeCount()==services.size());
+        log.info("Checking if all geosvcs are up, geosvc count-{}, node count-{}", services.size(),
+                ((CoordinatorClientImpl) coordinator).getNodeCount());
+        return (((CoordinatorClientImpl) coordinator).getNodeCount() == services.size());
     }
- 
+
     /**
-     * Build VdcConfig for a vdc for SyncVdcConfig call 
+     * Build VdcConfig for a vdc for SyncVdcConfig call
      * 
      * @param vdc
      * @return
@@ -754,13 +775,16 @@ public class VdcConfigHelper {
         vdcConfig.setId(vdc.getId());
         vdcConfig.setShortId(vdc.getShortId());
         vdcConfig.setSecretKey(vdc.getSecretKey());
-        
-        if ((vdc.getLabel() != null) && (!vdc.getLabel().isEmpty()))
+
+        if ((vdc.getLabel() != null) && (!vdc.getLabel().isEmpty())) {
             vdcConfig.setName(vdc.getLabel());
-        if ((vdc.getDescription() != null) && (!vdc.getDescription().isEmpty()))
+        }
+        if ((vdc.getDescription() != null) && (!vdc.getDescription().isEmpty())) {
             vdcConfig.setDescription(vdc.getDescription());
-        if (vdc.getApiEndpoint() != null)
+        }
+        if (vdc.getApiEndpoint() != null) {
             vdcConfig.setApiEndpoint(vdc.getApiEndpoint());
+        }
 
         vdcConfig.setHostCount(vdc.getHostCount());
 
@@ -772,13 +796,13 @@ public class VdcConfigHelper {
         vdcConfig.setRepStatus(vdc.getRepStatus().toString());
         vdcConfig.setGeoCommandEndpoint(vdc.getGeoCommandEndpoint());
         vdcConfig.setGeoDataEndpoint(vdc.getGeoDataEndpoint());
-        
+
         return vdcConfig;
     }
 
     /**
      * Build VdcConfig for a vdc for SyncVdcConfig call
-     *
+     * 
      * @param vdcInfo
      * @return
      */
@@ -808,9 +832,9 @@ public class VdcConfigHelper {
         return vdcConfig;
     }
 
-
     /**
      * tries to connect to each node in each vdc
+     * 
      * @param vdcList
      * @return true if all nodes in all vdc's are reachable
      */
@@ -828,6 +852,7 @@ public class VdcConfigHelper {
 
     /**
      * tries to connect to each node in each vdc
+     * 
      * @param vdcId - the Id of the target VDC
      * @return true if all nodes of the target Vdc is reachable
      */
@@ -839,7 +864,7 @@ public class VdcConfigHelper {
         VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
 
         if (areNodesReachable(vdc.getShortId(), vdc.getHostIPv4AddressesMap(), vdc.getHostIPv6AddressesMap(), false)) {
-                return true;
+            return true;
         }
 
         return false;
@@ -847,6 +872,7 @@ public class VdcConfigHelper {
 
     /**
      * tries to connect to each node in either the ipv4 list or the ipv6 list (ipv4 is default)
+     * 
      * @param vdcShortId short id of vdc where node ip's are from
      * @param ipv4
      * @param ipv6
@@ -859,22 +885,23 @@ public class VdcConfigHelper {
         } else if (ipv6 != null && !ipv6.isEmpty()) {
             ips.addAll(ipv6.values());
         } else {
-            throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdcShortId + " no nodes were found on VdcConfig object");
+            throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdcShortId
+                    + " no nodes were found on VdcConfig object");
         }
 
         for (String host : ips) {
             log.info("Testing connection to ip address : " + host);
-            
+
             Socket socket = null;
             try {
                 socket = new Socket();
                 InetSocketAddress endpoint = new InetSocketAddress(InetAddress.getByName(host), NODE_REACHABLE_PORT);
                 socket.connect(endpoint, NODE_REACHABLE_TIMEOUT);
-                if(isAllNotReachable) {
+                if (isAllNotReachable) {
                     return true;
                 }
             } catch (IOException e) {
-                if(isAllNotReachable) {
+                if (isAllNotReachable) {
                     log.info("Disconnect node check, could NOT access node {}, will continue check.", host);
                     continue;
                 }
@@ -894,9 +921,9 @@ public class VdcConfigHelper {
 
             log.info("ip address " + host + " is reachable");
         }
-        //For disconnect vdc, isAllNotReachable will be true, if the code reaches here, means all the host can not access
-        //and for disconnect ops, can not reachable means all the nodes can not access.
-        if(isAllNotReachable) {
+        // For disconnect vdc, isAllNotReachable will be true, if the code reaches here, means all the host can not access
+        // and for disconnect ops, can not reachable means all the nodes can not access.
+        if (isAllNotReachable) {
             log.info("All nodes are not reachable.");
             return false;
         } else {
@@ -906,12 +933,13 @@ public class VdcConfigHelper {
 
     /**
      * Send node check request to target vdc.
+     * 
      * @param sendToVdc vdc to send msg to
      * @param vdcsToCheck list of vdc's with nodes to check
      * @return
      * @throws Exception
      */
-    public VdcNodeCheckResponse sendVdcNodeCheckRequest (VirtualDataCenter sendToVdc, Collection<VirtualDataCenter> vdcsToCheck)  {
+    public VdcNodeCheckResponse sendVdcNodeCheckRequest(VirtualDataCenter sendToVdc, Collection<VirtualDataCenter> vdcsToCheck) {
         List<VdcConfig> virtualDataCenters = new ArrayList<VdcConfig>();
         for (VirtualDataCenter vdc : vdcsToCheck) {
             VdcConfig vdcConfig = new VdcConfig();
@@ -922,7 +950,8 @@ public class VdcConfigHelper {
             } else if (vdc.getHostIPv6AddressesMap() != null && !vdc.getHostIPv6AddressesMap().isEmpty()) {
                 vdcConfig.setHostIPv6AddressesMap(vdc.getHostIPv6AddressesMap());
             } else {
-                throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdc.getShortId() + " no nodes were found on VirtualDataCenter object");
+                throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdc.getShortId()
+                        + " no nodes were found on VirtualDataCenter object");
             }
             virtualDataCenters.add(vdcConfig);
         }
@@ -974,7 +1003,7 @@ public class VdcConfigHelper {
             if (vdcCfg.getId().equals(vdc.getId())) {
                 log.info("find the vdc cfg {}", vdcCfg);
 
-                //update the VirtualDataCenter object of the vdc
+                // update the VirtualDataCenter object of the vdc
                 mergeVdcConfig(vdcCfg);
                 vdc = dbClient.queryObject(VirtualDataCenter.class, vdc.getId());
 
@@ -989,7 +1018,9 @@ public class VdcConfigHelper {
         Map<String, String> options = dbClient.getGeoStrategyOptions();
 
         if (options.containsKey(shortVdcId))
-            return; //already added
+         {
+            return; // already added
+        }
 
         options.put(shortVdcId, vdc.getHostCount().toString());
 
@@ -1000,7 +1031,9 @@ public class VdcConfigHelper {
         Map<String, String> options = dbClient.getGeoStrategyOptions();
 
         if (!options.containsKey(shortVdcId))
-            return; //already removed
+         {
+            return; // already removed
+        }
 
         options.remove(shortVdcId);
 
@@ -1009,7 +1042,7 @@ public class VdcConfigHelper {
 
     private void setCassandraStrategyOptions(Map<String, String> options, boolean wait)
             throws CharacterCodingException, TException, NoSuchFieldException, IllegalAccessException, InstantiationException,
-                   InterruptedException, ConnectionException, ClassNotFoundException {
+            InterruptedException, ConnectionException, ClassNotFoundException {
         int port = InternalDbClient.DbJmxClient.DEFAULTTHRIFTPORT;
 
         log.info("The dbclient encrypted={}", dbClient.isGeoDbClientEncrypted());
@@ -1060,8 +1093,9 @@ public class VdcConfigHelper {
         while (System.currentTimeMillis() - start < SchemaUtil.MAX_SCHEMA_WAIT_MS) {
             Map<String, List<String>> versions = dbClient.getGeoSchemaVersions();
 
-            if (versions.size() == 2) // one UNREACHABLE and one valid
+            if (versions.size() == 2) {
                 break;
+            }
 
             log.info("waiting for schema change ...");
             Thread.sleep(1000);
@@ -1069,7 +1103,7 @@ public class VdcConfigHelper {
     }
 
     private String genUpdateStrategyOptionCmd(Map<String, String> strategyOptions) {
-        //prepare update command
+        // prepare update command
         Set<Map.Entry<String, String>> options = strategyOptions.entrySet();
         StringBuilder updateKeySpaceCmd = new StringBuilder("update keyspace ");
         updateKeySpaceCmd.append(DbClientContext.GEO_KEYSPACE_NAME);
@@ -1078,7 +1112,7 @@ public class VdcConfigHelper {
         for (Map.Entry<String, String> option : options) {
             if (isFirst) {
                 isFirst = false;
-            }else {
+            } else {
                 updateKeySpaceCmd.append(",");
             }
 
@@ -1110,6 +1144,7 @@ public class VdcConfigHelper {
 
     /**
      * Send rest call to get vdc version
+     * 
      * @param vdcId vdc short Id
      * @return vdc version in string format
      */
@@ -1119,6 +1154,7 @@ public class VdcConfigHelper {
 
     /**
      * Send rest call to get vdc version
+     * 
      * @param vdcProp vdc short Id
      * @return vdc version in string format
      */

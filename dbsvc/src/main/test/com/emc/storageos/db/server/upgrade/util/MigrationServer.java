@@ -38,7 +38,7 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
         changer.insertCodes(methodName, getInsertCodes(), InjectModeEnum.valueOf(injectMode));
     }
 
-    public void startMigration(String className, String methodName, String injectMode){
+    public void startMigration(String className, String methodName, String injectMode) {
         try {
             setup();
 
@@ -54,14 +54,14 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
 
             verifyAll();
             stop();
-        }catch (IllegalStateException e){
+        } catch (IllegalStateException e) {
             log.info("Catch the negative test exception:", e);
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.info("Catch the negative test exception:", e);
         }
     }
 
-    public void startMigration(){
+    public void startMigration() {
         try {
             setup();
 
@@ -71,9 +71,9 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
 
             verifyAll();
             stop();
-        }catch (IllegalStateException e){
+        } catch (IllegalStateException e) {
             log.info("Catch the negative test exception:", e);
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.info("Catch the negative test exception:", e);
         }
     }
@@ -88,6 +88,6 @@ public class MigrationServer extends DbStepSkipUpgradeTestBase {
         } else {
             log.error("the count of parameters is invalid.");
         }
-        System.exit(0); 
+        System.exit(0);
     }
 }

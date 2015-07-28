@@ -18,7 +18,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.storageos.model.file.FileShareRestRep;
 
 public class CreateCifsShareHelper {
-    
+
     @Param(VIRTUAL_POOL)
     protected URI virtualPool;
 
@@ -36,10 +36,10 @@ public class CreateCifsShareHelper {
 
     @Param(SHARE_COMMENT)
     protected String shareComment;
-    
+
     @Bindable(itemType = FileStorageUtils.FileSystemACLs.class)
     protected FileStorageUtils.FileSystemACLs[] fileSystemShareACLs;
-    
+
     protected URI fileSystemId;
 
     public void precheckFileACLs() {
@@ -47,12 +47,13 @@ public class CreateCifsShareHelper {
             fileSystemShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSystemShareACLs);
         }
     }
+
     public FileShareRestRep createCifsShare() {
         this.fileSystemId = FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb);
         FileStorageUtils.createCifsShare(this.fileSystemId, shareName, shareComment, null);
         return FileStorageUtils.getFileSystem(this.fileSystemId);
     }
-    
+
     public void setFileSystemShareACL() {
         if (fileSystemShareACLs != null && fileSystemShareACLs.length > 0) {
             FileStorageUtils.setFileSystemShareACL(this.fileSystemId, shareName, fileSystemShareACLs);

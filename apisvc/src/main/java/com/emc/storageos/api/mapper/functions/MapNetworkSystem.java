@@ -9,7 +9,7 @@ import com.emc.storageos.model.network.NetworkSystemRestRep;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.google.common.base.Function;
 
-public class MapNetworkSystem implements Function<NetworkSystem,NetworkSystemRestRep> {
+public class MapNetworkSystem implements Function<NetworkSystem, NetworkSystemRestRep> {
     public static final MapNetworkSystem instance = new MapNetworkSystem();
 
     public static MapNetworkSystem getInstance() {

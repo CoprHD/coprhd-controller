@@ -28,36 +28,34 @@ import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerI
 import com.emc.storageos.services.util.NamedScheduledThreadPoolExecutor;
 
 /**
- *   LeaderSelectorListenerForPeriodicTask is an implementation of an adapter to translate the
- *   LeaderSelectorListener interface into arbitrary Runnable interface.
- *   Use this class  if you have a Runnable object for a task to be run on a single node periodically.
+ * LeaderSelectorListenerForPeriodicTask is an implementation of an adapter to translate the
+ * LeaderSelectorListener interface into arbitrary Runnable interface.
+ * Use this class if you have a Runnable object for a task to be run on a single node periodically.
  */
 public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListenerImpl {
     private static final Log _log = LogFactory.getLog(LeaderSelectorListenerForPeriodicTask.class);
-
 
     List<ScheduledTask> tasks;
     volatile boolean started;
     private final ScheduledExecutorService scheduler;
 
-
     public LeaderSelectorListenerForPeriodicTask(Runnable worker, long initialDelay, long interval) {
         tasks = new ArrayList<>();
-        tasks.add(new ScheduledTask(worker, initialDelay,interval));
-        scheduler = new NamedScheduledThreadPoolExecutor(worker.getClass().getSimpleName(),1);
-        ((NamedScheduledThreadPoolExecutor)scheduler).setAppendTaskName(true);
+        tasks.add(new ScheduledTask(worker, initialDelay, interval));
+        scheduler = new NamedScheduledThreadPoolExecutor(worker.getClass().getSimpleName(), 1);
+        ((NamedScheduledThreadPoolExecutor) scheduler).setAppendTaskName(true);
         started = false;
     }
 
-    public LeaderSelectorListenerForPeriodicTask(ScheduledExecutorService scheduler){
+    public LeaderSelectorListenerForPeriodicTask(ScheduledExecutorService scheduler) {
         this.scheduler = scheduler;
         tasks = new ArrayList<>();
         started = false;
     }
 
-    public boolean addScheduledTask(Runnable worker, long initialDelay, long interval){
-        if( !started ) {
-            synchronized(this) {
+    public boolean addScheduledTask(Runnable worker, long initialDelay, long interval) {
+        if (!started) {
+            synchronized (this) {
                 tasks.add(new ScheduledTask(worker, initialDelay, interval));
                 return true;
             }
@@ -70,10 +68,10 @@ public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListene
     protected void startLeadership() throws Exception {
         started = true;
         List<ScheduledTask> locTasks;
-        synchronized(this) {
+        synchronized (this) {
             locTasks = new ArrayList(tasks);
         }
-        for(final ScheduledTask task : locTasks) {
+        for (final ScheduledTask task : locTasks) {
             try {
                 task.taskFuture = scheduler.scheduleAtFixedRate(new Runnable() {
                     public void run() {
@@ -92,10 +90,10 @@ public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListene
 
     protected void stopLeadership() {
         List<ScheduledTask> locTasks;
-        synchronized(this) {
+        synchronized (this) {
             locTasks = new ArrayList(tasks);
         }
-        for(final ScheduledTask task : locTasks) {
+        for (final ScheduledTask task : locTasks) {
             if (task.taskFuture != null) {
                 task.taskFuture.cancel(true);
             }
@@ -108,9 +106,9 @@ public class LeaderSelectorListenerForPeriodicTask extends LeaderSelectorListene
         final private long delay;
         final private long interval;
 
-        private ScheduledFuture<?>  taskFuture;
+        private ScheduledFuture<?> taskFuture;
 
-        ScheduledTask(Runnable taskProcessor, long delay, long interval){
+        ScheduledTask(Runnable taskProcessor, long delay, long interval) {
             this.taskProcessor = taskProcessor;
             this.delay = delay;
             this.interval = interval;

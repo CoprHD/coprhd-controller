@@ -29,8 +29,9 @@ import java.util.List;
 public class VirtualArrayList {
     private List<NamedRelatedResourceRep> varrays;
 
-    public VirtualArrayList() {}
-    
+    public VirtualArrayList() {
+    }
+
     public VirtualArrayList(List<NamedRelatedResourceRep> varrays) {
         this.varrays = varrays;
     }

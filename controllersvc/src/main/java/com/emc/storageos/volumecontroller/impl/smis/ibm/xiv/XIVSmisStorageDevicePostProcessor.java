@@ -465,7 +465,7 @@ public class XIVSmisStorageDevicePostProcessor {
 
         return volumesToSave;
     }
-    
+
     @SuppressWarnings("rawtypes")
     public void processSnapshotCreation(StorageSystem storageSystem,
             URI snapshotURI, boolean wantSyncActive, CIMArgument[] outArgs,
@@ -613,9 +613,10 @@ public class XIVSmisStorageDevicePostProcessor {
 
             // Iterate through the snapshot elements and try to match them up
             // with the appropriate BlockSnapshot
-            
+
             // Note, NULL_IBM_CIM_OBJECT_PATH is used here. The snapshot group object will be looked up by snapshot group name
-            List<CIMObjectPath> objectPaths = _helper.getSGMembers(storageSystem, SmisConstants.NULL_IBM_CIM_OBJECT_PATH, snapshotGroupName, snapshotURIs.size());
+            List<CIMObjectPath> objectPaths = _helper.getSGMembers(storageSystem, SmisConstants.NULL_IBM_CIM_OBJECT_PATH,
+                    snapshotGroupName, snapshotURIs.size());
             List<BlockSnapshot> objectsToSave = new ArrayList<BlockSnapshot>(
                     snapshotURIs.size());
             Calendar now = Calendar.getInstance();

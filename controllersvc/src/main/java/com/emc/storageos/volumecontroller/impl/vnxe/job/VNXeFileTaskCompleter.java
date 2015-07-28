@@ -26,13 +26,11 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
+public class VNXeFileTaskCompleter extends TaskCompleter {
 
-public class VNXeFileTaskCompleter extends TaskCompleter{
-  
     private static final long serialVersionUID = 1L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeFileTaskCompleter.class);
 
-    
     /**
      * @param clazz Class type
      * @param id
@@ -42,7 +40,7 @@ public class VNXeFileTaskCompleter extends TaskCompleter{
     public VNXeFileTaskCompleter(Class clazz, URI fsId, String opId) {
         super(clazz, fsId, opId);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
             throws DeviceControllerException {
@@ -52,7 +50,7 @@ public class VNXeFileTaskCompleter extends TaskCompleter{
             updateWorkflowStatus(status, coded);
         }
         super.setStatus(dbClient, status, coded);
-        
+
     }
-    
+
 }

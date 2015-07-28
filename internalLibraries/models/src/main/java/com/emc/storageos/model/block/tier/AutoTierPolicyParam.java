@@ -22,8 +22,9 @@ public class AutoTierPolicyParam {
 
     private String provisioningType;
 
-    public AutoTierPolicyParam() {}
-    
+    public AutoTierPolicyParam() {
+    }
+
     public AutoTierPolicyParam(String provisioningType) {
         this.provisioningType = provisioningType;
     }
@@ -43,5 +44,5 @@ public class AutoTierPolicyParam {
     public void setProvisioningType(String provisioningType) {
         this.provisioningType = provisioningType;
     }
-    
+
 }

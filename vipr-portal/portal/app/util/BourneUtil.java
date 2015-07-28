@@ -4,8 +4,6 @@
  */
 package util;
 
-
-
 import java.security.KeyStore;
 
 import javax.net.ssl.SSLSocketFactory;
@@ -31,7 +29,7 @@ import controllers.security.Security;
 
 /**
  * Utility for retrieving a bourne client from the VDC specific policy.
- *
+ * 
  * @author Chris Dail
  */
 public class BourneUtil {
@@ -49,8 +47,7 @@ public class BourneUtil {
         if (StorageOsPlugin.isEnabled() && (KEYSTORE == null)) {
             try {
                 KEYSTORE = KeyStoreUtil.getViPRKeystore(StorageOsPlugin.getInstance().getCoordinatorClient());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new UnhandledException(e);
             }
         }
@@ -80,7 +77,7 @@ public class BourneUtil {
             return null;
         }
     }
-    
+
     private static void setRequestArg(String key, Object value) {
         Http.Request request = Http.Request.current();
         if (request != null) {
@@ -101,7 +98,7 @@ public class BourneUtil {
         config.setReadTimeout(timeout * MINUTES_IN_MS);
         config.setConnectionTimeout(timeout * MINUTES_IN_MS);
 
-        //setup socketfactory, unless we're in portal only mode
+        // setup socketfactory, unless we're in portal only mode
 
         if (StorageOsPlugin.isEnabled()) {
             config.setSocketFactory(getSocketFactory());
@@ -141,7 +138,7 @@ public class BourneUtil {
         }
         return client;
     }
-    
+
     public static ViPRCatalogClient2 getCatalogClient() {
         String authToken = Security.getAuthToken();
         String key = String.format("ViPRCatalogClient.%s", authToken);
@@ -199,7 +196,7 @@ public class BourneUtil {
         ClientConfig config = getSysConfig();
         return String.format("%s://%s:%d/", config.getProtocol(), config.getHost(), config.getPort());
     }
-    
+
     public static String getVersion() {
         return StorageOsPlugin.getInstance().getVersion();
     }

@@ -18,7 +18,7 @@ public class MapVcenterDataCenter implements Function<VcenterDataCenter, Vcenter
 
     private MapVcenterDataCenter() {
     }
-    
+
     @Override
     public VcenterDataCenterRestRep apply(VcenterDataCenter resource) {
         return HostMapper.map(resource);

@@ -27,6 +27,7 @@ public class VirtualArrayRelatedResourceRep extends RelatedResourceRep {
 
     /**
      * Virtual array where this Block object exists.
+     * 
      * @valid none
      */
     @XmlElement(name = "varray")
@@ -38,5 +39,5 @@ public class VirtualArrayRelatedResourceRep extends RelatedResourceRep {
     public void setVirtualArray(RelatedResourceRep virtualArray) {
         this.virtualArray = virtualArray;
     }
-    
+
 }

@@ -22,12 +22,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public class HDSBlockCreateMirrorJob extends HDSCreateVolumeJob {
-	
-	private static final Logger log = LoggerFactory.getLogger(HDSBlockCreateMirrorJob.class);
 
-	public HDSBlockCreateMirrorJob(String hdsJob, URI storageSystem,
-			URI storagePool, TaskCompleter taskCompleter) {
-		super(hdsJob, storageSystem, storagePool, taskCompleter, "CreateBlockMirror");
-	}
-	
+    private static final Logger log = LoggerFactory.getLogger(HDSBlockCreateMirrorJob.class);
+
+    public HDSBlockCreateMirrorJob(String hdsJob, URI storageSystem,
+            URI storagePool, TaskCompleter taskCompleter) {
+        super(hdsJob, storageSystem, storagePool, taskCompleter, "CreateBlockMirror");
+    }
+
 }

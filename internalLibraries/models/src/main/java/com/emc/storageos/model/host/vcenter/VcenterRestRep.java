@@ -33,10 +33,10 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     private Integer portNumber;
     private Boolean useSsl;
     private String osVersion;
-    
 
-    public VcenterRestRep() {}
-    
+    public VcenterRestRep() {
+    }
+
     public VcenterRestRep(String username, String ipAddress,
             Integer portNumber, Boolean useSsl) {
         super();
@@ -46,7 +46,7 @@ public class VcenterRestRep extends ComputeSystemRestRep {
         this.useSsl = useSsl;
     }
 
-    public VcenterRestRep(RelatedResourceRep tenant, String username, 
+    public VcenterRestRep(RelatedResourceRep tenant, String username,
             String ipAddress, Integer portNumber, Boolean useSsl) {
         super(tenant);
         this.username = username;
@@ -57,10 +57,11 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * The login account name
+     * 
      * @valid none
      * @return the login account name
      */
-    @XmlElement(name="user_name")
+    @XmlElement(name = "user_name")
     public String getUsername() {
         return username;
     }
@@ -71,10 +72,11 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * The vCenter server management IP address
+     * 
      * @valid none
      * @return the vCenter server management IP address
      */
-    @XmlElement(name="ip_address")
+    @XmlElement(name = "ip_address")
     public String getIpAddress() {
         return ipAddress;
     }
@@ -85,10 +87,11 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * The vCenter server management port
+     * 
      * @valid none
      * @return the the vCenter server management port
      */
-    @XmlElement(name="port_number")
+    @XmlElement(name = "port_number")
     public Integer getPortNumber() {
         return portNumber;
     }
@@ -99,11 +102,12 @@ public class VcenterRestRep extends ComputeSystemRestRep {
 
     /**
      * A flag which indicates whether SSL should be used when communicating with the vCenter
+     * 
      * @valid true = use SSL
      * @valid false = do not use SSL
      * @return true if SSL should be used when communicating with the vCenter
      */
-    @XmlElement(name="use_ssl")
+    @XmlElement(name = "use_ssl")
     public Boolean getUseSsl() {
         return useSsl;
     }
@@ -111,12 +115,13 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     public void setUseSsl(Boolean useSsl) {
         this.useSsl = useSsl;
     }
-    
+
     /**
      * The operating system version of the vcenter.
+     * 
      * @valid none
      */
-    @XmlElement(name="os_version")
+    @XmlElement(name = "os_version")
     public String getOsVersion() {
         return osVersion;
     }
@@ -124,6 +129,5 @@ public class VcenterRestRep extends ComputeSystemRestRep {
     public void setOsVersion(String osVersion) {
         this.osVersion = osVersion;
     }
-    
-}
 
+}

@@ -5,7 +5,7 @@
 package com.emc.aix.command.parse;
 
 public interface MultiFieldFormatter {
-    
-    public Object format(Object ... sources);
-    
+
+    public Object format(Object... sources);
+
 }

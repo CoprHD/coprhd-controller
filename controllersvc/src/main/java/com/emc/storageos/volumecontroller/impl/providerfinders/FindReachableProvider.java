@@ -32,14 +32,14 @@ public class FindReachableProvider implements FindProviderStrategy {
     @Override
     public StorageSystem find() {
         RemoteDirectorGroup rdfGroup = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
-        StorageSystem rdfGroupSourceSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getSourceStorageSystemUri()); 
-        
-        //if source (from RDFGroup) is not reachable, then try target system.
-        //Scan would have helped us to find the reachable system but we need to wait for every 10 minutes, had this code explicitly
+        StorageSystem rdfGroupSourceSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getSourceStorageSystemUri());
+
+        // if source (from RDFGroup) is not reachable, then try target system.
+        // Scan would have helped us to find the reachable system but we need to wait for every 10 minutes, had this code explicitly
         // to find reachable systems before invoking fail over.
         StorageSystem reachableSystem = rdfGroupSourceSystem;
         if (!helper.checkConnectionliveness(reachableSystem)) {
-            StorageSystem rdfGroupTargetSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getRemoteStorageSystemUri()); 
+            StorageSystem rdfGroupTargetSystem = dbClient.queryObject(StorageSystem.class, rdfGroup.getRemoteStorageSystemUri());
             log.info("Source Site {} not reachable", rdfGroupSourceSystem.getActiveProviderURI());
             if (helper.checkConnectionliveness(rdfGroupTargetSystem)) {
                 log.info("Target Site {} reachable", rdfGroupTargetSystem.getActiveProviderURI());

@@ -32,18 +32,17 @@ import static com.emc.storageos.api.mapper.VirtualArrayMapper.map;
 @Path("/internal/vdc/networks")
 public class InternalNetworkResource extends ResourceService {
     private NetworkService networkService;
-    
+
     public void setNetworkService(NetworkService service) {
         networkService = service;
     }
-    
-    
+
     /*
-    * POST to add or remove endpoints
-    */
+     * POST to add or remove endpoints
+     */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/endpoints")
     public NetworkRestRep updateNetworkEndpointsInternal(@PathParam("id") URI id,
             NetworkEndpointParam param) {

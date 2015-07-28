@@ -20,7 +20,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public abstract class DatabaseException extends InternalException {
-	private static final long serialVersionUID = -5710177174026419026L;
+    private static final long serialVersionUID = -5710177174026419026L;
 
     public static FatalDatabaseExceptions fatals = ExceptionMessagesProxy
             .create(FatalDatabaseExceptions.class);

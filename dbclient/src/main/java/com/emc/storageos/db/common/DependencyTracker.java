@@ -18,8 +18,6 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.model.DataObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.util.logging.resources.logging;
-
 import java.util.*;
 
 /**
@@ -27,40 +25,40 @@ import java.util.*;
  */
 public class DependencyTracker {
     private static final Logger log = LoggerFactory.getLogger(DependencyTracker.class);
-    
+
     public class Dependency {
         private Class<? extends DataObject> _type;
         private ColumnField _field;
-        
+
         public Dependency(Class<? extends DataObject> type, ColumnField field) {
             _type = type;
-            _field = field;            
+            _field = field;
         }
-        
+
         public Class<? extends DataObject> getType() {
             return _type;
         }
-        
+
         public ColumnField getColumnField() {
             return _field;
         }
     }
-    
+
     private Map<Class<? extends DataObject>, List<Dependency>> _dependencyMap;
     private List<Class<? extends DataObject>> _excluded;
     private Map<Integer, List<Class<? extends DataObject>>> _levels;
-    
+
     public DependencyTracker() {
         _dependencyMap = new HashMap<Class<? extends DataObject>, List<Dependency>>();
         _excluded = new ArrayList<Class<? extends DataObject>>();
     }
-    
+
     public void addDependency(Class<? extends DataObject> refType, Class<? extends DataObject> onType, ColumnField field) {
         if (_excluded.contains(refType)) {
             return;
         }
         if (!_dependencyMap.containsKey(refType)) {
-            _dependencyMap.put(refType, new ArrayList<Dependency>());    
+            _dependencyMap.put(refType, new ArrayList<Dependency>());
         }
         _dependencyMap.get(refType).add(new Dependency(onType, field));
     }
@@ -81,10 +79,10 @@ public class DependencyTracker {
     public List<Class<? extends DataObject>> getExcludedTypes() {
         return Collections.unmodifiableList(_excluded);
     }
-    
+
     public List<Dependency> getDependencies(Class<? extends DataObject> clazz) {
-        return _dependencyMap.containsKey(clazz)?
-                Collections.unmodifiableList(_dependencyMap.get(clazz)):
+        return _dependencyMap.containsKey(clazz) ?
+                Collections.unmodifiableList(_dependencyMap.get(clazz)) :
                 new ArrayList<Dependency>();
     }
 
@@ -96,16 +94,18 @@ public class DependencyTracker {
 
         while (all.size() != visited.size()) {
             _levels.put(level, new ArrayList<Class<? extends DataObject>>());
-            for (Class<? extends DataObject> entry: all) {
+            for (Class<? extends DataObject> entry : all) {
 
                 if (visited.contains(entry))
+                 {
                     continue; // already handled
+                }
 
                 List<Dependency> dependencies = _dependencyMap.get(entry);
 
                 // first level - leaf nodes, should not have dependents
                 if (level == 0 && !dependencies.isEmpty()) {
-                    continue;    
+                    continue;
                 }
 
                 boolean addDependency = true;
@@ -116,9 +116,9 @@ public class DependencyTracker {
                         continue;
                     } else if (dependency.getType().equals(entry) ||
                             _excluded.contains(dependency.getType())) {
-                        // special cases -  satisfied dependency
+                        // special cases - satisfied dependency
                         // 1. self reference - only true for TenantOrg for now,
-                        //    since the root tenant is never deleted, it can go on one level
+                        // since the root tenant is never deleted, it can go on one level
                         // 2. reference to excluded type
                         continue;
                     } else {
@@ -137,20 +137,20 @@ public class DependencyTracker {
             level++;
         }
     }
-    
+
     public int getLevels() {
         return _levels.keySet().size();
     }
-    
+
     public List<Class<? extends DataObject>> getTypesInLevel(int level) {
-        return (_levels.containsKey(level))?
-                Collections.unmodifiableList(_levels.get(level)):
+        return (_levels.containsKey(level)) ?
+                Collections.unmodifiableList(_levels.get(level)) :
                 new ArrayList<Class<? extends DataObject>>();
     }
-    
+
     @Override
     public String toString() {
-        Iterator< Map.Entry<Class<? extends DataObject>, List<Dependency>>> iterator = 
+        Iterator<Map.Entry<Class<? extends DataObject>, List<Dependency>>> iterator =
                 _dependencyMap.entrySet().iterator();
         StringBuilder str = new StringBuilder();
         str.append("\n");
@@ -168,14 +168,13 @@ public class DependencyTracker {
             str.append("\n");
         }
         str.append("\n");
-        Iterator< Map.Entry<Integer, List<Class<? extends DataObject>>>> iterator2 =
+        Iterator<Map.Entry<Integer, List<Class<? extends DataObject>>>> iterator2 =
                 _levels.entrySet().iterator();
         while (iterator2.hasNext()) {
             Map.Entry<Integer, List<Class<? extends DataObject>>> levelEntry = iterator2.next();
             str.append("Level " + levelEntry.getKey().toString());
             str.append("\n");
-            for (Iterator<Class<? extends DataObject>> clazzIt = levelEntry.getValue().iterator();
-                 clazzIt.hasNext();) {
+            for (Iterator<Class<? extends DataObject>> clazzIt = levelEntry.getValue().iterator(); clazzIt.hasNext();) {
                 str.append("\n\t").append(clazzIt.next().getSimpleName());
             }
             str.append("\n\n");

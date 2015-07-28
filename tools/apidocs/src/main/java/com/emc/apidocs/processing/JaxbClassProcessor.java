@@ -21,7 +21,8 @@ public class JaxbClassProcessor {
         classDescriptor.name = AnnotationUtils.getAnnotationValue(classDoc, KnownAnnotations.XMLElement_Annotation, "name", null);
 
         if (classDescriptor.name == null) {
-            classDescriptor.name = AnnotationUtils.getAnnotationValue(classDoc, KnownAnnotations.XMLRoot_Annotation , "name", classDoc.simpleTypeName());
+            classDescriptor.name = AnnotationUtils.getAnnotationValue(classDoc, KnownAnnotations.XMLRoot_Annotation, "name",
+                    classDoc.simpleTypeName());
         }
 
         ClassDoc currentClass = classDoc;
@@ -32,12 +33,15 @@ public class JaxbClassProcessor {
             for (FieldDoc field : currentClass.fields()) {
                 if (shouldIncludeField(field, xmlAccessType)) {
                     ApiField fieldDescriptor = new ApiField();
-                    fieldDescriptor.name = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLElement_Annotation, "name",field.name());
-                    fieldDescriptor.required = AnnotationUtils.getAnnotationValue(field,KnownAnnotations.XMLElement_Annotation, "required", false);
+                    fieldDescriptor.name = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLElement_Annotation, "name",
+                            field.name());
+                    fieldDescriptor.required = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLElement_Annotation,
+                            "required", false);
                     fieldDescriptor.description = field.commentText();
 
                     if (AnnotationUtils.hasAnnotation(field, KnownAnnotations.XMLElementWrapper_Annotation)) {
-                        fieldDescriptor.wrapperName = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLElementWrapper_Annotation, "name", Utils.lowerCaseFirstChar(field.name()));
+                        fieldDescriptor.wrapperName = AnnotationUtils.getAnnotationValue(field,
+                                KnownAnnotations.XMLElementWrapper_Annotation, "name", Utils.lowerCaseFirstChar(field.name()));
                     }
 
                     addFieldType(field.type(), fieldDescriptor);
@@ -46,10 +50,12 @@ public class JaxbClassProcessor {
                     classDescriptor.addField(fieldDescriptor);
                 }
 
-                if (AnnotationUtils.hasAnnotation(field,KnownAnnotations.XMLAttribute_Annotation)) {
+                if (AnnotationUtils.hasAnnotation(field, KnownAnnotations.XMLAttribute_Annotation)) {
                     ApiField attributeDescriptor = new ApiField();
-                    attributeDescriptor.name = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLAttribute_Annotation, "name",field.name());
-                    attributeDescriptor.required = AnnotationUtils.getAnnotationValue(field,KnownAnnotations.XMLAttribute_Annotation, "required", false);
+                    attributeDescriptor.name = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLAttribute_Annotation, "name",
+                            field.name());
+                    attributeDescriptor.required = AnnotationUtils.getAnnotationValue(field, KnownAnnotations.XMLAttribute_Annotation,
+                            "required", false);
                     attributeDescriptor.description = field.commentText();
 
                     addFieldType(field.type(), attributeDescriptor);
@@ -63,7 +69,8 @@ public class JaxbClassProcessor {
             for (MethodDoc method : currentClass.methods()) {
                 if (shouldIncludeMethod(method, xmlAccessType, currentClass)) {
                     ApiField methodDescriptor = new ApiField();
-                    methodDescriptor.name = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.XMLElement_Annotation, "name",null);
+                    methodDescriptor.name = AnnotationUtils
+                            .getAnnotationValue(method, KnownAnnotations.XMLElement_Annotation, "name", null);
 
                     if (methodDescriptor.name == null) {
                         if (method.name().startsWith("get")) {
@@ -74,11 +81,13 @@ public class JaxbClassProcessor {
                         }
                     }
 
-                    methodDescriptor.required = AnnotationUtils.getAnnotationValue(method,KnownAnnotations.XMLElement_Annotation, "required", false);
+                    methodDescriptor.required = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.XMLElement_Annotation,
+                            "required", false);
                     methodDescriptor.description = method.commentText();
 
                     if (AnnotationUtils.hasAnnotation(method, KnownAnnotations.XMLElementWrapper_Annotation)) {
-                        methodDescriptor.wrapperName = AnnotationUtils.getAnnotationValue(method, KnownAnnotations.XMLElementWrapper_Annotation, "name",null);
+                        methodDescriptor.wrapperName = AnnotationUtils.getAnnotationValue(method,
+                                KnownAnnotations.XMLElementWrapper_Annotation, "name", null);
 
                         if (methodDescriptor.wrapperName == null) {
                             if (method.name().startsWith("get")) {
@@ -88,11 +97,10 @@ public class JaxbClassProcessor {
                                 methodDescriptor.wrapperName = Utils.lowerCaseFirstChar(method.name().substring(2));
                             }
                             else {
-                                throw new RuntimeException("Unable to work out JavaBean property name "+method.qualifiedName());
+                                throw new RuntimeException("Unable to work out JavaBean property name " + method.qualifiedName());
                             }
                         }
                     }
-
 
                     addFieldType(method.returnType(), methodDescriptor);
                     addValidValues(method, methodDescriptor);
@@ -109,14 +117,15 @@ public class JaxbClassProcessor {
 
     /** Returns true of false if the fields should be included based on the accessType */
     private static boolean shouldIncludeField(FieldDoc field, String accessType) {
-        if(field.isStatic() ||
+        if (field.isStatic() ||
                 AnnotationUtils.hasAnnotation(field, KnownAnnotations.XMLTransient_Annotation) ||
                 AnnotationUtils.hasAnnotation(field, KnownAnnotations.XMLAttribute_Annotation)) {
             return false;
         }
 
         if (accessType.equals("FIELD")) {
-            // Every non static, non transient field in a JAXB-bound class will be automatically bound to XML, unless annotated by XmlTransient.
+            // Every non static, non transient field in a JAXB-bound class will be automatically bound to XML, unless annotated by
+            // XmlTransient.
             return !field.isStatic() && !field.isTransient();
         }
         else if (accessType.equals("PUBLIC_MEMBER")) {
@@ -137,14 +146,15 @@ public class JaxbClassProcessor {
 
     /** Returns true of false if the fields should be included based on the accessType */
     private static boolean shouldIncludeMethod(MethodDoc method, String accessType, ClassDoc classDoc) {
-        if(method.isStatic() ||
+        if (method.isStatic() ||
                 AnnotationUtils.hasAnnotation(method, KnownAnnotations.XMLTransient_Annotation) ||
                 AnnotationUtils.hasAnnotation(method, KnownAnnotations.XMLAttribute_Annotation)) {
             return false;
         }
 
         if (accessType.equals("FIELD")) {
-            // Every non static, non transient field in a JAXB-bound class will be automatically bound to XML, unless annotated by XmlTransient.
+            // Every non static, non transient field in a JAXB-bound class will be automatically bound to XML, unless annotated by
+            // XmlTransient.
             return false;
         }
         else if (accessType.equals("PUBLIC_MEMBER")) {
@@ -168,7 +178,7 @@ public class JaxbClassProcessor {
     }
 
     private static boolean hasMatchingSetter(String getterName, ClassDoc classDoc) {
-        String setterName = "set"+getterName.substring(3);
+        String setterName = "set" + getterName.substring(3);
         // Search for a matching setter
         for (MethodDoc m : classDoc.methods()) {
             if (m.name().equals(setterName)) {
@@ -177,7 +187,6 @@ public class JaxbClassProcessor {
         }
         return false;
     }
-
 
     public static void addFieldType(Type type, ApiField descriptor) {
 
@@ -226,34 +235,34 @@ public class JaxbClassProcessor {
         if (lengthAnnotation != null) {
             int min = 0;
             int max = Integer.MAX_VALUE;
-            for(AnnotationDesc.ElementValuePair pair : lengthAnnotation.elementValues()) {
+            for (AnnotationDesc.ElementValuePair pair : lengthAnnotation.elementValues()) {
 
                 if (pair.element().name().equals("min")) {
-                    min = (Integer)pair.value().value();
+                    min = (Integer) pair.value().value();
                 }
 
                 if (pair.element().name().equals("max")) {
-                    max = (Integer)pair.value().value();
+                    max = (Integer) pair.value().value();
                 }
             }
-            apiField.validValues.add("Length: "+min+".."+max);
+            apiField.validValues.add("Length: " + min + ".." + max);
         }
 
         AnnotationDesc rangeAnnotation = AnnotationUtils.getAnnotation(field, KnownAnnotations.Range_Annotation);
         if (rangeAnnotation != null) {
-            long min =0;
-            long max =Long.MAX_VALUE;
-            for(AnnotationDesc.ElementValuePair pair : rangeAnnotation.elementValues()) {
+            long min = 0;
+            long max = Long.MAX_VALUE;
+            for (AnnotationDesc.ElementValuePair pair : rangeAnnotation.elementValues()) {
 
                 if (pair.element().name().equals("min")) {
-                    min =(Long)pair.value().value();
+                    min = (Long) pair.value().value();
                 }
 
                 if (pair.element().name().equals("max")) {
-                    max= (Long)pair.value().value();
+                    max = (Long) pair.value().value();
                 }
             }
-            apiField.validValues.add("Range: "+min+".."+max);
+            apiField.validValues.add("Range: " + min + ".." + max);
         }
     }
 
@@ -262,8 +271,9 @@ public class JaxbClassProcessor {
         String xmlAccessType = "";
         ClassDoc currentDoc = classDoc;
 
-        while(currentDoc.qualifiedName().startsWith("com.emc") && xmlAccessType.equals("")) {
-            FieldDoc xmlAccessTypeEnum = AnnotationUtils.getAnnotationValue(currentDoc, KnownAnnotations.XMLAccessorType_Annotation, KnownAnnotations.Value_Element, null);
+        while (currentDoc.qualifiedName().startsWith("com.emc") && xmlAccessType.equals("")) {
+            FieldDoc xmlAccessTypeEnum = AnnotationUtils.getAnnotationValue(currentDoc, KnownAnnotations.XMLAccessorType_Annotation,
+                    KnownAnnotations.Value_Element, null);
             if (xmlAccessTypeEnum != null) {
                 return xmlAccessTypeEnum.name();
             }

@@ -29,5 +29,5 @@ public class Resources {
     public void setResource(List<TagTypedRelatedResourceRep> resource) {
         this.resource = resource;
     }
-    
+
 }

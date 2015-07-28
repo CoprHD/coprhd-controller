@@ -26,7 +26,8 @@ public class TypedRelatedResourceRep extends NamedRelatedResourceRep {
     @XmlElement(name = "resource_type")
     private String type;
 
-    public TypedRelatedResourceRep() {}
+    public TypedRelatedResourceRep() {
+    }
 
     public TypedRelatedResourceRep(URI id, RestLinkRep selfLink, String name, ResourceTypeEnum type) {
         super(id, selfLink, name);
@@ -35,14 +36,15 @@ public class TypedRelatedResourceRep extends NamedRelatedResourceRep {
 
     /**
      * The type of the resource
+     * 
      * @valid none
      */
     @XmlTransient
     public ResourceTypeEnum getType() {
         return ResourceTypeEnum.fromString(type);
     }
-    
-    public void setType(ResourceTypeEnum type){
+
+    public void setType(ResourceTypeEnum type) {
         this.type = type.getType();
     }
 }

@@ -81,7 +81,7 @@ public class ServiceFieldGroup extends ServiceItem implements ServiceItemContain
     public List<ServiceField> getFieldList() {
         return ServiceField.getFieldList(this);
     }
-    
+
     @Override
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);

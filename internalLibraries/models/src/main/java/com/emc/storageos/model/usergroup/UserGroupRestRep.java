@@ -34,7 +34,7 @@ public class UserGroupRestRep extends DataObjectRestRep {
     private String _domain;
     private Set<UserAttributeParam> _attributes;
 
-    @XmlElement(required=true, name="domain")
+    @XmlElement(required = true, name = "domain")
     @JsonProperty("domain")
     public String getDomain() {
         return _domain;
@@ -44,11 +44,11 @@ public class UserGroupRestRep extends DataObjectRestRep {
         this._domain = _domain;
     }
 
-    @XmlElementWrapper(required=true, name="attributes")
-    @XmlElement(required=true, name="attribute")
+    @XmlElementWrapper(required = true, name = "attributes")
+    @XmlElement(required = true, name = "attribute")
     @JsonProperty("attributes")
     public Set<UserAttributeParam> getAttributes() {
-        if(_attributes == null){
+        if (_attributes == null) {
             _attributes = new HashSet<>();
         }
         return _attributes;

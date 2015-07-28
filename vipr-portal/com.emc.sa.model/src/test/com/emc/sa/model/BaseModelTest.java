@@ -84,7 +84,7 @@ public abstract class BaseModelTest<T extends DataObject> extends DBClientTestBa
      * Saves the model object and ensures that some dependent fields were updated.
      * 
      * @param model
-     *        the model to save.
+     *            the model to save.
      */
     protected void save(T model) {
         getModelClient().save(model);

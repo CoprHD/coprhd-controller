@@ -7,5 +7,5 @@ public enum WorkflowState {
 	ERROR,                   // Terminated with ERROR 
 	ROLLING_BACK,                 // Working on rolling back after error 
 	SUSPENDED_ERROR,          // Suspended 
-	SUSPENDED_NO_ERROR    // Suspended, but no error currently
+	SUSPENDED 			   // Suspended, but no error currently
 }

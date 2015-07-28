@@ -13,11 +13,12 @@ public interface WorkflowController extends Controller {
 	 * Note that going into the suspend state will be delayed until all executing steps have terminated.
 	 * If any of the executing steps had an error, the resultant state would be SUSPENDED_ERROR, otherwise it would be SUSPENDED_NO_ERROR.
 	 * @param workflow -- URI of Workflow
-	 * @param stepId -- URI of Workflow Step Id
+	 * @param stepId -- URI of Workflow Step Id, or Null if we want to suspend as soon as possible.
+	 * @param induceFailure -- Induces a failure of the specified step. If no step is specified, this parameter is ignored.
 	 * @param taskId -- String task id.
 	 * @throws ControllerException
 	 */
-	public abstract void suspendWorkflowStep(URI workflow, URI stepId, String taskId)
+	public abstract void suspendWorkflowStep(URI workflow, URI stepId, Boolean induceFailure, String taskId)
 		throws ControllerException;
 	
 	/**

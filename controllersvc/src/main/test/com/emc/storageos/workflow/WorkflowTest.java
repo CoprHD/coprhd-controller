@@ -203,10 +203,10 @@ public class WorkflowTest extends ControllersvcTestBase implements Controller  {
         Workflow workflow = generate3StepWF(0, 1, taskId);
         Map<String, WorkflowStep> stepMap = readWorkflowFromDb(taskId);
         WorkflowStep step3 = stepMap.get("L0S3 sub");
-        workflowService.suspendWorkflowStep(workflow.getWorkflowURI(), step3.getId(), UUID.randomUUID().toString());
+        workflowService.suspendWorkflowStep(workflow.getWorkflowURI(), step3.getId(), false, UUID.randomUUID().toString());
         WorkflowState state = waitOnWorkflowComplete(taskId);
         printLog("Workflow state after suspend: " + state);
-        assertTrue(state == WorkflowState.SUSPENDED_NO_ERROR);
+        assertTrue(state == WorkflowState.SUSPENDED);
         taskStatusMap.put(taskId, WorkflowState.CREATED);
         workflowService.resumeWorkflow(workflow.getWorkflowURI(), UUID.randomUUID().toString());
         state = waitOnWorkflowComplete(taskId);

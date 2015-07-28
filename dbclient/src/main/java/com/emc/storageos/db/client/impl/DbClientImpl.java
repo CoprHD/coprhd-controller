@@ -1609,6 +1609,22 @@ public class DbClientImpl implements DbClient {
     	updateOperation.suspended();
     	return updateTaskStatus(clazz, id, opId, updateOperation);
     }
+    
+    @Override
+    public Operation suspendedError(Class<? extends DataObject> clazz, URI id,
+    		String opId, String message) throws DatabaseException {
+    	Operation updateOperation = new Operation();
+    	updateOperation.suspended_error(message);
+    	return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
+    
+    @Override
+    public Operation suspendedError(Class<? extends DataObject> clazz, URI id,
+    		String opId) throws DatabaseException {
+    	Operation updateOperation = new Operation();
+    	updateOperation.suspended_error();
+    	return updateTaskStatus(clazz, id, opId, updateOperation);
+    }
 
     @Override
     public Operation pending(Class<? extends DataObject> clazz, URI id, String opId, String message) {

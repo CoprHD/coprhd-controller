@@ -368,7 +368,7 @@ public interface DbClient {
     
     /**
      * Sets operation status to suspended. This means that it is not currently executing, but
-     * has been suspended because of an error.
+     * has been suspended because of a suspend request.
      * @param clazz
      * @param id
      * @param opId
@@ -380,6 +380,22 @@ public interface DbClient {
     		throws DatabaseException;
 
     public Operation suspended(Class<? extends DataObject> clazz, URI id, String opId)
+    		throws DatabaseException;
+    
+    /**
+     * Sets operation status to suspended_error. This means that it is not currently executing, but
+     * has been suspended because an error has occurred.
+     * @param clazz
+     * @param id
+     * @param opId
+     * @param message
+     * @return
+     * @throws DatabaseException
+     */
+    public Operation suspendedError(Class<? extends DataObject> clazz, URI id, String opId, String message)
+    		throws DatabaseException;
+
+    public Operation suspendedError(Class<? extends DataObject> clazz, URI id, String opId)
     		throws DatabaseException;
 
     /**

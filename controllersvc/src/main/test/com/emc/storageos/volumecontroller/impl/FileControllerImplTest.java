@@ -243,6 +243,20 @@ public class FileControllerImplTest {
             // TODO Auto-generated method stub
             return null;
         }
+        
+        @Override
+		public Operation suspendedError(Class<? extends DataObject> clazz,
+				URI id, String opId, String message) throws DatabaseException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Operation suspendedError(Class<? extends DataObject> clazz,
+				URI id, String opId) throws DatabaseException {
+			// TODO Auto-generated method stub
+			return null;
+		}
 
         @Override
         public Operation error(Class<? extends DataObject> clazz, URI id, String opId,

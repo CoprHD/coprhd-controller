@@ -266,7 +266,7 @@ public class WorkflowService extends TaskResourceService {
     
     private void verifySuspendedWorkflow(Workflow workflow) {
     	WorkflowState state = WorkflowState.valueOf(WorkflowState.class, workflow.getCompletionState());
-    	EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED_NO_ERROR, WorkflowState.SUSPENDED_ERROR);
+    	EnumSet<WorkflowState> expected = EnumSet.of(WorkflowState.SUSPENDED, WorkflowState.SUSPENDED_ERROR);
     	ArgValidator.checkFieldForValueFromEnum(state, "Workflow completion state", expected);
     }
     
@@ -301,7 +301,31 @@ public class WorkflowService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
             Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
     public Response suspendWorkflowStep(@PathParam("id") URI uri, @PathParam("stepId") URI stepURI) {
-    	Workflow workflow = queryResource(uri);
+    	doSuspend(uri, stepURI, false);
+    	return Response.ok().build();
+    }
+    
+    /**
+     * Induces a failure in a given step. This will cause the workflow to enter a
+     * SUSPENDED_ERROR state.
+     * @preq none
+     * @brief Resumes a suspended workflow
+     * @param uri - URI of the suspended workflow.
+     * @param stepURI - URI of the workflow step 
+     * @return - No data returned in response body
+     */
+    @PUT
+    @Path("/{id}/fail/{stepId}/")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+            Role.SYSTEM_MONITOR, Role.TENANT_ADMIN })
+    public Response induceFailureOfWorkflowStep(@PathParam("id") URI uri, @PathParam("stepId") URI stepURI) {
+    	doSuspend(uri, stepURI, true);
+    	return Response.ok().build();
+    }
+    
+    private String  doSuspend(URI workflowURI, URI stepURI, boolean induceFailure) {
+    	Workflow workflow = queryResource(workflowURI);
     	// Verify the workflow is either RUNNING or ROLLING_BACK
     	EnumSet<WorkflowState> expected = 
     	        EnumSet.of(WorkflowState.RUNNING, WorkflowState.ROLLING_BACK);
@@ -313,8 +337,8 @@ public class WorkflowService extends TaskResourceService {
     	    ArgValidator.checkEntityNotNull(step, stepURI, isIdEmbeddedInURL(stepURI));
     	} 
     	String taskId = UUID.randomUUID().toString();
-    	getController().suspendWorkflowStep(uri, stepURI, taskId);
-    	return Response.ok().build();
+    	getController().suspendWorkflowStep(workflowURI, stepURI, induceFailure, taskId);
+    	return taskId;
     }
     
     private List<URI> getChildWorkflows(WorkflowStep step) {

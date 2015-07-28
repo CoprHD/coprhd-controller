@@ -205,7 +205,12 @@ public class WorkflowService implements WorkflowController {
     };
 
 
-    private class CancelledException extends Exception {  }
+    private class CancelledException extends Exception {  
+    	boolean induceFailure; 
+    	CancelledException(boolean induceFailure) {
+    		this.induceFailure = induceFailure;
+    	}
+    }
 
     /**
      * Return the singleton instance for the Workflow Service.
@@ -402,7 +407,9 @@ public class WorkflowService implements WorkflowController {
         			workflow._taskCompleter.ready(_dbClient, _locker);
         			break;
         		case SUSPENDED_ERROR:
-        		case SUSPENDED_NO_ERROR:
+        			workflow._taskCompleter.suspendedError(_dbClient, _locker, error);
+        			break;
+        		case SUSPENDED:
         		    workflow._taskCompleter.suspended(_dbClient, _locker, error);
         		    break;
         		default:
@@ -426,7 +433,7 @@ public class WorkflowService implements WorkflowController {
             if (!workflow._nested) {
                 // Remove the workflow from ZK unless it is suspended (either for an error, or no error)
                 if (workflow.getWorkflowState() != WorkflowState.SUSPENDED_ERROR
-                        && workflow.getWorkflowState() != WorkflowState.SUSPENDED_NO_ERROR) {
+                        && workflow.getWorkflowState() != WorkflowState.SUSPENDED) {
                     unlockWorkflow(workflow, workflowLock);
                     destroyWorkflow(workflow);
                     return true;
@@ -722,8 +729,8 @@ public class WorkflowService implements WorkflowController {
                     state = StepState.BLOCKED;
                 }
             } catch (CancelledException cancelEx) {
-                // Cancelled due to failure of a prerequisite step
-                state = StepState.CANCELLED;
+                // Cancelled due to failure of a prerequisite step                
+            	state = StepState.CANCELLED;
             }
 
             // Persist the Workflow and the Steps in Zookeeper
@@ -797,9 +804,14 @@ public class WorkflowService implements WorkflowController {
                         }
                     } catch (CancelledException ex) {
                         again = true;
-                        // If we got a CancelledException, this step needs to be cancelled.
-                        step.status.updateState(StepState.CANCELLED, null, "Cancelled by step: "
-                                + fromStepId);
+                        if (ex.induceFailure) {
+                        	step.status.updateState(StepState.ERROR, null, "Induced error for testing");
+                        } else {
+                        	// If we got a CancelledException, this step needs to be cancelled.
+                            step.status.updateState(StepState.CANCELLED, null, 
+                            		"Cancelled by step: " + fromStepId);
+                        }
+                        
                         persistWorkflowStepUpdate(workflow, step);
                         _log.info(String.format("Step %s has been cancelled by step %s",
                                 step.stepId, fromStepId));
@@ -827,7 +839,7 @@ public class WorkflowService implements WorkflowController {
                 && (workflow.getSuspendStep().equals(workflow.getWorkflowURI()) 
                     || workflow.getSuspendStep().equals(step.workflowStepURI)  )) {
             // We want to cancel this step, not because of an error, but just to suspend the workflow.
-            throw new CancelledException();
+            throw new CancelledException(workflow.getInduceFailure());
         }
         // The step cannot be blocked if waitFor is null (which means not specified)
         if (step.waitFor == null) {
@@ -851,13 +863,13 @@ public class WorkflowService implements WorkflowController {
         StepState state = Workflow.getOverallState(statusMap, errorMessage);
         switch (state) {
         case CANCELLED:
-            throw new CancelledException();
+            throw new CancelledException(false);
         case ERROR:
             if ((workflow._rollbackContOnError) && (workflow.isRollbackState())) {
                 _log.info("Allowing rollback to continue despite failure in previous rollback step.");
                 return false;
             }
-            throw new CancelledException();
+            throw new CancelledException(false);
         case SUCCESS:
             return false;
         case CREATED:
@@ -1324,17 +1336,20 @@ public class WorkflowService implements WorkflowController {
     }
     
     @Override
-	public void suspendWorkflowStep(URI workflowURI, URI stepURI, String taskId)
+	public void suspendWorkflowStep(URI workflowURI, URI stepURI, Boolean induceFailure, String taskId)
 			throws ControllerException {
         WorkflowTaskCompleter completer = new WorkflowTaskCompleter(workflowURI, taskId);
-		_log.info(String.format("Suspend request workflow: %s step: %s", workflowURI, stepURI));
+		_log.info(String.format("Suspend request workflow: %s step: %s induceFailure %s", 
+				workflowURI, stepURI, induceFailure));
         Workflow workflow = loadWorkflowFromUri(workflowURI);
         if (NullColumnValueGetter.isNullURI(stepURI)) {
             // In this case, we want to suspend any step trying to unblock.
             workflow.setSuspendStep(workflowURI);
         } else {
             // In this case, we want to suspend only when we reach designated step.
+        	// If induce failure is set, it will be marked as failed.
             workflow.setSuspendStep(stepURI);
+            workflow.setInduceFailure(induceFailure);
         }
         persistWorkflow(workflow);
         completer.ready(_dbClient);
@@ -1356,7 +1371,7 @@ public class WorkflowService implements WorkflowController {
 			}
 			WorkflowState state = workflow.getWorkflowState();
 			if (state != WorkflowState.SUSPENDED_ERROR 
-			        && state != WorkflowState.SUSPENDED_NO_ERROR) {
+			        && state != WorkflowState.SUSPENDED) {
 			    // Cannot resume a workflow that is not suspended
 			    _log.info(String.format("Child workflow %s state %s is not suspended and will not be resumed", uri, state));
 			    return;
@@ -1401,7 +1416,7 @@ public class WorkflowService implements WorkflowController {
 	            WorkflowState state = child.getWorkflowState();
 	            switch(state) {
 	            case SUSPENDED_ERROR:
-	            case SUSPENDED_NO_ERROR:
+	            case SUSPENDED:
 	                _dbClient.pending(com.emc.storageos.db.client.model.Workflow.class, 
 	                        child.getWorkflowURI(), parentStepId, "rolling back sub-workflow");
 	                rollbackWorkflow(child.getWorkflowURI(), entry.getKey());
@@ -1494,7 +1509,7 @@ public class WorkflowService implements WorkflowController {
 			    if (childWFMap.containsKey(stepId)) {
 			        Workflow child = loadWorkflowFromUri(childWFMap.get(stepId).getId());
 			        if (child.getWorkflowState() == WorkflowState.SUSPENDED_ERROR 
-			                || child.getWorkflowState() == WorkflowState.SUSPENDED_NO_ERROR) { 
+			                || child.getWorkflowState() == WorkflowState.SUSPENDED) { 
 			            workflow.getStepStatus(stepId).updateState(StepState.EXECUTING, null, "");
 			            break;
 			        }

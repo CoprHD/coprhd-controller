@@ -11,9 +11,9 @@ public class WorkflowControllerImpl implements WorkflowController {
 	private WorkflowController controller;
 
 	@Override
-	public void suspendWorkflowStep(URI workflow, URI stepId, String taskId)
+	public void suspendWorkflowStep(URI workflow, URI stepId, Boolean induceFailure, String taskId)
 			throws ControllerException {
-		execOrchestration("suspendWorkflowStep", workflow, stepId, taskId);
+		execOrchestration("suspendWorkflowStep", workflow, stepId, induceFailure, taskId);
 	}
 
 	@Override

@@ -51,7 +51,7 @@ public class DataObjectInactiveFieldScrubber extends BaseCustomMigrationCallback
                 return;
             }
             List<URI> keyList = ((InternalDbClient)getDbClient()).getUpdateList(clazz);
-            if (keyList == null || keyList.size() == 0) {
+            if (keyList == null || keyList.isEmpty()) {
                 return;
             }
             updateInactiveField(clazz, keyList);

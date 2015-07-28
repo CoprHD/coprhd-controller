@@ -1,0 +1,55 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# tag cli functions
+#----------------------------------------------------------------------
+
+def search(args):
+    bourne.connect(args.ip)
+    resources = bourne.search(args.resource_type, args.prefix, args.project)
+    print resources
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# tag <cmd_args>
+parser = argparse.ArgumentParser(description = 'Bourne tag cli usage.')
+parser.add_argument('--ip', metavar = 'ipaddr',help = 'IP address of bourne', default=bourne_ip)
+parser.add_argument('--remove', help='remove tags', action="store_true") 
+parser.add_argument('--resource_type',	metavar = 'resource_type', help = 'resource type', required = True, default=None)
+parser.add_argument('--id', metavar = 'id', help='resource id', required = True, default=None)
+parser.add_argument('tags', metavar = 'tags', help='tags', nargs='+', default=None)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    bourne = Bourne()
+    args = parser.parse_args()
+    print args
+    bourne.connect(args.ip)
+
+    if args.remove:
+        bourne.untag(args.resource_type, args.id, args.tags)
+    else:
+        bourne.tag(args.resource_type, args.id, args.tags)
+
+
+except:
+    raise

@@ -1,0 +1,174 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# vcenter cli functions
+#----------------------------------------------------------------------
+
+def vcenter_create(args):
+    bourne.connect(args.ip)
+    task = bourne.vcenter_create(args.label, args.tenant, args.ipaddress, 
+               args.port, args.username, args.password, args.osversion, args.ssl)
+    print task
+
+def vcenter_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.vcenter_query(args.name)
+    res = bourne.vcenter_delete(uri)
+    print res
+
+def vcenter_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.vcenter_query(args.name)
+    vcenter = bourne.vcenter_show(uri)
+    print vcenter
+
+def vcenter_query(args):
+    bourne.connect(args.ip)
+    print bourne.vcenter_query(args.name)
+
+def vcenter_list(args):
+    bourne.connect(args.ip)
+    vcenter_display_hdr()
+    res = bourne.vcenter_list(args.tenant)
+    for r in res:
+        vcenter = bourne.vcenter_show(r['id'])
+        vcenter_display(vcenter)
+
+#
+# display vcenter in list form
+#
+vcenter_display_fmt = '{0:16s} {1:28s} {2:6s} {3:65s} {4:s}'
+
+def vcenter_display_hdr():
+    print vcenter_display_fmt.format('name', 'ipaddress', 'active', 'owner', 'id')
+
+def vcenter_display(vcenter):
+    print vcenter_display_fmt.format(vcenter['name'], vcenter['ip_address'], 'NO' if vcenter['inactive'] else 'YES',
+              vcenter['tenant']['id'], vcenter['id'])
+
+# tag
+def vcenter_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.vcenter_query(args.name)
+    print 'Tagging vcenter', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+# search
+def vcenter_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching vcenter with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# vcenter <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne vcenter cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# vcenter create label --tenant tenant
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',            help = 'label for the vcenter')
+create.add_argument('tenant',           help = 'tenant name', default = None)
+create.add_argument('ipaddress',        help = 'management interface ip address or vcenter fqdn')
+create.add_argument('port',             help = 'management interface port')
+create.add_argument('username',         help = 'vcenter user name')
+create.add_argument('password',         help = 'vcenter password')
+create.add_argument('--ssl',            help = 'use ssl flag: yes or no')
+create.add_argument('--osversion',      help = 'vcenter OS version')
+
+# vcenter delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of vcenter')
+
+# vcenter show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of vcenter')
+
+# vcenter query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of vcenter')
+
+# vcenter list --tenant tenant
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('tenant',	help = 'tenant name', default = None)
+
+# tag 
+resource_type="vcenter"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        vcenter_create(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        vcenter_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        vcenter_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        vcenter_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        vcenter_list(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        vcenter_tag(args)
+    elif (cmd == "search"):
+        args = search.parse_args()
+        vcenter_search(args)
+    else:
+        parser.print_help()
+except:
+    raise

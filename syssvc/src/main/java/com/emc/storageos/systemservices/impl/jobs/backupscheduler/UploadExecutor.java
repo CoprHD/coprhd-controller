@@ -81,7 +81,7 @@ public abstract class UploadExecutor {
         for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
             try {
                 BackupFileSet files = this.cli.getDownloadFiles(tag);
-                if (files.size() == 0) {
+                if (files.isEmpty()) {
                     return String.format("Cannot find target backup set '%s'.", tag);
                 }
                 if (!files.isValid()) {
@@ -116,7 +116,7 @@ public abstract class UploadExecutor {
         log.info("Begin upload");
 
         List<String> toUpload = getIncompleteUploads();
-        if (toUpload.size() == 0) {
+        if (toUpload.isEmpty()) {
             return;
         }
 
@@ -138,11 +138,11 @@ public abstract class UploadExecutor {
 
         this.cfg.persist();
 
-        if (succUploads.size() > 0) {
+        if (!succUploads.isEmpty()) {
             List<String> descParams = this.cli.getDescParams(Strings.join(", ", succUploads.toArray(new String[succUploads.size()])));
             this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         }
-        if (failureUploads.size() > 0) {
+        if (!failureUploads.isEmpty()) {
             String failureTags = Strings.join(", ", failureUploads.toArray(new String[failureUploads.size()]));
             List<String> descParams = this.cli.getDescParams(failureTags);
             descParams.add(Strings.join(", ", errMsgs.toArray(new String[errMsgs.size()])));

@@ -923,7 +923,7 @@ public class DBClient {
             newZipEntry(zos, dbKey, KEY_DB);
             newZipEntry(zos, geodbKey, KEY_GEODB);
         } catch (IOException e) {
-            System.err.println(String.format("Failed to write the key to file:%s\n Exception=%s", dumpFileName, e));
+            System.err.println(String.format("Failed to write the key to file:%s%n Exception=%s", dumpFileName, e));
             log.error("Failed to write the key to file:{}", dumpFileName, e);
         }
     }

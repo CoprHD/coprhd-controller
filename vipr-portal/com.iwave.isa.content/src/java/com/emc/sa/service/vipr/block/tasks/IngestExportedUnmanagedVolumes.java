@@ -62,7 +62,8 @@ public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolume
 		Tasks<UnManagedVolumeRestRep> results = null;
 				
 		int i = 0;
-		for (Iterator<URI> ids = unmanagedVolumeIds.iterator(); ids.hasNext(); i++) {
+		for (Iterator<URI> ids = unmanagedVolumeIds.iterator(); ids.hasNext(); ) {
+			i++;
             URI id = ids.next();
             ingest.getUnManagedVolumes().add(id);
             if (i == INGEST_CHUNK_SIZE || !ids.hasNext()) {

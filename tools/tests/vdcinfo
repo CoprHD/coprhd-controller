@@ -1,0 +1,93 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import sysmgr as SysMgr
+
+#----------------------------------------------------------------------
+# vdc cli functions, insert/get vdc info to objcontrollersvc
+#----------------------------------------------------------------------
+
+def vdcinfo_insert(args):
+    bourne.connect(args.ip)
+    bourne.vdcinfo_insert(args.name, args.secretkey, args.dataIp, args.cmdIp)
+
+def vdcinfo_show(args):
+    bourne.connect(args.ip)
+    print bourne.vdcinfo_show(args.name) 
+
+def vdcinfo_local():
+    bourne.connect(args.ip)
+    resp = bourne.vdcinfo_local()
+    print resp['vdcId']
+
+def vdcinfo_list():
+    bourne.connect(args.ip)
+    resp = bourne.vdcinfo_list()
+    print resp
+ 
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# vdc <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (insert | show | local | list)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# insert vdc info
+vdcadd = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcadd.add_argument('name',	help = 'name of vdc')
+vdcadd.add_argument('secretkey',      help = 'the secure key of the vdc to be added')
+vdcadd.add_argument('dataIp', help = 'ip for geo data')
+vdcadd.add_argument('cmdIp', help = 'ip for geo commands')
+
+# show vdc
+vdcshow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcshow.add_argument('name', help = 'name of vdc')
+
+#get local vdcID
+vdclocal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#list vdc
+vdclist = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "insert"):
+        args = vdcadd.parse_args()
+        vdcinfo_insert(args)
+    elif (cmd == "show"):
+        args = vdcshow.parse_args()
+        vdcinfo_show(args)  
+    elif (cmd == "local"):
+        args = vdclocal.parse_args()
+        vdcinfo_local()  
+    elif (cmd == "list"):
+        args = vdclist.parse_args()
+        vdcinfo_list()
+    else:
+        parser.print_help()
+except:
+    raise

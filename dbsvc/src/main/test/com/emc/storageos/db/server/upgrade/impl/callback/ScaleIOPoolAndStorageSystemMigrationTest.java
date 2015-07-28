@@ -50,10 +50,10 @@ import static junit.framework.Assert.assertTrue;
 public class ScaleIOPoolAndStorageSystemMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOPoolAndStorageSystemMigrationTest.class);
 
-    private static StorageSystem sioStorageSystem;
-    private static StorageSystem otherStorageSystem;
-    private static VirtualPool sioVP;
-    private static VirtualPool otherVP;
+    private static volatile StorageSystem sioStorageSystem;
+    private static volatile StorageSystem otherStorageSystem;
+    private static volatile VirtualPool sioVP;
+    private static volatile VirtualPool otherVP;
     private static List<URI> storagePoolURIs = new ArrayList<>();
 
     @BeforeClass

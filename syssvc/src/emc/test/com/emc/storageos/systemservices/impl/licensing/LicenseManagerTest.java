@@ -13,18 +13,14 @@ import com.emc.vipr.model.sys.licensing.License;
 public class LicenseManagerTest {
 
     @Test
-    public void testForNoLicense() {
+    public void testForNoLicense() throws Exception {
         LicenseManager manager = new LicenseManagerImpl() {
             public License getLicense() {
                 return new License();
             }
         };
-        try {
-            License license = manager.getLicense();
-            Assert.assertEquals(license.getLicenseFeatures().size(), 0);
-        }catch(Exception e) {
-            
-        }
+        License license = manager.getLicense();
+        Assert.assertEquals(license.getLicenseFeatures().size(), 0);
     }
    
   

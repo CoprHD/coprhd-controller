@@ -81,15 +81,15 @@ public class RecoverPointClientIntegrationTest {
    
 
     private static final String FAKE_WWN = "6006016018C12D00";
-    private static RecoverPointClient rpClient;
-    private static Logger logger;
+    private static volatile RecoverPointClient rpClient;
+    private static volatile Logger logger;
 
     private static final String preURI = "https://";
     private static final String postURI = ":7225/fapi/version4_1" + "?wsdl";
 
     private static final String site2InternalSiteName = "";
     
-    private static String Bookmarkname = "";
+    private static volatile String Bookmarkname = "";
 
     @BeforeClass
     public static void setup() {

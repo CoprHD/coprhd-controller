@@ -151,7 +151,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
 
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();

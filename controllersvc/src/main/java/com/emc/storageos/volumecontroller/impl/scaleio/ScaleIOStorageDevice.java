@@ -411,7 +411,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive,
-                                 TaskCompleter taskCompleter) throws DeviceControllerException {
+                                 Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
             if (inReplicationGroup(dbClient, snapshots)) {

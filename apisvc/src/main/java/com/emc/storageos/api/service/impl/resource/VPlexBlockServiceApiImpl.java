@@ -2861,11 +2861,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId The unique task identifier.
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, String taskId) {
+        String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
         
         Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(reqVolume);
         super.createSnapshot(snapshotSourceVolume, snapshotURIs, snapshotType,
-            createInactive, taskId);
+            createInactive, readOnly, taskId);
     }
     
     /**

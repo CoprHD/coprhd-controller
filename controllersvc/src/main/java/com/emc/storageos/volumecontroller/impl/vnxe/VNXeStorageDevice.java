@@ -1210,13 +1210,13 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
     	
     	_logger.info("{} doCreateSnapshot START ...", storage.getSerialNumber());
     	List<BlockSnapshot> snapshots = _dbClient
                 .queryObject(BlockSnapshot.class, snapshotList);
-        if(inConsistencyGroup(snapshots)){
+        if(ControllerUtils.inReplicationGroup(snapshots, _dbClient)){
         	_snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, taskCompleter);
         } else {
         	URI snapshot = snapshots.get(0).getId();
@@ -1234,7 +1234,7 @@ public class VNXeStorageDevice extends VNXeOperations
     	_logger.info("{} doActivateSnapshot START ...", storage.getSerialNumber());
     	List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
     	URI snapshot = snapshots.get(0).getId();
-    	if(inConsistencyGroup(snapshots)){
+    	if(ControllerUtils.inReplicationGroup(snapshots, _dbClient)){
         	_snapshotOperations.activateGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
         	_snapshotOperations.activateSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -1251,7 +1251,7 @@ public class VNXeStorageDevice extends VNXeOperations
     	_logger.info("{} doDeleteSnapshot START ...", storage.getSerialNumber());
     	List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
     	
-        if(inConsistencyGroup(snapshots)){
+        if(ControllerUtils.inReplicationGroup(snapshots, _dbClient)){
         	_snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
         	_snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -1268,7 +1268,7 @@ public class VNXeStorageDevice extends VNXeOperations
     	_logger.info("{} doRestoreFromSnapshot START ...", storage.getSerialNumber());
     	List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
     	
-        if(inConsistencyGroup(snapshots)){
+        if(ControllerUtils.inReplicationGroup(snapshots, _dbClient)){
         	_snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
         	_snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -1586,30 +1586,6 @@ public class VNXeStorageDevice extends VNXeOperations
         return false;
     }
     
-    /**
-     * Given a list of BlockSnapshot objects, determine if they were created as part of a
-     * consistency group.
-     * 
-     * @param snapshotList
-     *            [required] - List of BlockSnapshot objects
-     * @return true iff the BlockSnapshots were created as part of volume consistency group.
-     */
-    private boolean inConsistencyGroup(final List<BlockSnapshot> snapshotList) {
-        boolean isCgCreate = false;
-        if (snapshotList.size() == 1) {
-            BlockSnapshot snapshot = snapshotList.get(0);
-            final URI cgId = snapshot.getConsistencyGroup();
-            if (cgId != null) {
-                final BlockConsistencyGroup group = _dbClient.queryObject(
-                        BlockConsistencyGroup.class, cgId);
-    			isCgCreate = group != null;
-            }
-        } else if (snapshotList.size() > 1) {
-            isCgCreate = true;
-        }
-        return isCgCreate;
-    }
-
     @Override
     public void doCreateMetaVolumes(StorageSystem storage,
             StoragePool storagePool, List<Volume> volumes,

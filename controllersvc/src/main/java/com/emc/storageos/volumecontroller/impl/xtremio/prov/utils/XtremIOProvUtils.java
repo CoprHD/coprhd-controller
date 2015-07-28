@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
@@ -72,5 +73,16 @@ public class XtremIOProvUtils {
             _log.info("Snapshot {} not available in Array.", label);
         }
         return volume;
+    }
+    
+    public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) {
+    	XtremIOConsistencyGroup cg = null;
+    	try {
+    		cg = client.getConsistencyGroupDetails(label);
+    	} catch (Exception e) {
+            _log.info("Consistency group {} not available in Array.", label);
+        }
+    	
+    	return cg;
     }
 }

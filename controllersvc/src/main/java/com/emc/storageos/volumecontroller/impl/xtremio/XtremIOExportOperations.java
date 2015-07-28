@@ -62,25 +62,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 
-public class XtremIOExportOperations implements ExportMaskOperations {
+public class XtremIOExportOperations extends XtremIOOperations implements ExportMaskOperations {
     private static final Logger _log = LoggerFactory.getLogger(XtremIOExportOperations.class);
-	
-    XtremIOClientFactory xtremioRestClientFactory;
-    DbClient dbClient;
     
-    @Autowired
-    private DataSourceFactory dataSourceFactory;
-    @Autowired
-    private CustomConfigHandler customConfigHandler;
-
-    public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
-        this.xtremioRestClientFactory = xtremioRestClientFactory;
-    }
-
-    public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
-    }
-
     @Override
     public void createExportMask(StorageSystem storage, URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs, List<URI> targetURIList, List<Initiator> initiatorList,
@@ -638,13 +622,6 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(dbClient, serviceError);
         }
-    }
-
-    private XtremIOClient getXtremIOClient(StorageSystem system) {
-        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
-                URI.create(XtremIOConstants.getXIOBaseURI(system.getIpAddress(),
-                        system.getPortNumber())), system.getUsername(), system.getPassword(), true);
-        return client;
     }
 
     private void deleteInitiatorGroupFolder(XtremIOClient client, String clusterName, String hostName, StorageSystem system)

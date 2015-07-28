@@ -90,6 +90,19 @@ public abstract class StandardRestClient implements RestClientItf {
         checkResponse(uri,response);
         return response;
     }
+    
+    public ClientResponse delete(URI uri, String body) throws InternalException {
+        URI requestURI = _base.resolve(uri);
+        ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
+                .delete(ClientResponse.class, body);
+        if ( authenticationFailed(response) ){
+            authenticate();
+            response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
+                    .delete(ClientResponse.class);
+        }
+        checkResponse(uri,response);
+        return response;
+    }
 
     @Override
     public void close() throws InternalException {

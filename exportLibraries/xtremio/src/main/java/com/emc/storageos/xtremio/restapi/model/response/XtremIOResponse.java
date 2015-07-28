@@ -19,18 +19,18 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.emc.storageos.xtremio.restapi.model.XtremIOResponseContent;
 import com.google.gson.annotations.SerializedName;
 
-public class XtremIOVolumeResponse {
+public class XtremIOResponse {
     @SerializedName("links")
     @JsonProperty(value="links")
-    private XtremIOResponseContent[] volumes;
+    private XtremIOResponseContent[] response;
 
     public XtremIOResponseContent[] getVolumes() {
-        return volumes != null ? volumes.clone() : volumes;
+        return response != null ? response.clone() : response;
     }
 
-    public void setVolumes(XtremIOResponseContent[] volumes) {
-    	if(volumes != null){
-    		this.volumes = volumes.clone();
+    public void setVolumes(XtremIOResponseContent[] response) {
+    	if(response != null){
+    		this.response = response.clone();
     	}
     }
 }

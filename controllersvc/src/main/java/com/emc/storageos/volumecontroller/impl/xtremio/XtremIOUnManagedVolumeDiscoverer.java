@@ -64,7 +64,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeResponse;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;

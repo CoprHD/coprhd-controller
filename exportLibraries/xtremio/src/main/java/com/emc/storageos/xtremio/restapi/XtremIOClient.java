@@ -23,18 +23,23 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.*;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupRequest;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOConsistencyGroupVolumeRequest;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOFolderCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOInitiatorCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOInitiatorGroupFolderCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOLunMapCreate;
-import com.emc.storageos.xtremio.restapi.model.request.XtremIOSnapCreate;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOTagCreate;
+import com.emc.storageos.xtremio.restapi.model.request.XtremIOV1SnapCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOVolumeCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOVolumeExpand;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOVolumeFolderCreate;
 import com.emc.storageos.xtremio.restapi.model.request.XtremIOInitiatorGroupCreate;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOCGResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOCluster;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusterInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusters;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOFolders;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOIGFolder;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOIGFolderResponse;
@@ -44,16 +49,20 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiators;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorsInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPort;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPorts;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOPortsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOTagsInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeResponse;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumes;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumesInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
+import com.google.common.base.Joiner;
 
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
@@ -61,7 +70,9 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class XtremIOClient extends StandardRestClient {
 
@@ -211,6 +222,85 @@ public class XtremIOClient extends StandardRestClient {
         }
         
     }
+    
+    public Map<String, String> createFoldersForVolumeAndSnaps(XtremIOClient client, String rootVolumeFolderName)
+            throws Exception {
+        
+        List<String> folderNames = client.getVolumeFolderNames();
+        log.info("Volume folder Names found on Array : {}", Joiner.on("; ").join(folderNames));
+        Map<String, String> folderNamesMap = new HashMap<String, String>();
+        String rootFolderName = XtremIOConstants.ROOT_FOLDER.concat(rootVolumeFolderName);
+        log.info("rootVolumeFolderName: {}", rootFolderName);
+        String volumesFolderName = rootFolderName.concat(XtremIOConstants.VOLUMES_SUBFOLDER);
+        String snapshotsFolderName = rootFolderName.concat(XtremIOConstants.SNAPSHOTS_SUBFOLDER);
+        folderNamesMap.put(XtremIOConstants.VOLUME_KEY, volumesFolderName);
+        folderNamesMap.put(XtremIOConstants.SNAPSHOT_KEY, snapshotsFolderName);
+        if (!folderNames.contains(rootFolderName)) {
+            log.info("Sending create root folder request {}", rootFolderName);
+            client.createVolumeFolder(rootVolumeFolderName, "/");
+        } else {
+            log.info("Found {} folder on the Array.", rootFolderName);
+        }
+
+        if (!folderNames.contains(volumesFolderName)) {
+            log.info("Sending create volume folder request {}", volumesFolderName);
+            client.createVolumeFolder("volumes", rootFolderName);
+        } else {
+            log.info("Found {} folder on the Array.", volumesFolderName);
+        }
+
+        if (!folderNames.contains(snapshotsFolderName)) {
+            log.info("Sending create snapshot folder request {}", snapshotsFolderName);
+            client.createVolumeFolder("snapshots", rootFolderName);
+        } else {
+            log.info("Found {} folder on the Array.", snapshotsFolderName);
+        }
+
+        return folderNamesMap;
+    }
+    
+    public Map<String, String> createTagsForVolumeAndSnaps(XtremIOClient client, String rootTagName)
+            throws Exception {
+    	List<String> tagNames = client.getTagNames();
+        log.info("Tag Names found on Array : {}", Joiner.on("; ").join(tagNames));
+        Map<String, String> tagNamesMap = new HashMap<String, String>();
+        
+        String rootVolumeTagName = XtremIOConstants.V2_VOLUME_ROOT_FOLDER.concat(rootTagName);
+        log.info("rootTagFolderName: {}", rootTagName);
+        String volumesTagName = rootVolumeTagName.concat(XtremIOConstants.VOLUMES_SUBFOLDER);
+        String snapshotsTagName = rootVolumeTagName.concat(XtremIOConstants.SNAPSHOTS_SUBFOLDER);
+        tagNamesMap.put(XtremIOConstants.VOLUME_KEY, volumesTagName);
+        tagNamesMap.put(XtremIOConstants.SNAPSHOT_KEY, snapshotsTagName);
+        
+        if (!tagNames.contains(volumesTagName)) {
+            log.info("Sending create volume tag request {}", volumesTagName);
+            client.createTag(volumesTagName, XtremIOConstants.XTREMIO_TAG_ENTITY.Volume);
+        } else {
+            log.info("Found {} tag on the Array.", volumesTagName);
+        }
+        
+        if (!tagNames.contains(snapshotsTagName)) {
+            log.info("Sending create snapshot tag request {}", snapshotsTagName);
+            client.createTag(snapshotsTagName, XtremIOConstants.XTREMIO_TAG_ENTITY.Snapshot);
+        } else {
+            log.info("Found {} tag on the Array.", snapshotsTagName);
+        }
+        
+        return tagNamesMap;
+        
+    }
+    
+    public void createTag(String tagName, XtremIOConstants.XTREMIO_TAG_ENTITY entityType) throws Exception {
+    	try {
+    		XtremIOTagCreate tagCreate = new XtremIOTagCreate();
+    		tagCreate.setEntity(entityType.name());
+    		tagCreate.setTagName(tagName);
+    		ClientResponse response = post(XtremIOConstants.XTREMIO_TAGS_URI,
+                    getJsonForEntity(tagCreate));
+    	} catch (Exception ex) {
+    		log.warn("Tag  {} already available", tagName);
+    	}
+    }
 
     /**
      * Creates a new XtremIO IG Group folder
@@ -233,7 +323,7 @@ public class XtremIOClient extends StandardRestClient {
     }
 
     public void deleteInitiatorGroupFolder(String igFolderName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOIGFolderURI(igFolderName);
+        String uriStr = XtremIOConstants.getXIOIGFolderURI(igFolderName, null);
         log.info("Calling Delete on uri : {}", uriStr);
         delete(URI.create(uriStr));
 
@@ -247,7 +337,7 @@ public class XtremIOClient extends StandardRestClient {
      * @throws Exception
      */
     public void deleteVolumeFolder(String projectName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOVolumeFolderURI(projectName);
+        String uriStr = XtremIOConstants.getXIOVolumeFolderURI(projectName, null);
         log.info("Calling Delete on uri : {}", uriStr);
         delete(URI.create(uriStr));
 
@@ -262,9 +352,20 @@ public class XtremIOClient extends StandardRestClient {
         }
         return folderNames;
     }
+    
+    public List<String> getTagNames() throws Exception {
+    	List<String> tagNames = new ArrayList<String>();
+    	ClientResponse response = get(XtremIOConstants.XTREMIO_TAGS_URI);
+    	XtremIOTagsInfo responseObjs = getResponseObject(XtremIOTagsInfo.class, response);
+    	for (XtremIOObjectInfo objectInfo : responseObjs.getTagsInfo()) {
+    		tagNames.add(objectInfo.getName());
+    	}
+    	
+    	return tagNames;
+    }
 
     public int getNumberOfVolumesInFolder(String folderName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOVolumeFolderURI(folderName);
+        String uriStr = XtremIOConstants.getXIOVolumeFolderURI(folderName, null);
         log.info("Calling Get on uri : {}", uriStr);
         ClientResponse response = get(URI.create(uriStr));
         XtremIOFolders folderResponse = getResponseObject(XtremIOFolders.class, response);
@@ -274,7 +375,7 @@ public class XtremIOClient extends StandardRestClient {
     }
 
     public int getNumberOfInitiatorsInInitiatorGroup(String igName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(igName);
+        String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(igName, null);
         log.info("Calling Get on uri : {}", uriStr);
         ClientResponse response = get(URI.create(uriStr));
         XtremIOInitiatorGroups igResponse = getResponseObject(XtremIOInitiatorGroups.class,
@@ -285,7 +386,7 @@ public class XtremIOClient extends StandardRestClient {
     }
 
     public int getNumberOfVolumesInInitiatorGroup(String igName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(igName);
+        String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(igName, null);
         log.info("Calling Get on uri : {}", uriStr);
         ClientResponse response = get(URI.create(uriStr));
         XtremIOInitiatorGroups igResponse = getResponseObject(XtremIOInitiatorGroups.class,
@@ -295,7 +396,7 @@ public class XtremIOClient extends StandardRestClient {
         return Integer.parseInt(igResponse.getContent().getNumberOfVolumes());
     }
 
-    public XtremIOVolumeResponse createVolume(String volumeName, String size,
+    public XtremIOResponse createVolume(String volumeName, String size,
             String parentFolderName) throws Exception {
         XtremIOVolumeCreate volCreate = new XtremIOVolumeCreate();
         volCreate.setName(volumeName);
@@ -305,12 +406,12 @@ public class XtremIOClient extends StandardRestClient {
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_VOLUMES_URI,
                 getJsonForEntity(volCreate));
-        return getResponseObject(XtremIOVolumeResponse.class, response);
+        return getResponseObject(XtremIOResponse.class, response);
     }
 
-    public XtremIOVolumeResponse createSnapshot(String parentVolumeName, String snapName,
+    public XtremIOResponse createSnapshot(String parentVolumeName, String snapName,
             String folderName) throws Exception {
-        XtremIOSnapCreate snapCreate = new XtremIOSnapCreate();
+        XtremIOV1SnapCreate snapCreate = new XtremIOV1SnapCreate();
         snapCreate.setParentName(parentVolumeName);
         snapCreate.setSnapName(snapName);
         snapCreate.setFolderId(folderName);
@@ -318,11 +419,11 @@ public class XtremIOClient extends StandardRestClient {
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_SNAPS_URI,
                 getJsonForEntity(snapCreate));
-        return getResponseObject(XtremIOVolumeResponse.class, response);
+        return getResponseObject(XtremIOResponse.class, response);
     }
 
     public void deleteSnapshot(String snapName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOSnapURI(snapName);
+        String uriStr = XtremIOConstants.getXIOSnapURI(snapName, null);
         log.info("Calling Delete on uri : {}", uriStr);
         delete(URI.create(uriStr));
 
@@ -332,12 +433,12 @@ public class XtremIOClient extends StandardRestClient {
         XtremIOVolumeExpand volExpand = new XtremIOVolumeExpand();
         volExpand.setSize(size);
         log.info("Calling Volume Expand with: {}", volExpand.toString());
-        String volUriStr = XtremIOConstants.getXIOVolumeURI(volumeName);
+        String volUriStr = XtremIOConstants.getXIOVolumeURI(volumeName, null);
         put(URI.create(volUriStr), getJsonForEntity(volExpand));
 
     }
 
-    public XtremIOVolumeResponse createInitiator(String initiatorName, String igId,
+    public XtremIOResponse createInitiator(String initiatorName, String igId,
             String portAddress) throws Exception {
         XtremIOInitiatorCreate initiatorCreate = new XtremIOInitiatorCreate();
         initiatorCreate.setInitiatorGroup(igId);
@@ -348,7 +449,7 @@ public class XtremIOClient extends StandardRestClient {
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATORS_URI,
                 getJsonForEntity(initiatorCreate));
-        return getResponseObject(XtremIOVolumeResponse.class, response);
+        return getResponseObject(XtremIOResponse.class, response);
     }
 
     /**
@@ -392,7 +493,7 @@ public class XtremIOClient extends StandardRestClient {
 
     public XtremIOInitiator getInitiator(String initiatorName) throws Exception {
         try {
-            String uriStr = XtremIOConstants.getXIOVolumeInitiatorUri(initiatorName);
+            String uriStr = XtremIOConstants.getXIOVolumeInitiatorUri(initiatorName, null);
             log.info("Calling Get Initiator with  uri : {}", uriStr);
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiators initiators = getResponseObject(XtremIOInitiators.class, response);
@@ -406,7 +507,7 @@ public class XtremIOClient extends StandardRestClient {
 
     public XtremIOInitiatorGroup getInitiatorGroup(String initiatorGroupName) throws Exception {
         try {
-            String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(initiatorGroupName);
+            String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(initiatorGroupName, null);
             log.info("Calling Get Initiator Group with with uri : {}", uriStr);
             ClientResponse response = get(URI.create(uriStr));
             XtremIOInitiatorGroups igGroups = getResponseObject(XtremIOInitiatorGroups.class,
@@ -423,7 +524,7 @@ public class XtremIOClient extends StandardRestClient {
     public XtremIOIGFolder getInitiatorGroupFolder(String initiatorGroupFolderName)
             throws Exception {
         try {
-            String uriStr = XtremIOConstants.getXIOIGFolderURI(initiatorGroupFolderName);
+            String uriStr = XtremIOConstants.getXIOIGFolderURI(initiatorGroupFolderName, null);
             log.info("Calling Get Initiator Group Folder with with uri : {}", uriStr);
             ClientResponse response = get(URI.create(uriStr));
             XtremIOIGFolderResponse folderResponse = getResponseObject(
@@ -440,21 +541,14 @@ public class XtremIOClient extends StandardRestClient {
     }
 
     public void deleteInitiatorGroup(String igName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(igName);
+        String uriStr = XtremIOConstants.getXIOInitiatorGroupUri(igName, null);
         log.info("Calling Delete Initiator Group with uri : {}", uriStr);
         delete(URI.create(uriStr));
 
     }
 
-    /**
-     * Deletes a volume
-     * 
-     * @param projectName
-     * @return
-     * @throws Exception
-     */
     public XtremIOVolume getVolumeDetails(String volumeName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOVolumeURI(volumeName);
+        String uriStr = XtremIOConstants.getXIOVolumeURI(volumeName, null);
         log.info("Calling Get on Volume URI : {}", uriStr);
         ClientResponse response = get(URI.create(uriStr));
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
@@ -462,11 +556,20 @@ public class XtremIOClient extends StandardRestClient {
     }
 
     public XtremIOVolume getSnapShotDetails(String snapName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOSnapURI(snapName);
+        String uriStr = XtremIOConstants.getXIOSnapURI(snapName, null);
         log.info("Calling Get on Volume URI : {}", uriStr);
         ClientResponse response = get(URI.create(uriStr));
         XtremIOVolumes volumesResponse = getResponseObject(XtremIOVolumes.class, response);
         return volumesResponse.getContent();
+    }
+    
+    public XtremIOConsistencyGroup getConsistencyGroupDetails(String cgName) throws Exception {
+    	String uriString = XtremIOConstants.getXIOConsistencyGroupsUri(cgName, null);
+    	log.info("Calling Get on Consistency Group URI : {}", uriString);
+    	ClientResponse response = get(URI.create(uriString));
+    	XtremIOCGResponse cgResponse = getResponseObject(XtremIOCGResponse.class, response);
+    	
+    	return cgResponse.getContent();
     }
 
     /**
@@ -477,7 +580,7 @@ public class XtremIOClient extends StandardRestClient {
      * @throws Exception
      */
     public void deleteVolume(String volumeName) throws Exception {
-        String uriStr = XtremIOConstants.getXIOVolumeURI(volumeName);
+        String uriStr = XtremIOConstants.getXIOVolumeURI(volumeName, null);
         log.info("Volume Delete URI : {}", uriStr);
         delete(URI.create(uriStr));
     }
@@ -487,7 +590,7 @@ public class XtremIOClient extends StandardRestClient {
      * @throws Exception
      */
     public void deleteInitiator(String initiatorName) throws Exception {
-    	  String uriStr = XtremIOConstants.getXIOVolumeInitiatorUri(initiatorName);
+    	  String uriStr = XtremIOConstants.getXIOVolumeInitiatorUri(initiatorName, null);
          log.info("Initiator Delete URI : {}", uriStr);
          delete(URI.create(uriStr));
     }
@@ -499,11 +602,89 @@ public class XtremIOClient extends StandardRestClient {
      * @throws Exception
      */
     public void deleteLunMap(String lunMap) throws Exception {
-        String uriStr = XtremIOConstants.getXIOLunMapUri(lunMap);
+        String uriStr = XtremIOConstants.getXIOLunMapUri(lunMap, null);
         log.info("Calling Delete on LunMap URI : {}", uriStr);
         delete(URI.create(uriStr));
     }
+    
+    public XtremIOResponse createConsistencyGroup(String cgName, String clusterName) throws Exception {
+    	XtremIOConsistencyGroupRequest cgCreate = new XtremIOConsistencyGroupRequest();
+        cgCreate.setCgName(cgName);
+        if(clusterName != null && !clusterName.isEmpty()) {
+        	cgCreate.setClusterName(clusterName);
+        }
+        log.info("Calling Consistency Group Create with: {}", cgCreate.toString());
 
+        ClientResponse response = post(XtremIOConstants.XTREMIO_CONSISTENCY_GROUPS_URI,
+                getJsonForEntity(cgCreate));
+        return getResponseObject(XtremIOResponse.class, response);
+    }
+    
+    public void removeConsistencyGroup(String cgName, String clusterName) throws Exception {
+    	XtremIOConsistencyGroupRequest cgRequest = new XtremIOConsistencyGroupRequest();
+        cgRequest.setCgName(cgName);
+        if(clusterName != null && !clusterName.isEmpty()) {
+        	cgRequest.setClusterName(clusterName);
+        }
+      
+        log.info("Calling Consistency Group Delete with: {}", cgRequest.toString());
+        delete(XtremIOConstants.XTREMIO_CONSISTENCY_GROUPS_URI, 
+        		getJsonForEntity(cgRequest));
+    }
+    
+    public XtremIOResponse addVolumeToConsistencyGroup(String volName, String cgName, String clusterName) 
+    		throws Exception {
+    	XtremIOConsistencyGroupVolumeRequest cgVolumeRequest = new XtremIOConsistencyGroupVolumeRequest();
+    	cgVolumeRequest.setCgName(cgName);
+    	cgVolumeRequest.setVolName(volName);
+    	if(clusterName != null && !clusterName.isEmpty()) {
+    		cgVolumeRequest.setClusterName(clusterName);
+    	}
+    	
+    	log.info("Calling Add Volume to Consistency Group with: {}", cgVolumeRequest.toString());
+    	ClientResponse response = post(XtremIOConstants.XTREMIO_CONSISTENCY_GROUP_VOLUMES_URI,
+    			getJsonForEntity(cgVolumeRequest));
+    	
+    	return getResponseObject(XtremIOResponse.class, response);
+    	
+    }
+    
+    public void removeVolumeFromConsistencyGroup(String volName, String cgName, String clusterName) 
+    		throws Exception {
+    	XtremIOConsistencyGroupVolumeRequest cgVolumeRequest = new XtremIOConsistencyGroupVolumeRequest();
+    	cgVolumeRequest.setCgName(cgName);
+    	cgVolumeRequest.setVolName(volName);
+    	if(clusterName != null && !clusterName.isEmpty()) {
+    		cgVolumeRequest.setClusterName(clusterName);
+    	}
+    	
+    	log.info("Calling Remove Volume from Consistency Group with: {}", cgVolumeRequest.toString());
+    	delete(XtremIOConstants.XTREMIO_CONSISTENCY_GROUP_VOLUMES_URI, 
+    			getJsonForEntity(cgVolumeRequest));
+    }
+    
+    public boolean isVersion2() {
+    	boolean isV2 = false;
+    	try {
+	    	ClientResponse response = get(XtremIOConstants.XTREMIO_XMS_URI);
+	        XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
+	        for(XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
+	            URI xmsURI = URI.create(xmsInfo.getHref().concat(XtremIOConstants.XTREMIO_XMS_FILTER_STR));
+	            response = get(xmsURI);
+	            if(response.getClientResponseStatus() != ClientResponse.Status.OK) {
+	            	isV2 = false;
+	            } else {
+	            	isV2 = true;
+	            }
+	        }
+    	} catch (Exception ex) {
+    		log.error("Error retrieving xms version info", ex);
+    		isV2 = false;
+    	}
+    	
+    	return isV2;
+    }
+    
     protected WebResource.Builder setResourceHeaders(WebResource resource) {
         return resource.header(XtremIOConstants.AUTH_TOKEN, _authToken);
     }

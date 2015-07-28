@@ -1857,7 +1857,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, String taskId) {       	
+        String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {       	
     	boolean vplex = RPHelper.isVPlexVolume(reqVolume);
     	ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());     
         URI storageControllerURI = null;
@@ -1871,13 +1871,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if (isProtectionBasedSnapshot(reqVolume, snapshotType)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
             RPController controller = (RPController) getController(RPController.class, protectionSystem.getSystemType());
-            controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, taskId);   
+            controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);   
         } else {
             if (vplex) {
-                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume), snapshotURIs, snapshotType, createInactive, taskId);
+                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume), snapshotURIs, snapshotType, createInactive, readOnly, taskId);
             }
             else {
-                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, taskId);
+                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, readOnly, taskId);
             }
         }     
     }

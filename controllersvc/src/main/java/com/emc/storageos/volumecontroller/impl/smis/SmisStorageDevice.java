@@ -867,12 +867,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doCreateSnapshot(final StorageSystem storage, final List<URI> snapshotList,
-                                 final Boolean createInactive, final TaskCompleter taskCompleter)
+                                 final Boolean createInactive, Boolean readOnly, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient
                     .queryObject(BlockSnapshot.class, snapshotList);
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
                         taskCompleter);
             } else {
@@ -898,7 +898,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             List<BlockSnapshot> snapshots = _dbClient
                     .queryObject(BlockSnapshot.class, snapshotList);
             URI snapshot = snapshots.get(0).getId();
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations.activateGroupSnapshots(storage, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.activateSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -920,7 +920,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -942,7 +942,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class,
                     Arrays.asList(snapshot));
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
             } else {
                 _snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot,
@@ -1101,33 +1101,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 
     }
     
-    /**
-     * Given a list of BlockSnapshot objects, determine if they were created as part of a
-     * consistency group.
-     *
-     * @param snapshotList
-     *            [required] - List of BlockSnapshot objects
-     * @return true iff the BlockSnapshots were created as part of volume consistency group.
-     */
-    private boolean inReplicationGroup(final List<BlockSnapshot> snapshotList) {
-        boolean isCgCreate = false;
-        if (snapshotList.size() == 1) {
-            // snapshots will only have a single block consistency group
-            BlockSnapshot snapshot = snapshotList.get(0);
-            if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
-                final URI cgId = snapshot.getConsistencyGroup();
-                if (cgId != null) {
-                    final BlockConsistencyGroup group = _dbClient.queryObject(
-                            BlockConsistencyGroup.class, cgId);
-                    isCgCreate = group != null;
-                }
-            }
-        } else if (snapshotList.size() > 1) {
-            isCgCreate = true;
-        }
-        return isCgCreate;
-    }
-
     private boolean isSRDFProtected(final Volume volume) {
         return volume.getSrdfParent() != null || volume.getSrdfTargets() != null;
     }
@@ -1448,7 +1421,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             List<BlockSnapshot> snapshots = _dbClient
                     .queryObject(BlockSnapshot.class, snapshotList);
-            if (inReplicationGroup(snapshots)) {
+            if (ControllerUtils.inReplicationGroup(snapshots, _dbClient)) {
                 _snapshotOperations
                         .copyGroupSnapshotsToTarget(storage, snapshotList, taskCompleter);
             } else {

@@ -1167,10 +1167,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, String taskId) {
+        String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
         BlockController controller = (BlockController) getController(BlockController.class, storageSystem.getSystemType());
-        controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, taskId);        
+        controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);        
     }
     
     /**

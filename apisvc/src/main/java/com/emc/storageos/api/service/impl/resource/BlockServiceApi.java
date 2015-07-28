@@ -366,10 +366,11 @@ public interface BlockServiceApi {
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
      *        activated, false otherwise.
+     * @param readOnly TODO
      * @param taskId The unique task identifier.
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, String taskId);
+        String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
     
     /**
      * Uses the appropriate controller to delete the snapshot.

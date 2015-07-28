@@ -1830,8 +1830,8 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, String taskId) {   
-        rpBlockServiceApiImpl.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, taskId);
+        String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {   
+        rpBlockServiceApiImpl.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, readOnly, taskId);
     }
     
     /**

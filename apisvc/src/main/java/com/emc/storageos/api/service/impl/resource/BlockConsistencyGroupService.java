@@ -463,6 +463,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Set the create inactive flag.
         final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
             : param.getCreateInactive();
+        
+        final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
 
         // Prepare and create the snapshots for the group.
         List<URI> snapIdList = new ArrayList<URI>();
@@ -473,7 +475,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         for (BlockSnapshot snapshot : snapshotList) {
             response.getTaskList().add(toTask(snapshot, taskId));
         }
-        blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, taskId);
+        blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly, taskId);
        
         auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
@@ -930,7 +932,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
                 && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
-                && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())) {
+                && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())
+                && !systemType.equals(DiscoveredDataObject.Type.xtremio.name())) {
             throw APIException.methodNotAllowed.notSupported();
         }
         

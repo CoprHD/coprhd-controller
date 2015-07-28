@@ -1658,12 +1658,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId) throws ControllerException {
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId) throws ControllerException {
     	TaskCompleter completer = null;
     	try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockSnapshotCreateCompleter(snapshotList, opId);            
-            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, completer);
+            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
         } catch (Exception e) {
         	if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

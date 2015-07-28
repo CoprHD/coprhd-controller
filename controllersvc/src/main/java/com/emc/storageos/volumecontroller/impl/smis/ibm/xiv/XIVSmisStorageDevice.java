@@ -625,7 +625,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateSnapshot(final StorageSystem storage,
             final List<URI> snapshotList, final Boolean createInactive,
-            final TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, final TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, snapshotList);

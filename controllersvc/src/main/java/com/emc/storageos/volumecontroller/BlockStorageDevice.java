@@ -309,11 +309,13 @@ public interface BlockStorageDevice {
     /**
      * @param storage
      * @param snapshotList
+     * @param createInactive
+     * @param readOnly
      * @param taskCompleter
      * @throws DeviceControllerException
      */
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
      * Activate a snapshot. Activation means that the source and target synchronization will be

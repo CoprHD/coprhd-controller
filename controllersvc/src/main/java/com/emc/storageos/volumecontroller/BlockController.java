@@ -126,10 +126,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param storage			URI of the storage controller.
      * @param snapshotList		URIs of the snapshots.
      * @param createInactive	Create the snapshot, but do not activate it (if supported by array)
+     * @param readOnly TODO
      * @param opId				Operation ID.
      * @throws InternalException When an exception occurs creating the snapshot
      */
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId) throws InternalException;
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId) throws InternalException;
 
     /**
      * This interface is for the snapshot active. The createSnapshot may have done

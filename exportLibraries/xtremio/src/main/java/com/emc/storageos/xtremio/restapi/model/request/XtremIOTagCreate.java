@@ -1,0 +1,46 @@
+package com.emc.storageos.xtremio.restapi.model.request;
+
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonRootName;
+
+import com.google.gson.annotations.SerializedName;
+
+@JsonRootName(value="xtremio_tag_create")
+public class XtremIOTagCreate {
+	
+	@SerializedName("entity")
+    @JsonProperty(value="entity")
+	private String entity;
+	
+	@SerializedName("entity-details")
+    @JsonProperty(value="entity-details")
+	private String entityDetails;
+	
+	@SerializedName("tag-name")
+    @JsonProperty(value="tag-name")
+	private String tagName;
+
+	public String getEntity() {
+		return entity;
+	}
+
+	public void setEntity(String entity) {
+		this.entity = entity;
+	}
+
+	public String getEntityDetails() {
+		return entityDetails;
+	}
+
+	public void setEntityDetails(String entityDetails) {
+		this.entityDetails = entityDetails;
+	}
+
+	public String getTagName() {
+		return tagName;
+	}
+
+	public void setTagName(String tagName) {
+		this.tagName = tagName;
+	}
+}

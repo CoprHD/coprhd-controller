@@ -44,12 +44,12 @@ public interface RPController extends ProtectionController {
      * @param storageDevice storage device of the volume
      * @param snapshotList list of snapshots
      * @param createInactive (unused)
+     * @param readOnly 
      * @param task task ID
-     *
      * @throws InternalException
      */
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList,
-                               Boolean createInactive, String task) throws InternalException;
+                               Boolean createInactive, Boolean readOnly, String task) throws InternalException;
 
     /**
      * Restore an RP bookmark. This will enable the specified bookmark on the CG if the CG is not already enabled. This step is

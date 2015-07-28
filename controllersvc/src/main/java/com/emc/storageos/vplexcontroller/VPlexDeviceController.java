@@ -7446,8 +7446,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         BlockSnapshot snapshot = getDataObject(BlockSnapshot.class, snapshotURI, _dbClient);
 
         URI parentVolumeURI = snapshot.getParent().getURI();
+        Volume parentVolume = _dbClient.queryObject(Volume.class, parentVolumeURI);
         Volume associatedVPlexVolume = 
-                VPlexUtil.getVolumeByAssociatedVolume(parentVolumeURI, _dbClient);
+                Volume.fetchVplexVolume(_dbClient, parentVolume);
         
         // Do nothing if this is not a native snapshot or the snapshot's parent is not
         // a VPlex associated volume.

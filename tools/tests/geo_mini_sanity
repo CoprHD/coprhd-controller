@@ -1,0 +1,78 @@
+#!/bin/bash
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+Usage()
+{
+    echo 'Usage:' `basename $0` '<vdc1 data node ip> <vdc2 data node ip>'
+    exit 1
+}
+
+[ $# -eq 2 ] || Usage
+date
+
+PATH=$(dirname $0):$PATH
+WS_SETUP=$(dirname $0)/DeploymentOutput
+
+if [ ! -e $WS_SETUP ];
+then
+    echo 'ERROR: WS_SETUP file' $WS_SETUP 'is not found'
+    exit 2
+fi
+
+ip_vdc1=$1
+ip_vdc2=$2
+
+namespace=`awk -F= '/namespace/{print $2}' $WS_SETUP`
+bucket=`awk -F= '/bucket/{print $2}' $WS_SETUP | cut -f1 -d' '`
+uid=`awk -F= '/user/{print $2}' $WS_SETUP`
+secret=`awk -F= '/secretkey/{print $2}' $WS_SETUP`
+
+key=`uuidgen`
+key_vdc1=${key}-vdc1
+key_vdc2=${key}-vdc2
+value_vdc1=value-for-multi-test-$key_vdc1
+value_vdc2=value-for-multi-test-$key_vdc2
+update='UPD --range bytes=5-7'
+value_upd_vdc1=valueUPDr-multi-test-$key_vdc1
+value_upd_vdc2=valueUPDr-multi-test-$key_vdc2
+
+set -e
+
+# create key in vdc1
+bucketkey create $namespace $bucket $key_vdc1 $value_vdc1 --uid $uid --secret $secret --data-ip $ip_vdc1
+
+# create key in vdc2
+bucketkey create $namespace $bucket $key_vdc2 $value_vdc2 --uid $uid --secret $secret --data-ip $ip_vdc2
+
+# read both keys from vdc1
+bucketkey verify $namespace $bucket $key_vdc1 $value_vdc1 --uid $uid --secret $secret --data-ip $ip_vdc1
+bucketkey verify $namespace $bucket $key_vdc2 $value_vdc2 --uid $uid --secret $secret --data-ip $ip_vdc1
+
+# read both keys from vdc2
+bucketkey verify $namespace $bucket $key_vdc1 $value_vdc1 --uid $uid --secret $secret --data-ip $ip_vdc2
+bucketkey verify $namespace $bucket $key_vdc2 $value_vdc2 --uid $uid --secret $secret --data-ip $ip_vdc2
+
+# update vdc2 key from vdc1
+bucketkey update $namespace $bucket $key_vdc2 $update --uid $uid --secret $secret --data-ip $ip_vdc1
+
+# update vdc1 key form vdc2
+bucketkey update $namespace $bucket $key_vdc1 $update --uid $uid --secret $secret --data-ip $ip_vdc2
+
+# read both key from vdc1
+bucketkey verify $namespace $bucket $key_vdc1 $value_upd_vdc1 --uid $uid --secret $secret --data-ip $ip_vdc1
+bucketkey verify $namespace $bucket $key_vdc2 $value_upd_vdc2 --uid $uid --secret $secret --data-ip $ip_vdc1
+
+# read both key from vdc2
+bucketkey verify $namespace $bucket $key_vdc1 $value_upd_vdc1 --uid $uid --secret $secret --data-ip $ip_vdc2
+bucketkey verify $namespace $bucket $key_vdc2 $value_upd_vdc2 --uid $uid --secret $secret --data-ip $ip_vdc2
+
+# list keys from vdc2
+bucketkey list $namespace $bucket --uid $uid --secret $secret --data-ip $ip_vdc2
+bucketkey list $namespace $bucket --delimiter '-' --uid $uid --secret $secret --data-ip $ip_vdc2
+
+echo "================================="
+echo "PASSED!!"
+echo "================================="

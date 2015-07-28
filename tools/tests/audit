@@ -1,0 +1,56 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# audit cli functions
+#----------------------------------------------------------------------
+
+def audit_query(args):
+    bourne.connect(args.ip)
+    return bourne.audit_query(args.timeslot, args.language);
+    
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# security <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne Audit cli usage.')
+parser.add_argument('cmd', help = 'cmd = ( query ) timeslot language')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# security login
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('timeslot',    help = 'time window of audit logs. e.g. 2013-03-22T03 or 2013-03-22T03:28')
+query.add_argument('language',    help = 'language of audit logs. e.g. en_US')
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if  (cmd == "query"):
+        args = query.parse_args()
+        audit_query(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+    

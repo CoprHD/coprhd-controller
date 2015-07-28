@@ -1470,7 +1470,7 @@ public class PlacementTests extends DbsvcTestBase {
 
             assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
             assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-            assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
+            assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
             assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 
             //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
@@ -1837,7 +1837,7 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
 	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-	        assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
+	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
 	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 	
 	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());
@@ -2204,7 +2204,7 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	        assertNotNull(recVplexProt.getVirtualArrayProtectionMap());
 	        assertNotNull(recVplexProt.getSourceVPlexHaRecommendations());
-	        assertTrue(recVplexProt.getVarrayVPlexProtection().size() > 0);
+	        assertTrue(recVplexProt.getVirtualArrayProtectionMap().size() > 0);
 	        assertTrue(recVplexProt.getSourceVPlexHaRecommendations().size() > 0);
 	
 	        //assertNotNull(recVplexProt.getVirtualArrayProtectionMap().get(URI.create("varray3")).getTargetVplexDevice());

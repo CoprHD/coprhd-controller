@@ -1026,9 +1026,8 @@ public class VPlexApiDiscoveryManager {
     }
     
     /**
-     * Find the virtual volume containing the passed name or name fragment.
-     * In some cases, the passed name fragment could be a storage volume 
-     * used by the virtual volume.
+     * Find the virtual volume(s) containing the passed name in the 
+     * virtualVolumeInfos list.
      * 
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *         clusters.
@@ -1037,7 +1036,7 @@ public class VPlexApiDiscoveryManager {
      * @param retry Indicates retry should occur if the first attempt to find
      *        the virtual volume fails.
      * 
-     * @return A map of virtual volume map to the virtual volume info.
+     * @return A map of virtual volume name to the virtual volume info.
      * 
      * @throws VPlexApiException When an error occurs finding the virtual
      *         volume.

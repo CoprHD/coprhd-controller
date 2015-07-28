@@ -21,6 +21,9 @@ import java.util.Arrays;
  * RootDSE. Requires LDAP v3 support.
  * 
  */
+
+// Suppress the following two sonar warnings. the arrays are not modified outside of the class.
+@SuppressWarnings({"pmd:ArrayIsStoredDirectly","pmd:MethodReturnsInternalArray"})
 public class RootDSE {
 
     private String rootDomainNamingContext;

@@ -140,7 +140,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
            adAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
            adAuthConfig.setSearchFilter("userPrincipalName=%u");
            adAuthConfig.setGroupAttribute("CN");
-           adAuthConfig.setLast_modified(System.currentTimeMillis());
+           adAuthConfig.setLastModified(System.currentTimeMillis());
            _log.info("adding new provider");
            _dbClient.createObject(adAuthConfig);
 
@@ -158,7 +158,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
            ldapAuthConfig.setServerUrls(ldapURLs);
            ldapAuthConfig.setSearchBase("ou=People,dc=root,dc=com");
            ldapAuthConfig.setSearchFilter("(uid=%U)");
-           ldapAuthConfig.setLast_modified(System.currentTimeMillis());
+           ldapAuthConfig.setLastModified(System.currentTimeMillis());
            _dbClient.createObject(ldapAuthConfig);
            reloadConfig(true);
        }
@@ -190,7 +190,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         adAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         adAuthConfig.setSearchFilter("userPrincipalName=%u");
         adAuthConfig.setGroupAttribute("CN");
-        adAuthConfig.setLast_modified(System.currentTimeMillis());
+        adAuthConfig.setLastModified(System.currentTimeMillis());
         _log.info("adding new provider");
         _dbClient.createObject(adAuthConfig);
         // force db error
@@ -230,7 +230,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         badManagerAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         badManagerAuthConfig.setSearchFilter("sAMAccountName=%U");
         badManagerAuthConfig.setGroupAttribute("CN");
-        badManagerAuthConfig.setLast_modified(System.currentTimeMillis());
+        badManagerAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(badManagerAuthConfig);
 
         reloadConfig(true);
@@ -252,7 +252,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         badPasswordAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         badPasswordAuthConfig.setSearchFilter("sAMAccountName=%U");
         badPasswordAuthConfig.setGroupAttribute("CN");
-        badPasswordAuthConfig.setLast_modified(System.currentTimeMillis());
+        badPasswordAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(badPasswordAuthConfig);
 
         reloadConfig(true);
@@ -272,7 +272,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         noUrlsAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         noUrlsAuthConfig.setSearchFilter("sAMAccountName=%U");
         noUrlsAuthConfig.setGroupAttribute("CN");
-        noUrlsAuthConfig.setLast_modified(System.currentTimeMillis());
+        noUrlsAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(noUrlsAuthConfig);
 
         reloadConfig(true);
@@ -294,7 +294,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         nullSearchBaseAuthConfig.setSearchBase(null);
         nullSearchBaseAuthConfig.setSearchFilter("sAMAccountName=%U");
         nullSearchBaseAuthConfig.setGroupAttribute("CN");
-        nullSearchBaseAuthConfig.setLast_modified(System.currentTimeMillis());
+        nullSearchBaseAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(nullSearchBaseAuthConfig);
 
         reloadConfig(true);
@@ -315,7 +315,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         nullFilterAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         nullFilterAuthConfig.setSearchFilter(null);
         nullFilterAuthConfig.setGroupAttribute("CN");
-        nullFilterAuthConfig.setLast_modified(System.currentTimeMillis());
+        nullFilterAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(nullFilterAuthConfig);
 
         reloadConfig(true);
@@ -394,7 +394,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         nullGroupAttribute.setSearchBase("CN=Users,DC=sanity,DC=local");
         nullGroupAttribute.setSearchFilter("sAMAccountName=%U");
         nullGroupAttribute.setGroupAttribute(null);
-        nullGroupAttribute.setLast_modified(System.currentTimeMillis());
+        nullGroupAttribute.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(nullGroupAttribute);
 
         reloadConfig(true);
@@ -416,7 +416,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         ldapAuthConfig.setServerUrls(ldapURLs);
         ldapAuthConfig.setSearchBase("ou=People,dc=root,dc=com");
         ldapAuthConfig.setSearchFilter("(uid=%U)");
-        ldapAuthConfig.setLast_modified(System.currentTimeMillis());
+        ldapAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(ldapAuthConfig);
 
         reloadConfig(true);
@@ -426,7 +426,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
 
         //Disable a config and make sure it goes away
         ldapAuthConfig.setDisable(true);
-        ldapAuthConfig.setLast_modified(System.currentTimeMillis());
+        ldapAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.persistObject(ldapAuthConfig);
 
         reloadConfig(true);
@@ -436,7 +436,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
 
         //enable th config and make sure it comes back
         ldapAuthConfig.setDisable(false);
-        ldapAuthConfig.setLast_modified(System.currentTimeMillis());
+        ldapAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.persistObject(ldapAuthConfig);
 
         reloadConfig(true);
@@ -456,7 +456,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         ldapAuthConfig.setId(URIUtil.createId(AuthnProvider.class));
         ldapAuthConfig.setDisable(false);
         ldapAuthConfig.setInactive(false);
-        ldapAuthConfig.setLast_modified(System.currentTimeMillis());
+        ldapAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.persistObject(ldapAuthConfig);
 
         reloadConfig(true);
@@ -553,7 +553,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         whitelistValues.add("*Users*");
         whitelistValues.add("ProjectAdmins");
         adAuthConfig.setGroupWhitelistValues(whitelistValues);
-        adAuthConfig.setLast_modified(System.currentTimeMillis());
+        adAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(adAuthConfig);
         reloadConfig(true);
         // Login the user the user that is in the group "Test Group" but it is not in the whitelist in
@@ -643,7 +643,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         // Test group SID
         sidWhitelistValues.add("S-1-5-21-2759885641-1951973838-595118951-1135");
         sidAuthConfig.setGroupWhitelistValues(sidWhitelistValues);
-        sidAuthConfig.setLast_modified(System.currentTimeMillis());
+        sidAuthConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(sidAuthConfig);
         reloadConfig(true);
 
@@ -1004,7 +1004,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         authConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         authConfig.setSearchFilter("sAMAccountName=%U");
         authConfig.setGroupAttribute("CN");
-        authConfig.setLast_modified(System.currentTimeMillis());
+        authConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(authConfig);
         reloadConfig(true);
         return authConfig;
@@ -1107,7 +1107,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         updateTestConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
         updateTestConfig.setSearchFilter("userPrincipalName=%u");
         updateTestConfig.setGroupAttribute("CN");
-        updateTestConfig.setLast_modified(System.currentTimeMillis());
+        updateTestConfig.setLastModified(System.currentTimeMillis());
         _dbClient.createObject(updateTestConfig);
         // Wait one minute and the providers should be updated automatically
         Thread.sleep(61 * 1000);
@@ -1122,7 +1122,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         Assert.assertEquals(authProvidersSize + 1, _authManager
                 .getAuthenticationProviders().size());
         // now, update the time, and wait for reload
-        updateTestConfig.setLast_modified(System.currentTimeMillis());
+        updateTestConfig.setLastModified(System.currentTimeMillis());
         _dbClient.persistObject(updateTestConfig);
         Thread.sleep(61 * 1000);
         Assert.assertEquals(authProvidersSize, _authManager.getAuthenticationProviders()

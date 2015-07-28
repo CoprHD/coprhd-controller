@@ -15,6 +15,8 @@
 
 package com.emc.storageos.management.backup;
 
+import java.io.File;
+
 /**
  * Constants for backup project
  */
@@ -84,4 +86,6 @@ public interface BackupConstants {
 
     public static final String STORAGEOS_USER = "storageos";
     public static final String STORAGEOS_GROUP = "storageos";
+    
+    public static final File[] EMPTY_ARRAY = {};
 }

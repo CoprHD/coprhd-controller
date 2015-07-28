@@ -33,6 +33,9 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+//This is a CLI application and main method will not be called by multiple threads
+@SuppressWarnings("squid:S2444")
 public class BackupCmd {
 
     private static final Logger log = LoggerFactory.getLogger(BackupCmd.class);
@@ -90,16 +93,14 @@ public class BackupCmd {
         options.addOption(purgeOption);
     }
 
-    private static RestoreManager initRestoreManager() {
+    private static void initRestoreManager() {
         if (restoreManager == null) {
             ApplicationContext context = new ClassPathXmlApplicationContext("backup-restore-conf.xml");
             restoreManager = context.getBean("restoreManager", RestoreManager.class);
         }
-        return restoreManager;
     }
 
-    public static void main(String[] args) {
-        restoreManager = initRestoreManager();
+    private static void initCommandLine(String[] args) {
         CommandLineParser parser = new PosixParser();
         HelpFormatter formatter = new HelpFormatter();
         try {
@@ -108,11 +109,11 @@ public class BackupCmd {
             cli = parser.parse(options, args);
             if (cli.getOptions().length == 0)
                 throw new IllegalArgumentException(
-                        String.format("Invalid argument: %s\n", Arrays.toString(args)));
+                        String.format("Invalid argument: %s%n", Arrays.toString(args)));
             String[] invalidArgs = cli.getArgs();
             if (invalidArgs != null && invalidArgs.length != 0){
                 throw new IllegalArgumentException(
-                        String.format("Invalid argument: %s\n", Arrays.toString(invalidArgs)));
+                        String.format("Invalid argument: %s%n", Arrays.toString(invalidArgs)));
             }
         } catch (Exception p) {
             System.err.print(p.getMessage());
@@ -120,6 +121,10 @@ public class BackupCmd {
             formatter.printHelp(TOOL_NAME, options);
             System.exit(-1);
         }
+    }
+
+    public static void main(String[] args) {    	
+    	init(args);
 
         try {
             createBackup();
@@ -136,16 +141,17 @@ public class BackupCmd {
         System.exit(0);
     }
 
-    /**
-     * Singleton method to get BackupOps instance
-     * @return the instance of BackupOps
-     */
-    private static synchronized BackupOps getBackupOps() {
+    private static void init(String[] args) {
+    	initCommandLine(args);
+        initRestoreManager();
+        initBackupOps();
+    }
+
+    private static void initBackupOps() {
         if (backupOps == null) {
             ApplicationContext context = new ClassPathXmlApplicationContext("backup-client-conf.xml");
             backupOps = context.getBean("backupOps", BackupOps.class);
         }
-        return backupOps;
     }
 
     private static void createBackup() {
@@ -161,7 +167,7 @@ public class BackupCmd {
         }
 
         System.out.println("Start to create backup...");
-        getBackupOps().createBackup(backupName, force);
+        backupOps.createBackup(backupName, force);
         System.out.println(
                 String.format("Backup (%s) is created successfully", backupName));
     }
@@ -170,7 +176,7 @@ public class BackupCmd {
         if (!cli.hasOption(CommandType.list.name()))
             return;
         System.out.println("Start to list backup...");
-        List<BackupSetInfo> backupList = getBackupOps().listBackup();
+        List<BackupSetInfo> backupList = backupOps.listBackup();
         System.out.println(
                 String.format("Backups are listed successfully, total: %d", backupList.size()));
         if (backupList.isEmpty())
@@ -202,7 +208,7 @@ public class BackupCmd {
             return;
         System.out.println("Start to delete backup...");
         String backupName = cli.getOptionValue(CommandType.delete.name());
-        getBackupOps().deleteBackup(backupName);
+        backupOps.deleteBackup(backupName);
         System.out.println(
                 String.format("Backup (%s) is deleted successfully", backupName));
     }
@@ -253,7 +259,7 @@ public class BackupCmd {
             return;
         }
         System.out.println("Start to get quota of backup...");
-        int quota = getBackupOps().getQuotaGb();
+        int quota = backupOps.getQuotaGb();
         System.out.println(String.format("Quota of backup is: %d GB", quota));
     }
 }

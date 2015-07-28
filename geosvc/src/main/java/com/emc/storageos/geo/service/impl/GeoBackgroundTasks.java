@@ -171,6 +171,7 @@ public class GeoBackgroundTasks {
                 try {
                     Thread.sleep(1000 * CHECK_INTERVAL);
                 } catch (InterruptedException ex) {
+                	//Ignore this exception
                 }
             }
             _log.info("GeodbRestoreHelper exits");

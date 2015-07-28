@@ -122,7 +122,7 @@ public class GarbageCollectorTests extends DbsvcTestBase {
             _dbClient.createObject(depObj);
             children.add(new TypeURI(dependency.getType(), depObj.getId()));
         }
-        if (children.size() > 0) {
+        if (!children.isEmpty()) {
             childrenMap.get(level).addAll(children);
         }
     }
@@ -147,7 +147,7 @@ public class GarbageCollectorTests extends DbsvcTestBase {
             // start with deleting lowest first
             for (int i = 0; i <= level; i++) {
                 List<TypeURI> children =  allChildren.get(i);
-                if (children.size() > 0) {
+                if (!children.isEmpty()) {
                     for (TypeURI child: children) {
                         read = _dbClient.queryObject(child._type, child._uri);
                         read.setInactive(true);
@@ -208,7 +208,7 @@ public class GarbageCollectorTests extends DbsvcTestBase {
         for(Iterator<URI> iterator = list.iterator(); iterator.hasNext(); ) {
             gotUris.add(iterator.next());
         }
-        Assert.assertTrue(gotUris.size() == 0);
+        Assert.assertTrue(gotUris.isEmpty());
     }
 
     @Test

@@ -93,23 +93,6 @@ public class DistributedQueueTest extends CoordinatorTestBase {
             return Integer.parseInt(new String(bytes));
         }
     }
-
-
-    /**
-     * Deletes given directory
-     *
-     * @param dir
-     */
-    public static void cleanDirectory(File dir) {
-        for (File file : dir.listFiles()) {
-            if (file.isDirectory()) {
-                cleanDirectory(file);
-            } else {
-                file.delete();
-            }
-        }
-        dir.delete();
-    }
    
     /**
      * Tests multiple consumer / producers
@@ -280,7 +263,6 @@ public class DistributedQueueTest extends CoordinatorTestBase {
                     Thread.sleep(1000 * 60 * 10);
                 } catch(Exception e) {
                     _logger.error("Failed to start client to monitor queue.", e);
-                } finally {
                 }
             }
         }).start();

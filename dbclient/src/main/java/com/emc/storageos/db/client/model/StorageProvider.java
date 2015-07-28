@@ -22,6 +22,9 @@ import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
@@ -39,6 +42,8 @@ import com.emc.storageos.model.valid.EnumType;
  */
 @Cf("StorageProvider")
 public class StorageProvider extends DataObject {
+	
+	private static final Logger logger = LoggerFactory.getLogger(StorageProvider.class);
 	
     private StringSet _storageSystems;
     // provider IP address
@@ -521,7 +526,9 @@ public class StorageProvider extends DataObject {
 	                try {
 	                    storage.setActiveProviderURI(new URI(iter.next()));
 	                }
-	                catch (URISyntaxException ex)  {}
+	                catch (URISyntaxException ex)  {
+	                	logger.error("URISyntaxException occurred: {}", ex.getMessage());
+	                }
 	            }
 	            else {
 	                storage.setActiveProviderURI(null);

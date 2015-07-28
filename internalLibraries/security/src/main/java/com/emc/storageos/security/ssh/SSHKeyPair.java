@@ -28,18 +28,22 @@ public class SSHKeyPair implements Serializable {
     private byte[] publicKey;
 
     public byte[] getPublicKey() {
-        return publicKey;
+        // Not a real issue as no write outside
+        return publicKey; // NOSONAR ("Suppressing: Returning may expose an internal array")
     }
 
-    public void setPublicKey(byte[] publicKey) {
+    // Not a real issue as no write in class
+    public void setPublicKey(byte[] publicKey) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
         this.publicKey = publicKey;
     }
 
     public byte[] getPrivateKey() {
-        return privateKey;
+        // Not a real issue as no write outside
+        return privateKey; // NOSONAR ("Suppressing: Returning may expose an internal array")
     }
 
-    public void setPrivateKey(byte[] privateKey) {
+    // Not a real issue as no write in class
+    public void setPrivateKey(byte[] privateKey) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
         this.privateKey = privateKey;
     }
 

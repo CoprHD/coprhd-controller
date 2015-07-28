@@ -498,7 +498,9 @@ public class DbServiceImpl implements DbService {
             _log.info("Starting DB service...");
         }
         
-        instance = this;
+        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        //start() method will be only called one time when startup dbsvc, so it's safe to ignore sonar violation
+        instance = this; //NOSONAR ("squid:S2444")
 
         initKeystoreAndTruststore();
         System.setProperty("cassandra.config", _config);

@@ -298,14 +298,14 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
                 _connectedVirtualArrays == null ? "[]" : _connectedVirtualArrays.toArray(), 
                 _taggedVirtualArrays == null ? "[]" : _taggedVirtualArrays.toArray()});
 
-        if ((_assignedVirtualArrays != null) && (_assignedVirtualArrays.size() != 0)) {
+        if ((_assignedVirtualArrays != null) && (!_assignedVirtualArrays.isEmpty())) {
             s_logger.debug("updateVirtualArrayTags: replacing with assigned {}", _assignedVirtualArrays.size());
             _taggedVirtualArrays.replace(_assignedVirtualArrays);
             s_logger.debug("updateVirtualArrayTags is taking assigned varrays: added {} removed {}",
                 (_taggedVirtualArrays.getAddedSet() != null)?_taggedVirtualArrays.getAddedSet().size():"0",
                 (_taggedVirtualArrays.getRemovedSet() != null)?_taggedVirtualArrays.getRemovedSet().size():"0");
         } else if ((_connectedVirtualArrays != null)
-                && (_connectedVirtualArrays.size() != 0)) {
+                && (!_connectedVirtualArrays.isEmpty())) {
             s_logger.debug("updateVirtualArrayTags: replacing with connected {}", _connectedVirtualArrays.size());
             _taggedVirtualArrays.replace(_connectedVirtualArrays);
            s_logger.debug("updateVirtualArrayTags is taking connected varrays: added {} removed {}",

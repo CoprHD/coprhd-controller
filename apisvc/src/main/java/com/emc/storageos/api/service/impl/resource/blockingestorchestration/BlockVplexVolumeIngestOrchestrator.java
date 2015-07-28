@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -46,11 +47,14 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 /**
@@ -102,16 +106,16 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
         
         try {
-            List<URI> associatedVolumes = getAssociatedVolumes(unManagedVolume);
+            List<URI> associatedVolumeUris = getAssociatedVolumes(unManagedVolume);
             
-            if (null != associatedVolumes && !associatedVolumes.isEmpty()) {
-                validateAssociatedVolumes(vPool, project, tenant, associatedVolumes);
+            if (null != associatedVolumeUris && !associatedVolumeUris.isEmpty()) {
+                validateAssociatedVolumes(vPool, project, tenant, associatedVolumeUris);
 
                 Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
                 Map<String, BlockObject> vplexCreatedObjectMap = new HashMap<String, BlockObject>();
                 Map<String, List<DataObject>> vplexUpdatedObjectMap = new HashMap<String, List<DataObject>>();
                 
-                for (URI associatedVolumeUri : associatedVolumes) {
+                for (URI associatedVolumeUri : associatedVolumeUris) {
                     UnManagedVolume associatedVolume = _dbClient.queryObject(UnManagedVolume.class,
                             associatedVolumeUri);
                     _logger.info("Ingestion started for exported vplex backend unmanagedvolume {}", associatedVolume.getNativeGuid());
@@ -142,8 +146,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         
                         _logger.info("Ingestion ended for exported unmanagedvolume {}", associatedVolume.getNativeGuid());
                         if (null == blockObject)  {
-                            throw IngestionException.exceptions.generalVolumeException(
-                                    associatedVolume.getLabel(), "check the logs for more details");
+                            
+                            // TODO: handle this by not ingesting any backend vols; leave a nice message in success response
+                            continue;
+//                            throw IngestionException.exceptions.generalVolumeException(
+//                                    associatedVolume.getLabel(), "check the logs for more details");
                         }
                         
                         //TODO come up with a common response object to hold snaps/mirrors/clones
@@ -165,7 +172,96 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 
                 
                 
-                // ingestBackendExportMasks();
+                
+                
+                
+                // TODO figure out how to create export group
+                boolean exportGroupCreated = false;
+                ExportGroup exportGroup = null; 
+
+                List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
+                
+                for(String unManagedVolumeGUID: processedUnManagedVolumeMap.keySet()) {
+                    String objectGUID = unManagedVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+                    BlockObject processedBlockObject = vplexCreatedObjectMap.get(objectGUID);
+                    UnManagedVolume processedUnManagedVolume = processedUnManagedVolumeMap.get(unManagedVolumeGUID);
+//                    URI unManagedVolumeUri = processedUnManagedVolume.getId();
+//                    String taskId = taskMap.get(processedUnManagedVolume.getId().toString()).getOpId();
+                    try {
+                        if(processedBlockObject == null) {
+                            _logger.warn("The ingested block object is null. Skipping ingestion of export masks for unmanaged volume {}", unManagedVolumeGUID);
+                            continue;
+//                            throw IngestionException.exceptions.generalVolumeException(
+//                                    processedUnManagedVolume.getLabel(), "check the logs for more details");
+                        }
+                        
+                        URI storageSystemUri = processedUnManagedVolume.getStorageSystemUri();
+                        StorageSystem associatedSystem =  systemMap.get(storageSystemUri.toString());
+                        //Build the Strategy , which contains reference to Block object & export orchestrators
+                        IngestExportStrategy ingestStrategy =  ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
+                        
+                        VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
+                        exportIngestParam.setProject(project.getId());
+                        exportIngestParam.setUnManagedVolumes(associatedVolumeUris);
+                        exportIngestParam.setVarray(virtualArray.getId());
+                        exportIngestParam.setVpool(vPool.getId());
+                        
+                        // TODO: figure out how to set VPLEX as host
+                        // exportIngestParam.setHost(host);
+                        
+                        BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume, exportIngestParam, exportGroup, 
+                                processedBlockObject, unManagedVolumesToBeDeleted, associatedSystem, exportGroupCreated);
+                        if (null == blockObject)  {
+                            
+                            _logger.warn("blockObject was null");
+                            continue;
+//                            throw IngestionException.exceptions.generalVolumeException(
+//                                    processedUnManagedVolume.getLabel(), "check the logs for more details");
+                        }
+                        ingestedObjects.add(blockObject);
+                        if(blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+                            StringBuffer taskStatus = taskStatusMap.get(processedUnManagedVolume.getNativeGuid());
+                            String taskMessage = "";
+                            if(taskStatus == null) {
+                                //No task status found. Put in a default message.
+                                taskMessage = String.format("Not all the parent/replicas of unManagedVolume %s have been ingested", processedUnManagedVolume.getLabel());
+                            } else {
+                                taskMessage = taskStatus.toString();
+                            }
+                            _logger.error(taskMessage);
+//                            _dbClient.error(UnManagedVolume.class, processedUnManagedVolume.getId(), taskId, 
+//                                    IngestionException.exceptions.unmanagedVolumeIsNotVisible(processedUnManagedVolume.getLabel(), taskMessage));
+                        } else {
+//                            _dbClient.ready(UnManagedVolume.class, 
+//                                    processedUnManagedVolume.getId(), taskId, "Successfully ingested exported volume and its masks."); // TODO: convert to props message
+                        }
+                        //Update the related objects if any after successful export mask ingestion
+                        List<DataObject> updatedObjects = updatedObjectMap.get(unManagedVolumeGUID);
+                        if(updatedObjects != null && !updatedObjects.isEmpty()) {
+                            _dbClient.updateAndReindexObject(updatedObjects);
+                        }
+                        
+                    } catch ( APIException ex ) {
+                        _logger.warn(ex.getLocalizedMessage(), ex);
+//                        _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
+                    } catch ( Exception ex ) {
+                        _logger.warn(ex.getLocalizedMessage(), ex);
+//                        _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, 
+//                                taskId, IngestionException.exceptions.generalVolumeException(
+//                                        processedUnManagedVolume.getLabel(), ex.getLocalizedMessage()));
+                    }
+                }
+                
+                
+                _dbClient.createObject(ingestedObjects);
+                _dbClient.persistObject(processedUnManagedVolumeMap.values());
+                // record the events after they have been persisted
+//                for (BlockObject volume : ingestedObjects) {
+//                    recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
+//                            Status.ready, volume.getId());
+//                }
+
+                
                 
             }
         } catch (Exception ex) {

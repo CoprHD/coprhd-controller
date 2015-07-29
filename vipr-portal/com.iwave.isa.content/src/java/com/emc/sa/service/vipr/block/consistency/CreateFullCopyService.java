@@ -17,7 +17,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 
-@Service("CreateFullCopy")
+@Service("ConsistencyGroupCreateFullCopy")
 public class CreateFullCopyService extends ViPRService {
     @Param(CONSISTENCY_GROUP)
     protected URI consistencyGroupId;

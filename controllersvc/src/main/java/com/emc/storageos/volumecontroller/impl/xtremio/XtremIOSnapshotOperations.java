@@ -113,11 +113,14 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 			Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
 	
 		try {
+			XtremIOClient client = getXtremIOClient(storage);
 			URI snapshot = snapshotList.get(0);
 	        BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
 			URI cgId = snapshotObj.getConsistencyGroup();
 	        if (cgId != null) {
 	            BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+	            String snapType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
+	            client.createV2Snapshot(null, group.getLabel(), null, "", snapshotObj.getSnapsetLabel(), snapType, null, null);
 	        }
 		} catch(Exception e) {
             _log.error("Snapshot creation failed",e);

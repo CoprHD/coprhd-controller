@@ -72,7 +72,8 @@ public class BackupFileSet extends TreeSet<BackupFile> {
         BackupFileSet geodbFiles = subsetOf(backupTag, BackupType.geodb, null);
         BackupFileSet geodbmultivdcFiles = subsetOf(backupTag, BackupType.geodbmultivdc, null);
 
-        if (zkFiles.size() == 0 || dbFiles.size() < this.quorumSize || geodbFiles.size() < this.quorumSize && geodbmultivdcFiles.size() < this.quorumSize) {
+        if (zkFiles.size() == 0 || dbFiles.size() < this.quorumSize || geodbFiles.size() < this.quorumSize
+                && geodbmultivdcFiles.size() < this.quorumSize) {
             return false;
         }
 

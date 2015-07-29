@@ -21,7 +21,6 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 
-import java.io.Serializable;
 import java.net.URI;
 
 public class CleanupMetaVolumeMembersCompleter extends VolumeTaskCompleter {
@@ -43,7 +42,6 @@ public class CleanupMetaVolumeMembersCompleter extends VolumeTaskCompleter {
         this.opId = opId;
         this.sourceStepId = sourceStepId;
     }
-
 
     public URI getVolumeURI() {
         return volumeURI;
@@ -70,23 +68,22 @@ public class CleanupMetaVolumeMembersCompleter extends VolumeTaskCompleter {
     }
 
     public void complete(Workflow.StepState state, ServiceCoded serviceCoded) throws WorkflowException {
-            switch (state) {
-                case ERROR:
-                    // update only if this is workflow step
-                    if (isWFStep()) {
-                       WorkflowStepCompleter.stepFailed(opId, serviceCoded);
-                    }
-                    break;
+        switch (state) {
+            case ERROR:
+                // update only if this is workflow step
+                if (isWFStep()) {
+                    WorkflowStepCompleter.stepFailed(opId, serviceCoded);
+                }
+                break;
 
-                case SUCCESS:
-                default:
-                    // update only if this is workflow step
-                    if (isWFStep()) {
-                        WorkflowStepCompleter.stepSucceded(getOpId());
-                    }
-            }
+            case SUCCESS:
+            default:
+                // update only if this is workflow step
+                if (isWFStep()) {
+                    WorkflowStepCompleter.stepSucceded(getOpId());
+                }
+        }
     }
-
 
     public ServiceError getError() {
         return error;

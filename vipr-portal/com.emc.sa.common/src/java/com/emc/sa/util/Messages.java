@@ -30,7 +30,7 @@ public class Messages {
      * Creates a messages bundle by full name.
      * 
      * @param name
-     *        the full message bundle name.
+     *            the full message bundle name.
      */
     public Messages(String name) {
         this((Messages) null, name);
@@ -40,9 +40,9 @@ public class Messages {
      * Creates a messages bundle within the package of the provided class.
      * 
      * @param clazz
-     *        the class whose package is used as the base for the bundle.
+     *            the class whose package is used as the base for the bundle.
      * @param name
-     *        the name of the bundle.
+     *            the name of the bundle.
      */
     public Messages(Class<?> clazz, String name) {
         this((Messages) null, clazz, name);
@@ -55,7 +55,7 @@ public class Messages {
         }
         return message;
     }
-    
+
     public Set<String> getKeySet() {
         return bundle.keySet();
     }
@@ -63,14 +63,12 @@ public class Messages {
     private String getString(String key) {
         try {
             return bundle.getString(key);
-        }
-        catch (MissingResourceException e) {
+        } catch (MissingResourceException e) {
             // try to find the key in the parent bundle if possible
             if (parent != null) {
                 try {
                     return parent.getString(key);
-                }
-                catch (MissingResourceException parentE) {
+                } catch (MissingResourceException parentE) {
                     // Fallthrough and rethrow the original exception
                 }
             }

@@ -24,7 +24,7 @@ public class FindCluster extends ViPRExecutionTask<List<ClusterRestRep>> {
         debug("Executing: %s", getDetail());
 
         ResourceFilter<ClusterRestRep> filter = new NameFilter<ClusterRestRep>(clusterName);
-        return getClient().clusters().getByTenant(getOrderTenant(), filter); 	
+        return getClient().clusters().getByTenant(getOrderTenant(), filter);
     }
-   
+
 }

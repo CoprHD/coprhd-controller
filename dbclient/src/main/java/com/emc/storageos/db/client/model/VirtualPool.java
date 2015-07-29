@@ -103,8 +103,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     // If uniquePolicyNames is true, then only unique Auto Tiering Policy Names will be returned.
     // else all policies will be returned.
     private Boolean uniquePolicyNames = false;
-    //Long term retention indicates if this vPool is to be used for archiving and other
-    //long term retention activities
+    // Long term retention indicates if this vPool is to be used for archiving and other
+    // long term retention activities
     private Boolean _longTermRetention = false;
     // This attribute is applicable only to VPlex Distributed
     // vpools that also have RP protection specified.
@@ -115,26 +115,26 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean metroPoint = false;
     // Flag that enables VPlex automatic cross-connected export, default disabled
     private Boolean autoCrossConnectExport = false;
-    
+
     public static enum MetroPointType {
-    	@XmlEnumValue("singleRemote")
-    	SINGLE_REMOTE,
-    	@XmlEnumValue("localOnly")
-    	LOCAL_ONLY,
-    	@XmlEnumValue("localRemote")
-    	ONE_LOCAL_REMOTE,
-    	@XmlEnumValue("twoLocalRemote")
-    	TWO_LOCAL_REMOTE,
-    	@XmlEnumValue("invalid")
-    	INVALID
+        @XmlEnumValue("singleRemote")
+        SINGLE_REMOTE,
+        @XmlEnumValue("localOnly")
+        LOCAL_ONLY,
+        @XmlEnumValue("localRemote")
+        ONE_LOCAL_REMOTE,
+        @XmlEnumValue("twoLocalRemote")
+        TWO_LOCAL_REMOTE,
+        @XmlEnumValue("invalid")
+        INVALID
     }
-    
+
     // VMAX Host IO Limits attributes
-    private Integer _hostIOLimitBandwidth; // Host Front End limit bandwidth.  If not specfied or 0, inidicated unlimited
-    private Integer _hostIOLimitIOPs; // Host Front End limit I/O.  If not specified or 0, indicated unlimited
-    
+    private Integer _hostIOLimitBandwidth; // Host Front End limit bandwidth. If not specfied or 0, inidicated unlimited
+    private Integer _hostIOLimitIOPs; // Host Front End limit I/O. If not specified or 0, indicated unlimited
+
     /**
-     * RPOType enum, modeled after RP's QuantityType object.  That allows us to be able to pass the values
+     * RPOType enum, modeled after RP's QuantityType object. That allows us to be able to pass the values
      * down to the RP appliance without having to jump through any hoops, like translations, etc.
      */
     public static enum RPOType {
@@ -171,13 +171,13 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
 
         public static RPOType fromValue(final String v) {
-        	RPOType returnVal = lookup(v);
-        	if (returnVal==null) {
-        		throw new IllegalArgumentException(v);
-        	}
-        	return returnVal;
+            RPOType returnVal = lookup(v);
+            if (returnVal == null) {
+                throw new IllegalArgumentException(v);
+            }
+            return returnVal;
         }
-        
+
         public static final RPOType[] copyOfValues = values();
 
         public static RPOType lookup(final String name) {
@@ -186,15 +186,15 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     return value;
                 }
                 if (value.value().equals(name)) {
-                	return value;
+                    return value;
                 }
             }
             return null;
         }
     };
-    
+
     /**
-     * RPCopyMode enum, modeled after RP's ProtectionMode object.  That allows us to be able to pass the values
+     * RPCopyMode enum, modeled after RP's ProtectionMode object. That allows us to be able to pass the values
      * down to the RP appliance without having to jump through any hoops, like translations, etc.
      */
     public static enum RPCopyMode {
@@ -215,14 +215,14 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
 
         public static RPCopyMode fromValue(String v) {
-        	RPCopyMode returnVal = lookup(v);
-        	if (returnVal==null) {
-        		throw new IllegalArgumentException(v);
-        	}
-        	return returnVal;
+            RPCopyMode returnVal = lookup(v);
+            if (returnVal == null) {
+                throw new IllegalArgumentException(v);
+            }
+            return returnVal;
         }
-        
-    	public static final RPCopyMode[] copyOfValues = values();
+
+        public static final RPCopyMode[] copyOfValues = values();
 
         public static RPCopyMode lookup(final String name) {
             for (RPCopyMode value : copyOfValues) {
@@ -230,15 +230,17 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     return value;
                 }
                 if (value.value().equals(name)) {
-                	return value;
+                    return value;
                 }
             }
             return null;
         }
-    };    public static enum SupportedDriveTypes {
+    };
+
+    public static enum SupportedDriveTypes {
         NONE, SSD, FC, SAS, SATA, NL_SAS, UNKNOWN;
         private static final SupportedDriveTypes[] copyOfValues = values();
-        
+
         public static SupportedDriveTypes lookup(final String name) {
             for (SupportedDriveTypes value : copyOfValues) {
                 if (value.name().equals(name)) {
@@ -248,7 +250,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return null;
         }
     }
-    
+
     public static enum ProvisioningType {
         NONE, Thin, Thick;
         public static ProvisioningType lookup(final String name) {
@@ -260,11 +262,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return null;
         }
     }
-    
+
     public static enum RaidLevel {
         RAID0, RAID1, RAID2, RAID3, RAID4, RAID5, RAID6, RAID10;
         private static final RaidLevel[] copyOfValues = values();
-        
+
         public static RaidLevel lookup(final String name) {
             for (RaidLevel value : copyOfValues) {
                 if (value.name().equals(name)) {
@@ -274,11 +276,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return null;
         }
     }
-    
+
     public static enum SystemType {
         NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv;
         private static final SystemType[] copyOfValues = values();
-        
+
         public static SystemType lookup(final String name) {
             for (SystemType value : copyOfValues) {
                 if (value.name().equals(name)) {
@@ -287,24 +289,24 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
             return null;
         }
-        
+
         public static boolean isFileTypeSystem(final String name) {
-            return isilon.name().equalsIgnoreCase(name) 
+            return isilon.name().equalsIgnoreCase(name)
                     || vnxfile.name().equalsIgnoreCase(name)
-                    || netapp.name().equalsIgnoreCase(name) 
+                    || netapp.name().equalsIgnoreCase(name)
                     || netappc.name().equalsIgnoreCase(name)
                     || vnxe.name().equalsIgnoreCase(name)
                     || datadomain.name().equalsIgnoreCase(name);
         }
-        
+
         public static boolean isBlockTypeSystem(final String name) {
             return vnxblock.name().equalsIgnoreCase(name) || vmax.name().equalsIgnoreCase(name)
-            		|| hds.name().equalsIgnoreCase(name) || openstack.name().equalsIgnoreCase(name) 
+                    || hds.name().equalsIgnoreCase(name) || openstack.name().equalsIgnoreCase(name)
                     || scaleio.name().equalsIgnoreCase(name) || xtremio.name().equalsIgnoreCase(name)
                     || ibmxiv.name().equalsIgnoreCase(name) || vnxe.name().equalsIgnoreCase(name);
         }
     }
-    
+
     // flag tells whether to use recommended pools or not.
     private Boolean _useMatchedPools;
     // reference to hold the implicit pools recommended for this VirtualPool.
@@ -324,7 +326,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public static enum Type {
         block, file;
         private static final Type[] vpoolTypeValues = values();
-        
+
         public static Type lookup(final String name) {
             for (Type value : vpoolTypeValues) {
                 if (value.name().equals(name)) {
@@ -334,43 +336,43 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             return null;
         }
     }
-    
+
     // VirtualPool parameter names
     public static enum Param {
         numPaths, pathsPerInitiator, minPaths, auto_tier_policy, protection, raid_level, refVirtualPool
     }
-    
+
     // Supported types for high availability
     public static enum HighAvailabilityType {
         vplex_distributed, vplex_local
     };
-    
+
     // VirtualPool protection enums
     public static enum Protection {
         rp, local
     }
-    
+
     @AlternateId("AltIdIndex")
     @Name("type")
     public String getType() {
         return _type;
     }
-    
+
     public void setType(final String type) {
         _type = type;
         setChanged("type");
     }
-    
+
     @Name("description")
     public String getDescription() {
         return _description;
     }
-    
+
     public void setDescription(final String description) {
         _description = description;
         setChanged("description");
     }
-    
+
     /**
      * Get supported protocols
      * 
@@ -380,7 +382,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public StringSet getProtocols() {
         return _protocols;
     }
-    
+
     /**
      * Set storage protocols supported by this VirtualPool
      * 
@@ -391,20 +393,21 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         _protocols = protocols;
         setChanged("protocols");
     }
-    
+
     /**
      * Add a protocols to list of protocols in VirtualPool.
      * 
      * @param protocols
      */
     public void addProtocols(final Set<String> protocols) {
-        if (null == _protocols)
+        if (null == _protocols) {
             setProtocols(new StringSet());
+        }
         if (!protocols.isEmpty()) {
             _protocols.addAll(protocols);
         }
     }
-    
+
     /**
      * remove the protocols from set of protocols in VirtualPool.
      * 
@@ -417,61 +420,61 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             _protocols.removeAll(removeProtocols);
         }
     }
-    
+
     @Name("numPaths")
     public Integer getNumPaths() {
         return _numPaths;
     }
-    
+
     public void setNumPaths(final Integer numPaths) {
         _numPaths = numPaths;
         setChanged("numPaths");
     }
-    
+
     @Name("pathsPerInitiator")
     public Integer getPathsPerInitiator() {
         return _pathsPerInitiator;
     }
-    
+
     public void setPathsPerInitiator(final Integer pathsPerInitiator) {
         this._pathsPerInitiator = pathsPerInitiator;
         setChanged("pathsPerInitiator");
     }
-    
+
     @Name("minPaths")
     public Integer getMinPaths() {
         return _minPaths;
     }
-    
+
     public void setMinPaths(final Integer minPaths) {
         this._minPaths = minPaths;
         setChanged("minPaths");
     }
-    
+
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
     @IndexByKey
     @Name("virtualArrays")
     public StringSet getVirtualArrays() {
         return _virtualArrays;
     }
-    
+
     public void setVirtualArrays(final StringSet virtualArrays) {
         _virtualArrays = virtualArrays;
         setChanged("virtualArrays");
     }
-    
+
     @RelationIndex(cf = "RelationIndex", type = VpoolProtectionVarraySettings.class)
     @IndexByKey
     @Name("protectionVarraySettings")
     public StringMap getProtectionVarraySettings() {
         return _protectionVarraySettings;
     }
-    
+
     public void setProtectionVarraySettings(final StringMap protectionVarraySettings) {
         _protectionVarraySettings = protectionVarraySettings;
         setChanged("protectionVarraySettings");
     }
-    
+
     public void addVirtualArrays(final Set<String> vArrayURIs) {
         if (vArrayURIs != null && !vArrayURIs.isEmpty()) {
             // Must be a HashSet to ensure AbstractChangeTrackingSet
@@ -487,7 +490,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
         }
     }
-    
+
     public void removeVirtualArrays(final Set<String> varrayURIs) {
         if (varrayURIs != null && !varrayURIs.isEmpty() && _virtualArrays != null) {
             // Must be a HashSet to ensure AbstractChangeTrackingSet
@@ -498,69 +501,69 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             _virtualArrays.removeAll(removeVarrays);
         }
     }
-    
+
     @Name("refVirtualPool")
     public String getRefVirtualPool() {
         return _refVirtualPool;
     }
-    
+
     public void setRefVirtualPool(final String refVirtualPool) {
         _refVirtualPool = refVirtualPool;
         setChanged("refVirtualPool");
     }
-    
+
     @Name("highAvailability")
     public String getHighAvailability() {
         return _highAvailability;
     }
-    
+
     public void setHighAvailability(final String highAvailability) {
         _highAvailability = highAvailability;
         setChanged("highAvailability");
     }
-    
+
     public void setSupportedProvisioningType(final String provisioningType) {
         _provisioningType = provisioningType;
         setChanged("provisioningType");
     }
-    
+
     @Name("provisioningType")
     public String getSupportedProvisioningType() {
         return _provisioningType;
     }
-    
+
     @Name("useMatchedPools")
     public Boolean getUseMatchedPools() {
         return _useMatchedPools;
     }
-    
+
     public void setUseMatchedPools(final Boolean useMatchedPools) {
         _useMatchedPools = useMatchedPools;
         setChanged("useMatchedPools");
     }
-    
+
     @Name("matchedPools")
     @RelationIndex(cf = "MatchedPoolsToVpool", type = StoragePool.class)
     @IndexByKey
     public StringSet getMatchedStoragePools() {
         return _matchedStoragePools;
     }
-    
+
     public void setMatchedStoragePools(final StringSet matchedStoragePools) {
         _matchedStoragePools = matchedStoragePools;
     }
-    
+
     @Name("assignedStoragePools")
     @RelationIndex(cf = "AssignedPoolsToVpool", type = StoragePool.class)
     @IndexByKey
     public StringSet getAssignedStoragePools() {
         return _assignedStoragePools;
     }
-    
+
     public void setAssignedStoragePools(final StringSet assignedStoragePools) {
         _assignedStoragePools = assignedStoragePools;
     }
-    
+
     /**
      * Add all passed assigned pool URI to VirtualPool
      * 
@@ -576,7 +579,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
         }
     }
-    
+
     /**
      * This method is used to update the assignedPools.
      * 
@@ -588,7 +591,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         _assignedStoragePools.addAll(poolsToUpdate);
     }
-    
+
     /**
      * Add all passed matched pool URI to VirtualPool. Clear if there are any existing pools in db
      * before updating.
@@ -605,7 +608,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
         }
     }
-    
+
     /**
      * Removes the passed pool URIs from the set of storage pools assigned to the storage pool by
      * the user.
@@ -623,18 +626,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             _assignedStoragePools.removeAll(removeStoragePools);
         }
     }
-    
+
     @Name("invalidMatchedPools")
     @RelationIndex(cf = "InvalidPoolsToVpool", type = StoragePool.class)
     @IndexByKey
     public StringSet getInvalidMatchedPools() {
         return _invalidMatchedPools;
     }
-    
+
     public void setInvalidMatchedPools(final StringSet invalidMatchedPools) {
         _invalidMatchedPools = invalidMatchedPools;
     }
-    
+
     /**
      * Add all passed invalid pool URI to VirtualPOol. Clear if there are any existing pools in db
      * before updating.
@@ -651,182 +654,182 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
         }
     }
-    
+
     public void addArrayInfoDetails(final StringSetMap arrayInfo) {
-        if (null != _arrayInfo)
+        if (null != _arrayInfo) {
             _arrayInfo.clear();
-        else
+        } else {
             setArrayInfo(new StringSetMap());
+        }
         if (null != arrayInfo && arrayInfo.size() > 0) {
             _arrayInfo.putAll(arrayInfo);
         }
     }
-    
+
     public void setArrayInfo(final StringSetMap arrayInfo) {
         _arrayInfo = arrayInfo;
     }
-    
+
     @Name("arrayInfo")
     public StringSetMap getArrayInfo() {
         return _arrayInfo;
     }
-    
+
     public void setDriveType(final String driveType) {
         _driveType = driveType;
         setChanged("driveType");
     }
-    
+
     @EnumType(SupportedDriveTypes.class)
     @Name("driveType")
     public String getDriveType() {
         return _driveType;
     }
-    
+
     public void setJournalSize(final String journalSize) {
         _journalSize = journalSize;
         setChanged("journalSize");
     }
-    
+
     @Name("journalSize")
     public String getJournalSize() {
         return _journalSize;
     }
-    
+
     @Name("journalVarray")
-	public String getJournalVarray() {
-		return _journalVarray;
-	}
+    public String getJournalVarray() {
+        return _journalVarray;
+    }
 
-	public void setJournalVarray(String _journalVarray) {
-		this._journalVarray = _journalVarray;
-		setChanged("journalVarray");
-	}
+    public void setJournalVarray(String _journalVarray) {
+        this._journalVarray = _journalVarray;
+        setChanged("journalVarray");
+    }
 
-	@Name("journalVpool")
-	public String getJournalVpool() {
-		return _journalVpool;
-	}
+    @Name("journalVpool")
+    public String getJournalVpool() {
+        return _journalVpool;
+    }
 
-	public void setJournalVpool(String _journalVpool) {
-		this._journalVpool = _journalVpool;
-		setChanged("journalVpool");
-	}
+    public void setJournalVpool(String _journalVpool) {
+        this._journalVpool = _journalVpool;
+        setChanged("journalVpool");
+    }
 
-	@Name("standbyJournalVarray")
-	public String getStandbyJournalVarray() {
-		return _standbyJournalVarray;
-	}
+    @Name("standbyJournalVarray")
+    public String getStandbyJournalVarray() {
+        return _standbyJournalVarray;
+    }
 
-	public void setStandbyJournalVarray(String _standbyJournalVarray) {
-		this._standbyJournalVarray = _standbyJournalVarray;
-		setChanged("standbyJournalVarray");
-	}
+    public void setStandbyJournalVarray(String _standbyJournalVarray) {
+        this._standbyJournalVarray = _standbyJournalVarray;
+        setChanged("standbyJournalVarray");
+    }
 
-	@Name("standbyJournalVpool")
-	public String getStandbyJournalVpool() {
-		return _standbyJournalVpool;
-	}
+    @Name("standbyJournalVpool")
+    public String getStandbyJournalVpool() {
+        return _standbyJournalVpool;
+    }
 
-	public void setStandbyJournalVpool(String _standbyJournalVpool) {
-		this._standbyJournalVpool = _standbyJournalVpool;
-		setChanged("standbyJournalVpool");
-	}
-	
+    public void setStandbyJournalVpool(String _standbyJournalVpool) {
+        this._standbyJournalVpool = _standbyJournalVpool;
+        setChanged("standbyJournalVpool");
+    }
+
     @AlternateId("AltIdIndex")
     @Name("mirrorVirtualPool")
     public String getMirrorVirtualPool() {
         return _mirrorVirtualPool;
     }
-    
+
     public void setMirrorVirtualPool(final String mirrorVirtualPool) {
         _mirrorVirtualPool = mirrorVirtualPool;
         setChanged("mirrorVirtualPool");
     }
-    
+
     @Name("maxNativeSnapshots")
     public Integer getMaxNativeSnapshots() {
         return _maxNativeSnapshots;
     }
-    
+
     public void setMaxNativeSnapshots(final Integer maxNativeSnapshots) {
         _maxNativeSnapshots = maxNativeSnapshots > 0 ? maxNativeSnapshots : 0;
         setChanged("maxNativeSnapshots");
     }
-    
+
     @Name("maxNativeContinuousCopies")
     public Integer getMaxNativeContinuousCopies() {
         return _maxNativeContinuousCopies;
     }
-    
+
     public void setMaxNativeContinuousCopies(final Integer maxNativeContinuousCopies) {
         _maxNativeContinuousCopies = maxNativeContinuousCopies > 0 ? maxNativeContinuousCopies : 0;
         setChanged("maxNativeContinuousCopies");
     }
-    
+
     public void setAutoTierPolicyName(final String autoTierPolicyName) {
         _autoTierPolicyName = autoTierPolicyName;
         setChanged("autoTierPolicyName");
     }
-    
+
     @Name("autoTierPolicyName")
     public String getAutoTierPolicyName() {
         return _autoTierPolicyName;
     }
 
     public boolean checkRpRpoValueSet() {
-    	return _rpRpoValue != null && _rpRpoValue > 0;
+        return _rpRpoValue != null && _rpRpoValue > 0;
     }
-    
-    @Name("rpRpoValue")
-	public Long getRpRpoValue() {
-		return _rpRpoValue;
-	}
 
-	public void setRpRpoValue(Long rpRpoValue) {
-		this._rpRpoValue = rpRpoValue;
+    @Name("rpRpoValue")
+    public Long getRpRpoValue() {
+        return _rpRpoValue;
+    }
+
+    public void setRpRpoValue(Long rpRpoValue) {
+        this._rpRpoValue = rpRpoValue;
         setChanged("rpRpoValue");
-	}
+    }
 
     @Name("rpRpoType")
-	public String getRpRpoType() {
-		return _rpRpoType;
-	}
+    public String getRpRpoType() {
+        return _rpRpoType;
+    }
 
-	public void setRpRpoType(String rpRpoType) {
-		this._rpRpoType = rpRpoType;
+    public void setRpRpoType(String rpRpoType) {
+        this._rpRpoType = rpRpoType;
         setChanged("rpRpoType");
-	}
+    }
 
     @Name("rpCopyMode")
-	public String getRpCopyMode() {
-		return _rpCopyMode;
-	}
+    public String getRpCopyMode() {
+        return _rpCopyMode;
+    }
 
-	public void setRpCopyMode(String rpCopyMode) {
-		this._rpCopyMode = rpCopyMode;
+    public void setRpCopyMode(String rpCopyMode) {
+        this._rpCopyMode = rpCopyMode;
         setChanged("rpCopyMode");
-	}
+    }
 
-	@Name("haVarrayVpoolMap")
+    @Name("haVarrayVpoolMap")
     public StringMap getHaVarrayVpoolMap() {
         return _haVarrayVpoolMap;
     }
-    
+
     public void setHaVarrayVpoolMap(final StringMap haVarrayVpoolMap) {
         _haVarrayVpoolMap = haVarrayVpoolMap;
         setChanged("haVarrayVpoolMap");
     }
-    
+
     @Name("expandable")
     public Boolean getExpandable() {
         return _expandable;
     }
-    
+
     public void setExpandable(final Boolean expandable) {
         this._expandable = expandable;
         setChanged("expandable");
     }
-
 
     @Name("fastExpansion")
     public Boolean getFastExpansion() {
@@ -837,6 +840,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         _fastExpansion = fastExpansion;
         setChanged("fastExpansion");
     }
+
     /**
      * Returns whether or not the passed VirtualPool specifies VPlex high availability.
      * 
@@ -850,22 +854,22 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                 && (VirtualPool.HighAvailabilityType.vplex_local.name().equals(highAvailability) || VirtualPool.HighAvailabilityType.vplex_distributed
                         .name().equals(highAvailability));
     }
-    
+
     /**
-     * Returns whether or not the passed VirtualPool specifies MetroPoint.  This requires
+     * Returns whether or not the passed VirtualPool specifies MetroPoint. This requires
      * the MetroPoint flag to be enabled along with RP protection and VPLex distributed.
      * 
      * @param virtualPool A reference to the VirtualPool
      * @return true if the VirtualPool specifies MetroPoint, false otherwise.
      */
     public static boolean vPoolSpecifiesMetroPoint(final VirtualPool virtualPool) {
-    	Boolean metroPoint = virtualPool.getMetroPoint();
-    	String highAvailability = virtualPool.getHighAvailability();
-    	return metroPoint != null && metroPoint 
-    			&& vPoolSpecifiesProtection(virtualPool) 
-    			&& highAvailability != null && VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability); 
+        Boolean metroPoint = virtualPool.getMetroPoint();
+        String highAvailability = virtualPool.getHighAvailability();
+        return metroPoint != null && metroPoint
+                && vPoolSpecifiesProtection(virtualPool)
+                && highAvailability != null && VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability);
     }
-    
+
     /**
      * Returns whether or not the passed VirtualPool specifies Protection
      * 
@@ -877,17 +881,17 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return virtualPool.getProtectionVarraySettings() != null
                 && !virtualPool.getProtectionVarraySettings().isEmpty();
     }
-    
+
     /**
      * @param virtualPool
      *            A reference to the VirtualPool.
      * @return true if the VirtualPool specifies RP + VPLEX, false otherwise.
      */
     public static boolean vPoolSpecifiesRPVPlex(final VirtualPool virtualPool) {
-        return (vPoolSpecifiesProtection(virtualPool) 
-                && vPoolSpecifiesHighAvailability(virtualPool));
+        return (vPoolSpecifiesProtection(virtualPool)
+        && vPoolSpecifiesHighAvailability(virtualPool));
     }
-    
+
     /**
      * Convenience method to determine if the Virtual Pool supports mirrors
      * 
@@ -896,16 +900,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      * @return true if supports mirrors
      */
     public static boolean vPoolSpecifiesMirrors(final VirtualPool virtualPool, DbClient dbClient) {
-        if (virtualPool.getHighAvailability() != null && virtualPool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())){
+        if (virtualPool.getHighAvailability() != null
+                && virtualPool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {
             boolean supportsMirror = false;
             if (virtualPool.getMaxNativeContinuousCopies() == null) {
                 supportsMirror = false;
             } else {
-                supportsMirror = virtualPool.getMaxNativeContinuousCopies() != VirtualPool.MAX_DISABLED && virtualPool.getMirrorVirtualPool() != null;
+                supportsMirror = virtualPool.getMaxNativeContinuousCopies() != VirtualPool.MAX_DISABLED
+                        && virtualPool.getMirrorVirtualPool() != null;
             }
-            if(supportsMirror) {
+            if (supportsMirror) {
                 // If source side supports mirror then just return
-                return supportsMirror ;
+                return supportsMirror;
             } else {
                 // If we are here means source side do not support mirrors
                 // hence we need to check HA side as well
@@ -913,7 +919,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                 if (haVpool == null) {
                     supportsMirror = false;
                 } else {
-                    supportsMirror = haVpool.getMaxNativeContinuousCopies() != VirtualPool.MAX_DISABLED && haVpool.getMirrorVirtualPool() != null;
+                    supportsMirror = haVpool.getMaxNativeContinuousCopies() != VirtualPool.MAX_DISABLED
+                            && haVpool.getMirrorVirtualPool() != null;
                 }
             }
             return supportsMirror;
@@ -933,10 +940,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      * 
      * @return returns HA VPool if its set else returns null
      */
-    public static VirtualPool getHAVPool(VirtualPool sourceVirtualPool, DbClient dbClient){
+    public static VirtualPool getHAVPool(VirtualPool sourceVirtualPool, DbClient dbClient) {
         VirtualPool haVPool = null;
         StringMap haVarrayVpoolMap = sourceVirtualPool.getHaVarrayVpoolMap();
-        if (haVarrayVpoolMap != null 
+        if (haVarrayVpoolMap != null
                 && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
             String haVpoolStr = haVarrayVpoolMap.get(haVarrayStr);
@@ -946,7 +953,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return haVPool;
     }
-    
+
     /**
      * Convenience method to determine if the Virtual Pool supports snapshots
      * 
@@ -960,7 +967,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return virtualPool.getMaxNativeSnapshots() != MAX_DISABLED;
     }
-    
+
     /**
      * Convenience method to determine if the Virtual Pool supports SRDF
      * 
@@ -975,7 +982,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return true;
     }
-    
+
     /**
      * Convenience method to determine if the Virtual Pool supports expansion.
      * 
@@ -986,52 +993,52 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         return virtualPool.getExpandable() != null
                 && virtualPool.getExpandable();
     }
-    
+
     @Name("thinVolumePreAllocationPercentage")
     public Integer getThinVolumePreAllocationPercentage() {
         return _thinVolumePreAllocationPercentage;
     }
-    
+
     public void setThinVolumePreAllocationPercentage(final Integer thinVolumePreAllocationPercentage) {
         _thinVolumePreAllocationPercentage = thinVolumePreAllocationPercentage;
         setChanged("thinVolumePreAllocationPercentage");
     }
-    
+
     @Name("quota")
     public Long getQuota() {
         return null == _quotaGB ? 0L : _quotaGB;
     }
-    
+
     public void setQuota(final Long quota) {
         _quotaGB = quota;
         setChanged("quota");
     }
-    
+
     @Name("quotaEnabled")
     public Boolean getQuotaEnabled() {
         return _quotaEnabled == null ? false : _quotaEnabled;
     }
-    
+
     public void setQuotaEnabled(final Boolean enable) {
         _quotaEnabled = enable;
         setChanged("quotaEnabled");
     }
-    
+
     @Name("multivolumeconsistency")
     public Boolean getMultivolumeConsistency() {
         return _multivolumeconsistency;
     }
-    
+
     public void setMultivolumeConsistency(final Boolean _multivolumeconsistency) {
         this._multivolumeconsistency = _multivolumeconsistency;
         setChanged("multivolumeconsistency");
     }
-    
+
     @Name("uniquePolicyNames")
     public Boolean getUniquePolicyNames() {
         return uniquePolicyNames;
     }
-    
+
     public void setUniquePolicyNames(final Boolean uniquePolicyNames) {
         this.uniquePolicyNames = uniquePolicyNames;
         setChanged("uniquePolicyNames");
@@ -1081,11 +1088,11 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return validPools;
     }
-    
+
     /**
      * return pools based on the useMatchedPools flag set. remove if there are
      * any invalid pools.
-     *
+     * 
      * @param virtualPool : VirtualPool to find valid pools.
      * @return
      */
@@ -1096,7 +1103,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             for (String poolStr : storagePools) {
                 StoragePool pool = dbClient.queryObject(StoragePool.class,
                         URI.create(poolStr));
-                if(!pool.getInactive()){
+                if (!pool.getInactive()) {
                     invalidPools.add(pool);
                 }
             }
@@ -1124,7 +1131,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return settings;
     }
-    
+
     /**
      * Return the remote protection setting objects associated with this virtual pool.
      * 
@@ -1147,17 +1154,17 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return settings;
     }
-    
+
     public static Map<String, List<String>> groupRemoteCopyModesByVPool(final VirtualPool vpool,
             final DbClient dbClient) {
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
-                                            getRemoteProtectionSettings(vpool,dbClient);
-        return groupRemoteCopyModesByVPool(vpool.getId(),remoteSettingsMap);
+                getRemoteProtectionSettings(vpool, dbClient);
+        return groupRemoteCopyModesByVPool(vpool.getId(), remoteSettingsMap);
     }
 
     public static Map<String, List<String>> groupRemoteCopyModesByVPool(
-                              URI defaultVpool,
-                              Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap) {
+            URI defaultVpool,
+            Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap) {
         Map<String, List<String>> settings = new HashMap<String, List<String>>();
         if (remoteSettingsMap != null && !remoteSettingsMap.isEmpty()) {
             for (VpoolRemoteCopyProtectionSettings remoteSettings : remoteSettingsMap.values()) {
@@ -1176,12 +1183,12 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return settings;
     }
-    
+
     @Name("remoteProtectionSettings")
     public StringMap getProtectionRemoteCopySettings() {
         return _protectionRemoteCopySettings;
     }
-    
+
     public void setProtectionRemoteCopySettings(final StringMap _protectionRemoteCopySettings) {
         this._protectionRemoteCopySettings = _protectionRemoteCopySettings;
     }
@@ -1199,52 +1206,52 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("haVarrayConnectedToRp")
     public String getHaVarrayConnectedToRp() {
-		return haVarrayConnectedToRp;
-	}
+        return haVarrayConnectedToRp;
+    }
 
-	public void setHaVarrayConnectedToRp(String haVarrayConnectedToRp) {
-		this.haVarrayConnectedToRp = haVarrayConnectedToRp;
-		setChanged("haVarrayConnectedToRp");
-	}
+    public void setHaVarrayConnectedToRp(String haVarrayConnectedToRp) {
+        this.haVarrayConnectedToRp = haVarrayConnectedToRp;
+        setChanged("haVarrayConnectedToRp");
+    }
 
-	@Name("metroPoint")
-	public Boolean getMetroPoint() {
-		return metroPoint;
-	}
+    @Name("metroPoint")
+    public Boolean getMetroPoint() {
+        return metroPoint;
+    }
 
-	public void setMetroPoint(Boolean metroPoint) {
-		this.metroPoint = metroPoint;
-		setChanged("metroPoint");
-	}
-	
-	/**
-	 * This method checks if the passed vpool is set as the continuous copies vpool for any of the vpool.
+    public void setMetroPoint(Boolean metroPoint) {
+        this.metroPoint = metroPoint;
+        setChanged("metroPoint");
+    }
+
+    /**
+     * This method checks if the passed vpool is set as the continuous copies vpool for any of the vpool.
      * If yes returns virtual pool names where it is used as continuous copies vpool.
-	 * 
-	 * @param vpool
-	 * @param dbClient dbClient an instance of {@link DbClient}
-	 * 
-	 * @return comma separated names of the virtual pool in which this vpool is
-	 *         in use as a continuous copies vpool else empty string
-	 */
-    public static String isContinuousCopiesVpool(VirtualPool vpool, DbClient dbClient){
+     * 
+     * @param vpool
+     * @param dbClient dbClient an instance of {@link DbClient}
+     * 
+     * @return comma separated names of the virtual pool in which this vpool is
+     *         in use as a continuous copies vpool else empty string
+     */
+    public static String isContinuousCopiesVpool(VirtualPool vpool, DbClient dbClient) {
         StringBuilder virtualPoolNameBuilder = new StringBuilder();
         URIQueryResultList virtualPoolURIs = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVirtualPoolByMirrorVpool(vpool.getId().toString()), virtualPoolURIs);
-        for (URI uri :  virtualPoolURIs){
+        for (URI uri : virtualPoolURIs) {
             VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, uri);
-            if(virtualPool != null && !virtualPool.getInactive()){
-                if(virtualPoolNameBuilder.length() == 0){
+            if (virtualPool != null && !virtualPool.getInactive()) {
+                if (virtualPoolNameBuilder.length() == 0) {
                     virtualPoolNameBuilder.append(virtualPool.getLabel());
-                }else{
+                } else {
                     virtualPoolNameBuilder.append(", ").append(virtualPool.getLabel());
                 }
             }
         }
         return virtualPoolNameBuilder.toString();
     }
-    
+
     /**
      * Determine whether or not this vpool is set to protect the HA side of
      * an RP+VPLEX setup instead of the Source side.
@@ -1255,10 +1262,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public static boolean isRPVPlexProtectHASide(VirtualPool vpool) {
         return (NullColumnValueGetter.isNotNullValue(vpool.getHaVarrayConnectedToRp())
                 && VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(vpool.getHighAvailability())
-                && VirtualPool.vPoolSpecifiesRPVPlex(vpool) 
+                && VirtualPool.vPoolSpecifiesRPVPlex(vpool)
                 && !VirtualPool.vPoolSpecifiesMetroPoint(vpool));
     }
-    
+
     @Name("hostIOLimitBandwidth")
     public Integer getHostIOLimitBandwidth() {
         return _hostIOLimitBandwidth;
@@ -1266,7 +1273,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     public void setHostIOLimitBandwidth(Integer limitHostBandwidth) {
         // ensure number is 0 or above
-        this._hostIOLimitBandwidth = limitHostBandwidth == null ? null : Math.max(0,limitHostBandwidth);
+        this._hostIOLimitBandwidth = limitHostBandwidth == null ? null : Math.max(0, limitHostBandwidth);
         setChanged("hostIOLimitBandwidth");
     }
 
@@ -1277,10 +1284,10 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     public void setHostIOLimitIOPs(Integer limitHostIOPs) {
         // ensure number is 0 or above
-        this._hostIOLimitIOPs = limitHostIOPs == null ? null: Math.max(0,limitHostIOPs);
+        this._hostIOLimitIOPs = limitHostIOPs == null ? null : Math.max(0, limitHostIOPs);
         setChanged("hostIOLimitIOPs");
     }
-    
+
     public boolean isHostIOLimitIOPsSet() {
         return _hostIOLimitIOPs != null && _hostIOLimitIOPs > 0;
     }
@@ -1291,12 +1298,14 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     @Name("autoCrossConnectExport")
     public Boolean getAutoCrossConnectExport() {
-        if (autoCrossConnectExport == null) return false;
+        if (autoCrossConnectExport == null) {
+            return false;
+        }
         return autoCrossConnectExport;
     }
 
     public void setAutoCrossConnectExport(Boolean autoCrossConnectExport) {
         this.autoCrossConnectExport = autoCrossConnectExport;
         setChanged("autoCrossConnectExport");
-    }            
+    }
 }

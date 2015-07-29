@@ -13,7 +13,6 @@
  * it is provided by or on behalf of EMC.
  */
 
-
 package com.emc.storageos.model.block.tier;
 
 import com.emc.storageos.model.BulkRestRep;
@@ -26,6 +25,7 @@ import java.util.List;
 @XmlRootElement(name = "bulk_auto_tiering_policies")
 public class AutoTieringPolicyBulkRep extends BulkRestRep {
     private List<AutoTieringPolicyRestRep> autoTierPolicies;
+
     /**
      * List of auto tiering policies
      * 

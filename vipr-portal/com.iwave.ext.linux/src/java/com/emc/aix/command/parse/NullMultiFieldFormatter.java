@@ -4,12 +4,12 @@
  */
 package com.emc.aix.command.parse;
 
-public class NullMultiFieldFormatter implements MultiFieldFormatter{
+public class NullMultiFieldFormatter implements MultiFieldFormatter {
 
     @Override
-    public Object format(Object ... sources) {
+    public Object format(Object... sources) {
         String output = "";
-        for(Object s : sources){
+        for (Object s : sources) {
             output += s.toString();
         }
         return output;

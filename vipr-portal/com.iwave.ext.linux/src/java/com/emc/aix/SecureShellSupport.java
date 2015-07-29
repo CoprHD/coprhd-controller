@@ -21,59 +21,60 @@ public abstract class SecureShellSupport {
     private String password;
     /** The ID of the host to which this CLI connects */
     private URI hostId;
-    
-    public SecureShellSupport(){}
+
+    public SecureShellSupport() {
+    }
 
     public SecureShellSupport(String host, String username, String password) {
         this.host = host;
         this.username = username;
         this.password = password;
     }
-    
+
     public SecureShellSupport(String host, int port, String username, String password) {
         this.host = host;
         this.port = port;
         this.username = username;
         this.password = password;
     }
-    
+
     public CommandOutput executeCommand(String commandString) {
         Command command = new Command();
         command.setCommand(commandString);
         executeCommand(command);
         return command.getOutput();
     }
-    
+
     public abstract void executeCommand(Command command);
-    
+
     public String getHost() {
         return host;
     }
-    
+
     public void setHost(String host) {
         this.host = host;
     }
-    
+
     public int getPort() {
         return port;
     }
-    
+
     public void setPort(int port) {
         this.port = port;
     }
-    
+
     public String getUsername() {
         return username;
     }
-    
+
     public void setUsername(String username) {
         this.username = username;
     }
-    
+
     public String getPassword() {
         return password;
     }
-    
+
     public void setPassword(String password) {
         this.password = password;
     }

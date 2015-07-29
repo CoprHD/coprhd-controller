@@ -35,7 +35,7 @@ import controllers.tenant.TenantSelector;
 import controllers.util.Models;
 
 @With(Common.class)
-@Restrictions({ @Restrict("TENANT_ADMIN")})
+@Restrictions({ @Restrict("TENANT_ADMIN") })
 public class ScheduledOrders extends Controller {
 
     protected static final String CANCELLED = "ScheduledOrder.cancel.success";
@@ -63,7 +63,7 @@ public class ScheduledOrders extends Controller {
         ScheduledOrdersDataTable dataTable = new ScheduledOrdersDataTable();
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchData(dataTableParams), params));
     }
-    
+
     public static void itemsJson(@As(",") String[] ids) {
         List<ScheduledOrderInfo> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {

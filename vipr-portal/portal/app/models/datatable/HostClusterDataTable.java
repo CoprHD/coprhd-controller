@@ -11,7 +11,7 @@ import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 
 public class HostClusterDataTable extends DataTable {
-    
+
     public HostClusterDataTable() {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("discovered").setRenderFunction("render.boolean");
@@ -19,11 +19,11 @@ public class HostClusterDataTable extends DataTable {
         setDefaultSort("name", "asc");
     }
 
-    public static class HostClusterInfo  {
+    public static class HostClusterInfo {
         public String id;
         public String name;
         public boolean discovered;
-        
+
         public HostClusterInfo() {
         }
 
@@ -32,7 +32,7 @@ public class HostClusterDataTable extends DataTable {
             this.name = getClusterName(cluster);
             this.discovered = cluster.getVcenterDataCenter() != null;
         }
-        
+
         private String getClusterName(ClusterRestRep cluster) {
             if (cluster.getVcenterDataCenter() != null) {
                 VcenterDataCenterRestRep datacenter = getViprClient().vcenterDataCenters().get(cluster.getVcenterDataCenter());
@@ -41,5 +41,5 @@ public class HostClusterDataTable extends DataTable {
             return cluster.getName();
         }
     }
-    
+
 }

@@ -43,24 +43,24 @@ public class TestSysServiceBeacon extends CoordinatorTestBase {
         String curVersion = "current_version";
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/syssvc-config.xml");
-        SysSvcImpl sysservice = (SysSvcImpl)ctx.getBean(SERVICE_BEAN);
+        SysSvcImpl sysservice = (SysSvcImpl) ctx.getBean(SERVICE_BEAN);
         sysservice.start();
         ServiceImpl svc = (ServiceImpl) ctx.getBean(SERVICE_INFO);
         CoordinatorClient client = connectClient();
-        SysSvcBeaconImpl beacon=(SysSvcBeaconImpl) ctx.getBean(BEACON_BEAN);
+        SysSvcBeaconImpl beacon = (SysSvcBeaconImpl) ctx.getBean(BEACON_BEAN);
 
-        List<Service> found = client.locateAllServices(svc.getName(), svc.getVersion(), (String)null, null);
+        List<Service> found = client.locateAllServices(svc.getName(), svc.getVersion(), (String) null, null);
         Assert.assertNotNull(found);
         Assert.assertEquals(found.size(), 1);
         Service first = found.get(0);
         Assert.assertEquals(first.getId(), svc.getId());
         Assert.assertEquals(first.getEndpoint(), svc.getEndpoint());
         Assert.assertEquals(first.getAttribute(curVersion), null);
-        
+
         svc.setAttribute(curVersion, "2");
         beacon.publish();
 
-        found = client.locateAllServices(svc.getName(), svc.getVersion(), (String)null, null);
+        found = client.locateAllServices(svc.getName(), svc.getVersion(), (String) null, null);
         Assert.assertNotNull(found);
         Assert.assertEquals(found.size(), 1);
         first = found.get(0);
@@ -71,4 +71,3 @@ public class TestSysServiceBeacon extends CoordinatorTestBase {
         sysservice.stop();
     }
 }
-

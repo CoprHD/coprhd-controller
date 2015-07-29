@@ -26,13 +26,14 @@ public class BaseZoneInfo implements Serializable {
     public BaseZoneInfo(String name) {
         this.name = name;
     }
-    
+
     public String getInstanceID() {
-		return instanceID;
-	}
-	public void setInstanceID(String instanceID) {
-		this.instanceID = instanceID;
-	}
+        return instanceID;
+    }
+
+    public void setInstanceID(String instanceID) {
+        this.instanceID = instanceID;
+    }
 
     public String getName() {
         return name;
@@ -48,7 +49,7 @@ public class BaseZoneInfo implements Serializable {
 
     public void setActive(Boolean active) {
         this.active = active;
-    }   
+    }
 
     public Boolean getExistingZone() {
         return existingZone;

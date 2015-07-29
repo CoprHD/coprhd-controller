@@ -37,14 +37,15 @@ public class NotFoundExceptionTest extends BaseServiceCodeExceptionTest {
     public void idNotFoundInURL() {
         final URI id = knownId;
         final NotFoundException exception = APIException.notFound.unableToFindEntityInURL(id);
-		assertException(MESSAGE_NOT_FOUND_IN_URL + id, API_URL_ENTITY_NOT_FOUND.getCode(),
-				"Unable to find entity in request URL", NOT_FOUND.getStatusCode(), exception);
+        assertException(MESSAGE_NOT_FOUND_IN_URL + id, API_URL_ENTITY_NOT_FOUND.getCode(),
+                "Unable to find entity in request URL", NOT_FOUND.getStatusCode(), exception);
     }
 
     @Test
     public void idNotFoundInParam() {
         final URI id = knownId;
         final APIException exception = APIException.badRequests.unableToFindEntity(id);
-        assertException(MESSAGE_NOT_FOUND_IN_REQUEST + id, API_PARAMETER_NOT_FOUND.getCode(), "Request parameter cannot be found", BAD_REQUEST.getStatusCode(), exception);
+        assertException(MESSAGE_NOT_FOUND_IN_REQUEST + id, API_PARAMETER_NOT_FOUND.getCode(), "Request parameter cannot be found",
+                BAD_REQUEST.getStatusCode(), exception);
     }
 }

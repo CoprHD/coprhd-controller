@@ -27,7 +27,7 @@ public class IsilonException extends InternalException {
 
     /** Holds the methods used to create Isilon related error conditions */
     public static IsilonErrors errors = ExceptionMessagesProxy
-    .create(IsilonErrors.class);
+            .create(IsilonErrors.class);
 
     private IsilonException(final ServiceCode code, final Throwable cause,
             final String detailBase, final String detailKey, final Object[] detailParams) {

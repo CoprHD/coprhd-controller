@@ -11,8 +11,8 @@ import com.emc.storageos.model.auth.*;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 
 /**
-  * This class maps between Authn Provider object model and rest representations 
-  */
+ * This class maps between Authn Provider object model and rest representations
+ */
 public class AuthMapper {
     public static final AuthnProviderRestRep map(AuthnProvider from) {
         if (from == null) {
@@ -51,7 +51,7 @@ public class AuthMapper {
         }
         if (from.getDomains() != null && !from.getDomains().isEmpty()) {
             StringSet trimmedDomains = new StringSet();
-            for(String domain : from.getDomains() ) {
+            for (String domain : from.getDomains()) {
                 // Strip whitespace and convert domain to lowercase
                 trimmedDomains.add(domain.trim().toLowerCase());
             }
@@ -90,28 +90,29 @@ public class AuthMapper {
             authn.setDescription(from.getDescription());
         }
 
-        if (from.getMaxPageSize() != null ) {
+        if (from.getMaxPageSize() != null) {
             authn.setMaxPageSize(from.getMaxPageSize());
         }
-        
-        if (from.getGroupObjectClasses() != null){
-        	ss = new StringSet();
-        	ss.addAll(from.getGroupObjectClasses());
-        	authn.setGroupObjectClassNames(ss);
+
+        if (from.getGroupObjectClasses() != null) {
+            ss = new StringSet();
+            ss.addAll(from.getGroupObjectClasses());
+            authn.setGroupObjectClassNames(ss);
         }
-        
-        if (from.getGroupMemberAttributes() != null){
-        	ss = new StringSet();
-        	ss.addAll(from.getGroupMemberAttributes());
-        	authn.setGroupMemberAttributeTypeNames(ss);
+
+        if (from.getGroupMemberAttributes() != null) {
+            ss = new StringSet();
+            ss.addAll(from.getGroupMemberAttributes());
+            authn.setGroupMemberAttributeTypeNames(ss);
         }
 
         return authn;
     }
-    
+
     /**
      * Generate an AuthnProviderParams object from an input rest AuthnProviderBaseParam
-     * and db model provider.  It merges the two.
+     * and db model provider. It merges the two.
+     * 
      * @param param the input parameter to post or put
      * @param provider the existing provider if applicable
      * @return AuthnProviderParamsToValidate
@@ -127,7 +128,8 @@ public class AuthMapper {
             authnToValidate.setMode(param.getMode());
         } else {
             authnToValidate.setManagerDN((param.getManagerDn() == null) ? provider.getManagerDN() : param.getManagerDn());
-            authnToValidate.setManagerPwd((param.getManagerPassword() == null) ? provider.getManagerPassword() : param.getManagerPassword());
+            authnToValidate
+                    .setManagerPwd((param.getManagerPassword() == null) ? provider.getManagerPassword() : param.getManagerPassword());
             authnToValidate.setSearchBase((param.getSearchBase() == null) ? provider.getSearchBase() : param.getSearchBase());
             authnToValidate.setGroupAttr((param.getGroupAttribute() == null) ? provider.getGroupAttribute() : param.getGroupAttribute());
             authnToValidate.setMode((param.getMode() == null) ? provider.getMode() : param.getMode());
@@ -138,14 +140,15 @@ public class AuthMapper {
     /**
      * Generate an AuthnProviderParamsToValidate object from an
      * input rest AuthnCreateParam.
+     * 
      * @param param the input parameter to post
      * @param provider the existing provider if applicable
      * @return AuthnProviderParamsToValidate
      */
     public static final AuthnProviderParamsToValidate mapToValidateCreate(AuthnCreateParam param,
-                                                                          AuthnProvider provider) {
+            AuthnProvider provider) {
         AuthnProviderParamsToValidate authnToValidate = mapToValidateCommon(param, provider);
-        if(provider == null) {
+        if (provider == null) {
             authnToValidate.getGroupObjectClasses().addAll(param.getGroupObjectClasses());
             authnToValidate.getGroupMemberAttributes().addAll(param.getGroupMemberAttributes());
         } else {
@@ -161,14 +164,15 @@ public class AuthMapper {
     /**
      * Generate an AuthnProviderParamsToValidate object from an
      * input rest AuthnUpdateParam.
+     * 
      * @param param the input parameter to put
      * @param provider the existing provider if applicable
      * @return AuthnProviderParamsToValidate
      */
     public static final AuthnProviderParamsToValidate mapToValidateUpdate(AuthnUpdateParam param,
-                                                                          AuthnProvider provider) {
+            AuthnProvider provider) {
         AuthnProviderParamsToValidate authnToValidate = mapToValidateCommon(param, provider);
-        if(provider == null) {
+        if (provider == null) {
             authnToValidate.getGroupObjectClasses().addAll(param.getGroupObjectClassChanges().getAdd());
             authnToValidate.getGroupMemberAttributes().addAll(param.getGroupMemberAttributeChanges().getAdd());
         } else {

@@ -57,12 +57,13 @@ public interface ExtendedCommunicationInterface extends CommunicationInterface {
 
     /**
      * Inject controller locking service
+     * 
      * @param locker An instance of ControllerLockingService
      */
     public void injectControllerLockingService(ControllerLockingService locker);
 
     /**
-     *  Inject Task Completer
+     * Inject Task Completer
      */
     public void injectTaskCompleter(TaskCompleter completer);
 

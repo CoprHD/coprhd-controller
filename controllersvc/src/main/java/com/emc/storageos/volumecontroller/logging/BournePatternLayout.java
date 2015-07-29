@@ -20,7 +20,7 @@ import org.apache.log4j.helpers.PatternParser;
 /**
  * Custom log4j PatternLayout is created to support custom arguments in the
  * layout ConversionPattern that allow the log message to specify customized
- * data in logged messages for example, the id of a provisioning operation 
+ * data in logged messages for example, the id of a provisioning operation
  * executed by the controller service as well as the id resource impacted by
  * that operation.
  */

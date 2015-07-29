@@ -6,7 +6,6 @@ package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
 import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 
-
 /**
  *  Copyright (c) 2012 EMC Corporation
  * All Rights Reserved

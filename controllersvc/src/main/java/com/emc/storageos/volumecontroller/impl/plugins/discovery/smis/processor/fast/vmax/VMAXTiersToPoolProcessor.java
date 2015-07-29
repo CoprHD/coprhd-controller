@@ -34,7 +34,8 @@ import java.util.Set;
 
 import static com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.AutoTieringPolicyProcessorHelper.getAutoTieringPolicyByNameFromDB;
 
-/** refer VMAXPolicyToTiersProcessor before looking into this comments
+/**
+ * refer VMAXPolicyToTiersProcessor before looking into this comments
  * Goal:
  * Get VMAX Storage Pools associated with each Tier.
  * Mapping had been already constructed between TierID --> Policy in VMAXPolicyToTiersProcessor
@@ -44,9 +45,10 @@ import static com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.pro
  */
 public class VMAXTiersToPoolProcessor extends AbstractFASTPolicyProcessor {
     private Logger _logger = LoggerFactory.getLogger(VMAXTiersToPoolProcessor.class);
-    
+
     private DbClient _dbClient;
     List<Object> _args;
+
     /**
      * {@inheritDoc}
      */
@@ -63,11 +65,11 @@ public class VMAXTiersToPoolProcessor extends AbstractFASTPolicyProcessor {
             CIMObjectPath tierPath = (CIMObjectPath) arguments[0];
             String tierID = (String) tierPath.getKey(
                     Constants.INSTANCEID).getValue();
-            // Mapping had been already constructed between TierID --> Policy 
+            // Mapping had been already constructed between TierID --> Policy
             List<CIMObjectPath> policyPaths = (List<CIMObjectPath>) keyMap.get(tierID);
-            //add Policy to Tier
-            addFastPolicyToTier(policyPaths,tierID);
-            //add Pools to Policy
+            // add Policy to Tier
+            addFastPolicyToTier(policyPaths, tierID);
+            // add Pools to Policy
             addStoragePoolstoPolicy(policyPaths, it, _dbClient, keyMap, tierID);
         } catch (Exception e) {
             _logger.error("Tiers to Pool Processing failed:", e);
@@ -78,7 +80,7 @@ public class VMAXTiersToPoolProcessor extends AbstractFASTPolicyProcessor {
     private void addFastPolicyToTier(List<CIMObjectPath> policyPaths, String tierID)
             throws IOException {
         Set<String> policyUris = new StringSet();
-        //getting policy uris from DB
+        // getting policy uris from DB
         for (CIMObjectPath path : policyPaths) {
             String policyID = getFASTPolicyID(path);
             AutoTieringPolicy policy = getAutoTieringPolicyByNameFromDB(policyID, _dbClient);

@@ -26,10 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class StorageVolumeViewProcessor extends StorageProcessor{
+public class StorageVolumeViewProcessor extends StorageProcessor {
 
     private static final String SVUSAGE = "SVUsage";
-    
+
     private Logger _logger = LoggerFactory.getLogger(StorageVolumeViewProcessor.class);
     private DbClient _dbClient;
     private List<Volume> _updateVolumes = null;
@@ -37,14 +37,14 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
     private List<BlockSnapshot> _updateSnapShots;
     private List<BlockMirror> _updateMirrors;
     private static final int BATCH_SIZE = 200;
-    
+
     private PartitionManager _partitionManager;
     List<CIMObjectPath> _metaVolumeViewPaths = null;
-    
+
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
     }
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -100,7 +100,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
             }
         }
     }
-    
+
     private void processVolumes(CloseableIterator<CIMInstance> volumeInstances,
             Map<String, Object> keyMap) throws IOException {
 
@@ -143,8 +143,9 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
 
                 // Check if this is a meta volume and if we need to set missing meta volume related properties.
                 // This is applicable for meta volumes discovered as unmanaged volumes and ingested prior to vipr controller 2.2 .
-                if (storageVolume.getIsComposite() && (storageVolume.getCompositionType() == null || storageVolume.getCompositionType().isEmpty())) {
-                // meta volume is missing meta related data. Need to discover this data and set in the volume.
+                if (storageVolume.getIsComposite()
+                        && (storageVolume.getCompositionType() == null || storageVolume.getCompositionType().isEmpty())) {
+                    // meta volume is missing meta related data. Need to discover this data and set in the volume.
                     metaVolumes.add(volumeViewInstance.getObjectPath());
                     _logger.info("Found meta volume in vipr with missing data: {}, name: {}",
                             volumeViewInstance.getObjectPath(), storageVolume.getLabel());
@@ -176,7 +177,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
 
     private boolean isMirror(CIMInstance volumeViewInstance) {
         String usage = getCIMPropertyValue(volumeViewInstance, SVUSAGE);
-        //8 refers to Mirror
+        // 8 refers to Mirror
         return usage.equalsIgnoreCase(EIGHT);
     }
 
@@ -185,7 +186,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
         // 12 refers to Snapshot
         return usage.equalsIgnoreCase(TWELVE);
     }
-    
+
     private void updateBlockSnapShot(CIMInstance volumeInstance,
             BlockSnapshot snapShot, Map<String, Object> keyMap) {
         snapShot.setAllocatedCapacity(Long.parseLong(getCIMPropertyValue(
@@ -194,7 +195,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
                 volumeInstance, keyMap));
         _updateSnapShots.add(snapShot);
     }
-    
+
     private void updateBlockMirror(CIMInstance volumeInstance,
             BlockMirror mirror, Map<String, Object> keyMap) {
         mirror.setAllocatedCapacity(Long.parseLong(getCIMPropertyValue(
@@ -203,7 +204,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
                 keyMap));
         _updateMirrors.add(mirror);
     }
-    
+
     private void updateStorageVolume(CIMInstance volumeInstance,
             Volume storageVolume, Map<String, Object> keyMap)
             throws IOException {
@@ -224,11 +225,11 @@ public class StorageVolumeViewProcessor extends StorageProcessor{
         _updateVolumes.add(storageVolume);
 
     }
-   
+
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
-       _args = inputArgs;
-        
+        _args = inputArgs;
+
     }
 }

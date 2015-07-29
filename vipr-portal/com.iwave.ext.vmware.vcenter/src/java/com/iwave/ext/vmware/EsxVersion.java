@@ -17,33 +17,36 @@ package com.iwave.ext.vmware;
 /**
  * 
  * EsxVersion
+ * 
  * @author kumara4
- *
+ * 
  */
 public class EsxVersion {
-	
-	/**
-	 * Esx version
-	 */
-	private String version;
-    
-	/**
-	 * Default constructor
-	 */
+
+    /**
+     * Esx version
+     */
+    private String version;
+
+    /**
+     * Default constructor
+     */
     public EsxVersion() {
         super();
     }
-    
+
     /**
-     * Constructor 
+     * Constructor
+     * 
      * @param version string
      */
     public EsxVersion(String version) {
         this.version = version;
     }
-    
+
     /**
      * Return version of Esx
+     * 
      * @return
      */
     public String getVersion() {
@@ -52,13 +55,13 @@ public class EsxVersion {
 
     /**
      * Set version
+     * 
      * @param version
      */
     public void setVersion(String version) {
         this.version = version;
     }
-    
-    
+
     @Override
     public String toString() {
         return this.version;

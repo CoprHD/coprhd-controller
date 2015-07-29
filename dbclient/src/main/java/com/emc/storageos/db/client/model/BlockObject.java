@@ -22,7 +22,7 @@ import com.emc.storageos.db.client.URIUtil;
 
 /**
  * @author burckb
- *
+ * 
  */
 public abstract class BlockObject extends DataObject {
 
@@ -37,15 +37,15 @@ public abstract class BlockObject extends DataObject {
 
     // native device ID to be indexed - this field is not exposed to client
     private String _nativeGuid;
-    
-    // these will include things like 
+
+    // these will include things like
     // thinProvisioned->Y/N, ALU->1,2,3, and raidLevel->RAID-1,RAID-6+2
     // may include volumeGroup->name for mapping multiple volumes
     private StringMap _extensions;
-    
+
     // Tag for grouping volumes that need to have consistent snapshots
     private URI _consistencyGroupId;
-    
+
     // Tag for grouping volumes that need to have consistent snapshots
     @Deprecated
     private StringSet consistencyGroups;
@@ -67,19 +67,19 @@ public abstract class BlockObject extends DataObject {
     // This value is an indicator that a the snapshot information is out-of-sync on the
     // provider side and an EMCRefresh will be required.
     private Boolean _emcRefreshRequired;
-    
+
     // Name reference of target replica consistency group. That is,
     // after a replica of consistency group is taken, the group of replica volumes
     // will be placed in a grouping. This String references that group instance.
     private String _replicationGroupInstance;
-    
+
     @AlternateId("AltIdIndex")
     @Name("wwn")
-    public String getWWN () {
+    public String getWWN() {
         return _wwn;
     }
 
-    public void setWWN (String wwn) {
+    public void setWWN(String wwn) {
         _wwn = BlockObject.normalizeWWN(wwn);
         setChanged("wwn");
     }
@@ -142,7 +142,8 @@ public abstract class BlockObject extends DataObject {
 
     /**
      * Set extensions map - overwrites existing one
-     * @param map      StringMap of extensions to set
+     * 
+     * @param map StringMap of extensions to set
      */
     public void setExtensions(StringMap map) {
         _extensions = map;
@@ -176,7 +177,7 @@ public abstract class BlockObject extends DataObject {
         this.consistencyGroups = consistencyGroups;
         setChanged("consistencyGroups");
     }
-    
+
     @Name("protocols")
     public StringSet getProtocol() {
         return _protocols;
@@ -227,7 +228,7 @@ public abstract class BlockObject extends DataObject {
         _emcRefreshRequired = required;
         setChanged("refreshRequired");
     }
-    
+
     @AlternateId("AltIdIndex")
     @Name("replicationGroupInstance")
     public String getReplicationGroupInstance() {
@@ -238,7 +239,7 @@ public abstract class BlockObject extends DataObject {
         _replicationGroupInstance = replicaGroupInstance;
         setChanged("replicationGroupInstance");
     }
-    
+
     /**
      * Utility function that would allow you to retrieve any derived BlockObject
      * based on its URI (e.g, Volume or BlockSnapshot).
@@ -263,6 +264,7 @@ public abstract class BlockObject extends DataObject {
 
     /**
      * Utility function that normalize the volume wwn, so that it only contains upper case hex numbers
+     * 
      * @param wwn the wwn to be normalized
      * @return normalized wwn
      */
@@ -285,19 +287,20 @@ public abstract class BlockObject extends DataObject {
      */
     public static boolean checkForRP(DbClient dbClient, URI blockURI) {
         if (URIUtil.isType(blockURI, BlockSnapshot.class)) {
-        	BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, blockURI);
-        	return snapshot.getProtectionController() != null;
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, blockURI);
+            return snapshot.getProtectionController() != null;
         } else if (URIUtil.isType(blockURI, Volume.class)) {
-        	Volume volume = dbClient.queryObject(Volume.class, blockURI);
-        	return volume.checkForRp();
+            Volume volume = dbClient.queryObject(Volume.class, blockURI);
+            return volume.checkForRp();
         }
         return false;
     }
-    
+
     /**
      * Deprecated - Needed only for 2.1 migration callback.
      * 
      * Convenience method to get a BlockConsistencyGroup by type.
+     * 
      * @param dbClient
      * @param type
      * @return
@@ -305,13 +308,13 @@ public abstract class BlockObject extends DataObject {
     @Deprecated
     public BlockConsistencyGroup fetchConsistencyGroupByType(DbClient dbClient, BlockConsistencyGroup.Types type) {
         BlockConsistencyGroup cg = null;
-        
-        if (getConsistencyGroups() != null && !getConsistencyGroups().isEmpty()) {            
+
+        if (getConsistencyGroups() != null && !getConsistencyGroups().isEmpty()) {
             // If we only have a single CG, ignore the type and try and return the CG.
             // It has to be the one we're looking for. The only use for type right now is for
             // RP+VPLEX which would have multiple CGs.
             if (getConsistencyGroups().size() == 1) {
-                cg = dbClient.queryObject(BlockConsistencyGroup.class, URI.create(getConsistencyGroups().iterator().next()));                
+                cg = dbClient.queryObject(BlockConsistencyGroup.class, URI.create(getConsistencyGroups().iterator().next()));
             }
             else {
                 // Multiple CGs, try to find the correct one with the type passed in.
@@ -325,14 +328,15 @@ public abstract class BlockObject extends DataObject {
                 }
             }
         }
-               
+
         return cg;
     }
-    
+
     /**
      * Deprecated - Needed only for 2.1 migration callback.
      * 
      * Convenience method to get a consistency group URI by type.
+     * 
      * @param dbClient
      * @param type
      * @return
@@ -343,14 +347,15 @@ public abstract class BlockObject extends DataObject {
         if (cg != null) {
             return cg.getId();
         }
-        
+
         return null;
     }
-    
+
     /**
      * Deprecated - Needed only for 2.1 migration callback.
      * 
      * Convenience method to add a consistency group.
+     * 
      * @param cgUri
      */
     @Deprecated

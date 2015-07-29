@@ -9,7 +9,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.google.common.base.Function;
 
-public class MapUnmanagedFileSystem implements Function<UnManagedFileSystem,UnManagedFileSystemRestRep> {
+public class MapUnmanagedFileSystem implements Function<UnManagedFileSystem, UnManagedFileSystemRestRep> {
     public static final MapUnmanagedFileSystem instance = new MapUnmanagedFileSystem();
 
     public static MapUnmanagedFileSystem getInstance() {

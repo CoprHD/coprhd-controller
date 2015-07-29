@@ -20,12 +20,12 @@ import java.util.Map;
 /**
  * AttributeMapBuilder is design based on the builder pattern
  * to construct a map based on the CoS, CoSCreateParam and Provisioning
- * attributes. 
+ * attributes.
  * 
  * Steps for MapCreator to construct a map object with CoS attributes:
  * 1. create a respective builder object by passing required object.
  * 2. Now call buildMap using builder.
- * 3. buildMap will return a map with all populated attributes. 
+ * 3. buildMap will return a map with all populated attributes.
  */
 public abstract class AttributeMapBuilder {
     /**
@@ -38,9 +38,10 @@ public abstract class AttributeMapBuilder {
      * attributes to build attributeMap.
      */
     public abstract Map<String, Object> buildMap();
-    
+
     /**
      * Set the attributes in AttributeMap.
+     * 
      * @param attributeMap
      * @param attributename
      * @param attributeValue

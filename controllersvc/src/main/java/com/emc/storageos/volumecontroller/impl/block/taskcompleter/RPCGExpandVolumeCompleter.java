@@ -38,7 +38,7 @@ public class RPCGExpandVolumeCompleter extends RPCGTaskCompleter {
 
     public RPCGExpandVolumeCompleter(URI volume, String task) {
         super(Volume.class, volume, task);
-	}
+    }
 
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
@@ -50,11 +50,11 @@ public class RPCGExpandVolumeCompleter extends RPCGTaskCompleter {
             // Tell the individual objects we're done.
             for (URI id : getIds()) {
                 switch (status) {
-                case error:
-                    dbClient.error(Volume.class, id, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(Volume.class, id, getOpId());
+                    case error:
+                        dbClient.error(Volume.class, id, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(Volume.class, id, getOpId());
                 }
             }
         } catch (DatabaseException e) {

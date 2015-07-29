@@ -13,6 +13,8 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface TextObject {
     String separatorExpression() default "\\s+";
+
     int startLine() default 1;
+
     int endLine() default -1;
 }

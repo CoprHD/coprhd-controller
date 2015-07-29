@@ -16,8 +16,6 @@ package com.emc.storageos.model.pools;
 
 import javax.xml.bind.annotation.XmlElement;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
 /**
  * Class captures lists of URIs for varrays to be assigned/unassigned
  * to/from the storage pool.
@@ -27,8 +25,9 @@ public class VirtualArrayAssignmentChanges {
     private VirtualArrayAssignments add;
     private VirtualArrayAssignments remove;
 
-    public VirtualArrayAssignmentChanges() {}
-    
+    public VirtualArrayAssignmentChanges() {
+    }
+
     public VirtualArrayAssignmentChanges(VirtualArrayAssignments add,
             VirtualArrayAssignments remove) {
         this.add = add;
@@ -62,5 +61,5 @@ public class VirtualArrayAssignmentChanges {
     public boolean hasAdded() {
         return add != null && add.getVarrays().size() > 0;
     }
-    
+
 }

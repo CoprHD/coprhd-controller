@@ -24,10 +24,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
@@ -87,9 +85,10 @@ public class SmisReplicaCreationJobs extends SmisJob {
         }
         return allocatedCapacity;
     }
-    
+
     /**
      * It will iterate through all created sync volumes, match up with ViPR created clones, and update them in ViPR.
+     * 
      * @param syncVolumeIter
      * @param client
      * @param dbClient
@@ -97,18 +96,18 @@ public class SmisReplicaCreationJobs extends SmisJob {
      * @param replicationGroupId
      * @throws Exception
      */
-    protected void processCGClones(CloseableIterator<CIMObjectPath> syncVolumeIter, WBEMClient client, 
-                                 DbClient dbClient, List<Volume> clones, String replicationGroupId, boolean isSyncActive) throws Exception {
+    protected void processCGClones(CloseableIterator<CIMObjectPath> syncVolumeIter, WBEMClient client,
+            DbClient dbClient, List<Volume> clones, String replicationGroupId, boolean isSyncActive) throws Exception {
         Map<String, URI> deviceIdToVolumeMap = new HashMap<String, URI>();
         Map<URI, Volume> sourceToCloneMap = new HashMap<URI, Volume>();
         Set<URI> pools = new HashSet<URI>();
-        for ( Volume clone : clones) {
+        for (Volume clone : clones) {
             Volume volume = dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
             deviceIdToVolumeMap.put(volume.getNativeId(), volume.getId());
             sourceToCloneMap.put(volume.getId(), clone);
             pools.add(clone.getPool());
         }
-        
+
         for (URI pool : pools) {
             SmisUtils.updateStoragePoolCapacity(dbClient, client, pool);
             StoragePool thePool = dbClient.queryObject(StoragePool.class, pool);
@@ -121,7 +120,7 @@ public class SmisReplicaCreationJobs extends SmisJob {
         }
         // Iterate through the clone elements that were created by the
         // Job and try to match them up with the appropriate ViPR clone
-        
+
         Calendar now = Calendar.getInstance();
         while (syncVolumeIter.hasNext()) {
             // Get the sync volume native device id
@@ -131,8 +130,10 @@ public class SmisReplicaCreationJobs extends SmisJob {
             String elementName = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_ELEMENT_NAME);
             // Get the associated source volume for this sync volume
             CIMObjectPath volumePath = null;
-            CloseableIterator<CIMObjectPath> volumeIter = client.associatorNames(syncVolumePath, null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
-            volumePath = volumeIter.next(); volumeIter.close();
+            CloseableIterator<CIMObjectPath> volumeIter = client.associatorNames(syncVolumePath, null, SmisConstants.CIM_STORAGE_VOLUME,
+                    null, null);
+            volumePath = volumeIter.next();
+            volumeIter.close();
             String volumeDeviceID = volumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
             String wwn = CIMPropertyFactory.getPropertyValue(syncVolume, SmisConstants.CP_WWN_NAME);
             String alternativeName =

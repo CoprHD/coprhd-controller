@@ -15,7 +15,6 @@
 package com.emc.vipr.model.keystore;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
 
 public class KeyAndCertificateChain {
 

@@ -23,7 +23,7 @@ public interface StatRetriever {
 
     /**
      * Retrieves the bulk metering statistics for the given query params.
-     *
+     * 
      * @param timeBucket
      *            - time-bucket for retrieval of stats
      * @param granularity

@@ -15,7 +15,6 @@
 
 package com.emc.storageos.management.backup;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Arrays;
 import java.util.Map;
@@ -27,7 +26,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public class BackupOpsTest extends BackupTestBase {
     private static final Logger log = LoggerFactory.getLogger(BackupOpsTest.class);
@@ -54,54 +52,57 @@ public class BackupOpsTest extends BackupTestBase {
         createBackup(backupName1, zkBackupHandler);
         createBackup(backupName1, geoDbBackupHandler);
     }
-    
+
     @Test
     public void testCreateBackupWithInvalidBackupNames() {
-    	String invalidBackupName = "../abc";
-    	boolean expected = false;
-    	try {
-    		backupOps.createBackup(invalidBackupName);
-    	} catch(IllegalArgumentException e) {
-    		expected = true;
-    	}
-    	Assert.assertTrue(
-    			String.format("%s is not a valid backup name, IllegalArgumentException should be threw out", invalidBackupName),
-    			expected);
-    	
-    	invalidBackupName = "";
-    	expected = false;
-    	try {
-    		backupOps.createBackup(invalidBackupName);
-    	} catch(IllegalArgumentException e) {
-    		expected = true;
-    	}
-    	Assert.assertTrue(
-    			String.format("%s is not a valid backup name, IllegalArgumentException should be threw out", invalidBackupName),
-    			expected);
-    	//build a name of more than 200 characters
-    	StringBuilder sb = new StringBuilder();
-    	for(int i = 0; i < 201; i ++) sb.append('a');
-    	invalidBackupName = sb.toString();
-    	expected = false;
-    	try {
-    		backupOps.createBackup(invalidBackupName);
-    	} catch(IllegalArgumentException e) {
-    		expected = true;
-    	}
-    	Assert.assertTrue(
-    			String.format("%s is not a valid backup name, IllegalArgumentException should be threw out", invalidBackupName),
-    			expected);
+        String invalidBackupName = "../abc";
+        boolean expected = false;
+        try {
+            backupOps.createBackup(invalidBackupName);
+        } catch (IllegalArgumentException e) {
+            expected = true;
+        }
+        Assert.assertTrue(
+                String.format("%s is not a valid backup name, IllegalArgumentException should be threw out", invalidBackupName),
+                expected);
+
+        invalidBackupName = "";
+        expected = false;
+        try {
+            backupOps.createBackup(invalidBackupName);
+        } catch (IllegalArgumentException e) {
+            expected = true;
+        }
+        Assert.assertTrue(
+                String.format("%s is not a valid backup name, IllegalArgumentException should be threw out", invalidBackupName),
+                expected);
+        // build a name of more than 200 characters
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 201; i++) {
+            sb.append('a');
+        }
+        invalidBackupName = sb.toString();
+        expected = false;
+        try {
+            backupOps.createBackup(invalidBackupName);
+        } catch (IllegalArgumentException e) {
+            expected = true;
+        }
+        Assert.assertTrue(
+                String.format("%s is not a valid backup name, IllegalArgumentException should be threw out", invalidBackupName),
+                expected);
     }
 
     @Test
     public void testListBackup() {
-        //standalone cluster
+        // standalone cluster
         List<BackupSetInfo> backupSetList1 = backupOps.listBackup();
         Assert.assertNotNull(backupSetList1);
-        for (BackupSetInfo backupset : backupSetList1)
-            log.info("Get backup info: {}", backupset.toString()); 
+        for (BackupSetInfo backupset : backupSetList1) {
+            log.info("Get backup info: {}", backupset.toString());
+        }
 
-        //multi-node cluster
+        // multi-node cluster
         {
             Map<String, String> hosts = new TreeMap<>();
             hosts.put(VIPR1, LOCALHOST);
@@ -117,13 +118,14 @@ public class BackupOpsTest extends BackupTestBase {
             backupOps.setHosts(hosts);
         }
         Assert.assertNotNull(backupSetList2);
-        for (BackupSetInfo backupset : backupSetList2)  
+        for (BackupSetInfo backupset : backupSetList2) {
             log.info("Get backup info: {}", backupset.toString());
+        }
     }
 
     @Test
     public void testDeleteBackup() {
-        //standalone cluster
+        // standalone cluster
         String backupName1 = "bk-standalone";
         try {
             backupOps.deleteBackup(backupName1);
@@ -132,8 +134,9 @@ public class BackupOpsTest extends BackupTestBase {
         }
         List<BackupSetInfo> backupList1 = backupOps.listBackup();
         for (BackupSetInfo backupSetInfo1 : backupList1) {
-            if (backupSetInfo1.getName().startsWith(backupName1))
+            if (backupSetInfo1.getName().startsWith(backupName1)) {
                 Assert.fail(String.format("Don't delete backup; %s", backupName1));
+            }
         }
         boolean expected = false;
         try {

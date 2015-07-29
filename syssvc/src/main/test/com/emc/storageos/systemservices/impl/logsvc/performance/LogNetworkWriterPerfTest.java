@@ -44,12 +44,14 @@ public class LogNetworkWriterPerfTest {
     }
 
     @Test
-    public void testPerformance() throws Exception{
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-            add("apisvc");
-        }};
+    public void testPerformance() throws Exception {
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         LogNetworkWriter writer = new LogNetworkWriter(req, propertiesLoader);
         ByteCountingOutputStream outputStream = new ByteCountingOutputStream();

@@ -25,14 +25,14 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("ClassB")
 public class ClassBManyToMany extends DataObject {
-    
+
     private StringSet aids;
     private List<ClassAManyToMany> ainstances;
-    
+
     @Name("aIds")
     public StringSet getAids() {
         return aids;

@@ -34,7 +34,7 @@ public class DataTableParams {
             return Collections.emptyList();
         }
     }
-    
+
     public String getSortColumn() {
         return sortColumn;
     }

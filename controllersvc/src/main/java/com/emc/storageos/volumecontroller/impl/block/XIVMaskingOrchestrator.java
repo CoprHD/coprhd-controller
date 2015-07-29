@@ -58,7 +58,7 @@ import com.google.common.collect.ListMultimap;
 
 /**
  * IBM XIV specific masking orchestration.
- *
+ * 
  * The goal of this implementation would be to flexibly support export
  * operations. Essentially, the export operations need to be amenable to the
  * existence of exports created outside of the system. It should take to make
@@ -80,7 +80,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 XIV_BLOCK_DEVICE.compareAndSet(null, device);
             }
         }
-        
+
         return device;
     }
 
@@ -123,9 +123,10 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     ExportMask exportMask = _dbClient.queryObject(ExportMask.class,
                             URI.create(maskURIStr));
                     _log.info(String.format("Checking mask %s", exportMask.getMaskName()));
-                    // Check for NO_VIPR.  If found, avoid this mask.
+                    // Check for NO_VIPR. If found, avoid this mask.
                     if (exportMask.getMaskName() != null && exportMask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-                        _log.info(String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it", 
+                        _log.info(String.format(
+                                "ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
                                 exportMask.getMaskName(), ExportUtils.NO_VIPR));
                         continue;
                     }
@@ -272,7 +273,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (!anyVolumesAdded && !createdNewMask) {
                 taskCompleter.ready(_dbClient);
                 _log.info("No volumes pushed to array because either they already exist " +
-                          "or there were no initiators added to the export yet.");
+                        "or there were no initiators added to the export yet.");
             }
         } catch (Exception ex) {
             _log.error("ExportGroup Orchestration failed.", ex);
@@ -349,9 +350,10 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 _log.info(String.format("initiator %s is in these masks {%s}",
                         initiator.getInitiatorPort(), Joiner.on(',').join(exportMaskURIs)));
                 for (ExportMask mask : masks) {
-                    // Check for NO_VIPR.  If found, avoid this mask.
+                    // Check for NO_VIPR. If found, avoid this mask.
                     if (mask.getMaskName() != null && mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-                        _log.info(String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it", 
+                        _log.info(String.format(
+                                "ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
                                 mask.getMaskName(), ExportUtils.NO_VIPR));
                         continue;
                     }
@@ -377,7 +379,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         }
 
                         if (mask.getCreatedBySystem()) {
-                            // Let's try to hunt down any additional initiators in this update that need to be added to 
+                            // Let's try to hunt down any additional initiators in this update that need to be added to
                             // existing masks because they belong to the same hosts.
                             //
                             // We're still OK if the mask contains ONLY initiators that can be found
@@ -385,18 +387,20 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             if (mask.getInitiators() != null) {
                                 for (String existingMaskInitiatorStr : mask.getInitiators()) {
 
-                                    // Now look at it from a different angle.  Which one of our export group initiators
-                                    // are NOT in the current mask?  And if so, if it belongs to the same host as an existing one,
+                                    // Now look at it from a different angle. Which one of our export group initiators
+                                    // are NOT in the current mask? And if so, if it belongs to the same host as an existing one,
                                     // we should add it to this mask.
                                     Iterator<URI> initiatorIter = initiatorURIsCopy.iterator();
                                     while (initiatorIter.hasNext()) {
                                         Initiator initiatorCopy = _dbClient.queryObject(Initiator.class, initiatorIter.next());
 
                                         if (!mask.hasInitiator(initiatorCopy.getId().toString())) {
-                                            Initiator existingMaskInitiator = _dbClient.queryObject(Initiator.class, URI.create(existingMaskInitiatorStr));
+                                            Initiator existingMaskInitiator = _dbClient.queryObject(Initiator.class,
+                                                    URI.create(existingMaskInitiatorStr));
                                             if (initiatorCopy.getHost().equals(existingMaskInitiator.getHost())) {
                                                 // Add to the list of initiators we need to add to this mask
-                                                Set<Initiator> existingMaskInitiators = existingMasksToUpdateWithNewInitiators.get(mask.getId());
+                                                Set<Initiator> existingMaskInitiators = existingMasksToUpdateWithNewInitiators.get(mask
+                                                        .getId());
                                                 if (existingMaskInitiators == null) {
                                                     existingMaskInitiators = new HashSet<Initiator>();
                                                     existingMasksToUpdateWithNewInitiators.put(mask.getId(), existingMaskInitiators);
@@ -404,7 +408,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                                                 if (!existingMaskInitiators.contains(initiatorCopy)) {
                                                     existingMaskInitiators.add(initiatorCopy);
                                                 }
-                                                initiatorIter.remove(); // remove this from the list of initiators we'll make a new mask from
+                                                initiatorIter.remove(); // remove this from the list of initiators we'll make a new mask
+                                                                        // from
                                             }
                                         }
                                     }
@@ -429,9 +434,9 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     if (initiatorSetForExistingMask != null && initiatorSetForExistingMask.isEmpty()) {
                         mask.addInitiators(initiatorSetForExistingMask);
                     }
-                    
+
                     updateZoningMap(exportGroup, mask);
-                    
+
                     _dbClient.updateAndReindexObject(mask);
                     // TODO: All export group modifications should be moved to completers
                     exportGroup.addExportMask(mask.getId());
@@ -469,7 +474,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // This step is for zoning. It is not specific to a single NetworkSystem,
                 // as it will look at all the initiators and targets and compute the
                 // zones required (which might be on multiple NetworkSystems.)
-                GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage, exportGroup,
+                GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, EXPORT_GROUP_ZONING_TASK, storage,
+                        exportGroup,
                         hostInitiatorMap.get(host), volumeMap, token);
                 zoneNewMasksToVolumeMap.put(result.getMaskURI(), volumeMap);
                 anyOperationsToDo = true;
@@ -483,7 +489,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             volumeMap, existingMasksToUpdateWithNewVolumes.values());
 
             // At this point we have a mapping of all the masks that we need to update with new volumes
-            // stepMap [URI, String] => [Export Mask URI, StepId of previous task i.e. Add volumes work flow.] 
+            // stepMap [URI, String] => [Export Mask URI, StepId of previous task i.e. Add volumes work flow.]
             Map<URI, String> stepMap = new HashMap<URI, String>();
             for (Map.Entry<URI, Map<URI, Integer>> entry : existingMasksToUpdateWithNewVolumes
                     .entrySet()) {
@@ -563,7 +569,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     if (mask != null && !mask.getInactive()
                             && mask.getStorageDevice().equals(storageURI)
                             && mask.getCreatedBySystem()) {
-                        List<URI> newInitiators = 
+                        List<URI> newInitiators =
                                 hostInitiatorMap.get(mask.getResource());
                         if (newInitiators != null && !newInitiators.isEmpty()) {
                             zoneMasksToInitiatorsURIs.put(maskURI, newInitiators);
@@ -584,7 +590,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // Zoning is done for the new masks identified i.e. zoneNewMasksToVolumeMap.
                     GenExportMaskCreateWorkflowResult result =
                             generateDeviceSpecificExportMaskCreateWorkFlow(workflow, EXPORT_GROUP_ZONING_TASK, storage, exportGroup,
-                            hostInitiatorMap.get(host), volumeMap, token);
+                                    hostInitiatorMap.get(host), volumeMap, token);
                     zoneNewMasksToVolumeMap.put(result.getMaskURI(), volumeMap);
                     anyOperationsToDo = true;
                 }
@@ -603,7 +609,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             }
             if (!zoneMasksToInitiatorsURIs.isEmpty()) {
                 generateDeviceSpecificZoningAddInitiatorsWorkflow(workflow, null,
-                      exportGroup, zoneMasksToInitiatorsURIs);
+                        exportGroup, zoneMasksToInitiatorsURIs);
             }
             String successMessage = String.format(
                     "Successfully exported to initiators on StorageArray %s", storage.getLabel());
@@ -615,7 +621,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
     /**
      * Routine contains logic to create an export mask on the array
-     *
+     * 
      * @param workflow - Workflow object to create steps against
      * @param previousStep - [optional] Identifier of workflow step to wait for
      * @param device - BlockStorageDevice implementation
@@ -629,7 +635,7 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      */
     public boolean determineExportGroupCreateSteps(Workflow workflow, String previousStep,
             BlockStorageDevice device, StorageSystem storage, ExportGroup exportGroup,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap,boolean zoningStepNeeded,  String token) throws Exception {
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, boolean zoningStepNeeded, String token) throws Exception {
         Map<String, URI> portNameToInitiatorURI = new HashMap<String, URI>();
         List<URI> volumeURIs = new ArrayList<URI>();
         volumeURIs.addAll(volumeMap.keySet());
@@ -691,9 +697,10 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     _log.info(String.format("mask %s has initiator %s", mask.getMaskName(),
                             initiator.getInitiatorPort()));
 
-                    // Check for NO_VIPR.  If found, avoid this mask.
+                    // Check for NO_VIPR. If found, avoid this mask.
                     if (mask.getMaskName() != null && mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-                        _log.info(String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it", 
+                        _log.info(String.format(
+                                "ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
                                 mask.getMaskName(), ExportUtils.NO_VIPR));
                         continue;
                     }
@@ -708,19 +715,22 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         if (mask.getInitiators() != null) {
                             for (String existingMaskInitiatorStr : mask.getInitiators()) {
 
-                                // Now look at it from a different angle.  Which one of our export group initiators
-                                // are NOT in the current mask?  And if so, if it belongs to the same host as an existing one,
+                                // Now look at it from a different angle. Which one of our export group initiators
+                                // are NOT in the current mask? And if so, if it belongs to the same host as an existing one,
                                 // we should add it to this mask.
                                 Iterator<URI> initiatorIter = initiatorURIsCopy.iterator();
                                 while (initiatorIter.hasNext()) {
                                     Initiator initiatorCopy = _dbClient.queryObject(Initiator.class, initiatorIter.next());
 
-                                    if (initiatorCopy != null && initiatorCopy.getId() != null && !mask.hasInitiator(initiatorCopy.getId().toString())) {
-                                        Initiator existingMaskInitiator = _dbClient.queryObject(Initiator.class, URI.create(existingMaskInitiatorStr));
-                                        if ( existingMaskInitiator != null && initiatorCopy.getHost() != null &&
+                                    if (initiatorCopy != null && initiatorCopy.getId() != null
+                                            && !mask.hasInitiator(initiatorCopy.getId().toString())) {
+                                        Initiator existingMaskInitiator = _dbClient.queryObject(Initiator.class,
+                                                URI.create(existingMaskInitiatorStr));
+                                        if (existingMaskInitiator != null && initiatorCopy.getHost() != null &&
                                                 initiatorCopy.getHost().equals(existingMaskInitiator.getHost())) {
                                             // Add to the list of initiators we need to add to this mask
-                                            Set<Initiator> existingMaskInitiators = existingMasksToUpdateWithNewInitiators.get(mask.getId());
+                                            Set<Initiator> existingMaskInitiators = existingMasksToUpdateWithNewInitiators
+                                                    .get(mask.getId());
                                             if (existingMaskInitiators == null) {
                                                 existingMaskInitiators = new HashSet<Initiator>();
                                                 existingMasksToUpdateWithNewInitiators.put(mask.getId(), existingMaskInitiators);
@@ -894,28 +904,27 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * Method creates a workflow step for copying snapshots to the target devices,
      * so that they can be exported.
-     *
+     * 
      * @param workflow - Workflow object to create steps against
      * @param previousStep - [optional] Identifier of workflow step to wait for
      * @param storageSystem - StorageSystem object representing the underlying array
      * @param volumeMap - Map of Volume URIs to requested Integer HLUs
      * @param volumesToAdd - Map of Volumes that need to be added to the export
-     *
+     * 
      * @return String workflow step ID. If no workflow is added,
-     * the passed in previousStep id is returned.
-     *
+     *         the passed in previousStep id is returned.
+     * 
      */
     public String
-    checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storageSystem,
-                                    String previousStep,
-                                    Map<URI, Integer> volumeMap,
-                                    Collection<Map<URI, Integer>> volumesToAdd) {
+            checkForSnapshotsToCopyToTarget(Workflow workflow, StorageSystem storageSystem,
+                    String previousStep,
+                    Map<URI, Integer> volumeMap,
+                    Collection<Map<URI, Integer>> volumesToAdd) {
         String step = previousStep;
         ListMultimap<String, URI> snaps =
-            getBlockSnapshotsRequiringCopyToTarget(volumeMap,  volumesToAdd);
+                getBlockSnapshotsRequiringCopyToTarget(volumeMap, volumesToAdd);
         if (snaps != null && !snaps.isEmpty()) {
-            for (Map.Entry<String, Collection<URI>> entries :
-                    snaps.asMap().entrySet()) {
+            for (Map.Entry<String, Collection<URI>> entries : snaps.asMap().entrySet()) {
                 List<URI> snapshots = new ArrayList<URI>();
                 snapshots.addAll(entries.getValue());
                 _log.info(String.format("Need to run copy-to-target snapshots in snap set %s:%n%s",
@@ -933,15 +942,15 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     /**
      * Method will return a ListMultimap of String snapsetLabel to snapshots that need
      * to have copyToTarget setup for them.
-     *
+     * 
      * @param volumeMap - Map of Volume URIs to requested Integer HLUs
      * @param volumesToAdd - Map of Volumes that need to be added to the export
-     *
+     * 
      * @return
      */
     private ListMultimap<String, URI>
-    getBlockSnapshotsRequiringCopyToTarget(Map<URI, Integer> volumeMap,
-                                           Collection<Map<URI, Integer>> volumesToAdd) {
+            getBlockSnapshotsRequiringCopyToTarget(Map<URI, Integer> volumeMap,
+                    Collection<Map<URI, Integer>> volumesToAdd) {
         ListMultimap<String, URI> snapLabelToSnapURIs = ArrayListMultimap.create();
         List<URI> list = new ArrayList<URI>();
 
@@ -956,7 +965,9 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         }
 
         for (URI uri : list) {
-            if (!URIUtil.isType(uri, BlockSnapshot.class)) continue;
+            if (!URIUtil.isType(uri, BlockSnapshot.class)) {
+                continue;
+            }
 
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, uri);
             if (snapshot != null && snapshot.getNeedsCopyToTarget()) {
@@ -974,8 +985,8 @@ public class XIVMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
      */
     @Override
     protected String createNewExportMaskWorkflowForInitiators(List<URI> initiatorURIs,
-                                                            ExportGroup exportGroup, Workflow workflow, Map<URI, Integer> volumeMap,
-                                                            StorageSystem storage, String token, String previousStep) throws Exception {
+            ExportGroup exportGroup, Workflow workflow, Map<URI, Integer> volumeMap,
+            StorageSystem storage, String token, String previousStep) throws Exception {
         if (!initiatorURIs.isEmpty()) {
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);

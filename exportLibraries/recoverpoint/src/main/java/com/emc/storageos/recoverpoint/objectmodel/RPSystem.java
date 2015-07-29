@@ -27,25 +27,25 @@ import javax.xml.bind.annotation.*;
 @XmlRootElement
 public class RPSystem implements Serializable {
 
-	private static final long serialVersionUID = -555268916024617685L;
-	private String _name;
-	private Set<RPSite> _sites;
-	
-	@XmlElement
-	public String getName() {
-		return _name;
-	}
+    private static final long serialVersionUID = -555268916024617685L;
+    private String _name;
+    private Set<RPSite> _sites;
 
-	public void setName(String name) {
-		this._name = name;
-	}
+    @XmlElement
+    public String getName() {
+        return _name;
+    }
 
-	@XmlElement
-	public Set<RPSite> getSites() {
-		return _sites;
-	}
+    public void setName(String name) {
+        this._name = name;
+    }
 
-	public void setSites(Set<RPSite> siteList) {
-		_sites = siteList;
-	}
+    @XmlElement
+    public Set<RPSite> getSites() {
+        return _sites;
+    }
+
+    public void setSites(Set<RPSite> siteList) {
+        _sites = siteList;
+    }
 }

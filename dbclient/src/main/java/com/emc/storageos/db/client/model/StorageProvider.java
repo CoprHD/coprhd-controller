@@ -10,6 +10,9 @@ import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
@@ -514,8 +517,7 @@ public class StorageProvider extends DataObject {
 	            if (iter.hasNext())  {
 	                try {
 	                    storage.setActiveProviderURI(new URI(iter.next()));
-	                }
-	                catch (URISyntaxException ex)  {
+	                } catch (URISyntaxException ex) {
 	                	logger.error("URISyntaxException occurred: {}", ex.getMessage());
 	                }
 	            }

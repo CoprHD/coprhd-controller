@@ -180,7 +180,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
             setTenantId(newDao.getTenantId());
         }
         // update group info
-        if (newDao.getGroups() == null || newDao.getGroups().size() == 0) {
+        if (newDao.getGroups() == null || newDao.getGroups().isEmpty()) {
             if (_groups != null) {
                 _groups.clear();
             }
@@ -205,7 +205,7 @@ public class StorageOSUserDAO extends DataObject implements Serializable {
             }
         }
         // update attributes
-        if (newDao.getAttributes() == null || newDao.getAttributes().size() == 0) {
+        if (newDao.getAttributes() == null || newDao.getAttributes().isEmpty()) {
             if (_attributes != null) {
                 _attributes.clear();
             }

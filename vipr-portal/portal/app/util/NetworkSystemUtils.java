@@ -8,19 +8,13 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.collections.CollectionUtils;
-
 import com.emc.storageos.model.network.NetworkSystemCreate;
 import com.emc.storageos.model.network.NetworkSystemRestRep;
 import com.emc.storageos.model.network.NetworkSystemUpdate;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.core.util.CachedResources;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
-import com.google.common.collect.Lists;
 
 public class NetworkSystemUtils {
     public static CachedResources<NetworkSystemRestRep> createCache() {
@@ -34,8 +28,7 @@ public class NetworkSystemUtils {
     public static NetworkSystemRestRep getNetworkSystem(URI id) {
         try {
             return getViprClient().networkSystems().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }

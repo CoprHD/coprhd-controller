@@ -15,7 +15,6 @@
 package com.emc.storageos.security;
 
 import java.security.KeyStore;
-import java.security.cert.Certificate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -52,10 +51,10 @@ import com.sun.jersey.spi.container.ResourceFilterFactory;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 
 /**
- *  Base class for services including SSL connectors setup.
- *  Some common filter and handler work is there in initServer().
- *  Derived class can override initServer() to alter the way filters, handlers
- *  and other specifics are getting handled.
+ * Base class for services including SSL connectors setup.
+ * Some common filter and handler work is there in initServer().
+ * Derived class can override initServer() to alter the way filters, handlers
+ * and other specifics are getting handled.
  */
 public abstract class AbstractSecuredWebServer {
 
@@ -89,11 +88,12 @@ public abstract class AbstractSecuredWebServer {
     private Integer maxQueueThreads;
     private Integer maxQueued;
 
-    public void setUnsecuredConnector(SelectChannelConnector unsecuredConnector){
+    public void setUnsecuredConnector(SelectChannelConnector unsecuredConnector) {
         _unsecuredConnector = unsecuredConnector;
     }
 
-    public void setCiphersToInclude(String[] ciphers) {
+    // Not a real issue as no write in class
+    public void setCiphersToInclude(String[] ciphers) { // NOSONAR ("Suppressing: The user-supplied array 'ciphers' is stored directly.")
         _ciphers = ciphers;
     }
 
@@ -141,7 +141,7 @@ public abstract class AbstractSecuredWebServer {
     }
 
     public void setResourceFilterFactory(ResourceFilterFactory filterFactory) {
-        _resourceFilterFactory =  filterFactory;
+        _resourceFilterFactory = filterFactory;
     }
 
     public void setDisableSSL(Boolean disable) {
@@ -182,11 +182,12 @@ public abstract class AbstractSecuredWebServer {
 
     /**
      * set up the ssl connectors with strong ciphers
-     * @throws Exception 
+     * 
+     * @throws Exception
      */
     protected void initConnectors() throws Exception {
-        if(!_disableHTTP) {
-            if(_unsecuredConnector == null){
+        if (!_disableHTTP) {
+            if (_unsecuredConnector == null) {
                 _unsecuredConnector = new SelectChannelConnector();
             }
             if (_unsecurePort != null) {
@@ -208,7 +209,7 @@ public abstract class AbstractSecuredWebServer {
             }
             _server.addConnector(_unsecuredConnector);
         }
-        if(!_disableSSL) {           
+        if (!_disableSSL) {
             SslContextFactory sslFac = new SslContextFactory();
             sslFac.setIncludeCipherSuites(_ciphers);
 
@@ -241,22 +242,27 @@ public abstract class AbstractSecuredWebServer {
     }
 
     protected void initThreadPool() {
-        if (minQueueThreads == null && maxQueueThreads == null && maxQueued == null)
+        if (minQueueThreads == null && maxQueueThreads == null && maxQueued == null) {
             return;
+        }
 
         QueuedThreadPool tp = new QueuedThreadPool();
-        if (minQueueThreads != null)
+        if (minQueueThreads != null) {
             tp.setMinThreads(minQueueThreads);
-        if (maxQueueThreads != null)
+        }
+        if (maxQueueThreads != null) {
             tp.setMaxThreads(maxQueueThreads);
-        if (maxQueued != null)
+        }
+        if (maxQueued != null) {
             tp.setMaxQueued(maxQueued);
+        }
         threadPool = tp;
     }
 
     /**
-     * Initialize server handlers, rest resources.  
-     * @throws Exception 
+     * Initialize server handlers, rest resources.
+     * 
+     * @throws Exception
      */
     protected void initServer() throws Exception {
         _server = new Server();
@@ -293,10 +299,10 @@ public abstract class AbstractSecuredWebServer {
             props.put(ResourceConfig.PROPERTY_RESOURCE_FILTER_FACTORIES, _resourceFilterFactory);
 
             // Adding the ContainerResponseFilter
-            props.put(ResourceConfig.PROPERTY_CONTAINER_RESPONSE_FILTERS,_responseFilter);
+            props.put(ResourceConfig.PROPERTY_CONTAINER_RESPONSE_FILTERS, _responseFilter);
             config.setPropertiesAndFeatures(props);
         }
-        if(_dbClient != null) {
+        if (_dbClient != null) {
             _dbClient.start();
         }
     }

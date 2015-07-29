@@ -8,7 +8,6 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import util.MessagesUtils;
 import util.StringOption;
 
 public class TransportProtocols {

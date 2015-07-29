@@ -24,14 +24,14 @@ import com.emc.storageos.db.client.model.RelationIndex;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("ClassA")
 public class ClassAOneToOne extends DataObject {
-    
+
     private URI bid;
     private ClassBOneToOne binstance;
-    
+
     @RelationIndex(cf = "RelationIndex", type = ClassBOneToOne.class)
     @Name("bId")
     public URI getBid() {

@@ -26,7 +26,7 @@ public class UserGroupBaseParam {
     private String _domain;
     private String _label;
 
-    @XmlElement(required=true, name="domain")
+    @XmlElement(required = true, name = "domain")
     @JsonProperty("domain")
     public String getDomain() {
         return _domain;
@@ -36,7 +36,7 @@ public class UserGroupBaseParam {
         this._domain = _domain;
     }
 
-    @XmlElement(required=true, name="label")
+    @XmlElement(required = true, name = "label")
     @JsonProperty("label")
     public String getLabel() {
         return _label;

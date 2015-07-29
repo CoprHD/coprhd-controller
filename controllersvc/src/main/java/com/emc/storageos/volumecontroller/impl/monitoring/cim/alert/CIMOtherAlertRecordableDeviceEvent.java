@@ -18,67 +18,66 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.utility.CIMConstants;
 
 public class CIMOtherAlertRecordableDeviceEvent extends
-		CIMAlertRecordableDeviceEvent {
+        CIMAlertRecordableDeviceEvent {
 
-	/**
-	 * Logger to log the debug statements
-	 */
-	private static final Logger _logger = LoggerFactory
-			.getLogger(CIMOtherAlertRecordableDeviceEvent.class);
+    /**
+     * Logger to log the debug statements
+     */
+    private static final Logger _logger = LoggerFactory
+            .getLogger(CIMOtherAlertRecordableDeviceEvent.class);
 
-	/**
-	 * Overloaded constructor
-	 * 
-	 * @param dbClient
-	 */
-	public CIMOtherAlertRecordableDeviceEvent(DbClient dbClient,
-			MonitoringPropertiesLoader mLoader,
-			Hashtable<String, String> notification) {
-		super(dbClient);
-		_monitoringPropertiesLoader = mLoader;
-		_indication = notification;
-	}
+    /**
+     * Overloaded constructor
+     * 
+     * @param dbClient
+     */
+    public CIMOtherAlertRecordableDeviceEvent(DbClient dbClient,
+            MonitoringPropertiesLoader mLoader,
+            Hashtable<String, String> notification) {
+        super(dbClient);
+        _monitoringPropertiesLoader = mLoader;
+        _indication = notification;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public String getNativeGuid() {
-		return null;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getNativeGuid() {
+        return null;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public Class<? extends DataObject> getResourceClass() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Class<? extends DataObject> getResourceClass() {
 
-		String alertType = _indication.get(CIMConstants.INDICATION_CLASS_TAG);
-		if (alertType != null && alertType.trim().length() > 0) {
-			if (alertType.contains(OSLS_ALERT_INDICATION)) {
-				return Volume.class;
-			} else if (alertType.contains(CIM_ALERT_INDICATION)) {
-				return FileShare.class;
-			}
-		}
-		return null;
-	}
+        String alertType = _indication.get(CIMConstants.INDICATION_CLASS_TAG);
+        if (alertType != null && alertType.trim().length() > 0) {
+            if (alertType.contains(OSLS_ALERT_INDICATION)) {
+                return Volume.class;
+            } else if (alertType.contains(CIM_ALERT_INDICATION)) {
+                return FileShare.class;
+            }
+        }
+        return null;
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public String getExtensions() {
-		return null;
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getExtensions() {
+        return null;
+    }
 
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public String getRecordType() {
-		return RecordType.Alert.name();
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getRecordType() {
+        return RecordType.Alert.name();
+    }
 
 }

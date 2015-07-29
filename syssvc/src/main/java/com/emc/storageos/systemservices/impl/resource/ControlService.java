@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
-
 import java.net.URI;
 import java.util.*;
 
@@ -57,10 +56,11 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
+
 /**
  * Control service is used to
- *      restart a service on a specified node
- *      reboot a node
+ * restart a service on a specified node
+ * reboot a node
  */
 @Path("/control/")
 public class ControlService {
@@ -87,6 +87,7 @@ public class ControlService {
     protected SecurityContext sc;
 
     private ArrayList<String> aliveNodes = new ArrayList<String>();
+
     /**
      * Get StorageOSUser from the security context
      * 
@@ -118,6 +119,7 @@ public class ControlService {
         REBOOT,
         END
     }
+
     private volatile ControlState controlState = ControlState.RUN;
 
     private final String lock = "Lock";
@@ -127,36 +129,36 @@ public class ControlService {
     }
 
     @PostConstruct
-    public void initControlThread(){
-        new Thread(new Runnable(){
+    public void initControlThread() {
+        new Thread(new Runnable() {
             @Override
-            public void run(){
+            public void run() {
                 _log.info("Control thread started.");
-                synchronized(lock){
-                    while(!controlState.equals(ControlState.END)){
-                        if(controlState.equals(ControlState.REBOOT)){
+                synchronized (lock) {
+                    while (!controlState.equals(ControlState.END)) {
+                        if (controlState.equals(ControlState.REBOOT)) {
                             _log.info("Node is being rebooted.");
                             try {
-                                controlState=ControlState.END;
+                                controlState = ControlState.END;
                                 LocalRepository.getInstance().reboot();
                             } catch (LocalRepositoryException e1) {
                                 _log.error("Error rebooting: {}", e1.toString());
-                                controlState=ControlState.RUN;
+                                controlState = ControlState.RUN;
                             }
-                        }else if(controlState.equals(ControlState.RESTART)){
+                        } else if (controlState.equals(ControlState.RESTART)) {
                             _log.info("Restarting syssvc.");
                             try {
-                                controlState=ControlState.END;
+                                controlState = ControlState.END;
                                 System.exit(0);
                             } catch (LocalRepositoryException e2) {
                                 _log.error("Error restarting syssvc: {}", e2.toString());
-                                controlState=ControlState.RUN;
+                                controlState = ControlState.RUN;
                             }
-                        }else{
+                        } else {
                             try {
                                 lock.wait();
 
-                            } catch (InterruptedException e){
+                            } catch (InterruptedException e) {
                                 _log.warn("Control thread interrupted", e);
                             }
                         }
@@ -167,16 +169,16 @@ public class ControlService {
     }
 
     @PreDestroy
-    public void destroyControlThread(){
-        synchronized(lock){
-            controlState=ControlState.END;
+    public void destroyControlThread() {
+        synchronized (lock) {
+            controlState = ControlState.END;
             lock.notifyAll();
         }
     }
 
-
     /**
      * Restart a service on a virtual machine
+     * 
      * @brief Restart a service on a virtual machine
      * @param nodeId Virtual machine id (e.g. vipr1)
      * @prereq none
@@ -184,11 +186,11 @@ public class ControlService {
      */
     @POST
     @Path("service/restart")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response restartService(@QueryParam("node_id") String nodeId, @QueryParam("name") String name) {
         List<String> controlNodeServiceNames = ServicesMetadata.getControlNodeServiceNames();
-        if(_coordinator.getMyNodeName().equals(nodeId)){
+        if (_coordinator.getMyNodeName().equals(nodeId)) {
             if (!controlNodeServiceNames.contains(name)) {
                 throw APIException.badRequests.parameterIsNotOneOfAllowedValues("service name", controlNodeServiceNames.toString());
             }
@@ -204,7 +206,7 @@ public class ControlService {
 
             // check available service name exists
             boolean isControlNode = CONTROL_NODE_ID_PATTERN.matcher(nodeId).matches();
-            List<String> availableServices = isControlNode?
+            List<String> availableServices = isControlNode ?
                     controlNodeServiceNames : ServicesMetadata.getExtraNodeServiceNames();
             if (!availableServices.contains(name)) {
                 throw APIException.badRequests.parameterIsNotOneOfAllowedValues("service name", availableServices.toString());
@@ -212,7 +214,7 @@ public class ControlService {
 
             try {
                 SysClientFactory.getSysClient(endpoint)
-                .post(URI.create(SysClientFactory.URI_RESTART_SERVICE.getPath() + "?name=" + name), null, null);
+                        .post(URI.create(SysClientFactory.URI_RESTART_SERVICE.getPath() + "?name=" + name), null, null);
             } catch (SysClientException e) {
                 throw APIException.internalServerErrors.serviceRestartError(name, nodeId);
             }
@@ -224,14 +226,14 @@ public class ControlService {
 
     @POST
     @Path("internal/service/restart")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response restartNodeService(@QueryParam("name") String name) {
         _log.info("Restart node service: {}", name);
         // restart service
-        if(name.equals("syssvc")){
-            synchronized(lock){
+        if (name.equals("syssvc")) {
+            synchronized (lock) {
                 _log.info("Notify the control thread!");
-                controlState=ControlState.RESTART;
+                controlState = ControlState.RESTART;
                 lock.notifyAll();
             }
             _log.info("Activated the control thread!");
@@ -248,17 +250,18 @@ public class ControlService {
 
     /**
      * Reboot a virtual machine
+     * 
      * @brief Reboot a virtual machine
      * @param nodeId Virtual machine id (e.g. vipr1)
      * @prereq none
      */
     @POST
     @Path("node/reboot")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response rebootNode(@QueryParam("node_id") String nodeId) {
-        _log.info("Reboot node: "+nodeId);
-        if(_coordinator.getMyNodeName().equals(nodeId)){
+        _log.info("Reboot node: " + nodeId);
+        if (_coordinator.getMyNodeName().equals(nodeId)) {
             auditControl(OperationTypeEnum.REBOOT_NODE, AuditLogManager.AUDITLOG_SUCCESS,
                     null, nodeId);
             return rebootNode();
@@ -270,7 +273,7 @@ public class ControlService {
             }
             try {
                 SysClientFactory.getSysClient(endpoint)
-                .post(SysClientFactory.URI_REBOOT_NODE, null, null);
+                        .post(SysClientFactory.URI_REBOOT_NODE, null, null);
             } catch (SysClientException e) {
                 throw APIException.internalServerErrors.sysClientError("reboot node");
             }
@@ -282,12 +285,12 @@ public class ControlService {
 
     @POST
     @Path("internal/node/reboot")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response rebootNode() {
         _log.info("Reboot node");
-        synchronized(lock){
+        synchronized (lock) {
             _log.info("Notify the control thread!");
-            controlState=ControlState.REBOOT;
+            controlState = ControlState.REBOOT;
             lock.notifyAll();
         }
         _log.info("Activated the control thread!");
@@ -296,20 +299,22 @@ public class ControlService {
 
     @POST
     @Path("internal/node/poweroff-agreement")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response receivePoweroffAgreement(@QueryParam("sender") String svcId) {
         _log.info("Receiving poweroff agreement");
         propertyManager.getPoweroffAgreementsKeeper().add(svcId);
         return Response.ok().build();
     }
+
     /**
      * This method will set the target poweroff state to PowerOffState.State.START
      * If UpgradeManager sees the target poweroff state is not NONE,
-     *   node will start to sync with each other's poweroff state until they agree to power off.
-     *  Node's poweroff state will change from NOTICED to ACKNOWLEDGED. During the process, all nodes
-     *   are checked to see each other's state until they can move to next state.
-     *  After all nodes move to ACKNOWLEDGED state, they move to POWEROFF state,
-     *   in which, they are free to power off
+     * node will start to sync with each other's poweroff state until they agree to power off.
+     * Node's poweroff state will change from NOTICED to ACKNOWLEDGED. During the process, all nodes
+     * are checked to see each other's state until they can move to next state.
+     * After all nodes move to ACKNOWLEDGED state, they move to POWEROFF state,
+     * in which, they are free to power off
+     * 
      * @brief Power off ViPR controller appliance
      * @prereq none
      * @return
@@ -317,15 +322,16 @@ public class ControlService {
      */
     @POST
     @Path("cluster/poweroff")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response powerOffCluster(@QueryParam("force") String forceSet) throws Exception {
         _log.debug("Poweroff cluster");
 
         PowerOffState.State targetPoweroffState = _coordinator.getTargetInfo(PowerOffState.class).getPowerOffState();
         _log.info("Current target poweroff state is: {}", targetPoweroffState.toString());
         if (targetPoweroffState.equals(PowerOffState.State.FORCESTART) || targetPoweroffState.equals(PowerOffState.State.START)) {
-            return Response.status(Response.Status.CONFLICT).entity("A poweroff proccess is in progress, cannot accept another poweroff request.").build();
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("A poweroff proccess is in progress, cannot accept another poweroff request.").build();
         }
 
         PowerOffState poweroffState;
@@ -340,7 +346,7 @@ public class ControlService {
             propertyManager.wakeupOtherNodes();
             _alertsLog.warn("power off start");
         } catch (ClientHandlerException e) {
-            if (! FORCE.equals(forceSet)) {
+            if (!FORCE.equals(forceSet)) {
                 throw APIException.internalServerErrors.poweroffWakeupError(e);
             } else {
                 // if the force option is specified, ignore sysclient exceptions since the poweroff will succeed anyways.
@@ -363,7 +369,7 @@ public class ControlService {
      */
     @POST
     @Path("internal/node/poweroff")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response powerOffNode() {
         _log.info("Poweroff node");
         recoveryManager.poweroff();
@@ -375,8 +381,8 @@ public class ControlService {
      */
     @POST
     @Path("cluster/recovery")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response clusterRecovery() throws Exception {
         _log.info("Received a cluster recovery request");
 
@@ -392,12 +398,13 @@ public class ControlService {
             auditControl(OperationTypeEnum.RECOVER_NODES, AuditLogManager.AUDITLOG_FAILURE, null);
             throw APIException.internalServerErrors.triggerRecoveryFailed(e.getMessage());
         }
-         _log.info("Accepted the cluster recovery request");
+        _log.info("Accepted the cluster recovery request");
         return Response.status(Response.Status.ACCEPTED).build();
     }
 
     /**
      * Show node recovery status
+     * 
      * @brief Show node recovery status
      * @prereq none
      * @return Node recovery status information
@@ -405,7 +412,7 @@ public class ControlService {
      */
     @GET
     @Path("cluster/recovery")
-    @CheckPermission( roles = {Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public RecoveryStatus getRecoveryStatus() throws Exception {
         _log.info("Received a getting cluster recovery status request");
@@ -414,6 +421,7 @@ public class ControlService {
 
     /**
      * Get the db repair status.
+     * 
      * @brief Show db repair status
      * @prereq none
      * @return db repair status
@@ -421,7 +429,7 @@ public class ControlService {
      */
     @GET
     @Path("cluster/dbrepair-status")
-    @CheckPermission( roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public DbRepairStatus getDbRepairStatus() throws Exception {
         _log.info("Received a getting db repair status request");
@@ -435,7 +443,7 @@ public class ControlService {
             }
             try {
                 return SysClientFactory.getSysClient(endpoint)
-                .get(SysClientFactory.URI_GET_DBREPAIR_STATUS, DbRepairStatus.class, null);
+                        .get(SysClientFactory.URI_GET_DBREPAIR_STATUS, DbRepairStatus.class, null);
             } catch (SysClientException e) {
                 throw APIException.internalServerErrors.sysClientError("db repair status");
             }
@@ -443,12 +451,12 @@ public class ControlService {
     }
 
     /**
-     * Retrieve db repair status from dbsvc/geodbsvc on current node 
+     * Retrieve db repair status from dbsvc/geodbsvc on current node
      */
     @GET
     @Path("internal/node/dbrepair-status")
-    @Produces({MediaType.APPLICATION_JSON})
-    public DbRepairStatus getDbRepairStatusFromLocalNode() throws Exception{
+    @Produces({ MediaType.APPLICATION_JSON })
+    public DbRepairStatus getDbRepairStatusFromLocalNode() throws Exception {
         _log.info("Check db repair status");
         return recoveryManager.getDbRepairStatus();
     }
@@ -458,10 +466,10 @@ public class ControlService {
      */
     @POST
     @Path("cluster/ipreconfig")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response clusterIpReconfig(ClusterIpInfo clusterIpInfo,
-                                      @DefaultValue("reboot") @QueryParam("postOperation") String postOperation) throws Exception {
+            @DefaultValue("reboot") @QueryParam("postOperation") String postOperation) throws Exception {
         _log.info("Received a cluster ip reconfiguration request");
         try {
             ipreconfigManager.triggerIpReconfig(clusterIpInfo, postOperation);
@@ -479,8 +487,8 @@ public class ControlService {
      */
     @GET
     @Path("cluster/ipreconfig_status")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ClusterNetworkReconfigStatus getClusterNetworkReconfigStatus() throws Exception {
         _log.info("Querying cluster ip reconfiguration status");
         return ipreconfigManager.queryClusterNetworkReconfigStatus();
@@ -491,8 +499,8 @@ public class ControlService {
      */
     @GET
     @Path("cluster/ipinfo")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ClusterIpInfo getClusterIpinfo() throws Exception {
         _log.info("Querying cluster ip configuration");
         return ipreconfigManager.queryCurrentClusterIpinfo();
@@ -500,11 +508,11 @@ public class ControlService {
 
     /**
      * Record audit log for control service
-     *
-     * @param auditType         Type of AuditLog
+     * 
+     * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
-     * @param description       Description for the AuditLog
-     * @param descparams        Description paramters
+     * @param description Description for the AuditLog
+     * @param descparams Description paramters
      */
     public void auditControl(OperationTypeEnum auditType,
             String operationalStatus,
@@ -512,9 +520,9 @@ public class ControlService {
             Object... descparams) {
 
         URI username = null;
-    
+
         username = URI.create(getUserFromContext().getName());
-      
+
         _auditMgr.recordAuditLog(null, username,
                 EVENT_SERVICE_TYPE,
                 auditType,

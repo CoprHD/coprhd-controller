@@ -15,7 +15,6 @@
 
 package com.emc.storageos.security.password;
 
-
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -55,22 +54,25 @@ public class NotificationManager {
     private final ScheduledExecutorService _scheduler = Executors.newScheduledThreadPool(1);
 
     private static CoordinatorClient _coordinator;
-    
+
     public synchronized void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
 
     private DbClient _dbClient;
+
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
 
     private Map<String, StorageOSUser> _localUsers;
+
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
         _localUsers = localUsers;
     }
 
     private PasswordUtils _passwordUtils;
+
     public void setPasswordUtils(PasswordUtils passwordUtils) {
         _passwordUtils = passwordUtils;
     }
@@ -78,6 +80,7 @@ public class NotificationManager {
     private MailHelper mailHelper;
 
     private AuditLogManager _auditLogManager;
+
     public void setAuditLogManager(AuditLogManager auditLogManager) {
         _auditLogManager = auditLogManager;
     }
@@ -99,7 +102,8 @@ public class NotificationManager {
      * to be expired.
      */
     private class PasswordExpireMailNotifier implements Runnable {
-        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; //NOSONAR ("Suppressing Sonar violation of removing this hard-coded password since it's just the name of attribute")
+        final static String PASSWORD_EXPIRE_MAIL_LOCK = "password_expire_notifier_lock"; // NOSONAR
+                                                                                         // ("Suppressing: removing this hard-coded password since it's just the name of attribute")
 
         @Override
         public void run() {
@@ -144,7 +148,7 @@ public class NotificationManager {
                     // check if the day is a NOTIFICATION_DAY, which defined in Constants class.
                     int daysToExpire = PasswordUtils.getDaysAfterEpoch(expireDate)
                             - PasswordUtils.getDaysAfterEpoch(now);
-                    for (int day : Constants.NOTIFICATION_DAYS ) {
+                    for (int day : Constants.NOTIFICATION_DAYS) {
                         if (day == daysToExpire) {
                             _log.info("send notification mail for " + user + " at day " + daysToExpire);
                             _alertsLog.warn(user + "'s password is about to expire in " + daysToExpire + " days");
@@ -180,7 +184,6 @@ public class NotificationManager {
                     }
 
                 }
-
 
             } catch (Exception e) {
                 _log.warn("Unexpected exception during db maintenance", e);
@@ -221,13 +224,13 @@ public class NotificationManager {
 
     /**
      * send notification mail to root about the to be expired local user.
-     *
+     * 
      * as for now, only 4 special local users: sysmonitor, proxyuser, root, svcuser.
      * all mails will send to root.
-     *
+     * 
      * if vipr introduces manage other local users in the future, need change
      * the logic to send mail to the user whose password to be expired.
-     *
+     * 
      * @param parameters
      */
     public boolean sendPasswordToBeExpiredMail(Map parameters) {
@@ -255,7 +258,7 @@ public class NotificationManager {
 
     /**
      * get user's mail address from UserPreference CF
-     *
+     * 
      * @param userName
      * @return
      */

@@ -35,7 +35,7 @@ import java.util.Map;
 /**
  * Ip reconfiguration tool which could
  * 1. Commit new IPs to the ovfenv partition
-  * 2. Rollback to original IPs to the ovfenv partition
+ * 2. Rollback to original IPs to the ovfenv partition
  */
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -55,7 +55,7 @@ public class Main {
         try {
             if (args[0].equals("commit")) {
                 commitNewIP();
-            } else if ( args[0].equals("rollback") ) {
+            } else if (args[0].equals("rollback")) {
                 rollbackToOldIP();
             } else {
                 usage();
@@ -65,14 +65,14 @@ public class Main {
         }
     }
 
-    private static void commitNewIP() throws Exception{
-        if(!FileUtils.exists(IpReconfigConstants.NEWIP_PATH)) {
-            log.info("No new ip file {} for applying. Exit...",IpReconfigConstants.NEWIP_PATH);
+    private static void commitNewIP() throws Exception {
+        if (!FileUtils.exists(IpReconfigConstants.NEWIP_PATH)) {
+            log.info("No new ip file {} for applying. Exit...", IpReconfigConstants.NEWIP_PATH);
             return;
         }
 
-        String strExpirationTime = (String)FileUtils.readObjectFromFile(IpReconfigConstants.NEWIP_EXPIRATION);
-        if ( System.currentTimeMillis() >= Long.valueOf(strExpirationTime) ) {
+        String strExpirationTime = (String) FileUtils.readObjectFromFile(IpReconfigConstants.NEWIP_EXPIRATION);
+        if (System.currentTimeMillis() >= Long.valueOf(strExpirationTime)) {
             log.info("Ip reconfiguration procedure has expired.  Will not applying new IPs info. Exit...");
             return;
         }
@@ -108,9 +108,9 @@ public class Main {
         }
     }
 
-    private static void rollbackToOldIP() throws Exception{
-        if(!FileUtils.exists(IpReconfigConstants.OLDIP_PATH)) {
-            log.info("No old ip file {} for rollback. Exit...",IpReconfigConstants.OLDIP_PATH);
+    private static void rollbackToOldIP() throws Exception {
+        if (!FileUtils.exists(IpReconfigConstants.OLDIP_PATH)) {
+            log.info("No old ip file {} for rollback. Exit...", IpReconfigConstants.OLDIP_PATH);
             return;
         }
 
@@ -126,12 +126,12 @@ public class Main {
         applyIpinfo(oldIpinfo, node_id, node_count, false);
     }
 
-    private static void applyIpinfo(ClusterIpInfo ipinfo, String nodeid, int node_count, boolean bNewIp) throws Exception{
+    private static void applyIpinfo(ClusterIpInfo ipinfo, String nodeid, int node_count, boolean bNewIp) throws Exception {
         log.info("applying ip info: {}", ipinfo.toString());
         String isoFilePath = "/tmp/ovf-env.iso";
         File isoFile = new File(isoFilePath);
         try {
-            String tmpstr = PlatformUtils.genOvfenvPropertyKVString(ipinfo,nodeid,node_count);
+            String tmpstr = PlatformUtils.genOvfenvPropertyKVString(ipinfo, nodeid, node_count);
 
             PlatformUtils.genOvfenvIsoImage(tmpstr, isoFilePath);
 
@@ -161,12 +161,13 @@ public class Main {
      * If the local node is in LocalAware_ClusterPersistent status, the cluster might be using either
      * original IPs or the new IPs.
      * The local node should commit new IPs if quorum nodes of cluster (with new IPs) are available.
+     * 
      * @param newIpinfo
      * @param node_id
      * @param node_count
      * @throws Exception
      */
-    private static void handlePossibleJump(ClusterIpInfo newIpinfo, String node_id, int node_count) throws Exception{
+    private static void handlePossibleJump(ClusterIpInfo newIpinfo, String node_id, int node_count) throws Exception {
         Integer node_id_number = Integer.valueOf(node_id.split("vipr")[1]);
         boolean bIpv4 = true;
         if (newIpinfo.getIpv4Setting().getNetworkNetmask().equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
@@ -174,21 +175,21 @@ public class Main {
         }
 
         log.info("Checking if new IPs had already been commited...");
-        for (int i=1; i< 24; i++) {
+        for (int i = 1; i < 24; i++) {
             // Here we assume each node would startup with functional network within at most 2m.
             // So we will check new IPs for 24 times (5s interval).
             log.info("Trying to ping other nodes ...");
             int alivenodes = 0;
             for (String network_addr : newIpinfo.getIpv4Setting().getNetworkAddrs()) {
-               if(ping(network_addr, bIpv4) == 0) {
-                    alivenodes ++;
+                if (ping(network_addr, bIpv4) == 0) {
+                    alivenodes++;
                 }
             }
 
             // do not count local node
             alivenodes--;
 
-            if (alivenodes > node_count/2) {
+            if (alivenodes > node_count / 2) {
                 log.info("new IPs have been commited in quorum nodes of the cluster, so committing it in local node...");
                 applyIpinfo(newIpinfo, node_id, node_count, true);
                 return;
@@ -202,11 +203,11 @@ public class Main {
     private static int ping(String ip, boolean bIpv4) {
         String cmd = "ping";
         String ipstr = ip;
-        if(!bIpv4) {
-            cmd+="6";
-            ipstr+="%eth0";
+        if (!bIpv4) {
+            cmd += "6";
+            ipstr += "%eth0";
         }
-        final String[] cmds = {cmd, ipstr, "-c", "1"};
+        final String[] cmds = { cmd, ipstr, "-c", "1" };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmds);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             log.warn("Failed to ping {} with exit value: {}", ip, result.getExitValue());

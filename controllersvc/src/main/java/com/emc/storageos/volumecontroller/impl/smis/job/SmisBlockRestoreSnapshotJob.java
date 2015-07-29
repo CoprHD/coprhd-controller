@@ -38,10 +38,10 @@ import java.util.List;
 
 public class SmisBlockRestoreSnapshotJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockRestoreSnapshotJob.class);
-    
+
     public SmisBlockRestoreSnapshotJob(CIMObjectPath cimJob,
-                                       URI storageSystem,
-                                       TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "RestoreBlockSnapshot");
     }
     

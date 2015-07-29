@@ -20,7 +20,7 @@ import java.net.URI;
 import java.util.HashMap;
 
 /**
- *  Class for caching objects to thread local
+ * Class for caching objects to thread local
  */
 public class QueriedObjectCache {
     private static final String ROOT_TENANT_KEY = "ROOT_TENANT";
@@ -38,14 +38,16 @@ public class QueriedObjectCache {
 
     /**
      * Returns thread local map instance
+     * 
      * @return
      */
     private static HashMap<String, DataObject> get() {
-        return (HashMap<String, DataObject>)QUERIED_OBJECT_MAP.get();
+        return (HashMap<String, DataObject>) QUERIED_OBJECT_MAP.get();
     }
 
     /**
      * Add an object into the map
+     * 
      * @param object DataObject to add to map
      */
     public static void setObject(DataObject object) {
@@ -56,6 +58,7 @@ public class QueriedObjectCache {
 
     /**
      * get an object from the map
+     * 
      * @param id URI of the object
      * @clazz DataObject type
      */
@@ -65,6 +68,7 @@ public class QueriedObjectCache {
 
     /**
      * Save root tenant object into map
+     * 
      * @param tenant
      */
     public static void setRootTenantObject(TenantOrg tenant) {
@@ -75,10 +79,11 @@ public class QueriedObjectCache {
 
     /**
      * Get root tenant object
+     * 
      * @return TenantOrg object for root tenant
      */
     public static TenantOrg getRootTenantOrgObject() {
-        return (TenantOrg)get().get(ROOT_TENANT_KEY);
+        return (TenantOrg) get().get(ROOT_TENANT_KEY);
     }
 
     public static void clearCache() {

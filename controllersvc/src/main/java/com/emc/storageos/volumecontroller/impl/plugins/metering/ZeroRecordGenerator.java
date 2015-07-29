@@ -39,8 +39,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.iwave.ext.netapp.VolumeOptionType;
-import com.sun.org.apache.bcel.internal.generic.AllocationInstruction;
 
 /**
  * 
@@ -52,12 +50,13 @@ public abstract class ZeroRecordGenerator {
     private Logger _logger = LoggerFactory.getLogger(ZeroRecordGenerator.class);
 
     /**
-       Say, Cache has 100 Volumes stored in it. The current Metering Collection
+     * Say, Cache has 100 Volumes stored in it. The current Metering Collection
      * results in 90 Volumes being retrieved from Providers. i.e. 10 Volumes
      * might get deleted, and needs to be Zeroed. Logic below identifies the 10
      * Missing Volumes and pushes to a Map,later Zero Stat Records would get
      * generated for those 10 Volumes before pushing to Cassandra.
      * * @param keyMap
+     * 
      * @param Volumes
      */
     public void identifyRecordstobeZeroed(
@@ -66,18 +65,18 @@ public abstract class ZeroRecordGenerator {
             @SuppressWarnings("unchecked")
             Set<String> resourceIds = (Set<String>) keyMap.get(Constants._nativeGUIDs);
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            
+
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             URI storageSystemURI = profile.getSystemId();
             List<URI> volumeURIsInDB = extractVolumesOrFileSharesFromDB(storageSystemURI, dbClient, clazz);
-            
+
             Set<String> zeroedRecords = Sets.newHashSet();
             Set<String> volumeURIsInDBSet = new HashSet<String>(Lists.transform(
                     volumeURIsInDB, Functions.toStringFunction()));
             // used Sets in Guava libraries, which has the ability to get us
             // the difference without altering the Cache.
             Sets.difference(volumeURIsInDBSet, resourceIds).copyInto(zeroedRecords);
-            
+
             if (!zeroedRecords.isEmpty()) {
                 _logger.info("Records Zeroed : {}", zeroedRecords.size());
                 // used in caching Volume Records
@@ -175,30 +174,30 @@ public abstract class ZeroRecordGenerator {
                 }
             } else {
                 List<URI> volumeURIs = injectResourceURI(client, nativeGuid);
-                
+
                 if (null == volumeURIs || volumeURIs.isEmpty()) {
-                     
+
                     _logger.debug("Querying Cassandra using nativeGUID:" + nativeGuid
                             + "yields : 0 ResourceID");
                     return statObj;
                 }
                 volURI = volumeURIs.get(0);
             }
-            long allocatedCapacity =  0L;
-            //if snap,process the parent volume
+            long allocatedCapacity = 0L;
+            // if snap,process the parent volume
             if (!URIUtil.isType(volURI, Volume.class) && !URIUtil.isType(volURI, FileShare.class)) {
                 _logger.debug("Skipping Statistics for Snapshots :" + volURI);
-                BlockObject bo =  BlockObject.fetch(client, volURI);
+                BlockObject bo = BlockObject.fetch(client, volURI);
                 if (bo instanceof BlockSnapshot) {
-                    Volume parent = client.queryObject(Volume.class, ((BlockSnapshot)(bo)).getParent().getURI());
+                    Volume parent = client.queryObject(Volume.class, ((BlockSnapshot) (bo)).getParent().getURI());
                     _logger.info("Processing snapshot's parent Volume {}", parent.getNativeGuid());
                     volURI = parent.getId();
                     nativeGuid = parent.getNativeGuid();
-                    allocatedCapacity = ((BlockSnapshot)bo).getAllocatedCapacity();
+                    allocatedCapacity = ((BlockSnapshot) bo).getAllocatedCapacity();
                     snapProcessed = true;
                 }
-                
-            } 
+
+            }
             // No need to verify whether Volume is inactive or not, as for
             // zeroing records
             // even inactive Volumes need to get zeroed.
@@ -216,9 +215,9 @@ public abstract class ZeroRecordGenerator {
                 keyMap.put(nativeGuid, statObj);
                 statObj.setResourceId(volURI);
             }
-            
+
             statObj.setNativeGuid(nativeGuid);
-            
+
             // set Project, Tenant and vPool info for Zero records,
             // as we already have Volume/File object queried from DB above to
             // get nativeGuid from URI.
@@ -242,7 +241,7 @@ public abstract class ZeroRecordGenerator {
                 statObj.setSnapshotCount(statObj.getSnapshotCount() + 1);
                 statObj.setSnapshotCapacity(statObj.getSnapshotCapacity() + allocatedCapacity);
             }
-           
+
             // Add Volume URIs to local Collection, which will be compared
             // against Volumes in DB to determine Zero Records.
             @SuppressWarnings("unchecked")
@@ -251,24 +250,26 @@ public abstract class ZeroRecordGenerator {
         } catch (Exception e) {
             // Even if one volume fails, no need to throw exception instead
             // continue processing other volumes
-            if (null != nativeGuid){
+            if (null != nativeGuid) {
                 _logger.error(
                         "Cassandra Database Error while querying VolumeUUId, VirtualPool & Project URIs : {}-->",
                         nativeGuid, e);
             }
-                
+
         }
-        //if processing snap, parent volume would have already added to the list, hence return null to skip
-        return snapProcessed ? null: statObj;
+        // if processing snap, parent volume would have already added to the list, hence return null to skip
+        return snapProcessed ? null : statObj;
     }
+
     /**
      * Return the Stat object based on the certain conditions.
      * Ex. If there are no project details in Volume/FS, don't create Stat object.
+     * 
      * @param resourceURI
      * @return
      */
     protected abstract Stat getStatObject(URI resourceURI, DbClient dbClient);
-    
+
     /**
      * inject ResourceId of the given nativeGuid.
      * 

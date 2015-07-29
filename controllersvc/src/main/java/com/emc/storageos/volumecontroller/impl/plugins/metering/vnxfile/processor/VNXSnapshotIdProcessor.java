@@ -37,7 +37,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("processing snapshot id response" + resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
@@ -50,7 +50,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                 boolean isSnapshotFound = false;
                 List<Object> snapshotList = getQueryResponse(responsePacket);
                 final String snapName = (String) keyMap.get(VNXFileConstants.SNAPSHOT_NAME);
-                _logger.info( "Snapshot name to match: {} Size of snaps found {} ", snapName, snapshotList.size());
+                _logger.info("Snapshot name to match: {} Size of snaps found {} ", snapName, snapshotList.size());
                 Iterator<Object> snapshotItr = snapshotList.iterator();
                 if (snapshotItr.hasNext()) {
                     Status status = (Status) snapshotItr.next();
@@ -67,7 +67,7 @@ public class VNXSnapshotIdProcessor extends VNXFileProcessor {
                                 break;
                             }
                         }
-                        if(!isSnapshotFound)
+                        if (!isSnapshotFound)
                         {
                             _logger.error("Error in getting the snapshot information.");
                         }

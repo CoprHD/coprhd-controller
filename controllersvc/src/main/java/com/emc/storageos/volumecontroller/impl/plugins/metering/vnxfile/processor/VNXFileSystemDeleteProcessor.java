@@ -59,13 +59,13 @@ public class VNXFileSystemDeleteProcessor extends VNXFileProcessor {
                         TaskResponse system = (TaskResponse) responseObj;
                         status = system.getStatus();
                         _logger.info("DeleteFileSystem task response status: {}", status.getMaxSeverity().name());
-                        
+
                         if (status.getMaxSeverity() == Severity.OK) {
                             keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                         } else {
                             processErrorStatus(status, keyMap);
                         }
-                        
+
                         break;
                     } else {
                         if (null != responseObj) {
@@ -82,7 +82,7 @@ public class VNXFileSystemDeleteProcessor extends VNXFileProcessor {
                     _logger.info("Recieved celerra session information from the Server.");
                 }
             }
-        }catch (final Exception ex) {
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the vnx delete file sys response due to ",
                     ex);
@@ -95,6 +95,6 @@ public class VNXFileSystemDeleteProcessor extends VNXFileProcessor {
 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
-        // TODO  Is this method needed?  Not used in other processors.
+        // TODO Is this method needed? Not used in other processors.
     }
 }

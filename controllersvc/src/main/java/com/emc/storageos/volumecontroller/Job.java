@@ -13,20 +13,20 @@ public abstract class Job {
 
     // A job is de-queued when it reaches a terminal condition
     public static enum JobStatus {
-        IN_PROGRESS, //job is in progress
-        SUCCESS,     //terminal condition
-        FAILED,      //terminal condition
-        ERROR,        //transient error condition (connection loss)
-        FATAL_ERROR  //fatal error condition (ex. job was in error status for a long time (set to 2 hours now))
+        IN_PROGRESS, // job is in progress
+        SUCCESS,     // terminal condition
+        FAILED,      // terminal condition
+        ERROR,        // transient error condition (connection loss)
+        FATAL_ERROR  // fatal error condition (ex. job was in error status for a long time (set to 2 hours now))
     };
 
-    public static final long JOB_TRACKING_LIMIT = 24*60*60*1000; // tracking limit for jobs, 24 hours
+    public static final long JOB_TRACKING_LIMIT = 24 * 60 * 60 * 1000; // tracking limit for jobs, 24 hours
 
     private long pollingStartTime = 0L;
 
     /**
      * Determines job status
-     *
+     * 
      * @param jobContext
      * @param trackingPeriodInMillis
      * @return

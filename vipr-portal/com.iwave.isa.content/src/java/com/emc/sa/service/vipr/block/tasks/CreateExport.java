@@ -36,10 +36,10 @@ public class CreateExport extends WaitForTask<ExportGroupRestRep> {
         this.clusterId = clusterId;
         this.volumeHlus = volumeHlus;
         if (clusterId != null) {
-        	provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
+            provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
         }
         else {
-        	provideDetailArgs(name, getMessage("CreateExport.hostname"), hostName, volumeIds, hlu);
+            provideDetailArgs(name, getMessage("CreateExport.hostname"), hostName, volumeIds, hlu);
         }
     }
 

@@ -20,13 +20,14 @@ import javax.xml.bind.annotation.XmlElement;
 public class EndpointAliasRestRep extends StringHashMapEntry {
 
     private String alias;
-    
+
     public EndpointAliasRestRep() {
     }
-    
+
     public EndpointAliasRestRep(String name, String value) {
-        super(name,value);
+        super(name, value);
     }
+
     public EndpointAliasRestRep(String name, String value, String alias) {
         this(name, value);
         setAlias(alias);

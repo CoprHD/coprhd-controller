@@ -14,8 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
-import com.emc.storageos.model.tenant.TenantNamespaceInfo;
-import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.varray.VirtualArrayInternalFlags;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.security.helpers.BaseServiceClient;
@@ -41,7 +39,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
     private static final String INTERNAL_VARRAY_GET_REGISTERED = INTERNAL_VARRAY_ROOT + "/%s/deviceRegistered";
 
     final private Logger _log = LoggerFactory
-        .getLogger(InternalVirtualArrayServiceClient.class);
+            .getLogger(InternalVirtualArrayServiceClient.class);
 
     /**
      * Client without target hosts
@@ -51,6 +49,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
 
     /**
      * Client with specific host
+     * 
      * @param server
      */
     public InternalVirtualArrayServiceClient(String server) {
@@ -59,15 +58,17 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
 
     /**
      * Make client associated with this api server host (IP)
+     * 
      * @param server IP
      */
     @Override
-        public void setServer(String server) {
-            setServiceURI(URI.create("https://" + server + ":8443"));
-        }
+    public void setServer(String server) {
+        setServiceURI(URI.create("https://" + server + ":8443"));
+    }
 
     /**
      * Set protection type for varray
+     * 
      * @param id the URN of a ViPR varray
      * @param value the value of the protection type
      * @return the updated virtual array info
@@ -78,8 +79,8 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
         VirtualArrayRestRep resp = null;
         try {
             resp = addSignature(rRoot)
-                .put(VirtualArrayRestRep.class);
-        }catch(UniformInterfaceException e){
+                    .put(VirtualArrayRestRep.class);
+        } catch (UniformInterfaceException e) {
             _log.warn("could not set protection type to varray {}. Err:{}", id, e);
             if (e.getResponse().getStatus() == 404) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
@@ -90,6 +91,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
 
     /**
      * Get protectionType attached with a virtual array
+     * 
      * @param id the URN of a ViPR varray
      * @return the protection type
      */
@@ -100,7 +102,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
         try {
             resp = addSignature(rRoot)
                     .get(VirtualArrayInternalFlags.class);
-        }catch(UniformInterfaceException e){
+        } catch (UniformInterfaceException e) {
             _log.warn("could not get protection of varray {}. Err:{}", id, e);
             if (e.getResponse().getStatus() == 404) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
@@ -112,7 +114,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
 
     /**
      * Unset protection type assigned to the varray
-     *
+     * 
      * @param id the URN of a ViPR varry
      * @prereq none
      * @brief unset protection type field
@@ -124,8 +126,8 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
         ClientResponse resp = null;
         try {
             resp = addSignature(rRoot)
-                .delete(ClientResponse.class);
-        }catch(UniformInterfaceException e){
+                    .delete(ClientResponse.class);
+        } catch (UniformInterfaceException e) {
             _log.warn("could not unset protection flag from varray {}. Err:{}", id, e);
             if (e.getResponse().getStatus() == 404) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
@@ -136,6 +138,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
 
     /**
      * Set device registered flag for varray
+     * 
      * @param id the URN of a ViPR varray
      * @param value the device registered status
      * @return the updated virtual array info
@@ -147,7 +150,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
         try {
             resp = addSignature(rRoot)
                     .put(VirtualArrayRestRep.class);
-        }catch(UniformInterfaceException e){
+        } catch (UniformInterfaceException e) {
             _log.warn("could not set registered status to varray {}. Err:{}", id, e);
             if (e.getResponse().getStatus() == 404) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
@@ -158,6 +161,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
 
     /**
      * Get device registered status of a virtual array
+     * 
      * @param id the URN of a ViPR varray
      * @return the device registered status
      */
@@ -168,7 +172,7 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
         try {
             resp = addSignature(rRoot)
                     .get(VirtualArrayInternalFlags.class);
-        }catch(UniformInterfaceException e){
+        } catch (UniformInterfaceException e) {
             _log.warn("could not get registered status of varray {}. Err:{}", id, e);
             if (e.getResponse().getStatus() == 404) {
                 throw APIException.notFound.unableToFindEntityInURL(id);
@@ -179,4 +183,3 @@ public class InternalVirtualArrayServiceClient extends BaseServiceClient {
     }
 
 }
-

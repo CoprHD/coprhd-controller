@@ -14,8 +14,6 @@
  */
 package com.emc.storageos.model.varray;
 
-import com.emc.storageos.model.vpool.VirtualPoolAvailableAttributesResourceRep;
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
@@ -25,7 +23,8 @@ import java.util.List;
 public class VArrayAttributeList {
     private List<AttributeList> attributes;
 
-    public VArrayAttributeList() {}
+    public VArrayAttributeList() {
+    }
 
     public VArrayAttributeList(
             List<AttributeList> attributes) {

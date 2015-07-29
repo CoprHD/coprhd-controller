@@ -25,7 +25,7 @@ import java.util.StringTokenizer;
  * Info for a VPlex Storage View.
  */
 public class VPlexStorageViewInfo extends VPlexResourceInfo {
-    
+
     // Enumerates the storage view attributes we are interested in and
     // parse from the VPlex storage view response. There must be a setter
     // method for each attribute specified. The format of the setter
@@ -35,10 +35,10 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         VOLUMES("virtual-volumes"),
         PORTS("ports"),
         INITIATORS("initiators");
-        
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -47,16 +47,16 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         StorageViewAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-        
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -76,28 +76,28 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The cluster id;
     private String clusterId;
 
     // The virtual volume info for the storage view.
     private List<String> virtualVolumes = new ArrayList<String>();
-    
+
     // A map of the storage view virtual volume names to WWN.
     private Map<String, String> virtualVolumeWWNMap = new HashMap<String, String>();
-    
+
     // A map of the storage view virtual volume names to HLU.
     private Map<String, Integer> virtualVolumeHLUMap = new HashMap<String, Integer>();
 
     // The target port info for the storage view.
     private List<String> ports = new ArrayList<String>();
-    
+
     // The host initiator info for the storage view.
     private List<String> initiators = new ArrayList<String>();
-      
+
     // The initiators PWWN for the storage view.
-	private List<String> initiatorPwwns = new ArrayList<String>();
-    
+    private List<String> initiatorPwwns = new ArrayList<String>();
+
     /**
      * Getter for the cluster id.
      * 
@@ -149,7 +149,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
             virtualVolumeHLUMap.put(volumeName, volumeHLU);
         }
     }
-    
+
     /**
      * Gets the WWN for the volume in the storage view.
      * 
@@ -160,7 +160,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
     public String getWWNForStorageViewVolume(String volumeName) {
         return virtualVolumeWWNMap.get(volumeName);
     }
-    
+
     /**
      * Gets the HLU for the volume in the storage view.
      * 
@@ -171,21 +171,21 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
     public Integer getHLUForStorageViewVolume(String volumeName) {
         return virtualVolumeHLUMap.get(volumeName);
     }
-    
+
     /**
      * Gets a Map of virtual volume WWN to HLU
      */
     public Map<String, Integer> getWwnToHluMap() {
         Map<String, Integer> map = new HashMap<String, Integer>();
-        
+
         for (Entry<String, String> entry : virtualVolumeWWNMap.entrySet()) {
             String volumeName = entry.getKey();
             map.put(volumeName.toUpperCase(), virtualVolumeHLUMap.get(volumeName));
         }
-        
+
         return map;
     }
-    
+
     /**
      * Getter for the storage view target ports.
      * 
@@ -205,7 +205,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
         ports.clear();
         ports.addAll(strVals);
     }
-    
+
     /**
      * Getter for the storage view initiators.
      * 
@@ -214,7 +214,7 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
     public List<String> getInitiators() {
         return initiators;
     }
-    
+
     /**
      * Setter for the initiators in the storage view.
      * Comma separated list.
@@ -227,25 +227,25 @@ public class VPlexStorageViewInfo extends VPlexResourceInfo {
             initiators.add(initiator);
         }
     }
-    
+
     /**
      * Getter for the initiator PWWNs in the storage view.
      * 
      * @return The initiator PWWNs in the storage view.
      */
     public List<String> getInitiatorPwwns() {
-		return initiatorPwwns;
-	}
+        return initiatorPwwns;
+    }
 
     /**
      * Setter for the initiator PWWNs in the storage view.
      * 
      * @param initiatorPwwns The initiators PWWN in the storage view.
      */
-	public void setInitiatorPwwns(List<String> initiatorPwwns) {
-		this.initiatorPwwns = initiatorPwwns;
-	}
-    
+    public void setInitiatorPwwns(List<String> initiatorPwwns) {
+        this.initiatorPwwns = initiatorPwwns;
+    }
+
     /**
      * {@inheritDoc}
      */

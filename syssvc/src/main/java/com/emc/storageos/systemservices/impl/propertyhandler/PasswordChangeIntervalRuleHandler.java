@@ -15,7 +15,6 @@
 
 package com.emc.storageos.systemservices.impl.propertyhandler;
 
-
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.security.password.Constants;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
@@ -33,7 +32,7 @@ public class PasswordChangeIntervalRuleHandler implements UpdateHandler {
 
     /**
      * check if new password_change_interval value is between range [0, 1440), if not fail the property update.
-     *
+     * 
      * @param oldProps
      * @param newProps
      */
@@ -54,14 +53,12 @@ public class PasswordChangeIntervalRuleHandler implements UpdateHandler {
 
     /**
      * do nothing
-     *
+     * 
      * @param oldProps
      * @param newProps
      */
     public void after(PropertyInfoRestRep oldProps, PropertyInfoRestRep newProps) {
 
     }
-
-
 
 }

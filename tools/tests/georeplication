@@ -1,0 +1,183 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# chunkinfo cli functions
+#----------------------------------------------------------------------
+
+def update_chunkinfo(args):
+    bourne.connect(args.ip)
+    response = bourne.update_chunkinfo(args.primaryZone, args.message)
+    if (response.status_code == 200):
+        print "Successfully updated chunk info"
+    else: 
+        print "FAILED: ", response.status_code 
+
+def send_chunkdata(args):
+    bourne.connect(args.ip)
+    response = bourne.send_chunkdata(args.chunkId, args.primaryZone, args.secondaryZone, args.repGroup, args.data)
+    if (response.status_code == 200):
+        print "Successfully sent chunk"
+    else:
+        print "FAILED: ", response.status_code
+
+def delete_chunkdata(args):
+    bourne.connect(args.ip)
+    response = bourne.delete_chunkdata(args.chunkId, args.repGroup)
+    if (response.status_code == 204):
+        print "Successfully deleted chunk"
+    else:
+        print "FAILED: ", response.status_code
+
+def create_repgroup(args):
+    bourne.connect(bourne_control_ip)
+    response = bourne.repgroup_create(args.id, args.name, args.cosList, args.isAllowAllNamespaces)
+    if (response.status_code == 200):
+        print response.content
+    else:
+        print "FAILED: ", response.status_code
+        raise Exception("rep group create failed")
+
+def update_repgroup(args):
+    bourne.connect(bourne_control_ip)
+    response = bourne.repgroup_add(args.id, args.cosList)
+    if (response.status_code == 200):
+        print response.content
+    else:
+        print "FAILED: ", response.status_code
+        raise Exception("rep group update failed")
+
+def compress_repgroup(args):
+    bourne.connect(bourne_control_ip)
+    response = bourne.repgroup_remove(args.id, args.cosList)
+    if (response.status_code == 200):
+        print response.content
+    else:
+        print "FAILED: ", response.status_code  
+        raise Exception("rep group compress failed")
+
+def show_repgroup(args):
+    bourne.connect(bourne_control_ip)
+    uri = bourne.repgroup_query(args.grpId)
+    response = bourne.repgroup_show(uri)
+    print response
+
+def list_repgroup(args):
+    bourne.connect(bourne_control_ip)
+    response = bourne.repgroup_list()
+    print response
+
+def query_repgroup(args):
+    bourne.connect(bourne_control_ip)
+    print bourne.repgroup_query(args.grpId)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_DATA_IPADDR']
+    bourne_control_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+    bourne_control_ip = 'localhost'
+
+# georeplication <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne georeplication cli usage.')
+parser.add_argument('cmd', help = 'cmd = (updateChunkInfo | sendChunkData | deleteChunkData | createRepGroup | extendRepGroup | compressRepGroup | showRepGroup | listRepGroup | queryRepGroup)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# create replication group
+createRepGroup = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+createRepGroup.add_argument('id', help = 'id of replication group')
+createRepGroup.add_argument('name', help = 'name of replication group')
+createRepGroup.add_argument('cosList', help = 'zone.cos[,zone.cos,zone.cos]')
+createRepGroup.add_argument('isAllowAllNamespaces', help = 'isAllowAllNamespaces flag')
+
+# update replication group
+updateRepGroup = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+updateRepGroup.add_argument('id', help = 'id of replication group')
+updateRepGroup.add_argument('cosList', help = 'zone.cos[,zone.cos,zone.cos]')
+
+# get replication group detail
+showRepGroup = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+showRepGroup.add_argument('grpId', help = 'id or name of replication group to show')
+
+# query replication group detail
+queryRepGroup = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+queryRepGroup.add_argument('grpId', help = 'id or name of replication group to show')
+
+# list replication groups
+listRepGroup = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# chunk info update
+updateChunkInfo = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+updateChunkInfo.add_argument('primaryZone', help = 'primary zone')
+updateChunkInfo.add_argument('message', help = 'serialized gpb message which contains a set of chunk info updates')
+
+# chunk data update
+sendChunkData = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+sendChunkData.add_argument('chunkId', help = 'chunk id')
+sendChunkData.add_argument('primaryZone', help = 'primary zone')
+sendChunkData.add_argument('secondaryZone', help = 'secondary zone')
+sendChunkData.add_argument('repGroup', help = 'replication group')
+sendChunkData.add_argument('--data', help = 'chunk data.  may be included multiple times.  each --data will be checksummed', action="append", default=[])
+
+# chunk data delete
+deleteChunkData = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+deleteChunkData.add_argument('chunkId', help = 'chunk id')
+deleteChunkData.add_argument('repGroup', help = 'replication group')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+     
+    bourne = Bourne()
+
+    if   (cmd == "updateChunkInfo"):
+        args = updateChunkInfo.parse_args()
+        update_chunkinfo(args)
+    elif   (cmd == "sendChunkData"):
+        args = sendChunkData.parse_args()
+        send_chunkdata(args)
+    elif   (cmd == "deleteChunkData"):
+        args = deleteChunkData.parse_args()
+        delete_chunkdata(args)
+    elif   (cmd == "createRepGroup"):
+        args = createRepGroup.parse_args()
+        create_repgroup(args)   
+    elif   (cmd == "extendRepGroup"):
+        args = updateRepGroup.parse_args()
+        update_repgroup(args)   
+    elif   (cmd == "compressRepGroup"):
+        args = updateRepGroup.parse_args()
+        compress_repgroup(args)  
+    elif   (cmd == "showRepGroup"):
+        args = showRepGroup.parse_args()
+        show_repgroup(args) 
+    elif   (cmd == "listRepGroup"):
+        args = listRepGroup.parse_args()
+        list_repgroup(args)   
+    elif   (cmd == "queryRepGroup"):
+        args = queryRepGroup.parse_args()
+        query_repgroup(args)                      
+    else:
+        parser.print_help()
+except:
+    raise
+

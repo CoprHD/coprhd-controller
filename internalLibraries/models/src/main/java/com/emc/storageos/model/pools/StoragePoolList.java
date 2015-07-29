@@ -14,9 +14,10 @@ import java.util.List;
 @XmlRootElement(name = "storage_pools")
 public class StoragePoolList {
     private List<NamedRelatedResourceRep> pools;
-    
-    public StoragePoolList() {}
-    
+
+    public StoragePoolList() {
+    }
+
     public StoragePoolList(List<NamedRelatedResourceRep> pools) {
         this.pools = pools;
     }

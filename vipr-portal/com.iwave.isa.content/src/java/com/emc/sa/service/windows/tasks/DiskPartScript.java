@@ -8,7 +8,6 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
-
 public abstract class DiskPartScript<T> extends WindowsExecutionTask<T> {
     public void setDiskPartCommands(List<String> commands) {
         provideDetailArgs(StringUtils.join(commands, " ; "));

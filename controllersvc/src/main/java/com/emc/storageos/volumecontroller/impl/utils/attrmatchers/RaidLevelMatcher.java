@@ -18,10 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.RaidLevel;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
-import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.google.common.base.Joiner;
 
 public class RaidLevelMatcher extends ConditionalAttributeMatcher {
@@ -30,15 +28,15 @@ public class RaidLevelMatcher extends ConditionalAttributeMatcher {
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
         boolean isMatcherNeeded = false;
-        
+
         if (isAutoTieringPolicyOn(attributeMap) && !attributeMap.containsKey(AttributeMatcher.PLACEMENT_MATCHERS)) {
             _logger.info("Skipping RaidLevel matcher, as VMAX FAST Policy is chosen");
             return isMatcherNeeded;
         }
-        
-        if(attributeMap!=null && attributeMap.get(Attributes.raid_levels.name())!=null ){
+
+        if (attributeMap != null && attributeMap.get(Attributes.raid_levels.name()) != null) {
             HashSet<String> raidLevels = (HashSet<String>) attributeMap.get(Attributes.raid_levels.name());
-            if(!raidLevels.isEmpty()){
+            if (!raidLevels.isEmpty()) {
                 isMatcherNeeded = true;
             }
         }
@@ -79,14 +77,14 @@ public class RaidLevelMatcher extends ConditionalAttributeMatcher {
         _logger.info("Pools Matching RaidLevels Ended :{}", Joiner.on("\t").join(getNativeGuidFromPools(filteredPoolList)));
         return filteredPoolList;
     }
-    
+
     @Override
     public Map<String, Set<String>> getAvailableAttribute(List<StoragePool> neighborhoodPools,
-                                        URI vArrayId) {
+            URI vArrayId) {
         try {
             Map<String, Set<String>> availableAttrMap = new HashMap<String, Set<String>>(1);
             Set<String> availableAttrValues = new HashSet<String>();
-            for (StoragePool pool: neighborhoodPools) {
+            for (StoragePool pool : neighborhoodPools) {
                 StringSet raidLevels = pool.getSupportedRaidLevels();
                 if (null != raidLevels && !raidLevels.isEmpty()) {
                     for (String raidLevel : raidLevels) {
@@ -96,7 +94,7 @@ public class RaidLevelMatcher extends ConditionalAttributeMatcher {
                     }
                 }
             }
-            if(!availableAttrValues.isEmpty()) {
+            if (!availableAttrValues.isEmpty()) {
                 availableAttrMap.put(Attributes.raid_levels.name(), availableAttrValues);
                 return availableAttrMap;
             }

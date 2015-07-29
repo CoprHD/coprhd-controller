@@ -19,7 +19,7 @@ import java.util.Calendar;
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
 /**
- *  An XML Calendar marshaler based on JAXB API
+ * An XML Calendar marshaler based on JAXB API
  */
 public class CalendarAdapter extends XmlAdapter<Long, Calendar> {
 

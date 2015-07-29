@@ -28,11 +28,12 @@ public class BackupContext {
     private File backupDir;
     private String nodeName;
     private List<String> vdcList;
-    
+
     /**
      * Sets local location which stores backup files
+     * 
      * @param backupDirParam
-     *      The new location path
+     *            The new location path
      */
     public void setBackupDir(final File backupDir) {
         if (backupDir == null) {
@@ -58,24 +59,25 @@ public class BackupContext {
 
     /**
      * Sets name of current node
+     * 
      * @param nodeNameParam
-     *          The name of node
+     *            The name of node
      */
     public void setNodeName(String nodeName) {
         Preconditions.checkArgument(nodeName != null && !nodeName.trim().isEmpty(),
                 "ViPR node name is invalid");
         this.nodeName = nodeName;
     }
-    
+
     public String getNodeName() {
-    	return this.nodeName;
+        return this.nodeName;
     }
 
     public void setVdcList(List<String> vdcList) {
         this.vdcList = vdcList;
     }
-    
+
     public List<String> getVdcList() {
-    	return this.vdcList;
+        return this.vdcList;
     }
 }

@@ -23,37 +23,38 @@ import java.util.List;
 /**
  * RecoverPoint Controller
  */
-public interface RPController extends ProtectionController {  
+public interface RPController extends ProtectionController {
     /**
      * Perform protection operation
-     *
+     * 
      * @param protectionDevice RP protection system URI
      * @param id volume ID
      * @param copyID id of protection volume
      * @param op operation to perform
      * @param task task object
-     *
+     * 
      * @throws InternalException
      */
     public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String op, String task) throws InternalException;
-    
+
     /**
      * Create a snapshot or snapshots of a volume or volumes.
      * Open issue: need to allow snapshots with different VirtualPool & pool
+     * 
      * @param protectionDevice RP protection system URI
      * @param storageDevice storage device of the volume
      * @param snapshotList list of snapshots
      * @param createInactive (unused)
      * @param task task ID
-     *
+     * 
      * @throws InternalException
      */
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList,
-                               Boolean createInactive, String task) throws InternalException;
+            Boolean createInactive, String task) throws InternalException;
 
     /**
      * Delete a snapshot
-     *
+     * 
      * @param protectionDevice RP protection system URI
      * @param snapshot snap ID
      * @param task task ID

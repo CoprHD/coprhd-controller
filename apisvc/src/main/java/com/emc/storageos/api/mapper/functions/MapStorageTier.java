@@ -9,7 +9,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.db.client.model.StorageTier;
 import com.google.common.base.Function;
 
-public class MapStorageTier implements Function<StorageTier,StorageTierRestRep> {
+public class MapStorageTier implements Function<StorageTier, StorageTierRestRep> {
     public static final MapStorageTier instance = new MapStorageTier();
 
     public static MapStorageTier getInstance() {

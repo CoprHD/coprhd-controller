@@ -91,7 +91,7 @@ public interface MetaVolumeOperations {
 
     /**
      * Create multiple meta volumes with the same characteristics.
-     *
+     * 
      * @param storageSystem
      * @param storagePool
      * @param volumes
@@ -100,18 +100,18 @@ public interface MetaVolumeOperations {
      * @throws Exception
      */
     public void createMetaVolumes(StorageSystem storageSystem, StoragePool storagePool, List<Volume> volumes,
-                                  VirtualPoolCapabilityValuesWrapper capabilities, TaskCompleter taskCompleter) throws Exception;
+            VirtualPoolCapabilityValuesWrapper capabilities, TaskCompleter taskCompleter) throws Exception;
 
-        /**
-         * Expand meta volume.
-         *
-         * @param storageSystem
-         * @param storagePool
-         * @param metaHead
-         * @param newMetaMembers
-         * @param metaVolumeTaskCompleter
-         * @throws DeviceControllerException
-         */
+    /**
+     * Expand meta volume.
+     * 
+     * @param storageSystem
+     * @param storagePool
+     * @param metaHead
+     * @param newMetaMembers
+     * @param metaVolumeTaskCompleter
+     * @throws DeviceControllerException
+     */
     public void expandMetaVolume(StorageSystem storageSystem, StoragePool storagePool,
             Volume metaHead, List<String> newMetaMembers, MetaVolumeTaskCompleter metaVolumeTaskCompleter)
             throws Exception;
@@ -130,9 +130,10 @@ public interface MetaVolumeOperations {
     void expandVolumeAsMetaVolume(StorageSystem storageSystem, StoragePool storagePool,
             Volume metaHead, List<String> metaMembers, String metaType,
             MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception;
-    
+
     /**
      * Defines meta volume type for volume expansion.
+     * 
      * @param storageSystem
      * @param volume
      * @param metaVolumeType

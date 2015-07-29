@@ -16,30 +16,31 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ExampleProtoBeanFactory implements ApplicationContextAware {
-	
-	private static int factoryMethodInvocationCount = 0;
-	
-	@Autowired
-	ApplicationContext applicationContext;
-	
-	private static final Map<String, ExampleProtoBean> textToExampleProtoBeanMap = Collections.synchronizedMap(new HashMap<String, ExampleProtoBean>());
 
-	@Override
-	public void setApplicationContext(ApplicationContext arg0)
-			throws BeansException {
-		this.applicationContext = arg0;
+    private static int factoryMethodInvocationCount = 0;
 
-	}
-	
-	public ExampleProtoBean createExampleProtoBean(String text){
-		factoryMethodInvocationCount++;
-		System.out.println("Number of times factory method invoked : " + factoryMethodInvocationCount);
-		if(textToExampleProtoBeanMap.get(text) != null){
-			return textToExampleProtoBeanMap.get(text);
-		}
-		ExampleProtoBean bean = (ExampleProtoBean)applicationContext.getBean("exampleProtoBean", text);
-		textToExampleProtoBeanMap.put(text, bean);
-		return bean;
-	}
+    @Autowired
+    ApplicationContext applicationContext;
+
+    private static final Map<String, ExampleProtoBean> textToExampleProtoBeanMap = Collections
+            .synchronizedMap(new HashMap<String, ExampleProtoBean>());
+
+    @Override
+    public void setApplicationContext(ApplicationContext arg0)
+            throws BeansException {
+        this.applicationContext = arg0;
+
+    }
+
+    public ExampleProtoBean createExampleProtoBean(String text) {
+        factoryMethodInvocationCount++;
+        System.out.println("Number of times factory method invoked : " + factoryMethodInvocationCount);
+        if (textToExampleProtoBeanMap.get(text) != null) {
+            return textToExampleProtoBeanMap.get(text);
+        }
+        ExampleProtoBean bean = (ExampleProtoBean) applicationContext.getBean("exampleProtoBean", text);
+        textToExampleProtoBeanMap.put(text, bean);
+        return bean;
+    }
 
 }

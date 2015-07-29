@@ -17,7 +17,7 @@ package com.emc.storageos.vnxe.models;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class VNXeIscsiPortal {
     private String id;
     private String portalGroupTag;
@@ -27,55 +27,69 @@ public class VNXeIscsiPortal {
     private String netmask;
     private VNXeIscsiNode iscsiNode;
     private VNXeBase ethernetPort;
-    
+
     public String getId() {
         return id;
     }
+
     public void setId(String id) {
         this.id = id;
     }
+
     public String getPortalGroupTag() {
         return portalGroupTag;
     }
+
     public void setPortalGroupTag(String portalGroupTag) {
         this.portalGroupTag = portalGroupTag;
     }
+
     public String getV6PrefixLength() {
         return v6PrefixLength;
     }
+
     public void setV6PrefixLength(String v6PrefixLength) {
         this.v6PrefixLength = v6PrefixLength;
     }
+
     public String getIpAddress() {
         return ipAddress;
     }
+
     public void setIpAddress(String ipAddress) {
         this.ipAddress = ipAddress;
     }
+
     public String getIpProtocolVersion() {
         return ipProtocolVersion;
     }
+
     public void setIpProtocolVersion(String ipProtocolVersion) {
         this.ipProtocolVersion = ipProtocolVersion;
     }
+
     public String getNetmask() {
         return netmask;
     }
+
     public void setNetmask(String netmask) {
         this.netmask = netmask;
     }
+
     public VNXeIscsiNode getIscsiNode() {
         return iscsiNode;
     }
+
     public void setIscsiNode(VNXeIscsiNode iscsiNode) {
         this.iscsiNode = iscsiNode;
     }
+
     public VNXeBase getEthernetPort() {
         return ethernetPort;
     }
+
     public void setEthenetPort(VNXeBase ethenetPort) {
         this.ethernetPort = ethenetPort;
     }
-    
 
 }

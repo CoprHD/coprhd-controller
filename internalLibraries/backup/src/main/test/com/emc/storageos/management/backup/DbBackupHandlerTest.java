@@ -22,7 +22,6 @@ import org.junit.Assert;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
 import java.util.UUID;
 
 public class DbBackupHandlerTest extends BackupTestBase {
@@ -31,9 +30,9 @@ public class DbBackupHandlerTest extends BackupTestBase {
 
     @BeforeClass
     public static void setUp() {
-        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-        //Junit test will be called in single thread by default, it's safe to ignore this violation
-        dbBackupHandler = (DbBackupHandler) backupManager.getBackupHandler(); //NOSONAR ("squid:S2444")
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // Junit test will be called in single thread by default, it's safe to ignore this violation
+        dbBackupHandler = (DbBackupHandler) backupManager.getBackupHandler(); // NOSONAR ("squid:S2444")
     }
 
     @Test
@@ -48,13 +47,14 @@ public class DbBackupHandlerTest extends BackupTestBase {
                     return name.equals(DbBackupHandler.DB_SNAPSHOT_SUBDIR);
                 }
             });
-            if (snapshots == null || snapshots.length == 0)
+            if (snapshots == null || snapshots.length == 0) {
                 continue;
+            }
             for (File snapshot : snapshots) {
                 File[] subSnapshots = snapshot.listFiles(new FilenameFilter() {
                     @Override
                     public boolean accept(File dir, String name) {
-                        return name.startsWith(snapshotTag+BackupConstants.BACKUP_NAME_DELIMITER);
+                        return name.startsWith(snapshotTag + BackupConstants.BACKUP_NAME_DELIMITER);
                     }
                 });
                 Assert.assertNotNull(subSnapshots);
@@ -83,7 +83,7 @@ public class DbBackupHandlerTest extends BackupTestBase {
             File[] backupFolder = backupDir[0].listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.startsWith(snapshotTag+BackupConstants.BACKUP_NAME_DELIMITER);
+                    return name.startsWith(snapshotTag + BackupConstants.BACKUP_NAME_DELIMITER);
                 }
             });
             Assert.assertNotNull(backupFolder);
@@ -94,9 +94,9 @@ public class DbBackupHandlerTest extends BackupTestBase {
             Assert.assertNotNull(subBackups);
             Assert.assertTrue(subBackups.length > 0);
         } finally {
-            if (dbBackup != null)
+            if (dbBackup != null) {
                 FileUtils.deleteQuietly(dbBackup);
+            }
         }
     }
 }
-

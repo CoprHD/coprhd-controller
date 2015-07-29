@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
 import com.iwave.ext.text.TextParser;
 
 public class GetNetworkAdapterMacAddressCommand extends AixResultsCommand<String> {
-    
+
     private static final Pattern NETWORK_ADDRESS_PATTERN = Pattern.compile("Network Address[.]+([0-9a-fA-F]*)");
 
     public GetNetworkAdapterMacAddressCommand(String adapter) {
@@ -25,9 +25,9 @@ public class GetNetworkAdapterMacAddressCommand extends AixResultsCommand<String
             results = normalizeMacAddress(macAddress);
         }
     }
-    
+
     private String normalizeMacAddress(String mac) {
-        return mac.replaceAll("(.{2})", "$1:").substring(0,17);
+        return mac.replaceAll("(.{2})", "$1:").substring(0, 17);
     }
-    
+
 }

@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
+import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 
 import java.net.URI;
 import java.util.List;
@@ -42,9 +43,9 @@ public class CreateBareMetalClusterService extends ViPRService {
     @Param(COMPUTE_VIRTUAL_POOL)
     protected URI computeVirtualPool;
 
-	@Param(SIZE_IN_GB)
+    @Param(SIZE_IN_GB)
     protected Double size;
-    
+
     @Bindable(itemType = FqdnTable.class)
     protected FqdnTable[] fqdnValues;
 
@@ -56,50 +57,50 @@ public class CreateBareMetalClusterService extends ViPRService {
 
         StringBuffer preCheckErrors = new StringBuffer();
         hostNames = ComputeUtils.getHostNamesFromFqdn(fqdnValues);
-                
+
         List<String> existingHostNames = ComputeUtils.getHostNamesByName(getClient(), hostNames);
         cluster = ComputeUtils.getCluster(name);
         List<String> hostNamesInCluster = ComputeUtils.findHostNamesInCluster(cluster);
-        
+
         if ((cluster != null) && hostNamesInCluster.isEmpty()) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.empty.cluster.exists"));
         }
-        
-        if((cluster != null) && !hostNames.containsAll(hostNamesInCluster)){
+
+        if ((cluster != null) && !hostNames.containsAll(hostNamesInCluster)) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.unknown.host"));
         }
-        
+
         if (hostNames == null || hostNames.isEmpty()) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.baremetal.hostname.required") + "  ");
         }
-        
+
         // Check for validity of host names and host Ips
         for (String hostName : hostNames) {
             if (!ComputeUtils.isValidHostIdentifier(hostName)) {
                 preCheckErrors.append(
-                        ExecutionUtils.getMessage("compute.cluster.hostname.invalid",hostName) + "  ");
+                        ExecutionUtils.getMessage("compute.cluster.hostname.invalid", hostName) + "  ");
             }
         }
-        
-        if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() && 
-                hostNamesInCluster.containsAll(existingHostNames) && (hostNames.size() == hostNamesInCluster.size()) ) {
+
+        if (hostNames != null && !hostNames.isEmpty() && !existingHostNames.isEmpty() &&
+                hostNamesInCluster.containsAll(existingHostNames) && (hostNames.size() == hostNamesInCluster.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.host.already.in.cluster") + "  ");
         }
-        
+
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
-                virtualArray, size, hostNames.size()-existingHostNames.size())) {
+                virtualArray, size, hostNames.size() - existingHostNames.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
-        
+
         if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size()-existingHostNames.size())) {
+                hostNames.size() - existingHostNames.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
         }
-        
+
         for (String existingHostName : existingHostNames) {
             if (!hostNamesInCluster.contains(existingHostName)) {
                 preCheckErrors.append(
@@ -107,28 +108,28 @@ public class CreateBareMetalClusterService extends ViPRService {
                                 existingHostName) + "  ");
             }
         }
-        
-        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(),computeVirtualPool);
+
+        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
         if (cvp.getServiceProfileTemplates().isEmpty()) {
-        	preCheckErrors.append(
+            preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        } 
-        
+        }
+
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
         }
     }
-    
+
     @Override
     public void execute() throws Exception {
 
         // Note: creates ordered lists of hosts, bootVolumes & exports
         // host[0] goes with bootVolume[0] and export[0], etc
         // elements are set to null if they fail
-        
+
         if (cluster == null) {
             cluster = ComputeUtils.createCluster(name);
-            logInfo("compute.cluster.created",name);
+            logInfo("compute.cluster.created", name);
         }
         else {
             // If the hostName already exists, we remove it from the hostnames list.
@@ -138,34 +139,34 @@ public class CreateBareMetalClusterService extends ViPRService {
         List<Host> hosts = ComputeUtils.createHosts(cluster.getId(), computeVirtualPool, hostNames, virtualArray);
 
         logInfo("compute.cluster.hosts.created", ComputeUtils.nonNull(hosts).size());
-        
+
         List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project,
                 virtualArray, virtualPool, size, hosts, getClient());
-        logInfo("compute.cluster.boot.volumes.created", 
+        logInfo("compute.cluster.boot.volumes.created",
                 ComputeUtils.nonNull(bootVolumeIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts,
                 bootVolumeIds);
 
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
-                project, virtualArray,true);
+                project, virtualArray, true);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts,exportIds);
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
 
-        ComputeUtils.setHostBootVolumes(hosts,bootVolumeIds);
-        
+        ComputeUtils.setHostBootVolumes(hosts, bootVolumeIds);
+
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
             ComputeUtils.deactivateCluster(cluster);
         }
 
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames,null,null);
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, null, null);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
-                        ExecutionUtils.getMessage("compute.cluster.order.incomplete",orderErrors));
+                        ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
             }
             else {
-                logError("compute.cluster.order.incomplete",orderErrors);
+                logError("compute.cluster.order.incomplete", orderErrors);
                 setPartialSuccess();
             }
         }
@@ -220,11 +221,11 @@ public class CreateBareMetalClusterService extends ViPRService {
     }
 
     public FqdnTable[] getFqdnValues() {
-        return fqdnValues;
+        return safeArrayCopy(fqdnValues);
     }
 
     public void setFqdnValues(FqdnTable[] fqdnValues) {
-        this.fqdnValues = fqdnValues;
+        this.fqdnValues = safeArrayCopy(fqdnValues);
     }
 
     public Cluster getCluster() {
@@ -242,5 +243,5 @@ public class CreateBareMetalClusterService extends ViPRService {
     public void setHostNames(List<String> hostNames) {
         this.hostNames = hostNames;
     }
-    
+
 }

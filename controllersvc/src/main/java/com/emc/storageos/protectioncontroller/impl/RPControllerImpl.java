@@ -39,7 +39,7 @@ import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 /**
  * South bound API implementation - a singleton instance
- * of this class services all protection calls.  Protection
+ * of this class services all protection calls. Protection
  * calls are matched against device specific controller implementations
  * and forwarded from this implementation
  */
@@ -47,9 +47,9 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     private final static Logger _log = LoggerFactory.getLogger(RPControllerImpl.class);
 
     // device specific RPController implementations
-    private Set<RPController>   _deviceImpl;
-    private Dispatcher          _dispatcher;
-    private DbClient            _dbClient;
+    private Set<RPController> _deviceImpl;
+    private Dispatcher _dispatcher;
+    private DbClient _dbClient;
 
     public void setDeviceImpl(Set<RPController> deviceImpl) {
         _deviceImpl = deviceImpl;
@@ -81,11 +81,11 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     public void disconnect(URI protection) throws InternalException {
         execFS("disconnect", protection);
     }
-    
+
     @Override
-	public void performProtectionOperation(URI protectionDevice, URI id,
-			URI copyID, String op, String task) throws InternalException {
-    	execFS("performProtectionOperation", protectionDevice, id, copyID, op, task);
+    public void performProtectionOperation(URI protectionDevice, URI id,
+            URI copyID, String op, String task) throws InternalException {
+        execFS("performProtectionOperation", protectionDevice, id, copyID, op, task);
     }
 
     @Override
@@ -100,7 +100,7 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         } catch (Exception e) {
             _log.error(
                     "Problem in discoverProtectionSystem due to {} ",
-                     e.getMessage());
+                    e.getMessage());
             throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
         }
     }
@@ -108,6 +108,6 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     @Override
     public void deleteSnapshot(URI protectionDevice, URI snapshot, String task) throws InternalException {
         execFS("deleteSnapshot", protectionDevice, snapshot, task);
-    }	
+    }
 
 }

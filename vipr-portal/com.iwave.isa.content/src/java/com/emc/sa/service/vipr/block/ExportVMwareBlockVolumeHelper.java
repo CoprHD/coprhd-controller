@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  */
 public class ExportVMwareBlockVolumeHelper extends ExportBlockVolumeHelper {
-    
+
     public static final Integer USE_EXISTING_HLU = -2;
 
     @Override

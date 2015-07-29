@@ -30,10 +30,10 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class CloneTaskCompleter extends VolumeTaskCompleter {
-    
-	private static final long serialVersionUID = -5808737150117378443L;
-	private static final Logger log = LoggerFactory.getLogger(CloneTaskCompleter.class);
-	
+
+    private static final long serialVersionUID = -5808737150117378443L;
+    private static final Logger log = LoggerFactory.getLogger(CloneTaskCompleter.class);
+
     public CloneTaskCompleter(List<URI> fullCopyVolumeURIs, String task) {
         super(Volume.class, fullCopyVolumeURIs, task);
         setNotifyWorkflow(true);
@@ -43,7 +43,7 @@ public class CloneTaskCompleter extends VolumeTaskCompleter {
         super(Volume.class, fullCopyVolumeURI, task);
         setNotifyWorkflow(true);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
@@ -60,13 +60,13 @@ public class CloneTaskCompleter extends VolumeTaskCompleter {
                 if (URIUtil.isType(fullCopyVolume.getAssociatedSourceVolume(), BlockSnapshot.class)) {
                     sourceClass = BlockSnapshot.class;
                 }
-                
+
                 switch (status) {
                     case error:
                         dbClient.error(sourceClass, fullCopyVolume.getId(), getOpId(), coded);
                         break;
                     default:
-                        dbClient.ready(sourceClass, fullCopyVolume.getId(),	getOpId());
+                        dbClient.ready(sourceClass, fullCopyVolume.getId(), getOpId());
                 }
             }
         } catch (Exception e) {

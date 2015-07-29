@@ -1,0 +1,87 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import sysmgr as SysMgr
+
+#----------------------------------------------------------------------
+# recovery cli functions
+#----------------------------------------------------------------------
+
+def tirgger_node_recovery(args):
+    bourne.connect(args.ip)
+    bourne.tirgger_node_recovery()
+
+def get_recovery_status(args):
+    bourne.connect(args.ip)
+    print bourne.get_recovery_status()
+
+def get_db_repair_status(args):
+    bourne.connect(args.ip)
+    print bourne.get_db_repair_status()
+
+def wait_for_stable(args):
+    SysMgr.wait_for_stable_state(args)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# recovery [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (trigger | get_status | get_db_repair_status)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# trigger node recovery
+recoverytrigger = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# get node recovery status
+recoverystatus = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# get db repair status
+repairstatus = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# recovery wait for stable state
+waitforstable = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitforstable.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitforstable.add_argument('length', help = 'the whole waiting time', type=float)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "trigger"):
+        args = recoverytrigger.parse_args()
+        tirgger_node_recovery(args)
+    elif (cmd == "get_status"):
+        args = recoverystatus.parse_args()
+        get_recovery_status(args)
+    elif (cmd == "get_db_repair_status"):
+        args = repairstatus.parse_args()
+        get_db_repair_status(args)
+    elif (cmd == "wait_for_stable"):
+        args = waitforstable.parse_args()
+        wait_for_stable(args)
+    else:
+        parser.print_help()
+except:
+    raise

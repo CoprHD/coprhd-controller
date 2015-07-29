@@ -50,18 +50,21 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
 
     /**
      * Check if permissions filters need to be disabled
+     * 
      * @return
      */
     protected abstract boolean isSecurityDisabled();
 
     /**
      * Check if licensing filter need to be disabled
+     * 
      * @return
      */
     protected abstract boolean isLicenseCheckDisabled();
 
     /**
      * Create an instance of license check filter
+     * 
      * @return
      */
     protected abstract AbstractLicenseFilter getLicenseFilter();
@@ -69,6 +72,7 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
     /**
      * ResourceFilter that needs to be added in the front of the permissions filter
      * can be null
+     * 
      * @return
      */
     protected abstract ResourceFilter getPreFilter();
@@ -76,12 +80,14 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
     /**
      * ResourceFilter that needs to be added after the permissions filter
      * can be null
+     * 
      * @return
      */
     protected abstract ResourceFilter getPostFilter();
 
     /**
      * Create and return the permissions filter from arguments provided
+     * 
      * @param roles
      * @param acls
      * @param blockProxies
@@ -89,11 +95,11 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
      * @return
      */
     protected abstract AbstractPermissionFilter getPermissionsFilter(Role[] roles, ACL[] acls,
-                                                                     boolean blockProxies, Class resourceClazz);
+            boolean blockProxies, Class resourceClazz);
 
     @Override
     public List<ResourceFilter> create(AbstractMethod am) {
-        List<ResourceFilter> filters =  new ArrayList<ResourceFilter>();
+        List<ResourceFilter> filters = new ArrayList<ResourceFilter>();
         ResourceFilter preFilter = getPreFilter();
         if (preFilter != null) {
             filters.add(preFilter);
@@ -105,8 +111,7 @@ public abstract class AbstractPermissionsFilterFactory implements com.sun.jersey
             // except for POST requests on '/bulk' api
             if (am.getAnnotation(GET.class) == null && am.getAnnotation(ExcludeLicenseCheck.class) == null) {
                 Path p = am.getAnnotation(Path.class);
-                if (!(p != null && am.getAnnotation(POST.class) != null &&
-                        p.value().endsWith("/bulk"))) {
+                if (!(p != null && am.getAnnotation(POST.class) != null && p.value().endsWith("/bulk"))) {
                     filters.add(getLicenseFilter());
                 }
             }

@@ -57,20 +57,20 @@ import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
 import com.emc.vipr.model.catalog.ExecutionWindowUpdateParam;
 
 @DefaultPermissions(
-        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, 
-        write_roles = { Role.TENANT_ADMIN }, 
+        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        write_roles = { Role.TENANT_ADMIN },
         read_acls = { ACL.ANY })
 @Path("/catalog/execution-windows")
 public class ExecutionWindowService extends CatalogTaggedResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "catalog-execution-window";
-    
+
     @Autowired
     private ExecutionWindowManager executionWindowManager;
-    
+
     @Autowired
-    private RecordableEventManager eventManager;        
-    
+    private RecordableEventManager eventManager;
+
     @Override
     protected ExecutionWindow queryResource(URI id) {
         return getExecutionWindowById(id, false);
@@ -86,14 +86,15 @@ public class ExecutionWindowService extends CatalogTaggedResourceService {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.EXECUTION_WINDOW;
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
-    }    
-    
-    /**     
+    }
+
+    /**
      * Get info for catalog category
+     * 
      * @param id the URN of a Catalog Category
      * @prereq none
      * @brief Show catalog category
@@ -105,8 +106,8 @@ public class ExecutionWindowService extends CatalogTaggedResourceService {
     public ExecutionWindowRestRep getExecutionWindow(@PathParam("id") URI id) {
         ExecutionWindow executionWindow = queryResource(id);
         return map(executionWindow);
-    }      
-    
+    }
+
     /**
      * Creates a new execution window
      * 
@@ -114,31 +115,32 @@ public class ExecutionWindowService extends CatalogTaggedResourceService {
      *            the parameter to create a new execution window
      * @prereq none
      * @brief Create Execution Window
-     * @return none     
+     * @return none
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     @Path("")
     public ExecutionWindowRestRep createExecutionWindow(ExecutionWindowCreateParam createParam) {
 
         StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(createParam.getTenant(), user);
-        
+
         validateParam(createParam, null, user.getTenantId());
-        
+
         ExecutionWindow executionWindow = createNewObject(createParam);
 
         executionWindowManager.createExecutionWindow(executionWindow);
-        
+
         auditOpSuccess(OperationTypeEnum.CREATE_EXECUTION_WINDOW, executionWindow.auditParameters());
-        
+
         return map(executionWindow);
-    }          
-    
-    /**     
+    }
+
+    /**
      * Update execution window
+     * 
      * @param param Execution Window update parameters
      * @param id the URN the execution window
      * @prereq none
@@ -149,152 +151,154 @@ public class ExecutionWindowService extends CatalogTaggedResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public ExecutionWindowRestRep updateExecutionWindow(@PathParam("id") URI id, ExecutionWindowUpdateParam param) {
         ExecutionWindow executionWindow = getExecutionWindowById(id, true);
-        
+
         StorageOSUser user = getUserFromContext();
-        verifyAuthorizedInTenantOrg(uri(executionWindow.getTenant()), user);  
+        verifyAuthorizedInTenantOrg(uri(executionWindow.getTenant()), user);
 
         validateParam(param, executionWindow, user.getTenantId());
-        
+
         updateObject(executionWindow, param);
 
         executionWindowManager.updateExecutionWindow(executionWindow);
-        
+
         auditOpSuccess(OperationTypeEnum.UPDATE_EXECUTION_WINDOW, executionWindow.auditParameters());
-        
+
         executionWindow = executionWindowManager.getExecutionWindowById(executionWindow.getId());
-        
+
         return map(executionWindow);
-    }    
-    
+    }
+
     /**
      * Deactivates the execution window
+     * 
      * @param id the URN of an execution window to be deactivated
      * @brief Deactivate Execution Window
      * @return OK if deactivation completed successfully
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deactivateExecutionWindow(@PathParam("id") URI id) throws DatabaseException {
         ExecutionWindow executionWindow = queryResource(id);
         ArgValidator.checkEntity(executionWindow, id, true);
-        
+
         executionWindowManager.deleteExecutionWindow(executionWindow);
 
         auditOpSuccess(OperationTypeEnum.DELETE_EXECUTION_WINDOW, executionWindow.auditParameters());
-        
+
         return Response.ok().build();
-    }            
-    
+    }
+
     /**
      * Gets the list of execution windows
+     * 
      * @param tenantId the URN of a tenant
      * @brief List Execution Windows
      * @return a list of execution windows
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Path("")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ExecutionWindowList getExecutionWindows(@DefaultValue("") @QueryParam(SearchConstants.TENANT_ID_PARAM) String tenantId) throws DatabaseException {
-        
+    public ExecutionWindowList getExecutionWindows(@DefaultValue("") @QueryParam(SearchConstants.TENANT_ID_PARAM) String tenantId)
+            throws DatabaseException {
+
         StorageOSUser user = getUserFromContext();
         if (StringUtils.isBlank(tenantId)) {
             tenantId = user.getTenantId();
         }
 
         verifyAuthorizedInTenantOrg(uri(tenantId), getUserFromContext());
-        
+
         List<ExecutionWindow> executionWindows = executionWindowManager.getExecutionWindows(uri(tenantId));
-        
+
         ExecutionWindowList list = new ExecutionWindowList();
-        for (ExecutionWindow executionWindow: executionWindows) {
+        for (ExecutionWindow executionWindow : executionWindows) {
             NamedRelatedResourceRep resourceRep = toNamedRelatedResource(ResourceTypeEnum.EXECUTION_WINDOW,
                     executionWindow.getId(), executionWindow.getLabel());
             list.getExecutionWindows().add(resourceRep);
         }
 
         return list;
-    }           
-    
+    }
+
     private ExecutionWindow getExecutionWindowById(URI id, boolean checkInactive) {
         ExecutionWindow executionWindow = executionWindowManager.getExecutionWindowById(id);
         ArgValidator.checkEntity(executionWindow, id, isIdEmbeddedInURL(id), checkInactive);
-        return executionWindow;        
-    }           
+        return executionWindow;
+    }
 
     private void validateParam(ExecutionWindowCommonParam input, ExecutionWindow existing, String tenantId) {
-        
+
         // Execution Window Name Unique Check
         if (input.getName() != null) {
             String name = input.getName().trim();
             if (StringUtils.isNotBlank(name)) {
                 ExecutionWindow existingExecutionWindow = executionWindowManager.getExecutionWindow(name, uri(tenantId));
-                //already exists on create
+                // already exists on create
                 if (existing == null && existingExecutionWindow != null) {
-                    throw APIException.badRequests.executionWindowAlreadyExists(name, tenantId);                 
-                } else if (existing != null && (existingExecutionWindow != null 
+                    throw APIException.badRequests.executionWindowAlreadyExists(name, tenantId);
+                } else if (existing != null && (existingExecutionWindow != null
                         && !existing.getId().equals(existingExecutionWindow.getId()))) {
                     throw APIException.badRequests.executionWindowAlreadyExists(name, tenantId);
-                }//already exists on update
+                }// already exists on update
             }
         }
-    
-        
+
         ValidationUtils.validateExecutionWindow(input);
-        
-        List<ExecutionWindow> existingWindows = 
+
+        List<ExecutionWindow> existingWindows =
                 executionWindowManager.getExecutionWindows(uri(tenantId));
         ExecutionWindow executionWindow = ExecutionWindowMapper.writeToTempWindow(input);
         ValidationUtils.isOverlapping(executionWindow, existingWindows);
-                   
+
     }
-    
-    /**    
+
+    /**
      * List data for the specified execution windows.
-     *
+     * 
      * @param param POST data containing the id list.
      * @prereq none
      * @brief List data of specified windows
      * @return list of representations.
-     *
+     * 
      * @throws DatabaseException When an error occurs querying the database.
      */
-     @POST
-     @Path("/bulk")
-     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-     @Override
-     public ExecutionWindowBulkRep getBulkResources(BulkIdParam param) {
-         return (ExecutionWindowBulkRep) super.getBulkResources(param);
-     }
-     
-     @SuppressWarnings("unchecked")
-     @Override
-     public Class<ExecutionWindow> getResourceClass() {
-         return ExecutionWindow.class;
-     }
-     
-     @Override
-     public ExecutionWindowBulkRep queryBulkResourceReps(List<URI> ids) {
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public ExecutionWindowBulkRep getBulkResources(BulkIdParam param) {
+        return (ExecutionWindowBulkRep) super.getBulkResources(param);
+    }
 
-         Iterator<ExecutionWindow> _dbIterator =
-             _dbClient.queryIterativeObjects(getResourceClass(), ids);
-         return new ExecutionWindowBulkRep(BulkList.wrapping(_dbIterator, ExecutionWindowMapper.getInstance()));
-     }
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<ExecutionWindow> getResourceClass() {
+        return ExecutionWindow.class;
+    }
 
-     @Override
-     public ExecutionWindowBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-         
-         Iterator<ExecutionWindow> _dbIterator =
-             _dbClient.queryIterativeObjects(getResourceClass(), ids);
-         BulkList.ResourceFilter filter = new ExecutionWindowFilter(getUserFromContext(), _permissionsHelper);
-         return new ExecutionWindowBulkRep(BulkList.wrapping(_dbIterator, ExecutionWindowMapper.getInstance(), filter));
-     }
-    
+    @Override
+    public ExecutionWindowBulkRep queryBulkResourceReps(List<URI> ids) {
+
+        Iterator<ExecutionWindow> _dbIterator =
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        return new ExecutionWindowBulkRep(BulkList.wrapping(_dbIterator, ExecutionWindowMapper.getInstance()));
+    }
+
+    @Override
+    public ExecutionWindowBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+
+        Iterator<ExecutionWindow> _dbIterator =
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        BulkList.ResourceFilter filter = new ExecutionWindowFilter(getUserFromContext(), _permissionsHelper);
+        return new ExecutionWindowBulkRep(BulkList.wrapping(_dbIterator, ExecutionWindowMapper.getInstance(), filter));
+    }
+
 }

@@ -23,7 +23,7 @@ import java.util.Set;
 public class BaseHostProvider extends BaseAssetOptionsProvider {
     private static final String DISCOVERY_ERROR = "ERROR";
     private static final String DISCOVERY_NOT_CONNECTED = "NOTCONNECTED";
-    
+
     protected String getDiscoveryError(DiscoveredSystemObjectRestRep system) {
         if (DISCOVERY_ERROR.equals(system.getDiscoveryJobStatus())) {
             return getMessage("discovery.failed");
@@ -62,7 +62,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
             label = getMessage("host.memberOfCluster", host.getName(), clusterName);
         }
         if (discoveryMessage != null) {
-            label = getMessage("host.withDiscovery", host.getName(), discoveryMessage); 
+            label = getMessage("host.withDiscovery", host.getName(), discoveryMessage);
         }
         return new AssetOption(host.getId(), label);
     }
@@ -92,7 +92,7 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
     }
 
     protected List<AssetOption> getHostOrClusterOptions(AssetOptionsContext context, List<HostRestRep> hosts,
-                                                        String storageType) {
+            String storageType) {
         if (BlockProvider.isExclusiveStorage(storageType)) {
             return createHostOptions(context, hosts);
         }

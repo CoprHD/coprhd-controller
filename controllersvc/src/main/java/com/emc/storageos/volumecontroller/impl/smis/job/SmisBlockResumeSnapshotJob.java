@@ -25,8 +25,8 @@ public class SmisBlockResumeSnapshotJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockResumeSnapshotJob.class);
 
     public SmisBlockResumeSnapshotJob(CIMObjectPath cimJob,
-                                      URI storageSystem,
-                                      TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "ResumeSnapshot");
     }
 }

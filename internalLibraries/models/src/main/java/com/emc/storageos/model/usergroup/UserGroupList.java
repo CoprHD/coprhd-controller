@@ -25,6 +25,7 @@ import java.util.List;
 /**
  * Class for the REST response for the GET List API
  * of the UserGroup
+ * 
  * @valid none
  */
 
@@ -32,7 +33,8 @@ import java.util.List;
 public class UserGroupList {
     private List<NamedRelatedResourceRep> userGroupList;
 
-    public UserGroupList() {}
+    public UserGroupList() {
+    }
 
     public UserGroupList(List<NamedRelatedResourceRep> userGroupList) {
         this.userGroupList = userGroupList;

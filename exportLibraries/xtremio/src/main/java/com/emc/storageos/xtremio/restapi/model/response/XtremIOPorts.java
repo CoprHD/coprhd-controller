@@ -19,10 +19,10 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_ports")
+@JsonRootName(value = "xtremio_ports")
 public class XtremIOPorts {
     @SerializedName("content")
-    @JsonProperty(value="content")
+    @JsonProperty(value = "content")
     private XtremIOPort content;
 
     public XtremIOPort getContent() {

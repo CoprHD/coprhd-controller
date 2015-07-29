@@ -16,10 +16,10 @@ public interface ComputeSystemDiscoveryAdapter {
     public String getErrorMessage(Throwable t);
 
     public void setModelClient(ModelClient modelClient);
-    
+
     public void setDbClient(DbClient dbClient);
-    
+
     public void setCoordinator(CoordinatorClient coordinator);
-    
+
     public ComputeSystemDiscoveryVersionValidator getVersionValidator();
 }

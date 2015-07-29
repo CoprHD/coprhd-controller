@@ -127,7 +127,6 @@ public class DiskDrive {
         this.status = status;
     }
 
-
     public String getSignature() {
         return signature;
     }

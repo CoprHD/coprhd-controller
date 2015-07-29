@@ -14,8 +14,6 @@
  */
 package com.emc.storageos.services;
 
-import java.util.Set;
-
 /**
  * Class that defines service properties like its name, port..
  */
@@ -26,7 +24,7 @@ public class ServiceMetadata {
     private boolean isControlNodeService = false;
     private boolean isExtraNodeService = false;
     private String roles;
-    
+
     public String getName() {
         return name;
     }
@@ -58,11 +56,11 @@ public class ServiceMetadata {
     public void setIsExtraNodeService(boolean isExtraNodeService) {
         this.isExtraNodeService = isExtraNodeService;
     }
-    
+
     public String getRoles() {
         return this.roles;
     }
-    
+
     public void setRoles(String roles) {
         this.roles = roles;
     }

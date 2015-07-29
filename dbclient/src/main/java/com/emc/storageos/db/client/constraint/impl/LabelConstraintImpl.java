@@ -27,7 +27,6 @@ import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
 
-
 /**
  * find resources matching label
  */

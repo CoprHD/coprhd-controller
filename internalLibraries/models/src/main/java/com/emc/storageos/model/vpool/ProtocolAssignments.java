@@ -30,7 +30,8 @@ public class ProtocolAssignments {
     /**
      * Default Constructor.
      */
-    public ProtocolAssignments() {}
+    public ProtocolAssignments() {
+    }
 
     public ProtocolAssignments(Set<String> protocols) {
         this.protocols = protocols;
@@ -40,7 +41,7 @@ public class ProtocolAssignments {
      * The set of protocols.
      * 
      * @valid FC = Fibre Channel (block)
-     * @valid ISCSI =  Internet Small Computer System Interface (block)
+     * @valid ISCSI = Internet Small Computer System Interface (block)
      * @valid FCoE = Fibre Channel over Ethernet (block)
      * @valid NFS = Network File System (file)
      * @valid NFSv4 = Network File System Version 4 (file)
@@ -58,5 +59,5 @@ public class ProtocolAssignments {
     public void setProtocols(Set<String> protocols) {
         this.protocols = protocols;
     }
-    
+
 }

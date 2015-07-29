@@ -36,14 +36,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * 
  * StorageProcessor class to process data about meta members for a meta volume and set this data
  * in volume instance.
  * This class is used in storage volume rediscovery and ummanaged volume discovery contexts.
  */
 public class MetaVolumeMembersProcessor extends StorageProcessor {
     private Logger _logger = LoggerFactory.getLogger(MetaVolumeMembersProcessor.class);
-    private static final String[] META_MEMBER_SIZE_INFO = new String[]{SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE};
+    private static final String[] META_MEMBER_SIZE_INFO = new String[] { SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE };
     private List<Object> _args;
 
     @Override
@@ -56,15 +56,16 @@ public class MetaVolumeMembersProcessor extends StorageProcessor {
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
             WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
 
-            CIMObjectPath[] metaMembersPaths = (CIMObjectPath[]) getFromOutputArgs((CIMArgument[])resultObj, "OutElements");
+            CIMObjectPath[] metaMembersPaths = (CIMObjectPath[]) getFromOutputArgs((CIMArgument[]) resultObj, "OutElements");
             _logger.debug(String.format("Processing meta members: %s", Arrays.toString(metaMembersPaths)));
 
             // Get volume from db
             _logger.debug(String.format("Args size: %s", _args.size()));
             Object[] arguments = (Object[]) _args.get(0);
             CIMArgument theElement = ((CIMArgument[]) arguments[2])[1];
-            _logger.info(String.format("TheElement: %s, type %s", theElement.getValue().toString(),theElement.getValue().getClass().toString()));
-            CIMObjectPath theElementPath = (CIMObjectPath)theElement.getValue();
+            _logger.info(String.format("TheElement: %s, type %s", theElement.getValue().toString(), theElement.getValue().getClass()
+                    .toString()));
+            CIMObjectPath theElementPath = (CIMObjectPath) theElement.getValue();
 
             UnManagedVolume preExistingVolume = null;
             String isMetaVolume = "true";
@@ -122,15 +123,15 @@ public class MetaVolumeMembersProcessor extends StorageProcessor {
             } else {
                 storageVolume.setMetaMemberCount(membersCount);
                 storageVolume.setMetaMemberSize(size);
-                storageVolume.setTotalMetaMemberCapacity(membersCount*size);
+                storageVolume.setTotalMetaMemberCapacity(membersCount * size);
                 // persist volume in db
                 dbClient.persistObject(storageVolume);
             }
 
-            _logger.info(String.format("Meta member info: meta member count --- %s, blocks --- %s, block size --- %s, size --- %s .", membersCount,
+            _logger.info(String.format("Meta member info: meta member count --- %s, blocks --- %s, block size --- %s, size --- %s .",
+                    membersCount,
                     consumableBlocks.getValue().toString(),
                     blockSize.getValue().toString(), size));
-
 
         } catch (Exception e) {
             _logger.error("Processing meta volume  information failed :", e);

@@ -43,34 +43,32 @@ public class PropertyListDataObjectMapper {
                 PropertyDescriptor pd = pds[i];
                 // skip class property
                 String pdName = pd.getName();
-                if (pd.getName().equals("class") )  {
+                if (pd.getName().equals("class")) {
                     continue;
                 }
-                if( pdName.equals("id")) {
-                    if(URI.class.isAssignableFrom(pd.getPropertyType())){
+                if (pdName.equals("id")) {
+                    if (URI.class.isAssignableFrom(pd.getPropertyType())) {
                         URI value = from.getId();
-                        pd.getWriteMethod().invoke(to,value);
+                        pd.getWriteMethod().invoke(to, value);
                     }
                 }
-                else if( pdName.equals("creationTime") )  {
-                    if(Calendar.class.isAssignableFrom(pd.getPropertyType())){
+                else if (pdName.equals("creationTime")) {
+                    if (Calendar.class.isAssignableFrom(pd.getPropertyType())) {
                         Calendar value = from.getCreationTime();
-                        pd.getWriteMethod().invoke(to,value);
+                        pd.getWriteMethod().invoke(to, value);
                     }
                 }
                 else {
                     String strValue = from.getResourceData().get(pdName);
-                    Object value = valueFromString(strValue,pd);
-                    pd.getWriteMethod().invoke(to,value);
+                    Object value = valueFromString(strValue, pd);
+                    pd.getWriteMethod().invoke(to, value);
                 }
             }
             return to;
-        }
-        catch ( Exception ex ) {
+        } catch (Exception ex) {
             throw DatabaseException.fatals.deserializationFailed(clazz, ex);
         }
     }
-
 
     public static <T> PropertyListDataObject map(T from, String type) {
         if (from == null) {
@@ -87,60 +85,59 @@ public class PropertyListDataObjectMapper {
                 PropertyDescriptor pd = pds[i];
                 // skip class property
                 String pdName = pd.getName();
-                if (pd.getName().equals("class") )  {
+                if (pd.getName().equals("class")) {
                     continue;
                 }
-                if( pdName.equals("Id")) {
-                    if(URI.class.isAssignableFrom(pd.getPropertyType())){
-                        URI value = (URI)pd.getReadMethod().invoke(from);
+                if (pdName.equals("Id")) {
+                    if (URI.class.isAssignableFrom(pd.getPropertyType())) {
+                        URI value = (URI) pd.getReadMethod().invoke(from);
                         to.setId(value);
                     }
                 }
-                if( pdName.equals("creationTime")) {
-                    if(Calendar.class.isAssignableFrom(pd.getPropertyType())){
-                        Calendar value = (Calendar)pd.getReadMethod().invoke(from);
+                if (pdName.equals("creationTime")) {
+                    if (Calendar.class.isAssignableFrom(pd.getPropertyType())) {
+                        Calendar value = (Calendar) pd.getReadMethod().invoke(from);
                         to.setCreationTime(value);
                     }
                 }
                 else {
                     Object value = pd.getReadMethod().invoke(from);
-                    to.getResourceData().put(pdName,value.toString());
+                    to.getResourceData().put(pdName, value.toString());
                 }
             }
             return to;
-        }
-        catch ( Exception ex ) {
+        } catch (Exception ex) {
             throw DatabaseException.fatals.deserializationFailed(from.getClass(), ex);
         }
     }
 
     private static Object valueFromString(String strValue, PropertyDescriptor pd) throws Exception {
         Object obj = null;
-        if( Integer.TYPE == pd.getPropertyType() ) {
-           obj = Integer.valueOf(strValue);
+        if (Integer.TYPE == pd.getPropertyType()) {
+            obj = Integer.valueOf(strValue);
         }
-        if( Long.TYPE == pd.getPropertyType() ) {
+        if (Long.TYPE == pd.getPropertyType()) {
             obj = Long.valueOf(strValue);
         }
-        else if( Double.TYPE == pd.getPropertyType() ) {
+        else if (Double.TYPE == pd.getPropertyType()) {
             obj = Double.valueOf(strValue);
         }
-        else if( Float.TYPE == pd.getPropertyType() ) {
+        else if (Float.TYPE == pd.getPropertyType()) {
             obj = Float.valueOf(strValue);
         }
-        else if( Short.TYPE == pd.getPropertyType() ) {
+        else if (Short.TYPE == pd.getPropertyType()) {
             obj = Short.valueOf(strValue);
         }
-        else if(  String.class  == pd.getPropertyType() ) {
+        else if (String.class == pd.getPropertyType()) {
             obj = strValue;
         }
-        else if( CapacityResourceType.class == pd.getPropertyType() )  {
-             obj = CapacityResourceType.valueOf(strValue);
+        else if (CapacityResourceType.class == pd.getPropertyType()) {
+            obj = CapacityResourceType.valueOf(strValue);
         }
         else {
             throw new Exception("Failed to convert from string the field of type : " + pd.getPropertyType().getSimpleName());
         }
-        return  obj;
+        return obj;
     }
 
 }

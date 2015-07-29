@@ -21,7 +21,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 /* Generic Exception for REST operation errors */
 public class RecoverPointException extends InternalException {
 
-	private static final long serialVersionUID = 8337210596778544218L;
+    private static final long serialVersionUID = 8337210596778544218L;
 
     /** Holds the methods used to create recover point related exceptions */
     public static final RecoverPointExceptions exceptions = ExceptionMessagesProxy.create(RecoverPointExceptions.class);

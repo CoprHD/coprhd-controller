@@ -16,7 +16,6 @@ package com.emc.storageos.recoverpoint.exceptions;
 
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
-
 /* Generic Exception for REST operation errors */
 public class RecoverPointLicenseException extends RecoverPointException {
     private static final long serialVersionUID = -4453985843631337985L;

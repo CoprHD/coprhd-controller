@@ -34,16 +34,16 @@ public class DataCollectionMeteringJob extends DataCollectionJob implements Seri
 
     private static final Logger logger = LoggerFactory
             .getLogger(DataCollectionMeteringJob.class);
-    
+
     private final DataCollectionTaskCompleter _completer;
 
-    public DataCollectionMeteringJob(MeteringTaskCompleter completer){
+    public DataCollectionMeteringJob(MeteringTaskCompleter completer) {
         super(JobOrigin.USER_API);
         _completer = completer;
     }
 
     DataCollectionMeteringJob(DataCollectionTaskCompleter completer,
-                                     JobOrigin origin){
+            JobOrigin origin) {
         super(origin);
         _completer = completer;
     }
@@ -54,36 +54,36 @@ public class DataCollectionMeteringJob extends DataCollectionJob implements Seri
     }
 
     @Override
-    public void ready(DbClient dbClient) throws DeviceControllerException{
-    	_completer.ready(dbClient);
+    public void ready(DbClient dbClient) throws DeviceControllerException {
+        _completer.ready(dbClient);
     }
 
     @Override
-    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException{
+    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
         _completer.error(dbClient, serviceCoded);
     }
 
     @Override
-    public void schedule(DbClient dbClient){
+    public void schedule(DbClient dbClient) {
         _completer.schedule(dbClient);
     }
 
     @Override
-    final public void setTaskError(DbClient dbClient,ServiceCoded code) {
-        _completer.statusError(dbClient,code);
+    final public void setTaskError(DbClient dbClient, ServiceCoded code) {
+        _completer.statusError(dbClient, code);
     }
 
     @Override
-    final public void setTaskReady(DbClient dbClient,String message){
-        _completer.statusReady(dbClient,message);
+    final public void setTaskReady(DbClient dbClient, String message) {
+        _completer.statusReady(dbClient, message);
     }
 
     @Override
-    final public void updateTask(DbClient dbClient, String message){
-        _completer.statusPending(dbClient,message);
+    final public void updateTask(DbClient dbClient, String message) {
+        _completer.statusPending(dbClient, message);
     }
 
-    public String getType(){
+    public String getType() {
         return ControllerServiceImpl.METERING;
     }
 
@@ -91,15 +91,14 @@ public class DataCollectionMeteringJob extends DataCollectionJob implements Seri
         String sys = null;
         try {
             sys = _completer.getId().toString();
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             logger.error("Exception occurred while getting system id from completer", ex);
         }
         return sys;
     }
 
-    public boolean isActiveJob(DbClient dbClient){
-        DataObject dbObject = dbClient.queryObject(_completer.getType(),_completer.getId());
+    public boolean isActiveJob(DbClient dbClient) {
+        DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
     }
 

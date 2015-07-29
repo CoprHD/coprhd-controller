@@ -76,13 +76,13 @@ public class LocalCassandraService {
      * Generates a configuration for running a local cassandra instance.
      * 
      * @param configResource
-     *        the configuration resource name.
+     *            the configuration resource name.
      * @param rootDir
-     *        the root directory for the cassandra instance.
+     *            the root directory for the cassandra instance.
      * @return the configuration location.
      * 
      * @throws IOException
-     *         if an I/O error occurs.
+     *             if an I/O error occurs.
      */
     private static String createConfig(String configResource, String rootDir) throws IOException {
         URL configURL = LocalCassandraService.class.getResource(configResource);

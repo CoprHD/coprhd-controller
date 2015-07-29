@@ -355,7 +355,6 @@ public class SMISProvider extends DataObject {
                 } catch (URISyntaxException ex) {
                     logger.error("URISyntaxException occurred: {}", ex.getMessage());
                 }
-                catch (URISyntaxException ex)  {}
             }
             else {
                 storage.setActiveProviderURI(null);

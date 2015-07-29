@@ -40,7 +40,7 @@ public abstract class BackupHandler {
     public void setBackupType(BackupType backupType) {
         this.backupType = backupType;
     }
-    
+
     /**
      * Gets backup context
      */

@@ -60,7 +60,6 @@ public class FieldInSetAggregator implements DbAggregatorItf {
                 } catch (URISyntaxException ex) {
                     log.warn("URI syntax error:{}", ex);
                 }
-                catch(URISyntaxException ex) {}
             }
         }
     }

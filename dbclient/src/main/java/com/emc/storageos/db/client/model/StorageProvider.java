@@ -524,16 +524,17 @@ public class StorageProvider extends DataObject {
         if (storage.getActiveProviderURI().equals(getId())) {
             if (null != storage.getProviders() && !storage.getProviders().isEmpty()) {
                 Iterator<String> iter = storage.getProviders().iterator();
-	            if (iter.hasNext())  {
-	                try {
-	                    storage.setActiveProviderURI(new URI(iter.next()));
-	                }
-	                catch (URISyntaxException ex)  {}
-	            }
-	            else {
-	                storage.setActiveProviderURI(null);
-	            }
-        	}
+                if (iter.hasNext()) {
+                    try {
+                        storage.setActiveProviderURI(new URI(iter.next()));
+                    } catch (URISyntaxException ex) {
+                        logger.error("URISyntaxException occurred: {}", ex.getMessage());
+                    }
+                }
+                else {
+                    storage.setActiveProviderURI(null);
+                }
+            }
         }
         dbClient.persistObject(storage);
 

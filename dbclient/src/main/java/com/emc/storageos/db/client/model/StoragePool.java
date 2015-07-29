@@ -541,7 +541,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
             _tiers.clear();
         } else {
             setTiers(new StringSet());
-        if(tiers.size() > 0)
+        }
+        if (!tiers.isEmpty()) {
             _tiers.addAll(tiers);
         }
     }
@@ -561,7 +562,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
             _supportedDriveTypes.clear();
         } else {
             setSupportedDriveTypes(new StringSet());
-        if(driveTypes.size() > 0)
+        }
+        if (!driveTypes.isEmpty()) {
             _supportedDriveTypes.addAll(driveTypes);
         }
     }

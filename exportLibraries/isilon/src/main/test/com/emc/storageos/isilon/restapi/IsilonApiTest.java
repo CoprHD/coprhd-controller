@@ -146,7 +146,7 @@ public class IsilonApiTest {
             IsilonSnapshot snap3 = _client.getSnapshot(snap_id);
             Assert.assertTrue("deleted snapshot still exists", false);
         } catch (IsilonException ie) {
-            // success
+            _log.error(ie.getMessage(), ie);
         }
         _client.deleteDir(_test_path, true);
     }

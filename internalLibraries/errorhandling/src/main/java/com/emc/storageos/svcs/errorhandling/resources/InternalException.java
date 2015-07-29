@@ -6,6 +6,7 @@
 package com.emc.storageos.svcs.errorhandling.resources;
 
 import java.util.Locale;
+import java.util.Arrays;
 
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.utils.Messages;

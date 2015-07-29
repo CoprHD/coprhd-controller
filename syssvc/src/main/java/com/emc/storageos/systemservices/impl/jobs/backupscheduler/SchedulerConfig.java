@@ -360,4 +360,8 @@ public class SchedulerConfig {
     public String getSoftwareVersion() {
         return softwareVersion;
     }
+
+	public void setSoftwareVersion(String softwareVersion) {
+		this.softwareVersion = softwareVersion;
+	}
 }

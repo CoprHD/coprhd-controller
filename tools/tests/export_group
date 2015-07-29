@@ -1,0 +1,249 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import json
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# export_group cli functions
+#----------------------------------------------------------------------
+def export_group_create(args):
+    bourne.connect(args.ip)
+    o = bourne.export_group_create(args.name, args.project, args.neighborhood, args.type, args.volspec, args.inits, args.hosts, args.clusters)
+
+def export_group_update(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    o = bourne.export_group_update(groupId, args.addVolspec, args.addInits, args.addHosts, args.addClusters, args.remVols, args.remInits, args.remHosts, args.remClusters)
+
+def export_group_delete(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    res = bourne.export_group_delete(groupId)
+
+def export_group_add_initiator(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    result = bourne.export_group_add_initiator(groupId, args.initiator)
+    print result
+
+def export_group_remove_initiator(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    result = bourne.export_group_remove_initiator(groupId, args.initiator)
+    print result
+
+def export_group_add_volume(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    v = bourne.export_group_add_volume(groupId, args.vol_lun)
+ 
+def export_group_remove_volume(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    v = bourne.export_group_remove_volume(groupId, args.vol)
+
+def export_group_show(args):
+    bourne.connect(args.ip)
+    groupId = bourne.export_group_query(args.groupId)
+    group = bourne.export_group_show(groupId)
+    bourne.pretty_print_json(group)
+    tasks = bourne.export_show_tasks(groupId)
+    bourne.pretty_print_json(tasks)
+
+def export_group_query(args):
+    bourne.connect(args.ip)
+    bourne.pretty_print_json(bourne.export_group_query(args.groupId, args.project))
+
+def export_group_list(args):
+    bourne.connect(args.ip)
+    eg_display_hdr()
+    res = bourne.export_group_list(args.project)
+    for r in res:
+        group = bourne.export_group_show(r)
+        eg_display(group)
+
+#
+# display export group in list form
+#
+eg_display_fmt = '{0:40s} {1:8s} {2:8s} {3:8s} {4:s}'
+
+def eg_display_hdr():
+    print eg_display_fmt.format('name', 'active', '#vols', '#ini', 'id')
+
+def eg_display(eg):
+    print eg_display_fmt.format(eg['name'], 'NO' if eg['inactive'] else 'YES',
+              str(len(eg['volumes'])) if ('volumes' in eg) else '0',
+              str(len(eg['initiators'])) if ('initiators' in eg) else '0',
+              eg['id'])
+
+def export_group_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.export_group_query(args.name)
+    print 'Tagging export_group ', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def export_group_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching export_group with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# export_group <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne export_group cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create|update|delete|add_initiator|remove_initiator|add_volume|remove_volme|list|show)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# export_group create label project cos size
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('project',	help = 'container project name')
+create.add_argument('name',	help = 'name of export_group')
+create.add_argument('neighborhood', help = 'neighborhood for export')
+create.add_argument('--type', help = 'Initiator|Host|Cluster, default Initiator', default='Initiator')
+create.add_argument('--volspec', help = 'volume spec "volume1|lun1,volume2|lun2"')
+create.add_argument('--inits', help = 'comma-separated list of host/init labels')
+create.add_argument('--hosts', help = 'comma-separated list of host labels')
+create.add_argument('--clusters', help = 'comma-separated list of tenant/cluster labels')
+
+# export_group update groupId 
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('groupId', help = 'name of export_group proj/group')
+update.add_argument('--addVolspec', help = 'volume spec "volume1|lun1,volume2|lun2"')
+update.add_argument('--addInits', help = 'comma-separated list of host/init labels')
+update.add_argument('--addHosts', help = 'comma-separated list of host labels')
+update.add_argument('--addClusters', help = 'comma-separated list of tenant/cluster labels')
+update.add_argument('--remVols', help = 'comma-separated list of proj/vol labels')
+update.add_argument('--remInits', help = 'comma-separated list of host/init labels')
+update.add_argument('--remHosts', help = 'comma-separated list of host labels')
+update.add_argument('--remClusters', help = 'comma-separated list of tenant/cluster labels')
+
+# export_group delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('groupId',	help = 'name of export_group to be deleted')
+
+# export_group add volume
+add_volume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_volume.add_argument('groupId',    help = 'name of export_group to add volumes')
+add_volume.add_argument('vol_lun', help = 'Volume to LUNs specfied as "volume|LUN ID"')
+
+# export_group remove volume
+remove_volume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+remove_volume.add_argument('groupId',    help = 'name of export_group to add volumes')
+remove_volume.add_argument('vol',     help = 'Volume URI to remove from list')
+
+# export_group add initiator
+add_initiator = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_initiator.add_argument('groupId',	 help = 'name of export_group for adding initiator')
+add_initiator.add_argument('initiator',	 help = 'Initiator info specified as "protocol+nodewwn+portwwn+hostid"')
+
+# export_group remove initiator
+remove_initiator = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+remove_initiator.add_argument('groupId',     help = 'name of export_group for removing initiator')
+remove_initiator.add_argument('initiator',   help = 'Initiator info specified as "protocol+nodewwn+portwwn+hostid"')
+
+# export_group show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('groupId',    help = 'name of export_group')
+
+# export_group query label
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('project', help = 'Project URI')
+query.add_argument('groupId',    help = 'full pathname of export_group')
+
+# export_group list project
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('project',	help = 'container project name')
+
+# tag 
+resource_type="block_export"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        export_group_create(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        export_group_update(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        export_group_delete(args)
+    elif (cmd == "add_initiator"):
+        args = add_initiator.parse_args()
+        export_group_add_initiator(args)
+    elif (cmd == "remove_initiator"):
+        args = remove_initiator.parse_args()
+        export_group_remove_initiator(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        export_group_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        export_group_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        export_group_list(args)
+    elif (cmd == "add_volume"):
+        args = add_volume.parse_args()
+        export_group_add_volume(args)
+    elif (cmd == "remove_volume"):
+        args = remove_volume.parse_args()
+        export_group_remove_volume(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        export_group_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        export_group_search(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

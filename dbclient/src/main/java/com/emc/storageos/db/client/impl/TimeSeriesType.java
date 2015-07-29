@@ -54,7 +54,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Constructor
-     *
+     * 
      * @param clazz
      */
     public TimeSeriesType(Class<? extends TimeSeries> clazz) {
@@ -63,11 +63,11 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
     }
 
     /**
-     * Gets shard index to use for next data point.  Note that shard
+     * Gets shard index to use for next data point. Note that shard
      * index should be calculated by
-     *
+     * 
      * getAndIncrementBucketIndex % shard count
-     *
+     * 
      * @return
      */
     private long getNextShardIndex() {
@@ -76,7 +76,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Get bucket configuration
-     *
+     * 
      * @return
      */
     public TimeBucket getBucketConfig() {
@@ -85,7 +85,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Override TTL setting
-     *
+     * 
      * @param ttl
      */
     public void setTtl(Integer ttl) {
@@ -93,41 +93,41 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
     }
 
     /**
-     * Returns row ID to use for current time (UTC).  Takes into account
-     * bucket granularity and shard count.  Row ID does not use data
+     * Returns row ID to use for current time (UTC). Takes into account
+     * bucket granularity and shard count. Row ID does not use data
      * point's time because it's used as a way to
-     *
-     * 1. load balance across rows.  Data point's time stamps
-     *   do not guarantee such things since time series data source
-     *   could be out of whack
+     * 
+     * 1. load balance across rows. Data point's time stamps
+     * do not guarantee such things since time series data source
+     * could be out of whack
      * 2. serve as collection time stamp
-     *
+     * 
      * This means that this time series implementation is not
      * a good fit for use cases that need to
-     *
+     * 
      * 1. retrieve by source time stamp order
      * or
      * 2. source vs. insertion timestamp differ by a wide margin
-     *
+     * 
      * @return row Id to use for next insertion
      */
     public String getRowId() {
         return getRowId(null);
     }
 
-    public boolean getCompactOptimized(){
+    public boolean getCompactOptimized() {
         return _compactionOptimized;
     }
 
     /**
-     * Return row Id to use for given time. 
+     * Return row Id to use for given time.
      * 
      * @param time
      * @return row id to use for next insertion
      */
     public String getRowId(DateTime time) {
-        if(time == null) {
-        	time = new DateTime(DateTimeZone.UTC);
+        if (time == null) {
+            time = new DateTime(DateTimeZone.UTC);
         }
         StringBuilder rowId = new StringBuilder(_prefixFormatter.print(time));
         rowId.append(getNextShardIndex());
@@ -136,7 +136,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Returns rows to query for given time bucket
-     *
+     * 
      * @return
      */
     public List<String> getRows(DateTime bucket) {
@@ -150,7 +150,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Return column range for given time and bucket granularity
-     *
+     * 
      * @param time target query time
      * @param granularity granularity
      * @param pageSize page size
@@ -202,7 +202,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Serializer for data points
-     *
+     * 
      * @return
      */
     public TimeSeriesSerializer<T> getSerializer() {
@@ -211,7 +211,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Data point TTL
-     *
+     * 
      * @return
      */
     public Integer getTtl() {
@@ -220,7 +220,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Get CF for this time series data
-     *
+     * 
      * @return
      */
     public ColumnFamily<String, UUID> getCf() {
@@ -236,13 +236,13 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
         for (int i = 0; i < annotations.length; i++) {
             Annotation a = annotations[i];
             if (a instanceof Cf) {
-                _cfName = ((Cf)a).value();
+                _cfName = ((Cf) a).value();
             } else if (a instanceof Shards) {
-                _shardCount = ((Shards)a).value();
-            } else if (a instanceof CompactionOptimized ) {
+                _shardCount = ((Shards) a).value();
+            } else if (a instanceof CompactionOptimized) {
                 _compactionOptimized = true;
             } else if (a instanceof BucketGranularity) {
-                _bucketGranularity = ((BucketGranularity)a).value();
+                _bucketGranularity = ((BucketGranularity) a).value();
                 switch (_bucketGranularity) {
                     case SECOND:
                         _prefixFormatter = DateTimeFormat.forPattern("yyyyMMddHHmmss-");
@@ -274,7 +274,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
                 }
                 _supportedGranularity = Collections.unmodifiableList(_supportedGranularity);
             } else if (a instanceof Ttl) {
-                _ttl = ((Ttl)a).value();
+                _ttl = ((Ttl) a).value();
             } else {
                 throw new IllegalArgumentException("Unexpected annotation");
             }
@@ -301,7 +301,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
 
     /**
      * Create max range time UUID for given millisecond - see UUIDGen for algorithm/source.
-     *
+     * 
      * @param maxTime
      * @return
      */

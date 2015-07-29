@@ -2,7 +2,7 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
- /**  Copyright (c) 2008-2015 EMC Corporation
+/**  Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  *
  * This software contains the intellectual property of EMC Corporation
@@ -59,6 +59,7 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
+
 /**
  * Responsible for ingesting vplex local and distributed virtual volumes.
  */
@@ -67,10 +68,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     private static final long CACHE_TIMEOUT = 600000; // ten minutes
     private long cacheLastRefreshed = 0;
-    
+
     // maps the cluster id (1 or 2) to its name (e.g., cluster-1 or cluster-2)
     private Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-    
+
     // maps each virtual array's URI to the cluster id (1 or 2) it connects to
     private Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
     
@@ -84,13 +85,16 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     }
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache,StorageSystem system, UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesToBeDeleted, 
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
+    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+            UnManagedVolume unManagedVolume,
+            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
+            List<UnManagedVolume> unManagedVolumesToBeDeleted,
+            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
+            Class<T> clazz,
             Map<String, StringBuffer> taskStatusMap) throws IngestionException {
         // For VPLEX volumes, verify that it is OK to ingest the unmanaged
         // volume into the requested virtual array.
-        
+
         long timeRightNow = new Date().getTime();
         if (timeRightNow > (cacheLastRefreshed + CACHE_TIMEOUT)) {
             _logger.debug("clearing vplex ingestion api info cache");
@@ -98,12 +102,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             varrayToClusterIdMap.clear();
             cacheLastRefreshed = timeRightNow;
         }
-        
-        if (!VolumeIngestionUtil.isValidVarrayForUnmanagedVolume(unManagedVolume, virtualArray.getId(), 
+
+        if (!VolumeIngestionUtil.isValidVarrayForUnmanagedVolume(unManagedVolume, virtualArray.getId(),
                 clusterIdToNameMap, varrayToClusterIdMap, _dbClient)) {
             _logger.warn("UnManaged Volume {} cannot be ingested into the requested varray. Skipping Ingestion.",
                     unManagedVolume.getLabel());
-            
+
             throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(virtualArray.getLabel(), unManagedVolume.getLabel());
         }
         
@@ -502,14 +506,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     @Override
     protected void checkSystemResourceLimitsExceeded(StorageSystem system, UnManagedVolume unManagedVolume, List<URI> systemCache) {
-        //always return true,as for vplex volumes this limit doesn't have any effect
+        // always return true,as for vplex volumes this limit doesn't have any effect
         return;
     }
 
     @Override
     protected void checkPoolResourceLimitsExceeded(StorageSystem system, StoragePool pool, UnManagedVolume unManagedVolume,
             List<URI> poolCache) {
-        //always return true, as pool will be null
+        // always return true, as pool will be null
         return;
     }
 
@@ -526,7 +530,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         }
     }
-	
+
     @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);

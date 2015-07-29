@@ -21,14 +21,14 @@ import java.lang.annotation.Annotation;
  * Default implementation of MigrationCallback, used by db engine to handle generic changes
  */
 public class BaseDefaultMigrationCallback implements MigrationCallback {
-    
+
     protected Class cfClass;
     protected String fieldName;
     protected Annotation annotation;
     protected String annotationValue;
     protected String name;
     protected InternalDbClient internalDbClient;
-    
+
     public InternalDbClient getInternalDbClient() {
         return internalDbClient;
     }

@@ -17,13 +17,13 @@ package com.emc.storageos.recoverpoint.responses;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointReturnCode;
 
 public class MultiCopyDisableImageResponse {
-	private RecoverPointReturnCode returnCode;
+    private RecoverPointReturnCode returnCode;
 
-	public RecoverPointReturnCode getReturnCode() {
-		return returnCode;
-	}
+    public RecoverPointReturnCode getReturnCode() {
+        return returnCode;
+    }
 
-	public void setReturnCode(RecoverPointReturnCode returnCode) {
-		this.returnCode = returnCode;
-	}
+    public void setReturnCode(RecoverPointReturnCode returnCode) {
+        this.returnCode = returnCode;
+    }
 }

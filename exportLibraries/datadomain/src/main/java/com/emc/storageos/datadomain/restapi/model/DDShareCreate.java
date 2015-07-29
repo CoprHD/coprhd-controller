@@ -24,122 +24,122 @@ import com.emc.storageos.datadomain.restapi.DataDomainApiConstants;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="share_create")
+@JsonRootName(value = "share_create")
 public class DDShareCreate {
-	
-	private String name;
-	
-	private String path;
-	
-	@SerializedName("max_connections")
-	@JsonProperty(value="max_connections")
-	private int maxConnections;
-	
-	private Boolean browsing;
-	
-	private Boolean writeable;
-	
-	private String comment;
-	
-	private List<String> clients;
-	
-	private List<String> users;
-	
-	private List<String> groups;
-	
-	public DDShareCreate(String name, String path, int maxUsers, 
-			String comment, String permissionType, String permission) {
-		this.name = name;
-		this.path = path;
-		this.comment = comment;
-		this.maxConnections = maxUsers;
-		this.clients = new ArrayList<>();
-		this.clients.add("*");
-		if (permissionType.equalsIgnoreCase(DataDomainApiConstants.BROWSE_ALLOW)) {
-			this.browsing = true;
-		} else {
-			this.browsing = false;
-		}
-		if (permission.equalsIgnoreCase(DataDomainApiConstants.SHARE_READ)) {
-			this.writeable = false;
-		} else {
-			this.writeable = true;
-		}
-	}
 
-	public String getName() {
-		return name;
-	}
+    private String name;
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    private String path;
 
-	public String getPath() {
-		return path;
-	}
+    @SerializedName("max_connections")
+    @JsonProperty(value = "max_connections")
+    private int maxConnections;
 
-	public void setPath(String path) {
-		this.path = path;
-	}
+    private Boolean browsing;
 
-	public int getMaxConnections() {
-		return maxConnections;
-	}
+    private Boolean writeable;
 
-	public void setMaxConnections(int maxConnections) {
-		this.maxConnections = maxConnections;
-	}
+    private String comment;
 
-	public Boolean getBrowsing() {
-		return browsing;
-	}
+    private List<String> clients;
 
-	public void setBrowsing(Boolean browsing) {
-		this.browsing = browsing;
-	}
+    private List<String> users;
 
-	public Boolean getWriteable() {
-		return writeable;
-	}
+    private List<String> groups;
 
-	public void setWriteable(Boolean writeable) {
-		this.writeable = writeable;
-	}
+    public DDShareCreate(String name, String path, int maxUsers,
+            String comment, String permissionType, String permission) {
+        this.name = name;
+        this.path = path;
+        this.comment = comment;
+        this.maxConnections = maxUsers;
+        this.clients = new ArrayList<>();
+        this.clients.add("*");
+        if (permissionType.equalsIgnoreCase(DataDomainApiConstants.BROWSE_ALLOW)) {
+            this.browsing = true;
+        } else {
+            this.browsing = false;
+        }
+        if (permission.equalsIgnoreCase(DataDomainApiConstants.SHARE_READ)) {
+            this.writeable = false;
+        } else {
+            this.writeable = true;
+        }
+    }
 
-	public String getComment() {
-		return comment;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setComment(String comment) {
-		this.comment = comment;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public List<String> getClients() {
-		return clients;
-	}
+    public String getPath() {
+        return path;
+    }
 
-	public void setClients(List<String> clients) {
-		this.clients = clients;
-	}
+    public void setPath(String path) {
+        this.path = path;
+    }
 
-	public List<String> getUsers() {
-		return users;
-	}
+    public int getMaxConnections() {
+        return maxConnections;
+    }
 
-	public void setUsers(List<String> users) {
-		this.users = users;
-	}
+    public void setMaxConnections(int maxConnections) {
+        this.maxConnections = maxConnections;
+    }
 
-	public List<String> getGroups() {
-		return groups;
-	}
+    public Boolean getBrowsing() {
+        return browsing;
+    }
 
-	public void setGroups(List<String> groups) {
-		this.groups = groups;
-	}
+    public void setBrowsing(Boolean browsing) {
+        this.browsing = browsing;
+    }
 
-	public String toString() {
+    public Boolean getWriteable() {
+        return writeable;
+    }
+
+    public void setWriteable(Boolean writeable) {
+        this.writeable = writeable;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
+    public List<String> getClients() {
+        return clients;
+    }
+
+    public void setClients(List<String> clients) {
+        this.clients = clients;
+    }
+
+    public List<String> getUsers() {
+        return users;
+    }
+
+    public void setUsers(List<String> users) {
+        this.users = users;
+    }
+
+    public List<String> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(List<String> groups) {
+        this.groups = groups;
+    }
+
+    public String toString() {
         return new Gson().toJson(this).toString();
     }
 

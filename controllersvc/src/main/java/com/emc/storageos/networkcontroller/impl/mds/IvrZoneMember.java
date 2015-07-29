@@ -21,10 +21,10 @@ import org.slf4j.LoggerFactory;
 
 public class IvrZoneMember implements Serializable {
     private static final Logger _log = LoggerFactory.getLogger(IvrZoneMember.class);
-    
-    private String pwwn="";
+
+    private String pwwn = "";
     private Integer vsanId = 0;
-    
+
     public IvrZoneMember(String pwwn, Integer vsanId) {
         setPwwn(pwwn);
         setVsanId(vsanId);
@@ -45,25 +45,24 @@ public class IvrZoneMember implements Serializable {
     public void setVsanId(Integer vsanId) {
         this.vsanId = vsanId;
     }
-    
+
     public void print() {
         _log.info("IvrZoneMember: " + getPwwn() + "; vsan:" + getVsanId());
-    }    
-    
+    }
+
     @Override
     public int hashCode() {
         return getPwwn().hashCode() + getVsanId().hashCode();
     }
 
-    
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof IvrZoneMember) {
-            IvrZoneMember zoneMember = (IvrZoneMember)obj;
-            return zoneMember != null && pwwn != null  && // vsanId != null &&
-                           getPwwn().equalsIgnoreCase(zoneMember.getPwwn()); // && getVsanId().equals(zoneMember.getVsanId());
+            IvrZoneMember zoneMember = (IvrZoneMember) obj;
+            return zoneMember != null && pwwn != null && // vsanId != null &&
+                    getPwwn().equalsIgnoreCase(zoneMember.getPwwn()); // && getVsanId().equals(zoneMember.getVsanId());
         }
         return false;
     }
-    
+
 }

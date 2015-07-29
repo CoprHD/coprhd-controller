@@ -33,7 +33,7 @@ public class ListIScsiSessionsCommand extends LinuxResultsCommand<List<IScsiSess
             results = Lists.newArrayList();
         }
     }
-    
+
     @Override
     protected void processError() throws CommandException {
         String stderr = getOutput().getStderr();

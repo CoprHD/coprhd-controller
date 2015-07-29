@@ -23,6 +23,7 @@ public interface GlobalLockItf {
     /**
      * Acquire the global lock, with a specified lock owner name.
      * If the lock is available, acquire the lock and owner is associated with it.
+     * 
      * @return true, if lock is acquired
      *         false, otherwise
      */
@@ -31,6 +32,7 @@ public interface GlobalLockItf {
     /**
      * Releases the global lock associated with a specified lock owner name.
      * The lock is released if the specified owner matches with the lock owner
+     * 
      * @return true, if lock is released
      *         false, otherwise
      */
@@ -38,6 +40,7 @@ public interface GlobalLockItf {
 
     /**
      * Get lock owner's name
+     * 
      * @return the current lock owner name
      *         null, otherwise.
      */

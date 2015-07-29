@@ -31,10 +31,10 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 public class VPlexApiLockManager {
     // Lock name delimiter.
     private static final String LOCK_NAME_DELIM = ":";
-       
-    // A reference to the coordinator. 
+
+    // A reference to the coordinator.
     private CoordinatorClient _coordinator;
-    
+
     // A map of the acquired locks.
     private static ConcurrentHashMap<String, InterProcessLock> s_acquiredLocks = new ConcurrentHashMap<String, InterProcessLock>();
 
@@ -55,18 +55,18 @@ public class VPlexApiLockManager {
      * 
      * @param lockName The name of the lock to acquire.
      * @param waitInSeconds The amount of time to wait to acquire the lock in
-     *        seconds. A value less than 0 will cause the function
-     *        to wait indefinitely for the lock.
+     *            seconds. A value less than 0 will cause the function
+     *            to wait indefinitely for the lock.
      * 
      * @return true if lock acquired, false otherwise.
      */
     public boolean acquireLock(String lockName, long waitInSeconds) {
-        
+
         if (lockName == null || lockName.isEmpty()) {
             s_logger.info("No lock name specified.");
             return false;
         }
-        
+
         try {
             InterProcessLock lock = _coordinator.getLock(lockName);
             if (lock != null) {
@@ -76,13 +76,13 @@ public class VPlexApiLockManager {
                         s_logger.info("Failed to acquire lock: " + lockName);
                         return false;
                     }
-                } else { 
+                } else {
                     s_logger.info("Attempting to acquire lock: " + lockName + " for as long as it takes.");
                     lock.acquire(); // will only throw exception or pass
                 }
 
                 s_acquiredLocks.put(lockName, lock);
-            } else { 
+            } else {
                 return false;
             }
             s_logger.info("Acquired lock: " + lockName);
@@ -101,19 +101,19 @@ public class VPlexApiLockManager {
      * @return true if the lock is released, false otherwise.
      */
     public boolean releaseLock(String lockName) {
-        
+
         if (lockName == null || lockName.isEmpty()) {
             s_logger.info("No lock name specified.");
             return false;
         }
-        
+
         try {
             InterProcessLock lock = s_acquiredLocks.get(lockName);
             if (lock != null) {
                 s_acquiredLocks.remove(lockName);
                 lock.release();
-                s_logger.info("Released lock: " + lockName);             
-            } else { 
+                s_logger.info("Released lock: " + lockName);
+            } else {
                 return false;
             }
             return true;
@@ -122,7 +122,7 @@ public class VPlexApiLockManager {
             return false;
         }
     }
-    
+
     /**
      * Gets a lock name to lock the vplex system on the passed cluster.
      * 
@@ -137,19 +137,20 @@ public class VPlexApiLockManager {
         lockNameBuilder.append(clusterId);
         return lockNameBuilder.toString();
     }
-    
+
     /**
      * Gets a lock name constructed from the vplex system, cluster, and an array.
+     * 
      * @param vplexURI - URI of vplex system
      * @param clusterId - String cluster id
      * @param arrayURI - Storage array URI
      * @return String lock name that was constructed
      */
     public String getLockName(URI vplexURI, String clusterId, URI arrayURI) {
-    	StringBuilder lockNameBuilder = new StringBuilder(getLockName(vplexURI, clusterId));
-    	lockNameBuilder.append(LOCK_NAME_DELIM);
-    	lockNameBuilder.append(arrayURI.toString());
-    	return lockNameBuilder.toString();
+        StringBuilder lockNameBuilder = new StringBuilder(getLockName(vplexURI, clusterId));
+        lockNameBuilder.append(LOCK_NAME_DELIM);
+        lockNameBuilder.append(arrayURI.toString());
+        return lockNameBuilder.toString();
     };
-    
+
 }

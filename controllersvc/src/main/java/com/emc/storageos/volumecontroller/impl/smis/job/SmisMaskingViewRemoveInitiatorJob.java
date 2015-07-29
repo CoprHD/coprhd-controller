@@ -15,8 +15,8 @@ import java.net.URI;
 public class SmisMaskingViewRemoveInitiatorJob extends SmisJob
 {
     public SmisMaskingViewRemoveInitiatorJob(CIMObjectPath cimJob,
-                                             URI storageSystem,
-                                             TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "RemoveInitiatorFromMaskingView");
     }
 }

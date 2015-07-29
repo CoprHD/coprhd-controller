@@ -21,9 +21,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Parameter used to update the endpoints of a network. 
+ * Parameter used to update the endpoints of a network.
+ * 
  * @deprecated use the general API for network update
- *
+ * 
  */
 @XmlRootElement(name = "network_endpoints")
 @Deprecated
@@ -31,20 +32,21 @@ public class NetworkEndpointParam {
     private List<String> endpoints;
     private String op;
 
-    public NetworkEndpointParam() {}
-    
+    public NetworkEndpointParam() {
+    }
+
     public NetworkEndpointParam(List<String> endpoints, String op) {
         this.endpoints = endpoints;
         this.op = op;
     }
-    
+
     /**
-     * List of endpoints (WWN, iqn, IP address of port and host interfaces) 
+     * List of endpoints (WWN, iqn, IP address of port and host interfaces)
      * to be added to the network or removed from it.
      * 
      * @valid none
      */
-    @XmlElementWrapper(required = true,name = "endpoints")
+    @XmlElementWrapper(required = true, name = "endpoints")
     @XmlElement(name = "endpoint")
     public List<String> getEndpoints() {
         if (endpoints == null) {
@@ -52,7 +54,7 @@ public class NetworkEndpointParam {
         }
         return endpoints;
     }
-    
+
     public void setEndpoints(List<String> endpoints) {
         this.endpoints = endpoints;
     }

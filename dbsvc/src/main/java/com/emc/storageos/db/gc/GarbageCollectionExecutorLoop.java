@@ -59,7 +59,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     }
 
     public void setGcDelayMins(int gcDelayMins) {
-       this.gcDelayMins = gcDelayMins;
+        this.gcDelayMins = gcDelayMins;
     }
 
     public void setDbClient(DbClient dbClient) {
@@ -78,7 +78,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     protected abstract boolean preGC();
 
     /**
-     *
+     * 
      * @param clazz the GC will run on
      * @param <T>
      * @return true if we can run GC on this class
@@ -86,18 +86,20 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     protected abstract <T extends DataObject> boolean canRunGCOnClass(Class<T> clazz);
 
     /**
-     *
+     * 
      * @param clazz the GC will run on
      * @param <T>
      **/
     protected abstract <T extends DataObject> GarbageCollectionRunnable genGCTask(Class<T> clazz);
+
     protected abstract void postGC();
 
     @Override
     public void run() {
         try {
-            if (!preGC())
+            if (!preGC()) {
                 return; // can't run GC now
+            }
 
             int maxLevels = dependencyTracker.getLevels();
             for (int i = 0; i < maxLevels; i++) {
@@ -125,7 +127,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
      **/
     private void waitTasksToComplete() {
         log.info("Waiting for {} tasks to finish", futures.size());
-        for (Future f: futures) {
+        for (Future f : futures) {
             try {
                 f.get();
             } catch (ExecutionException | InterruptedException ex) {
@@ -137,4 +139,3 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
         log.info("GC tasks are done");
     }
 }
-

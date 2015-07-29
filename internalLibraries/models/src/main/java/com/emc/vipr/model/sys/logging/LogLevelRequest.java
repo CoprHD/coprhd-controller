@@ -40,15 +40,15 @@ public class LogLevelRequest extends LogRequestBase {
 
     /**
      * Constructor.
-     *
-     * @param nodeIds   The list of Bourne node ids.
-     * @param logNames  The list of log file names.
-     * @param severity  The minimum desired severity level.
+     * 
+     * @param nodeIds The list of Bourne node ids.
+     * @param logNames The list of log file names.
+     * @param severity The minimum desired severity level.
      * @param expirInMin The log level expiration time in minutes.
-     * @param scope    The log level scope. 
+     * @param scope The log level scope.
      */
     public LogLevelRequest(List<String> nodeIds, List<String> logNames,
-                          LogSeverity severity, Integer expirInMin, String scope) {
+            LogSeverity severity, Integer expirInMin, String scope) {
         super(nodeIds, logNames, severity);
         this.expirInMin = expirInMin;
         this.scope = scope;
@@ -65,7 +65,7 @@ public class LogLevelRequest extends LogRequestBase {
 
     /**
      * Getter for the log level expiration time.
-     *
+     * 
      * @return The log level expiration time or null if not set.
      */
     @XmlElement(name = "expirInMin")
@@ -82,7 +82,7 @@ public class LogLevelRequest extends LogRequestBase {
 
     /**
      * Getter for the log level scope.
-     *
+     * 
      * @return The log level scope.
      */
     @XmlElement(name = "scope")

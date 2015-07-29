@@ -17,8 +17,8 @@ package com.emc.storageos.vplex.api;
 /**
  * Info for a VPlex storage volume
  */
-public class VPlexStorageVolumeInfo extends  VPlexResourceInfo {
-    
+public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
+
     // The id of the VPlex cluster to which the storage volume belongs.
     private String clusterId;
     
@@ -34,7 +34,7 @@ public class VPlexStorageVolumeInfo extends  VPlexResourceInfo {
     public String getClusterId() {
         return clusterId;
     }
-    
+
     /**
      * Setter for the storage system cluster id.
      * 
@@ -74,14 +74,14 @@ public class VPlexStorageVolumeInfo extends  VPlexResourceInfo {
      */
     public String getWwn() {
         if (systemId != null) {
-            if (systemId.startsWith(VPlexApiConstants.VOLUME_SYSTEM_ID_PREFIX)) {
-                return systemId.substring(VPlexApiConstants.VOLUME_SYSTEM_ID_PREFIX.length());
+            if (systemId.startsWith(VPlexApiConstants.VOLUME_WWN_PREFIX)) {
+                return systemId.substring(VPlexApiConstants.VOLUME_WWN_PREFIX.length());
             }
         }
         
         return null;
     }
-    
+
     /**
      * {@inheritDoc}
      */

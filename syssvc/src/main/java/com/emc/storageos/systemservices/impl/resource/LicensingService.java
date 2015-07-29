@@ -35,24 +35,26 @@ import com.emc.storageos.security.authorization.Role;
 public interface LicensingService {
     /**
      * Return the license file as individual xml elements and also includes the full license text.
+     * 
      * @brief Show the license information
      * @prereq none
      * @throws WebApplicationException
      */
     @GET
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     public License getLicense() throws Exception;
 
     /**
      * Add a license to the system
+     * 
      * @brief Add a license
      * @param license License text
      * @prereq Cluster state should be STABLE
      * @throws Exception
      */
     @POST
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
     @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     public Response postLicense(License license) throws Exception;
 }

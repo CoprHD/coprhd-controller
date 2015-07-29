@@ -20,7 +20,7 @@ import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.google.common.base.Function;
 
-public class MapStorageProvider implements Function<StorageProvider,StorageProviderRestRep> {
+public class MapStorageProvider implements Function<StorageProvider, StorageProviderRestRep> {
     public static final MapStorageProvider instance = new MapStorageProvider();
 
     public static MapStorageProvider getInstance() {

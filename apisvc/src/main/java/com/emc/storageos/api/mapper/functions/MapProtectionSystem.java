@@ -9,7 +9,7 @@ import com.emc.storageos.model.protection.ProtectionSystemRestRep;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.google.common.base.Function;
 
-public class MapProtectionSystem implements Function<ProtectionSystem,ProtectionSystemRestRep> {
+public class MapProtectionSystem implements Function<ProtectionSystem, ProtectionSystemRestRep> {
     public static final MapProtectionSystem instance = new MapProtectionSystem();
 
     public static MapProtectionSystem getInstance() {

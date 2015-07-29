@@ -15,7 +15,6 @@
 
 package com.emc.storageos.geo.vdccontroller.impl;
 
-
 import java.net.URI;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -72,7 +71,6 @@ import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerato
 import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.security.geo.GeoServiceClient;
 
-
 /*
  * Detail implementation of vdc connect operation
  */
@@ -80,20 +78,20 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
     private final static Logger log = LoggerFactory.getLogger(ConnectVdcTaskOp.class);
 
-    private final static int NODE_CHECK_TIMEOUT = 60*1000; // one minute
+    private final static int NODE_CHECK_TIMEOUT = 60 * 1000; // one minute
 
     private final static SoftwareVersion netcheckMinVer = new SoftwareVersion("2.2.0.0.*");
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
 
-    public ConnectVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache, 
+    public ConnectVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, String taskId,
-            Properties vdcInfo,InternalApiSignatureKeyGenerator generator, KeyStore keystore) {
+            Properties vdcInfo, InternalApiSignatureKeyGenerator generator, KeyStore keystore) {
         super(dbClient, geoClientCache, helper, serviceInfo, vdc, taskId, vdcInfo, keystore);
         this.apiSignatureGenerator = generator;
         this.operatedVdc = dbClient.queryObject(VirtualDataCenter.class,
-                                 URI.create(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID)));
-        if(operatedVdc == null) {
+                URI.create(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID)));
+        if (operatedVdc == null) {
             this.operatedVdcStatus = ConnectionStatus.CONNECTING;
         }
         else {
@@ -106,7 +104,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
     public void setBasePermissionHelper(BasePermissionsHelper _permissionHelper) {
         this._permissionHelper = _permissionHelper;
     }
-    
+
     /**
      * Precheck if vdc connect is permitted, then sync the new vdc config to all sites
      */
@@ -137,14 +135,14 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         URI newVdcId = URIUtil.uri(vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID));
         GeoServiceHelper.backupOperationVdc(dbClient, JobType.VDC_CONNECT_JOB, newVdcId, null);
         VirtualDataCenter newVdc = GeoServiceHelper.prepareVirtualDataCenter(newVdcId, VirtualDataCenter.ConnectionStatus.CONNECTING,
-                                                                             VirtualDataCenter.GeoReplicationStatus.REP_NONE, vdcInfo);
+                VirtualDataCenter.GeoReplicationStatus.REP_NONE, vdcInfo);
         dbClient.createObject(newVdc);
         // we should use uuid as cert name in trust store, but before we persist new vdc info
         // into db, we use vdc name as cert name, after we persist new vdc into db, persist uuid
         // as cert name and remove the one which use vdc name as cert name.
         persistVdcCert(newVdc.getId().toString(), newVdc.getCertificateChain(), true, shortId);
         removeVdcCert(vdcName, shortId);
-        //add new remote VDC to the list of VDC to sync
+        // add new remote VDC to the list of VDC to sync
         toBeSyncedVdc.add(newVdc);
         allVdc.add(newVdc);
         connectedVdc.add(newVdc);
@@ -173,10 +171,10 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
         try {
             configSync(mergedVdcInfo);
-        } catch ( GeoException ex ) {
+        } catch (GeoException ex) {
             throw ex;
-        } catch ( Exception e) {
-            log.error("Failed to sync vdc config to all sites e=",e);
+        } catch (Exception e) {
+            log.error("Failed to sync vdc config to all sites e=", e);
             throw GeoException.fatals.syncConfigFail(e);
         }
         // do not release the global lock here; lock is released during post processing
@@ -184,9 +182,9 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
     private void removeVdcCert(String vdcName, String shortId) {
         try {
-            //remove the operated vdc cert with vdcName
+            // remove the operated vdc cert with vdcName
             keystore.deleteEntry(vdcName);
-        } catch ( KeyStoreException e) {
+        } catch (KeyStoreException e) {
             log.error("failed to delete the cert of {}.", vdcName);
             throw GeoException.fatals.connectVdcSyncCertFail(shortId, e);
         }
@@ -196,14 +194,14 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         try {
             // add the target vdc cert into trust-store of local vdc
             helper.persistVdcCert(keystore, vdcName, certStr, certchain);
-        } catch ( APIException e) {
+        } catch (APIException e) {
             log.error("failed to persist the new cert of {}.", vdcName);
             throw GeoException.fatals.connectVdcSyncCertFail(shortId, e);
         }
     }
 
     /**
-     * PreSteps to be executed before initial connect vdc operation 
+     * PreSteps to be executed before initial connect vdc operation
      */
     private void preSteps() {
         // Check & verify connection status of my current vdc
@@ -246,10 +244,10 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         try {
             postCheck();
         } catch (Exception e) {
-            log.error("wait for all sites db stable failed e=",e);
+            log.error("wait for all sites db stable failed e=", e);
             throw GeoException.fatals.connectVdcPostCheckFail(e);
         }
-        
+
         statusUpdate();
 
         // release the lock
@@ -257,14 +255,13 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         lockHelper.release(operatedVdc.getShortId());
     }
 
-
     /**
      * Check whether geo could accept the new vdc or not
      */
     private VdcPreCheckResponse preCheck() {
         log.info("Starting precheck on vdc connect ...");
 
-        //Step 0: Get remote vdc version before send preCheck, since we modify the preCheckParam
+        // Step 0: Get remote vdc version before send preCheck, since we modify the preCheckParam
         // avoid to send preCheck from v2.3 or higher to v2.2 v2.1, v2.0
         if (!isRemoteVdcVersionCompatible(vdcInfo)) {
             throw GeoException.fatals.connectVdcPrecheckFail(myVdcId, "Software version from remote vdc is lower than v2.3.");
@@ -279,10 +276,10 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         String virtualIP = vdcInfo.getProperty(GeoServiceJob.VDC_API_ENDPOINT);
         if (!InetAddresses.isInetAddress(virtualIP)) {
             // FQDN used
-            log.info("FQDN or hostname used: {}",virtualIP);
+            log.info("FQDN or hostname used: {}", virtualIP);
             try {
                 virtualIP = InetAddress.getByName(vdcInfo.getProperty(GeoServiceJob.VDC_API_ENDPOINT)).getHostAddress();
-                vdcInfo.setProperty(GeoServiceJob.VDC_API_ENDPOINT,virtualIP); // replace with real IP
+                vdcInfo.setProperty(GeoServiceJob.VDC_API_ENDPOINT, virtualIP); // replace with real IP
                 log.info("virtual ip of new vdc {}", virtualIP);
             } catch (UnknownHostException e) {
                 throw GeoException.fatals.invalidFQDNEndPoint(vdcInfo.getProperty(GeoServiceJob.VDC_NAME), virtualIP);
@@ -294,19 +291,21 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         }
 
         log.info("Check vdc stable");
-        //check if the cluster is stable
-        if(!vdcResp.isClusterStable()) {
+        // check if the cluster is stable
+        if (!vdcResp.isClusterStable()) {
             throw GeoException.fatals.unstableVdcFailure(vdcInfo.getProperty(GeoServiceJob.VDC_NAME));
         }
         URI unstable = checkAllVdcStable(false, false);
-        if( unstable != null) {
+        if (unstable != null) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, unstable);
             String vdcName = (vdc != null) ? vdc.getLabel() : "";
             throw GeoException.fatals.unstableVdcFailure(vdcName);
         }
 
-        log.info("vdc config retrieved: vip={}, IPv4Addresses={}, IPv6Addresses={} isHasData={}",
-                new Object[] {vdcResp.getApiEndpoint(), vdcResp.getHostIPv4AddressesMap(), vdcResp.getHostIPv6AddressesMap(), vdcResp.isHasData()});
+        log.info(
+                "vdc config retrieved: vip={}, IPv4Addresses={}, IPv6Addresses={} isHasData={}",
+                new Object[] { vdcResp.getApiEndpoint(), vdcResp.getHostIPv4AddressesMap(), vdcResp.getHostIPv6AddressesMap(),
+                        vdcResp.isHasData() });
         if (vdcResp.isHasData()) {
             throw GeoException.fatals.remoteVDCContainData();
         }
@@ -319,11 +318,11 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         if (hasTripleVdcVersionsInFederation(vdcResp)) {
             throw GeoException.fatals.hasTripleVDCVersionsInFederation();
         }
-        
+
         if (!isCompatibleVersion(vdcResp)) {
             throw GeoException.fatals.remoteVDCIncompatibleVersion();
         }
-        
+
         if (!checkNodeConnectivity(vdcResp)) {
             throw GeoException.fatals.failedToCheckConnectivity(errMsg);
         }
@@ -351,8 +350,9 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             checkParam.setIPv6Address(ipv6);
             VdcNatCheckResponse resp = geoClientCache.getGeoClient(vdcInfo).vdcNatCheck(checkParam);
             if (resp.isBehindNAT()) {
-                return String.format("The remote VDC %s seen this node's IP is %s, which is different from what we think: %s or %s, we may behind a NAT",
-                        vdcBeingAdded.getShortId(), resp.getSeenIp(), ipv4, ipv6);
+                return String
+                        .format("The remote VDC %s seen this node's IP is %s, which is different from what we think: %s or %s, we may behind a NAT",
+                                vdcBeingAdded.getShortId(), resp.getSeenIp(), ipv4, ipv6);
             }
         } else {
             log.info("Remote VDC is of version {}, lower than {}, NAT check skipped.", remoteVer, netcheckMinVer);
@@ -362,18 +362,19 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
     }
 
     private boolean checkNodeConnectivity(VdcPreCheckResponse vdcBeingAdded) {
-        
+
         // check to make sure the current vdc can connect to all nodes on the vdc being added
-        if (!helper.areNodesReachable(vdcBeingAdded.getShortId(), vdcBeingAdded.getHostIPv4AddressesMap(), vdcBeingAdded.getHostIPv6AddressesMap(), false)) {
+        if (!helper.areNodesReachable(vdcBeingAdded.getShortId(), vdcBeingAdded.getHostIPv4AddressesMap(),
+                vdcBeingAdded.getHostIPv6AddressesMap(), false)) {
             errMsg = String.format("Current vdc, %s, cannot reach all nodes of vdc being added", myVdc.getLabel());
             log.error(errMsg);
             return false;
         }
-        
+
         // check to make sure the vdc being added can connect to the current and all other vdc's
         log.info("sending node check request to vdc: {}", vdcInfo.getProperty(GeoServiceJob.OPERATED_VDC_ID));
         VdcNodeCheckResponse vdcResp = sendVdcNodeCheckRequest(vdcInfo, connectedVdc);
-            
+
         if (!vdcResp.isNodesReachable()) {
             errMsg = "vdc to be added cannot connect to all nodes of at least one of the vdcs in the federation";
             log.error(errMsg);
@@ -384,7 +385,9 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         List<VdcConfig> vdcConfigs = new ArrayList<VdcConfig>();
         vdcConfigs.add(mergeVdcInfo(vdcBeingAdded));
         for (VirtualDataCenter other : connectedVdc) {
-            if (other.getShortId().equals(myVdc.getShortId())) continue;
+            if (other.getShortId().equals(myVdc.getShortId())) {
+                continue;
+            }
             log.info("sending node check request to vdc: {}", other.getShortId());
             vdcResp = sendVdcNodeCheckRequest(GeoServiceHelper.getVDCInfo(other), vdcConfigs);
             if (!vdcResp.isNodesReachable()) {
@@ -404,12 +407,13 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
     /**
      * Send node check request to target vdc.
+     * 
      * @param vdcProp vdc to send msg to
      * @param vdcsToCheck list of vdc's with nodes to check
      * @return
      * @throws Exception
      */
-    private VdcNodeCheckResponse sendVdcNodeCheckRequest (Properties vdcProp, Collection<VirtualDataCenter> vdcsToCheck)  {
+    private VdcNodeCheckResponse sendVdcNodeCheckRequest(Properties vdcProp, Collection<VirtualDataCenter> vdcsToCheck) {
         VdcNodeCheckParam param = new VdcNodeCheckParam();
         List<VdcConfig> virtualDataCenters = new ArrayList<VdcConfig>();
         for (VirtualDataCenter vdc : vdcsToCheck) {
@@ -421,7 +425,8 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
             } else if (vdc.getHostIPv6AddressesMap() != null && !vdc.getHostIPv6AddressesMap().isEmpty()) {
                 vdcConfig.setHostIPv6AddressesMap(vdc.getHostIPv6AddressesMap());
             } else {
-                throw GeoException.fatals.cannotPerformOperation(vdc.getId().toString()," no nodes were found on VirtualDataCenter object");
+                throw GeoException.fatals
+                        .cannotPerformOperation(vdc.getId().toString(), " no nodes were found on VirtualDataCenter object");
             }
             virtualDataCenters.add(vdcConfig);
         }
@@ -452,7 +457,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         List<VdcConfig> list = vdcConfigList.getVirtualDataCenters();
 
         for (VirtualDataCenter vdc : getAllVdc()) {
-            if( vdc.getShortId().equals(vdcInfo.getProperty(GeoServiceJob.VDC_SHORT_ID))) {
+            if (vdc.getShortId().equals(vdcInfo.getProperty(GeoServiceJob.VDC_SHORT_ID))) {
                 continue;
             }
             log.info("add {} to the merged vdc config", vdc.getShortId());
@@ -466,10 +471,10 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
     private void configSync(VdcConfigSyncParam mergedVdcInfo) throws Exception {
         // step 3: sync merged vdc config info to all sites in which property change triggered, all conf files updated after reboot.
-        //         the vdc to be connected will reset the db and update the network strategy when startup.
+        // the vdc to be connected will reset the db and update the network strategy when startup.
 
-        //  loop all current connected VDCs with latest vdc config info, shall be moved into geoclient
-        //  geoclient shall responsible to retry all retryable errors, we have no need retry here
+        // loop all current connected VDCs with latest vdc config info, shall be moved into geoclient
+        // geoclient shall responsible to retry all retryable errors, we have no need retry here
 
         log.info("sync vdc config to all sites, total vdc entries {}", mergedVdcInfo.getVirtualDataCenters().size());
         List<VirtualDataCenter> vdcList = getToBeSyncedVdc();
@@ -485,7 +490,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
                     mergedVdcInfo.setGeoEncryptionKey(null);
                 }
                 mergedVdcInfo.setConfigChangeType(changeType().toString());
-                geoClientCache.getGeoClient(vdc.getShortId()).syncVdcConfig(mergedVdcInfo,vdc.getLabel());
+                geoClientCache.getGeoClient(vdc.getShortId()).syncVdcConfig(mergedVdcInfo, vdc.getLabel());
                 log.info("Sync vdc info succeed");
             } else {
                 log.error("Fatal error: try to sync with a vdc without endpoint");
@@ -503,19 +508,20 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
 
     private void postCheck() {
         log.info("vdc config info already synced to all connected vdc, start post check");
-        if (myVdc == null)
+        if (myVdc == null) {
             getMyVdcId();
+        }
 
-        // step 4: wait for the gossip status 
+        // step 4: wait for the gossip status
         dbClient.waitAllSitesDbStable();
-        
-        // reload operated vdc from db 
+
+        // reload operated vdc from db
         operatedVdc = dbClient.queryObject(VirtualDataCenter.class, operatedVdc.getId());
         // check if network strategy updated successfully
         dbClient.waitDbRingRebuildDone(operatedVdc.getShortId(), operatedVdc.getHostCount());
     }
 
-    private void statusUpdate()  {
+    private void statusUpdate() {
         // step 5: update vdc connection status if post check succeed at each site
 
         List<VirtualDataCenter> vdcList = getToBeSyncedVdc();
@@ -524,8 +530,8 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         VdcPostCheckParam checkParam = new VdcPostCheckParam();
         checkParam.setConfigChangeType(changeType().toString());
         checkParam.setRootTenantId(helper.getVdcRootTenantId());
-         
-        // all connected vdc 
+
+        // all connected vdc
         List<URI> vdcIds = new ArrayList<>();
         for (VirtualDataCenter vdc : vdcList) {
             vdcIds.add(vdc.getId());
@@ -541,13 +547,13 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
     private VdcConfig mergeVdcInfo(VdcPreCheckResponse vdcResp) {
         log.info("add to be added vdc {} to the merged vdc config", vdcInfo.getProperty(GeoServiceJob.VDC_SHORT_ID));
         VdcConfig vdcConfig = helper.toConfigParam(vdcInfo);
-        
+
         // Following items should be set according to remote site
         log.info("get from remote {} {}", vdcResp.getHostCount(), vdcResp.getShortId());
         vdcConfig.setHostCount(vdcResp.getHostCount());
         vdcConfig.setHostIPv4AddressesMap(vdcResp.getHostIPv4AddressesMap());
         vdcConfig.setHostIPv6AddressesMap(vdcResp.getHostIPv6AddressesMap());
-        if( operatedVdc == null ) {
+        if (operatedVdc == null) {
             vdcConfig.setConnectionStatus(VirtualDataCenter.ConnectionStatus.CONNECTING.toString());
             vdcConfig.setRepStatus(VirtualDataCenter.GeoReplicationStatus.REP_NONE.toString());
         }
@@ -559,8 +565,8 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         Date addDate = new Date();
         vdcConfig.setVersion(addDate.getTime()); // notify the vdc to pick up the latest info
         return vdcConfig;
-     }
-    
+    }
+
     /**
      * Check to be added vdc whether in compatible version
      */
@@ -602,7 +608,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         }
         return true;
     }
-    
+
     private boolean isGeoCompatible(VdcPreCheckResponse vdcResp) {
         String expectVersion = VdcUtil.getDbSchemaVersion(vdcResp.getSoftwareVersion());
         if (expectVersion == null) {
@@ -610,52 +616,53 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         }
         log.info("Compare Vdc version: {}", expectVersion);
         String minimalVdcVersion = VdcUtil.getMinimalVdcVersion();
-        boolean isGeoCompatible = VdcUtil.VdcVersionComparator.compare(expectVersion, minimalVdcVersion)>=0;
+        boolean isGeoCompatible = VdcUtil.VdcVersionComparator.compare(expectVersion, minimalVdcVersion) >= 0;
         if (!isGeoCompatible) {
             log.error("The vdc version of the vdc to be added must be not less than current federation.");
         }
         return isGeoCompatible;
     }
-    
+
     /**
      * Check if we'll have 3 vdc versions after adding the vdc with given version
+     * 
      * @param vdcResp
      * @return true if there are 3 vdc versions
      */
-	private boolean hasTripleVdcVersionsInFederation(VdcPreCheckResponse vdcResp) {
-		Set<String> allVersions = new HashSet<>();
-		allVersions.add(VdcUtil.getDbSchemaVersion(vdcResp.getSoftwareVersion()));
-		List<URI> vdcIds = dbClient.queryByType(VirtualDataCenter.class, true);
-		List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
-		List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class,
-				vdcVersionIds);
-		Map<URI, VdcVersion> vdcIdVdcVersionMap = new HashMap<>();
-		for (VdcVersion vdcVersion : vdcVersions) {
-			vdcIdVdcVersionMap.put(vdcVersion.getVdcId(), vdcVersion);
-		}
+    private boolean hasTripleVdcVersionsInFederation(VdcPreCheckResponse vdcResp) {
+        Set<String> allVersions = new HashSet<>();
+        allVersions.add(VdcUtil.getDbSchemaVersion(vdcResp.getSoftwareVersion()));
+        List<URI> vdcIds = dbClient.queryByType(VirtualDataCenter.class, true);
+        List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
+        List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class,
+                vdcVersionIds);
+        Map<URI, VdcVersion> vdcIdVdcVersionMap = new HashMap<>();
+        for (VdcVersion vdcVersion : vdcVersions) {
+            vdcIdVdcVersionMap.put(vdcVersion.getVdcId(), vdcVersion);
+        }
 
-		for (URI vdcId : vdcIds) {
-			if (vdcIdVdcVersionMap.containsKey(vdcId)) {
-				String schemaVersion = vdcIdVdcVersionMap.get(vdcId)
-						.getVersion();
-				log.info("Get vdc version {} on {}", schemaVersion, vdcId);
-				allVersions.add(schemaVersion);
-			} else {
-				log.info(
-						"Can not get vdc version on {}, will use default version instead",
-						vdcId);
-				allVersions.add(VdcUtil.DEFAULT_VDC_DB_VERSION);
-			}
-		}
+        for (URI vdcId : vdcIds) {
+            if (vdcIdVdcVersionMap.containsKey(vdcId)) {
+                String schemaVersion = vdcIdVdcVersionMap.get(vdcId)
+                        .getVersion();
+                log.info("Get vdc version {} on {}", schemaVersion, vdcId);
+                allVersions.add(schemaVersion);
+            } else {
+                log.info(
+                        "Can not get vdc version on {}, will use default version instead",
+                        vdcId);
+                allVersions.add(VdcUtil.DEFAULT_VDC_DB_VERSION);
+            }
+        }
 
-		log.info("Current vdc versions in federation {}", allVersions);
+        log.info("Current vdc versions in federation {}", allVersions);
         boolean hasTriple = allVersions.size() > 2;
         if (hasTriple) {
             log.error("Not allowed to have three different vdc versions in a federation.");
         }
         return hasTriple;
-	}
-    
+    }
+
     @Override
     protected void process() {
         String errMsg;
@@ -680,7 +687,7 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
     }
 
     @Override
-    public VdcConfig.ConfigChangeType changeType(){
+    public VdcConfig.ConfigChangeType changeType() {
         return VdcConfig.ConfigChangeType.CONNECT_VDC;
     }
 }

@@ -15,7 +15,6 @@
 
 package com.emc.storageos.model;
 
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -49,8 +48,9 @@ public class TaskResourceRep extends DataObjectRestRep {
     private Integer progress;
     private RelatedResourceRep workflow;
 
-    public TaskResourceRep() {}
-    
+    public TaskResourceRep() {
+    }
+
     public TaskResourceRep(ServiceErrorRestRep serviceError, String opId,
             RestLinkRep selfLink, NamedRelatedResourceRep resource,
             List<NamedRelatedResourceRep> associatedResources, String message,
@@ -71,20 +71,21 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     /**
      * The task operation id
+     * 
      * @valid none
      */
     @XmlElement(name = "op_id")
-    public String getOpId() { 
-        return opId; 
+    public String getOpId() {
+        return opId;
     }
-    
-    public void  setOpId(String opId) { 
-        this.opId = opId; 
+
+    public void setOpId(String opId) {
+        this.opId = opId;
     }
 
     /**
      * The resource link to the task
-     *
+     * 
      * @deprecated Use {@link #getLink()}
      */
     @JsonIgnore
@@ -95,19 +96,20 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     /**
      * Resource link representative with name and id attached
+     * 
      * @valid none
      */
     @XmlElement(name = "resource")
     public NamedRelatedResourceRep getResource() {
-        return resource; 
+        return resource;
     }
-    
-    public void setResource(NamedRelatedResourceRep resource) { 
+
+    public void setResource(NamedRelatedResourceRep resource) {
         this.resource = resource;
     }
 
     /**
-     * Link to tenant who owns this task.  No tenant means the task is a SYSTEM level task (i.e. discovery etc)
+     * Link to tenant who owns this task. No tenant means the task is a SYSTEM level task (i.e. discovery etc)
      */
     @XmlElement(name = "tenant")
     public RelatedResourceRep getTenant() {
@@ -120,64 +122,69 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     /**
      * A list of links for associated resources
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "associated_resources")
     @XmlElement(name = "associated_resource")
-    public List<NamedRelatedResourceRep> getAssociatedResources() { 
+    public List<NamedRelatedResourceRep> getAssociatedResources() {
         if (associatedResources == null) {
             associatedResources = new ArrayList<NamedRelatedResourceRep>();
         }
-        return associatedResources; 
+        return associatedResources;
     }
-    
+
     public void setAssociatedResources(List<NamedRelatedResourceRep> associatedResources) {
         this.associatedResources = associatedResources;
     }
 
-    /** 
+    /**
      * The state of the task
-     * @valid pending = task is pending 
+     * 
+     * @valid pending = task is pending
      * @valid ready = task succeed
      * @valid error = task fails
      */
     @XmlElement(name = "state")
-    public String getState() { 
-        return state; 
+    public String getState() {
+        return state;
     }
-    
-    public void setState(String state) { 
+
+    public void setState(String state) {
         this.state = state;
     }
 
-    /** 
-     * The task detail message 
+    /**
+     * The task detail message
+     * 
      * @valid none
      */
-    @XmlElement (name = "message")
-    public String getMessage() { 
-        return message; 
+    @XmlElement(name = "message")
+    public String getMessage() {
+        return message;
     }
-    
-    public void setMessage(String message) { 
+
+    public void setMessage(String message) {
         this.message = message;
     }
 
-    /** 
+    /**
      * The description of the task
+     * 
      * @valid none
      */
-    @XmlElement (name = "description")
+    @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
-    
+
     public void setDescription(String description) {
         this.description = description;
     }
 
     /**
      * The service error code when a problem was encountered while processing a request
+     * 
      * @valid none
      */
     @XmlElement(name = "service_error")
@@ -189,30 +196,32 @@ public class TaskResourceRep extends DataObjectRestRep {
         this.serviceError = serviceError;
     }
 
-    /** 
+    /**
      * The date and time of when the task was started
+     * 
      * @valid none
      */
-    @XmlElement (name = "start_time")
+    @XmlElement(name = "start_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)
     public Calendar getStartTime() {
         return startTime;
     }
-    
+
     public void setStartTime(Calendar start_time) {
         startTime = start_time;
     }
 
-    /** 
+    /**
      * The date and time of when the task ended
+     * 
      * @valid none
      */
-    @XmlElement (name = "end_time")
+    @XmlElement(name = "end_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)
     public Calendar getEndTime() {
         return endTime;
     }
-    
+
     public void setEndTime(Calendar endTime) {
         this.endTime = endTime;
     }

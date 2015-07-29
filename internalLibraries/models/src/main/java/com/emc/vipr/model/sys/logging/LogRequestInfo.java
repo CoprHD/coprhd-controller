@@ -40,13 +40,14 @@ public class LogRequestInfo extends LogRequestBase {
     private int maxCount = 0;
 
     {
-        if (getSeverity() == null)
+        if (getSeverity() == null) {
             setSeverity(LogSeverity.TRACE);
+        }
     }
 
     // Response stream maximum byte size
     private long maxBytes = 0;
-    
+
     private boolean dryRun = false;
 
     // Empty constructor
@@ -56,17 +57,17 @@ public class LogRequestInfo extends LogRequestBase {
 
     /**
      * Constructor.
-     *
-     * @param nodeIds   The list of Bourne node ids.
-     * @param logNames  The list of log file names.
-     * @param severity  The minimum desired severity level.
+     * 
+     * @param nodeIds The list of Bourne node ids.
+     * @param logNames The list of log file names.
+     * @param severity The minimum desired severity level.
      * @param startTime The log start time.
-     * @param endTime   The log end time.
-     * @param msgRegex  The log message regular expression.
+     * @param endTime The log end time.
+     * @param msgRegex The log message regular expression.
      */
     public LogRequestInfo(List<String> nodeIds, List<String> logNames,
-                          LogSeverity severity, Date startTime, Date endTime,
-                          String msgRegex, int maxCount) {
+            LogSeverity severity, Date startTime, Date endTime,
+            String msgRegex, int maxCount) {
         super(nodeIds, logNames, severity);
 
         this.startTime = startTime;
@@ -88,7 +89,7 @@ public class LogRequestInfo extends LogRequestBase {
 
     /**
      * Getter for the log message regular expression.
-     *
+     * 
      * @return The log message regular expression or null if not set.
      */
     public String getMsgRegex() {
@@ -101,7 +102,7 @@ public class LogRequestInfo extends LogRequestBase {
     public void setMsgRegex(String msgRegex) {
         this.msgRegex = msgRegex;
     }
-  
+
     public Date getEndTime() {
         return endTime;
     }
@@ -117,7 +118,7 @@ public class LogRequestInfo extends LogRequestBase {
     public void setStartTime(Date startTime) {
         this.startTime = startTime;
     }
-  
+
     public int getMaxCount() {
         return maxCount;
     }
@@ -125,7 +126,7 @@ public class LogRequestInfo extends LogRequestBase {
     public void setMaxCount(int maxCount) {
         this.maxCount = maxCount;
     }
-    
+
     public long getMaxBytes() {
         return maxBytes;
     }

@@ -21,16 +21,16 @@ import java.util.List;
  * Info for a VPlex device.
  */
 public class VPlexDeviceInfo extends VPlexResourceInfo {
-    
+
     // The extent information for the device.
-    private List<VPlexExtentInfo>  extentInfoList = new ArrayList<VPlexExtentInfo>();
-    
+    private List<VPlexExtentInfo> extentInfoList = new ArrayList<VPlexExtentInfo>();
+
     // The child device information for this device. Note that a device
     // can be composed of extents and/or other devices.
-    private List<VPlexDeviceInfo>  childDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
-    
+    private List<VPlexDeviceInfo> childDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
+
     // The cluster id.
-    private String clusterId = null;    
+    private String clusterId = null;
 
     /**
      * Getter for the extent info for the device.
@@ -40,7 +40,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     public List<VPlexExtentInfo> getExtentInfo() {
         return extentInfoList;
     }
-    
+
     /**
      * Setter for the extent info for the device.
      * 
@@ -49,7 +49,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     public void setExtentInfo(List<VPlexExtentInfo> infoList) {
         extentInfoList = infoList;
     }
-    
+
     /**
      * Getter for the child device info for the device.
      * 
@@ -58,7 +58,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     public List<VPlexDeviceInfo> getChildDeviceInfo() {
         return childDeviceInfoList;
     }
-    
+
     /**
      * Setter for the child device info for the device.
      * 
@@ -67,7 +67,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     public void setChildDeviceInfo(List<VPlexDeviceInfo> infoList) {
         childDeviceInfoList = infoList;
     }
-    
+
     /**
      * Getter for the device cluster id.
      * 
@@ -76,7 +76,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     public String getClusterId() {
         return clusterId;
     }
-    
+
     /**
      * Setter for the device cluster id.
      * 
@@ -85,7 +85,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
     public void setClusterId(String id) {
         clusterId = id;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -94,7 +94,7 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("DeviceInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);        
+        str.append(", clusterId: " + clusterId);
         for (VPlexExtentInfo extentInfo : extentInfoList) {
             str.append(", ");
             str.append(extentInfo.toString());

@@ -32,7 +32,7 @@ import java.util.List;
 public class VerifyExceptionAnnotations extends Job {
 
     public void doJob() throws NotFoundException {
-        for(ApplicationClasses.ApplicationClass klass : Play.classes.all()) {
+        for (ApplicationClasses.ApplicationClass klass : Play.classes.all()) {
             if (Controller.class.isAssignableFrom(klass.javaClass)) {
                 Class controller = klass.javaClass;
                 for (Method method : controller.getMethods()) {
@@ -50,9 +50,9 @@ public class VerifyExceptionAnnotations extends Job {
             return;
         }
         String[] actionList = (StringUtils.isEmpty(handler.value())) ? handler.referrer() : new String[] { handler.value() };
-        
+
         for (String action : actionList) {
-            //if action is blank we redirect to the referrer, so there's nothing to verify
+            // if action is blank we redirect to the referrer, so there's nothing to verify
             if (!action.equals("")) {
                 if (!action.contains(".")) {
                     action = controller.getName() + "." + action;
@@ -61,7 +61,8 @@ public class VerifyExceptionAnnotations extends Job {
                 try {
                     ActionInvoker.getActionMethod(action);
                 } catch (ActionNotFoundException e) {
-                    UnsupportedOperationException ex = new UnsupportedOperationException("Action method " + action + " couldn't be resolved");
+                    UnsupportedOperationException ex = new UnsupportedOperationException("Action method " + action
+                            + " couldn't be resolved");
 
                     List<StackTraceElement> stackTrace = Lists.newArrayList();
                     stackTrace.add(createStackTraceElement(controller, method));

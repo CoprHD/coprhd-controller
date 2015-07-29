@@ -42,8 +42,9 @@ public class InternalNetworkClient extends BaseServiceClient {
 
     /***
      * Method for updating the network's endpoints
-     * @param id  the URN of a ViPR network
-     * @param param  The ips to add or remove, and whether to add or remove
+     * 
+     * @param id the URN of a ViPR network
+     * @param param The ips to add or remove, and whether to add or remove
      * @return network info
      */
     public NetworkRestRep updateNetworkEndpoints(URI id, NetworkEndpointParam param) {

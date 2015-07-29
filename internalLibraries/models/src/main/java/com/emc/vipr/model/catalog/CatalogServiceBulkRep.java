@@ -14,15 +14,16 @@ import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_catalog_services")
 public class CatalogServiceBulkRep extends BulkRestRep {
-    
+
     private List<CatalogServiceRestRep> catalogServices;
-    
+
     public CatalogServiceBulkRep() {
-        
+
     }
 
     /**
      * List of catalog services
+     * 
      * @valid none
      * @return
      */
@@ -37,7 +38,7 @@ public class CatalogServiceBulkRep extends BulkRestRep {
     public void setCatalogServices(List<CatalogServiceRestRep> catalogServices) {
         this.catalogServices = catalogServices;
     }
-    
+
     public CatalogServiceBulkRep(List<CatalogServiceRestRep> catalogServices) {
         this.catalogServices = catalogServices;
     }

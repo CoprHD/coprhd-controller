@@ -26,27 +26,27 @@ import com.emc.storageos.db.client.model.FileExport;
 
 @XmlRootElement
 public class FSExportMapAdapter extends
-		XmlAdapter<FSExportMapAdapter.AdaptedMap, FSExportMap> {
+        XmlAdapter<FSExportMapAdapter.AdaptedMap, FSExportMap> {
 
     public static class AdaptedMap {
         public List<Entry> entry = new ArrayList<Entry>();
     }
-    
+
     public static class Entry {
         public String key;
         public FileExport value;
     }
-    
+
     @Override
     public FSExportMap unmarshal(AdaptedMap adaptedMap)
-    			throws Exception {
+            throws Exception {
         FSExportMap map = new FSExportMap();
         for (Entry entry : adaptedMap.entry) {
             map.put(entry.key, entry.value);
         }
         return map;
     }
-    
+
     @Override
     public AdaptedMap marshal(FSExportMap map) throws Exception {
         AdaptedMap adaptedMap = new AdaptedMap();

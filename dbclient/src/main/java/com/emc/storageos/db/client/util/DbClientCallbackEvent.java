@@ -17,10 +17,10 @@ package com.emc.storageos.db.client.util;
 
 /**
  * @author cgarber
- *
+ * 
  */
 public interface DbClientCallbackEvent {
-    
-    public void call(Object...args);
+
+    public void call(Object... args);
 
 }

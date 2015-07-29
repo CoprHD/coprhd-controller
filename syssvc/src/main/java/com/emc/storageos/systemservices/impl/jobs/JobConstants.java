@@ -14,10 +14,6 @@
  */
 package com.emc.storageos.systemservices.impl.jobs;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 /**
  * Constants for all jobs.
  */

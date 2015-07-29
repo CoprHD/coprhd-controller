@@ -17,8 +17,6 @@ package com.emc.storageos.systemservices.impl.security;
 import com.emc.storageos.security.SecurityDisabler;
 import com.emc.storageos.security.authorization.*;
 import com.sun.jersey.spi.container.ResourceFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.ws.rs.core.Context;
@@ -53,13 +51,14 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
         /**
          * Get tenant id from the uri
+         * 
          * @return
          */
-        @Override      
+        @Override
         protected URI getTenantIdFromURI(UriInfo uriInfo) {
             return null;
         }
-        
+
         @Override
         protected URI getProjectIdFromURI(UriInfo uriInfo) {
             return null;
@@ -73,6 +72,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
     /**
      * Setter for permissions helper object
+     * 
      * @param permissionsHelper
      */
     public void setPermissionsHelper(BasePermissionsHelper permissionsHelper) {
@@ -96,7 +96,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
     @Override
     protected AbstractPermissionFilter getPermissionsFilter(Role[] roles, ACL[] acls, boolean blockProxies, Class resourceClazz) {
-        return new SyssvcPermissionFilter(roles, acls, blockProxies, resourceClazz,_permissionsHelper);
+        return new SyssvcPermissionFilter(roles, acls, blockProxies, resourceClazz, _permissionsHelper);
     }
 
     @Override

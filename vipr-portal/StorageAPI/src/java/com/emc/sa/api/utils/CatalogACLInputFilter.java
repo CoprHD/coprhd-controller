@@ -20,7 +20,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.collect.Lists;
 
 public class CatalogACLInputFilter extends ACLInputFilter {
-    
+
     private final URI tenantId;
     private List<String> groups;
     private List<String> users;
@@ -35,11 +35,11 @@ public class CatalogACLInputFilter extends ACLInputFilter {
         StorageOSPrincipal principal = new StorageOSPrincipal();
         if (entry.getGroup() != null) {
             String group = entry.getGroup();
-            key = new PermissionsKey (PermissionsKey.Type.GROUP, group, this.tenantId);
+            key = new PermissionsKey(PermissionsKey.Type.GROUP, group, this.tenantId);
             principal.setName(group);
             principal.setType(StorageOSPrincipal.Type.Group);
         } else if (entry.getSubjectId() != null) {
-            key = new PermissionsKey (PermissionsKey.Type.SID, entry.getSubjectId(), this.tenantId);
+            key = new PermissionsKey(PermissionsKey.Type.SID, entry.getSubjectId(), this.tenantId);
             principal.setName(entry.getSubjectId());
             principal.setType(StorageOSPrincipal.Type.User);
         } else {
@@ -63,23 +63,22 @@ public class CatalogACLInputFilter extends ACLInputFilter {
 
     @Override
     protected boolean isValidACL(String ace) {
-        return (PermissionsHelper.isUsageACL(ace) &&
-                !ace.equalsIgnoreCase(ACL.OWN.toString()));
+        return (PermissionsHelper.isUsageACL(ace) && !ace.equalsIgnoreCase(ACL.OWN.toString()));
     }
 
     @Override
     protected void addPrincipalToList(PermissionsKey key) {
         switch (key.getType()) {
-        case GROUP:
-            groups.add(key.getValue());
-            break;
-        case SID:
-            users.add(key.getValue());
-            break;
-        case TENANT:
-        default:
-            break;
-    }
+            case GROUP:
+                groups.add(key.getValue());
+                break;
+            case SID:
+                users.add(key.getValue());
+                break;
+            case TENANT:
+            default:
+                break;
+        }
     }
 
     @Override

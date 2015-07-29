@@ -37,7 +37,7 @@ public class XIVTCPProtocolEndPointProcessor extends StorageEndPointProcessor {
     private DbClient _dbClient;
     private static final String PORTNUMBER = "portNumber";
     private List<Object> args;
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -52,7 +52,7 @@ public class XIVTCPProtocolEndPointProcessor extends StorageEndPointProcessor {
                 try {
                     tcpPointInstance = it.next();
                     String portInstanceID = getObjectPathfromCIMArgument(args).toString();
-                    port = _dbClient.queryObject(StoragePort.class, (URI)keyMap.get(portInstanceID));
+                    port = _dbClient.queryObject(StoragePort.class, (URI) keyMap.get(portInstanceID));
                     updateTCPEndPointDetails(port, tcpPointInstance);
                 } catch (Exception e) {
                     _logger.warn("Port TCP End Point Discovery failed for {}-->{}", "",

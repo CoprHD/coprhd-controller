@@ -23,8 +23,9 @@ public class TargetVersionResponse {
 
     private String targetVersion;
 
-    public TargetVersionResponse() {}
-    
+    public TargetVersionResponse() {
+    }
+
     public TargetVersionResponse(String targetVersion) {
         this.targetVersion = targetVersion;
     }
@@ -37,5 +38,5 @@ public class TargetVersionResponse {
     public void setTargetVersion(String targetVersion) {
         this.targetVersion = targetVersion;
     }
-    
+
 }

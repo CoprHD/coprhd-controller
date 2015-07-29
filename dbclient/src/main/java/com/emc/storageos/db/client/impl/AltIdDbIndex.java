@@ -2,14 +2,11 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.impl;                                                    
-
+package com.emc.storageos.db.client.impl;
 
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
-import java.net.URI;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,8 +24,8 @@ public class AltIdDbIndex extends DbIndex {
     }
 
     @Override
-    boolean addColumn(String recordKey, CompositeColumnName column, Object value, 
-                      String className, RowMutator mutator, Integer ttl, DataObject obj) {
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value,
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
         if (value.toString().isEmpty()) {
             // empty string in alternate id field, ignore and continue
             _log.warn("Empty string in altenate id field: {}", fieldName);
@@ -48,8 +45,8 @@ public class AltIdDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-                         String className, RowMutator mutator,
-                         Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            String className, RowMutator mutator,
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         UUID uuid = column.getName().getTimeUUID();
 
         String rowKey = getRowKey(column);
@@ -62,26 +59,28 @@ public class AltIdDbIndex extends DbIndex {
     }
 
     String getRowKey(CompositeColumnName column, Object value) {
-        if (indexByKey)
+        if (indexByKey) {
             return column.getTwo();
+        }
 
-         return value.toString();
+        return value.toString();
     }
 
     String getRowKey(Column<CompositeColumnName> column) {
-        if (indexByKey)
+        if (indexByKey) {
             return column.getName().getTwo();
+        }
 
-         return column.getStringValue();
+        return column.getStringValue();
     }
 
     @Override
     public String toString() {
-        StringBuilder builder  = new StringBuilder("AltIdDbIndex class");
+        StringBuilder builder = new StringBuilder("AltIdDbIndex class");
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");
 
         return builder.toString();
     }
-} 
+}

@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
-
 import java.net.URI;
 import java.util.Map;
 
@@ -21,31 +20,29 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 
-
 @Cf("UnManagedVolume")
-public class UnManagedVolume extends UnManagedDiscoveredObject{
-    
-    
+public class UnManagedVolume extends UnManagedDiscoveredObject {
+
     private StringSetMap _volumeInformation;
-    
+
     private StringMap _volumeCharacterstics;
-    
+
     private URI _storageSystemUri;
-    
+
     private URI storagePoolUri;
-    
+
     private StringSet _unmanagedExportMasks;
-    
+
     private StringSet _initiatorUris;
-    
+
     private StringSet _initiatorNetworkIds;
-    
+
     private StringSet storagePortUris;
-    
+
     private String _wwn;
-    
+
     public enum SupportedVolumeCharacterstics {
-        
+
         IS_MAPPED("EMCSVIsMapped", "EMCIsMapped"),
         IS_RECOVERPOINT_ENABLED("EMCSVRecoverPointEnabled", "EMCRecoverPointEnabled"),
         IS_METAVOLUME("EMCSVIsComposite", "EMCIsComposite"),
@@ -55,34 +52,33 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
-        IS_VOLUME_EXPORTED("isVolumeExported", "isVolumeExported"), 
+        IS_VOLUME_EXPORTED("isVolumeExported", "isVolumeExported"),
         HAS_REPLICAS("hasReplicas", "hasReplicas"),
-        IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"), 
-        IS_INGESTABLE("IsIngestable", "IsIngestable"), 
+        IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"),
+        IS_INGESTABLE("IsIngestable", "IsIngestable"),
         REMOTE_MIRRORING("remoteMirror", "remoteMirror"),
         IS_VPLEX_VOLUME("isVplexVolume", "isVplexVolume"),
-		IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
+        IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
         EXPORTGROUP_TYPE("exportGroupType", "exportGroupType");
-        
-        
+
         private String _charactersticsKey;
         private String _charactersticAlternateKey;
-        
+
         SupportedVolumeCharacterstics(String charactersticsKey, String charactersticAlternateKey) {
             _charactersticsKey = charactersticsKey;
             _charactersticAlternateKey = charactersticAlternateKey;
         }
-        
+
         public String getCharacterstic() {
             return _charactersticsKey;
         }
-        
+
         public String getAlterCharacterstic() {
             return _charactersticAlternateKey;
         }
-        
+
         public static String getVolumeCharacterstic(String charactersticsKey) {
-            for(SupportedVolumeCharacterstics characterstic : values()) {
+            for (SupportedVolumeCharacterstics characterstic : values()) {
                 if (characterstic.getCharacterstic().equalsIgnoreCase(charactersticsKey)
                         || characterstic.getAlterCharacterstic().equalsIgnoreCase(charactersticsKey)) {
                     return characterstic.toString();
@@ -91,7 +87,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
             return null;
         }
     }
-    
+
     public enum SupportedVolumeInformation {
         ALLOCATED_CAPACITY("AFSPSpaceConsumed", "EMCSpaceConsumed"),
         PROVISIONED_CAPACITY("ProvisionedCapacity", "ProvisionedCapacity"),
@@ -107,8 +103,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         SUPPORTED_VPOOL_LIST("vpoolUriList", "vpoolUriList"),
         DATA_FORMAT("EMCSVDataFormat", "EMCDataFormat"),
         DEVICE_LABEL("SVElementName", "ElementName"),
-        NAME("SVName", "Name"), REMOTE_COPY_MODE("remoteCopyMode", "remoteCopyMode"), REMOTE_MIRRORS("remoteMirrors", "remoteMirrors"), 
-        REMOTE_MIRROR_SOURCE_VOLUME("sourceVolume", "sourceVolume"), REMOTE_MIRROR_RDF_GROUP("remoteRAGroup", "remoteRAGroup"), 
+        NAME("SVName", "Name"), REMOTE_COPY_MODE("remoteCopyMode", "remoteCopyMode"), REMOTE_MIRRORS("remoteMirrors", "remoteMirrors"),
+        REMOTE_MIRROR_SOURCE_VOLUME("sourceVolume", "sourceVolume"), REMOTE_MIRROR_RDF_GROUP("remoteRAGroup", "remoteRAGroup"),
         REMOTE_VOLUME_TYPE("volumeType", "volumeType"),
         ACCESS("Access", "Access"),
         STATUS_DESCRIPTIONS("StatusDescriptions", "StatusDescriptions"),
@@ -141,22 +137,22 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
 
         private String _infoKey;
         private String _alternateKey;
-        
+
         SupportedVolumeInformation(String infoKey, String alterateKey) {
             _infoKey = infoKey;
             _alternateKey = alterateKey;
         }
-        
+
         public String getInfoKey() {
             return _infoKey;
         }
-        
+
         public String getAlternateKey() {
             return _alternateKey;
         }
-        
+
         public static String getVolumeInformation(String infoKey) {
-            for(SupportedVolumeInformation info : values()) {
+            for (SupportedVolumeInformation info : values()) {
                 if (info.getInfoKey().equalsIgnoreCase(infoKey)
                         || info.getAlternateKey().equalsIgnoreCase(infoKey)) {
                     return info.toString();
@@ -165,31 +161,33 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
             return null;
         }
     }
- 
+
     // Replaces key entry in the volumeInformation map with the new set.
     public void putVolumeInfo(String key, StringSet values) {
         if (null == _volumeInformation) {
             setVolumeInformation(new StringSetMap());
         }
 
-        StringSet oldValues  = _volumeInformation.get(key);
+        StringSet oldValues = _volumeInformation.get(key);
         if (oldValues != null) {
             oldValues.replace(values);
         } else {
             _volumeInformation.put(key, values);
         }
     }
-    
-    public void addVolumeInformation(Map<String,StringSet> volumeInfo) {
-        if (null == _volumeInformation)
+
+    public void addVolumeInformation(Map<String, StringSet> volumeInfo) {
+        if (null == _volumeInformation) {
             setVolumeInformation(new StringSetMap());
-        else
+        } else {
             _volumeInformation.clear();
-        
-        if(volumeInfo.size() > 0)
+        }
+
+        if (volumeInfo.size() > 0) {
             _volumeInformation.putAll(volumeInfo);
+        }
     }
-    
+
     public void setVolumeInformation(StringSetMap volumeInfo) {
         _volumeInformation = volumeInfo;
     }
@@ -199,20 +197,18 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         return _volumeInformation;
     }
 
- 
-    
     public void putVolumeCharacterstics(String key, String value) {
-        if (null == _volumeCharacterstics)
+        if (null == _volumeCharacterstics) {
             setVolumeCharacterstics(new StringMap());
-        else
+        } else {
             _volumeCharacterstics.put(key, value);
+        }
     }
-    
-    
+
     public void setVolumeCharacterstics(StringMap volumeCharacterstics) {
         _volumeCharacterstics = volumeCharacterstics;
     }
-    
+
     @Name("volumeCharacterstics")
     public StringMap getVolumeCharacterstics() {
         return _volumeCharacterstics;
@@ -222,12 +218,13 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         _storageSystemUri = storageSystemUri;
         setChanged("storageDevice");
     }
-    
+
     @RelationIndex(cf = "UnManagedVolumeRelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageSystemUri() {
         return _storageSystemUri;
     }
+
     @RelationIndex(cf = "UnManagedVolumeRelationIndex", type = StoragePool.class)
     @Name("storagePool")
     public URI getStoragePoolUri() {
@@ -272,13 +269,13 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         }
         return _initiatorNetworkIds;
     }
-    
+
     public void setInitiatorNetworkIds(StringSet initiatorNetworkIds) {
         this._initiatorNetworkIds = initiatorNetworkIds;
     }
-    
+
     @Name("storagePortUris")
-	public StringSet getStoragePortUris() {
+    public StringSet getStoragePortUris() {
         if (storagePortUris == null) {
             setStoragePortUris(new StringSet());
         }
@@ -300,8 +297,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         setChanged("wwn");
     }
 
-    public enum Types{
-		SOURCE,
-		TARGET
-	}
+    public enum Types {
+        SOURCE,
+        TARGET
+    }
 }

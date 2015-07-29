@@ -29,7 +29,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 
-
 /**
  * StorageSystemStatsProcessor used in retrieving KBytesWritten,KBytesRead,TotalIOs,ReadIOs,
  * WriteIOs,KBytesTransferred,ReadHitIOs,WriteHitIOs and nativeGuid of System.
@@ -37,7 +36,7 @@ import com.google.common.collect.Lists;
 public class StorageSystemStatsProcessor extends CommonStatsProcessor {
 
     private Logger _logger = LoggerFactory.getLogger(StorageSystemStatsProcessor.class);
-    
+
     public static enum SystemMetric
     {
         UnKnown,
@@ -51,7 +50,7 @@ public class StorageSystemStatsProcessor extends CommonStatsProcessor {
         KBytesTransferred,
         ReadHitIOs,
         WriteHitIOs;
-        
+
         private static final SystemMetric[] metricCopyOfValues = values();
 
         public static SystemMetric lookup(String name) {
@@ -116,46 +115,47 @@ public class StorageSystemStatsProcessor extends CommonStatsProcessor {
         for (String metricName : metricSequence) {
             String metricValue = systemMetricList.get(count);
             switch (SystemMetric.lookup(metricName)) {
-            case InstanceID: case ElementType:
-                count++;
-                break;
-            case KBytesWritten:
-                systemStat.setBandwidthIn(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            case KBytesRead:
-                systemStat.setBandwidthOut(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            case TotalIOs:
-                systemStat.setTotalIOs(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            case ReadIOs:
-                systemStat.setReadIOs(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            case WriteIOs:
-                systemStat.setWriteIOs(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            case KBytesTransferred:
-                systemStat.setKbytesTransferred(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            case ReadHitIOs:
-                systemStat.setReadHitIOs(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            case WriteHitIOs:
-                systemStat.setWriteHitIOs(ControllerUtils.getLongValue(metricValue));
-                count++;
-                break;
-            default:
-                _logger.warn("Ignoring unknown metric {} during system metric processing:", metricName);
-                count++;
-                break;
+                case InstanceID:
+                case ElementType:
+                    count++;
+                    break;
+                case KBytesWritten:
+                    systemStat.setBandwidthIn(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                case KBytesRead:
+                    systemStat.setBandwidthOut(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                case TotalIOs:
+                    systemStat.setTotalIOs(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                case ReadIOs:
+                    systemStat.setReadIOs(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                case WriteIOs:
+                    systemStat.setWriteIOs(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                case KBytesTransferred:
+                    systemStat.setKbytesTransferred(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                case ReadHitIOs:
+                    systemStat.setReadHitIOs(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                case WriteHitIOs:
+                    systemStat.setWriteHitIOs(ControllerUtils.getLongValue(metricValue));
+                    count++;
+                    break;
+                default:
+                    _logger.warn("Ignoring unknown metric {} during system metric processing:", metricName);
+                    count++;
+                    break;
             }
-        }  
+        }
     }
 }

@@ -26,7 +26,7 @@ import java.util.List;
 public class ManagedResourcesCapacity {
 
     private List<ManagedResourceCapacity> resourceCapacityList = new ArrayList<ManagedResourceCapacity>();
-    
+
     /**
      * A list of managed resource capacity response instances.
      * 
@@ -47,7 +47,7 @@ public class ManagedResourcesCapacity {
 
     @XmlRootElement
     public static class ManagedResourceCapacity {
-        
+
         private CapacityResourceType type;
         private long numResources;
         private double resourceCapacity;
@@ -96,7 +96,7 @@ public class ManagedResourcesCapacity {
         public void setResourceCapacity(double resourceCapacity) {
             this.resourceCapacity = resourceCapacity;
         }
-        
+
     }
 
     public enum CapacityResourceType {

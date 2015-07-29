@@ -24,15 +24,17 @@ public class QuotaUpdateParam {
     private Boolean enable;
     private Long quotaInGb;
 
-    public QuotaUpdateParam() {}
-    
+    public QuotaUpdateParam() {
+    }
+
     public QuotaUpdateParam(Boolean enable, Long quotaInGb) {
         this.enable = enable;
         this.quotaInGb = quotaInGb;
     }
 
     /**
-     * Enable setting quotas for this resource. 
+     * Enable setting quotas for this resource.
+     * 
      * @valid true
      * @valid false
      */
@@ -46,7 +48,8 @@ public class QuotaUpdateParam {
     }
 
     /**
-     * Set this quota (in Gb) for this resource. 
+     * Set this quota (in Gb) for this resource.
+     * 
      * @valid none
      */
     @XmlElement(name = "quota_gb")
@@ -57,5 +60,5 @@ public class QuotaUpdateParam {
     public void setQuotaInGb(Long quotaInGb) {
         this.quotaInGb = quotaInGb;
     }
-    
+
 }

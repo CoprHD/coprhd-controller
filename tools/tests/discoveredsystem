@@ -1,0 +1,170 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+
+URI_SERVICES_BASE               = ''
+URI_DISCOVERED_STORAGEDEVICES   = URI_SERVICES_BASE   + '/vdc/storage-systems'
+URI_DISCOVERED_STORAGEDEVICE    = URI_DISCOVERED_STORAGEDEVICES  + '/{0}'
+URI_REGISTER_STORAGEDEVICE      = '/vdc/smis-providers/{0}/storage-systems/{1}/register'
+URI_DISCOVERED_STORAGEPOOLS     = URI_DISCOVERED_STORAGEDEVICE  + '/storage-pools'
+URI_DISCOVERED_STORAGEPORTS     = URI_DISCOVERED_STORAGEDEVICE  + '/storage-ports'
+URI_DISCOVERED_REFRESH          = URI_DISCOVERED_STORAGEDEVICE + '/discover'
+
+#----------------------------------------------------------------------
+# storage cli functions
+#----------------------------------------------------------------------
+
+def discovered_storagedevice_list(args):
+    bourne.connect(args.ip)
+    systems = bourne.list_discovered_elements(URI_DISCOVERED_STORAGEDEVICES)
+    for system in systems:
+        print system
+
+def discovered_storagedevice_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.storagedevice_query(args.name)
+    storage = bourne.show_element(uri, URI_DISCOVERED_STORAGEDEVICE)
+    bourne.pretty_print_json(storage)
+
+def discovered_storagedevice_query(args):
+    bourne.connect(args.ip)
+    print bourne.storagedevice_query(args.name)
+
+def discovered_storagedevice_register(args):
+    bourne.connect(args.ip)
+    provideruri = bourne.smisprovider_query(args.provider)
+    systemuri  = bourne.storagedevice_querybynativeguid(args.name)
+    storage = bourne.register_element(provideruri , systemuri, URI_REGISTER_STORAGEDEVICE)
+    bourne.pretty_print_json(storage)
+
+def discovered_storagedevice_listpools(args):
+    bourne.connect(args.ip)
+    uri  = bourne.storagedevice_querybynativeguid(args.name)
+    pools = bourne.list_elements(uri, URI_DISCOVERED_STORAGEPOOLS)
+    for pool in pools:
+        pretty_print_json(pool)
+
+def discovered_storagedevice_listports(args):
+    bourne.connect(args.ip)
+    uri  = bourne.storagedevice_querybynativeguid(args.name)
+    ports = bourne.list_elements(uri, URI_DISCOVERED_STORAGEPORTS)
+    for port in ports:
+        pretty_print_json(port)
+
+def discovered_storagedevice_create(args):
+    bourne.connect(args.ip)
+    s = bourne.storagedevice_create(args.label, args.type, args.devip, args.devport,
+                 args.username, args.password, args.serialno, args.smisip, args.smisport,
+                 args.smisuser, args.smispw, args.smisssl, URI_DISCOVERED_STORAGEDEVICES)
+    if (s['state'] == 'ready'):
+        print 'Device created with id ' + s['resource']['id']
+    else:
+        print 'Device create failed.'
+
+def discovered_storagedevice_refresh(args):
+    bourne.connect(args.ip)
+    storage = bourne.storagedevice_refresh(args.name, URI_DISCOVERED_REFRESH)
+    print storage
+
+
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# storage <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne CoS cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | show | list | createpool | listpools | listports)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# storage create label
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',		help = 'label for storage device')
+create.add_argument('type',		help = 'storage device type')
+create.add_argument('devip',		help = 'storage device IP address')
+create.add_argument('devport',		help = 'storage device tcp port')
+create.add_argument('username',		help = 'storage device user name')
+create.add_argument('password',		help = 'storage device password')
+create.add_argument('--serialno',	help = 'storage device serial number')
+create.add_argument('--smisip',		help = 'SMIS provider IP address')
+create.add_argument('--smisport',	help = 'SMIS provider TCP port')
+create.add_argument('--smisuser',	help = 'SMIS provider user name')
+create.add_argument('--smispw',	help = 'SMIS provider password')
+create.add_argument('--smisssl',	help = 'SMIS provider use ssl true or false')
+
+# storage show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'Name of storage')
+
+# storage query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'Name of storage')
+
+# storage list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# storage listpools query name
+commonarg = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+commonarg.add_argument('name',      help = 'Nativeguid of storage')
+
+# register
+register = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+register.add_argument('name',      help = 'Nativeguid of storage')
+register.add_argument('provider',  help = 'Name of the SMI-S provider')
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        discovered_storagedevice_create(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        discovered_storagedevice_show(args)
+    elif (cmd == "register"):
+        args = register.parse_args()
+        discovered_storagedevice_register(args)
+    elif (cmd == "refresh"):
+        args = commonarg.parse_args()
+        discovered_storagedevice_refresh(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        discovered_storagedevice_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        discovered_storagedevice_list(args)
+    elif (cmd == "listpools"):
+        args = commonarg.parse_args()
+        discovered_storagedevice_listpools(args)
+    elif (cmd == "listports"):
+        args = commonarg.parse_args()
+        discovered_storagedevice_listports(args)
+    else:
+        parser.print_help()
+except:
+    raise
+

@@ -39,6 +39,7 @@ public class LogStreamMerger extends AbstractLogStreamMerger {
     private static final Logger logger = LoggerFactory.getLogger(LogStreamMerger.class);
 
     private AtomicLong sizeCounter = new AtomicLong(0);
+
     /**
      * Merges all logs on this node based on time stamp
      * 
@@ -46,7 +47,7 @@ public class LogStreamMerger extends AbstractLogStreamMerger {
      * @param propertiesLoader
      */
     public LogStreamMerger(LogRequest req, LogSvcPropertiesLoader propertiesLoader) {
-    	logger.trace("LogStreamMerger()");
+        logger.trace("LogStreamMerger()");
         this.request = req;
         LogFileFinder fileFinder = new LogFileFinder(propertiesLoader.getLogFilePaths(),
                 propertiesLoader.getExcludedLogFilePaths());
@@ -60,17 +61,16 @@ public class LogStreamMerger extends AbstractLogStreamMerger {
         logger.debug("log names: {}", groups);
         if (groups.retainAll(groupedLogFiles.keySet())) {
             logger.info("log names after filter: {}", groups);
-            //TODO: what if groups become empty after filter
-            //TODO: also this should probably go to log service
+            // TODO: what if groups become empty after filter
+            // TODO: also this should probably go to log service
         }
-
 
         int size = groups.size();
         logStreamList = new LogFileStream[size];
         logHeads = new LogMessage[size];
-     
+
         for (int i = 0; i < size; i++) {
-//        	logger.info("for loop of each service");
+            // logger.info("for loop of each service");
             String service = groups.get(i);
             logStreamList[i] = new LogFileStream(service, groupedLogFiles.get(service), req,
                     status);
@@ -80,13 +80,14 @@ public class LogStreamMerger extends AbstractLogStreamMerger {
 
     protected void addFinishedStream(int i) {
         super.addFinishedStream(i);
-        sizeCounter.addAndGet(((LogFileStream)logStreamList[i]).getTotalSizeCount());
+        sizeCounter.addAndGet(((LogFileStream) logStreamList[i]).getTotalSizeCount());
     }
 
     public LogFileStream[] getStreamList() {
         LogFileStream[] logFileStreams = new LogFileStream[logStreamList.length];
-        for (int i = 0; i < logStreamList.length; i++)
+        for (int i = 0; i < logStreamList.length; i++) {
             logFileStreams[i] = (LogFileStream) logStreamList[i];
+        }
         return logFileStreams;
     }
 

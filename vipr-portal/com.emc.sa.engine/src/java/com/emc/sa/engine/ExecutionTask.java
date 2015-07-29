@@ -7,28 +7,26 @@ package com.emc.sa.engine;
 import org.apache.log4j.Logger;
 
 public abstract class ExecutionTask<T> {
-    
+
     private Logger log;
     private String name;
     private String detail;
-    
+
     public ExecutionTask() {
         this.name = getLocalizedName();
         try {
-            provideDetailArgs();            
-        }
-        catch (Exception t) {
-            log.debug("Unable to set default detail message for "+this.getClass().getCanonicalName());
+            provideDetailArgs();
+        } catch (Exception t) {
+            log.debug("Unable to set default detail message for " + this.getClass().getCanonicalName());
         }
     }
 
     public ExecutionTask(String nameKey) {
         this.name = getMessage(nameKey);
         try {
-            provideDetailArgs();            
-        }
-        catch (Exception t) {
-            log.debug("Unable to set default detail message for "+this.getClass().getCanonicalName());
+            provideDetailArgs();
+        } catch (Exception t) {
+            log.debug("Unable to set default detail message for " + this.getClass().getCanonicalName());
         }
     }
 
@@ -39,7 +37,7 @@ public abstract class ExecutionTask<T> {
     public void setName(String nameKey, Object... args) {
         this.name = getMessage(nameKey, args);
     }
-    
+
     public void provideNameArgs(Object... args) {
         this.name = getMessage(getNameKey(), args);
     }
@@ -47,7 +45,7 @@ public abstract class ExecutionTask<T> {
     public String getDetail() {
         return detail;
     }
-    
+
     public void setDetail(String detailKey, Object... args) {
         this.detail = getMessage(detailKey, args);
     }
@@ -55,12 +53,12 @@ public abstract class ExecutionTask<T> {
     public void provideDetailArgs(Object... args) {
         this.detail = getMessage(getDetailKey(), args);
     }
-    
+
     public T executeTask() throws Exception {
         execute();
         return null;
     }
-    
+
     public void execute() throws Exception {
     }
 
@@ -98,8 +96,8 @@ public abstract class ExecutionTask<T> {
     protected ExecutionContext getExecutionContext() {
         return ExecutionUtils.currentContext();
     }
-    
-    protected String getMessage(String messageKey, Object...args) {
+
+    protected String getMessage(String messageKey, Object... args) {
         return ExecutionUtils.getMessage(messageKey, args);
     }
 
@@ -166,13 +164,13 @@ public abstract class ExecutionTask<T> {
     public String getLocalizedName() {
         return getMessage(getNameKey());
     }
-    
+
     protected String getNameKey() {
         return String.format("%s.title", getClass().getSimpleName());
     }
-    
+
     protected String getDetailKey() {
         return String.format("%s.detail", getClass().getSimpleName());
     }
-    
+
 }

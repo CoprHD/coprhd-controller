@@ -20,8 +20,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-public class IvrZoneset extends BaseZoneInfo{
+public class IvrZoneset extends BaseZoneInfo {
     private static final Logger _log = LoggerFactory.getLogger(IvrZoneset.class);
 
     private List<IvrZone> zones;
@@ -31,35 +30,39 @@ public class IvrZoneset extends BaseZoneInfo{
     }
 
     public void setZones(List<IvrZone> zones) {
-		this.zones = zones;
-	}
-    
-	public List<IvrZone> getZones() {
-	    if ( zones == null )
-	        zones = new ArrayList<IvrZone>();
-	    return zones;
-	}
-    
+        this.zones = zones;
+    }
+
+    public List<IvrZone> getZones() {
+        if (zones == null) {
+            zones = new ArrayList<IvrZone>();
+        }
+        return zones;
+    }
+
     public void print() {
         _log.info("zoneset: " + this.name + " " + (this.active ? "active" : "inactive"));
-        for (IvrZone zone : zones) zone.print();
+        for (IvrZone zone : zones) {
+            zone.print();
+        }
     }
 
     /**
      * Verify if the zone member is a member of the ivr zoneset
+     * 
      * @param zoneMember
      * @return
      */
     public boolean contains(IvrZoneMember zoneMember) {
-        
+
         boolean contained = false;
         for (IvrZone ivrZone : getZones()) {
-            if ( ivrZone.contains(zoneMember)) {
+            if (ivrZone.contains(zoneMember)) {
                 contained = true;
                 break;
             }
         }
-        
+
         return contained;
     }
 

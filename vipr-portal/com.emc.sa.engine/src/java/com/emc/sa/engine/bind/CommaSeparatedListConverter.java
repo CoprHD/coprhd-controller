@@ -16,9 +16,9 @@ import com.google.common.collect.Lists;
 /**
  * Converter that convers a command separate list of strings into a
  * List<String>.
- *
+ * 
  * String "a, b, c" -> List [a, b, c]
- *
+ * 
  * @author Chris Dail
  */
 public class CommaSeparatedListConverter implements Converter {

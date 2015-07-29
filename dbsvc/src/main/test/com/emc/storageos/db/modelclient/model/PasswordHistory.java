@@ -23,7 +23,6 @@ import com.emc.storageos.db.client.model.Encrypt;
 import com.emc.storageos.db.client.model.LongMap;
 import com.emc.storageos.db.client.model.Name;
 
-
 /**
  * Local user password history data object
  */
@@ -31,18 +30,18 @@ import com.emc.storageos.db.client.model.Name;
 public class PasswordHistory extends DataObject {
 
     /**
-     *  storing password history in a form <hashedPassword, long>
-     *  long value here is TimeMillis from epoch.
+     * storing password history in a form <hashedPassword, long>
+     * long value here is TimeMillis from epoch.
      */
-    private LongMap _userPasswordHash  = new LongMap();
+    private LongMap _userPasswordHash = new LongMap();
 
     /**
-     *  user's password expire date
+     * user's password expire date
      */
     private Calendar _expireDate;
 
     /**
-     *  the last password-to-be-expired mail sent date
+     * the last password-to-be-expired mail sent date
      */
     private Calendar _lastNotificationMailSent;
 

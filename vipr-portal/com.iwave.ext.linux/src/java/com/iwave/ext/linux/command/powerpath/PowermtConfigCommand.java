@@ -6,9 +6,9 @@ package com.iwave.ext.linux.command.powerpath;
 
 public class PowermtConfigCommand extends PowermtCommand {
 
-	public PowermtConfigCommand() {
-		super();
-		addArgument("config");
-	}
+    public PowermtConfigCommand() {
+        super();
+        addArgument("config");
+    }
 
 }

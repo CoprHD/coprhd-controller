@@ -16,7 +16,7 @@ package com.emc.storageos.security;
 
 /**
  * Class autowired into all the classes that need to shut off
- *         some functionality for disabling permissions check
+ * some functionality for disabling permissions check
  */
 public class SecurityDisabler {
     public SecurityDisabler() {

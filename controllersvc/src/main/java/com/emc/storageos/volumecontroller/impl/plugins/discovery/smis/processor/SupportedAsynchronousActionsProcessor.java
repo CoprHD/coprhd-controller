@@ -41,7 +41,7 @@ public class SupportedAsynchronousActionsProcessor extends StorageProcessor {
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
         try {
-        	_log.info("***Inside SupportedAsynchronousActionsProcessor****");
+            _log.info("***Inside SupportedAsynchronousActionsProcessor****");
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             Iterator<CIMInstance> iterator = (Iterator<CIMInstance>) resultObj;
@@ -51,7 +51,7 @@ public class SupportedAsynchronousActionsProcessor extends StorageProcessor {
                         (UnsignedInteger16[]) instance.getPropertyValue(Constants.SUPPORTED_ASYNCHRONOUS_ACTIONS);
                 StorageSystem device = getStorageSystem(_dbClient, profile.getSystemId());
                 addSupportedAsynchronousActionsToStorageSystem(supportedAsyncActions, device);
-                
+
                 StringSet replicationTypes = new StringSet();
                 replicationTypes.add(SupportedReplicationTypes.LOCAL.toString());
                 device.setSupportedReplicationTypes(replicationTypes);
@@ -63,15 +63,18 @@ public class SupportedAsynchronousActionsProcessor extends StorageProcessor {
 
     private void addSupportedAsynchronousActionsToStorageSystem(UnsignedInteger16[] supportedAsyncActions, StorageSystem device) {
         StringSet set = new StringSet();
-        if(supportedAsyncActions!= null){
+        if (supportedAsyncActions != null) {
             for (UnsignedInteger16 actionValue : supportedAsyncActions) {
-                switch(actionValue.intValue()) {
-                    case Constants.CREATE_ELEMENT_REPLICA_ASYNC_ACTION: set.add(StorageSystem.AsyncActions.CreateElementReplica.name());
+                switch (actionValue.intValue()) {
+                    case Constants.CREATE_ELEMENT_REPLICA_ASYNC_ACTION:
+                        set.add(StorageSystem.AsyncActions.CreateElementReplica.name());
                         break;
-                    case Constants.CREATE_GROUP_REPLICA_ASYNC_ACTION: set.add(StorageSystem.AsyncActions.CreateGroupReplica.name());
+                    case Constants.CREATE_GROUP_REPLICA_ASYNC_ACTION:
+                        set.add(StorageSystem.AsyncActions.CreateGroupReplica.name());
                         break;
                     default:
-                        _log.warn("Encountered unknown supported asynchronous action {} for StorageSystem {}", actionValue.intValue(), device.getId());
+                        _log.warn("Encountered unknown supported asynchronous action {} for StorageSystem {}", actionValue.intValue(),
+                                device.getId());
                 }
             }
         }

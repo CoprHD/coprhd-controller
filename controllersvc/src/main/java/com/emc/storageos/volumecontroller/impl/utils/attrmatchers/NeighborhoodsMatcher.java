@@ -32,48 +32,45 @@ import com.google.common.base.Joiner;
 
 /**
  * NeighborhoodsMatcher is responsible to filter out storage pools which do not belong to the specified vArrays.
- *
+ * 
  */
 public class NeighborhoodsMatcher extends AttributeMatcher {
-    
 
     private static final Logger _logger = LoggerFactory.getLogger(NeighborhoodsMatcher.class);
-    
-
 
     /**
      * Filters out storage pools which do not belong to the specified vArrays.
-     *
-     * @param pools  : storage pools
+     * 
+     * @param pools : storage pools
      * @param attributeMap : map of attributes which includes set of vArrays
-     *
+     * 
      * @return list of pools in the specified vArrays
      */
     @Override
-    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap){
+    public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
-        
+
         Set<String> vArrays = (Set<String>) attributeMap.get(Attributes.varrays.toString());
-        if(vArrays != null && !vArrays.isEmpty()){
-        _logger.info("Pools Matching vArrays Started {}, {} :", vArrays, Joiner.on("\t").join( getNativeGuidFromPools(pools)));
-        List<URI> vArrayPools = getVarrayPools(vArrays);
-        Iterator<StoragePool> poolIterator = pools.iterator();
-        while(poolIterator.hasNext()) {
-            StoragePool pool = poolIterator.next();
-            // check if the storage pool is part varray pool list.
-            // if it is not in the list then remove it
-            if(vArrayPools.contains(pool.getId())) {
-                matchedPools.add(pool);
+        if (vArrays != null && !vArrays.isEmpty()) {
+            _logger.info("Pools Matching vArrays Started {}, {} :", vArrays, Joiner.on("\t").join(getNativeGuidFromPools(pools)));
+            List<URI> vArrayPools = getVarrayPools(vArrays);
+            Iterator<StoragePool> poolIterator = pools.iterator();
+            while (poolIterator.hasNext()) {
+                StoragePool pool = poolIterator.next();
+                // check if the storage pool is part varray pool list.
+                // if it is not in the list then remove it
+                if (vArrayPools.contains(pool.getId())) {
+                    matchedPools.add(pool);
+                }
             }
         }
-        }
-        _logger.info("Pools Matching vArrays Ended: {}", Joiner.on("\t").join( getNativeGuidFromPools(matchedPools)));
+        _logger.info("Pools Matching vArrays Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;
     }
-    
 
     /**
      * Get storage pools which belong to given vArrays.
+     * 
      * @param vArrays
      * @return
      */
@@ -96,7 +93,7 @@ public class NeighborhoodsMatcher extends AttributeMatcher {
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
-    	//this should run always.
+        // this should run always.
         return true;
     }
 }

@@ -17,12 +17,12 @@ public class ComputeSystemUtils {
 
     /**
      * Gets the compute system with the passed id from the database.
-     *
+     * 
      * @param id
      *            the URN of a ViPR compute system
      * 
      * @return A detailed representation of the registered ComputeSystem.
-     *
+     * 
      * @throws BadRequestException
      *             When the compute system is not registered.
      */

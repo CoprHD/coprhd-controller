@@ -33,8 +33,8 @@ public class GarbageCollectionExecutor {
     private static final int DEFAULT_GC_RUN_INTERVAL_MIN = 10;
     private int _gcRunInterval = DEFAULT_GC_RUN_INTERVAL_MIN;
 
-    //Pool name
-    private static final String POOL_NAME="GCThreadPool";
+    // Pool name
+    private static final String POOL_NAME = "GCThreadPool";
     private static final Logger _log = LoggerFactory.getLogger(GarbageCollectionExecutor.class);
     private DataObjectScanner _dataObjectScanner;
 
@@ -46,16 +46,18 @@ public class GarbageCollectionExecutor {
     }
 
     /**
-     * Set dataObjectScanner 
+     * Set dataObjectScanner
+     * 
      * @param scanner
      */
     public void setDataObjectScanner(DataObjectScanner scanner) {
         _dataObjectScanner = scanner;
-        
+
     }
 
     /**
      * Set for overwriting the GC run interval
+     * 
      * @param mins
      */
     public void setGCRunInterval(int mins) {
@@ -101,4 +103,3 @@ public class GarbageCollectionExecutor {
         _executor.shutdownNow();
     }
 }
-

@@ -17,8 +17,9 @@ public class HostsParam {
 
     private List<URI> hosts;
 
-    public HostsParam() {}
-    
+    public HostsParam() {
+    }
+
     public HostsParam(List<URI> hosts) {
         this.hosts = hosts;
     }
@@ -39,5 +40,5 @@ public class HostsParam {
     public void setHosts(List<URI> hosts) {
         this.hosts = hosts;
     }
-    
+
 }

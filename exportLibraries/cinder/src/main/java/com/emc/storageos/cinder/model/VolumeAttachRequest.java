@@ -23,25 +23,25 @@ public class VolumeAttachRequest {
      * 
      * for iSCSI
      * 
-     * {"os-initialize_connection": 
-            {"connector": 
-                {
-                    "initiator": "<IQN>",
-                    "host": "<HOST FQDN or IP ADDRESS>"
-                }
-            }
-       }
-     *
+     * {"os-initialize_connection":
+     * {"connector":
+     * {
+     * "initiator": "<IQN>",
+     * "host": "<HOST FQDN or IP ADDRESS>"
+     * }
+     * }
+     * }
+     * 
      * for FC (wwpn without colon)
      * 
-     * {"os-initialize_connection": 
-            {"connector": 
-                {
-                    "wwpns": ["<WWPN1>", "<WWPN2>"],
-                    "host": "<HOST FQDN or IP ADDRESS>"
-                }
-            }
-       }
+     * {"os-initialize_connection":
+     * {"connector":
+     * {
+     * "wwpns": ["<WWPN1>", "<WWPN2>"],
+     * "host": "<HOST FQDN or IP ADDRESS>"
+     * }
+     * }
+     * }
      */
 
     @SerializedName("os-initialize_connection")

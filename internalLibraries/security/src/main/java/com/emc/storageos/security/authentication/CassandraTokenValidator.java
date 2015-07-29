@@ -48,8 +48,8 @@ import org.springframework.util.CollectionUtils;
 
 /**
  * Cassandra based implementation of the TokenValidator interface
- * Token record has:   rowid || fields | alternateId ( rowid of a StorageOSUserDAO record)
- * StorageOSUserDAO record has:  rowid || fields | alternatId (username)
+ * Token record has: rowid || fields | alternateId ( rowid of a StorageOSUserDAO record)
+ * StorageOSUserDAO record has: rowid || fields | alternatId (username)
  */
 public class CassandraTokenValidator implements TokenValidator {
     public static final int FOREIGN_TOKEN_KEYS_BUNDLE_REFRESH_RATE_IN_MINS = 20;
@@ -66,23 +66,24 @@ public class CassandraTokenValidator implements TokenValidator {
 
     @Autowired
     protected TokenEncoder _tokenEncoder;
-          
+
     @Autowired
     protected CoordinatorClient _coordinator;
-    
+
     @Autowired
     protected InterVDCTokenCacheHelper interVDCTokenCacheHelper;
-    
+
     @Autowired
     protected GeoClientCacheManager geoClientCacheMgt;
-    
+
     /**
-     * Setter for coordinator client.  Needed for testing.  Otherwise
+     * Setter for coordinator client. Needed for testing. Otherwise
      * gets autowired.
+     * 
      * @param c
      */
     public void setCoordinator(CoordinatorClient c) {
-        _coordinator = c ;
+        _coordinator = c;
     }
 
     public void setTokenEncoder(TokenEncoder e) {
@@ -100,9 +101,10 @@ public class CassandraTokenValidator implements TokenValidator {
     public void setInterVDCTokenCacheHelper(InterVDCTokenCacheHelper helper) {
         interVDCTokenCacheHelper = helper;
     }
-    
+
     /**
      * get current time in minutes
+     * 
      * @return
      */
     public static long getCurrentTimeInMins() {
@@ -111,6 +113,7 @@ public class CassandraTokenValidator implements TokenValidator {
 
     /**
      * Get all user DAO records from DB for a given user
+     * 
      * @param userName
      * @return List of StorageOSUserDAO
      */
@@ -127,6 +130,7 @@ public class CassandraTokenValidator implements TokenValidator {
 
     /**
      * Get all tickets referring to a given User DAO record ID
+     * 
      * @param userId
      * @param tokenTypeProxy: true if looking for proxy tokens. False for regular tokens
      * @return
@@ -134,7 +138,7 @@ public class CassandraTokenValidator implements TokenValidator {
     private List<URI> getTokensForUserId(URI userId, boolean tokenTypeProxy) {
         URIQueryResultList tokens = new URIQueryResultList();
         List<URI> tokenURIs = new ArrayList<URI>();
-        if(!tokenTypeProxy) {
+        if (!tokenTypeProxy) {
             _dbClient.queryByConstraint(
                     ContainmentConstraint.Factory.getUserIdTokenConstraint(userId), tokens);
         } else {
@@ -150,6 +154,7 @@ public class CassandraTokenValidator implements TokenValidator {
 
     /**
      * Get proxy tokens based on a username
+     * 
      * @param username
      * @return the proxy token for that user if it exists.
      */
@@ -158,7 +163,7 @@ public class CassandraTokenValidator implements TokenValidator {
         _dbClient.queryByConstraint(AlternateIdConstraint
                 .Factory.getProxyTokenUserNameConstraint(username), tokens);
         List<URI> uris = new ArrayList<URI>();
-        for(Iterator<URI> it = tokens.iterator(); it.hasNext(); ) {
+        for (Iterator<URI> it = tokens.iterator(); it.hasNext();) {
             uris.add(it.next());
         }
 
@@ -171,9 +176,9 @@ public class CassandraTokenValidator implements TokenValidator {
         return toReturn.get(0);
     }
 
-
     /**
      * Returns all regular tokens for User id
+     * 
      * @param userId
      * @return
      */
@@ -184,6 +189,7 @@ public class CassandraTokenValidator implements TokenValidator {
 
     /**
      * Returns all proxy tokens for User id
+     * 
      * @param userId
      * @return
      */
@@ -192,10 +198,10 @@ public class CassandraTokenValidator implements TokenValidator {
         return _dbClient.queryObject(ProxyToken.class, tokenURIs);
     }
 
-
     /**
      * Delete the given token from db, if this is last token referring the userDAO,
      * and there are no proxy token associated, mark the userDAO for deletion
+     * 
      * @param token
      */
     protected void deleteTokenInternal(Token token) {
@@ -212,6 +218,7 @@ public class CassandraTokenValidator implements TokenValidator {
 
     /**
      * Queries the remote VDC for token and userdao objects
+     * 
      * @param tw TokenOnWire object
      * @param rawToken the rawToken to send to the remote vdc
      * @return
@@ -228,7 +235,7 @@ public class CassandraTokenValidator implements TokenValidator {
             if (response != null) {
                 TokenResponseArtifacts artifacts = TokenResponseBuilder.parseTokenResponse(response);
                 _log.info("Got username for foreign token: {}", artifacts.getUser().getUserName());
-                _log.debug("Got token object: {}", artifacts.getToken().getId().toString());     
+                _log.debug("Got token object: {}", artifacts.getToken().getId().toString());
                 interVDCTokenCacheHelper.cacheForeignTokenAndKeys(artifacts, shortVDCid);
                 return artifacts.getUser();
             } else {
@@ -241,7 +248,7 @@ public class CassandraTokenValidator implements TokenValidator {
     }
 
     /**
-     * Validate a token.  If valid, return the corresponding user record.
+     * Validate a token. If valid, return the corresponding user record.
      * The passed in token, is an id to the record in the db, is used to query the object from db
      * The userId field in token object is used to create the user information.
      * 
@@ -256,7 +263,7 @@ public class CassandraTokenValidator implements TokenValidator {
         }
 
         TokenOnWire tw = _tokenEncoder.decode(tokenIn);
-        String vdcId = URIUtil.parseVdcIdFromURI(tw.getTokenId());        
+        String vdcId = URIUtil.parseVdcIdFromURI(tw.getTokenId());
         // If this isn't our token, go get it from the remote vdc
         if (vdcId != null && !tw.isProxyToken() &&
                 !VdcUtil.getLocalShortVdcId().equals(vdcId)) {
@@ -267,7 +274,8 @@ public class CassandraTokenValidator implements TokenValidator {
     }
 
     /**
-     * Looks in the cache for token/user record.  Returns null if not found or found but cache expired
+     * Looks in the cache for token/user record. Returns null if not found or found but cache expired
+     * 
      * @param tw
      * @return user record
      */
@@ -277,32 +285,32 @@ public class CassandraTokenValidator implements TokenValidator {
             _log.info("Token: no hit from cache");
             return null;
         }
-        Token token = (Token)bToken;
+        Token token = (Token) bToken;
         Long expirationTime = token.getCacheExpirationTime();
         if (expirationTime != null && expirationTime > getCurrentTimeInMins()) {
             StorageOSUserDAO user = resolveUser(token);
-            _log.info("Got user from cached token: {}", user != null ?  user.getUserName() : "no hit from cache");
+            _log.info("Got user from cached token: {}", user != null ? user.getUserName() : "no hit from cache");
             return user;
-        } 
+        }
         _log.info("Cache expired for foreign token {}", token.getId());
         return null;
     }
-    
-    
+
     /**
      * Check to see if the token passed in is still usable, if not, delete it from db and return false
      * if still usable, update the lastAccessTime
+     * 
      * @param tokenObj Token object
      * @param updateLastAccess if true, will update the last accessed timestamp if needed
      * @return True if the token is good, False otherwise
      */
-    protected boolean checkExpiration (Token tokenObj, boolean updateLastAccess) {
+    protected boolean checkExpiration(Token tokenObj, boolean updateLastAccess) {
         if (!tokenObj.getInactive()) {
             long timeNow = getCurrentTimeInMins();
-            long timeLastAccess =  tokenObj.getLastAccessTime();
+            long timeLastAccess = tokenObj.getLastAccessTime();
             long timeIdleTimeExpiry = timeLastAccess
                     + (_maxLifeValuesHolder.getMaxTokenIdleTimeInMins()) + (_maxLifeValuesHolder.getTokenIdleTimeGraceInMins());
-            if (timeIdleTimeExpiry > timeNow  && tokenObj.getExpirationTime() > timeNow) {
+            if (timeIdleTimeExpiry > timeNow && tokenObj.getExpirationTime() > timeNow) {
                 // update Last access time, if we haven't in the last TOKEN_IDLE_TIME_GRACE_IN_MINS
                 // this will save us some extra db writes
                 if (updateLastAccess) {
@@ -319,9 +327,9 @@ public class CassandraTokenValidator implements TokenValidator {
                 return true;
             }
             _log.debug("token expired: {}, now {}, lastAccess {}, idle expiry {}, expiry {}",
-                    new String[] {tokenObj.getId().toString(), ""+timeNow,
-                    ""+tokenObj.getLastAccessTime(), ""+timeIdleTimeExpiry,
-                    ""+tokenObj.getExpirationTime()});
+                    new String[] { tokenObj.getId().toString(), "" + timeNow,
+                            "" + tokenObj.getLastAccessTime(), "" + timeIdleTimeExpiry,
+                            "" + tokenObj.getExpirationTime() });
         }
         // we are here because token is either expired or inactive,
         // remove the token and return false
@@ -337,32 +345,33 @@ public class CassandraTokenValidator implements TokenValidator {
      * Fetches a token without consideration for cache expiration
      */
     @Override
-    public BaseToken verifyToken(String tokenIn) { 
+    public BaseToken verifyToken(String tokenIn) {
         if (tokenIn == null) {
             _log.error("token is null");
             return null;
         }
         TokenOnWire tw = _tokenEncoder.decode(tokenIn);
-        return this.fetchTokenLocal(tw);    
+        return this.fetchTokenLocal(tw);
     }
 
     /**
      * Retrieves a token and checks expiration
+     * 
      * @param tw
      * @return
      */
     private BaseToken fetchTokenLocal(TokenOnWire tw) {
         BaseToken verificationToken = null;
         URI tkId = tw.getTokenId();
-        if(!tw.isProxyToken()) {
+        if (!tw.isProxyToken()) {
             verificationToken = _dbClient.queryObject(Token.class, tkId);
-            if (null != verificationToken && !checkExpiration(((Token)verificationToken), true)) {
+            if (null != verificationToken && !checkExpiration(((Token) verificationToken), true)) {
                 _log.warn("Token found in database but is expired: {}", verificationToken.getId());
                 return null;
             }
         } else {
             verificationToken = _dbClient.queryObject(ProxyToken.class, tkId);
-            if (null != verificationToken && !checkExpiration((ProxyToken)verificationToken)) {
+            if (null != verificationToken && !checkExpiration((ProxyToken) verificationToken)) {
                 _log.warn("ProxyToken found in database but is expired: {}", verificationToken.getId());
                 return null;
             }
@@ -372,7 +381,7 @@ public class CassandraTokenValidator implements TokenValidator {
         }
         return verificationToken;
     }
-    
+
     /**
      * Gets a userDAO record from a token or proxytoken
      */
@@ -386,24 +395,25 @@ public class CassandraTokenValidator implements TokenValidator {
         // verify it is still valid, if not remove it from db and send back null
         boolean isProxy = token instanceof ProxyToken;
         if (isProxy) {
-            userId = ((ProxyToken)token).peekLastKnownId();
-        } else  {
-            userId = ((Token)token).getUserId();
-        } 
+            userId = ((ProxyToken) token).peekLastKnownId();
+        } else {
+            userId = ((Token) token).getUserId();
+        }
         StorageOSUserDAO userDAO = _dbClient.queryObject(StorageOSUserDAO.class, userId);
-        if(userDAO == null) {
+        if (userDAO == null) {
             _log.error("No user record found or userId: {}", userId.toString());
             return null;
         }
         return userDAO;
     }
-    
+
     /*
      * Check to see if the proxy token passed in is still usable, if not, delete it from
      * db and return false.
      * 
      * @param tokenObj
-     *            ProxyToken object
+     * ProxyToken object
+     * 
      * @return True if the token is good, False otherwise
      */
     protected boolean checkExpiration(ProxyToken tokenObj) {
@@ -415,7 +425,7 @@ public class CassandraTokenValidator implements TokenValidator {
         Long lastValidatedTime = tokenObj.getLastValidatedTime();
         // if this is a proxy token from before v2, then this might be null. New proxy
         // tokens should have this value set.
-        if(lastValidatedTime == null) {
+        if (lastValidatedTime == null) {
             lastValidatedTime =
                     timeNow - _maxLifeValuesHolder.getMaxTokenLifeTimeInMins();
         }

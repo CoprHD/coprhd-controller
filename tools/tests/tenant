@@ -1,0 +1,222 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+#----------------------------------------------------------------------
+# tenant cli functions
+#----------------------------------------------------------------------
+
+def tenant_create(args):
+    bourne.connect(args.ip)
+    bourne.tenant_create(args.name, args.domain, args.key, args.value)
+
+def tenant_show_root(args):
+    bourne.connect(args.ip)
+    print bourne.tenant_getid()
+
+def tenant_bulkpost(args):
+    bourne.connect(args.ip)
+    request = { 'id' : args.ids.split(',') }
+    print bourne.tenant_bulkpost(request)
+
+def tenant_list(args):
+    bourne.connect(args.ip)
+
+    tenant_display_hdr()
+    res = bourne.tenant_list()
+    for r in res:
+        tenant = bourne.tenant_show(r['id'])
+        tenant_display(tenant)
+
+def tenant_show(args):
+    bourne.connect(args.ip)
+    tenant = bourne.tenant_show(args.name)
+    bourne.pretty_print_json(tenant)
+
+def tenant_assign_admin(args):
+    bourne.connect(args.ip)
+    bourne.tenant_assign_admin(args.name, args.subject)
+
+def tenant_delete(args):
+    bourne.connect(args.ip)
+    bourne.tenant_delete(args.name)
+
+def tenant_add_attribute(args):
+    bourne.connect(args.ip)
+    bourne.tenant_add_attribute(args.tenant, args.domain, args.key, args.value)
+    
+def tenant_add_group(args):
+    bourne.connect(args.ip)
+    bourne.tenant_add_group(args.tenant, args.domain, args.group)
+
+def tenant_remove_group(args):
+    bourne.connect(args.ip)
+    bourne.tenant_remove_group(args.tenant, args.domain, args.group)
+
+def tenant_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.tenant_query(args.name)
+    print 'Tagging tenant ' +  args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+def tenant_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching tenant with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#
+# display tenant in list form
+#
+tenant_display_fmt = '{0:32s} {1:8s} {2:32s} {3:s}'
+
+def tenant_display_hdr():
+    print tenant_display_fmt.format('name', 'active', 'user_mappings', 'id')
+
+def tenant_display(tenant):
+    print tenant_display_fmt.format(tenant['name'], 'NO' if tenant['inactive'] else 'YES', tenant['user_mappings'], tenant['id'])
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# tenant <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list | add_attribute | root)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# tenant assign_admin label subject -parent parent
+assign_admin = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+assign_admin.add_argument('name',	help = 'name of tenant')
+assign_admin.add_argument('subject',    help = 'subject-id of user to recieve the tenant admin role')
+
+# tenant create name
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('name',	help = 'name of tenant')
+create.add_argument('domain', help = 'user mapping domain')
+create.add_argument('key',      help = 'key of AD attribute to map to tenant')
+create.add_argument('value',    help = 'value of AD attribute to map to tenant')
+
+# tenant delete name
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of tenant')
+
+# tenant show name
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of tenant', default=None)
+
+root = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# tenant list --parent parent
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('--parent',	help = 'parent tenant name', default = None)
+
+# tenant update ad attribute
+add_attribute = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_attribute.add_argument('domain', help = 'user mapping domain')
+add_attribute.add_argument('key', help = 'attribute key to add to root tenant')
+add_attribute.add_argument('value', help = 'attrubute value to add to root tenant')
+add_attribute.add_argument('--tenant',    help = 'tenant to add attribute to', default = None)
+
+# tag 
+resource_type="tenant"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+# tenant update group mapping
+add_group = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+add_group.add_argument('domain', help = 'user mapping domain')
+add_group.add_argument('group', help = 'group mapping to add to tenant')
+add_group.add_argument('--tenant',    help = 'tenant to add group mapping to', default = None)
+
+remove_group = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+remove_group.add_argument('domain', help = 'user mapping domain')
+remove_group.add_argument('group', help = 'group mapping to remove from tenant')
+remove_group.add_argument('--tenant',    help = 'tenant to remove group mapping from', default = None)
+
+# tenant bulk post
+bulkpost = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+bulkpost.add_argument('ids',       help = 'comma separated list of tenant ids', default=None)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        tenant_create(args)
+    elif (cmd == "assign_admin"):
+        args = assign_admin.parse_args()
+        tenant_assign_admin(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        tenant_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        tenant_show(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        tenant_list(args)
+    elif (cmd == "add_attribute"):
+        args = add_attribute.parse_args()
+        tenant_add_attribute(args)
+    elif (cmd == "root"):
+        args = root.parse_args()
+        tenant_show_root(args)
+    elif (cmd == "bulk_post"):
+        args = bulkpost.parse_args()
+        tenant_bulkpost(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        tenant_tag(args)
+    elif(cmd == "search"):
+        args = search.parse_args()
+        tenant_search(args)
+    elif (cmd == "add_group"):
+        args = add_group.parse_args()
+        tenant_add_group(args)
+    elif (cmd == "remove_group"):
+        args = remove_group.parse_args()
+        tenant_remove_group(args)
+    else:
+        parser.print_help()
+except:
+    raise

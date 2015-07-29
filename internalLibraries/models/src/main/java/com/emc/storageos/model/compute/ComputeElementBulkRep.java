@@ -24,6 +24,7 @@ public class ComputeElementBulkRep extends BulkRestRep {
 
     /**
      * List of compute element objects that exist in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "compute_element")

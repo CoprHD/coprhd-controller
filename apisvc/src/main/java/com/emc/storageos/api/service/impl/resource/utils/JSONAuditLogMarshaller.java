@@ -34,10 +34,10 @@ import com.emc.storageos.security.audit.AuditLogUtils;
 import com.emc.storageos.db.client.model.AuditLog;
 
 import java.util.Locale;
-import java.util.ResourceBundle;   
+import java.util.ResourceBundle;
 
 /**
- *  A JSON auditlog marshaler based on Jersey-Jackson API
+ * A JSON auditlog marshaler based on Jersey-Jackson API
  */
 public class JSONAuditLogMarshaller implements AuditLogMarshaller {
 
@@ -49,14 +49,14 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
     private ObjectMapper _mapper = null;
 
     /**
-     *  internal count of auditlogs streamed from all threads.
+     * internal count of auditlogs streamed from all threads.
      */
     private final AtomicLong _count = new AtomicLong(0);
-    
+
     /**
-     *  atomic boolean indicating whether the very first auditlog has been streamed.
-     *  This is important since in JSON format, the first element is streamed 
-     *  differently from all the rest elements.
+     * atomic boolean indicating whether the very first auditlog has been streamed.
+     * This is important since in JSON format, the first element is streamed
+     * differently from all the rest elements.
      */
     private final AtomicBoolean _firstWritten = new AtomicBoolean(false);
 
@@ -70,7 +70,7 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
 
     @Override
     public void header(Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             ow.write("{ \"auditlogs\": [");
         } catch (IOException e) {
@@ -81,7 +81,7 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
     @Override
     public void marshal(AuditLog auditlog, Writer writer) throws MarshallingExcetion {
 
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
 
         if (auditlog == null) {
             _logger.warn("null auditlog dropped");
@@ -94,18 +94,19 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
      * Stream out one auditlog.
      * Since the streaming format for the first auditlog is slightly different from all the
      * rest of auditlogs, this method uses a boolean to block auditlog being streamed until
-     * the first auditlog is streamed by a thread.  
+     * the first auditlog is streamed by a thread.
+     * 
      * @param writer
-     *      - the output writer to stream the auditlog.
+     *            - the output writer to stream the auditlog.
      * @param auditlog
-     *      - the auditlog to be streamed.
+     *            - the auditlog to be streamed.
      * @throws MarshallingExcetion
-     *      - failure during streaming.
+     *             - failure during streaming.
      */
     private void writeOneAuditLog(BufferedWriter writer, AuditLog auditlog) throws MarshallingExcetion {
         try {
             if (_count.getAndIncrement() > 0) {
-                while(!_firstWritten.get()) {
+                while (!_firstWritten.get()) {
                     // wait until the thread which writes the first auditlog is done
                     try {
                         Thread.sleep(1);
@@ -114,7 +115,7 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
                     }
                 }
                 AuditLogUtils.resetDesc(auditlog, resb);
-                writer.write(","+_mapper.writeValueAsString(auditlog));
+                writer.write("," + _mapper.writeValueAsString(auditlog));
             } else {
                 AuditLogUtils.resetDesc(auditlog, resb);
                 writer.write(_mapper.writeValueAsString(auditlog));
@@ -126,13 +127,13 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
             throw new MarshallingExcetion("JSON Mapping Error", e);
         } catch (IOException e) {
             throw new MarshallingExcetion("JSON streaming failed: ", e);
-            //throw new MarshallingExcetion("JSON streaming failed: "+auditlog.getAuditLogId(), e);
+            // throw new MarshallingExcetion("JSON streaming failed: "+auditlog.getAuditLogId(), e);
         }
     }
-    
+
     @Override
     public void tailer(Writer writer) throws MarshallingExcetion {
-        BufferedWriter ow = ((BufferedWriter)writer);
+        BufferedWriter ow = ((BufferedWriter) writer);
         try {
             ow.write("] }");
         } catch (IOException e) {
@@ -145,14 +146,14 @@ public class JSONAuditLogMarshaller implements AuditLogMarshaller {
     public void setLang(String lang) {
         String language, country;
         String[] array = lang.split("_");
-        if (array.length != 2){
-            language = "en"; 
+        if (array.length != 2) {
+            language = "en";
             country = "US";
         } else {
             language = array[0];
             country = array[1];
         }
-        
+
         locale = new Locale(language, country);
         resb = ResourceBundle.getBundle("SDSAuditlogRes", locale);
     }

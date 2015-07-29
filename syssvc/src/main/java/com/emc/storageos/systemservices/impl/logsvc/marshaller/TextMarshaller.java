@@ -18,9 +18,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 import com.emc.storageos.systemservices.impl.logsvc.LogMessage;
-import com.emc.storageos.systemservices.impl.logsvc.util.LogUtil;
 
-public class TextMarshaller extends Marshaller{
+public class TextMarshaller extends Marshaller {
 
     TextMarshaller(OutputStream outputStream) {
         super(outputStream);

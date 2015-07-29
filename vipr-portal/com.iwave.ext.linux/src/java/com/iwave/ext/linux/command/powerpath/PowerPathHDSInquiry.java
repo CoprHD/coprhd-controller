@@ -15,13 +15,13 @@ public class PowerPathHDSInquiry extends LinuxResultsCommand<List<PowerPathDevic
 
     public PowerPathHDSInquiry() {
         setCommand(CommandConstants.POWERPATHINQUIRY);
-        
+
         // add the display of the wwns
         addArgument("-hds_wwn");
-        
+
         // only display powerpath pseudo devices
         addArgument("-f_powerpath");
-        
+
         // do not display the 'progress' dots
         addArgument("-no_dots");
     }

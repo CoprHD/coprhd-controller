@@ -40,16 +40,16 @@ public class NodeStats {
     private DataDiskStats dataDiskStats;
     private List<ServiceStats> serviceStatsList;
     private List<DiskStats> diskStatsList;
-    
+
     // Default constructor for JAXB
     public NodeStats() {
         this.nodeId = HealthMonitorConstants.UNKNOWN;
     }
 
     public NodeStats(String nodeId, String ip, LoadAvgStats loadAvgStats,
-                     MemoryStats memoryStats, DataDiskStats dataDiskStats,
-                     List<ServiceStats> serviceStatsList,
-                     List<DiskStats> diskStatsList) {
+            MemoryStats memoryStats, DataDiskStats dataDiskStats,
+            List<ServiceStats> serviceStatsList,
+            List<DiskStats> diskStatsList) {
         this.nodeId = nodeId;
         this.ip = ip;
         this.loadAvgStats = loadAvgStats;
@@ -58,7 +58,6 @@ public class NodeStats {
         this.serviceStatsList = serviceStatsList;
         this.diskStatsList = diskStatsList;
     }
-
 
     @XmlElement(name = "node_id")
     public String getNodeId() {

@@ -28,15 +28,14 @@ public class OrderUtils {
         }
         return null;
     }
-    
+
     public static OrderRestRep getOrder(URI id) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        
+
         OrderRestRep order = null;
         try {
             order = catalog.orders().get(id);
-        }
-        catch(ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 order = null;
             }
@@ -46,37 +45,37 @@ public class OrderUtils {
         }
         return order;
     }
-    
+
     public static List<OrderRestRep> getOrders(URI tenantId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.orders().getByTenant(tenantId);
     }
-    
+
     public static List<OrderRestRep> getUserOrders(String username) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.orders().getUserOrders();
     }
-    
+
     public static List<OrderRestRep> getScheduledOrders() {
         return getScheduledOrders(null);
     }
-    
+
     public static List<OrderRestRep> getScheduledOrders(URI tenantId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         List<OrderRestRep> scheduledOrders = catalog.orders().search().byStatus(OrderStatus.SCHEDULED.name(), tenantId).run();
         return scheduledOrders;
     }
-    
+
     public static List<OrderRestRep> getErrorOrders(URI tenantId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         List<OrderRestRep> scheduledOrders = catalog.orders().search().byStatus(OrderStatus.ERROR.name(), tenantId).run();
         return scheduledOrders;
-    }    
-    
+    }
+
     public static List<OrderRestRep> getScheduledOrdersByExecutionWindow(URI executionWindowId) {
         return getScheduledOrdersByExecutionWindow(executionWindowId, null);
     }
-    
+
     public static List<OrderRestRep> getScheduledOrdersByExecutionWindow(URI executionWindowId, URI tenantId) {
         List<OrderRestRep> scheduledOrders = getScheduledOrders(tenantId);
         List<OrderRestRep> scheduledOrdersInWindow = Lists.newArrayList();
@@ -87,7 +86,7 @@ public class OrderUtils {
         }
         return scheduledOrdersInWindow;
     }
-    
+
     public static List<OrderRestRep> findByTimeRange(Date startTime, Date endTime) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         String start = null;
@@ -101,25 +100,26 @@ public class OrderUtils {
 
         return catalog.orders().search().byTimeRange(start, end).run();
     }
-    
+
     public static void cancelOrder(URI orderId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        catalog.orders().cancelOrder(orderId);;
+        catalog.orders().cancelOrder(orderId);
+        ;
     }
-    
+
     public static ExecutionStateRestRep getExecutionState(URI orderId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.orders().getExecutionState(orderId);
     }
-    
+
     public static List<ExecutionLogRestRep> getExecutionLogs(URI orderId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.orders().getExecutionLogs(orderId);
     }
-    
+
     public static List<OrderLogRestRep> getOrderLogs(URI orderId) {
         ViPRCatalogClient2 catalog = getCatalogClient();
         return catalog.orders().getLogs(orderId);
     }
-    
+
 }

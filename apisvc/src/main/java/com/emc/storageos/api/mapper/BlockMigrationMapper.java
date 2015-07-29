@@ -37,11 +37,11 @@ public class BlockMigrationMapper {
         MigrationRestRep to = new MigrationRestRep();
         DbObjectMapper.mapDataObjectFields(from, to);
         to.setVolume(DbObjectMapper.toRelatedResource(ResourceTypeEnum.VOLUME,
-            from.getVolume()));
+                from.getVolume()));
         to.setSource(DbObjectMapper.toRelatedResource(ResourceTypeEnum.VOLUME,
-            from.getSource()));
+                from.getSource()));
         to.setTarget(DbObjectMapper.toRelatedResource(ResourceTypeEnum.VOLUME,
-            from.getTarget()));
+                from.getTarget()));
         to.setStartTime(from.getStartTime());
         to.setPercentageDone(from.getPercentDone());
         to.setStatus(from.getMigrationStatus());

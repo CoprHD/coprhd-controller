@@ -28,8 +28,6 @@ import javax.net.ssl.X509TrustManager;
 
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.security.keystore.impl.DistributedKeyStoreImpl;
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.state.ConnectionState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,9 +90,9 @@ public class ViPRX509TrustManager implements X509TrustManager {
         }
     }
 
-
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.X509TrustManager#checkClientTrusted(java.security.cert.X509Certificate[], java.lang.String)
      */
     @Override
@@ -117,7 +115,9 @@ public class ViPRX509TrustManager implements X509TrustManager {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.X509TrustManager#checkServerTrusted(java.security.cert.X509Certificate[], java.lang.String)
      */
     @Override
@@ -140,8 +140,9 @@ public class ViPRX509TrustManager implements X509TrustManager {
         }
     }
 
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
      */
     @Override

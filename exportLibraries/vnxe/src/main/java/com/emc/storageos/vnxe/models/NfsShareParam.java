@@ -18,7 +18,8 @@ package com.emc.storageos.vnxe.models;
 import java.util.List;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class NfsShareParam {
     private String description;
     private boolean isReadOnly;
@@ -27,7 +28,7 @@ public class NfsShareParam {
     private List<VNXeBase> readOnlyHosts;
     private List<VNXeBase> readWriteHosts;
     private List<VNXeBase> rootAccessHosts;
-    
+
     public String getDescription() {
         return description;
     }

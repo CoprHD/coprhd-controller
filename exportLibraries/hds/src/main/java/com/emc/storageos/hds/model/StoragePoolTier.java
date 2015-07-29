@@ -15,70 +15,71 @@
 package com.emc.storageos.hds.model;
 
 public class StoragePoolTier {
-	private String objectID;
-	private String tierID;
-	private String capacityInKB;
-	private String freeCapacityInKB;
-	private String usageRate;
-	private String diskType;
-	private String raidLevel;
-	
-	public StoragePoolTier() {}
+    private String objectID;
+    private String tierID;
+    private String capacityInKB;
+    private String freeCapacityInKB;
+    private String usageRate;
+    private String diskType;
+    private String raidLevel;
 
-	public String getObjectID() {
-		return objectID;
-	}
+    public StoragePoolTier() {
+    }
 
-	public void setObjectID(String objectID) {
-		this.objectID = objectID;
-	}
+    public String getObjectID() {
+        return objectID;
+    }
 
-	public String getTierID() {
-		return tierID;
-	}
+    public void setObjectID(String objectID) {
+        this.objectID = objectID;
+    }
 
-	public void setTierID(String tierID) {
-		this.tierID = tierID;
-	}
+    public String getTierID() {
+        return tierID;
+    }
 
-	public String getCapacityInKB() {
-		return capacityInKB;
-	}
+    public void setTierID(String tierID) {
+        this.tierID = tierID;
+    }
 
-	public void setCapacityInKB(String capacityInKB) {
-		this.capacityInKB = capacityInKB;
-	}
+    public String getCapacityInKB() {
+        return capacityInKB;
+    }
 
-	public String getFreeCapacityInKB() {
-		return freeCapacityInKB;
-	}
+    public void setCapacityInKB(String capacityInKB) {
+        this.capacityInKB = capacityInKB;
+    }
 
-	public void setFreeCapacityInKB(String freeCapacityInKB) {
-		this.freeCapacityInKB = freeCapacityInKB;
-	}
+    public String getFreeCapacityInKB() {
+        return freeCapacityInKB;
+    }
 
-	public String getUsageRate() {
-		return usageRate;
-	}
+    public void setFreeCapacityInKB(String freeCapacityInKB) {
+        this.freeCapacityInKB = freeCapacityInKB;
+    }
 
-	public void setUsageRate(String usageRate) {
-		this.usageRate = usageRate;
-	}
+    public String getUsageRate() {
+        return usageRate;
+    }
 
-	public String getDiskType() {
-		return diskType;
-	}
+    public void setUsageRate(String usageRate) {
+        this.usageRate = usageRate;
+    }
 
-	public void setDiskType(String diskType) {
-		this.diskType = diskType;
-	}
+    public String getDiskType() {
+        return diskType;
+    }
 
-	public String getRaidLevel() {
-		return raidLevel;
-	}
+    public void setDiskType(String diskType) {
+        this.diskType = diskType;
+    }
 
-	public void setRaidLevel(String raidLevel) {
-		this.raidLevel = raidLevel;
-	}
+    public String getRaidLevel() {
+        return raidLevel;
+    }
+
+    public void setRaidLevel(String raidLevel) {
+        this.raidLevel = raidLevel;
+    }
 
 }

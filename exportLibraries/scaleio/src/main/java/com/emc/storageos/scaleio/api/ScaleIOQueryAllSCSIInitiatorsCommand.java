@@ -15,17 +15,17 @@
 
 package com.emc.storageos.scaleio.api;
 
-
 import java.util.List;
 import java.util.Stack;
 
 public class ScaleIOQueryAllSCSIInitiatorsCommand extends AbstractScaleIOQueryCommand<ScaleIOQueryAllSCSIInitiatorsResult> {
     // Query all SCSI Initiators returned 1 initiators.
-    // ID: 19be51df00000000 Name: lglw7144-vmhba32 State: Normal IQN: iqn.1998-01.com.vmware:lglw7144-37595fea  Not mapped to any volume
-    //  OR
-    //   Query all SCSI Initiators returned 1 initiators.
-    // ID: 19be51df00000000 Name: lglw7144-vmhba32 State: Normal IQN: iqn.1998-01.com.vmware:lglw7144-37595fea  Mapped to the following volumes:
-    //    Volume ID: e9e51f7c00000002 Name: iSCSI LUN: 0 ITL: ed3740a900000002
+    // ID: 19be51df00000000 Name: lglw7144-vmhba32 State: Normal IQN: iqn.1998-01.com.vmware:lglw7144-37595fea Not mapped to any volume
+    // OR
+    // Query all SCSI Initiators returned 1 initiators.
+    // ID: 19be51df00000000 Name: lglw7144-vmhba32 State: Normal IQN: iqn.1998-01.com.vmware:lglw7144-37595fea Mapped to the following
+    // volumes:
+    // Volume ID: e9e51f7c00000002 Name: iSCSI LUN: 0 ITL: ed3740a900000002
     private final static String SCSI_INIT_WITH_NAME = "ScsiInitiatorWithName";
     private final static String SCSI_INIT_NO_NAME = "ScsiInitiatorNoName";
     private final static String SCSI_INIT_WITH_NAME_1_30 = "ScsiInitiatorWithName1_30";
@@ -33,7 +33,7 @@ public class ScaleIOQueryAllSCSIInitiatorsCommand extends AbstractScaleIOQueryCo
     private final static String MAPPED_VOLUME = "MappedVolume";
     private final static String MAPPED_VOLUME_1_30 = "MappedVolume1_30";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("\\s+ID:\\s+(\\w+)\\s+Name:\\s+(.*?)\\s+State:\\s+(\\w+)\\s+IQN:\\s+(.*?)\\s+.*", SCSI_INIT_WITH_NAME),
             new ParsePattern("\\s+ID:\\s+(\\w+)\\s+Name:\\s+State:\\s+(\\w+)\\s+IQN:\\s+(.*?)\\s+.*", SCSI_INIT_NO_NAME),
             new ParsePattern("\\s+ID:\\s+(\\w+)\\s+Name:\\s+(.*?)\\s+IQN:\\s+(.*?)\\s+.*", SCSI_INIT_WITH_NAME_1_30),
@@ -51,7 +51,7 @@ public class ScaleIOQueryAllSCSIInitiatorsCommand extends AbstractScaleIOQueryCo
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

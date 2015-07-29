@@ -16,9 +16,6 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.Writer;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import javax.ws.rs.core.MediaType;
 
 import org.joda.time.DateTime;
@@ -35,12 +32,12 @@ import com.emc.storageos.api.service.impl.resource.utils.XMLEventMarshaller;
 /**
  * 
  * An implementation of event retriever from a dbClient
- *
+ * 
  */
 public class DbEventRetriever extends AbstractDbRetriever implements EventRetriever {
 
     private static final Logger log = LoggerFactory.getLogger(DbEventRetriever.class);
-   
+
     @Override
     public void getBulkEvents(DateTime time, TimeSeriesMetadata.TimeBucket bucket,
             MediaType type, Writer writer) throws MarshallingExcetion {
@@ -68,11 +65,10 @@ public class DbEventRetriever extends AbstractDbRetriever implements EventRetrie
         marshaller.header(writer);
 
         log.info("Query time bucket {}", time.toString());
-         
+
         dbClient.queryTimeSeries(EventTimeSeries.class, time, bucket, result,
                 getThreadPool());
 
         marshaller.tailer(writer);
     }
 }
-

@@ -36,37 +36,38 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 
-public class CinderDeleteVolumeJob extends CinderJob 
+public class CinderDeleteVolumeJob extends CinderJob
 {
-	private static final Logger logger = LoggerFactory.getLogger(CinderDeleteVolumeJob.class);
-	private static final long serialVersionUID = -1477978360849416445L;
-	private String volumeDeleteStatus = CinderConstants.ComponentStatus.DELETING.getStatus();
+    private static final Logger logger = LoggerFactory.getLogger(CinderDeleteVolumeJob.class);
+    private static final long serialVersionUID = -1477978360849416445L;
+    private String volumeDeleteStatus = CinderConstants.ComponentStatus.DELETING.getStatus();
 
-	/**
-	 * @param jobId
-	 * @param jobName
-	 * @param storageSystem
-	 * @param componentType
-	 * @param ep
-	 * @param taskCompleter
-	 */
-	public CinderDeleteVolumeJob(String jobId, String jobName,
-												URI storageSystem, String componentType, 
-												CinderEndPointInfo ep, TaskCompleter taskCompleter) 
-	{
-		super(jobId, "DeleteVolume:VolumeName:"+jobName, storageSystem, componentType, ep, taskCompleter);		
-	}
-	
-	/**
-     * Called to update the job status when the volume delete job completes.     * 
+    /**
+     * @param jobId
+     * @param jobName
+     * @param storageSystem
+     * @param componentType
+     * @param ep
+     * @param taskCompleter
+     */
+    public CinderDeleteVolumeJob(String jobId, String jobName,
+            URI storageSystem, String componentType,
+            CinderEndPointInfo ep, TaskCompleter taskCompleter)
+    {
+        super(jobId, "DeleteVolume:VolumeName:" + jobName, storageSystem, componentType, ep, taskCompleter);
+    }
+
+    /**
+     * Called to update the job status when the volume delete job completes. *
+     * 
      * @param jobContext The job context.
      */
-    public void updateStatus(JobContext jobContext) throws Exception 
+    public void updateStatus(JobContext jobContext) throws Exception
     {
         DbClient dbClient = jobContext.getDbClient();
-        try 
+        try
         {
-            if (status == JobStatus.IN_PROGRESS) 
+            if (status == JobStatus.IN_PROGRESS)
             {
                 return;
             }
@@ -77,69 +78,67 @@ public class CinderDeleteVolumeJob extends CinderJob
             List<Volume> volumes = new ArrayList<Volume>();
             Set<URI> poolURIs = new HashSet<URI>();
             long deletedVolumesTotCapacity = 0L;
-            for (URI id : getTaskCompleter().getIds()) 
+            for (URI id : getTaskCompleter().getIds())
             {
                 Volume volume = dbClient.queryObject(Volume.class, id);
                 volumes.add(volume);
                 poolURIs.add(volume.getPool());
-                
+
                 deletedVolumesTotCapacity += volume.getCapacity();
             }
 
             // If terminal state update storage pool capacity
-            if (status == JobStatus.SUCCESS) 
+            if (status == JobStatus.SUCCESS)
             {
                 // Update capacity of storage pools.
-                for (URI poolURI : poolURIs) 
+                for (URI poolURI : poolURIs)
                 {
                     StoragePool storagePool = dbClient.queryObject(StoragePool.class, poolURI);
                     CinderUtils.updateStoragePoolCapacity(dbClient, cinderApi, storagePool,
-                    		String.valueOf(deletedVolumesTotCapacity/CinderConstants.BYTES_TO_GB), true);
+                            String.valueOf(deletedVolumesTotCapacity / CinderConstants.BYTES_TO_GB), true);
                 }
             }
 
             StringBuilder logMsgBuilder = new StringBuilder();
-            if (status == JobStatus.SUCCESS) 
+            if (status == JobStatus.SUCCESS)
             {
-                for (Volume volume : volumes) 
+                for (Volume volume : volumes)
                 {
                     volume.setInactive(true);
                     dbClient.persistObject(volume);
                     dbClient.ready(Volume.class, volume.getId(), getTaskCompleter().getOpId());
-                    
-                    if (logMsgBuilder.length() != 0) 
+
+                    if (logMsgBuilder.length() != 0)
                     {
                         logMsgBuilder.append("\n");
                     }
                     logMsgBuilder.append(String.format("Successfully deleted volume %s", volume.getId()));
                 }
 
-            } 
-            else if (status == JobStatus.FAILED) 
+            }
+            else if (status == JobStatus.FAILED)
             {
-                for (URI id : getTaskCompleter().getIds()) 
+                for (URI id : getTaskCompleter().getIds())
                 {
-                    if (logMsgBuilder.length() != 0) 
+                    if (logMsgBuilder.length() != 0)
                     {
                         logMsgBuilder.append("\n");
                     }
                     logMsgBuilder.append(String.format("Failed to delete volume: %s", id));
                 }
             }
-            
-            if (logMsgBuilder.length() > 0) 
+
+            if (logMsgBuilder.length() > 0)
             {
                 logger.info(logMsgBuilder.toString());
             }
-        } 
-        catch (Exception e) 
+        } catch (Exception e)
         {
-            setErrorStatus("Encountered an internal error during delete volume job status processing: "+ e.getMessage());
+            setErrorStatus("Encountered an internal error during delete volume job status processing: " + e.getMessage());
             logger.error("Caught exception while handling updateStatus for delete volume job.", e);
-        }
-        finally
+        } finally
         {
-        	super.updateStatus(jobContext);
+            super.updateStatus(jobContext);
         }
     }
 
@@ -151,36 +150,35 @@ public class CinderDeleteVolumeJob extends CinderJob
     @Override
     protected boolean isJobFailed(String currentStatus) {
         return (CinderConstants.ComponentStatus.ERROR.getStatus().equalsIgnoreCase(currentStatus)
-                || CinderConstants.ComponentStatus.ERROR_DELETING.getStatus().equalsIgnoreCase(currentStatus));
+        || CinderConstants.ComponentStatus.ERROR_DELETING.getStatus().equalsIgnoreCase(currentStatus));
     }
 
     /**
      * Gets the current status of volume deletion
      */
-    protected String getCurrentStatus(CinderApi cinderApi) throws Exception 
-	{	
-    	logger.info("Start getCurrentStatus()");
-    	try
-    	{
-    		//As long as the status remains "Deleting", this will go through
-    		volumeDeleteStatus = cinderApi.getTaskStatus(getJobId(), CinderConstants.ComponentType.volume.name());
-    	}
-    	catch(CinderException ce)
-    	{
-    		//Here means, the volume got deleted
-    		
-    		//check if the earlier status was "deleting", to be sure
-    		// that the delete volume was attempted
-    		if(CinderConstants.ComponentStatus.DELETING.getStatus().equalsIgnoreCase(volumeDeleteStatus))
-    		{
-    			volumeDeleteStatus = CinderConstants.ComponentStatus.DELETED.getStatus();
-    		}
-    		
-    	}
-    	
-    	logger.info("End getCurrentStatus() Status is:"+volumeDeleteStatus);
-    	return volumeDeleteStatus;
-		 
-	}
+    protected String getCurrentStatus(CinderApi cinderApi) throws Exception
+    {
+        logger.info("Start getCurrentStatus()");
+        try
+        {
+            // As long as the status remains "Deleting", this will go through
+            volumeDeleteStatus = cinderApi.getTaskStatus(getJobId(), CinderConstants.ComponentType.volume.name());
+        } catch (CinderException ce)
+        {
+            // Here means, the volume got deleted
+
+            // check if the earlier status was "deleting", to be sure
+            // that the delete volume was attempted
+            if (CinderConstants.ComponentStatus.DELETING.getStatus().equalsIgnoreCase(volumeDeleteStatus))
+            {
+                volumeDeleteStatus = CinderConstants.ComponentStatus.DELETED.getStatus();
+            }
+
+        }
+
+        logger.info("End getCurrentStatus() Status is:" + volumeDeleteStatus);
+        return volumeDeleteStatus;
+
+    }
 
 }

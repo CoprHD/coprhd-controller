@@ -27,66 +27,70 @@ import org.apache.commons.codec.binary.Base64;
  *  Utils class for object serialization and base64 encoding/decoding
  */
 public class SerializerUtils {
-    
+
     /**
      * Serialize an object and base64 encodes it
+     * 
      * @param the object
      * @return the encoded String
      * @throws IOException
      */
     public static String serializeAsBase64EncodedString(Object b) throws IOException {
-        byte [] rawBytes = serializeAsByteArray(b); 
-        byte [] encodedBytes = Base64.encodeBase64(rawBytes);  
+        byte[] rawBytes = serializeAsByteArray(b);
+        byte[] encodedBytes = Base64.encodeBase64(rawBytes);
         return new String(encodedBytes, "UTF-8");
     }
-             
+
     /**
      * Serialize an object as a raw byte array
+     * 
      * @param the object
      * @return byte array
      * @throws IOException
      */
     public static byte[] serializeAsByteArray(Object b) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutputStream out = new ObjectOutputStream(bos);      
+        ObjectOutputStream out = new ObjectOutputStream(bos);
         try {
             out.writeObject(b);
         } finally {
             out.close();
         }
-        return bos.toByteArray();  
+        return bos.toByteArray();
     }
 
     /**
      * Base64 decodes a String into a decoded byte array, then deserializes the object.
+     * 
      * @param base64 encoded string
      * @return deserialized object
      * @throws IOException
      * @throws ClassNotFoundException
      */
     public static Object deserialize(String input) throws IOException,
-    ClassNotFoundException { 
-        byte[] decoded = Base64.decodeBase64(input.getBytes("UTF-8"));    
+            ClassNotFoundException {
+        byte[] decoded = Base64.decodeBase64(input.getBytes("UTF-8"));
         return deserialize(decoded);
     }
 
     /**
      * Deserializes an object from raw byte array input
+     * 
      * @param byte array
      * @return deserialized object
      * @throws IOException
      * @throws ClassNotFoundException
      */
-    public static Object deserialize(byte [] input) throws IOException,
-    ClassNotFoundException { 
-        Object st = null;    
-        ByteArrayInputStream bin = new ByteArrayInputStream(input);     
-        ObjectInputStream oin = new ObjectInputStream(bin);    
+    public static Object deserialize(byte[] input) throws IOException,
+            ClassNotFoundException {
+        Object st = null;
+        ByteArrayInputStream bin = new ByteArrayInputStream(input);
+        ObjectInputStream oin = new ObjectInputStream(bin);
         try {
             st = oin.readObject();
         } finally {
             oin.close();
         }
         return st;
-    }      
+    }
 }

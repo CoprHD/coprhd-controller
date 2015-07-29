@@ -35,8 +35,8 @@ public class SmisBlockDeleteSnapshotJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockDeleteSnapshotJob.class);
 
     public SmisBlockDeleteSnapshotJob(CIMObjectPath cimJob,
-                                      URI storageSystem,
-                                      TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "DeleteBlockSnapshot");
     }
 
@@ -66,7 +66,7 @@ public class SmisBlockDeleteSnapshotJob extends SmisJob {
                 _log.info("Deleting snapshot job was successful.");
                 snapshot.setInactive(true);
                 dbClient.persistObject(snapshot);
-            } else if(jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
+            } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 _log.info("Failed to delete snapshot: {}", getTaskCompleter().getId());
             }
         } catch (Exception e) {
@@ -75,7 +75,7 @@ public class SmisBlockDeleteSnapshotJob extends SmisJob {
             Operation updateOp = new Operation();
             updateOp.setStatus("Encountered an internal error during block delete snapshot job status processing: " + e.getMessage());
             dbClient.updateTaskOpStatus(BlockSnapshot.class, getTaskCompleter().getId(), getTaskCompleter().getOpId(),
-            		updateOp);
+                    updateOp);
         } finally {
             super.updateStatus(jobContext);
         }

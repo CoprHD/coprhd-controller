@@ -16,7 +16,6 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 
-
 @Service("CreateFileSystemShare")
 public class CreateFileSystemShareService extends ViPRService {
 
@@ -28,20 +27,20 @@ public class CreateFileSystemShareService extends ViPRService {
 
     @Param(SHARE_COMMENT)
     protected String shareComment;
-    
-    @Param(value=SUBDIRECTORY, required=false)
+
+    @Param(value = SUBDIRECTORY, required = false)
     protected String subDirectory;
 
     @Bindable(itemType = FileStorageUtils.FileSystemACLs.class)
     protected FileStorageUtils.FileSystemACLs[] fileSystemShareACLs;
 
     @Override
-    public void precheck() throws Exception{
+    public void precheck() throws Exception {
         if (fileSystemShareACLs != null && fileSystemShareACLs.length > 0) {
             fileSystemShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSystemShareACLs);
         }
     }
-    
+
     @Override
     public void execute() throws Exception {
         FileStorageUtils.createCifsShare(fileSystemId, shareName, shareComment, subDirectory);

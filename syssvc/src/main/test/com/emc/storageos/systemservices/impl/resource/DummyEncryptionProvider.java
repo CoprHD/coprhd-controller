@@ -81,7 +81,6 @@ public class DummyEncryptionProvider implements EncryptionProvider {
         }
     }
 
-
     private byte[] decode(byte[] input) {
         if (input.length < 2 || input[0] != ENC_PROVIDER_VERSION) {
 

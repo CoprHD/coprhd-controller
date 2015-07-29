@@ -43,13 +43,14 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
 
     /**
      * Constructor for ExportMaskRemoveVolumeCompleter.
+     * 
      * @param egUri -- ExportGroup URI
      * @param emUri -- ExportMask URI
      * @param volumes -- List<URI> of volumes being removed.
      * @param task -- API task id.
      */
     public ExportMaskRemoveVolumeCompleter(URI egUri, URI emUri, Collection<URI> volumes,
-                                           String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
@@ -99,8 +100,8 @@ public class ExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
      * referenced in its _volumes are referenced in any of its associated ExportMasks.
      * If it is not, then this completer should clean up references to the volumes in
      * the ExportGroup.
-     *
-     * @param dbClient    [in] - DbClient Object used for accessing DB
+     * 
+     * @param dbClient [in] - DbClient Object used for accessing DB
      * @param exportGroup [in] - ExportGroup object to examine and update
      */
     private void removeVolumesFromExportGroup(DbClient dbClient, ExportGroup exportGroup) {

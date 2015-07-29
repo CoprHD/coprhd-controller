@@ -33,9 +33,9 @@ import org.apache.curator.framework.recipes.locks.InterProcessLock;
  * Helper class for storing and retrieving configurations in coordinator.
  * This class handles the use of InterProcessLock such that all updates on
  * the coordinator configuration are synced accross the cluseter. Also,
- * InterProcessLocks are being reused according to the lock name given, 
+ * InterProcessLocks are being reused according to the lock name given,
  * which makes it possible to acquire the same lock several times on a single
- * thread. 
+ * thread.
  */
 public class CoordinatorConfigStoringHelper {
 
@@ -155,7 +155,7 @@ public class CoordinatorConfigStoringHelper {
             if (lock != null) {
                 lock.release();
             }
-        }   catch (Exception e) {
+        } catch (Exception e) {
             log.error("Could not release lock");
         }
     }

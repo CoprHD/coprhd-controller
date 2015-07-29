@@ -13,15 +13,15 @@ import com.emc.sa.service.vipr.ViPRService;
 
 @Service("RemoveFileSnapshotShare")
 public class DeleteFileSnapshotShareService extends ViPRService {
-	
-	@Param(SNAPSHOT)
+
+    @Param(SNAPSHOT)
     protected String snapshotId;
-	
-	@Param(SHARE_NAME)
+
+    @Param(SHARE_NAME)
     protected String shareName;
 
     @Override
     public void execute() {
-    	FileStorageUtils.deactivateSnapshotShare(uri(snapshotId), shareName);
+        FileStorageUtils.deactivateSnapshotShare(uri(snapshotId), shareName);
     }
 }

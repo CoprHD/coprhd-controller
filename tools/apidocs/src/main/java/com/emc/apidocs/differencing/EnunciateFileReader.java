@@ -4,7 +4,6 @@
  */
 package com.emc.apidocs.differencing;
 
-
 import com.emc.apidocs.model.ApiClass;
 import com.emc.apidocs.model.ApiField;
 import com.emc.apidocs.model.ApiMethod;
@@ -18,7 +17,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathFactory;
 import java.io.InputStream;
 import java.util.Map;
-
 
 public class EnunciateFileReader {
     private static XPathFactory xpathFactory;
@@ -40,8 +38,8 @@ public class EnunciateFileReader {
 
         Map<String, ApiService> apiServices = Maps.newHashMap();
         NodeList resourceNodes = XMLUtils.getNodeList(document, EnunciateConstants.RESOURCES);
-        for (int f=0;f<resourceNodes.getLength();f++) {
-            Node resourceNode  = resourceNodes.item(f);
+        for (int f = 0; f < resourceNodes.getLength(); f++) {
+            Node resourceNode = resourceNodes.item(f);
 
             String serviceClass = XMLUtils.getNodeText(resourceNode, EnunciateConstants.RESOURCE_SERVICE_CLASS);
             ApiService apiService = null;
@@ -55,7 +53,7 @@ public class EnunciateFileReader {
             }
 
             ApiMethod apiMethod = toApiMethod(resourceNode, apiClasses);
-            System.out.println("Loaded Method "+serviceClass+" "+apiMethod.httpMethod+" "+apiMethod.path);
+            System.out.println("Loaded Method " + serviceClass + " " + apiMethod.httpMethod + " " + apiMethod.path);
             apiService.addMethod(apiMethod);
         }
 
@@ -66,7 +64,7 @@ public class EnunciateFileReader {
         Map<String, ApiClass> types = Maps.newHashMap();
 
         NodeList typeNodes = XMLUtils.getNodeList(document, EnunciateConstants.TYPE);
-        for (int i=0;i<typeNodes.getLength();i++) {
+        for (int i = 0; i < typeNodes.getLength(); i++) {
             Node typeNode = typeNodes.item(i);
 
             ApiClass apiClass = toApiClass(typeNode);
@@ -94,19 +92,19 @@ public class EnunciateFileReader {
         return apiMethod;
     }
 
-    private ApiClass findElementType(String elementName, Map<String, ApiClass> types,  Document document) {
+    private ApiClass findElementType(String elementName, Map<String, ApiClass> types, Document document) {
         if (resolvedElementTypes.containsKey(elementName)) {
             return resolvedElementTypes.get(elementName);
         }
 
-        Node node = XMLUtils.getNode(document, XMLUtils.getXPath("//schema/elements/element[@name=\""+elementName+"\"]"));
+        Node node = XMLUtils.getNode(document, XMLUtils.getXPath("//schema/elements/element[@name=\"" + elementName + "\"]"));
         if (node == null) {
-            throw new RuntimeException("Unable to find element "+elementName);
+            throw new RuntimeException("Unable to find element " + elementName);
         }
 
         String elementType = XMLUtils.getNodeText(node, EnunciateConstants.ELEMENT_TYPENAME);
         if (!types.containsKey(elementType)) {
-             throw new RuntimeException("Unable to find type "+elementType+" for element "+elementName);
+            throw new RuntimeException("Unable to find type " + elementType + " for element " + elementName);
         }
 
         resolvedElementTypes.put(elementName, types.get(elementType));
@@ -119,15 +117,15 @@ public class EnunciateFileReader {
             return resolvedClasses.get(name);
         }
 
-        Node typeNode = XMLUtils.getNode(document, XMLUtils.getXPath("//schema/types/type[@name=\""+name+"\"]"));
+        Node typeNode = XMLUtils.getNode(document, XMLUtils.getXPath("//schema/types/type[@name=\"" + name + "\"]"));
 
         if (typeNode == null) {
-            throw new RuntimeException("Type "+name+" not found in document");
+            throw new RuntimeException("Type " + name + " not found in document");
         }
 
         ApiClass apiClass = toApiClass(typeNode);
         resolvedClasses.put(name, apiClass);
-        System.out.println("Loaded Class "+name);
+        System.out.println("Loaded Class " + name);
 
         return apiClass;
     }
@@ -137,13 +135,13 @@ public class EnunciateFileReader {
         apiClass.name = XMLUtils.getNodeText(typeNode, EnunciateConstants.TYPE_NAME);
 
         NodeList elementList = XMLUtils.getNodeList(typeNode, EnunciateConstants.TYPE_ELEMENT);
-        for (int f=0;f<elementList.getLength();f++) {
+        for (int f = 0; f < elementList.getLength(); f++) {
             Node element = elementList.item(f);
             apiClass.addField(toApiField(element));
         }
 
         NodeList attributeList = XMLUtils.getNodeList(typeNode, EnunciateConstants.TYPE_ATTRIBUTE);
-        for (int f=0;f<attributeList.getLength();f++) {
+        for (int f = 0; f < attributeList.getLength(); f++) {
             Node attribute = attributeList.item(f);
             String attributeType = XMLUtils.getNodeText(attribute, EnunciateConstants.ATTRIBUTE_TYPE);
             String attributeName = XMLUtils.getNodeText(attribute, EnunciateConstants.ATTRIBUTE_NAME);
@@ -183,7 +181,7 @@ public class EnunciateFileReader {
             }
         }
         else {
-            System.out.println("Warning: Unable to find typeName for element "+apiField.name);
+            System.out.println("Warning: Unable to find typeName for element " + apiField.name);
         }
 
         return apiField;

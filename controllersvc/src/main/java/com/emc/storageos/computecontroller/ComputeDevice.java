@@ -18,34 +18,36 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 
 public interface ComputeDevice extends Controller {
 
-	public void discoverComputeSystem(URI computeSystemId) throws InternalException;
+    public void discoverComputeSystem(URI computeSystemId) throws InternalException;
 
-	public void createHost(ComputeSystem computeSystem,Host host, ComputeVirtualPool vcp,VirtualArray varray,TaskCompleter completer) throws InternalException;
+    public void createHost(ComputeSystem computeSystem, Host host, ComputeVirtualPool vcp, VirtualArray varray, TaskCompleter completer)
+            throws InternalException;
 
-	public Map<String,Boolean> prepareOsInstallNetwork(URI computeSystemId, URI computeElementId)
-			throws InternalException;
-	
-	public void removeOsInstallNetwork(URI computeSystemId, URI computeElementId, Map<String, Boolean> vlanMap)
-			throws InternalException;
-	
-	public String unbindHostFromTemplate(URI computeSystemId, URI hostId)
-			throws InternalException;
-	
-	public void rebindHostToTemplate(URI computeSystemId, URI hostId)
-			throws InternalException;
+    public Map<String, Boolean> prepareOsInstallNetwork(URI computeSystemId, URI computeElementId)
+            throws InternalException;
 
-	public void powerUpComputeElement(URI computeSystemId, URI computeElementId)
-			throws InternalException;
+    public void removeOsInstallNetwork(URI computeSystemId, URI computeElementId, Map<String, Boolean> vlanMap)
+            throws InternalException;
 
-	public void powerDownComputeElement(URI computeSystemId, URI computeElementId)
-			throws InternalException;
-	
-	public void setLanBootTarget(ComputeSystem cs, URI computeElementId,URI hostId,boolean waitForReboot) throws InternalException;
+    public String unbindHostFromTemplate(URI computeSystemId, URI hostId)
+            throws InternalException;
 
-	public void setSanBootTarget(ComputeSystem cs, URI computeElementId,URI hostId, URI volumeId,boolean waitForReboot) throws InternalException;
+    public void rebindHostToTemplate(URI computeSystemId, URI hostId)
+            throws InternalException;
+
+    public void powerUpComputeElement(URI computeSystemId, URI computeElementId)
+            throws InternalException;
+
+    public void powerDownComputeElement(URI computeSystemId, URI computeElementId)
+            throws InternalException;
+
+    public void setLanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId, boolean waitForReboot) throws InternalException;
+
+    public void setSanBootTarget(ComputeSystem cs, URI computeElementId, URI hostId, URI volumeId, boolean waitForReboot)
+            throws InternalException;
 
     public void clearDeviceSession(URI computeSystemId) throws InternalException;
 
-	public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException;
+    public void deactivateHost(ComputeSystem cs, Host host) throws ClientGeneralException;
 
 }

@@ -20,7 +20,7 @@ import java.util.Map;
 import static render.RenderApiModel.*;
 
 @With(Deadbolt.class)
-@Restrictions({@Restrict({"SYSTEM_ADMIN", "SECURITY_ADMIN"}), @Restrict({"RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN"})})
+@Restrictions({ @Restrict({ "SYSTEM_ADMIN", "SECURITY_ADMIN" }), @Restrict({ "RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN" }) })
 public class SetupApi extends Controller {
     // This API is intended to allow skipping the initial setup. It requires the system properties to be set
     // manually through the proper APIs.
@@ -29,7 +29,7 @@ public class SetupApi extends Controller {
             ok();
         }
 
-        Map<String,String> properties = ConfigPropertyUtils.getProperties();
+        Map<String, String> properties = ConfigPropertyUtils.getProperties();
         String proxyPassword = properties.get(ConfigProperty.PROXYUSER_PASSWORD);
         if (StringUtils.isEmpty(proxyPassword)) {
             response.status = HttpStatus.SC_BAD_REQUEST;

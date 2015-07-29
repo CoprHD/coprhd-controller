@@ -4,7 +4,6 @@
  */
 package com.emc.vipr.launcher;
 
-
 public class SaServiceLauncher extends AbstractServiceLauncher {
 
     public SaServiceLauncher() {

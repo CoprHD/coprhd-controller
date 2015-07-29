@@ -14,7 +14,7 @@ public class BrowserUtil {
 
     public static boolean supportsCSSRotate() {
         double ieVersion = getIEVersion();
-        return ieVersion == (double)-1 || ieVersion >= (double)10;
+        return ieVersion == (double) -1 || ieVersion >= (double) 10;
     }
 
     public static double getIEVersion() {

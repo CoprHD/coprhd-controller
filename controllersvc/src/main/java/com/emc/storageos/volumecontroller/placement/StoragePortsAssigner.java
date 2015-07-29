@@ -17,11 +17,13 @@ public interface StoragePortsAssigner {
 
     /**
      * Returns the number of ports that should be allocated for each path.
+     * 
      * @return Integer.
      */
     public abstract int getNumberOfPortsPerPath();
+
     public static final URI unknown_host_uri = URI.create("unknown_host");
-    
+
     /**
      * Given a map of Network URI to a List of Initiators in that network,
      * determine the number of ports that needs to be allocated for each
@@ -29,16 +31,17 @@ public interface StoragePortsAssigner {
      * In the default implementation, one port for each initiator
      * is "ideal" if under num_paths. But we never allocate more ports than
      * initiators for a given network, and the sum of all ports must be <= numPaths.
+     * 
      * @param net2InitiatorsMap -- contains a mapping from the Network URI to the new
-     * Initiators. (Initiators previously present in the Export Mask are not included).
+     *            Initiators. (Initiators previously present in the Export Mask are not included).
      * @param pathParams - Export Path Params (maxPaths, pathsPerInitiator)
      * @param existingPortsMap - map of Network URI to set of existing (already allocated) StoragePorts
      * @param existingInitiatorsMap map of Network URI to set of existing (already assigned) Initiators
      * @return Map of network URI to Integer number of ports to allocate
      */
     public abstract Map<URI, Integer> getPortsNeededPerNetwork(
-            Map<URI, List<Initiator>> net2InitiatorsMap, 
-            ExportPathParams pathParams, 
+            Map<URI, List<Initiator>> net2InitiatorsMap,
+            ExportPathParams pathParams,
             Map<URI, Set<StoragePort>> existingPortsMap,
             Map<URI, Set<Initiator>> existingInitiatorsMap)
             throws PlacementException;
@@ -47,19 +50,20 @@ public interface StoragePortsAssigner {
      * Assigns the storage ports within a single Network to the Initiators.
      * This is called once for each Network used during an export.
      * One port is assigned to each initiator.
+     * 
      * @param assignments OUTPUT map of Initiator to the List<StoragePort> storage ports
-     * to be zoned with that initiator.
+     *            to be zoned with that initiator.
      * @param initiators List<Initiator> new initiators being assigned.
-     * Initiators previously assigned that are already in the ExportMask are not included.
+     *            Initiators previously assigned that are already in the ExportMask are not included.
      * @param storagePorts List<StoragePort> the allocated storage ports to be assigned
-     * This can include newly allocated ports, and some that were previously assigned.
-     * They are in order previously assigned first, then newly assigned ports.
+     *            This can include newly allocated ports, and some that were previously assigned.
+     *            They are in order previously assigned first, then newly assigned ports.
      * @param pathParams - Export Path Params (maxPaths, pathsPerInitiator)
      * @param initiatorNetwork the network of the initiator
      * @param existingAssignments- previously existing assignments map of Initiator to list of StoragePorts
      */
     public abstract void assign(Map<Initiator, List<StoragePort>> assignments,
-            List<Initiator> initiators, List<StoragePort> storagePorts, 
+            List<Initiator> initiators, List<StoragePort> storagePorts,
             ExportPathParams pathParams,
             Map<Initiator, List<StoragePort>> existingAssignments, NetworkLite initiatorNetwork);
 }

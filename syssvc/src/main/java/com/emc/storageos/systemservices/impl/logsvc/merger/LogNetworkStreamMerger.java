@@ -50,7 +50,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
 
     private MediaType mediaType;
     private LogSvcPropertiesLoader propertiesLoader;
-    
+
     /**
      * Merges all logs on each node based on time stamp
      * 
@@ -58,7 +58,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
      * @param mediaType
      */
     public LogNetworkStreamMerger(LogRequest req, MediaType mediaType,
-                                  LogSvcPropertiesLoader propertiesLoader) {
+            LogSvcPropertiesLoader propertiesLoader) {
         logger.trace("In LogNetworkStreamMerger's constructor");
         this.request = req;
         this.mediaType = mediaType;
@@ -68,7 +68,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
         logHeads = new LogMessage[size];
         this.logStreamList = new LogNetworkReader[size];
         int index = 0;
-        for(LogNetworkReader reader : readers) {
+        for (LogNetworkReader reader : readers) {
             logStreamList[index] = reader;
             logHeads[index] = null;
             index++;
@@ -88,7 +88,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
                 do {
                     // Maximum bytes to stream check
                     streamedBytes = cos.getByteCount();
-                    if(request.getMaxBytes() > 0 && streamedBytes >= request.getMaxBytes()){
+                    if (request.getMaxBytes() > 0 && streamedBytes >= request.getMaxBytes()) {
                         logger.info("Streamed log size {}bytes reached maximum allowed limit {}bytes. So quitting.",
                                 streamedBytes, request.getMaxBytes());
                         break;
@@ -98,11 +98,11 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
                     LogMessage startLogOfNextBatch = readLogBatch(msg, currentLogBatch);
                     if (!LogUtil.permitNextLogBatch(request.getMaxCount(), finalCount,
                             currentLogBatch.size())) {
-                        //discard this batch
+                        // discard this batch
                         break;
                     }
 
-                    //current log batch has been accepted
+                    // current log batch has been accepted
                     for (String st : status.getStatus()) {
                         marshaller.marshall(st, msg);     // use previous log message's timeStamp as status's timeStamp
                     }
@@ -127,7 +127,7 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
     /**
      * Read a batch of logs that share the same timestamp and return the first subsequent
      * log that has a different timestamp.
-     *
+     * 
      * @param startLog the starting log of the current log batch
      * @param logBatch the current log batch to fill in
      * @return the starting log of the next log batch
@@ -141,16 +141,17 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
 
         LogMessage msg;
         while ((msg = readNextMergedLogMessage()) != null) {
-            if (msg.getTime() == batchTime)
+            if (msg.getTime() == batchTime) {
                 logBatch.add(msg);
-            else
+            } else {
                 return msg;
+            }
         }
         // msg == null, i.e., no more logs to read
         return null;
     }
 
-    private List<LogNetworkReader> getLogNetworkStreams(){
+    private List<LogNetworkReader> getLogNetworkStreams() {
         List<NodeInfo> nodeInfo;
         List<LogNetworkReader> logNetworkStreams = new ArrayList<>();
         // Getting all nodes information
@@ -163,14 +164,15 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
         if (nodeInfo.isEmpty()) {
             throw APIException.internalServerErrors.noNodeAvailableError("collect logs info");
         }
-        List<String> failedNodes = ClusterNodesUtil.getUnavailableControllerNodes();            
-        if(!request.getNodeIds().isEmpty())
+        List<String> failedNodes = ClusterNodesUtil.getUnavailableControllerNodes();
+        if (!request.getNodeIds().isEmpty()) {
             failedNodes.retainAll(request.getNodeIds());
-        if(!failedNodes.isEmpty()) {
+        }
+        if (!failedNodes.isEmpty()) {
             logger.error("Cannot collect logs from unavailable nodes: {}", failedNodes.toString());
         }
-        
-        for(final NodeInfo node : nodeInfo) {
+
+        for (final NodeInfo node : nodeInfo) {
             LogRequest req;
             SysClientFactory.SysClient sysClient;
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
@@ -179,23 +181,25 @@ public class LogNetworkStreamMerger extends AbstractLogStreamMerger {
             logger.debug("connectTimeout=" + propertiesLoader.getNodeLogConnectionTimeout() * 1000);
             logger.debug("readTimeout=" + propertiesLoader.getNodeLogCollectorTimeout() * 1000);
             sysClient = SysClientFactory.getSysClient(URI.create(baseNodeURL),
-                       propertiesLoader.getNodeLogCollectorTimeout() * 1000,
-                       propertiesLoader.getNodeLogConnectionTimeout() * 1000);
+                    propertiesLoader.getNodeLogCollectorTimeout() * 1000,
+                    propertiesLoader.getNodeLogConnectionTimeout() * 1000);
             logger.debug("sysclient=" + sysClient + " uri=" + URI.create(baseNodeURL));
             try {
                 req = request;
-                req.setNodeIds(new ArrayList<String>() {{
-                    add(node.getId());
-                }});
+                req.setNodeIds(new ArrayList<String>() {
+                    {
+                        add(node.getId());
+                    }
+                });
                 InputStream nodeResponseStream = sysClient.post(SysClientFactory
                         .URI_NODE_LOGS, InputStream.class, req);
                 if (nodeResponseStream != null && nodeResponseStream.available() > 0) {
-                    LogNetworkReader reader = new LogNetworkReader(node.getId(),nodeResponseStream,status);
+                    LogNetworkReader reader = new LogNetworkReader(node.getId(), nodeResponseStream, status);
                     logNetworkStreams.add(reader);
                 }
             } catch (Exception e) {
                 logger.error("Exception accessing node {}:", baseNodeURL, e);
-            }      
+            }
         }
         return logNetworkStreams;
     }

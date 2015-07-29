@@ -21,10 +21,9 @@ import java.util.*;
 /**
  *
  */
-public class RemovedColumnsList implements IndexColumnList{
+public class RemovedColumnsList implements IndexColumnList {
     private Map<String, List<Column<CompositeColumnName>>> _cleanupList;
     private Map<String, Map<String, List<Column<CompositeColumnName>>>> _allColMap;
-
 
     public RemovedColumnsList() {
         _cleanupList = new HashMap<>();
@@ -39,15 +38,15 @@ public class RemovedColumnsList implements IndexColumnList{
             cleanList = new ArrayList<>();
             _cleanupList.put(key, cleanList);
             keyColumns = new HashMap<>();
-            _allColMap.put(key,keyColumns);
+            _allColMap.put(key, keyColumns);
         }
         cleanList.add(column);
 
         String colName = column.getName().getOne();
         List<Column<CompositeColumnName>> columns = keyColumns.get(colName);
-        if( columns == null) {
+        if (columns == null) {
             columns = new ArrayList<>();
-            keyColumns.put(colName,columns);
+            keyColumns.put(colName, columns);
         }
         columns.add(column);
     }

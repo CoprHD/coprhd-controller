@@ -25,12 +25,12 @@ import com.emc.storageos.model.valid.Endpoint;
  * Utility class for endpoint validation.
  * 
  * @author elalih
- *
+ * 
  */
 public class EndpointUtility {
 
     // Regular Expression to match a host name.
-    private static final String HOST_NAME_PATTERN = 
+    private static final String HOST_NAME_PATTERN =
             "^(?![0-9]+$)(?:([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
 
     /**
@@ -64,29 +64,32 @@ public class EndpointUtility {
      * @return the endpoint with the correct case for its type
      */
     public static String changeCase(String element) {
-        if (element == null)
+        if (element == null) {
             return null;
+        }
         if (WWNUtility.isValidWWN(element)) {
             return element.toUpperCase();
         } else {
             return element.toLowerCase();
         }
     }
-    
+
     public static boolean isValidIpV4Address(String ipAddress) {
         return InetAddressUtils.isIPv4Address(ipAddress);
     }
-    
+
     public static boolean isValidIpV6Address(String ipAddress) {
         return InetAddressUtils.isIPv6Address(ipAddress);
     }
-    
+
     public static boolean isValidHostName(String hostName) {
         return hostName.matches(HOST_NAME_PATTERN);
     }
-    
-    public static boolean isValidEndpoint(String element, Endpoint.EndpointType type ) {
-        if (element == null) return false;
+
+    public static boolean isValidEndpoint(String element, Endpoint.EndpointType type) {
+        if (element == null) {
+            return false;
+        }
         if (Endpoint.EndpointType.WWN.equals(type)) {
             return WWNUtility.isValidWWN(element);
         } else if (Endpoint.EndpointType.IQN.equals(type)) {
@@ -103,16 +106,16 @@ public class EndpointUtility {
                     SDCUtility.isValidSDC(element);
         } else if (Endpoint.EndpointType.IP.equals(type)) {
             return isValidIpV4Address(element) ||
-                   isValidIpV6Address(element);
+                    isValidIpV6Address(element);
         } else if (Endpoint.EndpointType.IPV4.equals(type)) {
-            return isValidIpV4Address(element) ;
+            return isValidIpV4Address(element);
         } else if (Endpoint.EndpointType.IPV6.equals(type)) {
-            return isValidIpV6Address(element) ;
+            return isValidIpV6Address(element);
         } else if (Endpoint.EndpointType.HOSTNAME.equals(type)) {
-            return isValidHostName(element) ;
+            return isValidHostName(element);
         } else if (Endpoint.EndpointType.HOST.equals(type)) {
             return isValidIpV4Address(element) ||
-                    isValidIpV6Address(element)||
+                    isValidIpV6Address(element) ||
                     isValidHostName(element);
         } else if (Endpoint.EndpointType.ANY.equals(type) || type == null) {
             return isValidEndpoint(element, Endpoint.EndpointType.HOST) ||

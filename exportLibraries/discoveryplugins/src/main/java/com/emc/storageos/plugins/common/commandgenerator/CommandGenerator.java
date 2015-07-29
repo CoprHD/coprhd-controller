@@ -15,7 +15,6 @@
 package com.emc.storageos.plugins.common.commandgenerator;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +24,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Util;
 import com.emc.storageos.plugins.common.domainmodel.Argument;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-
 
 /**
  * CommandGenerator generates one or multiple Command Objects and returns a List
@@ -42,7 +40,7 @@ public class CommandGenerator {
      * Logger.
      */
     private static final Logger _logger = LoggerFactory.getLogger(CommandGenerator.class);
-    private Util                _util;
+    private Util _util;
 
     public void setutil(Util util) {
         this._util = util;
@@ -73,28 +71,28 @@ public class CommandGenerator {
         int size = 1;
         StringBuilder sb = new StringBuilder();
         sb.append("Commands Objects to get Generated for Path : ");
-        
-        if(null != operation.getExecutionCycles() && keyMap.containsKey(operation.getExecutionCycles())) {
-           sb.append(operation.getExecutionCycles());
+
+        if (null != operation.getExecutionCycles() && keyMap.containsKey(operation.getExecutionCycles())) {
+            sb.append(operation.getExecutionCycles());
             List<Object> objectpaths = (List<Object>) keyMap.get(operation.getExecutionCycles());
             size = objectpaths.size();
         } else {
-        for (Object argobj : argobjects) {
-            Argument arg = (Argument) argobj;
-            if (arg.getMethod().contains("Reference")) {
-                String objectpath = (String) arg.getValue();
-                if (keyMap.containsKey(objectpath)) {
-                    sb.append(objectpath);
-                    Object resultObj = keyMap.get(objectpath);
-                    if (resultObj instanceof List<?>) {
-                        @SuppressWarnings("unchecked")
-                        List<Object> obj = (List<Object>) keyMap.get(objectpath);
-                        size = obj.size();
+            for (Object argobj : argobjects) {
+                Argument arg = (Argument) argobj;
+                if (arg.getMethod().contains("Reference")) {
+                    String objectpath = (String) arg.getValue();
+                    if (keyMap.containsKey(objectpath)) {
+                        sb.append(objectpath);
+                        Object resultObj = keyMap.get(objectpath);
+                        if (resultObj instanceof List<?>) {
+                            @SuppressWarnings("unchecked")
+                            List<Object> obj = (List<Object>) keyMap.get(objectpath);
+                            size = obj.size();
+                        }
+                        break;
                     }
-                    break;
                 }
             }
-        }
         }
         sb.append(" is -> " + size);
         _logger.debug(sb.toString());
@@ -134,8 +132,6 @@ public class CommandGenerator {
         _logger.debug("Command Object created.");
         return commandobj;
     }
-    
-    
 
     /**
      * Return Command Objects based on the operation passed in.

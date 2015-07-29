@@ -36,7 +36,7 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
     public SRDFLinkStopCompleter(List<URI> ids, String opId) {
         super(ids, opId);
     }
-    
+
     public void setVolumes(Collection<Volume> srcVolumes, Collection<Volume> targetVolumes) {
         this.srcVolumes = srcVolumes;
         this.tgtVolumes = targetVolumes;
@@ -47,41 +47,41 @@ public class SRDFLinkStopCompleter extends SRDFTaskCompleter {
             throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-          
+
             switch (status) {
 
-            case ready:
+                case ready:
 
-                if (null != srcVolumes && null != tgtVolumes && !srcVolumes.isEmpty() && !tgtVolumes.isEmpty()) {
-                    for (Volume sourceVol : srcVolumes) {
-                        sourceVol.setPersonality(NullColumnValueGetter.getNullStr());
-                        sourceVol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                        if (null != sourceVol.getSrdfTargets()) {
-                            sourceVol.getSrdfTargets().clear();
+                    if (null != srcVolumes && null != tgtVolumes && !srcVolumes.isEmpty() && !tgtVolumes.isEmpty()) {
+                        for (Volume sourceVol : srcVolumes) {
+                            sourceVol.setPersonality(NullColumnValueGetter.getNullStr());
+                            sourceVol.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                            if (null != sourceVol.getSrdfTargets()) {
+                                sourceVol.getSrdfTargets().clear();
+                            }
+                            sourceVol.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.persistObject(sourceVol);
                         }
-                        sourceVol.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                        dbClient.persistObject(sourceVol);
-                    }
 
-                    for (Volume target : tgtVolumes) {
-                        target.setPersonality(NullColumnValueGetter.getNullStr());
-                        target.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                        target.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-                        target.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-                        target.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                        target.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                        dbClient.updateAndReindexObject(target);
-                    }
+                        for (Volume target : tgtVolumes) {
+                            target.setPersonality(NullColumnValueGetter.getNullStr());
+                            target.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                            target.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
+                            target.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
+                            target.setSrdfGroup(NullColumnValueGetter.getNullURI());
+                            target.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            dbClient.updateAndReindexObject(target);
+                        }
 
-                    Volume target = tgtVolumes.iterator().next();
-                    Volume source = srcVolumes.iterator().next();
-                    _log.info("SRDF Devices source {} and target {} converted to non srdf devices", source.getId(),
-                            target.getId());
-                    recordSRDFOperation(dbClient, OperationTypeEnum.STOP_SRDF_LINK, status, source.getId().toString(), target
-                            .getId().toString());
-                }
-            default:
-                _log.info("Unable to handle SRDF Link Stop Operational status: {}", status);
+                        Volume target = tgtVolumes.iterator().next();
+                        Volume source = srcVolumes.iterator().next();
+                        _log.info("SRDF Devices source {} and target {} converted to non srdf devices", source.getId(),
+                                target.getId());
+                        recordSRDFOperation(dbClient, OperationTypeEnum.STOP_SRDF_LINK, status, source.getId().toString(), target
+                                .getId().toString());
+                    }
+                default:
+                    _log.info("Unable to handle SRDF Link Stop Operational status: {}", status);
             }
 
         } catch (Exception e) {

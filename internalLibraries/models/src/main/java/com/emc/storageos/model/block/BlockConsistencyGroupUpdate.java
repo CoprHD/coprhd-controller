@@ -26,13 +26,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "consistency_group_update")
 public class BlockConsistencyGroupUpdate {
-    
+
     public static class BlockConsistencyGroupVolumeList {
         private List<URI> volumes;
 
         /**
          * A block volume URI
-         *
+         * 
          * @valid none
          */
         @XmlElement(required = true, name = "volume")
@@ -53,7 +53,7 @@ public class BlockConsistencyGroupUpdate {
 
     /**
      * List of volumes to add to the block consistency group
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "add_volumes")
@@ -67,7 +67,7 @@ public class BlockConsistencyGroupUpdate {
 
     /**
      * List of volumes to remove from the block consistency group
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "remove_volumes")
@@ -79,7 +79,7 @@ public class BlockConsistencyGroupUpdate {
             BlockConsistencyGroupVolumeList removeVolumesList) {
         this.removeVolumesList = removeVolumesList;
     }
-    
+
     public boolean hasEitherAddOrRemoveVolumes() {
         return hasVolumesToAdd() || hasVolumesToRemove();
     }
@@ -96,5 +96,5 @@ public class BlockConsistencyGroupUpdate {
     public boolean hasVolumesToRemove() {
         return removeVolumesList != null && removeVolumesList.volumes != null &&
                 !removeVolumesList.volumes.isEmpty();
-    }    
+    }
 }

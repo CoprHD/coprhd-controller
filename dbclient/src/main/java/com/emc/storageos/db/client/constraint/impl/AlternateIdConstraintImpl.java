@@ -32,7 +32,6 @@ import com.emc.storageos.db.client.impl.CompositeColumnNameSerializer;
 import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 
-
 /**
  * Alternate ID constraint implementation
  */

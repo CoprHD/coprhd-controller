@@ -21,57 +21,60 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 
 /**
- * This represents an wwn alias include: 
- *      name - name of alias
- *      address - WWN format
+ * This represents an wwn alias include:
+ * name - name of alias
+ * address - WWN format
  */
-@XmlRootElement(name="wwn_alias")
+@XmlRootElement(name = "wwn_alias")
 public class WwnAliasParam implements Serializable {
 
     private String name;
     private String address;
     /**
-     * marked transient because it cannot be serialized 
+     * marked transient because it cannot be serialized
      */
     // The path to the ZoneAlias object in SIM DB
     transient Object cimObjectPath = null;
-    // The path to the ZoneMembershipSettingData object for 
+    // The path to the ZoneMembershipSettingData object for
     // the alias WWN member
     transient Object cimMemberPath = null;
-    
-    public WwnAliasParam() {};
-    
+
+    public WwnAliasParam() {
+    };
+
     public WwnAliasParam(String name) {
         setName(name);
     }
-        
+
     public WwnAliasParam(String name, String address) {
         this(name);
         setAddress(address);
     }
-    
+
     /**
      * The alias WWN
+     * 
      * @return The alias WWN
      */
     @XmlElement
-	public String getAddress() {
-		return address;
-	}
-	
-	public void setAddress(String address) {
-	    this.address = address;
-	}
-	
-	/**
-	 * The alias name
-	 * @return The alias name
-	 */
-	@XmlElement (required=true)
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    /**
+     * The alias name
+     * 
+     * @return The alias name
+     */
+    @XmlElement(required = true)
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
@@ -80,6 +83,7 @@ public class WwnAliasParam implements Serializable {
     public Object getCimObjectPath() {
         return cimObjectPath;
     }
+
     public void setCimObjectPath(Object cimObjectPath) {
         this.cimObjectPath = cimObjectPath;
     }
@@ -88,8 +92,9 @@ public class WwnAliasParam implements Serializable {
     public Object getCimMemberPath() {
         return cimMemberPath;
     }
+
     public void setCimMemberPath(Object cimMemberPath) {
         this.cimMemberPath = cimMemberPath;
     }
-    
+
 }

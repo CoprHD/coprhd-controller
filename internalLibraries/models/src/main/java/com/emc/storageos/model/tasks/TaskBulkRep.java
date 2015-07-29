@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @XmlRootElement(name = "bulk_tasks")
-public class TaskBulkRep extends BulkRestRep{
+public class TaskBulkRep extends BulkRestRep {
 
     private List<TaskResourceRep> tasks;
 

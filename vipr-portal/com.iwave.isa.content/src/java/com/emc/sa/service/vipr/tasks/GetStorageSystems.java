@@ -9,9 +9,9 @@ import java.util.List;
 
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 
-public class GetStorageSystems extends ViPRExecutionTask<List<StorageSystemRestRep>>{
+public class GetStorageSystems extends ViPRExecutionTask<List<StorageSystemRestRep>> {
     private List<URI> storageSystems;
-    
+
     public GetStorageSystems(List<URI> storageSystems) {
         this.storageSystems = storageSystems;
         provideDetailArgs(storageSystems);

@@ -30,14 +30,14 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("ExportGroup")
 public class ExportGroup extends DataObject {
-    
+
     private StringSet snapshots;
     private Set<BlockSnapshot> snapshotSet;
-    private StringSet _exportMasks; 
+    private StringSet _exportMasks;
     private List<ExportMask> _exportMaskSet;
     private StringSet exportMaskLabels;
     private List<ExportMask> exportMasksFromLabels;
@@ -79,7 +79,7 @@ public class ExportGroup extends DataObject {
     /**
      * @return the _exportMaskSet
      */
-    @Relation(type=ExportMask.class, mappedBy="exportMasks")
+    @Relation(type = ExportMask.class, mappedBy = "exportMasks")
     @Name("exportMaskSet")
     public List<ExportMask> getExportMaskSet() {
         return _exportMaskSet;
@@ -91,15 +91,18 @@ public class ExportGroup extends DataObject {
     public void setExportMaskSet(List<ExportMask> _exportMaskSet) {
         this._exportMaskSet = _exportMaskSet;
     }
-    
+
     public boolean addExportMask(ExportMask mask) {
-        if (_exportMaskSet == null) _exportMaskSet = new ArrayList<ExportMask>();
+        if (_exportMaskSet == null) {
+            _exportMaskSet = new ArrayList<ExportMask>();
+        }
         return (_exportMaskSet.contains(mask)) ? false : _exportMaskSet.add(mask);
     }
+
     public boolean removeExportMask(ExportMask mask) {
         return (_exportMaskSet == null) ? false : _exportMaskSet.remove(mask);
     }
-    
+
     /**
      * @return the snapshots
      */
@@ -120,7 +123,7 @@ public class ExportGroup extends DataObject {
     /**
      * @return the snapshotSet
      */
-    @Relation(type=BlockSnapshot.class, mappedBy="snapshots")
+    @Relation(type = BlockSnapshot.class, mappedBy = "snapshots")
     @Name("snashotSet")
     public Set<BlockSnapshot> getSnapshotSet() {
         return snapshotSet;
@@ -151,7 +154,7 @@ public class ExportGroup extends DataObject {
     /**
      * @return the exportMasksFromLabels
      */
-    @Relation(type=BlockSnapshot.class, mappedBy="exportMasksByLabel")
+    @Relation(type = BlockSnapshot.class, mappedBy = "exportMasksByLabel")
     @Name("exportMaskListFromLabels")
     public List<ExportMask> getExportMasksFromLabels() {
         return exportMasksFromLabels;
@@ -163,6 +166,5 @@ public class ExportGroup extends DataObject {
     public void setExportMasksFromLabels(List<ExportMask> exportMasksFromLabels) {
         this.exportMasksFromLabels = exportMasksFromLabels;
     }
-
 
 }

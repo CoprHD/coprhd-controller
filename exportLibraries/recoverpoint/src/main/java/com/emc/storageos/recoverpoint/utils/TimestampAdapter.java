@@ -23,12 +23,13 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
  * 
  */
 public class TimestampAdapter extends XmlAdapter<String, Timestamp> {
-	@Override
-	public String marshal(Timestamp v) {
-		return "" + v.getTime();
-	}
-	@Override
-	public Timestamp unmarshal(String v) {
-		return new Timestamp((new Long(v)).longValue());
-	}
+    @Override
+    public String marshal(Timestamp v) {
+        return "" + v.getTime();
+    }
+
+    @Override
+    public Timestamp unmarshal(String v) {
+        return new Timestamp((new Long(v)).longValue());
+    }
 }

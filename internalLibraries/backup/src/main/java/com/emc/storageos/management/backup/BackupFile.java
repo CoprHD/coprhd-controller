@@ -58,7 +58,7 @@ public class BackupFile implements Comparable<BackupFile> {
     @Override
     public boolean equals(Object obj) {
         return obj instanceof BackupFile &&
-                ((BackupFile)obj).info.getName().equals(this.info.getName());
+                ((BackupFile) obj).info.getName().equals(this.info.getName());
     }
 
     public boolean matches(String tag, BackupType type, String node) {

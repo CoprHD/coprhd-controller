@@ -32,11 +32,11 @@ public class FindLunsBackingDatastore extends ExecutionTask<Set<String>> {
         List<HostScsiDisk> disks = new HostStorageAPI(host).listDisks(datastore);
         Set<String> luns = Sets.newHashSet();
         for (HostScsiDisk disk : disks) {
-        	
-        	if ( !validateCanonicalPrefix( disk.getCanonicalName() ) ){
-        		logError("FindLunsBackingDatastore.failure.invalidprefix", disk.getCanonicalName());
-        	}
-        	
+
+            if (!validateCanonicalPrefix(disk.getCanonicalName())) {
+                logError("FindLunsBackingDatastore.failure.invalidprefix", disk.getCanonicalName());
+            }
+
             String volumeWwn = VMwareUtils.getDiskWwn(disk);
             if (StringUtils.isNotBlank(volumeWwn)) {
                 luns.add(volumeWwn);
@@ -44,12 +44,12 @@ public class FindLunsBackingDatastore extends ExecutionTask<Set<String>> {
         }
         return luns;
     }
-    
-	private boolean validateCanonicalPrefix(final String canonicalName) {
-		if (canonicalName.startsWith(VMwareUtils.CANONICAL_NAME_PREFIX)
-			|| canonicalName.startsWith(VMwareUtils.ALTERNATE_CANONICAL_NAME_PREFIX)) {
-			return true;
-		}
-		return false;
-	}
+
+    private boolean validateCanonicalPrefix(final String canonicalName) {
+        if (canonicalName.startsWith(VMwareUtils.CANONICAL_NAME_PREFIX)
+                || canonicalName.startsWith(VMwareUtils.ALTERNATE_CANONICAL_NAME_PREFIX)) {
+            return true;
+        }
+        return false;
+    }
 }

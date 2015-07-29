@@ -27,24 +27,26 @@ public class VcenterClusterCompleter extends TaskCompleter {
 
     public VcenterClusterCompleter(URI id, String opId, OperationTypeEnum opType, String serviceType) {
         super(VcenterDataCenter.class, id, opId);
-    	this.opType = opType;
-    	this.serviceType = serviceType;
+        this.opType = opType;
+        this.serviceType = serviceType;
     }
-    
-	@Override
-	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
-			throws DeviceControllerException {
-		log.info("VcenterClusterCompleter.complete {}", status.name());
-		VcenterDataCenter vcenterDataCenter = dbClient.queryObject(VcenterDataCenter.class, getId());
-		AuditLogManager auditMgr = new AuditLogManager();
+
+    @Override
+    protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
+            throws DeviceControllerException {
+        log.info("VcenterClusterCompleter.complete {}", status.name());
+        VcenterDataCenter vcenterDataCenter = dbClient.queryObject(VcenterDataCenter.class, getId());
+        AuditLogManager auditMgr = new AuditLogManager();
         auditMgr.setDbClient(dbClient);
-		if (status == Status.error) {
+        if (status == Status.error) {
             log.info("Error in state " + status);
-			dbClient.error(VcenterDataCenter.class, getId(), getOpId(), coded);
-			auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(), AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END);
-		} else {
-			dbClient.ready(VcenterDataCenter.class, getId(), getOpId());
-			auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(), AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END);
-		}
-	}
+            dbClient.error(VcenterDataCenter.class, getId(), getOpId(), coded);
+            auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(), AuditLogManager.AUDITLOG_FAILURE,
+                    AuditLogManager.AUDITOP_END);
+        } else {
+            dbClient.ready(VcenterDataCenter.class, getId(), getOpId());
+            auditMgr.recordAuditLog(null, null, serviceType, opType, System.currentTimeMillis(), AuditLogManager.AUDITLOG_SUCCESS,
+                    AuditLogManager.AUDITOP_END);
+        }
+    }
 }

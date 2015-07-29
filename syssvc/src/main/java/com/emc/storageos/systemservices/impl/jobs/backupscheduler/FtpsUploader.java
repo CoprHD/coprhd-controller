@@ -40,7 +40,8 @@ public class FtpsUploader extends UploadExecutor {
     private ProcessBuilder getBuilder(boolean withProgress) {
         boolean isExplicit = startsWithIgnoreCase(this.cfg.uploadUrl, FTPS_URL_PREFIX);
 
-        ProcessBuilder builder = new ProcessBuilder("curl", withProgress ? "-#k" : "-sSk", "-u", String.format("%s:%s", this.cfg.uploadUserName, this.cfg.getUploadPassword()));
+        ProcessBuilder builder = new ProcessBuilder("curl", withProgress ? "-#k" : "-sSk", "-u", String.format("%s:%s",
+                this.cfg.uploadUserName, this.cfg.getUploadPassword()));
         if (!isExplicit) {
             builder.command().add("--ftp-ssl");
         }

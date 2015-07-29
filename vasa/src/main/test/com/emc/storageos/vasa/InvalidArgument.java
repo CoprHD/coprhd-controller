@@ -12,36 +12,33 @@
 
 package com.emc.storageos.vasa;
 
-public class InvalidArgument extends java.lang.Exception{
+public class InvalidArgument extends java.lang.Exception {
 
     private static final long serialVersionUID = 1348562968837L;
-    
+
     private com.emc.storageos.vasa.VasaServiceStub.InvalidArgumentE faultMessage;
 
-    
-        public InvalidArgument() {
-            super("InvalidArgument");
-        }
-
-        public InvalidArgument(java.lang.String s) {
-           super(s);
-        }
-
-        public InvalidArgument(java.lang.String s, java.lang.Throwable ex) {
-          super(s, ex);
-        }
-
-        public InvalidArgument(java.lang.Throwable cause) {
-            super(cause);
-        }
-    
-
-    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.InvalidArgumentE msg){
-       faultMessage = msg;
+    public InvalidArgument() {
+        super("InvalidArgument");
     }
-    
-    public com.emc.storageos.vasa.VasaServiceStub.InvalidArgumentE getFaultMessage(){
-       return faultMessage;
+
+    public InvalidArgument(java.lang.String s) {
+        super(s);
+    }
+
+    public InvalidArgument(java.lang.String s, java.lang.Throwable ex) {
+        super(s, ex);
+    }
+
+    public InvalidArgument(java.lang.Throwable cause) {
+        super(cause);
+    }
+
+    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.InvalidArgumentE msg) {
+        faultMessage = msg;
+    }
+
+    public com.emc.storageos.vasa.VasaServiceStub.InvalidArgumentE getFaultMessage() {
+        return faultMessage;
     }
 }
-    

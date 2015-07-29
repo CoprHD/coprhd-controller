@@ -21,39 +21,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Provides lock timeout values from the configuration data.
  */
 public class LockTimeoutValue {
-	private static final Logger _log = LoggerFactory.getLogger(LockTimeoutValue.class);
-	private static CoordinatorClient coordinator;
-	private static final Integer ULTIMATE_DEFAULT = 3600;		// 3600 seconds == 1 hour
-	private static Set<String> reported = new HashSet<String>();
-	
-	/**
-	 * Returns the lock timeout value in seconds.
-	 * @param type LockType
-	 * @return Integer number of seconds for timeout value
-	 */
-	public static  Integer  get(LockType type) {
-		try {
-			Integer value = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, type.getKey()));
-			if (!reported.contains(type.name())) {
-				_log.info(String.format("Timeout value for LockType %s is %d", type.name(), value));
-				reported.add(type.name());
-			}
-			return value;
-		} catch (Exception ex) {
-			_log.info(String.format("Could not determine lock timeout for type %s, returning hard-wired default of %d",  type.name(), ULTIMATE_DEFAULT), ex);
-			return ULTIMATE_DEFAULT;
-		}
-	}
+    private static final Logger _log = LoggerFactory.getLogger(LockTimeoutValue.class);
+    private static CoordinatorClient coordinator;
+    private static final Integer ULTIMATE_DEFAULT = 3600;		// 3600 seconds == 1 hour
+    private static Set<String> reported = new HashSet<String>();
 
-	public void setCoordinator(CoordinatorClient coordinator) {
-		this.coordinator = coordinator;
-	}
+    /**
+     * Returns the lock timeout value in seconds.
+     * 
+     * @param type LockType
+     * @return Integer number of seconds for timeout value
+     */
+    public static Integer get(LockType type) {
+        try {
+            Integer value = Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator, type.getKey()));
+            if (!reported.contains(type.name())) {
+                _log.info(String.format("Timeout value for LockType %s is %d", type.name(), value));
+                reported.add(type.name());
+            }
+            return value;
+        } catch (Exception ex) {
+            _log.info(String.format("Could not determine lock timeout for type %s, returning hard-wired default of %d", type.name(),
+                    ULTIMATE_DEFAULT), ex);
+            return ULTIMATE_DEFAULT;
+        }
+    }
+
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
+    }
 
 }

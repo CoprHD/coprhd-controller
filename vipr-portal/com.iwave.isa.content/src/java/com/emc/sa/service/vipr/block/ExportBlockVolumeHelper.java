@@ -17,7 +17,6 @@ import static com.emc.sa.service.vipr.ViPRService.uris;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,20 +36,20 @@ import com.google.common.collect.Maps;
 public class ExportBlockVolumeHelper {
     @Param(HOST)
     protected URI hostId;
-    
-    @Param(value=VIRTUAL_ARRAY, required=false)
-    protected URI virtualArrayId;    
+
+    @Param(value = VIRTUAL_ARRAY, required = false)
+    protected URI virtualArrayId;
 
     @Param(PROJECT)
     protected URI projectId;
 
-    @Param(value=VOLUMES, required=false)
+    @Param(value = VOLUMES, required = false)
     protected List<String> volumeIds;
 
-    @Param(value=VOLUME, required=false)
+    @Param(value = VOLUME, required = false)
     protected String volumeId;
-    
-    @Param(value=SNAPSHOTS, required=false)
+
+    @Param(value = SNAPSHOTS, required = false)
     protected List<String> snapshotIds;
 
     @Param(value = HLU, required = false)
@@ -64,8 +63,8 @@ public class ExportBlockVolumeHelper {
             hlu = -1;
         }
 
-        if (volumeId == null && volumeIds==null && snapshotIds==null) {
-            ExecutionUtils.fail("failTask.ExportBlockVolumeHelper.precheck", new Object[]{}, new Object[]{VOLUME, VOLUMES, SNAPSHOTS});
+        if (volumeId == null && volumeIds == null && snapshotIds == null) {
+            ExecutionUtils.fail("failTask.ExportBlockVolumeHelper.precheck", new Object[] {}, new Object[] { VOLUME, VOLUMES, SNAPSHOTS });
         }
 
         if (volumeIds == null || volumeIds.isEmpty() && volumeId != null) {
@@ -79,14 +78,15 @@ public class ExportBlockVolumeHelper {
             cluster = BlockStorageUtils.getCluster(hostId);
         }
     }
-    
-    /** convenience method for exporting volumes  */
+
+    /** convenience method for exporting volumes */
     public List<ExportGroupRestRep> exportVolumes() {
         return exportBlockResources(uris(volumeIds));
     }
-    
+
     /**
      * export the block resources identified by URIs in the given resource id list
+     * 
      * @param resourceIds the list of URIs which identify the block resources that need to be exported
      * @return The list of export groups which have been created/updated
      */
@@ -99,17 +99,17 @@ public class ExportBlockVolumeHelper {
 
         // we will need to keep track of the current HLU number
         Integer currentHlu = hlu;
-        
+
         // get a list of all block resources using the id list provided
         List<BlockObjectRestRep> blockResources = BlockStorageUtils.getBlockResources(resourceIds);
         URI virtualArrayId = null;
 
         for (BlockObjectRestRep blockResource : blockResources) {
             virtualArrayId = getVirtualArrayId(blockResource);
-            
+
             // see if we can find an export that uses this block resource
             ExportGroupRestRep export = findExistingExportGroup(blockResource, virtualArrayId);
-            
+
             // If the export does not exist for this volume
             if (export == null) {
                 newVolumes.add(blockResource.getId());
@@ -131,9 +131,9 @@ public class ExportBlockVolumeHelper {
         for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
             volumeIds.addAll(entry.getValue());
         }
-        
+
         Map<URI, Integer> volumeHlus = getVolumeHLUs(volumeIds);
-        
+
         for (Map.Entry<URI, Set<URI>> entry : addVolumeExports.entrySet()) {
             BlockStorageUtils.addVolumesToExport(entry.getValue(), currentHlu, entry.getKey(), volumeHlus);
             logInfo("export.block.volume.add.existing", entry.getValue(), entry.getKey());
@@ -156,7 +156,7 @@ public class ExportBlockVolumeHelper {
             // add this export to the list of exports we will return to the caller
             exports.add(export);
         }
-        //add host or cluster to the affected resources
+        // add host or cluster to the affected resources
         if (host != null) {
             ExecutionUtils.addAffectedResource(host.getId().toString());
         } else if (cluster != null) {
@@ -183,7 +183,7 @@ public class ExportBlockVolumeHelper {
     private URI getVirtualArrayId(BlockObjectRestRep blockResource) {
         // if we got a VArray from the form then we can just return that
         if (virtualArrayId != null) {
-            return virtualArrayId ;
+            return virtualArrayId;
         }
         else {
             return BlockStorageUtils.getVirtualArrayId(blockResource);
@@ -192,7 +192,7 @@ public class ExportBlockVolumeHelper {
 
     private ExportGroupRestRep findExistingExportGroup(BlockObjectRestRep volume, URI virtualArrayId) {
         if (cluster != null) {
-            return  BlockStorageUtils.findExportByCluster(cluster, projectId, virtualArrayId, volume.getId());
+            return BlockStorageUtils.findExportByCluster(cluster, projectId, virtualArrayId, volume.getId());
         }
 
         // Attempt to find one (regardless of type) that contains the Volume
@@ -212,7 +212,7 @@ public class ExportBlockVolumeHelper {
 
         return null;
     }
-    
+
     public URI getHostId() {
         return hostId;
     }

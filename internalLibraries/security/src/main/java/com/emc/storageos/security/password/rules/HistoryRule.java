@@ -20,8 +20,6 @@ import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.CollectionUtils;
-
 import java.text.MessageFormat;
 import java.util.List;
 
@@ -36,10 +34,9 @@ public class HistoryRule implements Rule {
         this.passwordUtils = passwordUtils;
     }
 
-
     /**
      * validate the new password is not in history.
-     *
+     * 
      * @param password
      */
     @Override
@@ -55,12 +52,12 @@ public class HistoryRule implements Rule {
 
         String text = password.getPassword();
         List<String> previousPasswords = password.getPreviousPasswords(historySize);
-        if (previousPasswords.isEmpty() ) {
+        if (previousPasswords.isEmpty()) {
             _log.info("Pass since no password in history list.");
             return;
         }
 
-        for (int i=0; i<previousPasswords.size(); i++) {
+        for (int i = 0; i < previousPasswords.size(); i++) {
             if (passwordUtils.match(text, previousPasswords.get(i))) {
                 _log.info(MessageFormat.format("fail, match previous password #{0}", i));
                 throw BadRequestException.badRequests.passwordInvalidHistory(historySize);

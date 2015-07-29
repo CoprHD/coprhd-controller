@@ -18,6 +18,7 @@ public class HostBulkRep extends BulkRestRep {
 
     /**
      * List of host objects that exist in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "host")

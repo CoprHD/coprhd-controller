@@ -43,40 +43,40 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
      */
     private final Logger _logger = LoggerFactory
             .getLogger(VNXSnapshotProcessor.class);
-    
+
     @SuppressWarnings("unchecked")
-	@Override
+    @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("processing snapshot response" + resultObj);
         final PostMethod result = (PostMethod) resultObj;
-		try {
-			ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
-					.getResponseBodyAsStream());
-			Status status = null;
-			if (null != responsePacket.getPacketFault()) {
-				status = responsePacket.getPacketFault();
-				processErrorStatus(status, keyMap);
-			} else {
-				List<Object> snapshotList = getQueryResponse(responsePacket);
-				Iterator<Object> snapshotItr = snapshotList.iterator();
-				if (snapshotItr.hasNext()) {
-					status = (Status) snapshotItr.next();
-					if (status.getMaxSeverity() == Severity.OK) {
-						final List<Stat> statList = (List<Stat>) keyMap
-		                        .get(VNXFileConstants.STATS);
-						Iterator<Stat> statsIterator = statList.iterator();
-						while (statsIterator.hasNext()) {
-							Stat stat = (Stat) statsIterator.next();
-							fetchSnapShotDetails(stat, snapshotList);
-						}
-					} else {
-					    processErrorStatus(status, keyMap);
-					}
-				}
-			}
-			
-		} catch (final Exception ex) {
+        try {
+            ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
+                    .getResponseBodyAsStream());
+            Status status = null;
+            if (null != responsePacket.getPacketFault()) {
+                status = responsePacket.getPacketFault();
+                processErrorStatus(status, keyMap);
+            } else {
+                List<Object> snapshotList = getQueryResponse(responsePacket);
+                Iterator<Object> snapshotItr = snapshotList.iterator();
+                if (snapshotItr.hasNext()) {
+                    status = (Status) snapshotItr.next();
+                    if (status.getMaxSeverity() == Severity.OK) {
+                        final List<Stat> statList = (List<Stat>) keyMap
+                                .get(VNXFileConstants.STATS);
+                        Iterator<Stat> statsIterator = statList.iterator();
+                        while (statsIterator.hasNext()) {
+                            Stat stat = (Stat) statsIterator.next();
+                            fetchSnapShotDetails(stat, snapshotList);
+                        }
+                    } else {
+                        processErrorStatus(status, keyMap);
+                    }
+                }
+            }
+
+        } catch (final Exception ex) {
             _logger.error(
                     "Exception occurred while processing the snapshot response due to {}",
                     ex.getMessage());
@@ -91,8 +91,8 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
             throws BaseCollectionException {
 
     }
-    
-	/**
+
+    /**
      * fetches the snapshot details from the checkpoint list.
      * 
      * @param stat
@@ -104,16 +104,16 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
         int snapCount = 0;
         long snapCapacity = 0;
         Checkpoint checkPoint = null;
-        //first element is stat object and remaining elem are snapshot's
+        // first element is stat object and remaining elem are snapshot's
         Iterator<Object> snapshotItr = snapshotList.iterator();
         snapshotItr.next();
-        //processing snapshot list
+        // processing snapshot list
         while (snapshotItr.hasNext()) {
-        	checkPoint = (Checkpoint) snapshotItr.next();
-        	if (fetchNativeId(stat.getNativeGuid()).equals(checkPoint.getCheckpointOf())) {
-        		snapCount++;
+            checkPoint = (Checkpoint) snapshotItr.next();
+            if (fetchNativeId(stat.getNativeGuid()).equals(checkPoint.getCheckpointOf())) {
+                snapCount++;
                 snapCapacity += (Long.valueOf(checkPoint.getFileSystemSize()) * 1024);
-        	}
+            }
         }
         stat.setSnapshotCount(snapCount);
         stat.setSnapshotCapacity(snapCapacity);

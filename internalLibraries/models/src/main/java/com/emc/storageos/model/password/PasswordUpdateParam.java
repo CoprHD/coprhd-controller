@@ -18,14 +18,12 @@ package com.emc.storageos.model.password;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
 @XmlRootElement(name = "password_update")
 public class PasswordUpdateParam {
 
     private String oldPassword;
-	private String password;
-	private String encpassword;
+    private String password;
+    private String encpassword;
 
     @XmlElement(name = "old_password")
     public String getOldPassword() {
@@ -36,22 +34,21 @@ public class PasswordUpdateParam {
         this.oldPassword = oldPassword;
     }
 
-	@XmlElement(name = "password")
-	public String getPassword() {
-		return password;
-	}
-	
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	
-	@XmlElement(name = "encpassword")
-	public String getEncPassword() {
-		return encpassword;
-	}
-	
-	public void setEncPassword(String encpassword) {
-		this.encpassword = encpassword;
-	}	
-}
+    @XmlElement(name = "password")
+    public String getPassword() {
+        return password;
+    }
 
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    @XmlElement(name = "encpassword")
+    public String getEncPassword() {
+        return encpassword;
+    }
+
+    public void setEncPassword(String encpassword) {
+        this.encpassword = encpassword;
+    }
+}

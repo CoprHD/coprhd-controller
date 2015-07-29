@@ -25,27 +25,27 @@ import com.emc.storageos.db.client.model.StringMap;
 
 @XmlRootElement
 public class StringMapAdapter extends
-     XmlAdapter<StringMapAdapter.AdaptedMap, StringMap> {
+        XmlAdapter<StringMapAdapter.AdaptedMap, StringMap> {
 
     public static class AdaptedMap {
         public List<Entry> entry = new ArrayList<Entry>();
     }
-    
+
     public static class Entry {
         public String key;
         public String value;
     }
-    
+
     @Override
     public StringMap unmarshal(AdaptedMap adaptedMap)
-         throws Exception {
+            throws Exception {
         StringMap map = new StringMap();
         for (Entry entry : adaptedMap.entry) {
             map.put(entry.key, entry.value);
         }
         return map;
     }
-    
+
     @Override
     public AdaptedMap marshal(StringMap map) throws Exception {
         AdaptedMap adaptedMap = new AdaptedMap();

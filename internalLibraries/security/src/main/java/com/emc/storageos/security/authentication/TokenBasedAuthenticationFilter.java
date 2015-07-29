@@ -37,20 +37,21 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.net.InetAddresses;
 
-
 /**
- * Client side Authentication filter for the Bourne Token authentication mechanism  
+ * Client side Authentication filter for the Bourne Token authentication mechanism
  */
 public class TokenBasedAuthenticationFilter extends AbstractAuthenticationFilter {
     private final Logger _logger = LoggerFactory.getLogger(TokenBasedAuthenticationFilter.class);
     private final String REQUESTING_COOKIES = RequestProcessingUtils.REQUESTING_COOKIES;
 
-    @Autowired 
+    @Autowired
     private AuthSvcEndPointLocator _endpointLocator;
-    
+
     private boolean _usingFormLogin;
+
     /**
      * Set usingFormLogin to redirect the service to form login page
+     * 
      * @param value true or false
      */
     public void setUsingFormLogin(String value) {
@@ -95,8 +96,8 @@ public class TokenBasedAuthenticationFilter extends AbstractAuthenticationFilter
     protected AbstractRequestWrapper authenticate(ServletRequest servletRequest) {
         final StorageOSUser user = getStorageOSUserFromRequest(servletRequest, true);
         if (user != null) {
-            // Token found and validated.  Proceed to the rest of the filter chain.
-            return new AbstractRequestWrapper((HttpServletRequest)servletRequest, user);
+            // Token found and validated. Proceed to the rest of the filter chain.
+            return new AbstractRequestWrapper((HttpServletRequest) servletRequest, user);
         } else {
             _logger.debug("No token found in request.");
             return null;
@@ -105,16 +106,18 @@ public class TokenBasedAuthenticationFilter extends AbstractAuthenticationFilter
 
     /**
      * Forward to Bourne authsvc
+     * 
      * @param req
      * @param servletResponse
      * @throws java.io.IOException
      * @throws javax.servlet.ServletException
      */
     protected void forwardToAuthService(final HttpServletRequest req,
-                                        final HttpServletResponse servletResponse)
+            final HttpServletResponse servletResponse)
             throws IOException, ServletException {
 
-        boolean formLoginRequested = _usingFormLogin || RequestProcessingUtils.isRequestingQueryParam(req, RequestProcessingUtils.REQUESTING_FORMLOGIN);
+        boolean formLoginRequested = _usingFormLogin
+                || RequestProcessingUtils.isRequestingQueryParam(req, RequestProcessingUtils.REQUESTING_FORMLOGIN);
         boolean cookiesRequested = RequestProcessingUtils.isRequestingQueryParam(req, RequestProcessingUtils.REQUESTING_COOKIES);
         boolean isRequestFromLB = RequestProcessingUtils.isRequestFromLoadBalancer(req);
         URI endpoint = null;
@@ -134,9 +137,9 @@ public class TokenBasedAuthenticationFilter extends AbstractAuthenticationFilter
         if (cookiesRequested || formLoginRequested || !InetAddresses.isInetAddress(endpoint.getHost())) {
             // ok, then, keep them on the same node
             redirectURL = RequestProcessingUtils.getOnNodeAuthsvcRedirectURL(req, endpoint);
-        } 
+        }
 
-        if( formLoginRequested ) {
+        if (formLoginRequested) {
             redirectURL.append("/formlogin?");
         } else {
             redirectURL.append("/login?");
@@ -151,7 +154,7 @@ public class TokenBasedAuthenticationFilter extends AbstractAuthenticationFilter
         redirectURL.append(URLEncoder.encode(serviceURL.toString(), "UTF-8"));
         // adding requesting cookies if needed
         if (cookiesRequested) {
-            redirectURL.append(String.format("&%s=true",REQUESTING_COOKIES));
+            redirectURL.append(String.format("&%s=true", REQUESTING_COOKIES));
         }
 
         // CHECK - if we are already back from redirect or we have a non-GET request

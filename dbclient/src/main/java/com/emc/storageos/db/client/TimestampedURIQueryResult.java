@@ -41,16 +41,16 @@ public class TimestampedURIQueryResult extends QueryResultList<TimestampedURIQue
         @Override
         public boolean equals(Object o) {
             if (this == o) {
-            	return true;
+                return true;
             }
             if (o == null || getClass() != o.getClass()) {
-            	return false;
+                return false;
             }
 
             TimestampedURI that = (TimestampedURI) o;
 
             if (uri != null ? !uri.equals(that.uri) : that.uri != null) {
-            	return false;
+                return false;
             }
 
             return true;

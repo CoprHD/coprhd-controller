@@ -188,7 +188,8 @@ public enum ResourceOperationTypeEnum {
     PERFORM_PROTECTION_ACTION_FAILOVER             ("PERFORM PROTECTION ACTION FAILOVER",             "failover target volume(s)"),
     PERFORM_PROTECTION_ACTION_FAILOVER_CANCEL      ("PERFORM PROTECTION ACTION FAILOVER CANCEL",      "cancel a previous failover operation"),
     PERFORM_PROTECTION_ACTION_FAILOVER_TEST        ("PERFORM PROTECTION ACTION FAILOVER TEST",        "test a failover"),
-    PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL ("PERFORM PROTECTION ACTION FAILOVER TEST CANCEL", "cancel a test of a previous failover operation"),
+    PERFORM_PROTECTION_ACTION_FAILOVER_TEST_CANCEL("PERFORM PROTECTION ACTION FAILOVER TEST CANCEL",
+            "cancel a test of a previous failover operation"),
     PERFORM_PROTECTION_ACTION_SWAP                 ("PERFORM PROTECTION ACTION SWAP",                 "swap source and target volumes"),
     PERFORM_PROTECTION_ACTION_STOP                 ("PERFORM PROTECTION ACTION STOP",                 "stop the replication link between source and target"),
     PERFORM_PROTECTION_ACTION_START                ("PERFORM PROTECTION ACTION START",                "start the replication link between source and target"),
@@ -284,8 +285,6 @@ public enum ResourceOperationTypeEnum {
     UPDATE_VCENTER_CLUSTER   ("UPDATE VCENTER CLUSTER",  "update a cluster in vCenter server"),
     SYS_EVENT                ("SYSTEM EVENT", "System Event");
 
-
-
     private final String name;
     private final String description;
 
@@ -296,6 +295,7 @@ public enum ResourceOperationTypeEnum {
 
     /**
      * The name of the resource operation
+     * 
      * @valid none
      */
     @XmlElement

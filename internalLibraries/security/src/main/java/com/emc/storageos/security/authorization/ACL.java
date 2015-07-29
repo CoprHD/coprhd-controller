@@ -15,7 +15,7 @@
 package com.emc.storageos.security.authorization;
 
 /**
- *  Global enums for ACLs
+ * Global enums for ACLs
  */
 public enum ACL {
     ANY, // has any of the following acls - used only in code, never persisted to db

@@ -8,10 +8,10 @@ import com.emc.aix.command.RemoveFromFilesystemsCommand;
 
 public class RemoveFromFilesystemsConfig extends AixExecutionTask<Void> {
 
-	private String mountPoint;
-	
+    private String mountPoint;
+
     public RemoveFromFilesystemsConfig(String mountPoint) {
-    	this.mountPoint = mountPoint;
+        this.mountPoint = mountPoint;
     }
 
     @Override

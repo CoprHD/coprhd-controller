@@ -10,7 +10,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RestLinkRep;
 
 public class NamedRelatedBlockConsistencyGroupRep extends NamedRelatedResourceRep {
-    
+
     private String deviceName;
 
     public NamedRelatedBlockConsistencyGroupRep() {
@@ -23,13 +23,14 @@ public class NamedRelatedBlockConsistencyGroupRep extends NamedRelatedResourceRe
 
     /**
      * The device name
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "device_name")
     public String getDeviceName() {
         return deviceName;
     }
+
     public void setDeviceName(String deviceName) {
         this.deviceName = deviceName;
     }

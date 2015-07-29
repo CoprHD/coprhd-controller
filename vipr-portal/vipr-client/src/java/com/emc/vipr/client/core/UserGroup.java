@@ -49,7 +49,7 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Lists all user groups.
      * <p>
      * API Call: <tt>GET /vdc/admin/user-groups</tt>
-     *
+     * 
      * @return the list of user groups.
      */
     @Override
@@ -73,9 +73,9 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Creates an user group.
      * <p>
      * API Call: <tt>POST /vdc/admin/user-groups</tt>
-     *
+     * 
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the created user group.
      */
     public UserGroupRestRep create(UserGroupCreateParam input) {
@@ -86,9 +86,9 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Updates an user group.
      * <p>
      * API Call: <tt>PUT /vdc/admin/user-groups</tt>
-     *
+     * 
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated user group.
      */
     public UserGroupRestRep update(URI id, UserGroupUpdateParam input) {
@@ -99,7 +99,7 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * Deletes an user group.
      * <p>
      * API Call: <tt>DELETE /vdc/admin/user-groups/{id}</tt>
-     *
+     * 
      * @param id the user group ID.
      */
     public void delete(URI id) {

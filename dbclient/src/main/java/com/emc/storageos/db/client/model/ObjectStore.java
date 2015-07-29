@@ -17,7 +17,6 @@ package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.db.client.model.DbKeyspace.Keyspaces;
 
-
 @Cf("ObjectStore")
 @DbKeyspace(Keyspaces.GLOBAL)
 public class ObjectStore extends DataObject {
@@ -40,7 +39,7 @@ public class ObjectStore extends DataObject {
     // total # of hashes used
     private Integer _totalNumOfHashes;
 
-    public static enum Type{
+    public static enum Type {
         OBJ,
         HDFS,
         OBJ_AND_HDFS
@@ -77,48 +76,48 @@ public class ObjectStore extends DataObject {
     }
 
     @Name("type")
-    public String getType(){
-       return _type == null ? Type.OBJ.name() : _type;
+    public String getType() {
+        return _type == null ? Type.OBJ.name() : _type;
     }
 
-    public void setType(String type){
-        if(type == null){
+    public void setType(String type) {
+        if (type == null) {
             return;
         }
         _type = type;
         setChanged("type");
     }
 
-    public void setType(Type type){
+    public void setType(Type type) {
         setType(type.toString());
     }
 
     @Name("numOfDirectories")
-    public Integer getNumOfDirectories(){
+    public Integer getNumOfDirectories() {
         return _numOfDirectories;
     }
 
-    public void setNumOfDirectories(Integer numOfDirectories){
+    public void setNumOfDirectories(Integer numOfDirectories) {
         _numOfDirectories = numOfDirectories;
         setChanged("numOfDirectories");
     }
 
     @Name("maxHashesForListingPerParent")
-    public Integer getMaxHashesForListingPerParent(){
+    public Integer getMaxHashesForListingPerParent() {
         return _maxHashesForListingPerParent;
     }
 
-    public void setMaxHashesForListingPerParent(Integer maxHashesForListingPerParent){
+    public void setMaxHashesForListingPerParent(Integer maxHashesForListingPerParent) {
         _maxHashesForListingPerParent = maxHashesForListingPerParent;
         setChanged("maxHashesForListingPerParent");
     }
 
     @Name("totalNumOfHashes")
-    public Integer getTotalNumOfHashes(){
+    public Integer getTotalNumOfHashes() {
         return _totalNumOfHashes;
     }
 
-    public void setTotalNumOfHashes(Integer totalNumOfHashes){
+    public void setTotalNumOfHashes(Integer totalNumOfHashes) {
         _totalNumOfHashes = totalNumOfHashes;
         setChanged("totalNumOfHashes");
     }

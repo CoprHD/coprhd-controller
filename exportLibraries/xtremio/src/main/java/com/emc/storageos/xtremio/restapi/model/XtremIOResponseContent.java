@@ -22,22 +22,25 @@ import com.google.gson.annotations.SerializedName;
 @JsonRootName(value = "response_link")
 public class XtremIOResponseContent {
     @SerializedName("href")
-    @JsonProperty(value="href")
+    @JsonProperty(value = "href")
     private String href;
-    
+
     @SerializedName("name")
-    @JsonProperty(value="name")
+    @JsonProperty(value = "name")
     private String name;
-    
+
     public String getHref() {
         return href;
     }
+
     public void setHref(String href) {
         this.href = href;
     }
+
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }

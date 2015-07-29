@@ -23,11 +23,11 @@ public class ObjectSettings {
 
     /**
      * if device is registered
-     *
+     * 
      * @valid true
      * @valid false
      */
-    @XmlElement(name="device_registered")
+    @XmlElement(name = "device_registered")
     public Boolean getDeviceRegistered() {
         return deviceRegistered;
     }
@@ -39,7 +39,7 @@ public class ObjectSettings {
     /**
      * varray protection type
      */
-    @XmlElement(name="protection_type")
+    @XmlElement(name = "protection_type")
     public String getProtectionType() {
         return protectionType;
     }
@@ -48,5 +48,3 @@ public class ObjectSettings {
         this.protectionType = protectionType;
     }
 }
-
-

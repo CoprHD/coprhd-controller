@@ -23,7 +23,7 @@ public class Resource2 extends DataObject {
     private StringSet associated;
     private URI res3;
 
-    @NamedRelationIndex(cf="TestRelationIndex", type=Resource1.class)
+    @NamedRelationIndex(cf = "TestRelationIndex", type = Resource1.class)
     @Name("res1")
     public NamedURI getRes1() {
         return res1;
@@ -45,7 +45,7 @@ public class Resource2 extends DataObject {
         setChanged("associated");
     }
 
-    @RelationIndex(cf="TestRelationIndex2", type = Resource3.class)
+    @RelationIndex(cf = "TestRelationIndex2", type = Resource3.class)
     @Name("res3")
     public URI getRes3() {
         return res3;

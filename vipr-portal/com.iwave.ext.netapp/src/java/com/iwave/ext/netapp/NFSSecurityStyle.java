@@ -9,11 +9,11 @@ package com.iwave.ext.netapp;
 
 /**
  * @author sdorcas
- *
+ * 
  */
 public enum NFSSecurityStyle {
-	sys("System"), krb5("Kerberos 5"), krb5i("Kerberos 5i"), krb5p("Kerberos 5p");
-	
+    sys("System"), krb5("Kerberos 5"), krb5i("Kerberos 5i"), krb5p("Kerberos 5p");
+
     private String label;
 
     NFSSecurityStyle(String label) {
@@ -22,8 +22,9 @@ public enum NFSSecurityStyle {
 
     public static NFSSecurityStyle valueOfLabel(String label) {
         for (NFSSecurityStyle t : values()) {
-            if (label.equals(t.label))
+            if (label.equals(t.label)) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(label + " is not a valid label for NFSSecurityStyle");
     }
@@ -32,11 +33,12 @@ public enum NFSSecurityStyle {
     public String toString() {
         return label;
     }
-    
+
     public static NFSSecurityStyle valueOfName(String label) {
         for (NFSSecurityStyle t : values()) {
-            if (label.equals(t.name()))
+            if (label.equals(t.name())) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(label + " is not a valid label for NFSSecurityStyle");
     }

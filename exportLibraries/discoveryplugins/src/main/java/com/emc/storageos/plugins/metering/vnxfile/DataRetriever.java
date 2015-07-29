@@ -44,11 +44,11 @@ public class DataRetriever {
      * HttpClient instance.
      */
     private HttpClient _client = null;
-    
+
     /**
      * Protocol instance to set in httpclient to use for communication.
      */
-    private VNXFileProtocol  _protocol = null;
+    private VNXFileProtocol _protocol = null;
     /**
      * set the default timeout for httpclient communications.
      */
@@ -73,7 +73,7 @@ public class DataRetriever {
             final String password, final int portNumber) throws VNXFilePluginException {
         PostMethod postMethod = null;
         try {
-            //Get Protocol
+            // Get Protocol
             _logger.debug("doLogin " + authuri + ":" + username + ":" + portNumber);
             Protocol protocol = _protocol.getProtocol(portNumber);
             Protocol.registerProtocol("https", protocol);
@@ -90,13 +90,13 @@ public class DataRetriever {
             LogManager.getRootLogger().setLevel(Level.INFO);
             final int response = _client.executeMethod(postMethod);
             LogManager.getRootLogger().setLevel(origLevel);
-            
+
             _logger.debug("connection timeout set {}", _client.getParams()
                     .getParameter("http.connection.timeout"));
             if (response != HttpStatus.SC_OK) {
                 _logger.error(
                         "Invalid response received from XML API Server while getting cookie information. " +
-                        "HTTP Error code: {}", response);
+                                "HTTP Error code: {}", response);
                 throw new VNXFilePluginException(
                         "Invalid response recieved from XML API Server while getting cookie information.",
                         VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);
@@ -148,12 +148,15 @@ public class DataRetriever {
             if (response != HttpStatus.SC_OK) {
                 _logger.error(
                         "Invalid response received from XML API Server while executing query. " +
-                        "HTTP Error code: {}",
+                                "HTTP Error code: {}",
                         response);
-               if(response == 503){
-                    throw new VNXFilePluginException(String.format("The server is currently unable to handle the request due to a temporary overloading: HTTP code: %s:", response),
+                if (response == 503) {
+                    throw new VNXFilePluginException(
+                            String.format(
+                                    "The server is currently unable to handle the request due to a temporary overloading: HTTP code: %s:",
+                                    response),
                             VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);
-                }else{
+                } else {
                     throw new VNXFilePluginException(
                             String.format("Invalid response received from server: HTTP code %s:", response),
                             VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);
@@ -185,7 +188,7 @@ public class DataRetriever {
         }
         return postMethod;
     }
-    
+
     /**
      * Client which sends the request to disconnect session with XML API Server.
      * 
@@ -210,7 +213,7 @@ public class DataRetriever {
             if (response != HttpStatus.SC_OK) {
                 _logger.error(
                         "Invalid response received from XML API Server while disconnecting session." +
-                        "HTTP Error code: {}",
+                                "HTTP Error code: {}",
                         response);
                 throw new VNXFilePluginException(
                         "Invalid response received from XML API Server while disconnecting session",
@@ -233,7 +236,7 @@ public class DataRetriever {
                     ex);
         }
     }
-    
+
     /**
      * set the timeout values in client.
      */
@@ -260,6 +263,7 @@ public class DataRetriever {
     public void setClient(final HttpClient client) {
         _client = client;
     }
+
     /**
      * @return the protocol
      */
@@ -287,6 +291,5 @@ public class DataRetriever {
     public void setTimeout(final String timeoutStr) {
         _timeout = timeoutStr;
     }
-
 
 }

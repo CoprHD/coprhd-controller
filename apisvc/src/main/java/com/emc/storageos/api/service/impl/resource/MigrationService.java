@@ -182,7 +182,8 @@ public class MigrationService extends TaskResourceService {
             migrationTgtNh, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
             migrationTgtCos, false, null, null, cosWrapper);
         if (recommendations.isEmpty()) {
-        	throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getId(), migrationTgtNh.getId(), vplexVolume.getId());
+            throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getId(), migrationTgtNh.getId(),
+                    vplexVolume.getId());
         }
         s_logger.debug("Got recommendation for migration target");
         
@@ -627,8 +628,9 @@ public class MigrationService extends TaskResourceService {
         
         // Intention is tech refresh, so the source and target systems should
         // be different.
-    	if (tgtStorageSystemURI.toString().equals(srcStorageSystemURI.toString()))
+        if (tgtStorageSystemURI.toString().equals(srcStorageSystemURI.toString())) {
     	throw APIException.badRequests.targetAndSourceStorageCannotBeSame();
+        }
         
     	// Verify requested target storage system is active.
         StorageSystem tgtStorageSystem = _permissionsHelper.getObjectById(

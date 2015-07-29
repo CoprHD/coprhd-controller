@@ -30,7 +30,7 @@ public class NodeInfoTest {
     private static final String TEST_HOST = "10.247.66.22";
     private static final String TEST_PORT = "9998";
     private static final URI TEST_ENDPOIT = URI.create("http://" + TEST_HOST + ":"
-        + TEST_PORT);
+            + TEST_PORT);
 
     /**
      * Tests the getId method.

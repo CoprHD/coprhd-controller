@@ -98,8 +98,8 @@ public class IBMSmisSynchSubTaskJob extends SmisSynchSubTaskJob {
                 _logger.info("IBMSmisSynchSubTaskJob: {} succeeded", instanceId);
             }
             else {
-            	// if resultObjPaths is not empty, we don't know it is full or partial result
-            	// we keep trying, until time out
+                // if resultObjPaths is not empty, we don't know it is full or partial result
+                // we keep trying, until time out
             }
         } catch (WBEMException e) {
             if (e.getID() == WBEMException.CIM_ERR_NOT_FOUND) {
@@ -169,8 +169,8 @@ public class IBMSmisSynchSubTaskJob extends SmisSynchSubTaskJob {
                 }
                 else {
                     // all or some volumes are not delete
-                   _logger.debug("Members: " + Joiner.on(',').join(remainingMembers) + " are still in CG");
-               }
+                    _logger.debug("Members: " + Joiner.on(',').join(remainingMembers) + " are still in CG");
+                }
             }
         } catch (WBEMException e) {
             if (e.getID() == WBEMException.CIM_ERR_NOT_FOUND) {

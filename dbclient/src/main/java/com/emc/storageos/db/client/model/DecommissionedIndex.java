@@ -23,7 +23,7 @@ import java.lang.annotation.*;
  * and can be queried by using Constraint queries
  */
 @Documented
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DecommissionedIndex {
     String value() default "";

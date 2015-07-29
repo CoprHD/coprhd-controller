@@ -13,7 +13,8 @@ import java.net.URI;
 @XmlRootElement(name = "tenant_project")
 public class ProjectElement extends NamedRelatedResourceRep {
 
-    public ProjectElement() {}
+    public ProjectElement() {
+    }
 
     public ProjectElement(URI id, RestLinkRep selfLink, String name) {
         super(id, selfLink, name);

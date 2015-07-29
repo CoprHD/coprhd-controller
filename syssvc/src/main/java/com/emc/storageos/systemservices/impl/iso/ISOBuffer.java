@@ -21,22 +21,23 @@ import java.util.List;
 
 /**
  * Class to create a byte buffer with the contents of an ISO image
- *
+ * 
  */
 public class ISOBuffer {
-    
-    private ByteBuffer byteBuffer; 
+
+    private ByteBuffer byteBuffer;
     private Date creationDate;
     private int currentExtent;
     private List<DirectoryRecord> directoryRecords;
     private List<DirectoryRecord> fileRecords;
-    private List<byte[]> fileDataList; 
+    private List<byte[]> fileDataList;
     private PrimaryVolumeDescriptor vd;
     private PathTable pt;
     private DirectoryRecord rootDR;
     private static final int START_EXTENT = 20;
     private int dataStartPosition;
     private int dataEndPosition;
+
     public ISOBuffer() {
         creationDate = new Date();
         // Start adding use data from the 20th extent
@@ -47,7 +48,7 @@ public class ISOBuffer {
         dataStartPosition = 0;
         dataEndPosition = 0;
     }
-    
+
     /**
      * Allocate the byte buffer and add the required root directory, volume descriptor and path table
      */
@@ -57,24 +58,23 @@ public class ISOBuffer {
 
     private void initializeISO(String identifier) {
         byteBuffer = ByteBuffer.allocate(ISOConstants.BUFFER_SIZE);
-        //Reserving first 16 sectors for bootable disks.
+        // Reserving first 16 sectors for bootable disks.
         ISOUtil.padWithReserved(byteBuffer, 16 * ISOConstants.SECTOR_SIZE);
 
-        
         // Create a record for the root directory
         createRootDirectory();
-        //Primary volume descriptor
+        // Primary volume descriptor
         createVolumeDescriptor(identifier);
-        //Path table
+        // Path table
         createPathTable();
-        
+
         vd.addToBuffer(byteBuffer);
         pt.addToBufferLittleEndian(byteBuffer);
         pt.addToBufferBigEndian(byteBuffer);
     }
-    
-    private void createVolumeDescriptor(String identifier){
-        
+
+    private void createVolumeDescriptor(String identifier) {
+
         vd = new PrimaryVolumeDescriptor(creationDate);
         // vd.systemIdentifier = ISOConstants.VOLUME_IDENTIFIER;
         vd.systemIdentifier = identifier;
@@ -88,25 +88,25 @@ public class ISOBuffer {
         vd.locationOfLittleEndianPathTable = 18;
         vd.locationOfBigEndianPathTable = 19;
         vd.rootDirectoryRecord = rootDR;
-        
+
     }
 
-    private void createPathTable(){
+    private void createPathTable() {
         pt = new PathTable();
         pt.sectorSize = ISOConstants.SECTOR_SIZE;
         pt.directoryIdentifierLength = 1;
         pt.extentLocation = START_EXTENT;
         pt.dirNumOfParentDirectory = 1;
-        
+
     }
 
-    private void createRootDirectory(){
+    private void createRootDirectory() {
         rootDR = createDirectory((byte) 0);
         directoryRecords.add(rootDR);
         directoryRecords.add(createDirectory((byte) 1));
     }
 
-    private DirectoryRecord createDirectory(final byte paddingByte){
+    private DirectoryRecord createDirectory(final byte paddingByte) {
         DirectoryRecord dr = new DirectoryRecord(creationDate);
         dr.lengthOfDirRecord = 34;
         dr.extentLocation = START_EXTENT;
@@ -118,10 +118,10 @@ public class ISOBuffer {
         return dr;
     }
 
-    public void addFile(final String fileName, byte[] data){
+    public void addFile(final String fileName, byte[] data) {
         DirectoryRecord fileEntry = new DirectoryRecord(creationDate);
-        fileEntry.lengthOfDirRecord = (byte)(fileName.length() + 33);
-        fileEntry.extentLocation=++currentExtent;
+        fileEntry.lengthOfDirRecord = (byte) (fileName.length() + 33);
+        fileEntry.extentLocation = ++currentExtent;
         fileEntry.directoryEntryLength = data.length;
         fileEntry.directoryFlagBit = 0;
         fileEntry.volumeSequenceNumber = 1;
@@ -132,21 +132,23 @@ public class ISOBuffer {
         fileRecords.add(fileEntry);
         fileDataList.add(data);
     }
-    
+
     private void writeDirectoryRecords() {
-        for(DirectoryRecord directory : directoryRecords) {
+        for (DirectoryRecord directory : directoryRecords) {
             directory.addToBuffer(byteBuffer);
         }
-        
+
     }
+
     private void writeFileRecords() {
-        for(DirectoryRecord fileRecord : fileRecords) {
+        for (DirectoryRecord fileRecord : fileRecords) {
             fileRecord.addToBuffer(byteBuffer);
         }
     }
+
     private void writeFileData() {
-        for(byte[] fileData : fileDataList) {
-            int reserve = ISOConstants.SECTOR_SIZE - byteBuffer.position()%ISOConstants.SECTOR_SIZE;
+        for (byte[] fileData : fileDataList) {
+            int reserve = ISOConstants.SECTOR_SIZE - byteBuffer.position() % ISOConstants.SECTOR_SIZE;
             ISOUtil.padWithReserved(byteBuffer, reserve);
 
             if (dataStartPosition == 0) {
@@ -156,9 +158,10 @@ public class ISOBuffer {
             byteBuffer.put(fileData);
         }
     }
-    
+
     /**
      * Write all of the ISO image contents to a byte buffer
+     * 
      * @return byte [] representation of the ISO
      */
     public byte[] createISO() {
@@ -166,7 +169,7 @@ public class ISOBuffer {
     }
 
     public byte[] createISO(String identifier) {
-        //First initialize the ISO structure
+        // First initialize the ISO structure
         initializeISO(identifier);
         // write the directories to the buffer
         writeDirectoryRecords();

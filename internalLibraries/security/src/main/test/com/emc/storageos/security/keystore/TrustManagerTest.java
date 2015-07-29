@@ -46,7 +46,6 @@ import com.emc.storageos.security.keystore.impl.KeyStoreUtil;
 import com.emc.storageos.security.keystore.impl.TrustedCertificateEntry;
 import com.emc.storageos.security.ssl.ViPRX509TrustManager;
 
-
 /**
  * 
  */
@@ -59,7 +58,6 @@ public class TrustManagerTest {
     private final CoordinatorClientImpl coordinatorClient = new CoordinatorClientImpl();
     private final CoordinatorConfigStoringHelper zkhHelper = new CoordinatorConfigStoringHelper(coordinatorClient);
     private DistributedLoadKeyStoreParam loadStoreParam;
-
 
     @Before
     public void setup() throws IOException, URISyntaxException {

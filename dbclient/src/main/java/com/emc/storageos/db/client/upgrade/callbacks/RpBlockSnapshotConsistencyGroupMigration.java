@@ -30,29 +30,29 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 /**
- * Migration handler to initialize the consistency group for RecoverPoint 
- * BlockSnapshots.  If the BlockSnapshot is of type RP, we need to copy
- * the parent volume's RP BlockConsistencyGroup to the BlockSnapshot. 
+ * Migration handler to initialize the consistency group for RecoverPoint
+ * BlockSnapshots. If the BlockSnapshot is of type RP, we need to copy
+ * the parent volume's RP BlockConsistencyGroup to the BlockSnapshot.
  * 
  */
 public class RpBlockSnapshotConsistencyGroupMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(RpBlockSnapshotConsistencyGroupMigration.class);
-    
+
     @Override
     public void process() {
         updateRecoverPointBlockSnapshots();
     }
-    
+
     /**
-     * Update the BlockSnapshot object to reference the parent Volume 
+     * Update the BlockSnapshot object to reference the parent Volume
      * BlockConsistencyGroup.
      */
     private void updateRecoverPointBlockSnapshots() {
-        log.info("Updating RecoverPoint BlockSnapshots to reference parent Volume's BlockConsistencyGroup."); 
+        log.info("Updating RecoverPoint BlockSnapshots to reference parent Volume's BlockConsistencyGroup.");
         DbClient dbClient = getDbClient();
         List<URI> blockSnapshotURIs = dbClient.queryByType(BlockSnapshot.class, false);
         Iterator<BlockSnapshot> blockSnapshots = dbClient.queryIterativeObjects(BlockSnapshot.class, blockSnapshotURIs);
-        
+
         while (blockSnapshots.hasNext()) {
             BlockSnapshot blockSnapshot = blockSnapshots.next();
             // Only consider the RP BlockSnapshots
@@ -63,7 +63,7 @@ public class RpBlockSnapshotConsistencyGroupMigration extends BaseCustomMigratio
                     URI rpCgUri = parentVolume.fetchConsistencyGroupUriByType(dbClient, Types.RP);
                     blockSnapshot.addConsistencyGroup(rpCgUri.toString());
                     dbClient.persistObject(blockSnapshot);
-                    log.info("Updated BlockSnapshot (id={}) to reference parent Volume's BlockConsistencyGroup (id={})", 
+                    log.info("Updated BlockSnapshot (id={}) to reference parent Volume's BlockConsistencyGroup (id={})",
                             blockSnapshot.getId().toString(), rpCgUri.toString());
                 }
             }

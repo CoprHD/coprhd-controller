@@ -39,18 +39,19 @@ public class ZipUtil {
     private static final String SEPARATOR = "/";
     private static final int DELAY_THRESHOLD_IN_SECOND = 5;
 
-    private ZipUtil() { }
+    private ZipUtil() {
+    }
 
     /**
      * Compresses the given directory and all its sub-directories into a ZIP file with
      * default compress level.
      * <p>
      * The ZIP file must not be a directory.
-     *
+     * 
      * @param sourceDir
-     *          source directory.
+     *            source directory.
      * @param targetZip
-     *          ZIP file that will be created or overwritten.
+     *            ZIP file that will be created or overwritten.
      */
     public static void pack(final File sourceDir, final File targetZip) throws IOException {
         pack(sourceDir, targetZip, Deflater.DEFAULT_COMPRESSION);
@@ -61,11 +62,11 @@ public class ZipUtil {
      * compress level.
      * <p>
      * The ZIP file must not be a directory.
-     *
+     * 
      * @param sourceDir
-     *          source directory.
+     *            source directory.
      * @param targetZip
-     *          ZIP file that will be created or overwritten.
+     *            ZIP file that will be created or overwritten.
      */
     public static void pack(final File sourceDir, final File targetZip, final int compressionLevel)
             throws IOException {
@@ -78,10 +79,10 @@ public class ZipUtil {
         try {
             zipOut = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(targetZip)));
             zipOut.setLevel(compressionLevel);
-            pack(sourceDir, sourceDir.getParent()+File.separator, zipOut);
+            pack(sourceDir, sourceDir.getParent() + File.separator, zipOut);
         } finally {
             IOUtils.closeQuietly(zipOut);
-            long interval = (System.currentTimeMillis()-startTime)/1000;
+            long interval = (System.currentTimeMillis() - startTime) / 1000;
             if (interval >= DELAY_THRESHOLD_IN_SECOND) {
                 long folderSize = FileUtils.sizeOfDirectory(sourceDir);
                 log.info(String.format("Zip folder: %s from %d to %d bytes, took %s seconds",
@@ -91,17 +92,19 @@ public class ZipUtil {
     }
 
     private static void pack(final File sourceDir,
-                             final String prefixPath,
-                             final ZipOutputStream zipOut)
+            final String prefixPath,
+            final ZipOutputStream zipOut)
             throws IOException {
         File[] files = sourceDir.listFiles();
-        if (files == null)
+        if (files == null) {
             return;
+        }
         for (File file : files) {
             String zipEntryName = file.getPath().replace(prefixPath, "");
             log.debug("Packing file: {}", zipEntryName);
-            if (file.isDirectory())
+            if (file.isDirectory()) {
                 zipEntryName += SEPARATOR;
+            }
             ZipEntry zipEntry = new ZipEntry(zipEntryName);
             zipOut.putNextEntry(zipEntry);
             if (file.isFile()) {
@@ -110,8 +113,9 @@ public class ZipUtil {
                 FileUtils.copyFile(file, zipOut);
             }
             zipOut.closeEntry();
-            if (file.isDirectory())
+            if (file.isDirectory()) {
                 pack(file, prefixPath, zipOut);
+            }
         }
     }
 
@@ -119,11 +123,11 @@ public class ZipUtil {
      * Unpacks a ZIP file to the given directory.
      * <p>
      * The output directory must not be a file.
-     *
+     * 
      * @param sourceZip
-     *          The instance of input ZIP file.
+     *            The instance of input ZIP file.
      * @param targetDir
-     *          output directory (created automatically if not found).
+     *            output directory (created automatically if not found).
      */
     public static void unpack(File sourceZip, final File targetDir) throws IOException {
         ZipFile zipFile = null;
@@ -135,8 +139,9 @@ public class ZipUtil {
             }
         } finally {
             try {
-                if (zipFile != null)
+                if (zipFile != null) {
                     zipFile.close();
+                }
             } catch (IOException e) {
                 // Just ignore it
             }
@@ -151,17 +156,14 @@ public class ZipUtil {
             log.debug("Unpacking file: {}", zipEntry.getName());
             is = zipFile.getInputStream(zipEntry);
             File file = new File(targetDir, zipEntry.getName());
-            if (zipEntry.isDirectory())
+            if (zipEntry.isDirectory()) {
                 file.mkdirs();
-            else
+            } else {
                 FileUtils.copyInputStreamToFile(is, file);
+            }
         } finally {
             IOUtils.closeQuietly(is);
         }
     }
-
-
-
-
 
 }

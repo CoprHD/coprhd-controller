@@ -17,5 +17,5 @@ import java.lang.annotation.Target;
 public @interface Asset {
 
     public String value();
-    //public String[] dependsOn() default {};
+    // public String[] dependsOn() default {};
 }

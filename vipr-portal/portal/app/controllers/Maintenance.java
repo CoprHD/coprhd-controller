@@ -24,12 +24,11 @@ public class Maintenance extends Controller {
         ClusterInfo clusterInfo = null;
         try {
             clusterInfo = getClusterState();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // This is not necessarily a problem. The cluster could already be down
             Common.handleExpiredToken(e);
             Logger.info(e, "Failed to get cluster state");
-            clusterInfo = defaultClusterInfo(clusterInfo); 
+            clusterInfo = defaultClusterInfo(clusterInfo);
         }
         render(targetUrl, clusterInfo);
     }
@@ -39,19 +38,17 @@ public class Maintenance extends Controller {
         ClusterInfo clusterInfo = null;
         try {
             clusterInfo = getClusterState();
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             Common.handleExpiredToken(e);
             Logger.error(e, "Failed to get cluster state");
             error(e.getHttpCode(), e.getMessage());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, "Failed to get cluster state");
             error(e.getMessage());
         }
         renderJSON(clusterInfo);
     }
-    
+
     private static ClusterInfo getClusterState() {
         ClusterInfo clusterInfo = null;
         if (Security.isSystemAdmin() || Security.isSecurityAdmin() || Security.isSystemMonitor()) {
@@ -62,11 +59,11 @@ public class Maintenance extends Controller {
         }
         return defaultClusterInfo(clusterInfo);
     }
-    
+
     private static ClusterInfo getClusterStateFromSysClient() {
         return BourneUtil.getSysClient().upgrade().getClusterInfo();
     }
-    
+
     private static ClusterInfo getClusterStateFromCoordinator() {
         if (StorageOsPlugin.isEnabled()) {
             CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
@@ -76,10 +73,10 @@ public class Maintenance extends Controller {
                 clusterInfo.setCurrentState(clusterState.toString());
                 return clusterInfo;
             }
-        }        
+        }
         return null;
     }
-    
+
     private static ClusterInfo defaultClusterInfo(ClusterInfo clusterInfo) {
         if (clusterInfo == null) {
             clusterInfo = new ClusterInfo();
@@ -88,5 +85,5 @@ public class Maintenance extends Controller {
             clusterInfo.setCurrentState(ClusterInfo.ClusterState.UNKNOWN.toString());
         }
         return clusterInfo;
-    }    
+    }
 }

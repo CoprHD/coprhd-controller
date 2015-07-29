@@ -44,7 +44,6 @@ import com.emc.storageos.security.exceptions.SecurityException;
 import com.emc.storageos.security.validator.Validator;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-
 /**
  * user information resource
  */
@@ -57,30 +56,33 @@ public class UserInfoPage {
     @Autowired
     protected BasePermissionsHelper _permissionsHelper = null;
 
-    @XmlRootElement(name="tenants")
+    @XmlRootElement(name = "tenants")
     public static class UserTenantList {
         /**
          * List of tenancies to which the user maps
+         * 
          * @valid none.
          */
-        @XmlElement(name="tenant")
+        @XmlElement(name = "tenant")
         public List<UserTenant> _userTenantList;
     }
 
     public static class UserTenant {
         /**
          * Tenant id corresponding to the user's Tenant
+         * 
          * @valid none
          */
-        @XmlElement(name="id")
+        @XmlElement(name = "id")
         public URI _id;
 
         /**
          * Tenant mapping that resulted in the user being mapped
          * to this Tenant.
+         * 
          * @valid none
          */
-        @XmlElement(name="user_mapping")
+        @XmlElement(name = "user_mapping")
         public UserMapping _userMapping;
     }
 
@@ -146,6 +148,7 @@ public class UserInfoPage {
     /**
      * This call returns the list of tenants that the user maps to including the details of the mappings.
      * It also returns a list of the virtual data center roles and tenant roles assigned to this user.
+     * 
      * @brief Show my Tenant and assigned roles
      * @prereq none
      * @return
@@ -175,7 +178,7 @@ public class UserInfoPage {
 
         // add Vdc Roles
         if (user.getRoles() != null) {
-            for (String role: user.getRoles()) {
+            for (String role : user.getRoles()) {
 
                 // geo scenario, return RESTRICTED_*_ADMIN for root, instead of *_ADMIN
                 if (isRootInGeo) {
@@ -192,12 +195,10 @@ public class UserInfoPage {
             }
         }
 
-
         // geo scenario, skip adding tenant roles for root
         if (isRootInGeo) {
             return info;
         }
-
 
         try {
             Set<String> tenantRoles = _permissionsHelper.getTenantRolesForUser(user,
@@ -229,6 +230,7 @@ public class UserInfoPage {
 
     /**
      * Evaluates the tenancies that this user maps to based on the mappings defined in the Tenants in the system.
+     * 
      * @brief Get the tenancies to which a user maps given the current mappings
      * @prereq none
      * @param username required The user name for which to retrieve the tenant list.
@@ -239,11 +241,11 @@ public class UserInfoPage {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public UserTenantList getUserTenantList(@QueryParam("username") String username) {
         Principal principal = sc.getUserPrincipal();
-        if (!(principal instanceof StorageOSUser) || 
-                !((StorageOSUser)principal).getRoles().contains(Role.SECURITY_ADMIN.toString()) ) {
+        if (!(principal instanceof StorageOSUser) ||
+                !((StorageOSUser) principal).getRoles().contains(Role.SECURITY_ADMIN.toString())) {
             throw APIException.forbidden.invalidSecurityContext();
         }
-        if(username == null || username.isEmpty()) {
+        if (username == null || username.isEmpty()) {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("username");
         }
         return Validator.getUserTenants(username);

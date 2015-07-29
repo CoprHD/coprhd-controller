@@ -40,8 +40,8 @@ public interface EventRetriever {
      *            - media type to be streamed
      * @param writer
      *            - the output writer to stream retrived events
-     * @throws MarshallingExcetion 
-     *            - event object marshalling failed
+     * @throws MarshallingExcetion
+     *             - event object marshalling failed
      */
     public void getBulkEvents(DateTime time, TimeSeriesMetadata.TimeBucket bucket,
             MediaType type, Writer writer) throws MarshallingExcetion;

@@ -5,127 +5,126 @@
 package com.emc.storageos.db.client.model;
 
 public abstract class ShareACL extends DataObject {
-	
-	protected String user;
-	protected String group;
-	protected String domain;
-	
-	// Name of the cifs share
-	protected String shareName;
-	
-	// Permissions for user or group: read(r), change (rw) or full control
-	protected String permission;
-	
-	// deviceShareId is the uid of the export on the array. Currently Isilon uses it
-    // NetApp and VNXFile don't use this field. 
+
+    protected String user;
+    protected String group;
+    protected String domain;
+
+    // Name of the cifs share
+    protected String shareName;
+
+    // Permissions for user or group: read(r), change (rw) or full control
+    protected String permission;
+
+    // deviceShareId is the uid of the export on the array. Currently Isilon uses it
+    // NetApp and VNXFile don't use this field.
     protected String deviceSharePath;
-    
-	protected String fileSystemShareACLIndex;
-	protected String snapshotShareACLIndex;
-    
+
+    protected String fileSystemShareACLIndex;
+    protected String snapshotShareACLIndex;
+
     public static enum SupportedPermissions {
         read, change, fullcontrol
     }
 
     @Name("user")
-	public String getUser() {
-		return user;
-	}
+    public String getUser() {
+        return user;
+    }
 
-	public void setUser(String user) {
-		this.user = user;
-		setChanged("user");
-	}
-	
-	@Name("group")
-	public String getGroup() {
-		return group;
-	}
+    public void setUser(String user) {
+        this.user = user;
+        setChanged("user");
+    }
 
-	public void setGroup(String group) {
-		this.group = group;
-		setChanged("group");
-	}
-	
-	@Name("domain")
-	public String getDomain() {
-		return domain;
-	}
+    @Name("group")
+    public String getGroup() {
+        return group;
+    }
 
-	public void setDomain(String domain) {
-		this.domain = domain;
-		setChanged("domain");
-	}
+    public void setGroup(String group) {
+        this.group = group;
+        setChanged("group");
+    }
 
-	@Name("shareName")
-	public String getShareName() {
-		return shareName;
-	}
+    @Name("domain")
+    public String getDomain() {
+        return domain;
+    }
 
-	public void setShareName(String shareName) {
-		this.shareName = shareName;
-		setChanged("shareName");
-	}
+    public void setDomain(String domain) {
+        this.domain = domain;
+        setChanged("domain");
+    }
 
-	@Name("permission")
-	public String getPermission() {
-		return permission;
-	}
+    @Name("shareName")
+    public String getShareName() {
+        return shareName;
+    }
 
-	public void setPermission(String permission) {
-		this.permission = permission;
-		setChanged("permission");
-	}
+    public void setShareName(String shareName) {
+        this.shareName = shareName;
+        setChanged("shareName");
+    }
 
-	@Name("deviceSharePath")
-	public String getDeviceSharePath() {
-		return deviceSharePath;
-	}
+    @Name("permission")
+    public String getPermission() {
+        return permission;
+    }
 
-	public void setDeviceSharePath(String deviceSharePath) {
-		this.deviceSharePath = deviceSharePath;
-		setChanged("deviceSharePath");
-	}
-	
-	@Name("fileSystemShareACLIndex")
-	@AlternateId("fileSystemShareACLIndexTable")
-	public String getFileSystemShareACLIndex() {
-		return fileSystemShareACLIndex;
-	}
+    public void setPermission(String permission) {
+        this.permission = permission;
+        setChanged("permission");
+    }
 
-	public void setFileSystemShareACLIndex(String fileSystemShareACLIndex) {
-		this.fileSystemShareACLIndex = fileSystemShareACLIndex;
-		setChanged("fileSystemShareACLIndex");
-	}
+    @Name("deviceSharePath")
+    public String getDeviceSharePath() {
+        return deviceSharePath;
+    }
 
-	@Name("snapshotShareACLIndex")
-	@AlternateId("snapshotShareACLIndexTable")
-	public String getSnapshotShareACLIndex() {
-		return snapshotShareACLIndex;
-	}
+    public void setDeviceSharePath(String deviceSharePath) {
+        this.deviceSharePath = deviceSharePath;
+        setChanged("deviceSharePath");
+    }
 
-	public void setSnapshotShareACLIndex(String snapshotShareACLIndex) {
-		this.snapshotShareACLIndex = snapshotShareACLIndex;
-		setChanged("snapshotShareACLIndex");
-	}
-	
+    @Name("fileSystemShareACLIndex")
+    @AlternateId("fileSystemShareACLIndexTable")
+    public String getFileSystemShareACLIndex() {
+        return fileSystemShareACLIndex;
+    }
 
-	@Override
-	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("ShareACL [user=");
-		builder.append(user);
-		builder.append(", group=");
-		builder.append(group);
-		builder.append(", shareName=");
-		builder.append(shareName);
-		builder.append(", permission=");
-		builder.append(permission);
-		builder.append(", deviceSharePath=");
-		builder.append(deviceSharePath);
-		builder.append("]");
-		return builder.toString();
-	}
+    public void setFileSystemShareACLIndex(String fileSystemShareACLIndex) {
+        this.fileSystemShareACLIndex = fileSystemShareACLIndex;
+        setChanged("fileSystemShareACLIndex");
+    }
 
-    public abstract void calculateACLIndex(); 
+    @Name("snapshotShareACLIndex")
+    @AlternateId("snapshotShareACLIndexTable")
+    public String getSnapshotShareACLIndex() {
+        return snapshotShareACLIndex;
+    }
+
+    public void setSnapshotShareACLIndex(String snapshotShareACLIndex) {
+        this.snapshotShareACLIndex = snapshotShareACLIndex;
+        setChanged("snapshotShareACLIndex");
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("ShareACL [user=");
+        builder.append(user);
+        builder.append(", group=");
+        builder.append(group);
+        builder.append(", shareName=");
+        builder.append(shareName);
+        builder.append(", permission=");
+        builder.append(permission);
+        builder.append(", deviceSharePath=");
+        builder.append(deviceSharePath);
+        builder.append("]");
+        return builder.toString();
+    }
+
+    public abstract void calculateACLIndex();
 }

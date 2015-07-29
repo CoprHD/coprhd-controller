@@ -33,23 +33,23 @@ public class ComputeSystemDiscoveryEngine {
 
     @Autowired
     private List<ComputeSystemDiscoveryAdapter> discoveryAdapters;
-    
+
     private CoordinatorClient coordinatorClient;
-    
+
     private DbClient dbClient;
-    
+
     private ModelClient modelClient;
 
-    public void setCoordinatorClient(CoordinatorClient client) { 
+    public void setCoordinatorClient(CoordinatorClient client) {
         this.coordinatorClient = client;
         this.shareCoordinatorClient();
     }
-    
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
         this.shareDbClient();
     }
-        
+
     @PostConstruct
     public void init() throws Exception {
     }
@@ -64,8 +64,7 @@ public class ComputeSystemDiscoveryEngine {
         try {
             DiscoveredSystemObject target = modelClient.findById(URI.create(id));
             return target;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Could not get discovery target: " + id);
             throw ComputeSystemControllerException.exceptions.targetNotFound(id);
         }
@@ -76,10 +75,10 @@ public class ComputeSystemDiscoveryEngine {
      * be performing discovery for any given object at a time.
      * 
      * @param targetId
-     *        the ID of the target to discover.
+     *            the ID of the target to discover.
      * 
      * @throws Exception
-     *         if an error occurs obtaining a lock.
+     *             if an error occurs obtaining a lock.
      */
     public void discover(String targetId) throws Exception {
         InterProcessLock lock = coordinatorClient.getLock(targetId);
@@ -92,8 +91,7 @@ public class ComputeSystemDiscoveryEngine {
                 LOG.debug("Acquired lock: " + targetId);
             }
             discoverInLock(targetId);
-        }
-        finally {
+        } finally {
             lock.release();
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Lock Released: " + targetId);
@@ -105,7 +103,7 @@ public class ComputeSystemDiscoveryEngine {
      * Performs the discovery, within a lock.
      * 
      * @param targetId
-     *        the ID of the target to discover.
+     *            the ID of the target to discover.
      */
     protected void discoverInLock(String targetId) {
         DiscoveredSystemObject target = modelClient.findById(URI.create(targetId));
@@ -124,16 +122,14 @@ public class ComputeSystemDiscoveryEngine {
                 if (LOG.isInfoEnabled()) {
                     LOG.info("Discovery completed for " + target.getLabel() + " [" + targetId + "]");
                 }
-            }
-            catch (CompatibilityException e) {
+            } catch (CompatibilityException e) {
                 String errorMessage = adapter.getErrorMessage(e);
                 LOG.error("Device is incompatible: " + target.getLabel() + " [" + targetId + "]: " + errorMessage);
                 target.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
                 target.setLastDiscoveryStatusMessage(errorMessage);
                 dbClient.persistObject(target);
                 throw e;
-            }
-            catch (RuntimeException e) {
+            } catch (RuntimeException e) {
                 String errorMessage = adapter.getErrorMessage(e);
                 LOG.error("Discovery failed for " + target.getLabel() + " [" + targetId + "]: " + errorMessage, e);
                 throw ComputeSystemControllerException.exceptions.discoverFailed(targetId, e);
@@ -151,7 +147,7 @@ public class ComputeSystemDiscoveryEngine {
      * Gets the discovery adapter to use for the given target.
      * 
      * @param targetId
-     *        the ID of the target to discover.
+     *            the ID of the target to discover.
      * @return the discovery adapter, or null if the target cannot be discovered.
      */
     protected ComputeSystemDiscoveryAdapter getDiscoveryAdapter(String targetId) {
@@ -162,18 +158,18 @@ public class ComputeSystemDiscoveryEngine {
         }
         return null;
     }
-    
+
     private void shareDbClient() {
         this.modelClient = new ModelClientImpl(dbClient);
-        
-        for(ComputeSystemDiscoveryAdapter discoveryAdapter : discoveryAdapters) {
+
+        for (ComputeSystemDiscoveryAdapter discoveryAdapter : discoveryAdapters) {
             discoveryAdapter.setModelClient(this.modelClient);
             discoveryAdapter.setDbClient(this.dbClient);
         }
     }
-    
+
     private void shareCoordinatorClient() {
-        for(ComputeSystemDiscoveryAdapter discoveryAdapter : discoveryAdapters) {
+        for (ComputeSystemDiscoveryAdapter discoveryAdapter : discoveryAdapters) {
             discoveryAdapter.getVersionValidator().setCoordinatorClient(this.coordinatorClient);
             discoveryAdapter.setCoordinator(this.coordinatorClient);
         }

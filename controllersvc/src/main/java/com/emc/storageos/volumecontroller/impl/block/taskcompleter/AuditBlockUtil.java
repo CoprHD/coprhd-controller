@@ -30,15 +30,16 @@ public class AuditBlockUtil {
 
     /**
      * Record audit log for block devices
+     * 
      * @param auditType Type of AuditLog
      * @param operationalStatus success or failure
-     * @param operation stage   
-     *          For sync operation, it should be null;
-     *          For async operation, it should be "BEGIN" or "END";
+     * @param operation stage
+     *            For sync operation, it should be null;
+     *            For async operation, it should be "BEGIN" or "END";
      * @param descparams Description paramters
      */
     public static void auditBlock(DbClient dbClient, OperationTypeEnum auditType,
-    		boolean operationalStatus, String operationStage, Object... descparams) {
+            boolean operationalStatus, String operationStage, Object... descparams) {
         AuditLogManager auditMgr = new AuditLogManager();
         auditMgr.setDbClient(dbClient);
         auditMgr.recordAuditLog(null,
@@ -46,8 +47,8 @@ public class AuditBlockUtil {
                 ControllerUtils.BLOCK_EVENT_SERVICE,
                 auditType,
                 System.currentTimeMillis(),
-                operationalStatus? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
-                operationStage, 
+                operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
+                operationStage,
                 descparams);
     }
 }

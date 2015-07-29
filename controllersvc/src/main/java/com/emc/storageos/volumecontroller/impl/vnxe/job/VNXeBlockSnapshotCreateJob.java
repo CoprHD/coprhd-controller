@@ -38,38 +38,39 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 
 public class VNXeBlockSnapshotCreateJob extends VNXeJob {
 
-	private static final long serialVersionUID = -1111309699098374228L;
-	private static final Logger _logger = LoggerFactory.getLogger(VNXeBlockSnapshotCreateJob.class);
-	private boolean createInactive;
-	
-	public VNXeBlockSnapshotCreateJob(String jobId, URI storageSystemUri,
-			Boolean createInactive, TaskCompleter taskCompleter) {
-		super(jobId, storageSystemUri, taskCompleter, "createBlockSnapshot");
-		this.createInactive = createInactive;
-	}
-	
-	public void updateStatus(JobContext jobContext) throws Exception {
-		DbClient dbClient = jobContext.getDbClient();
+    private static final long serialVersionUID = -1111309699098374228L;
+    private static final Logger _logger = LoggerFactory.getLogger(VNXeBlockSnapshotCreateJob.class);
+    private boolean createInactive;
+
+    public VNXeBlockSnapshotCreateJob(String jobId, URI storageSystemUri,
+            Boolean createInactive, TaskCompleter taskCompleter) {
+        super(jobId, storageSystemUri, taskCompleter, "createBlockSnapshot");
+        this.createInactive = createInactive;
+    }
+
+    public void updateStatus(JobContext jobContext) throws Exception {
+        DbClient dbClient = jobContext.getDbClient();
         try {
             if (_status == JobStatus.IN_PROGRESS) {
                 return;
             }
             BlockSnapshotCreateCompleter completer = (BlockSnapshotCreateCompleter) getTaskCompleter();
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, completer.getSnapshotURIs());
-            
+
             if (_status == JobStatus.SUCCESS) {
-                _logger.info(String.format("Post-processing successful snap creation task:%s. Expected: snapshot.size() = 1; Actual: snapshots.size() = %d",
+                _logger.info(String.format(
+                        "Post-processing successful snap creation task:%s. Expected: snapshot.size() = 1; Actual: snapshots.size() = %d",
                         getTaskCompleter().getOpId(), snapshots.size()));
-                
+
                 StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageSystemUri());
-                
+
                 VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
                 VNXeCommandJob vnxeJob = vnxeApiClient.getJob(getJobIds().get(0));
                 ParametersOut output = vnxeJob.getParametersOut();
-                
+
                 VNXeLunSnap vnxeLunSnap = vnxeApiClient.getLunSnapshot(output.getId());
                 VNXeLun lun = vnxeApiClient.getLun(vnxeLunSnap.getLun().getId());
-                
+
                 BlockSnapshot snapshot = snapshots.get(0);
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
                 snapshot.setNativeId(output.getId());
@@ -81,11 +82,11 @@ public class VNXeBlockSnapshotCreateJob extends VNXeJob {
                 snapshot.setAllocatedCapacity(lun.getSnapsSizeAllocated());
                 snapshot.setProvisionedCapacity(lun.getSnapsSize());
                 _logger.info(String.format("Going to set blocksnapshot %1$s nativeId to %2$s (%3$s). Associated volume is %4$s (%5$s)",
-                        snapshot.getId().toString(),  output.getId(), vnxeLunSnap.getName(), volume.getNativeId(), volume.getLabel()));
+                        snapshot.getId().toString(), output.getId(), vnxeLunSnap.getName(), volume.getNativeId(), volume.getLabel()));
                 dbClient.persistObject(snapshot);
                 getTaskCompleter().ready(dbClient);
-                
-            } else if(_status == JobStatus.FAILED) {
+
+            } else if (_status == JobStatus.FAILED) {
                 _logger.info("Failed to create snapshot");
                 BlockSnapshot snapshot = snapshots.get(0);
                 snapshot.setInactive(true);
@@ -95,7 +96,7 @@ public class VNXeBlockSnapshotCreateJob extends VNXeJob {
             _logger.error("Caught an exception while trying to updateStatus for VNXeBlockSnapshotCreateJob", e);
             setErrorStatus("Encountered an internal error during volume snapshot create job status processing : " + e.getMessage());
         } finally {
-            super.updateStatus(jobContext);            
+            super.updateStatus(jobContext);
         }
-	}
+    }
 }

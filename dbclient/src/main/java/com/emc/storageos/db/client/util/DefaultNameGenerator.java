@@ -10,7 +10,7 @@ public class DefaultNameGenerator implements NameGenerator {
 
     @Override
     public String generate(String tenant, String resource, String resourceUrn,
-                           char delimiter, int maxLength) {
+            char delimiter, int maxLength) {
         String tenantName = tenant.replaceAll("\\s+|[^a-zA-Z0-9]", "");
         String resourceName = resource.replaceAll("\\s+|[^a-zA-Z0-9]", "");
         String resourceUUID = (resourceUrn == null) ? UUID.randomUUID().toString() :
@@ -28,7 +28,7 @@ public class DefaultNameGenerator implements NameGenerator {
             // Truncate the name that is longer
             if ((whatsExtra > whatsLeft) ||
                     (tenantNameLength == resourceNameLength)) {
-                int halfOfLeft = whatsLeft/2;
+                int halfOfLeft = whatsLeft / 2;
                 String adjustedTenant = (halfOfLeft > tenantNameLength) ? tenantName : tenantName.substring(0, halfOfLeft);
                 String adjustedResource = (halfOfLeft > resourceNameLength) ? resourceName : resourceName.substring(0, halfOfLeft);
                 result = adjustedTenant + delimiter + adjustedResource + delimiter + resourceUUID;

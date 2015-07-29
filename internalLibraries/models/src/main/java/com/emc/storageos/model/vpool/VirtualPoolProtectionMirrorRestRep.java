@@ -26,8 +26,9 @@ public class VirtualPoolProtectionMirrorRestRep {
     private String placementVpool;
     private String haPlacementVpool;
 
-    public VirtualPoolProtectionMirrorRestRep() {}
-    
+    public VirtualPoolProtectionMirrorRestRep() {
+    }
+
     public VirtualPoolProtectionMirrorRestRep(String type, String placementVpool, String haPlacementVpool) {
         this.type = type;
         this.placementVpool = placementVpool;
@@ -61,7 +62,7 @@ public class VirtualPoolProtectionMirrorRestRep {
     public void setPlacementVpool(String placementVpool) {
         this.placementVpool = placementVpool;
     }
-    
+
     /**
      * The High Availability mirror protection virtual pool.
      * 

@@ -18,7 +18,7 @@ package com.emc.storageos.db.client.model;
 import java.lang.annotation.*;
 
 @Documented
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 /**
  * Maps to multiple columns for a multiple value field.  Field values are

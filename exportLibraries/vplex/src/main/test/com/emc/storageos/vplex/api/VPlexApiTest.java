@@ -44,7 +44,6 @@ public class VPlexApiTest {
     // Property keys
     private static final String VPLEX_VERSION_KEY = "VPLEX_VERSION";
 
-    
     private static final String VPLEX_PROVIDER_IP = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "vplex.host.ipaddress");
     private static final String VPLEX_PROVIDER_PORT = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "vplex.host.port");
     private static final String VPLEX_PROVIDER_USER = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "vplex.host.username");

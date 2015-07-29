@@ -26,14 +26,12 @@ import java.util.Set;
  * This interface holds all the methods used to create an error condition that will be associated
  * with an HTTP status of Bad Request (400)
  * <p/>
- * Remember to add the English message associated to the method in BadRequestExceptions.properties
- * and use the annotation {@link DeclareServiceCode} to set the service code associated to this
- * error condition. You may need to create a new service code if there is no an existing one
- * suitable for your error condition.
+ * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section in the Error
- * Handling Wiki page: http://confluence.lab.voyence.com/display/OS/
- * Error+Handling+Framework+and+Exceptions+in+ViPR
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
+ * http://confluence.lab.voyence.com/display/OS/ Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 @MessageBundle
 public interface BadRequestExceptions {
@@ -694,6 +692,7 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterValueExceedsArrayLimit(String fieldName, Integer value,
             Integer limit);
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterVirtualArrayAndVirtualPoolDoNotApplyForType(
             String type);
@@ -900,7 +899,8 @@ public interface BadRequestExceptions {
     public BadRequestException noStoragePoolsForVpoolInVarray(final URI varrayId, final URI vpoolId);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingStoragePoolsForContinuousCopiesVpoolForVplex(final String varrayLabel, final String vpoolLabel, final String storageSystem);
+    public BadRequestException noMatchingStoragePoolsForContinuousCopiesVpoolForVplex(final String varrayLabel, final String vpoolLabel,
+            final String storageSystem);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
     public BadRequestException noRoleSpecifiedInAssignmentEntry();
@@ -1700,7 +1700,8 @@ public interface BadRequestExceptions {
     public BadRequestException consistencyGroupMustBeEmptyOrContainRpVolumes(final URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException consistencyGroupIsNotCompatibleWithRequest(final URI cgUri, final String compatibleTypes, final String requestedTypes);
+    public BadRequestException consistencyGroupIsNotCompatibleWithRequest(final URI cgUri, final String compatibleTypes,
+            final String requestedTypes);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidVpoolUsedForRpConsistencyGroup(final URI cgUri, final URI correctVpoolUri);
@@ -1748,10 +1749,12 @@ public interface BadRequestExceptions {
     public BadRequestException invalidMirrorVpoolForVplexDistributedVpool();
 
     @DeclareServiceCode(ServiceCode.API_INVALID_HIGH_AVAILABILITY_FOR_MIRROR_VPOOL)
-    public BadRequestException invalidHighAvailabilityForMirrorVpool(final String mirrorVpoolName, final String mirrorVpoolHA, final String vpoolHA, final String correctMirrorVpoolHA);
+    public BadRequestException invalidHighAvailabilityForMirrorVpool(final String mirrorVpoolName, final String mirrorVpoolHA,
+            final String vpoolHA, final String correctMirrorVpoolHA);
 
     @DeclareServiceCode(ServiceCode.API_INVALID_VARARY_CONTINUOUS_COPIES_VPOOL)
-    public BadRequestException noVarrayForMirrorVpoolWithExpectedVplex(final String vPoolName, final String vplexSystemName, final String vplexCluster);
+    public BadRequestException noVarrayForMirrorVpoolWithExpectedVplex(final String vPoolName, final String vplexSystemName,
+            final String vplexCluster);
 
     @DeclareServiceCode(ServiceCode.API_INVALID_VARARY_CONTINUOUS_COPIES_VPOOL)
     public BadRequestException noMirrorVpoolForVplexVolume(final String volumeName);

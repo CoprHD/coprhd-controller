@@ -21,8 +21,7 @@ import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
 import com.emc.storageos.cimadapter.connections.ecom.EcomConnection;
 
 /**
- * The EcomIndicationProcessor class extends the
- * {@link DefaultCimIndicationProcessor} class and does some additional
+ * The EcomIndicationProcessor class extends the {@link DefaultCimIndicationProcessor} class and does some additional
  * processing for indications received from ECOM connections.
  */
 public class EcomIndicationProcessor extends DefaultCimIndicationProcessor {

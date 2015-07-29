@@ -29,10 +29,10 @@ import com.google.common.base.Joiner;
 /**
  * CoSTypeAttributeMatcher is responsible to match pools.
  * In case of CoS, filter the pools by its type.
- *
+ * 
  */
 public class CoSTypeAttributeMatcher extends AttributeMatcher {
-    
+
     private static final Logger _logger = LoggerFactory
             .getLogger(CoSTypeAttributeMatcher.class);
 
@@ -44,7 +44,7 @@ public class CoSTypeAttributeMatcher extends AttributeMatcher {
      */
     @Override
     public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
-        _logger.info("Pools Matching VPool Type Started: {}", Joiner.on("\t").join( getNativeGuidFromPools(pools)));
+        _logger.info("Pools Matching VPool Type Started: {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
         Iterator<StoragePool> poolIterator = pools.iterator();
         while (poolIterator.hasNext()) {
@@ -54,7 +54,7 @@ public class CoSTypeAttributeMatcher extends AttributeMatcher {
                 matchedPools.add(pool);
             }
         }
-        _logger.info("Pools Matching VPoolType Ended: {}", Joiner.on("\t").join( getNativeGuidFromPools(matchedPools)));
+        _logger.info("Pools Matching VPoolType Ended: {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;
     }
 

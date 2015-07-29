@@ -12,14 +12,15 @@
  */
 
 package com.emc.storageos.model.host.cluster;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
 
 @XmlRootElement(name = "cluster_capacity")
 public class ClusterCapacityRep {
     private long provisionedCapacityInGB;
     private long freeCapacityInGB;
+
     /**
      * get total provisioned capacity.
      * 
@@ -30,9 +31,11 @@ public class ClusterCapacityRep {
     public long getProvisionedCapacityInGB() {
         return provisionedCapacityInGB;
     }
+
     public void setProvisionedCapacityInGB(long provisionedCapacityInGB) {
         this.provisionedCapacityInGB = provisionedCapacityInGB;
     }
+
     /**
      * gets the total free capacity.
      * 

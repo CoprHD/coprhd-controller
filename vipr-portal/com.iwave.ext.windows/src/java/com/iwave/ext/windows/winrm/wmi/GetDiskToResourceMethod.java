@@ -44,19 +44,19 @@ public class GetDiskToResourceMethod extends WinRMEnumerateOperation<ResourceToD
     }
 
     private String getDiskId(Element parent) {
-        Element partComponent =  XmlUtils.selectElement(PART_COMPONENT_EXPR, parent);
-        Element selector = XmlUtils.selectElement(SELECTOR_EXPR,partComponent);
+        Element partComponent = XmlUtils.selectElement(PART_COMPONENT_EXPR, parent);
+        Element selector = XmlUtils.selectElement(SELECTOR_EXPR, partComponent);
         return selector.getTextContent();
     }
 
     private String getResourceName(Element parent) {
-        System.out.println(XmlUtils.formatXml(parent,true));
-        Element partComponent =  XmlUtils.selectElement(GROUP_COMPONENT_EXPR, parent);
+        System.out.println(XmlUtils.formatXml(parent, true));
+        Element partComponent = XmlUtils.selectElement(GROUP_COMPONENT_EXPR, parent);
         return getSelector(partComponent);
     }
 
     public String getSelector(Element parent) {
-       Element selector = XmlUtils.selectElement(SELECTOR_EXPR, parent);
+        Element selector = XmlUtils.selectElement(SELECTOR_EXPR, parent);
 
         return XmlUtils.getText(selector);
     }

@@ -19,17 +19,17 @@ import java.util.List;
 
 import com.emc.storageos.vnxe.models.VNXeStorageProcessor;
 
+public class StorageProcessorListRequest extends KHRequests<VNXeStorageProcessor> {
+    private static final String URL = "/api/types/storageProcessor/instances";
 
-public class StorageProcessorListRequest extends KHRequests<VNXeStorageProcessor>{
-	private static final String URL = "/api/types/storageProcessor/instances";
     public StorageProcessorListRequest(KHClient client) {
         super(client);
         _url = URL;
     }
 
-    public List<VNXeStorageProcessor> get(){
+    public List<VNXeStorageProcessor> get() {
         return getDataForObjects(VNXeStorageProcessor.class);
-       
+
     }
-   
+
 }

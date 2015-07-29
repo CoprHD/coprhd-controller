@@ -16,8 +16,7 @@ import com.emc.storageos.cimadapter.processors.CimIndicationProcessor;
 
 /**
  * Defines an abstract base class for derived classes that wish to be notified
- * of indications that are received from the connections being managed by the
- * {@link ConnectionManager}.
+ * of indications that are received from the connections being managed by the {@link ConnectionManager}.
  */
 public abstract class CimIndicationConsumer {
 

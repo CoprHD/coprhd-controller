@@ -166,10 +166,11 @@ public class SecretsManager extends AbstractManager {
         }
 
         /**
-         * Different from PropertyInfoExt, if masking property output only depends on the flag withMask 
-		 * and regardless to global metadata.  
+         * Different from PropertyInfoExt, if masking property output only depends on the flag withMask
+         * and regardless to global metadata.
+         * 
          * @param withMask if true, replace all encrypted string with HIDDEN_TEXT_MASK,
-         *                 otherwise always print the real content.
+         *            otherwise always print the real content.
          * @return
          */
         @Override
@@ -181,7 +182,7 @@ public class SecretsManager extends AbstractManager {
                 // Hide encrypted string in audit log
                 if (entry.getKey().equals(ConfigService.CERTIFICATE_VERSION)) {
                     sb.append(entry.getValue());
-                } else if (withMask){
+                } else if (withMask) {
                     sb.append(HIDDEN_TEXT_MASK);
                 } else {
                     sb.append(entry.getValue());
@@ -192,4 +193,3 @@ public class SecretsManager extends AbstractManager {
         }
     }
 }
-

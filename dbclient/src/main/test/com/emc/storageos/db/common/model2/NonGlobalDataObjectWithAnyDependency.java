@@ -20,7 +20,7 @@ import com.emc.storageos.db.client.model.NamedRelationIndex;
  * output: both cases tests should pass.
  */
 @Cf("schema_ut2")
-@DbKeyspace(Keyspaces.LOCAL) 
+@DbKeyspace(Keyspaces.LOCAL)
 public class NonGlobalDataObjectWithAnyDependency extends DataObject {
     private static final long serialVersionUID = 1L;
     private String fieldUT;

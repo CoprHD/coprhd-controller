@@ -5,11 +5,12 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
+
 /**
  * An instance of data center in a {@link Vcenter}
- *  
+ * 
  * @author elalih
- *
+ * 
  */
 @Cf("VcenterDataCenter")
 public class VcenterDataCenter extends AbstractTenantResource {
@@ -39,14 +40,16 @@ public class VcenterDataCenter extends AbstractTenantResource {
 
     /**
      * Returns the list of parameters used in audit logs for this data center.
+     * 
      * @return the list of parameters used in audit logs for this data center.
      */
     public Object[] auditParameters() {
-        return new Object[] {  getLabel(), getVcenter(), getTenant(), getId()};
+        return new Object[] { getLabel(), getVcenter(), getTenant(), getId() };
     }
 
     /**
      * ID of this datacenter on an external system such as vCenter.
+     * 
      * @return
      */
     @AlternateId("AltIdIndex")

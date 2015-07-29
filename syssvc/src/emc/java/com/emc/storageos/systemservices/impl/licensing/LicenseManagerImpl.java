@@ -55,29 +55,25 @@ import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory.SysClient;
 import com.emc.storageos.systemservices.impl.eventhandler.connectemc.SendEventScheduler;
-import com.emc.storageos.systemservices.impl.healthmonitor.StatConstants;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.licensing.LicenseFeature;
 
-import javax.ws.rs.core.MediaType;
-
 import static com.emc.storageos.coordinator.client.service.LicenseInfo.*;
 
-public class LicenseManagerImpl implements LicenseManager{
-    
+public class LicenseManagerImpl implements LicenseManager {
+
     private CoordinatorClientExt _coordinator;
     private SendEventScheduler _sendEventScheduler;
     private static final Logger _log = LoggerFactory.getLogger(LicenseManagerImpl.class);
 
     public static final int waitClusterStableInterval = 5000;
     public static final int waitRetryConvertLicneseInterval = 5000;
-    
+
     // used to ensure thread-safety of parsing license
     final Lock parseLicenseLock = new ReentrantLock();
     public final static int waitAcquireParseLicenseLock = 60; // 60 seconds
 
-    
     /**
      * Configure the license information in properties file, disk and coordinator.
      * 
@@ -86,48 +82,46 @@ public class LicenseManagerImpl implements LicenseManager{
      * @throws CoordinatorClientException
      */
     public void addLicense(License license)
-            throws LocalRepositoryException, CoordinatorClientException, ELMLicenseException {             
-        
-        if(getTargetInfoLock()) {
-           try {            
+            throws LocalRepositoryException, CoordinatorClientException, ELMLicenseException {
+
+        if (getTargetInfoLock()) {
+            try {
                 // Step 1: Add the license test to disk in the .license file
                 // Step 2: parse the .license file on disk in root directory using the ELMS API. This is required by the
-                //         ELMS API.
+                // ELMS API.
                 License fullLicense = buildLicenseObjectFromText(license.getLicenseText());
-                                                                                     
+
                 // Step 3: Add license features to coordinator service.
-                updateCoordinatorWithLicenseFeatures(fullLicense, true);                                     
-        
-                // Step 4: Add the raw license file to coordinator to keep a copy of the actual license file. 
-                updateCoordinatorWithLicenseText(license);                                        
+                updateCoordinatorWithLicenseFeatures(fullLicense, true);
+
+                // Step 4: Add the raw license file to coordinator to keep a copy of the actual license file.
+                updateCoordinatorWithLicenseText(license);
 
                 // Step 5: Force the events to run
                 _sendEventScheduler.run();
-            }
-            finally {                
+            } finally {
                 releaseTargetVersionLock();
-            }           
-        }    
+            }
+        }
         else {
             _log.warn("Cannot acquire lock for adding license");
             throw APIException.serviceUnavailable.postLicenseBusy();
         }
-    }   
-    
+    }
 
     /**
      * Check if it is a one-node deployment required by trial package in vipr 1.1
+     * 
      * @return true if it is a 1+0 vipr deployment
      */
     public boolean isTrialPackage() {
         // check if it is 1+0 deployment of controller
-        return (_coordinator.getNodeCount() == 1 && 
-            Constants.CONTROL_NODE_SYSSVC_ID_PATTERN.matcher(
-               _coordinator.getMySvcId()).matches());
+        return (_coordinator.getNodeCount() == 1 && Constants.CONTROL_NODE_SYSSVC_ID_PATTERN.matcher(
+                _coordinator.getMySvcId()).matches());
     }
- 
+
     /**
-     * Check if the license is a trial license. In vipr 1.1, only ViPR_Controller license can be trial license. 
+     * Check if the license is a trial license. In vipr 1.1, only ViPR_Controller license can be trial license.
      * 
      * @param license license object
      * @return true if the license object is a trial license
@@ -137,33 +131,33 @@ public class LicenseManagerImpl implements LicenseManager{
     {
         // parse the license text
         License fullLicense = buildLicenseObjectFromText(license.getLicenseText());
-        if(fullLicense != null) {
-            for(LicenseFeature feature : fullLicense.getLicenseFeatures()) {            
-                if(LicenseConstants.getLicenseType(feature.getModelId()).equals(
+        if (fullLicense != null) {
+            for (LicenseFeature feature : fullLicense.getLicenseFeatures()) {
+                if (LicenseConstants.getLicenseType(feature.getModelId()).equals(
                         LicenseType.CONTROLLER) && feature.isTrialLicense()) {
                     return true;
-                } 
+                }
             }
-        }        
+        }
         return false;
-    }	
- 
+    }
+
     /**
-     * Returns a full license object complete with features. 
+     * Returns a full license object complete with features.
      * 
      * @return
      */
     public License getLicense() throws Exception {
         LicenseInfoListExt licenseInfoList = getLicenseInfoListFromCoordinator();
         License license = new License();
-        if(licenseInfoList != null) {
+        if (licenseInfoList != null) {
             // create a license object from the above license features.
             createLicenseObject(licenseInfoList.getLicenseList(), license);
-            }
+        }
         // get the raw license text from coordinator.
         LicenseTextInfo licenseTextInfo = getLicenseTextFromCoordinator();
-        
-        // if text is found, add the raw license text to the License object. 
+
+        // if text is found, add the raw license text to the License object.
         // if text is not found, put message in license text stating that the product
         // is not licensed.
         if (licenseTextInfo != null) {
@@ -171,7 +165,7 @@ public class LicenseManagerImpl implements LicenseManager{
         } else {
             license.setLicenseText("The product is not licensed");
         }
-       
+
         return license;
     }
 
@@ -183,51 +177,50 @@ public class LicenseManagerImpl implements LicenseManager{
      * @return license object if successful, otherwise null
      */
     protected License buildLicenseObjectFromText(String licenseText) throws ELMLicenseException {
-       
-       boolean bGetLock = false;
-       try {
-           bGetLock = parseLicenseLock.tryLock(waitAcquireParseLicenseLock, TimeUnit.SECONDS);
-       }
-       catch(Exception e) {
-           _log.warn("Exception when adding license, msg: {}", e.getMessage());
-           throw APIException.internalServerErrors.processLicenseError("failed getting lock to validate and parse license, error:"
-                   + e.getMessage());
-       }
-       
-       if(bGetLock) {
-           try {
-           
-               License license = new License();
-               
-               // Add the license test to disk in the .license file in root. This is required in order
-               // to parse the license using the ELMS API. 
-               addLicenseToDiskLicenseFile(licenseText);
-                       
-               ELMLicenseProps licProps = new ELMLicenseProps();
-               licProps.setLicPath(LicenseConstants.LICENSE_FILE_PATH);
-               ELMFeatureDetail[] featureDetails = null;            
-                
-               ELMLicenseSource licSource = new ELMLicenseSource(licProps);
-               featureDetails = licSource.getFeatureDetailList();
-                
-               Map<String, String> modelMap = parseLicenseVendorStrings(licenseText);
-               if (modelMap == null || modelMap.size() == 0) {
-                   throw APIException.badRequests.licenseIsNotValid(                           
-                           "Unable to parse the license file for Model Id and Vendor String");
-               }
-               
-               LicenseFeature licenseFeature = null;                   
-               for (ELMFeatureDetail featureDetail : featureDetails) {                   
-                   // create a license feature object.
-                   licenseFeature = new LicenseFeature();
-                   if (! featureDetail.getFeatureName().equals(LicenseConstants.VIPR_CONTROLLER) &&
-                           ! featureDetail.getFeatureName().equals(LicenseConstants.VIPR_BLOCK)) {
-                       throw APIException.badRequests.licenseIsNotValid(
-                               String.format("The license file contains a not supported feature: %s.",
-                                       featureDetail.getFeatureName()) +
-                                       "Non controller/block license is no longer supported.");
-                   }
-                   if (featureDetail.getDaysUntilExp() > 0) {
+
+        boolean bGetLock = false;
+        try {
+            bGetLock = parseLicenseLock.tryLock(waitAcquireParseLicenseLock, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            _log.warn("Exception when adding license, msg: {}", e.getMessage());
+            throw APIException.internalServerErrors.processLicenseError("failed getting lock to validate and parse license, error:"
+                    + e.getMessage());
+        }
+
+        if (bGetLock) {
+            try {
+
+                License license = new License();
+
+                // Add the license test to disk in the .license file in root. This is required in order
+                // to parse the license using the ELMS API.
+                addLicenseToDiskLicenseFile(licenseText);
+
+                ELMLicenseProps licProps = new ELMLicenseProps();
+                licProps.setLicPath(LicenseConstants.LICENSE_FILE_PATH);
+                ELMFeatureDetail[] featureDetails = null;
+
+                ELMLicenseSource licSource = new ELMLicenseSource(licProps);
+                featureDetails = licSource.getFeatureDetailList();
+
+                Map<String, String> modelMap = parseLicenseVendorStrings(licenseText);
+                if (modelMap == null || modelMap.size() == 0) {
+                    throw APIException.badRequests.licenseIsNotValid(
+                            "Unable to parse the license file for Model Id and Vendor String");
+                }
+
+                LicenseFeature licenseFeature = null;
+                for (ELMFeatureDetail featureDetail : featureDetails) {
+                    // create a license feature object.
+                    licenseFeature = new LicenseFeature();
+                    if (!featureDetail.getFeatureName().equals(LicenseConstants.VIPR_CONTROLLER) &&
+                            !featureDetail.getFeatureName().equals(LicenseConstants.VIPR_BLOCK)) {
+                        throw APIException.badRequests.licenseIsNotValid(
+                                String.format("The license file contains a not supported feature: %s.",
+                                        featureDetail.getFeatureName()) +
+                                        "Non controller/block license is no longer supported.");
+                    }
+                    if (featureDetail.getDaysUntilExp() > 0) {
                         licenseFeature.setLicensed(true);
                         licenseFeature.setVersion(featureDetail.getVersion());
                         licenseFeature.setIssuer(featureDetail.getIssuer());
@@ -236,58 +229,59 @@ public class LicenseManagerImpl implements LicenseManager{
                         licenseFeature.setExpired(isExpired(licenseFeature.getDateExpires()));
                         licenseFeature.setDateIssued(convertCalendarToString(featureDetail.getIssuedDate()));
                         licenseFeature.setModelId(featureDetail.getFeatureName());
-                        setVendorStringFields(featureDetail, licenseFeature, modelMap);                                            
-                   } else {
+                        setVendorStringFields(featureDetail, licenseFeature, modelMap);
+                    } else {
                         _log.info("The license file contains a feature which is in an expired state. The license was not added to the system.");
-                        throw APIException.badRequests.licenseIsNotValid(                           
+                        throw APIException.badRequests
+                                .licenseIsNotValid(
                                 "The license file contains a feature which is in an expired state. The license was not added to the system.");
-                   }                  
-                   if(!validateLicenseFeature(licenseFeature)) {
-                	   throw APIException.badRequests.licenseIsNotValid(                           
-                               "Obsolete license. ViPR 2.0 license is required");
-                   }
-                   license.addLicenseFeature(licenseFeature);
-               }
-               
+                    }
+                    if (!validateLicenseFeature(licenseFeature)) {
+                        throw APIException.badRequests.licenseIsNotValid(
+                                "Obsolete license. ViPR 2.0 license is required");
+                    }
+                    license.addLicenseFeature(licenseFeature);
+                }
+
                 // delete /tmp/.license if it exists
-               deleteCurrentLicenseFileOnDisk();
-                                    
-               _log.debug("Finished parsing of license");
-               return license;
-           }
-           finally {               
-               parseLicenseLock.unlock();
-           }
-       } else {
-           _log.warn("Cannot acquire lock. Another thread is holding the lock validating and parsing license");
-           throw APIException.serviceUnavailable.postLicenseBusy();
-       }
+                deleteCurrentLicenseFileOnDisk();
+
+                _log.debug("Finished parsing of license");
+                return license;
+            } finally {
+                parseLicenseLock.unlock();
+            }
+        } else {
+            _log.warn("Cannot acquire lock. Another thread is holding the lock validating and parsing license");
+            throw APIException.serviceUnavailable.postLicenseBusy();
+        }
     }
-   
+
     /**
      * Check if the license feature is of required version
      * For ViPR 2.0, Object/HDFS license should not have capacity, ObjectHDFS license no longer exists.
+     * 
      * @param licenseFeature
      * @return true if the license feature meet the requirement of ViPR 2.0
      */
     private boolean validateLicenseFeature(LicenseFeature licenseFeature)
     {
-    	String featureName = licenseFeature.getModelId();
-        if(featureName.equals(LicenseConstants.getModelId(LicenseType.OBJECTHDFS))) {
+        String featureName = licenseFeature.getModelId();
+        if (featureName.equals(LicenseConstants.getModelId(LicenseType.OBJECTHDFS))) {
             _log.error("The license file contains 1.0 license feature {}", featureName);
             return false;
         }
-        if(featureName.equals(LicenseConstants.getModelId(LicenseType.OBJECT)) ||
+        if (featureName.equals(LicenseConstants.getModelId(LicenseType.OBJECT)) ||
                 featureName.equals(LicenseConstants.getModelId(LicenseType.HDFS))) {
-            // Check if it is license of 1.0 or 2.0                                   
-            if(licenseFeature.getStorageCapacity() != null) {
+            // Check if it is license of 1.0 or 2.0
+            if (licenseFeature.getStorageCapacity() != null) {
                 _log.error("The license file contains 1.0 license feature {}", featureName);
                 return false;
             }
         }
         return true;
     }
-    
+
     /**
      * Convert Calendar to MM/dd/yyyy format.
      * 
@@ -302,7 +296,7 @@ public class LicenseManagerImpl implements LicenseManager{
             return null;
         }
     }
-    
+
     /**
      * Verify if product is licensed for the specified feature.
      * 
@@ -311,24 +305,24 @@ public class LicenseManagerImpl implements LicenseManager{
     public boolean isProductLicensed(LicenseType licenseType) {
         return _coordinator.isProductLicensed(licenseType);
     }
-    
+
     /**
-     * Get all license info (features) from coordinator.     
+     * Get all license info (features) from coordinator.
      * 
      * @return LicenseInfoListExt which represent a list of license features
      * @throws Exception
      */
     public LicenseInfoListExt getLicenseInfoListFromCoordinator() {
-        try { 
-            return _coordinator.getTargetInfo(LicenseInfoListExt.class, 
+        try {
+            return _coordinator.getTargetInfo(LicenseInfoListExt.class,
                     TARGET_PROPERTY_ID, LicenseInfo.LICENSE_INFO_TARGET_PROPERTY);
-        	
+
         } catch (Exception e) {
             throw APIException.internalServerErrors.getObjectFromError("license info list",
                     "coordinator", e);
         }
     }
-    
+
     /**
      * Get license info for a specific license type from coordinator.
      * 
@@ -336,24 +330,24 @@ public class LicenseManagerImpl implements LicenseManager{
      * @throws Exception
      */
     public LicenseInfoExt getLicenseInfoFromCoordinator(LicenseType licenseType) {
-        try { 
-            LicenseInfoListExt licInfoList = _coordinator.getTargetInfo(LicenseInfoListExt.class, 
+        try {
+            LicenseInfoListExt licInfoList = _coordinator.getTargetInfo(LicenseInfoListExt.class,
                     TARGET_PROPERTY_ID, LicenseInfo.LICENSE_INFO_TARGET_PROPERTY);
-        	
-        	if(licInfoList != null) {
-        	    for(LicenseInfoExt licenseInfo: licInfoList.getLicenseList()) {
-        	        if(licenseInfo.getLicenseType() == licenseType) {
-        	            return licenseInfo;        	            
-        	        }
-        	    }
+
+            if (licInfoList != null) {
+                for (LicenseInfoExt licenseInfo : licInfoList.getLicenseList()) {
+                    if (licenseInfo.getLicenseType() == licenseType) {
+                        return licenseInfo;
+                    }
+                }
             }
             return null;
         } catch (Exception e) {
-            throw APIException.internalServerErrors.getObjectFromError(licenseType+" license info",
+            throw APIException.internalServerErrors.getObjectFromError(licenseType + " license info",
                     "coordinator", e);
         }
     }
-    
+
     /**
      * Get raw license text in LicenseTextInfo from coordinator.
      * 
@@ -366,19 +360,19 @@ public class LicenseManagerImpl implements LicenseManager{
 
     /**
      * Write the contents of the license file to /tmp/.license file. This is required
-     * by the ELMS API for parsing the license. 
+     * by the ELMS API for parsing the license.
      * 
      * @param licenseText
      */
     private void addLicenseToDiskLicenseFile(String licenseText) {
-        
+
         // check if file exists, if so, delete it first and create a new one.
         deleteCurrentLicenseFileOnDisk();
         // create a new file to hold the license text.
-        //licenseFile.createNewFile();
-        writeFile(LicenseConstants.LICENSE_FILE_PATH, licenseText);  
+        // licenseFile.createNewFile();
+        writeFile(LicenseConstants.LICENSE_FILE_PATH, licenseText);
     }
-    
+
     /**
      * Write license file text to disk.
      * 
@@ -403,19 +397,20 @@ public class LicenseManagerImpl implements LicenseManager{
             }
         }
     }
-    
+
     /**
      * Deletes current version of license file in /tmp/.license
+     * 
      * @return File
      */
     private void deleteCurrentLicenseFileOnDisk() {
-        
+
         File licenseFile = new File(LicenseConstants.LICENSE_FILE_PATH);
         if (licenseFile.exists()) {
             licenseFile.delete();
-        } 
+        }
     }
-     
+
     /**
      * Build the coordinator service version of the license features from the
      * License object.
@@ -432,9 +427,10 @@ public class LicenseManagerImpl implements LicenseManager{
         for (LicenseFeature licenseFeature : license.getLicenseFeatures()) {
             LicenseType licenseType = LicenseConstants.getLicenseType(
                     licenseFeature.getModelId());
-            if(licenseType == null)
+            if (licenseType == null) {
                 throw APIException.internalServerErrors.licenseInfoNotFoundForType(
-                         "invalid license model id" + licenseFeature.getModelId());
+                        "invalid license model id" + licenseFeature.getModelId());
+            }
 
             LicenseInfoExt licenseInfo = new LicenseInfoExt();
             licenseInfo.setLicenseType(licenseType);
@@ -443,19 +439,20 @@ public class LicenseManagerImpl implements LicenseManager{
             licenseInfo.setProductId(licenseFeature.getProductId());
             licenseInfo.setModelId(licenseFeature.getModelId());
             licenseInfo.setIssuedDate(licenseFeature.getDateIssued());
-            licenseInfo.setLicenseTypeIndicator(licenseFeature.getLicenseIdIndicator());                    
+            licenseInfo.setLicenseTypeIndicator(licenseFeature.getLicenseIdIndicator());
             licenseInfo.setVersion(licenseFeature.getVersion());
             licenseInfo.setNotice(licenseFeature.getNotice());
-            if(licenseFeature.isTrialLicense())
+            if (licenseFeature.isTrialLicense()) {
                 licenseInfo.setTrialLicense(true);
+            }
             licenseInfoList.add(licenseInfo);
         }
-        if(!licenseInfoList.isEmpty()) {
-    	    licenseList = new LicenseInfoListExt(licenseInfoList);            	    
-    	    _coordinator.setTargetInfo(licenseList, checkClusterUpgradable);
+        if (!licenseInfoList.isEmpty()) {
+            licenseList = new LicenseInfoListExt(licenseInfoList);
+            _coordinator.setTargetInfo(licenseList, checkClusterUpgradable);
         }
-        }
-        
+    }
+
     /**
      * Update Coordinator Service with the customers actual raw license file text.
      * 
@@ -469,23 +466,23 @@ public class LicenseManagerImpl implements LicenseManager{
         licenseTextInfo.setLicenseText(license.getLicenseText());
         _coordinator.setTargetInfo(licenseTextInfo);
     }
-    
+
     /**
      * Update Coordinator Service with license information.
      * 
      * @throws CoordinatorClientException
      */
-    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo) 
+    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo)
             throws CoordinatorClientException {
-  
-    	LicenseInfoListExt licenseList = getLicenseInfoListFromCoordinator();
-    	if(licenseList != null) {
-            licenseList.updateLicense(licenseInfo);      	           
+
+        LicenseInfoListExt licenseList = getLicenseInfoListFromCoordinator();
+        if (licenseList != null) {
+            licenseList.updateLicense(licenseInfo);
             _coordinator.setTargetInfo(licenseList, TARGET_PROPERTY_ID,
-        	        LicenseInfo.LICENSE_INFO_TARGET_PROPERTY);
+                    LicenseInfo.LICENSE_INFO_TARGET_PROPERTY);
+        }
     }
-    }
-     
+
     /**
      * Verify if the license has expired.
      * 
@@ -493,17 +490,17 @@ public class LicenseManagerImpl implements LicenseManager{
      * @return
      */
     public boolean isLicenseExpired(LicenseInfoExt licenseInfo) {
-       
+
         LicenseFeature licenseFeature = createLicenseFeatureFromLicenseInfoExt(licenseInfo);
         if (licenseFeature != null) {
-            return licenseFeature.isExpired(); 
+            return licenseFeature.isExpired();
         }
-        
+
         return false;
     }
 
     /**
-     * Verify if storage capacity currently used has exceeded the licensed capacity from the license file.  
+     * Verify if storage capacity currently used has exceeded the licensed capacity from the license file.
      * 
      * @param licenseInfo
      * @return true if capacity is exceeded
@@ -511,24 +508,24 @@ public class LicenseManagerImpl implements LicenseManager{
     public boolean isCapacityExceeded(LicenseInfoExt licenseInfo) {
         double currentCapacityUsed = 0;
         double licenseCapacity = Double.parseDouble(licenseInfo.getStorageCapacity());
-        try{
-            //if (licenseInfo.getModelId().equalsIgnoreCase(LicenseConstants.getModelId(LicenseType.CONTROLLER))) 
-            if(licenseInfo.getLicenseType().equals(LicenseType.CONTROLLER))
+        try {
+            // if (licenseInfo.getModelId().equalsIgnoreCase(LicenseConstants.getModelId(LicenseType.CONTROLLER)))
+            if (licenseInfo.getLicenseType().equals(LicenseType.CONTROLLER))
             {
                 // Get capacity from apisvc
                 currentCapacityUsed = getTotalControllerCapacity();
-            }
-            else
+            } else {
                 return false;
-            Object[] args = new Object[] {licenseInfo.getModelId(), currentCapacityUsed, licenseCapacity};
+            }
+            Object[] args = new Object[] { licenseInfo.getModelId(), currentCapacityUsed, licenseCapacity };
             _log.info("Capacity currently used by {}: {}, licensed capacity: {}", args);
             return currentCapacityUsed > licenseCapacity;
         } catch (Exception e) {
-             _log.warn("Internal server error occurred while getting capacity: {}", e);
+            _log.warn("Internal server error occurred while getting capacity: {}", e);
         }
         return false;
-    }    
-    
+    }
+
     /**
      * Update License object with data license information from coordinator service.
      * 
@@ -546,18 +543,18 @@ public class LicenseManagerImpl implements LicenseManager{
             license.addLicenseFeature(licenseFeature);
         }
     }
-    
+
     /**
      * Create a LicenseFeature object from a LicenseInfoExt from coordinator service.
      * 
      * @return LicenseFeature
      */
     private LicenseFeature createLicenseFeatureFromLicenseInfoExt(LicenseInfoExt licenseInfo) {
-        
+
         if (licenseInfo == null) {
             return null;
         }
-       
+
         LicenseFeature licenseFeature = new LicenseFeature();
         licenseFeature.setDateExpires(licenseInfo.getExpirationDate());
         licenseFeature.setExpired(isExpired(licenseFeature.getDateExpires()));
@@ -573,36 +570,36 @@ public class LicenseManagerImpl implements LicenseManager{
         licenseFeature.setLicensed(true);
         return licenseFeature;
     }
-    
+
     /**
-     * Parse the license text manually to get the model id's and appropriate vendor string. 
-     * This must be done manually because retrieving this via the ELMS API does not work     
+     * Parse the license text manually to get the model id's and appropriate vendor string.
+     * This must be done manually because retrieving this via the ELMS API does not work
      * 
      * @param licenseText
      * @return Map
      */
     private Map<String, String> parseLicenseVendorStrings(String licenseText) {
-       
+
         Pattern pattern = Pattern.compile(LicenseConstants.LICENSE_PATTERN, Pattern.DOTALL);
         Map<String, String> featureMap = new HashMap<String, String>();
         // get a String array of the license features.
         String[] licenseFeatures = licenseText.split(LicenseConstants.LICENSE_FEATRES_DELIM);
         // iterate through the license features, building the vendor string map.
         for (String licenseFeature : licenseFeatures) {
-            if(licenseFeature == null || licenseFeature.isEmpty()){
+            if (licenseFeature == null || licenseFeature.isEmpty()) {
                 continue;
             }
             Matcher matcher = pattern.matcher(licenseFeature.trim());
-            if(matcher.find()) {
-                featureMap.put(matcher.group(1),matcher.group(2));
+            if (matcher.find()) {
+                featureMap.put(matcher.group(1), matcher.group(2));
             }
         }
         return featureMap;
     }
-    
+
     /**
-     * Set the license feature with the appropriate data from model number's 
-     * vendor string. 
+     * Set the license feature with the appropriate data from model number's
+     * vendor string.
      */
     private void setVendorStringFields(ELMFeatureDetail featureDetail,
             LicenseFeature licenseFeature, Map<String, String> modelMap) {
@@ -615,12 +612,12 @@ public class LicenseManagerImpl implements LicenseManager{
         // to return a map of Strings of the individual features by their corresponding name
         // (i.e key CAPACITY, value 500)
         Map<String, String> vendorStringMap = splitVendorString(vendorString);
-        
-        if(vendorStringMap.get(LicenseConstants.STORAGE_CAPACITY) != null) {
-            licenseFeature.setStorageCapacity(computeLicensedAmount(vendorStringMap));     
+
+        if (vendorStringMap.get(LicenseConstants.STORAGE_CAPACITY) != null) {
+            licenseFeature.setStorageCapacity(computeLicensedAmount(vendorStringMap));
         }
-        
-        // If SWID is returned in the vendor string, we will use that as the Serial number, 
+
+        // If SWID is returned in the vendor string, we will use that as the Serial number,
         // otherwise, use SN. Set the LicenseIndicator so that the SYR knows if we're using a SWID or LAC.
         String swidValue = vendorStringMap.get(LicenseConstants.SWID_VALUE);
         if (swidValue == null || swidValue.startsWith("ERR")) {
@@ -633,18 +630,18 @@ public class LicenseManagerImpl implements LicenseManager{
             licenseFeature.setLicenseIdIndicator(LicenseConstants.SWID);
         }
         // if it is a trial license
-        String trialLicenseStr = vendorStringMap.get(LicenseConstants.TRIAL_LICENSE_NAME); 
-        if(trialLicenseStr != null) {
-            for(String value: LicenseConstants.TRIAL_LICENSE_VALUE) {
-                if(trialLicenseStr.equals(value)) {
+        String trialLicenseStr = vendorStringMap.get(LicenseConstants.TRIAL_LICENSE_NAME);
+        if (trialLicenseStr != null) {
+            for (String value : LicenseConstants.TRIAL_LICENSE_VALUE) {
+                if (trialLicenseStr.equals(value)) {
                     licenseFeature.setTrialLicense(true);
                     _log.info("License {} is trial license", featureDetail.getFeatureName());
                     break;
-                }                
-            }    
+                }
+            }
         }
     }
-   
+
     /**
      * Splits the vendor string from license into individual entries in a map.
      */
@@ -658,7 +655,7 @@ public class LicenseManagerImpl implements LicenseManager{
 
         return vendorMap;
     }
-    
+
     /**
      * Gets capacity from controller.
      * List of returned resources include volume, file and free storage pool capacities.
@@ -668,7 +665,7 @@ public class LicenseManagerImpl implements LicenseManager{
         List<Service> services = _coordinator.locateAllServices(
                 LicenseConstants.API_SVC_LOOKUP_KEY,
                 LicenseConstants.SERVICE_LOOKUP_VERSION, null, null);
-        for(Service service: services) {
+        for (Service service : services) {
             try {
                 // service could be null, if so get next service.
                 if (service != null) {
@@ -695,16 +692,16 @@ public class LicenseManagerImpl implements LicenseManager{
         _log.info("Getting controller total capacity");
         ManagedResourcesCapacity resourceCapacities = getControllerCapacity();
         double total = 0;
-        for( ManagedResourceCapacity cap :  resourceCapacities.getResourceCapacityList() ) {
+        for (ManagedResourceCapacity cap : resourceCapacities.getResourceCapacityList()) {
             _log.debug("{} capacity is {}", cap.getType(), cap.getResourceCapacity());
             total += cap.getResourceCapacity();
         }
         _log.info("Controller total capacity is {}", total);
         return total;
     }
-    
+
     /**
-     * Get a instance of the SysClient for the base url. 
+     * Get a instance of the SysClient for the base url.
      * 
      * @return
      */
@@ -713,10 +710,10 @@ public class LicenseManagerImpl implements LicenseManager{
         hostUri = service.getEndpoint();
         String baseNodeURL = String.format(LicenseConstants.BASE_URL_FORMAT, hostUri.getHost(),
                 hostUri.getPort());
-        _log.info("Calling URI: "+baseNodeURL);
+        _log.info("Calling URI: " + baseNodeURL);
         return SysClientFactory.getSysClient(URI.create(baseNodeURL));
     }
-    
+
     /**
      * Compute the licensed amount by computing storage capacity times the
      * storage capacity unit.
@@ -739,7 +736,7 @@ public class LicenseManagerImpl implements LicenseManager{
         }
 
         // If for some reason we cannot compute the capacity for the capacity values in the license
-        // (CAPACITY * CAPACITY_UNIT), return 0. 
+        // (CAPACITY * CAPACITY_UNIT), return 0.
         if (computedLicensedCapacity != null) {
             return computedLicensedCapacity.toString();
         } else {
@@ -775,22 +772,23 @@ public class LicenseManagerImpl implements LicenseManager{
 
         return false;
     }
-    
+
     /**
      * Get a target info lock from coordinator.
+     * 
      * @return
      */
     public boolean getTargetInfoLock() {
         return _coordinator.getTargetInfoLock();
     }
-    
+
     /**
      * calls coordinator client to release a target version lock.
      */
     public void releaseTargetVersionLock() {
         _coordinator.releaseTargetVersionLock();
     }
-   
+
     /**
      * Set the CoordinatorClientExt
      * 
@@ -799,9 +797,10 @@ public class LicenseManagerImpl implements LicenseManager{
     public void setCoordinatorClientExt(CoordinatorClientExt coordinatorClientExt) {
         _coordinator = coordinatorClientExt;
     }
-    
+
     /**
      * Set the events scheduler.
+     * 
      * @param scheduler
      */
     @Autowired

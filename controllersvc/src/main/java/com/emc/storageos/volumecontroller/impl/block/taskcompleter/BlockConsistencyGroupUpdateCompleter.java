@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -38,7 +37,7 @@ public class BlockConsistencyGroupUpdateCompleter extends BlockConsistencyGroupT
     public BlockConsistencyGroupUpdateCompleter(URI consistencyGroup, String opId) {
         super(BlockConsistencyGroup.class, consistencyGroup, opId);
     }
-    
+
     @Override
     public void ready(DbClient dbClient) throws DeviceControllerException {
         try {
@@ -52,7 +51,7 @@ public class BlockConsistencyGroupUpdateCompleter extends BlockConsistencyGroupT
 
             recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(),
                     eventType(Status.ready), Status.ready, eventMessage(Status.ready,
-                    consistencyGroup));
+                            consistencyGroup));
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupUpdate {}, for task "
                     + getOpId(), getId(), e);
@@ -73,7 +72,7 @@ public class BlockConsistencyGroupUpdateCompleter extends BlockConsistencyGroupT
 
             recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(),
                     eventType(Status.error), Status.error, eventMessage(Status.error,
-                    consistencyGroup));
+                            consistencyGroup));
         } catch (Exception e) {
             _log.error("Failed updating status. BlockConsistencyGroupUpdate {}, " +
                     "for task " + getOpId(), getId(), e);

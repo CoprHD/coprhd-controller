@@ -80,7 +80,7 @@ public class VPlexStorageMonitor implements StorageMonitor {
      */
     @Override
     public void startMonitoring(StorageSystem storageDevice, WorkPool.Work work)
-        throws StorageMonitorException {
+            throws StorageMonitorException {
     }
 
     /**
@@ -88,7 +88,7 @@ public class VPlexStorageMonitor implements StorageMonitor {
      */
     @Override
     public void stopMonitoring(StorageSystem storageDevice)
-        throws StorageMonitorException {
+            throws StorageMonitorException {
     }
 
     /**

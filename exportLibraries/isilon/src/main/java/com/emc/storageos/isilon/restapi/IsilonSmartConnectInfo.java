@@ -24,14 +24,16 @@ public class IsilonSmartConnectInfo {
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("SmartConnectInfo ( description: " + description);
-        if(zones != null)str.append(", zones: " + zones.toString());
+        if (zones != null) {
+            str.append(", zones: " + zones.toString());
+        }
         return str.toString();
     }
-    
+
     public ArrayList<IsilonStoragePort> getPorts() {
         ArrayList<IsilonStoragePort> ports = new ArrayList();
-        if(zones != null) {
-            for(String zone: zones){
+        if (zones != null) {
+            for (String zone : zones) {
                 IsilonStoragePort port = new IsilonStoragePort();
                 port.setPortName(zone);
                 port.setIpAddress(zone);
@@ -40,6 +42,5 @@ public class IsilonSmartConnectInfo {
         }
         return ports;
     }
-
 
 }

@@ -11,7 +11,7 @@ import com.emc.vipr.model.sys.licensing.LicenseFeature;
 
 public class StorageStatsWrapper {
     private StorageStats storageStats;
-    
+
     public StorageStatsWrapper(StorageStats stats) {
         if (stats == null) {
             throw new IllegalArgumentException();
@@ -30,7 +30,7 @@ public class StorageStatsWrapper {
         }
         return SizeUtils.humanReadableByteCount(0L);
     }
-    
+
     public long getUsagePercentage(LicenseFeature feature) {
         BigDecimal totalManaged = getManagedCapacity(feature);
         BigDecimal licenseCap = LicenseUtils.getLicensedCapacity(feature.getModelId());
@@ -51,7 +51,8 @@ public class StorageStatsWrapper {
             }
             totalController = totalController.add(new BigDecimal(storageStats.getControllerStorageStats().getFileCapacityKB() * 1024));
             totalController = totalController.add(new BigDecimal(storageStats.getControllerStorageStats().getBlockCapacityKB() * 1024));
-            totalController = totalController.add(new BigDecimal(storageStats.getControllerStorageStats().getFreeManagedCapacityKB() * 1024));
+            totalController = totalController
+                    .add(new BigDecimal(storageStats.getControllerStorageStats().getFreeManagedCapacityKB() * 1024));
             return totalController;
         }
         return BigDecimal.ZERO;

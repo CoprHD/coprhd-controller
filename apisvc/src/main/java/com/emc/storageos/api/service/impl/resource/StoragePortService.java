@@ -117,14 +117,15 @@ public class StoragePortService extends TaggedResource {
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
+
     // how many times to retry a procedure before returning failure to the user.
     // Is used with "system delete" operation.
     private int _retry_attempts;
-    
+
     public void setRetryAttempts(int retries) {
         _retry_attempts = retries;
     }
-    
+
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
@@ -145,9 +146,9 @@ public class StoragePortService extends TaggedResource {
         ArgValidator.checkEntity(port, id, isIdEmbeddedInURL(id));
 
         if (!RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-            port.getRegistrationStatus())) {
+                port.getRegistrationStatus())) {
             throw APIException.badRequests.resourceNotRegistered(
-                StoragePort.class.getSimpleName(), id);
+                    StoragePort.class.getSimpleName(), id);
         }
 
         return port;
@@ -161,7 +162,7 @@ public class StoragePortService extends TaggedResource {
         return port;
     }
 
-    /**     
+    /**
      * Gets the ids and self links for all storage ports.
      * 
      * @brief List storage ports
@@ -179,14 +180,14 @@ public class StoragePortService extends TaggedResource {
             StoragePort port = _dbClient.queryObject(StoragePort.class, id);
             if ((port != null)) {
                 storagePorts.getPorts().add(
-                    toNamedRelatedResource(port, port.getNativeGuid()));
+                        toNamedRelatedResource(port, port.getNativeGuid()));
             }
         }
 
         return storagePorts;
     }
 
-    /**     
+    /**
      * Gets the data for a storage port.
      * 
      * @param id the URN of a ViPR storage port.
@@ -205,7 +206,7 @@ public class StoragePortService extends TaggedResource {
         return MapStoragePort.getInstance(_dbClient).toStoragePortRestRep(storagePort);
     }
 
-    /**     
+    /**
      * Allows the user to deregister a registered storage port so that it
      * is no longer used by the system. This simply sets the
      * registration_status of the storage port to UNREGISTERED.
@@ -218,82 +219,76 @@ public class StoragePortService extends TaggedResource {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deregister")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePortRestRep deregisterStoragePort(@PathParam("id") URI id) {
 
         ArgValidator.checkFieldUriType(id, StoragePort.class, "id");
         StoragePort port = queryResource(id);
         if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-            port.getRegistrationStatus())) {
+                port.getRegistrationStatus())) {
             // Setting status to UNREGISTERED.
             port.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             _dbClient.persistObject(port);
 
             // Record the storage port deregister event.
             recordStoragePortEvent(OperationTypeEnum.STORAGE_PORT_DEREGISTER,
-                STORAGEPORT_DEREGISTERED_DESCRIPTION, port.getId());
+                    STORAGEPORT_DEREGISTERED_DESCRIPTION, port.getId());
 
             auditOp(OperationTypeEnum.DEREGISTER_STORAGE_PORT, true, null,
-                port.getLabel(), port.getId().toString());
+                    port.getLabel(), port.getId().toString());
         }
         return MapStoragePort.getInstance(_dbClient).toStoragePortRestRep(port);
     }
 
-    /**     
+    /**
      * Updates Network for the storage port with the passed
      * id and/or updates the virtual arrays to which the storage
      * port is assigned.
      * <p>
-     * A port's network is used to determine to which initiators the port can be 
-     * exported. It also determines the port's virtual arrays when the port 
-     * is not explicitly assigned to virtual arrays 
-     * ( see {@link StoragePort#getAssignedVirtualArrays()}). In this case the port's 
-     * virtual arrays are the same as its networks virtual arrays (see 
-     * {@link StoragePort#getConnectedVirtualArrays()}). Implicit virtual arrays
-     * cannot be removed, they can only be overridden by an explicit assignment or 
-     * automatically unassigned when the network is unassigned from a virtual array. A 
-     * port's effective virtual array assignment is {@link StoragePort#getTaggedVirtualArrays()}).
+     * A port's network is used to determine to which initiators the port can be exported. It also determines the port's virtual arrays when
+     * the port is not explicitly assigned to virtual arrays ( see {@link StoragePort#getAssignedVirtualArrays()}). In this case the port's
+     * virtual arrays are the same as its networks virtual arrays (see {@link StoragePort#getConnectedVirtualArrays()}). Implicit virtual
+     * arrays cannot be removed, they can only be overridden by an explicit assignment or automatically unassigned when the network is
+     * unassigned from a virtual array. A port's effective virtual array assignment is {@link StoragePort#getTaggedVirtualArrays()}).
      * <p>
-     * A port can be explicitly assigned to virtual arrays and this overrides the
-     * implicit assignment resulting from the network association. If the explicit
-     * assignment is removed, the implicit assignment becomes effective again. 
+     * A port can be explicitly assigned to virtual arrays and this overrides the implicit assignment resulting from the network
+     * association. If the explicit assignment is removed, the implicit assignment becomes effective again.
      * <p>
-     * Managing ports virtual array assignments requires planning. In general, 
-     * networks need not to be assigned to virtual arrays unless implicit 
-     * assignments of ports are desired. 
+     * Managing ports virtual array assignments requires planning. In general, networks need not to be assigned to virtual arrays unless
+     * implicit assignments of ports are desired.
      * 
      * @param id the URN of a ViPR storage port.
      * @param storagePortUpdates Specifies the updates to be made to the storage
-     *        port
-     *
+     *            port
+     * 
      * @brief Update storage port network and/or virtual array assignments.
      * @return A StoragePortRestRep specifying the updated storage port info.
      */
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePortRestRep updateStoragePort(@PathParam("id") URI id,
-        StoragePortUpdate storagePortUpdates) {
+            StoragePortUpdate storagePortUpdates) {
 
         // Get the storage port with the passed id.
         ArgValidator.checkFieldUriType(id, StoragePort.class, "id");
         StoragePort storagePort = queryResource(id);
         _log.info("Update called for storage port {}", id);
 
-        // If the port is a VPLEX, then before any changes are 
+        // If the port is a VPLEX, then before any changes are
         // made for the port, get the storage pools for the systems
         // connected to the VPLEX. These pools and the vpools they
         // match may be impacted by the change to the VPLEX storage
         // port. We must get these ports now before any changes are
-        // persisted for the port as the connected systems may 
+        // persisted for the port as the connected systems may
         // change and we would not get all potentially impacted pools.
         List<StoragePool> modifiedPools = null;
         URI systemURI = storagePort.getStorageDevice();
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
         if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
             modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(
-                _dbClient, Arrays.asList(storagePort), null, true);
+                    _dbClient, Arrays.asList(storagePort), null, true);
         }
 
         // Update the storage port network assignment.
@@ -310,11 +305,12 @@ public class StoragePortService extends TaggedResource {
         // Update the storage port virtual array assignments.
         _log.info("Checking for updates to storage port virtual array assignments.");
         boolean virtualArraysUpdated = updateStoragePortVirtualArrays(storagePort,
-            storagePortUpdates.getVarrayChanges());
+                storagePortUpdates.getVarrayChanges());
 
-        /** This is applicable only for Cinder Storage System's port
-         *  as currently there is no API to discover it from Cinder.
-         *  So, it requires user to update the value for provisioning operations.
+        /**
+         * This is applicable only for Cinder Storage System's port
+         * as currently there is no API to discover it from Cinder.
+         * So, it requires user to update the value for provisioning operations.
          */
         boolean portNetworkIdUpdated = updatePortNetworkId(storagePort,
                 storagePortUpdates.getPortNetworkId());
@@ -324,15 +320,15 @@ public class StoragePortService extends TaggedResource {
         // connected to the VPLEX. New pools and the vpools they
         // match may be impacted by the change to the VPLEX storage
         // port. We then get the union of these pools with the pools
-        // determined before the changes were made. We then pass 
-        // these pools to the process that updates pool and port 
+        // determined before the changes were made. We then pass
+        // these pools to the process that updates pool and port
         // associations when a storage port is modified.
         if (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType())) {
             List<StoragePool> pools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(
-                _dbClient, Arrays.asList(storagePort), null, true);
+                    _dbClient, Arrays.asList(storagePort), null, true);
             if ((modifiedPools == null) || (modifiedPools.isEmpty())) {
                 modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(
-                    _dbClient, Arrays.asList(storagePort), null, true);
+                        _dbClient, Arrays.asList(storagePort), null, true);
             } else {
                 List<StoragePool> poolsToAdd = new ArrayList<StoragePool>();
                 for (StoragePool pool : pools) {
@@ -344,7 +340,7 @@ public class StoragePortService extends TaggedResource {
                             break;
                         }
                     }
-                    
+
                     if (!poolFound) {
                         poolsToAdd.add(pool);
                     }
@@ -352,10 +348,10 @@ public class StoragePortService extends TaggedResource {
                 modifiedPools.addAll(poolsToAdd);
             }
         }
-        
+
         if (virtualArraysUpdated || networkUpdated || portNetworkIdUpdated) {
-            _log.info("Storage port virtual arrays have been modified.");  
-            //this method runs poolmatcher, rp connectivity
+            _log.info("Storage port virtual arrays have been modified.");
+            // this method runs poolmatcher, rp connectivity
             StoragePortAssociationHelper.runUpdatePortAssociationsProcess(
                     Collections.singleton(storagePort), null, _dbClient,
                     _coordinator, modifiedPools);
@@ -366,51 +362,52 @@ public class StoragePortService extends TaggedResource {
         if (networkUpdated || virtualArraysUpdated || portNetworkIdUpdated) {
             // Create the audit log entry.
             auditOp(OperationTypeEnum.UPDATE_STORAGE_PORT, true, null,
-                storagePort.getLabel(), id.toString());
+                    storagePort.getLabel(), id.toString());
 
             // Record the storage port update event.
             recordStoragePortEvent(OperationTypeEnum.STORAGE_PORT_UPDATE,
-                STORAGEPORT_UPDATED_DESCRIPTION, storagePort.getId());
+                    STORAGEPORT_UPDATED_DESCRIPTION, storagePort.getId());
         }
 
         return MapStoragePort.getInstance(_dbClient).toStoragePortRestRep(storagePort);
     }
 
-    /**     
-     * Remove a storage port. The method would remove the deregistered storage port and all resources 
+    /**
+     * Remove a storage port. The method would remove the deregistered storage port and all resources
      * associated with the storage port from the database.
      * Note they are not removed from the storage system physically,
      * but become unavailable for the user.
-     *
+     * 
      * @param id the URN of a ViPR storage port to be removed.
-     *
+     * 
      * @brief remove storage port from ViPR
      * @return Status indicating success or failure.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep deleteStoragePort(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, StoragePort.class, "id");
         StoragePort port = queryResource(id);
 
-        if(!RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
-                port.getRegistrationStatus()) || 
+        if (!RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
+                port.getRegistrationStatus()) ||
                 DiscoveryStatus.VISIBLE.name().equalsIgnoreCase(
                         port.getDiscoveryStatus())) {
             throw APIException.badRequests.cannotDeactivateStoragePort();
         }
-            
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(StoragePool.class, id,
-                           taskId, ResourceOperationTypeEnum.DELETE_STORAGE_PORT);
-        
-        PurgeRunnable.executePurging(_dbClient,_dbPurger,
-                                     _asynchJobService.getExecutorService(),port,
-                                         _retry_attempts,taskId,60);
+                taskId, ResourceOperationTypeEnum.DELETE_STORAGE_PORT);
+
+        PurgeRunnable.executePurging(_dbClient, _dbPurger,
+                _asynchJobService.getExecutorService(), port,
+                _retry_attempts, taskId, 60);
         return toTask(port, taskId, op);
     }
+
     /**
      * Updates the network for the passed storage port. If the passed new
      * network id is not null, then the storage port will be unassigned from its
@@ -418,8 +415,8 @@ public class StoragePortService extends TaggedResource {
      * that a storage port that is currently a member of a discovered network
      * cannot be reassigned to a new network. Attempting to do so results in a
      * bad request exception. Attempts to reassign to the same network are
-     * logged and ignored. If the passed new network id is not null, but 
-     * is instead "" or "null", and the storage port is currently assigned 
+     * logged and ignored. If the passed new network id is not null, but
+     * is instead "" or "null", and the storage port is currently assigned
      * to an undiscovered network, the port will be unassigned from the network.
      * 
      * @param storagePort A reference to the storage port.
@@ -434,8 +431,8 @@ public class StoragePortService extends TaggedResource {
         String portNativeId = storagePort.getNativeGuid();
         Network currentNetwork = null;
         Network newNetwork = null;
-        
-        // If the passed new network id is null, then just return. The user has not 
+
+        // If the passed new network id is null, then just return. The user has not
         // specified a network change. Note that removal from it's current network
         // w/o reassigning to a new network is done by passing a new network id
         // of "" or "null".
@@ -454,7 +451,7 @@ public class StoragePortService extends TaggedResource {
             ArgValidator.checkEntity(currentNetwork, currentNetworkId, false);
             if (currentNetwork.endpointIsDiscovered(storagePort.getPortNetworkId())) {
                 throw APIException.badRequests
-                    .unableToUpdateDiscoveredNetworkForStoragePort();
+                        .unableToUpdateDiscoveredNetworkForStoragePort();
             }
         }
 
@@ -465,42 +462,42 @@ public class StoragePortService extends TaggedResource {
             ArgValidator.checkFieldUriType(newNetworkId, Network.class, "network");
             newNetwork = _dbClient.queryObject(Network.class, newNetworkId);
             ArgValidator.checkEntity(newNetwork, newNetworkId,
-                isIdEmbeddedInURL(newNetworkId));
+                    isIdEmbeddedInURL(newNetworkId));
 
             // If the Network is discovered, check that it already contains
             // the endpoint. This is just a warning.
             if (newNetwork.getDiscovered()) {
                 if (false == newNetwork.retrieveEndpoints().contains(portNetworkId)) {
                     _log.info(String.format("Network does not contain "
-                        + "endpoint for port %s wwpn %s", storagePort.getPortName(),
-                        portNetworkId));
+                            + "endpoint for port %s wwpn %s", storagePort.getPortName(),
+                            portNetworkId));
                 }
             }
         }
 
         if ((currentNetwork == null && newNetwork == null)
                 || (currentNetwork != null && newNetwork != null && currentNetworkId
-                .equals(newNetworkId))) {
+                        .equals(newNetworkId))) {
             _log.info("The old and new Networks are the same, no change will be made.");
             return false;
         }
-        
+
         if (newNetwork != null) {
             // If adding or changing network assignment.
             _log.info("Storage port {} will be assigned to network {}",
-                portNativeId, newNetwork.getLabel());
+                    portNativeId, newNetwork.getLabel());
             updateNetworkEndpoint(newNetworkId, portNetworkId,
-                NetworkEndpointParam.EndpointOp.add);
+                    NetworkEndpointParam.EndpointOp.add);
             networkUpdated = true;
         } else if (currentNetwork != null) {
             // If removing from the current network assignment.
             _log.info("Storage port {} will be removed from network {}",
-                portNativeId, currentNetwork.getLabel());
+                    portNativeId, currentNetwork.getLabel());
             updateNetworkEndpoint(currentNetworkId, portNetworkId,
-                NetworkEndpointParam.EndpointOp.remove);
+                    NetworkEndpointParam.EndpointOp.remove);
             networkUpdated = true;
         }
-    
+
         return networkUpdated;
     }
 
@@ -513,8 +510,8 @@ public class StoragePortService extends TaggedResource {
      * @return true if there was a virtual array assignment change, false otherwise.
      */
     private boolean updateStoragePortVirtualArrays(StoragePort storagePort,
-        VirtualArrayAssignmentChanges varrayAssignmentChanges) {
-                
+            VirtualArrayAssignmentChanges varrayAssignmentChanges) {
+
         // Validate that the virtual arrays to be assigned to the storage port
         // reference existing virtual arrays in the database and add them to
         // the storage port.
@@ -523,11 +520,11 @@ public class StoragePortService extends TaggedResource {
         Set<String> varraysRemovedFromPort = new HashSet<String>();
         if (varrayAssignmentChanges != null) {
             _log.info("Update request has virtual array assignment changes for storage port {}",
-                storagePort.getId());
+                    storagePort.getId());
             // Verify the assignment changes in the request.
             verifyAssignmentChanges(storagePort, varrayAssignmentChanges);
             _log.info("Requested virtual array assignment changes verified.");
-            
+
             VirtualArrayAssignments addAssignments = varrayAssignmentChanges.getAdd();
             if (addAssignments != null) {
                 Set<String> addVArrays = addAssignments.getVarrays();
@@ -535,8 +532,8 @@ public class StoragePortService extends TaggedResource {
                     _log.info("Request specifies virtual arrays to be added.");
                     // Validate the requested URIs.
                     VirtualArrayService.checkVirtualArrayURIs(addVArrays, _dbClient);
-                
-                    // Iterate over the virtual arrays and assign them 
+
+                    // Iterate over the virtual arrays and assign them
                     // to the storage port.
                     StringSet currentAssignments = storagePort.getAssignedVirtualArrays();
                     Iterator<String> addVArraysIter = addVArrays.iterator();
@@ -545,10 +542,10 @@ public class StoragePortService extends TaggedResource {
                         if ((currentAssignments != null) && (currentAssignments.contains(addVArrayId))) {
                             // Just ignore those already assigned
                             _log.info("Storage port already assigned to virtual array {}",
-                                addVArrayId);
+                                    addVArrayId);
                             continue;
                         }
-                        
+
                         varraysAddedToPort.add(addVArrayId);
                         varraysForPortUpdated = true;
                         _log.info("Storage port will be assigned to virtual array {}", addVArrayId);
@@ -557,16 +554,16 @@ public class StoragePortService extends TaggedResource {
             }
 
             // Validate that the virtual arrays to be unassigned from the
-            // storage port reference existing virtual arrays in the database 
+            // storage port reference existing virtual arrays in the database
             // and remove them from the storage port.
             VirtualArrayAssignments removeAssignments = varrayAssignmentChanges.getRemove();
             if (removeAssignments != null) {
-                Set<String>removeVArrays = removeAssignments.getVarrays();
+                Set<String> removeVArrays = removeAssignments.getVarrays();
                 if ((removeVArrays != null) && (!removeVArrays.isEmpty())) {
                     _log.info("Request specifies virtual arrays to be removed.");
                     // Validate the requested URIs.
                     VirtualArrayService.checkVirtualArrayURIs(removeVArrays, _dbClient);
-                    
+
                     // Iterate over the virtual arrays and unassign from
                     // the storage port.
                     StringSet currentAssignments = storagePort.getAssignedVirtualArrays();
@@ -575,16 +572,16 @@ public class StoragePortService extends TaggedResource {
                         String removeVArrayId = removeVArraysIter.next();
                         if ((currentAssignments == null) || (!currentAssignments.contains(removeVArrayId))) {
                             // Just ignore those not assigned.
-                            _log.info("Storage port is not assigned to virtual array {}", 
-                                removeVArrayId);
+                            _log.info("Storage port is not assigned to virtual array {}",
+                                    removeVArrayId);
                             continue;
                         }
-                        
-                        //storagePort.removeAssignedVirtualArray(removeVArrayId);
+
+                        // storagePort.removeAssignedVirtualArray(removeVArrayId);
                         varraysRemovedFromPort.add(removeVArrayId);
                         varraysForPortUpdated = true;
-                        _log.info("Storage port will be unassigned from virtual array {}", 
-                            removeVArrayId);
+                        _log.info("Storage port will be unassigned from virtual array {}",
+                                removeVArrayId);
                     }
                 }
             }
@@ -594,45 +591,46 @@ public class StoragePortService extends TaggedResource {
         if (varraysForPortUpdated) {
             storagePort.addAssignedVirtualArrays(varraysAddedToPort);
             storagePort.removeAssignedVirtualArrays(varraysRemovedFromPort);
-            // Check the new virtual array assignment does 
+            // Check the new virtual array assignment does
             // not remove the port from varrays where it is used
             verifyPortNoInUseInRemovedVarrays(storagePort);
             _dbClient.updateAndReindexObject(storagePort);
-            
+
             // Because the storage port virtual array assignments have
-            // changed, we may have to update the implicit connected 
+            // changed, we may have to update the implicit connected
             // virtual arrays for the storage port's network.
             URI storagePortNetworkURI = storagePort.getNetwork();
             if (storagePortNetworkURI != null) {
                 // TODO - I need to find a way around using a full network retrieval
                 Network storagePortNetwork = _dbClient.queryObject(Network.class, storagePortNetworkURI);
-                if (storagePortNetwork != null) { 
+                if (storagePortNetwork != null) {
                     if (!varraysRemovedFromPort.isEmpty()) {
                         // if varrays were removed, it will be a full reset
                         // this will take care of both add and remove, but costly
-                        NetworkAssociationHelper.updateConnectedVirtualArrays(storagePortNetwork, 
+                        NetworkAssociationHelper.updateConnectedVirtualArrays(storagePortNetwork,
                                 Collections.singletonList(storagePort), false, _dbClient);
                     } else if (!varraysAddedToPort.isEmpty()) {
                         // if varrays were only added, do add only, cheaper
-                        NetworkAssociationHelper.updateConnectedVirtualArrays(storagePortNetwork, 
+                        NetworkAssociationHelper.updateConnectedVirtualArrays(storagePortNetwork,
                                 Collections.singletonList(storagePort), true, _dbClient);
-                        
+
                     }
                 }
             }
-            }
+        }
 
         return varraysForPortUpdated;
     }
-    
+
     /**
      * Checks that the storage port does not have any active exports (file or block) in any
-     * of the varrays from which it is being removed. 
+     * of the varrays from which it is being removed.
+     * 
      * @param storagePort
      */
     private void verifyPortNoInUseInRemovedVarrays(StoragePort storagePort) {
         _log.info("Checking port {} virtual array assignment can be changed", storagePort.getNativeGuid());
-        if ( EndpointUtility.isValidEndpoint(storagePort.getPortNetworkId(), EndpointType.SAN) ) {
+        if (EndpointUtility.isValidEndpoint(storagePort.getPortNetworkId(), EndpointType.SAN)) {
             _log.info("The port is of type FC or iscsi. Checking if in use by an export group.");
             List<ExportMask> masks = CustomQueryUtility.queryActiveResourcesByAltId(_dbClient, ExportMask.class,
                     "storagePorts", storagePort.getId().toString());
@@ -642,35 +640,35 @@ public class StoragePortService extends TaggedResource {
                     if (!mask.getInactive()) {
                         _log.info("checking ExportMask {}", mask.getMaskName());
                         List<ExportGroup> groups = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient,
-                                mask.getId(),  ExportGroup.class, "exportMasks");
+                                mask.getId(), ExportGroup.class, "exportMasks");
                         for (ExportGroup group : groups) {
                             // Determine the Varray of the ExportMask.
                             URI varray = group.getVirtualArray();
                             if (!ExportMaskUtils.exportMaskInVarray(_dbClient, mask, varray)) {
                                 _log.info("not all target ports of {} are tagged for varray {}", mask, varray);
-                                 // See if in alternate virtual array
-                                 if (group.getAltVirtualArrays() != null) {
-                                      String altVarray = group.getAltVirtualArrays().get(storagePort.getStorageDevice().toString());
-                                      if (null != altVarray) {
-                                          URI altVarrayUri = URI.create(altVarray);
-                                          if (ExportMaskUtils.exportMaskInVarray(_dbClient, mask, altVarrayUri)) {
-                                              _log.info("using the export group's alternate varray: {}", altVarrayUri);
-                                              varray = altVarrayUri;
-                                          }
-                                      }
-                                 }
+                                // See if in alternate virtual array
+                                if (group.getAltVirtualArrays() != null) {
+                                    String altVarray = group.getAltVirtualArrays().get(storagePort.getStorageDevice().toString());
+                                    if (null != altVarray) {
+                                        URI altVarrayUri = URI.create(altVarray);
+                                        if (ExportMaskUtils.exportMaskInVarray(_dbClient, mask, altVarrayUri)) {
+                                            _log.info("using the export group's alternate varray: {}", altVarrayUri);
+                                            varray = altVarrayUri;
+                                        }
+                                    }
+                                }
                             }
                             _log.info("the virtual array found for this port is {}", varray);
-                            
+
                             // only error if the ports ends up in a state where it can no longer be used in the varray
-                            // if removing the varrays reverts the port to using implicit varrays which contains the 
+                            // if removing the varrays reverts the port to using implicit varrays which contains the
                             // export, then it is all good.
-                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varray.toString()) ) {
+                            if (!group.getInactive() && !storagePort.getTaggedVirtualArrays().contains(varray.toString())) {
                                 _log.info("The port is in use by export group {} in virtual array {} " +
                                         "which will no longer in the port's tagged varray",
-                                        group.getLabel(),  group.getVirtualArray().toString());
+                                        group.getLabel(), group.getVirtualArray().toString());
                                 throw APIException.badRequests.cannotChangePortVarraysExportExists(
-                                        storagePort.getNativeGuid(), group.getVirtualArray().toString(), 
+                                        storagePort.getNativeGuid(), group.getVirtualArray().toString(),
                                         group.getId().toString());
                             }
                         }
@@ -683,14 +681,14 @@ public class StoragePortService extends TaggedResource {
                     _dbClient, storagePort.getId(), FileShare.class, "storagePort");
             for (FileShare fileShare : fileShares) {
                 // only error if the ports ends up in a state where it can no longer be used in the varray
-                // if removing the varrays reverts the port to using implicit varrays which contains the 
+                // if removing the varrays reverts the port to using implicit varrays which contains the
                 // export, then it is all good.
                 if (!fileShare.getInactive() && !storagePort.getTaggedVirtualArrays().contains(fileShare.getVirtualArray().toString())) {
                     _log.info("The port is in use by file share {} in virtual array {} " +
-                    		"which will no longer in the port's tagged varray",
-                            fileShare.getLabel(),  fileShare.getVirtualArray().toString());
+                            "which will no longer in the port's tagged varray",
+                            fileShare.getLabel(), fileShare.getVirtualArray().toString());
                     throw APIException.badRequests.cannotChangePortVarraysExportExists(
-                            storagePort.getNativeGuid(), fileShare.getVirtualArray().toString(), 
+                            storagePort.getNativeGuid(), fileShare.getVirtualArray().toString(),
                             fileShare.getId().toString());
                 }
             }
@@ -703,10 +701,10 @@ public class StoragePortService extends TaggedResource {
      * 
      * @param storagePort A reference to a storage port.
      * @param varrayAssignmentChanges The virtual array assignment changes in a
-     *        storage port update request.
+     *            storage port update request.
      */
     private void verifyAssignmentChanges(StoragePort storagePort,
-        VirtualArrayAssignmentChanges varrayAssignmentChanges) {
+            VirtualArrayAssignmentChanges varrayAssignmentChanges) {
         // Verify the add/remove sets do not overlap.
         VirtualArrayAssignments addAssignments = varrayAssignmentChanges.getAdd();
         VirtualArrayAssignments removeAssignments = varrayAssignmentChanges.getRemove();
@@ -723,8 +721,8 @@ public class StoragePortService extends TaggedResource {
                 }
             }
         }
-        
-        // If there are add assignments and the port is a VPLEX port, make 
+
+        // If there are add assignments and the port is a VPLEX port, make
         // sure the request does not try to add the VPLEX port to a virtual
         // array that contains ports from the other VPLEX cluster. The
         // ports for each cluster of VPLEX Metro must be in different
@@ -732,23 +730,23 @@ public class StoragePortService extends TaggedResource {
         // TODO: Any other add restrictions and/or remove restrictions.
         if (addAssignments != null) {
             Set<String> addVArrays = addAssignments.getVarrays();
-            if ((addVArrays != null) && (!addVArrays.isEmpty()) && 
-                (ConnectivityUtil.isAVplexPort(storagePort, _dbClient))) {
+            if ((addVArrays != null) && (!addVArrays.isEmpty()) &&
+                    (ConnectivityUtil.isAVplexPort(storagePort, _dbClient))) {
                 Iterator<String> addVArraysIterator = addVArrays.iterator();
                 while (addVArraysIterator.hasNext()) {
                     String varrayId = addVArraysIterator.next();
                     if (!ConnectivityUtil.vplexPortCanBeAssignedToVirtualArray(storagePort, varrayId, _dbClient)) {
                         _log.error("VPLEX port {} cannot be assigned to virtual array {}",
-                            storagePort.getId(), varrayId);
+                                storagePort.getId(), varrayId);
                         throw APIException.badRequests
-                            .virtualArrayHasPortFromOtherVPLEXCluster(
-                                storagePort.getNativeGuid(), varrayId);
+                                .virtualArrayHasPortFromOtherVPLEXCluster(
+                                        storagePort.getNativeGuid(), varrayId);
                     }
                 }
             }
         }
     }
-    
+
     /**
      * Record Bourne Event for the completed operations
      * 
@@ -758,47 +756,46 @@ public class StoragePortService extends TaggedResource {
      * @param storagePort
      */
     private void recordStoragePortEvent(OperationTypeEnum opType, String description,
-        URI storagePort) {
+            URI storagePort) {
 
         String evType;
         evType = opType.getEvType(true);
 
         RecordableBourneEvent event = new RecordableBourneEvent(
-        /* String */evType,
-        /* tenant id */null,
-        /* user id ?? */URI.create("ViPR-User"),
-        /* project ID */null,
-        /* VirtualPool */null,
-        /* service */EVENT_SERVICE_TYPE,
-        /* resource id */storagePort,
-        /* description */description,
-        /* timestamp */System.currentTimeMillis(),
-        /* extensions */"",
-        /* native guid */null,
-        /* record type */RecordType.Event.name(),
-        /* Event Source */EVENT_SERVICE_SOURCE,
-        /* Operational Status codes */"",
-        /* Operational Status Descriptions */"");
+                /* String */evType,
+                /* tenant id */null,
+                /* user id ?? */URI.create("ViPR-User"),
+                /* project ID */null,
+                /* VirtualPool */null,
+                /* service */EVENT_SERVICE_TYPE,
+                /* resource id */storagePort,
+                /* description */description,
+                /* timestamp */System.currentTimeMillis(),
+                /* extensions */"",
+                /* native guid */null,
+                /* record type */RecordType.Event.name(),
+                /* Event Source */EVENT_SERVICE_SOURCE,
+                /* Operational Status codes */"",
+                /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
         } catch (Exception ex) {
             _log.error("Failed to record event. Event description: {}. Error: {}.",
-                description, ex);
+                    description, ex);
         }
     }
 
     /**
      * Utility method to add/remove storage port endpoints to/from transport
-     * zones. The
-     * {@link NetworkService#doUpdateEndpoints(URI, NetworkEndpointParam)}
-     * handles updating the transport zone as well as the port and pool
+     * zones. The {@link NetworkService#doUpdateEndpoints(URI, NetworkEndpointParam)} handles updating the transport zone as well as the
+     * port and pool
      * associations. When a port is added:
      * <ul>
      * <li>the port's endpoint is added to the Network</li>
      * <li>The port Network is set to the new Network</li>
      * <li>The pool-to-varray associations are updated if needed.</li>
-     * <li>If the ports exists in another Network, its endpoint is removed from
-     * the old Network and the pool-to-varray associations are also updated</li>
+     * <li>If the ports exists in another Network, its endpoint is removed from the old Network and the pool-to-varray associations are also
+     * updated</li>
      * </ul>
      * When a port is removed:
      * <ul>
@@ -812,7 +809,7 @@ public class StoragePortService extends TaggedResource {
      * @param op The operation, add/remove
      */
     private void updateNetworkEndpoint(URI transportZoneURI, String endpointNetworkId,
-        NetworkEndpointParam.EndpointOp op) {
+            NetworkEndpointParam.EndpointOp op) {
         // Set up the parameters to add/remove the storage port endpoint
         NetworkEndpointParam param = new NetworkEndpointParam();
         List<String> endpoints = new ArrayList<String>();
@@ -824,11 +821,10 @@ public class StoragePortService extends TaggedResource {
         _dbClient.updateAndReindexObject(network);
     }
 
-
     /**
      * Update port network id.
      * This is applicable only for Cinder Storage System's port.
-     *
+     * 
      * @param storagePort the storage port
      * @param portNetworkId the port network id
      * @return true, if successful
@@ -858,8 +854,8 @@ public class StoragePortService extends TaggedResource {
                             "storagePorts", storagePort.getId().toString());
             if (!masks.isEmpty()) {
                 throw APIException.badRequests
-                .parameterValueCannotBeUpdated("port_network_id",
-                        "since it is part of active Exports");
+                        .parameterValueCannotBeUpdated("port_network_id",
+                                "since it is part of active Exports");
             }
 
             storagePort.setPortNetworkId(portNetworkId);
@@ -873,7 +869,7 @@ public class StoragePortService extends TaggedResource {
 
     /**
      * Check if the passed port network id value is a valid one for the given transport type.
-     *
+     * 
      * @param transportType the transport type
      * @param portNetworkId the port network id
      */
@@ -897,7 +893,7 @@ public class StoragePortService extends TaggedResource {
 
     /**
      * Check if a storage port with the same portNetworkId exists for the passed storage system.
-     *
+     * 
      * @param dbClient the db client
      * @param portNetworkId the port network id
      * @param systemURI the system uri
@@ -919,6 +915,7 @@ public class StoragePortService extends TaggedResource {
 
     /**
      * Retrieve resource representations based on input ids.
+     * 
      * @param param POST data containing the id list.
      * @brief List data of storage port resources
      * @return list of representations.
@@ -929,7 +926,7 @@ public class StoragePortService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public StoragePortBulkRep getBulkResources(BulkIdParam param) {
-        return  (StoragePortBulkRep) super.getBulkResources(param);
+        return (StoragePortBulkRep) super.getBulkResources(param);
     }
 
     @SuppressWarnings("unchecked")
@@ -942,7 +939,7 @@ public class StoragePortService extends TaggedResource {
     public StoragePortBulkRep queryBulkResourceReps(List<URI> ids) {
         Iterator<StoragePort> _dbIterator = _dbClient.queryIterativeObjects(
                 getResourceClass(), ids);
-        return new StoragePortBulkRep(BulkList.wrapping(_dbIterator, 
+        return new StoragePortBulkRep(BulkList.wrapping(_dbIterator,
                 MapStoragePort.getInstance(_dbClient)));
     }
 
@@ -955,6 +952,6 @@ public class StoragePortService extends TaggedResource {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.STORAGE_PORT;
-    }    
-    
+    }
+
 }

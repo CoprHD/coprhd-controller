@@ -88,7 +88,7 @@ public class KeystoreTest {
                 new HashMap<String, DualInetAddress>();
         controllerNodeIPLookupMap.put("localhost", localAddress);
         map.setControllerNodeIPLookupMap(controllerNodeIPLookupMap);
-        
+
         coordinatorClient.setInetAddessLookupMap(map);
         coordinatorClient.start();
 
@@ -118,7 +118,6 @@ public class KeystoreTest {
                 new KeyCertificateAlgorithmValuesHolder(coordinatorClient);
         gen.setKeyCertificateAlgorithmValuesHolder(values);
     }
-
 
     @Test
     public void testZookeeperKeystore() throws IOException {
@@ -227,11 +226,10 @@ public class KeystoreTest {
         Assert.assertEquals(expected.getCreationDate(), actual.getCreationDate());
     }
 
-
     @Test
     public void testKeystoreEngine() throws KeyStoreException, NoSuchAlgorithmException,
-    CertificateException, IOException, InterruptedException,
-    UnrecoverableEntryException {
+            CertificateException, IOException, InterruptedException,
+            UnrecoverableEntryException {
         DistributedKeyStore zookeeperKeystore = new DistributedKeyStoreImpl();
         zookeeperKeystore.init(loadStoreParam);
 
@@ -270,13 +268,13 @@ public class KeystoreTest {
         // now it shouldn't throw
         ks.load(loadStoreParam);
 
-        //////////////////////////////////////////////////////////////////////////
-        ///
-        /// key tests
-        ///
-        //////////////////////////////////////////////////////////////////////////
+        // ////////////////////////////////////////////////////////////////////////
+        // /
+        // / key tests
+        // /
+        // ////////////////////////////////////////////////////////////////////////
 
-        //should have by default the ViPR key
+        // should have by default the ViPR key
         List<String> expectedAliases = new ArrayList<String>();
         expectedAliases.add(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS);
         assertAliasesIn(ks, expectedAliases);
@@ -288,7 +286,7 @@ public class KeystoreTest {
                 new PrivateKeyEntry(
                         KeyCertificatePairGenerator.loadPrivateKeyFromBytes(entry
                                 .getKey()),
-                                entry.getCertificateChain());
+                        entry.getCertificateChain());
         KeyStore.PasswordProtection empryProtectionParam =
                 new KeyStore.PasswordProtection("".toCharArray());
 
@@ -323,11 +321,11 @@ public class KeystoreTest {
         assertCreationDateInTImeRange(ks, KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS,
                 beforeDate, afterDate);
 
-        //////////////////////////////////////////////////////////////////////////
-        ///
-        /// certificates tests
-        ///
-        //////////////////////////////////////////////////////////////////////////
+        // ////////////////////////////////////////////////////////////////////////
+        // /
+        // / certificates tests
+        // /
+        // ////////////////////////////////////////////////////////////////////////
         String certAlias = "someCert";
         // add a new trusted certificate using ks.setEntry
         beforeDate = new Date();
@@ -357,11 +355,11 @@ public class KeystoreTest {
         expectedAliases.remove(certAlias);
         assertAliasesIn(ks, expectedAliases);
 
-        //////////////////////////////////////////////////////////////////////////
-        ///
-        /// Negative testing
-        ///
-        //////////////////////////////////////////////////////////////////////////
+        // ////////////////////////////////////////////////////////////////////////
+        // /
+        // / Negative testing
+        // /
+        // ////////////////////////////////////////////////////////////////////////
 
         String invalidEntryName = "invalidEntry";
         // cannot delete the ViPR key
@@ -382,7 +380,7 @@ public class KeystoreTest {
 
         entry = gen.generateKeyCertificatePair();
         // try to set a key that is not the vipr key
-        //using  ks.setEntry
+        // using ks.setEntry
         privateKeyEntry =
                 new PrivateKeyEntry(
                         KeyCertificatePairGenerator.loadPrivateKeyFromBytes(entry
@@ -401,7 +399,7 @@ public class KeystoreTest {
         Assert.assertTrue(exceptionThrown);
         assertAliasesIn(ks, expectedAliases);
 
-        //using  ks.setKey which accepts byte[]
+        // using ks.setKey which accepts byte[]
         try {
             ks.setKeyEntry(invalidEntryName, entry.getKey(), entry.getCertificateChain());
         } catch (SecurityException e) {
@@ -414,7 +412,7 @@ public class KeystoreTest {
         Assert.assertTrue(exceptionThrown);
         assertAliasesIn(ks, expectedAliases);
 
-        //using  ks.setKey which accepts Key object
+        // using ks.setKey which accepts Key object
         try {
             ks.setKeyEntry(invalidEntryName,
                     KeyCertificatePairGenerator.loadPrivateKeyFromBytes(entry.getKey()),
@@ -429,7 +427,7 @@ public class KeystoreTest {
         Assert.assertTrue(exceptionThrown);
         assertAliasesIn(ks, expectedAliases);
 
-        //try getting an invalid entry
+        // try getting an invalid entry
         Assert.assertFalse(ks.containsAlias(invalidEntryName));
         Assert.assertFalse(ks.entryInstanceOf(invalidEntryName, KeyStore.TrustedCertificateEntry.class));
         Assert.assertFalse(ks.entryInstanceOf(invalidEntryName, KeyStore.PrivateKeyEntry.class));
@@ -459,7 +457,6 @@ public class KeystoreTest {
 
     }
 
-
     /**
      * @param ks
      * @param entry
@@ -473,8 +470,8 @@ public class KeystoreTest {
      */
     private void assertTrustedCertEquals(KeyStore ks, KeyCertificateEntry entry,
             String certAlias)
-                    throws KeyStoreException, NoSuchAlgorithmException,
-                    UnrecoverableEntryException, UnrecoverableKeyException {
+            throws KeyStoreException, NoSuchAlgorithmException,
+            UnrecoverableEntryException, UnrecoverableKeyException {
 
         Assert.assertTrue(ks.isCertificateEntry(certAlias));
         Assert.assertFalse(ks.isKeyEntry(certAlias));
@@ -495,7 +492,6 @@ public class KeystoreTest {
                 (KeyStore.TrustedCertificateEntry) ksEntry;
         Assert.assertEquals(entry.getCertificateChain()[0],
                 trustedCertEntry.getTrustedCertificate());
-
 
         Assert.assertNull(ks.getKey(certAlias, null));
     }
@@ -532,7 +528,7 @@ public class KeystoreTest {
                 ks.getCertificateChain(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS));
         Assert.assertArrayEquals(entry.getKey(),
                 ks.getKey(KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS, null)
-                .getEncoded());
+                        .getEncoded());
         Assert.assertTrue(ks.entryInstanceOf(
                 KeystoreEngine.ViPR_KEY_AND_CERTIFICATE_ALIAS,
                 KeyStore.PrivateKeyEntry.class));

@@ -36,8 +36,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The VPlex API Client is used to get information from the VPlex and to execute
  * configuration commands on a VPlex. A VPlexApiClient instance represents a
- * connection to a single VPlex management server. Use the
- * {@link VPlexApiFactory} to get a VPlexApiClient instance for a given VPlex
+ * connection to a single VPlex management server. Use the {@link VPlexApiFactory} to get a VPlexApiClient instance for a given VPlex
  * management server.
  * 
  * NOTE: The Jersey client releases http connections automatically in two cases:
@@ -336,7 +335,6 @@ public class VPlexApiClient {
 
         return virtualVolumeInfoMap;
     }
-    
     
     /**
      * Finds the volume with the passed name and discovers it's structure.
@@ -762,6 +760,7 @@ public class VPlexApiClient {
     
     /**
      * Add targets to the storage view identified by name.
+     * 
      * @param viewName -- StorageView name
      * @param targetPortInfo -- The port information for the targets to be added.
      * @throws VPlexApiException When an error occurs adding the targets
@@ -774,6 +773,7 @@ public class VPlexApiClient {
     
     /**
      * Remove targets from the storage view identified by name.
+     * 
      * @param viewName -- Storage view name
      * @param targetPortInfo -- The port information for the targets to be removed.
      * @throws VPlexApiException
@@ -956,7 +956,6 @@ public class VPlexApiClient {
             }
         }
     }
-    
     
     /**
      * Updates the consistency group RP enabled tag. 
@@ -1148,7 +1147,6 @@ public class VPlexApiClient {
         _virtualVolumeMgr.detachLocalMirrorFromDistributedVirtualVolume(virtualVolumeName, mirrorDeviceName, discard);
     }
 
-    
     /**
      * Detaches the mirror specified by the passed mirror info from the 
      * distributed VPLEX volume with the passed name.
@@ -1486,7 +1484,6 @@ public class VPlexApiClient {
         return _exportMgr.getTargetInfoForPorts(portInfoList);
     }
     
- 
     /**
      * Finds virtual volume by name.
      * 

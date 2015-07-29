@@ -28,7 +28,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.common.Processor;
 
 /**
- * Processor responsible for collecting Allocated Capacity 
+ * Processor responsible for collecting Allocated Capacity
  * StoragePool Processor, is common for both Volume & Storage pool Approach
  */
 public class SPProcessor extends Processor {
@@ -57,8 +57,9 @@ public class SPProcessor extends Processor {
                             .getProperty(_spaceConsumed).getValue().toString()));
                 }
             } catch (Exception e) {
-                if (!(e instanceof BaseCollectionException))
+                if (!(e instanceof BaseCollectionException)) {
                     _logger.error(" Allocated Capacity : ", e);
+                }
             }
         }
         resultObj = null;

@@ -31,12 +31,12 @@ public class CreateFileSnapshotShare extends WaitForTask<FileSnapshotRestRep> {
 
     @Override
     protected Task<FileSnapshotRestRep> doExecute() throws Exception {
-	 FileSystemShareParam fileShare = new FileSystemShareParam();
-         fileShare.setShareName(shareName);
-         if (StringUtils.isNotBlank(shareComment)) {
-             fileShare.setDescription(shareComment);
-         }
+        FileSystemShareParam fileShare = new FileSystemShareParam();
+        fileShare.setShareName(shareName);
+        if (StringUtils.isNotBlank(shareComment)) {
+            fileShare.setDescription(shareComment);
+        }
 
-         return getClient().fileSnapshots().share(snapshotId, fileShare);
+        return getClient().fileSnapshots().share(snapshotId, fileShare);
     }
 }

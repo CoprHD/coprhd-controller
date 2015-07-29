@@ -18,13 +18,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
 
 /**
  * To comply with other similar classes, we gave it a dummy id and kind.
- *      "global", "upgradedowloadinginfo"
+ * "global", "upgradedowloadinginfo"
  */
 public class DownloadingInfo implements CoordinatorSerializable {
     private static final String ENCODING_SEPERATOR = ",";
@@ -33,9 +31,10 @@ public class DownloadingInfo implements CoordinatorSerializable {
     public long downloadedBytes;
     public ArrayList<Integer> _errorCounter;
     public DownloadStatus _status;
-    
-    public DownloadingInfo(){}
-    
+
+    public DownloadingInfo() {
+    }
+
     public DownloadingInfo(String version, long size, long downloaded, DownloadStatus status, ArrayList<Integer> errorCounter) {
         _version = version;
         _size = size;
@@ -43,8 +42,10 @@ public class DownloadingInfo implements CoordinatorSerializable {
         _status = status;
         _errorCounter = errorCounter;
     }
-    
-    /** A constructor for a new download process
+
+    /**
+     * A constructor for a new download process
+     * 
      * @param version
      * @param size
      */
@@ -53,20 +54,24 @@ public class DownloadingInfo implements CoordinatorSerializable {
         _size = size;
         downloadedBytes = 0;
         _status = DownloadStatus.NORMAL;
-        _errorCounter = new ArrayList<Integer>(Arrays.asList(0,0));
+        _errorCounter = new ArrayList<Integer>(Arrays.asList(0, 0));
     }
-    
-    /** Generate a new DownloadingInfo object for the cancel status
+
+    /**
+     * Generate a new DownloadingInfo object for the cancel status
+     * 
      * @return a DownloadinInfo with downloadedBytes=0 and status=CANCELLED, the rest of the field remain the same
      */
     public DownloadingInfo cancel() {
-        return new DownloadingInfo(this._version,this._size,0,DownloadStatus.CANCELLED,this._errorCounter);
+        return new DownloadingInfo(this._version, this._size, 0, DownloadStatus.CANCELLED, this._errorCounter);
     }
-    
+
     @Override
     public String encodeAsString() {
-        StringBuilder b  = new StringBuilder();
-        b.append(_version).append(ENCODING_SEPERATOR).append(_size).append(ENCODING_SEPERATOR).append(downloadedBytes).append(ENCODING_SEPERATOR).append(_status.name()).append(ENCODING_SEPERATOR).append(_errorCounter.get(0)).append(ENCODING_SEPERATOR).append(_errorCounter.get(1));
+        StringBuilder b = new StringBuilder();
+        b.append(_version).append(ENCODING_SEPERATOR).append(_size).append(ENCODING_SEPERATOR).append(downloadedBytes)
+                .append(ENCODING_SEPERATOR).append(_status.name()).append(ENCODING_SEPERATOR).append(_errorCounter.get(0))
+                .append(ENCODING_SEPERATOR).append(_errorCounter.get(1));
         return b.toString();
     }
 
@@ -75,10 +80,10 @@ public class DownloadingInfo implements CoordinatorSerializable {
             throws FatalCoordinatorException {
         if (infoStr == null) {
             return null;
-        } 
+        }
         String[] array = infoStr.split(ENCODING_SEPERATOR);
-        ArrayList<Integer> tmpList = new ArrayList<Integer>(Arrays.asList(Integer.valueOf(array[4]),Integer.valueOf(array[5])));
-        return new DownloadingInfo(array[0], Long.valueOf(array[1]), Long.valueOf(array[2]), DownloadStatus.valueOf(array[3]),tmpList);
+        ArrayList<Integer> tmpList = new ArrayList<Integer>(Arrays.asList(Integer.valueOf(array[4]), Integer.valueOf(array[5])));
+        return new DownloadingInfo(array[0], Long.valueOf(array[1]), Long.valueOf(array[2]), DownloadStatus.valueOf(array[3]), tmpList);
     }
 
     @Override

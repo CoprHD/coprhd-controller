@@ -18,8 +18,6 @@ package com.emc.storageos.volumecontroller.impl.hds.prov.job;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,12 +36,11 @@ public class HDSExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
     private Collection<URI> _volumes;
 
     public HDSExportMaskRemoveVolumeCompleter(URI egUri, URI emUri, Collection<URI> volumes,
-                                           String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
     }
-
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {

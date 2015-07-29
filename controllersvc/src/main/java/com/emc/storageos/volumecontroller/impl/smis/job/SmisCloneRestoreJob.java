@@ -13,9 +13,7 @@ import javax.wbem.CloseableIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -24,15 +22,15 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 
 public class SmisCloneRestoreJob extends SmisJob {
-    
+
     private static final Logger log = LoggerFactory.getLogger(SmisCloneRestoreJob.class);
-    
+
     public SmisCloneRestoreJob(CIMObjectPath cimJob,
-                                       URI storageSystem,
-                                       TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "RestoreVolumeFromClone");
     }
-    
+
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         log.info("START updateStatus for restore clone");
@@ -45,7 +43,7 @@ public class SmisCloneRestoreJob extends SmisJob {
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
             if (jobStatus == JobStatus.SUCCESS) {
                 log.info("Clone restore success");
-                for (Volume clone : cloneVolumes) {                  
+                for (Volume clone : cloneVolumes) {
                     clone.setReplicaState(ReplicationState.RESTORED.name());
                 }
                 dbClient.persistObject(cloneVolumes);

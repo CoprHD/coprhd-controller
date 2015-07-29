@@ -4,13 +4,8 @@
  */
 package plugin;
 
-import com.emc.storageos.security.helpers.SecurityService;
-import com.emc.storageos.security.helpers.SecurityUtil;
 import controllers.util.CatalogAclListener;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.context.support.AbstractXmlApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
 import org.springframework.context.support.GenericXmlApplicationContext;
 import play.Logger;
 import play.Play;
@@ -38,7 +33,7 @@ public class StorageOsPlugin extends PlayPlugin {
     private ZkConnection zkConnection;
     private CoordinatorClient coordinatorClient;
     private EncryptionProvider encryptionProvider;
-    
+
     private AuthSvcEndPointLocator authSvcEndPointLocator;
 
     public static StorageOsPlugin getInstance() {
@@ -66,7 +61,7 @@ public class StorageOsPlugin extends PlayPlugin {
     }
 
     private String[] getContextFiles() {
-        return new String[] {DEFAULT_CONTEXT_FILE, "portal-oss-conf.xml", "portal-emc-conf.xml"};
+        return new String[] { DEFAULT_CONTEXT_FILE, "portal-oss-conf.xml", "portal-emc-conf.xml" };
     }
 
     /**
@@ -74,7 +69,8 @@ public class StorageOsPlugin extends PlayPlugin {
      */
     @Override
     public void onApplicationStart() {
-        instance = this;//NOSONAR ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for field instance")
+        instance = this;// NOSONAR
+                        // ("Suppressing Sonar violation of Lazy initialization of static fields should be synchronized for field instance")
         if (!isEnabled()) {
             return;
         }
@@ -88,7 +84,7 @@ public class StorageOsPlugin extends PlayPlugin {
             context.refresh();
 
             Logger.info("Connected to Coordinator Service");
-            
+
             zkConnection = getBean("zkconn", ZkConnection.class);
             coordinatorClient = getBean("coordinator", CoordinatorClient.class);
             encryptionProvider = getBean("encryptionProvider", EncryptionProvider.class);
@@ -110,8 +106,7 @@ public class StorageOsPlugin extends PlayPlugin {
             // register node listener for catalog acl change
             coordinatorClient.addNodeListener(new CatalogAclListener());
             Logger.info("added CatalogAclListener");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, "Error initializing ViPR Connection");
             shutdown();
         }

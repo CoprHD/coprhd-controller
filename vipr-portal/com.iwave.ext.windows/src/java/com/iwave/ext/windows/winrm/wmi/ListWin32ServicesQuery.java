@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  */
-public class ListWin32ServicesQuery  extends WinRMEnumerateOperation<Win32Service> {
+public class ListWin32ServicesQuery extends WinRMEnumerateOperation<Win32Service> {
     public static final String WIN32_SERVICES_URI = WinRMConstants.WMI_BASE_URI + "root/cimv2/Win32_Service";
 
     private static final XPath XPATH = XmlUtils.createXPath("ns=" + WIN32_SERVICES_URI);

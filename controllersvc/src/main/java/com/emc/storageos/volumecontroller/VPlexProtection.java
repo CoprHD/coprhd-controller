@@ -28,30 +28,37 @@ public class VPlexProtection extends Protection {
     // The target vpool for the recommendation
     private VirtualPool targetVpool;
     private List<Recommendation> targetVPlexHaRecommendations;
-    
-	public URI getTargetVplexDevice() {
-		return targetVplexDevice;
-	}
-	public void setTargetVplexDevice(URI targetVplexDevice) {
-		this.targetVplexDevice = targetVplexDevice;
-	}
-	public URI getTargetVarray() {
-		return targetVarray;
-	}
-	public void setTargetVarray(URI targetVarray) {
-		this.targetVarray = targetVarray;
-	}
-	public VirtualPool getTargetVpool() {
-		return targetVpool;
-	}
-	public void setTargetVpool(VirtualPool targetVpool) {
-		this.targetVpool = targetVpool;
-	}
-	public List<Recommendation> getTargetVPlexHaRecommendations() {
-		return targetVPlexHaRecommendations;
-	}
-	public void setTargetVPlexHaRecommendations(
-			List<Recommendation> targetVPlexHaRecommendations) {
-		this.targetVPlexHaRecommendations = targetVPlexHaRecommendations;
-	}
+
+    public URI getTargetVplexDevice() {
+        return targetVplexDevice;
+    }
+
+    public void setTargetVplexDevice(URI targetVplexDevice) {
+        this.targetVplexDevice = targetVplexDevice;
+    }
+
+    public URI getTargetVarray() {
+        return targetVarray;
+    }
+
+    public void setTargetVarray(URI targetVarray) {
+        this.targetVarray = targetVarray;
+    }
+
+    public VirtualPool getTargetVpool() {
+        return targetVpool;
+    }
+
+    public void setTargetVpool(VirtualPool targetVpool) {
+        this.targetVpool = targetVpool;
+    }
+
+    public List<Recommendation> getTargetVPlexHaRecommendations() {
+        return targetVPlexHaRecommendations;
+    }
+
+    public void setTargetVPlexHaRecommendations(
+            List<Recommendation> targetVPlexHaRecommendations) {
+        this.targetVPlexHaRecommendations = targetVPlexHaRecommendations;
+    }
 }

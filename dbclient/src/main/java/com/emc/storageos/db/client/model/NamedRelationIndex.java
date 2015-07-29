@@ -21,16 +21,16 @@ import java.lang.annotation.*;
 
 /**
  * When marked with this annotation, an inverted index is updated whenever
- * NamedURI field is updated.   This inverted index contains
- *
+ * NamedURI field is updated. This inverted index contains
+ * 
  * field value + name -> DataObject.id relation
- *
+ * 
  * and can be queried by using Constraint queries.
  */
 @Documented
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
-@UpgradeAllowed(migrationCallback=AddIndexMigrationCallback.class)
+@UpgradeAllowed(migrationCallback = AddIndexMigrationCallback.class)
 public @interface NamedRelationIndex {
     // column family name for the index
     String cf() default "";

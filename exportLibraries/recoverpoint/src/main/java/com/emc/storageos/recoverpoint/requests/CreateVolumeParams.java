@@ -19,75 +19,75 @@ import java.net.URI;
 
 /**
  * Every volume in a consistency group, even journals, are represented here.
- *
+ * 
  */
 @SuppressWarnings("serial")
 public class CreateVolumeParams implements Serializable {
-	private URI volumeURI;
-	private String internalSiteName;
-	private URI virtualArray;
-	private boolean production;
-	private URI storageSystem;
-	private String wwn;
-	private String rpCopyName;
+    private URI volumeURI;
+    private String internalSiteName;
+    private URI virtualArray;
+    private boolean production;
+    private URI storageSystem;
+    private String wwn;
+    private String rpCopyName;
 
     public URI getVolumeURI() {
-		return volumeURI;
-	}
+        return volumeURI;
+    }
 
-	public void setVolumeURI(URI volumeURI) {
-		this.volumeURI = volumeURI;
-	}
+    public void setVolumeURI(URI volumeURI) {
+        this.volumeURI = volumeURI;
+    }
 
-	public String getInternalSiteName() {
-		return internalSiteName;
-	}
+    public String getInternalSiteName() {
+        return internalSiteName;
+    }
 
-	public void setInternalSiteName(String internalSiteName) {
-		this.internalSiteName = internalSiteName;
-	}
+    public void setInternalSiteName(String internalSiteName) {
+        this.internalSiteName = internalSiteName;
+    }
 
-	public URI getVirtualArray() {
-		return virtualArray;
-	}
+    public URI getVirtualArray() {
+        return virtualArray;
+    }
 
-	public void setVirtualArray(URI virtualArray) {
-		this.virtualArray = virtualArray;
-	}
+    public void setVirtualArray(URI virtualArray) {
+        this.virtualArray = virtualArray;
+    }
 
-	public boolean isProduction() {
-		return production;
-	}
+    public boolean isProduction() {
+        return production;
+    }
 
-	public void setProduction(boolean production) {
-		this.production = production;
-	}
+    public void setProduction(boolean production) {
+        this.production = production;
+    }
 
-	public URI getStorageSystem() {
-		return storageSystem;
-	}
+    public URI getStorageSystem() {
+        return storageSystem;
+    }
 
-	public void setStorageSystem(URI storageSystem) {
-		this.storageSystem = storageSystem;
-	}
+    public void setStorageSystem(URI storageSystem) {
+        this.storageSystem = storageSystem;
+    }
 
-	public String getWwn() {
-		return wwn;
-	}
+    public String getWwn() {
+        return wwn;
+    }
 
-	public void setWwn(String wwn) {
-		this.wwn = wwn;
-	}
+    public void setWwn(String wwn) {
+        this.wwn = wwn;
+    }
 
-	public String getRpCopyName() {
-		return rpCopyName;
-	}
+    public String getRpCopyName() {
+        return rpCopyName;
+    }
 
-	public void setRpCopyName(String rpCopyName) {
-		this.rpCopyName = rpCopyName;
-	}
+    public void setRpCopyName(String rpCopyName) {
+        this.rpCopyName = rpCopyName;
+    }
 
-	@Override
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("\n\tvolumeURI:        " + volumeURI);

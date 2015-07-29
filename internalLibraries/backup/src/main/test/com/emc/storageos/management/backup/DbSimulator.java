@@ -41,9 +41,9 @@ public class DbSimulator {
     }
 
     /**
-     * Set database config file.  It must be in URI form or file must be
+     * Set database config file. It must be in URI form or file must be
      * be in classpath
-     *
+     * 
      * @param config database config file
      */
     public void setConfig(String config) {
@@ -52,13 +52,15 @@ public class DbSimulator {
 
     /**
      * Starts Cassandra and JMX service
+     * 
      * @throws Exception
      */
     public void start() throws Exception {
         System.setProperty("cassandra.config", config);
 
-        if( jmxServer != null)
+        if (jmxServer != null) {
             jmxServer.start();
+        }
 
         service = new CassandraDaemon();
         service.init(null);
@@ -69,9 +71,10 @@ public class DbSimulator {
      * Stops Cassandra and JMX service
      */
     public void stop() {
-        if (jmxServer != null)
-           jmxServer.stop();
+        if (jmxServer != null) {
+            jmxServer.stop();
+        }
 
         service.stop();
     }
-} 
+}

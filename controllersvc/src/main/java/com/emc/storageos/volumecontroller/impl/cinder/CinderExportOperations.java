@@ -63,7 +63,7 @@ public class CinderExportOperations implements ExportMaskOperations {
         this.dbClient = dbClient;
     }
 
-    public void setCinderApiFactory(CinderApiFactory cinderApiFactory) 
+    public void setCinderApiFactory(CinderApiFactory cinderApiFactory)
     {
         this.cinderApiFactory = cinderApiFactory;
     }
@@ -86,7 +86,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             // map to store target LUN id generated for each volume
             Map<URI, Integer> volumeToTargetLunMap = new HashMap<URI, Integer>();
 
-            //Map to store volume to initiatorTargetMap
+            // Map to store volume to initiatorTargetMap
             Map<Volume, Map<String, List<String>>> volumeToFCInitiatorTargetMap = new HashMap<>();
 
             for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
@@ -99,10 +99,10 @@ public class CinderExportOperations implements ExportMaskOperations {
             		                  volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
             		                  exportMask);
 
-            //Update targets in the export mask
-            if(!volumeToFCInitiatorTargetMap.isEmpty())
+            // Update targets in the export mask
+            if (!volumeToFCInitiatorTargetMap.isEmpty())
             {
-            	updateTargetsInExportMask(storage, volumes.get(0), volumeToFCInitiatorTargetMap, initiatorList, exportMask);
+                updateTargetsInExportMask(storage, volumes.get(0), volumeToFCInitiatorTargetMap, initiatorList, exportMask);
             }
 
             updateTargetLunIdInExportMask(volumeToTargetLunMap, exportMask);
@@ -182,7 +182,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             // map to store target LUN id generated for each volume
             Map<URI, Integer> volumeToTargetLunMap = new HashMap<URI, Integer>();
             StringMap initiators = exportMask.getUserAddedInitiators();
-            
+
             for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
                 URI volumeURI = volumeURIHLU.getVolumeURI();
                 Volume volume = dbClient.queryObject(Volume.class, volumeURI);
@@ -194,17 +194,17 @@ public class CinderExportOperations implements ExportMaskOperations {
                 initiatorList.add(initiator);
             }
 
-            //Map to store volume to initiatorTargetMap
+            // Map to store volume to initiatorTargetMap
             Map<Volume, Map<String, List<String>>> volumeToFCInitiatorTargetMap = new HashMap<Volume, Map<String, List<String>>>();
 
             attachVolumesToInitiators(storage, volumes, initiatorList,
             		                  volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
             		                  exportMask);
 
-            //Update targets in the export mask
-            if(!volumeToFCInitiatorTargetMap.isEmpty())
+            // Update targets in the export mask
+            if (!volumeToFCInitiatorTargetMap.isEmpty())
             {
-            	updateTargetsInExportMask(storage, volumes.get(0), volumeToFCInitiatorTargetMap, initiatorList, exportMask);
+                updateTargetsInExportMask(storage, volumes.get(0), volumeToFCInitiatorTargetMap, initiatorList, exportMask);
             }
             updateTargetLunIdInExportMask(volumeToTargetLunMap, exportMask);
             dbClient.updateAndReindexObject(exportMask);
@@ -272,26 +272,26 @@ public class CinderExportOperations implements ExportMaskOperations {
             // map to store target LUN id generated for each volume
             Map<URI, Integer> volumeToTargetLunMap = new HashMap<URI, Integer>();
             StringMap volumes = exportMask.getUserAddedVolumes();
-            
+
             for (String vol : volumes.values()) {
                 Volume volume = dbClient.queryObject(Volume.class,
                         URI.create(vol));
                 volumeList.add(volume);
             }
 
-            //Map to store volume to initiatorTargetMap
+            // Map to store volume to initiatorTargetMap
             Map<Volume, Map<String, List<String>>> volumeToFCInitiatorTargetMap = new HashMap<Volume, Map<String, List<String>>>();
 
             attachVolumesToInitiators(storage, volumeList, initiators,
             		                  volumeToTargetLunMap, volumeToFCInitiatorTargetMap,
             		                  exportMask);
 
-            //Update targets in the export mask
-            if(!volumeToFCInitiatorTargetMap.isEmpty())
+            // Update targets in the export mask
+            if (!volumeToFCInitiatorTargetMap.isEmpty())
             {
-            	updateTargetsInExportMask(storage, volumeList.get(0), volumeToFCInitiatorTargetMap, initiators, exportMask);
-            	dbClient.updateAndReindexObject(exportMask);
-            }           
+                updateTargetsInExportMask(storage, volumeList.get(0), volumeToFCInitiatorTargetMap, initiators, exportMask);
+                dbClient.updateAndReindexObject(exportMask);
+            }
 
             // TODO : update volumeToTargetLunMap in export mask.?
             // Do we get different LUN ID for the new initiators from the same Host.?
@@ -319,7 +319,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, exportMaskId);
             List<Volume> volumeList = new ArrayList<Volume>();
             StringMap volumes = exportMask.getUserAddedVolumes();
-            
+
             for (String vol : volumes.values()) {
                 Volume volume = dbClient.queryObject(Volume.class,
                         URI.create(vol));
@@ -353,7 +353,7 @@ public class CinderExportOperations implements ExportMaskOperations {
 
     /**
      * Attaches volumes to initiators.
-     *
+     * 
      * @param storage the storage
      * @param volumes the volumes
      * @param initiators the initiators
@@ -387,7 +387,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             // cinder generated volume ID
             String volumeId = volume.getNativeId();
             int targetLunId = -1;
-            VolumeAttachResponse attachResponse  = null;
+            VolumeAttachResponse attachResponse = null;
 
             // for iSCSI
             for (Initiator initiator : iSCSIInitiators) {
@@ -437,7 +437,7 @@ public class CinderExportOperations implements ExportMaskOperations {
 
     /**
      * Detaches volumes from initiators.
-     *
+     * 
      * @param storage the storage
      * @param volumes the volumes
      * @param initiators the initiators

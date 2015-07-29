@@ -14,15 +14,14 @@ import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.google.common.collect.Maps;
 
 public class PermissionMapQueryResultList extends QueryResultList<URI> {
-    
+
     private Set<String> filterBy;
     private Map<URI, Set<String>> permissionsMap = Maps.newHashMap();
-    
+
     public PermissionMapQueryResultList(Set<String> filterBy) {
         this.filterBy = filterBy;
     }
-    
-    
+
     @Override
     public URI createQueryHit(URI uri) {
         // none
@@ -39,9 +38,9 @@ public class PermissionMapQueryResultList extends QueryResultList<URI> {
         }
         return uri;
     }
-    
+
     public Map<URI, Set<String>> getPermissionMap() {
-        
+
         return permissionsMap;
     }
 }

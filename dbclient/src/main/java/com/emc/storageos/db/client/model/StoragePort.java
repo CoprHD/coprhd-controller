@@ -15,7 +15,6 @@
 
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.model.valid.EnumType;
 
 import java.net.URI;
@@ -35,25 +34,25 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         rdf,
         Unknown
     };
-    
+
     public static enum TransportType {
-    	FC,
-    	IP;
+        FC,
+        IP;
     }
-    
-    public static enum OperationalStatus{
+
+    public static enum OperationalStatus {
         OK, NOT_OK, UNKNOWN
     };
-    
+
     // storage port name used when communicating with the storage system
     private String _portName;
-   
+
     // storage port network identifier e.g. FC - port wwn, IP - network interface identifier
     private String _portNetworkId;
 
     // storage device this storage port belongs to
     private URI _storageDevice;
-    //storageHADomain, to which this port belongs
+    // storageHADomain, to which this port belongs
     private URI _storageHADomain;
 
     // port type
@@ -74,32 +73,32 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
 
     // static load (number of exports) on the storage port
     private Long _staticLoad;
-    
+
     private String _operationalStatus = OperationalStatus.UNKNOWN.name();
-    
+
     private Long _tcpPortNumber;
-    
+
     private String _ipAddress;
-    
+
     private String _endPointID;
-    
+
     private String _portType = PortType.frontend.name();
 
     private String _registrationStatus = RegistrationStatus.REGISTERED.toString();
-    
-    //used in finding out whether or not the port is Compatible
+
+    // used in finding out whether or not the port is Compatible
     private String _compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
-    
+
     private String _discoveryStatus = DiscoveryStatus.VISIBLE.name();
-    
+
     private StringMap _metrics;
 
     /*************************************************
      * AlternateIDIndex - portNetworkID,transportZone*
-     * RelationIndex - StorageDevice                 *
-     *                                               *
+     * RelationIndex - StorageDevice *
+     * *
      ************************************************/
-   
+
     @Name("portEndPointID")
     public String getPortEndPointID() {
         return _endPointID;
@@ -109,7 +108,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         _endPointID = endPointID;
         setChanged("portEndPointID");
     }
-    
+
     @Name("portName")
     public String getPortName() {
         return _portName;
@@ -119,22 +118,22 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         _portName = portName;
         setChanged("portName");
     }
-    
+
     public void setTcpPortNumber(Long tcpPortNumber) {
         _tcpPortNumber = tcpPortNumber;
         setChanged("tcpPortNumber");
     }
-    
+
     @Name("tcpPortNumber")
     public Long getTcpPortNumber() {
         return _tcpPortNumber;
     }
-    
+
     public void setIpAddress(String ipAddress) {
         _ipAddress = ipAddress;
         setChanged("ipAddress");
     }
-    
+
     @Name("ipAddress")
     public String getIpAddress() {
         return _ipAddress;
@@ -233,7 +232,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
     public URI getStorageHADomain() {
         return _storageHADomain;
     }
-    
+
     @EnumType(PortType.class)
     @Name("portType")
     public String getPortType() {
@@ -244,7 +243,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         _portType = portType;
         setChanged("portType");
     }
-    
+
     @EnumType(OperationalStatus.class)
     @Name("operationalStatus")
     public String getOperationalStatus() {
@@ -266,7 +265,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
     public String getRegistrationStatus() {
         return _registrationStatus;
     }
-    
+
     @EnumType(CompatibilityStatus.class)
     @Name("compatibilityStatus")
     public String getCompatibilityStatus() {
@@ -277,7 +276,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         _compatibilityStatus = compatibilityStatus;
         setChanged("compatibilityStatus");
     }
-    
+
     @Override
     public String toString() {
         StringBuilder toPrint = new StringBuilder();
@@ -337,7 +336,7 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         }
         return result;
     }
-    
+
     // TODO: This should perhaps be done in a base class
     @Override
     public int hashCode() {
@@ -350,7 +349,9 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
 
     @Name("metrics")
     public StringMap getMetrics() {
-        if (_metrics == null) _metrics = new StringMap();
+        if (_metrics == null) {
+            _metrics = new StringMap();
+        }
         return _metrics;
     }
 
@@ -369,6 +370,5 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         this._discoveryStatus = discoveryStatus;
         setChanged("discoveryStatus");
     }
-    
-    
+
 }

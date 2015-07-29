@@ -22,7 +22,6 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 
 public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
 
-
     private static final long serialVersionUID = 6012924628969009805L;
     private String _jobType;
 
@@ -31,30 +30,27 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
         _jobType = jobType;
     }
 
-    public DiscoverTaskCompleter(AsyncTask task, String jobType)  {
+    public DiscoverTaskCompleter(AsyncTask task, String jobType) {
         super(task);
         _jobType = jobType;
     }
 
-    public String getJobType(){
+    public String getJobType() {
         return _jobType;
     }
 
-
-    protected void  updateObjectState(DbClient dbClient,
-                                      DiscoveredDataObject.DataCollectionJobStatus jobStatus) {
+    protected void updateObjectState(DbClient dbClient,
+            DiscoveredDataObject.DataCollectionJobStatus jobStatus) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setDiscoveryStatus(jobStatus.toString());
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -66,17 +62,15 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
     @Override
     final public void setNextRunTime(DbClient dbClient, long time) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setNextDiscoveryRunTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -86,19 +80,17 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final public void setLastTime(DbClient dbClient, long time){
+    final public void setLastTime(DbClient dbClient, long time) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setLastDiscoveryRunTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -110,17 +102,15 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
     @Override
     final public void setSuccessTime(DbClient dbClient, long time) {
         Class type = getType();
-        if (DiscoveredSystemObject.class.isAssignableFrom(type))   {
+        if (DiscoveredSystemObject.class.isAssignableFrom(type)) {
             try {
-                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type,getId());
+                DiscoveredSystemObject dbObject = (DiscoveredSystemObject) DataObject.createInstance(type, getId());
                 dbObject.trackChanges();
                 dbObject.setSuccessDiscoveryTime(time);
                 dbClient.persistObject(dbObject);
-            }
-            catch (InstantiationException ex) {
+            } catch (InstantiationException ex) {
                 DatabaseException.fatals.queryFailed(ex);
-            }
-            catch(IllegalAccessException ex)       {
+            } catch (IllegalAccessException ex) {
                 DatabaseException.fatals.queryFailed(ex);
             }
         }
@@ -131,24 +121,24 @@ public class DiscoverTaskCompleter extends DataCollectionTaskCompleter {
     }
 
     @Override
-    final protected void createDefaultOperation(DbClient dbClient){
-    	ResourceOperationTypeEnum opType = ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM;
-    
-    	Class type = getType();
-    		
-    	if (Host.class.equals(type)) {
-    		opType = ResourceOperationTypeEnum.DISCOVER_HOST;
-    	} else if (Vcenter.class.equals(type)) {
-    		opType = ResourceOperationTypeEnum.DISCOVER_VCENTER;
-    	} else if (ComputeSystem.class.equals(type)) {
-    		opType = ResourceOperationTypeEnum.DISCOVER_COMPUTE_SYSTEM;
-    	} else if (NetworkSystem.class.equals(type)) {
-    		opType = ResourceOperationTypeEnum.DISCOVER_NETWORK_SYSTEM;
-    	} else if (ProtectionSet.class.equals(type)) {
-    		opType = ResourceOperationTypeEnum.DISCOVER_PROTECTION_SET;
-    	} 
-    	
-        dbClient.createTaskOpStatus(getType(),getId(),getOpId(),
+    final protected void createDefaultOperation(DbClient dbClient) {
+        ResourceOperationTypeEnum opType = ResourceOperationTypeEnum.DISCOVER_STORAGE_SYSTEM;
+
+        Class type = getType();
+
+        if (Host.class.equals(type)) {
+            opType = ResourceOperationTypeEnum.DISCOVER_HOST;
+        } else if (Vcenter.class.equals(type)) {
+            opType = ResourceOperationTypeEnum.DISCOVER_VCENTER;
+        } else if (ComputeSystem.class.equals(type)) {
+            opType = ResourceOperationTypeEnum.DISCOVER_COMPUTE_SYSTEM;
+        } else if (NetworkSystem.class.equals(type)) {
+            opType = ResourceOperationTypeEnum.DISCOVER_NETWORK_SYSTEM;
+        } else if (ProtectionSet.class.equals(type)) {
+            opType = ResourceOperationTypeEnum.DISCOVER_PROTECTION_SET;
+        }
+
+        dbClient.createTaskOpStatus(getType(), getId(), getOpId(),
                 opType);
     }
 

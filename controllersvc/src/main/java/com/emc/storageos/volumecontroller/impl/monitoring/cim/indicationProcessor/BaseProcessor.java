@@ -32,9 +32,10 @@ public abstract class BaseProcessor implements ApplicationContextAware {
      * Reference to Spring Application Context
      */
     private ApplicationContext _applicationContext;
-    
+
     /**
      * Getter method of recordable event manager
+     * 
      * @return
      */
     public RecordableEventManager getRecordableEventManager() {
@@ -43,15 +44,17 @@ public abstract class BaseProcessor implements ApplicationContextAware {
 
     /**
      * Setter of recordable event manager
+     * 
      * @param recordableEventManager
      */
     public void setRecordableEventManager(
             RecordableEventManager recordableEventManager) {
         _recordableEventManager = recordableEventManager;
     }
- 
+
     /**
      * Getter of ApplicationContext
+     * 
      * @return
      */
     public ApplicationContext getApplicationContext() {
@@ -65,8 +68,9 @@ public abstract class BaseProcessor implements ApplicationContextAware {
     public void setApplicationContext(ApplicationContext applicationContext)
             throws BeansException {
         _applicationContext = applicationContext;
-        
+
     }
+
     /**
      * @return
      */
@@ -76,13 +80,14 @@ public abstract class BaseProcessor implements ApplicationContextAware {
 
     /**
      * Setter for propertiesLoader
+     * 
      * @param monitoringPropertiesLoader
      */
     public void setMonitoringPropertiesLoader(
             MonitoringPropertiesLoader monitoringPropertiesLoader) {
         _monitoringPropertiesLoader = monitoringPropertiesLoader;
     }
-    
+
     /**
      * Retrieves the event type from indication
      * 

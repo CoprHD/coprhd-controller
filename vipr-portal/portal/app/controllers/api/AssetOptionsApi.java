@@ -55,10 +55,9 @@ public class AssetOptionsApi extends Controller {
             List<AssetOption> assetOptions = getOptionsAsync(cleanAssetType(asset), paramsToMap(params));
             List<Option> options = wrapOptions(toOptions(assetOptions));
             renderApi(options);
-        }
-        catch (APIException e) {
+        } catch (APIException e) {
             String message = e.getStatusText();
-            
+
             String messageKey = null;
             if (e.getStatusCode() == Http.StatusCode.NOT_FOUND) {
                 messageKey = "storageapi.error.404";
@@ -71,16 +70,15 @@ public class AssetOptionsApi extends Controller {
             }
             else if (e.getStatusCode() == Http.StatusCode.GATEWAY_TIMEOUT) {
                 messageKey = "storageapi.error.504";
-            }            
+            }
             if (StringUtils.isNotBlank(messageKey)) {
                 message = MessagesUtils.get(messageKey, e.getStatusCode());
             }
-            
+
             error(e.getStatusCode(), message);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             error(e.getMessage());
-        } 
+        }
     }
 
     public static void dependencies(String asset, String service) {
@@ -99,7 +97,7 @@ public class AssetOptionsApi extends Controller {
         Set<String> allAssetTypes = ServiceDescriptorUtils.getAllAssetTypes(descriptor);
         List<String> dependencies = calculateAssetDependencies(cleanAssetType(asset), allAssetTypes);
         List<Reference> references = Lists.newArrayList();
-        for (String dependency: dependencies) {
+        for (String dependency : dependencies) {
             references.add(newAssetOptionsReference(dependency));
         }
         renderApi(references);
@@ -111,7 +109,7 @@ public class AssetOptionsApi extends Controller {
 
     private static List<Option> wrapOptions(List<AssetOption> options) {
         List<Option> result = Lists.newArrayList();
-        for (AssetOption option: options) {
+        for (AssetOption option : options) {
             result.add(new Option(option.key, option.value));
         }
         return result;

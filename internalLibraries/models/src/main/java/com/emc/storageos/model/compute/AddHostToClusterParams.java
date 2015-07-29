@@ -28,16 +28,17 @@ public class AddHostToClusterParams {
     private URI host;
     private URI cluster;
 
-    public AddHostToClusterParams() {}
-    
+    public AddHostToClusterParams() {
+    }
+
     public AddHostToClusterParams(URI host, URI cluster) {
         this.host = host;
         this.cluster = cluster;
     }
-    
+
     /**
      * Host to add to cluster.
-     */     
+     */
     @XmlElement(required = true)
     public URI getHost() {
         return host;
@@ -47,10 +48,9 @@ public class AddHostToClusterParams {
         this.host = host;
     }
 
-    
     /**
      * Cluster to be added to.
-     */     
+     */
     @XmlElement(required = true)
     public URI getCluster() {
         return cluster;

@@ -21,17 +21,17 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.dbcli.adapter.StringMapAdapter;
 
-@XmlRootElement(name="wrapper")
-public class StringMapWrapper extends Wrapper<StringMap>{
+@XmlRootElement(name = "wrapper")
+public class StringMapWrapper extends Wrapper<StringMap> {
 
     private StringMap stringMap = new StringMap();
- 
+
     @XmlJavaTypeAdapter(StringMapAdapter.class)
-    @XmlElement(name="stringMap")
+    @XmlElement(name = "stringMap")
     public StringMap getValue() {
         return stringMap;
     }
- 
+
     public void setValue(StringMap stringMap) {
         this.stringMap = stringMap;
     }

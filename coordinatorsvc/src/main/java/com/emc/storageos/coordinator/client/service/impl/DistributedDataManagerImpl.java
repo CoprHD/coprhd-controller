@@ -62,7 +62,7 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
     public DistributedDataManagerImpl(ZkConnection conn, String basePath) {
         this(conn, basePath, DEFAULT_MAX_NODES);
     }
-    
+
     /**
      * Construct a data manager for the specified path, using the specified maxNodes limit
      * 
@@ -70,9 +70,9 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
      * @param basePath the base path to manage
      * @param maxNodes the max number of child nodes allowed
      */
-    public DistributedDataManagerImpl(ZkConnection conn, String basePath, long maxNodes) {        
-        _zkClient = conn.curator();        
-        if (StringUtils.isEmpty(basePath) || !basePath.startsWith("/") || 
+    public DistributedDataManagerImpl(ZkConnection conn, String basePath, long maxNodes) {
+        _zkClient = conn.curator();
+        if (StringUtils.isEmpty(basePath) || !basePath.startsWith("/") ||
                 (basePath.length() < 2) || basePath.endsWith("/")) {
             throw new IllegalArgumentException("basePath must be at least 2 characters long and start with (but not end with) /");
         }
@@ -84,11 +84,11 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
 
     @Override
     public Stat checkExists(String path) {
-        checkPath(path);        
+        checkPath(path);
         try {
             Stat stat = _zkClient.checkExists().forPath(path);
             return stat;
-        } catch(KeeperException e) {
+        } catch (KeeperException e) {
             _log.error("Problem while creating ZNodes {}: {}", path, e);
             return null;
         } catch (Exception ex) {
@@ -140,14 +140,18 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
     public Object getData(String path, boolean watch) throws Exception {
         checkPath(path);
         Stat stat = checkExists(path);
-        if (stat == null) return null;
+        if (stat == null) {
+            return null;
+        }
         byte[] bytes = null;
         if (watch) {
             bytes = _zkClient.getData().watched().forPath(path);
         } else {
             bytes = _zkClient.getData().forPath(path);
         }
-        if (bytes == null || bytes.length == 0) return null;
+        if (bytes == null || bytes.length == 0) {
+            return null;
+        }
         Object obj = GenericSerializer.deserialize(bytes);
         return obj;
     }
@@ -162,9 +166,9 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
         }
         _listener = listener;
     }
-    
+
     @Override
-    public void setConnectionStateListener(ConnectionStateListener listener) throws Exception    {
+    public void setConnectionStateListener(ConnectionStateListener listener) throws Exception {
         if (_connectionStateListener != null) {
             _zkClient.getConnectionStateListenable().removeListener(_connectionStateListener);
         }
@@ -173,7 +177,7 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
         }
         _connectionStateListener = listener;
     }
-    
+
     @Override
     public List<String> getChildren(String path) throws Exception {
         checkPath(path);
@@ -220,7 +224,7 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
             _log.info("ConnectionStateListener removed successfully.");
         }
     }
-    
+
     /**
      * Check that the requested path is acceptable for this data manager
      * 
@@ -231,15 +235,15 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
             // disallow paths outside of the base, or which are more than one level deeper than the base
             String root = _basePath + "/";
             if (!StringUtils.startsWith(path, root)) {
-                _log.debug("path '{}' is not within base path '{}'", path, _basePath);                          
+                _log.debug("path '{}' is not within base path '{}'", path, _basePath);
                 throw CoordinatorException.fatals.dataManagerPathOutOfBounds(path, _basePath);
             } else if (StringUtils.countMatches(StringUtils.remove(path, root), "/") > 0) {
                 _log.debug("path '{}' is more than one level deep below base path '{}'", path, _basePath);
-                throw CoordinatorException.fatals.dataManagerPathOutOfBounds(path, _basePath);              
-            }           
+                throw CoordinatorException.fatals.dataManagerPathOutOfBounds(path, _basePath);
+            }
         }
     }
-    
+
     /**
      * Check that adding a new node to this data manager would not exceed the max node limit
      * 
@@ -248,15 +252,15 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
     private void checkLimit() throws Exception {
         // in order to speed up writes, check limits against the cache
         // instead of doing live checkExists if possible
-        
+
         ensureCacheStarted();
-        
+
         Integer children = null;
         if (_basePathCache != null) {
             List<ChildData> childData = _basePathCache.getCurrentData();
             if (childData != null) {
                 children = childData.size();
-            }           
+            }
         }
         if (children == null) {
             _log.warn("{}: cached child node data is not available; falling back to checkExists", _basePath);
@@ -266,7 +270,7 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
             }
         }
         if (children != null) {
-            _log.debug("{}: current nodes = {}; maxNodes = {}", 
+            _log.debug("{}: current nodes = {}; maxNodes = {}",
                     Arrays.asList(_basePath, children.toString(), Long.toString(_maxNodes)).toArray());
             if (children >= _maxNodes) {
                 _log.warn("{}: rejecting create because limit of {} has been reached", _basePath, _maxNodes);
@@ -274,13 +278,13 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
             }
         }
     }
-    
+
     /**
-     * Use the double-check algorithm to initialize the child path cache for use in limit checking 
+     * Use the double-check algorithm to initialize the child path cache for use in limit checking
      */
     private void ensureCacheStarted() {
         if (_basePathCache == null) {
-            synchronized(this) {
+            synchronized (this) {
                 if (_basePathCache == null) {
                     try {
                         _basePathCache = new PathChildrenCache(_zkClient, _basePath, false);
@@ -292,5 +296,5 @@ public class DistributedDataManagerImpl implements DistributedDataManager {
                 }
             }
         }
-    }   
+    }
 }

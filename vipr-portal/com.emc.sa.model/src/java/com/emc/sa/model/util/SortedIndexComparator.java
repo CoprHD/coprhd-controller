@@ -12,8 +12,9 @@ import org.apache.commons.collections.comparators.NullComparator;
 
 public class SortedIndexComparator implements Comparator<SortedIndexDataObject> {
 
-    private static final BeanComparator COMPARATOR = new BeanComparator(SortedIndexDataObject.SORTED_INDEX_PROPERTY_NAME, new NullComparator());
-    
+    private static final BeanComparator COMPARATOR = new BeanComparator(SortedIndexDataObject.SORTED_INDEX_PROPERTY_NAME,
+            new NullComparator());
+
     @Override
     public int compare(SortedIndexDataObject o1, SortedIndexDataObject o2) {
         return COMPARATOR.compare(o1, o2);

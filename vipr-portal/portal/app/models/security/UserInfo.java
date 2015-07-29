@@ -93,7 +93,7 @@ public class UserInfo implements RoleHolder, Serializable {
 
     public boolean containsTenant(String tenant) {
         return getTenant().equals(tenant) ||
-               getSubTenants().contains(ResourceUtils.uri(tenant));
+                getSubTenants().contains(ResourceUtils.uri(tenant));
     }
 
     private List<Role> convertToRoles(List<String> stringRoles) {

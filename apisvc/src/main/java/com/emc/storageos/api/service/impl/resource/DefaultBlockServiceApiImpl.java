@@ -94,7 +94,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         List<Volume> preparedVolumes = new ArrayList<Volume>();
         final BlockConsistencyGroup consistencyGroup = cosCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
                 .queryObject(BlockConsistencyGroup.class, cosCapabilities.getBlockConsistencyGroup());
-        
+
         // Prepare the volumes
         _scheduler.prepareRecommendedVolumes(param, task, taskList, project,
                 neighborhood, cos, cosCapabilities.getResourceCount(), recommendations,
@@ -124,14 +124,14 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
 
     private void failVolumeCreateRequest(String task, TaskList taskList, List<Volume> preparedVolumes, String errorMsg) {
         String errorMessage = String.format("Controller error: %s", errorMsg);
-        for (TaskResourceRep volumeTask :taskList.getTaskList()) {
+        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
             volumeTask.setState(Operation.Status.error.name());
             volumeTask.setMessage(errorMessage);
             Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMessage);
             _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
                     .getId(), task, statusUpdate);
         }
-        for (Volume volume: preparedVolumes) {
+        for (Volume volume : preparedVolumes) {
             volume.setInactive(true);
             _dbClient.persistObject(volume);
         }
@@ -144,17 +144,17 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     public void deleteVolumes(final URI systemURI, final List<URI> volumeURIs,
-        final String deletionType, final String task) throws InternalException {
+            final String deletionType, final String task) throws InternalException {
         _log.info("Request to delete {} volume(s)", volumeURIs.size());
         super.deleteVolumes(systemURI, volumeURIs, deletionType, task);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
-        // Clean up the relationship between volumes that are full 
+        // Clean up the relationship between volumes that are full
         // copies and and their source volumes.
         BlockFullCopyManager.cleanUpFullCopyAssociations(volumeDescriptors, _dbClient);
     }
@@ -167,7 +167,10 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         Map<String, AbstractBlockServiceApiImpl> apiMap = AbstractBlockServiceApiImpl.getProtectionImplementations();
         StorageSystemConnectivityList result = new StorageSystemConnectivityList();
         for (AbstractBlockServiceApiImpl impl : apiMap.values()) {
-            if (impl == this) continue;     // no infinite recursion
+            if (impl == this)
+             {
+                continue;     // no infinite recursion
+            }
             StorageSystemConnectivityList list = impl.getStorageSystemConnectivity(storageSystem);
             result.getConnections().addAll(list.getConnections());
         }
@@ -190,7 +193,8 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 && !DiscoveredDataObject.Type.vnxblock.name().equals(systemType)
                 && !DiscoveredDataObject.Type.hds.name().equals(systemType)
                 && !DiscoveredDataObject.Type.xtremio.name().equals(systemType)) {
-        	throw APIException.badRequests.changesNotSupportedFor("VirtualPool", format("volumes on storage systems of type {0}", systemType));
+            throw APIException.badRequests.changesNotSupportedFor("VirtualPool",
+                    format("volumes on storage systems of type {0}", systemType));
         }
 
         return getVirtualPoolChangeListForVolume(volume);
@@ -201,64 +205,66 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     protected List<VirtualPoolChangeOperationEnum> getVirtualPoolChangeAllowedOperations(Volume volume, VirtualPool volumeVirtualPool,
-                                                          VirtualPool newVirtualPool, StringBuffer notSuppReasonBuff) {
+            VirtualPool newVirtualPool, StringBuffer notSuppReasonBuff) {
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
-        
+
         if (VirtualPool.vPoolSpecifiesHighAvailability(newVirtualPool) &&
-            VirtualPoolChangeAnalyzer.isVPlexImport(volumeVirtualPool, newVirtualPool, notSuppReasonBuff) &&
-            VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVirtualPool, notSuppReasonBuff)) {
-            allowedOperations.add(VirtualPoolChangeOperationEnum.NON_VPLEX_TO_VPLEX); 
-        }               
-        
+                VirtualPoolChangeAnalyzer.isVPlexImport(volumeVirtualPool, newVirtualPool, notSuppReasonBuff) &&
+                VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVirtualPool, notSuppReasonBuff)) {
+            allowedOperations.add(VirtualPoolChangeOperationEnum.NON_VPLEX_TO_VPLEX);
+        }
+
         if (VirtualPool.vPoolSpecifiesProtection(newVirtualPool) &&
-            VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, 
-                                                volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
-            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);            
-        } 
-        
+                VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume,
+                        volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
+            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
+        }
+
         if (VirtualPool.vPoolSpecifiesSRDF(newVirtualPool) &&
-            VirtualPoolChangeAnalyzer.isSupportedSRDFVolumeVirtualPoolChange(volume, 
-                                                volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
+                VirtualPoolChangeAnalyzer.isSupportedSRDFVolumeVirtualPoolChange(volume,
+                        volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.SRDF_PROTECED);
-        } 
-        
-        if (VirtualPool.vPoolSpecifiesMirrors(newVirtualPool, _dbClient) &&
-            VirtualPoolChangeAnalyzer.isSupportedAddMirrorsVirtualPoolChange(volume, volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
+        }
+
+        if (VirtualPool.vPoolSpecifiesMirrors(newVirtualPool, _dbClient)
+                &&
+                VirtualPoolChangeAnalyzer.isSupportedAddMirrorsVirtualPoolChange(volume, volumeVirtualPool, newVirtualPool, _dbClient,
+                        notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.ADD_MIRRORS);
         }
-        
+
         return allowedOperations;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskResourceRep deleteConsistencyGroup(StorageSystem device,
-                                                  BlockConsistencyGroup consistencyGroup, String task)  throws ControllerException {
-	    
+            BlockConsistencyGroup consistencyGroup, String task) throws ControllerException {
+
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
-				   task, ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP);
+                task, ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP);
 
         BlockController controller = getController(BlockController.class,
-            device.getSystemType());
+                device.getSystemType());
         controller.deleteConsistencyGroup(device.getId(), consistencyGroup.getId(), Boolean.TRUE, task);
 
         return toTask(consistencyGroup, task, op);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskResourceRep updateConsistencyGroup(StorageSystem device,
-        List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
-        List<URI> addVolumesList, List<URI> removeVolumesList, String task)
-        throws ControllerException {
+            List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
+            List<URI> addVolumesList, List<URI> removeVolumesList, String task)
+            throws ControllerException {
 
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class,
-            consistencyGroup.getId(), task,
-            ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
+                consistencyGroup.getId(), task,
+                ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
 
         if (!device.getSystemType().equals(DiscoveredDataObject.Type.scaleio.name())) {
             BlockController controller = getController(BlockController.class,
@@ -289,7 +295,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
      */
     @Override
     protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(URI systemURI,
-        List<URI> volumeURIs) {
+            List<URI> volumeURIs) {
         List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
         for (URI volumeURI : volumeURIs) {
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,

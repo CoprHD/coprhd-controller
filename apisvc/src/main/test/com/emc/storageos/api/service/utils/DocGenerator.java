@@ -26,7 +26,6 @@ import org.codehaus.enunciate.modules.DeploymentModule;
 import org.codehaus.enunciate.modules.docs.DocumentationDeploymentModule;
 import org.codehaus.enunciate.modules.xml.XMLDeploymentModule;
 
-
 /**
  * Main to drive Enunciator
  */
@@ -42,7 +41,7 @@ public class DocGenerator {
 
     /**
      * Collect java source code under a directory
-     *
+     * 
      * @param start
      * @param file
      */

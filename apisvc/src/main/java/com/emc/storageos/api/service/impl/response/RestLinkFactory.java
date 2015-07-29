@@ -26,7 +26,6 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
-import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -42,59 +41,61 @@ public final class RestLinkFactory
 
     /* Public Interfaces */
     public static URI newLink(DataObject resource) {
-        if( resource == null ) throw new NullPointerException();
+        if (resource == null) {
+            throw new NullPointerException();
+        }
         ResourceTypeEnum res = ResourceTypeMapping.getResourceType(resource);
         try {
             URI parentId;
-            if (res == null)
+            if (res == null) {
                 return new URI("/");
+            }
             switch (res) {
-                case STORAGE_POOL :
-                     parentId = ((StoragePool) resource).getStorageDevice();
-                    return  secondaryResourceLink( res.getService(), resource.getId(),  parentId);
-                case  STORAGE_PORT  :
-                     parentId = ((StoragePort) resource).getStorageDevice();
-                    return  secondaryResourceLink( res.getService(), resource.getId(),  parentId);
-                case  BLOCK_MIRROR  :
+                case STORAGE_POOL:
+                    parentId = ((StoragePool) resource).getStorageDevice();
+                    return secondaryResourceLink(res.getService(), resource.getId(), parentId);
+                case STORAGE_PORT:
+                    parentId = ((StoragePort) resource).getStorageDevice();
+                    return secondaryResourceLink(res.getService(), resource.getId(), parentId);
+                case BLOCK_MIRROR:
                     parentId = ((BlockMirror) resource).getSource().getURI();
-                    return  secondaryResourceLink( res.getService(), resource.getId(),  parentId);
-                case  VPLEX_MIRROR  :
+                    return secondaryResourceLink(res.getService(), resource.getId(), parentId);
+                case VPLEX_MIRROR:
                     parentId = ((VplexMirror) resource).getSource().getURI();
-                    return  secondaryResourceLink( res.getService(), resource.getId(),  parentId);    
-                case  PROTECTION_SET  :
-                	// any volume in the volume string set is valid
-                	StringSet volumeIDs = ((ProtectionSet) resource).getVolumes();
-                	if (volumeIDs != null && !volumeIDs.isEmpty()) {
-                		for (String volumeID : volumeIDs) {
-                			// No .get(), same as iterator.
-                            return secondaryResourceLink( res.getService(), resource.getId(), new URI(volumeID));
-                		}
-                	}
-                	// This will not produce a good URI, but it's impossible to get here with the dependent data model.
+                    return secondaryResourceLink(res.getService(), resource.getId(), parentId);
+                case PROTECTION_SET:
+                    // any volume in the volume string set is valid
+                    StringSet volumeIDs = ((ProtectionSet) resource).getVolumes();
+                    if (volumeIDs != null && !volumeIDs.isEmpty()) {
+                        for (String volumeID : volumeIDs) {
+                            // No .get(), same as iterator.
+                            return secondaryResourceLink(res.getService(), resource.getId(), new URI(volumeID));
+                        }
+                    }
+                    // This will not produce a good URI, but it's impossible to get here with the dependent data model.
                     return simpleServiceLink(res.getService(), resource.getId());
-                default :
+                default:
                     return simpleServiceLink(res, resource.getId());
             }
-        }
-        catch (URISyntaxException ex) {
+        } catch (URISyntaxException ex) {
             return null;   // impossible;
         }
     }
 
     public static URI newLink(ResourceTypeEnum res, URI resource_id) {
         try {
-            if  (resource_id == null) {
+            if (resource_id == null) {
                 return new URI("/");
             }
 
             if (res == null) {
-                return new URI("/"+resource_id);
+                return new URI("/" + resource_id);
             }
 
-            if( res == ResourceTypeEnum.STORAGE_POOL ||
-                res == ResourceTypeEnum.STORAGE_PORT ||
-                res == ResourceTypeEnum.BLOCK_MIRROR ||
-                res == ResourceTypeEnum.VPLEX_MIRROR ) {
+            if (res == ResourceTypeEnum.STORAGE_POOL ||
+                    res == ResourceTypeEnum.STORAGE_PORT ||
+                    res == ResourceTypeEnum.BLOCK_MIRROR ||
+                    res == ResourceTypeEnum.VPLEX_MIRROR) {
                 URI link = _linkCache.get(resource_id);
                 if (link == null) {
                     DataObject resource = _dbClient.queryObject(ResourceTypeMapping.getDataObjectClass(res), resource_id);
@@ -110,32 +111,30 @@ public final class RestLinkFactory
             else {
                 return simpleServiceLink(res, resource_id);
             }
-        }
-        catch (URISyntaxException ex) {
+        } catch (URISyntaxException ex) {
             return null; // impossible;
-        }
-        catch (DatabaseException ex) {
+        } catch (DatabaseException ex) {
             return null;
         }
     }
 
-    public  static URI newLink(ResourceTypeEnum res, URI resourceId, URI parentId) {
+    public static URI newLink(ResourceTypeEnum res, URI resourceId, URI parentId) {
         try {
-            if  (resourceId == null)
+            if (resourceId == null) {
                 return new URI("/");
+            }
 
-            if( res == ResourceTypeEnum.STORAGE_POOL   ||
-                res == ResourceTypeEnum.STORAGE_PORT   || 
-                res == ResourceTypeEnum.BLOCK_MIRROR   ||
-                res == ResourceTypeEnum.VPLEX_MIRROR   ||
-                res == ResourceTypeEnum.PROTECTION_SET ) {
-                return secondaryResourceLink( res.getService(), resourceId,  parentId);
+            if (res == ResourceTypeEnum.STORAGE_POOL ||
+                    res == ResourceTypeEnum.STORAGE_PORT ||
+                    res == ResourceTypeEnum.BLOCK_MIRROR ||
+                    res == ResourceTypeEnum.VPLEX_MIRROR ||
+                    res == ResourceTypeEnum.PROTECTION_SET) {
+                return secondaryResourceLink(res.getService(), resourceId, parentId);
             }
             else {
                 return simpleServiceLink(res, resourceId);
             }
-        }
-        catch (URISyntaxException ex) {
+        } catch (URISyntaxException ex) {
             return null;   // impossible;
         }
 
@@ -143,50 +142,43 @@ public final class RestLinkFactory
 
     public static URI newTaskLink(DataObject resource, String op_id)
     {
-        try  {
+        try {
             StringBuilder build = (new StringBuilder()).
-                                    append(newLink(resource)).
-                                                     append("/tasks/").
-                                                                append(op_id);
+                    append(newLink(resource)).
+                    append("/tasks/").
+                    append(op_id);
             return new URI(build.toString());
-        }
-        catch  (URISyntaxException ex) {
-            return  null;        // imposssible
+        } catch (URISyntaxException ex) {
+            return null;        // imposssible
         }
     }
 
     public static URI simpleServiceLink(ResourceTypeEnum res, URI resourceId)
-            throws URISyntaxException{
+            throws URISyntaxException {
         return simpleServiceLink(res.getService(), resourceId);
     }
 
-    private static URI simpleServiceLink(String service, URI resourceId) throws URISyntaxException{
+    private static URI simpleServiceLink(String service, URI resourceId) throws URISyntaxException {
         StringBuilder build = (new StringBuilder(service)).
-                                                        append('/').
-                                                            append(resourceId);
+                append('/').
+                append(resourceId);
         return new URI(build.toString());
     }
 
     private static URI secondaryResourceLink(String service, URI resourceId, URI parentId) throws URISyntaxException {
 
-            StringBuilder build = (new StringBuilder(String.format(service, parentId))).
-                                                                              append('/').
-                                                                                  append(resourceId);
-            return new URI(build.toString());
+        StringBuilder build = (new StringBuilder(String.format(service, parentId))).
+                append('/').
+                append(resourceId);
+        return new URI(build.toString());
     }
-
-
 
     /**
      * Set db client
-     *
+     * 
      * @param dbClient
      */
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
 }
-
-
-
-

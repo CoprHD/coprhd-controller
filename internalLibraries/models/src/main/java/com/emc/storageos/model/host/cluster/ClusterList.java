@@ -17,15 +17,17 @@ import java.util.List;
 @XmlRootElement(name = "clusters")
 public class ClusterList {
     private List<NamedRelatedResourceRep> clusters;
-    
-    public ClusterList() {}
-    
+
+    public ClusterList() {
+    }
+
     public ClusterList(List<NamedRelatedResourceRep> clusters) {
         this.clusters = clusters;
     }
 
     /**
      * Represents a host cluster within ViPR
+     * 
      * @valid none
      */
     @XmlElement(name = "cluster")

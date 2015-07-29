@@ -40,6 +40,7 @@ public interface AuthenticationManager {
 
     /**
      * Validates credentials provided
+     * 
      * @param credentials
      * @return StorageOSUserDAO if user is successfully authenticated, null otherwise
      */
@@ -47,6 +48,7 @@ public interface AuthenticationManager {
 
     /**
      * validate the user against the tenant provided
+     * 
      * @param userId
      * @param tenantId
      */
@@ -54,9 +56,10 @@ public interface AuthenticationManager {
 
     /**
      * validate the group name
+     * 
      * @param groupId
      * @param failureReason put parameter which explains why the validation failed
-     * @return  true if it exists in at least one of the domains configured, false otherwise
+     * @return true if it exists in at least one of the domains configured, false otherwise
      */
     public boolean isGroupValid(final String groupId,
             ValidationFailureReason[] failureReason);
@@ -78,17 +81,17 @@ public interface AuthenticationManager {
 
     /**
      * Get a map of tenancies a user maps to and the applied user mapping
+     * 
      * @param username name of the user
      * @return A map with tenant ID as the key and the applied mapping as the value
      */
     public Map<URI, UserMapping> getUserTenants(String username);
 
-
-
     public Map<URI, UserMapping> peekUserTenants(String username, URI tenantUri, List<UserMapping> userMappings);
 
     /**
      * Gets the user's details- tenant and groups.
+     * 
      * @param username name of the user
      * @return A collection of the names of the groups
      */
@@ -101,5 +104,5 @@ public interface AuthenticationManager {
      *            name of the user
      */
     public void refreshUser(String username) throws SecurityException,
-    BadRequestException;
+            BadRequestException;
 }

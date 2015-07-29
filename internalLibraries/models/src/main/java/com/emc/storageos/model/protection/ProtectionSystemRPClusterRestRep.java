@@ -25,37 +25,38 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "cluster")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ProtectionSystemRPClusterRestRep {
-	private String clusterId;
-	private String clusterName;
-	private List<String> assignedVarrays;
+    private String clusterId;
+    private String clusterName;
+    private List<String> assignedVarrays;
 
-	public ProtectionSystemRPClusterRestRep() {
-	}
+    public ProtectionSystemRPClusterRestRep() {
+    }
 
-	@XmlElement(name = "cluster_name")
-	public String getClusterName() {
-		return clusterName;
-	}
-	public void setClusterName(String clusterName) {
-		this.clusterName = clusterName;
-	}
+    @XmlElement(name = "cluster_name")
+    public String getClusterName() {
+        return clusterName;
+    }
 
-	@XmlElement(name = "cluster_id")
-	public String getClusterId() {
-		return clusterId;
-	}
-	public void setClusterId(String clusterId) {
-		this.clusterId = clusterId;
-	}
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
 
-	@XmlElement(name = "assigned_virtual_array")
-	public List<String> getAssignedVarrays() {
-		return assignedVarrays;
-	}
+    @XmlElement(name = "cluster_id")
+    public String getClusterId() {
+        return clusterId;
+    }
 
-	public void setAssignedVarrays(List<String> assignedVarrays) {
-		this.assignedVarrays = assignedVarrays;
-	}
+    public void setClusterId(String clusterId) {
+        this.clusterId = clusterId;
+    }
+
+    @XmlElement(name = "assigned_virtual_array")
+    public List<String> getAssignedVarrays() {
+        return assignedVarrays;
+    }
+
+    public void setAssignedVarrays(List<String> assignedVarrays) {
+        this.assignedVarrays = assignedVarrays;
+    }
 
 }
-

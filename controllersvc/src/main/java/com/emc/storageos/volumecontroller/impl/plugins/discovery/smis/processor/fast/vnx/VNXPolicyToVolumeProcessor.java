@@ -20,7 +20,6 @@ import java.util.Map;
 import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
@@ -31,12 +30,12 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
  * For each discovered VNX policy, run associatorNames to get the list of
  * Volumes, as volumes are associated directly with Policies.
  * VNXPolicy-->Volumes-->Pool
- * Add the Volumes to volumeList, which will be used later to get Pools.  
+ * Add the Volumes to volumeList, which will be used later to get Pools.
  * 
  */
 public class VNXPolicyToVolumeProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(VNXPolicyToVolumeProcessor.class);
-    
+
     private List<Object> _args;
 
     @Override

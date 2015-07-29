@@ -18,14 +18,13 @@ package com.emc.storageos.volumecontroller.impl;
 import java.io.*;
 import java.util.*;
 
-
 /**
  * Placeholder implementation of controller async task.
  */
 public class ControlRequest implements Serializable {
     private static final String QUEUE_NAME = "queueName";
     private static final String METHOD_FIELD_NAME = "method";
-    private static final String TARGET_CLASS_FIELD_NAME = "targettype"; 
+    private static final String TARGET_CLASS_FIELD_NAME = "targettype";
     private static final String ARG_FIELD_NAME = "arguments";
     private static final String DEVICE_INFO_NAME = "deviceinfo";
 
@@ -43,26 +42,27 @@ public class ControlRequest implements Serializable {
     }
 
     public Object[] getArg() {
-        List arg = (List)_req.get(ARG_FIELD_NAME);
-        return arg.toArray(); 
+        List arg = (List) _req.get(ARG_FIELD_NAME);
+        return arg.toArray();
     }
-    
+
     public String getMethodName() {
-        return (String)_req.get(METHOD_FIELD_NAME);
+        return (String) _req.get(METHOD_FIELD_NAME);
     }
-    
+
     public String getTargetClassName() {
-        return (String)_req.get(TARGET_CLASS_FIELD_NAME);
+        return (String) _req.get(TARGET_CLASS_FIELD_NAME);
     }
 
     public Dispatcher.DeviceInfo getDeviceInfo() {
-        return (Dispatcher.DeviceInfo)_req.get(DEVICE_INFO_NAME);
+        return (Dispatcher.DeviceInfo) _req.get(DEVICE_INFO_NAME);
     }
-    
+
     public String getQueueName() {
         return (String) _req.get(QUEUE_NAME);
     }
-    @SuppressWarnings({"squid:S2118"})
+
+    @SuppressWarnings({ "squid:S2118" })
     public byte[] serialize() {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -78,7 +78,7 @@ public class ControlRequest implements Serializable {
         try {
             ControlRequest request = new ControlRequest();
             ObjectInputStream oim = new ObjectInputStream(new ByteArrayInputStream(data));
-            Map<String, Object> req = (Map<String, Object>)oim.readObject();
+            Map<String, Object> req = (Map<String, Object>) oim.readObject();
             request._req = req;
             return request;
         } catch (IOException e) {

@@ -28,12 +28,12 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class CloneRestoreCompleter extends VolumeTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(CloneRestoreCompleter.class);
-    
+
     public CloneRestoreCompleter(URI fullCopyVolumeURI, String task) {
         super(Volume.class, fullCopyVolumeURI, task);
         setNotifyWorkflow(true);
     }
-    
+
     public CloneRestoreCompleter(List<URI> fullCopyVolumeURIs, String task) {
         super(Volume.class, fullCopyVolumeURIs, task);
     }
@@ -45,13 +45,13 @@ public class CloneRestoreCompleter extends VolumeTaskCompleter {
         try {
             for (URI clone : getIds()) {
                 switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, Volume.class, clone, coded);
-                    break;
-                default:
-                    setReadyOnDataObject(dbClient, Volume.class, clone);
+                    case error:
+                        setErrorOnDataObject(dbClient, Volume.class, clone, coded);
+                        break;
+                    default:
+                        setReadyOnDataObject(dbClient, Volume.class, clone);
                 }
-            
+
             }
             if (isNotifyWorkflow()) {
                 super.updateWorkflowStatus(status, coded);

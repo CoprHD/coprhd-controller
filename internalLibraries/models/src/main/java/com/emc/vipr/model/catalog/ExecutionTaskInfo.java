@@ -8,16 +8,16 @@ import javax.xml.bind.annotation.XmlType;
 
 @XmlType
 public class ExecutionTaskInfo extends ExecutionLogInfo {
-    
+
     /**
      * Details for this task
      */
-    private String detail;                 
-    
+    private String detail;
+
     /**
      * Length of time the task ran for
      */
-    private Long elapsed;               
+    private Long elapsed;
 
     public String getDetail() {
         return detail;

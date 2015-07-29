@@ -47,14 +47,14 @@ public class ExportRemoveInitiatorCompleter extends ExportTaskCompleter {
     }
 
     public ExportRemoveInitiatorCompleter(URI egUri, List<URI> initiatorURIs,
-                                          String task) {
+            String task) {
         super(ExportGroup.class, egUri, task);
         _initiatorURIs = new ArrayList<URI>();
         _initiatorURIs.addAll(initiatorURIs);
     }
 
-	private ExportGroup prepareExportGroups(DbClient dbClient, Operation.Status status)
-	throws DeviceControllerException {
+    private ExportGroup prepareExportGroups(DbClient dbClient, Operation.Status status)
+            throws DeviceControllerException {
         ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, getId());
         for (URI initiatorURI : _initiatorURIs) {
             Initiator initiator = dbClient.queryObject(Initiator.class, initiatorURI);
@@ -64,11 +64,12 @@ public class ExportRemoveInitiatorCompleter extends ExportTaskCompleter {
             _log.info("export_initiator_remove: completed");
             _log.info(String.format("Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
-            recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_INITIATOR, status, eventMessage(status, initiator, exportGroup), exportGroup, initiator);
+            recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_INITIATOR, status,
+                    eventMessage(status, initiator, exportGroup), exportGroup, initiator);
         }
 
         return exportGroup;
-	}
+    }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
@@ -82,18 +83,19 @@ public class ExportRemoveInitiatorCompleter extends ExportTaskCompleter {
                 _log.info("export_initiator_remove: completed");
                 _log.info(String.format("Done ExportMaskRemoveInitiator - Id: %s, OpId: %s, status: %s",
                         getId().toString(), getOpId(), status.name()));
-                recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_INITIATOR, status, eventMessage(status, initiator, exportGroup), exportGroup, initiator);
+                recordBlockExportOperation(dbClient, OperationTypeEnum.DELETE_EXPORT_INITIATOR, status,
+                        eventMessage(status, initiator, exportGroup), exportGroup, initiator);
             }
             Operation operation = new Operation();
             switch (status) {
-            case error:
-                operation.error(coded);
-                break;
-            case ready:
-                operation.ready();
-                break;
-            default:
-                break;
+                case error:
+                    operation.error(coded);
+                    break;
+                case ready:
+                    operation.ready();
+                    break;
+                default:
+                    break;
             }
             exportGroup.getOpStatus().updateTaskStatus(getOpId(), operation);
             dbClient.persistObject(exportGroup);

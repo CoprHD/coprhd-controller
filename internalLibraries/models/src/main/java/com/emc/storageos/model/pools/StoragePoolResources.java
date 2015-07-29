@@ -19,9 +19,10 @@ public class StoragePoolResources {
 
     // A list containing the resources in a storage pool.
     private List<TypedRelatedResourceRep> resources;
-    
-    public StoragePoolResources() {}
-    
+
+    public StoragePoolResources() {
+    }
+
     public StoragePoolResources(List<TypedRelatedResourceRep> resources) {
         this.resources = resources;
     }

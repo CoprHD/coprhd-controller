@@ -11,13 +11,13 @@
  * software and the intellectual property contained therein is expressly
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
- */        
+ */
 package com.emc.storageos.db.server.upgrade.util.models.updated;
 
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.server.upgrade.util.models.updated.Resource3;
 
 @Cf("Resource6")
-public class Resource6 extends Resource3{
+public class Resource6 extends Resource3 {
 
 }

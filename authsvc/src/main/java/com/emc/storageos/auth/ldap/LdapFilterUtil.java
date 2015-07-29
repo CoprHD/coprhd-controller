@@ -26,6 +26,7 @@ import org.springframework.ldap.filter.HardcodedFilter;
 public class LdapFilterUtil {
     /**
      * Generate encoded filter to search for persons
+     * 
      * @param rawFilter
      * @param username
      * @return encoded filter
@@ -35,25 +36,26 @@ public class LdapFilterUtil {
         String[] usernameParts = username.split("@");
         filter = filter.replace("%u", username);
         filter = filter.replace("%U", usernameParts[0]);
-        if( usernameParts.length > 1) {
+        if (usernameParts.length > 1) {
             filter = filter.replaceAll("%d", usernameParts[1]);
         }
         // Add parentheses around the filter string so that we can
         // AND it
-        if( !filter.startsWith("(")) {
-            filter = "("+filter+")";
+        if (!filter.startsWith("(")) {
+            filter = "(" + filter + ")";
         }
         Filter hardCodedFilter = new HardcodedFilter(filter);
         // Why is this not needed in the auth handler
         Filter personFilter = new EqualsFilter("objectClass", "person");
         AndFilter andFilter = new AndFilter();
-        andFilter.and(hardCodedFilter);        
+        andFilter.and(hardCodedFilter);
         andFilter.and(personFilter);
         return andFilter.encode();
     }
-    
+
     /**
      * Generates an encoded filter for attribute query
+     * 
      * @param attributeName to find
      * @return encoded filter
      */
@@ -61,9 +63,9 @@ public class LdapFilterUtil {
         Filter hardCodedFilter = new HardcodedFilter("(lDAPDisplayName=" + attributeName + ")");
         Filter attributeFilter = new EqualsFilter("objectCategory", "attributeSchema");
         AndFilter andFilter = new AndFilter();
-        andFilter.and(hardCodedFilter);        
+        andFilter.and(hardCodedFilter);
         andFilter.and(attributeFilter);
         return andFilter.encode();
     }
-    
+
 }

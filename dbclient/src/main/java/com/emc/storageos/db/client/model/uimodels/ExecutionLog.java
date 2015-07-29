@@ -100,9 +100,9 @@ public class ExecutionLog extends ModelObject {
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getId() };
-    }        
-    
+        return new Object[] { getLabel(), getId() };
+    }
+
     public static enum LogLevel {
         DEBUG, INFO, WARN, ERROR
     }

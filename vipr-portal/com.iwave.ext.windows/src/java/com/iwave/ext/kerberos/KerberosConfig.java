@@ -36,20 +36,22 @@ public class KerberosConfig {
     public static final String FILE_PREFIX = "krb5";
     public static final String FILE_SUFFIX = ".conf.tmp";
     private static KerberosConfig instance = new KerberosConfig();
+
     public static KerberosConfig getInstance() {
         return instance;
     }
-    
+
     private File krb5File;
     private long checksum = 0;
-    
-    private KerberosConfig() {}
-    
+
+    private KerberosConfig() {
+    }
+
     public synchronized void initialize(String krb5Conf) throws IOException {
         if (krb5Conf == null) {
             return;
         }
-        
+
         if (krb5File == null) {
             krb5File = File.createTempFile(FILE_PREFIX, FILE_SUFFIX);
             krb5File.deleteOnExit();
@@ -61,7 +63,7 @@ public class KerberosConfig {
             checksum = FileUtils.checksumCRC32(krb5File);
             return;
         }
-        
+
         long newChecksum = checksumCRC32(krb5Conf);
         // There is an existing krb5File, check the checksum is different
         if (newChecksum != checksum) {
@@ -71,19 +73,18 @@ public class KerberosConfig {
             checksum = newChecksum;
         }
     }
-    
+
     public File getKrb5File() {
         return krb5File;
     }
-    
+
     private long checksumCRC32(String string) throws IOException {
         Checksum sum = new CRC32();
         InputStream in = null;
         try {
             in = new CheckedInputStream(new ByteArrayInputStream(string.getBytes()), sum);
             IOUtils.copy(in, new NullOutputStream());
-        }
-        finally {
+        } finally {
             IOUtils.closeQuietly(in);
         }
         return sum.getValue();

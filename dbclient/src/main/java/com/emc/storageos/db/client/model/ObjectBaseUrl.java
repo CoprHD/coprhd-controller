@@ -42,11 +42,12 @@ public class ObjectBaseUrl extends DataObject {
 
     /**
      * Base URL for the specific api type
+     * 
      * @return
      */
     @XmlElement
     @Name("url")
-    public String getBaseUrl(){
+    public String getBaseUrl() {
         return _baseUrl;
     }
 

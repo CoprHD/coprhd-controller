@@ -17,7 +17,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.utility.CIMConstan
 @Component("CIMVolumeViewUpdatableDeviceEvent")
 @Scope("prototype")
 public class CIMVolumeViewUpdatableDeviceEvent extends
-        CIMStoragePoolUpdatableDeviceEvent{
+        CIMStoragePoolUpdatableDeviceEvent {
     /**
      * Logger to log the debug statements
      */
@@ -64,6 +64,7 @@ public class CIMVolumeViewUpdatableDeviceEvent extends
      * indication
      * VMAX Volume View Indication doesn't have Subscribed capacity.
      * VMAX Volume View Indication doesn't have Pool name as well.
+     * 
      * @return
      */
     public boolean updateStoragePoolObjectFromVMAXVolumeViewIndication() {
@@ -78,6 +79,7 @@ public class CIMVolumeViewUpdatableDeviceEvent extends
      * Identifies and use VNX specific attributes to read the corresponding values from VNX VolumeView
      * indication
      * VNX Volume View Indication doesn't have Subscribed capacity.
+     * 
      * @return
      */
     public boolean updateStoragePoolObjectFromVNXVolumeViewIndication() {
@@ -87,7 +89,6 @@ public class CIMVolumeViewUpdatableDeviceEvent extends
                 CIMConstants.VOLUME_VIEW_INDICATION_POOL_NAME,
                 CIMConstants.VOLUME_VIEW_INDICATION_TOTAL_CAPACITY, null);
     }
-
 
     /**
      * Log the messages. This method eliminates the logging condition check

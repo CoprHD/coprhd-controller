@@ -16,7 +16,7 @@ public class DeactivateVolumes extends WaitForTasks<VolumeRestRep> {
 
     private List<URI> volumeIds;
     private VolumeDeleteTypeEnum type;
-    
+
     public DeactivateVolumes(List<URI> volumeIds, VolumeDeleteTypeEnum type) {
         super();
         this.volumeIds = volumeIds;
@@ -26,6 +26,6 @@ public class DeactivateVolumes extends WaitForTasks<VolumeRestRep> {
 
     @Override
     protected Tasks<VolumeRestRep> doExecute() throws Exception {
-      return getClient().blockVolumes().deactivate(volumeIds, type);
+        return getClient().blockVolumes().deactivate(volumeIds, type);
     }
 }

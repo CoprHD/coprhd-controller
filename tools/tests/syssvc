@@ -190,10 +190,7 @@ def is_licensed():
     if not is_licensed:
         return False
     else:
-        if controller_license and block_license:
-            return True
-        else:
-            return False
+        return controller_license and block_license
 
 def syssvc_configure_connectemc_ftps():
     if IPV6_ONLY:

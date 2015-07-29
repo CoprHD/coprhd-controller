@@ -52,7 +52,7 @@ public class RefreshRequiredUpdateFunction implements SimpleFunction {
     private DbClient dbClient;
 
     public RefreshRequiredUpdateFunction(URI storageURI, List<URI> originalList,
-                                         DbClient dbClient) {
+            DbClient dbClient) {
         this.storageURI = storageURI;
         this.objsRequiringRefresh = originalList;
         this.dbClient = dbClient;
@@ -63,46 +63,47 @@ public class RefreshRequiredUpdateFunction implements SimpleFunction {
         _log.info(String.format("Original list of uris requiring EMCRefresh:%n%s",
                 Joiner.on(',').join(objsRequiringRefresh)));
         handleBlockObjects(Volume.class);
-        handleBlockObjects(BlockSnapshot.class);  
+        handleBlockObjects(BlockSnapshot.class);
     }
-    
+
     /**
      * Refresh block objects of given type
-     * @param clazz CF subclass of BlockObject  
+     * 
+     * @param clazz CF subclass of BlockObject
      */
     private <T extends BlockObject> void handleBlockObjects(Class<T> clazz) {
         // get all object URIs contained by the StorageSystem
         URIQueryResultList queryResults = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getContainedObjectsConstraint(storageURI,
-    			clazz, STORAGE_DEVICE), queryResults);    	      
-     
+                clazz, STORAGE_DEVICE), queryResults);
+
         Iterator<URI> iQueryResults = queryResults.iterator();
-        List<URI> blockObjectURIs = new ArrayList<URI>();   
+        List<URI> blockObjectURIs = new ArrayList<URI>();
         while (iQueryResults.hasNext()) {
-        	blockObjectURIs.add(iQueryResults.next());
+            blockObjectURIs.add(iQueryResults.next());
         }
-        
+
         // merge with objsRequiringRefresh
         for (URI uri : objsRequiringRefresh) {
             if (URIUtil.isType(uri, clazz)) {
-            	// uri could have already been in blockObjectURIs
-            	// queryIterativeObjectField won't return duplicate objects even if there are duplicate URIs in the list 
-            	blockObjectURIs.add(uri);
+                // uri could have already been in blockObjectURIs
+                // queryIterativeObjectField won't return duplicate objects even if there are duplicate URIs in the list
+                blockObjectURIs.add(uri);
             }
         }
-        
+
         // query all objects, only need the REFRESH_REQUIRED field
-        Iterator<T> iBlockObjects = dbClient.queryIterativeObjectField(clazz, REFRESH_REQUIRED, blockObjectURIs);      
+        Iterator<T> iBlockObjects = dbClient.queryIterativeObjectField(clazz, REFRESH_REQUIRED, blockObjectURIs);
         List<T> objsNeedRefresh = new ArrayList<T>();
         // loop all the objects, check if the refreshRequired is true.
         while (iBlockObjects.hasNext()) {
             T blockObject = iBlockObjects.next();
             if (blockObject.getRefreshRequired()) {
-            	blockObject.setRefreshRequired(false);
-            	objsNeedRefresh.add(blockObject);
+                blockObject.setRefreshRequired(false);
+                objsNeedRefresh.add(blockObject);
             }
         }
-        
+
         dbClient.persistObject(objsNeedRefresh);
     }
 }

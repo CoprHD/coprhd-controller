@@ -50,14 +50,14 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
 
         // Determine how to build the SMI-S arguments
         ExecutorStrategy executorStrategy = null;
-        switch(operation) {
-        	case FAIL_MECHANISM:
-        	    if (target.hasConsistencyGroup()) {
+        switch (operation) {
+            case FAIL_MECHANISM:
+                if (target.hasConsistencyGroup()) {
                     executorStrategy = new FailMechanismGroupSyncStrategy(helper);
                 } else {
                     executorStrategy = new FailMechanismStorageSyncsStrategy(helper);
                 }
-        		break;
+                break;
             case SUSPEND:
                 if (target.hasConsistencyGroup()) {
                     executorStrategy = new SuspendGroupSyncStrategy(helper);

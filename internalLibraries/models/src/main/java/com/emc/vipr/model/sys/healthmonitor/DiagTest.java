@@ -32,7 +32,7 @@ public class DiagTest {
     private String name;
     private String status;
     private List<TestParam> testParams;
-    
+
     public DiagTest() {
         this.name = HealthMonitorConstants.DIAG_UNKNOWN;
     }
@@ -82,7 +82,12 @@ public class DiagTest {
     @Override
     public String toString() {
         if (name.equals("EMC upgrade repository") && status.equals("CONFIGURED,UNREACHABLE") && testParams != null && testParams.size() > 0) {
-            return name + ": [" + status + "]." + " Details: Unable to reach the update repository, please verify ViPR's Internet connection and check if the repository URL " + testParams.get(0).getValue() + " is correct." ;
+            return name
+                    + ": ["
+                    + status
+                    + "]."
+                    + " Details: Unable to reach the update repository, please verify ViPR's Internet connection and check if the repository URL "
+                    + testParams.get(0).getValue() + " is correct.";
         }
         StringBuffer sb = new StringBuffer();
         if (testParams != null && testParams.size() > 0) {
@@ -90,7 +95,7 @@ public class DiagTest {
                 sb.append(param + ", ");
             }
         }
-        return name + ": [" + status + "]." + (sb.length() > 0 ? "Details: "+sb.toString()
+        return name + ": [" + status + "]." + (sb.length() > 0 ? "Details: " + sb.toString()
                 .substring(0, sb.length() - 2) : "");
     }
 }

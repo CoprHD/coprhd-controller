@@ -44,11 +44,11 @@ public class AnnotationValueDiff extends Diff {
         valueCT = PrimitiveChangeTracker.newInstance(src.getValue(), tgt.getValue(), tgt);
 
         if ((RelationIndex.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("cf"))
-                || (AlternateId.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("value")) ) {
+                || (AlternateId.class.equals(tgt.getAnnoClass()) && tgt.getName().equals("value"))) {
             isCfValueOfRelationIndex = true;
             if (valueCT != null && valueCT.isChanged()) {
-                log.info("Cf value of index {} has changed from {} to {}", new Object[]{
-                        tgt.describe(), valueCT.getOldValue(), valueCT.getNewValue()});
+                log.info("Cf value of index {} has changed from {} to {}", new Object[] {
+                        tgt.describe(), valueCT.getOldValue(), valueCT.getNewValue() });
             }
         }
     }
@@ -64,14 +64,16 @@ public class AnnotationValueDiff extends Diff {
     }
 
     public boolean isUpgradable() {
-        if (valueCT == null || isCfValueOfRelationIndex)
+        if (valueCT == null || isCfValueOfRelationIndex) {
             return true;
+        }
         return valueCT.isUpgradable();
     }
 
     public boolean isChanged() {
-        if (valueCT == null)
+        if (valueCT == null) {
             return false;
+        }
         return valueCT.isChanged();
     }
 }

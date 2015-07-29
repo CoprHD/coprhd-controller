@@ -68,7 +68,6 @@ public class DummyEventRetriever implements EventRetriever {
             _logger.error("Error getting events", e);
         }
 
-       
         for (Event event : events) {
             if (type == MediaType.APPLICATION_XML_TYPE) {
                 marshaller.marshal(event, writer);

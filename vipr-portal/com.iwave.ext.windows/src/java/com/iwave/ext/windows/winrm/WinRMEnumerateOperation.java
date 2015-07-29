@@ -96,7 +96,7 @@ public abstract class WinRMEnumerateOperation<T> extends WinRMOperation<List<T>>
      * Creates a Pull request to pulling values from the specified enumeration.
      * 
      * @param enumerationContext the enumeration context value returned from the last enumerate or
-     *        pull response.
+     *            pull response.
      * @return the pull request.
      */
     public WinRMRequest createPullRequest(String enumerationContext) {

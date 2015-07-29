@@ -50,7 +50,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
 /**
  * This class handles the discovery tasks for NetworkSystem. It uses an instances
- * of {@link NetworkSystemDevice} for device-specific communication. 
+ * of {@link NetworkSystemDevice} for device-specific communication.
  * 
  */
 public class NetworkDiscoveryWorker {
@@ -64,8 +64,8 @@ public class NetworkDiscoveryWorker {
 
     // Properties controllering expiration of FCEndpoints
     // Here Awol means "Absent Without Leave", i.e. since we last saw it in a sample.
-    private Integer _minAwolSamples=3;
-    private Long _minAwolTime=60000L;
+    private Integer _minAwolSamples = 3;
+    private Long _minAwolTime = 60000L;
 
     private RecordableEventManager _evtMgr;
 
@@ -77,7 +77,7 @@ public class NetworkDiscoveryWorker {
             ResourceBundle resourceBundle = ResourceBundle
                     .getBundle(BUNDLE_NAME);
             _minAwolSamples = Integer.valueOf(resourceBundle.getString("FCEndpoint.minAwolSamples"));
-            _minAwolTime =  Long.valueOf(resourceBundle.getString("FCEndpoint.minAwolTime"));
+            _minAwolTime = Long.valueOf(resourceBundle.getString("FCEndpoint.minAwolTime"));
         } catch (Exception ex) {
             _log.error("Failed to get the values for _minAwolSamples and _minAwolTime from resource bundle "
                     + ex.getMessage());
@@ -88,7 +88,7 @@ public class NetworkDiscoveryWorker {
             DbClient dbClient) {
         this._device = device;
         this.dbClient = dbClient;
-        RecordableEventManager evtMgr = 
+        RecordableEventManager evtMgr =
                 new RecordableEventManager();
         evtMgr.setDbClient(dbClient);
         this._evtMgr = evtMgr;
@@ -97,6 +97,7 @@ public class NetworkDiscoveryWorker {
 
     /**
      * Verify the firmware version for the NetworkSystem
+     * 
      * @param uri - Device URI
      * @throws ControllerException thrown if firmware version is not supported
      */
@@ -163,36 +164,36 @@ public class NetworkDiscoveryWorker {
             Map<String, Set<String>> routedEndpoints = new HashMap<String, Set<String>>();
             try {
                 currentConnections = networkDevice.getPortConnections(networkDev, routedEndpoints);
-                msg = MessageFormat.format("Retrieved {0} connections from device {1} at {2}", 
+                msg = MessageFormat.format("Retrieved {0} connections from device {1} at {2}",
                         new Integer(currentConnections.size()), uri, new Date());
                 _log.info(msg);
-            } catch(Exception e) {
-                msg = MessageFormat.format("Discovery failed getting port connections for Network System : {0}", 
+            } catch (Exception e) {
+                msg = MessageFormat.format("Discovery failed getting port connections for Network System : {0}",
                         uri.toString());
                 throw (e);
             }
 
             try {
-                reconcileFCEndpoints(networkDev, currentConnections); 
-            } catch(Exception e) {
-                msg = MessageFormat.format("Discovery failed reconciling FC endpoints for Network System : {0}", 
+                reconcileFCEndpoints(networkDev, currentConnections);
+            } catch (Exception e) {
+                msg = MessageFormat.format("Discovery failed reconciling FC endpoints for Network System : {0}",
                         uri.toString());
                 throw (e);
             }
 
-            //==== Reconcile the discovered transport zones ======
+            // ==== Reconcile the discovered transport zones ======
             try {
                 reconcileTransportZones(networkDev, routedEndpoints);
-            } catch(Exception e) {
-                msg = MessageFormat.format("Discovery failed reconciling networks for Network System : {0}", 
+            } catch (Exception e) {
+                msg = MessageFormat.format("Discovery failed reconciling networks for Network System : {0}",
                         uri.toString());
                 throw (e);
             }
 
             try {
                 networkDev.setUptime(networkDevice.getUptime(networkDev));
-            } catch(Exception e) {
-                msg = MessageFormat.format("Discovery failed setting version/uptime for Network System : {0}", 
+            } catch (Exception e) {
+                msg = MessageFormat.format("Discovery failed setting version/uptime for Network System : {0}",
                         uri.toString());
                 throw (e);
             }
@@ -209,7 +210,7 @@ public class NetworkDiscoveryWorker {
                     // set detailed message
                     networkDev.setLastDiscoveryStatusMessage(msg);
                     dbClient.persistObject(networkDev);
-                    _log.info("Discovery took {}" , (System.currentTimeMillis() - start));
+                    _log.info("Discovery took {}", (System.currentTimeMillis() - start));
                 } catch (DatabaseException ex) {
                     _log.error("Error while persisting object to DB", ex);
                 }
@@ -217,15 +218,15 @@ public class NetworkDiscoveryWorker {
         }
     }
 
-
     /**
      * Reconciles the current set of a Device's endpoints with what is persisted.
      * Updates the database accordingly.
+     * 
      * @param dev
      * @param currentConnections
      * @throws IOException
      */
-    private void reconcileFCEndpoints(NetworkSystem dev, List<FCEndpoint> currentConnections) 
+    private void reconcileFCEndpoints(NetworkSystem dev, List<FCEndpoint> currentConnections)
             throws IOException {
         // First, read all the existing connections from the device, and put them into a map
         // keyed by remote wwpn.
@@ -261,7 +262,7 @@ public class NetworkDiscoveryWorker {
                     modified = true;
                     existing.setAwolCount(0);
                     existing.setAwolTime(null);
-                } 
+                }
                 if (modified) {
                     updated.add(existing);
                     conflictingEndpoints += removeConflictingEndpoints(key, current.getFabricWwn(), dev.getId());
@@ -283,7 +284,7 @@ public class NetworkDiscoveryWorker {
                 entry.setAwolTime(System.currentTimeMillis());
             }
             entry.setAwolCount(++count);
-            if (count >= _minAwolSamples 
+            if (count >= _minAwolSamples
                     && (System.currentTimeMillis() - entry.getAwolTime()) > _minAwolTime) {
                 removedCount++;
                 dbClient.removeObject(entry);
@@ -301,21 +302,28 @@ public class NetworkDiscoveryWorker {
         _log.info(MessageFormat.format("{0} conflicting connections (removed)", conflictingEndpoints));
     }
 
-
     /**
      * Check that a single pair of attributes changed.
+     * 
      * @param existing
      * @param current
      * @return true if changed
      */
     private boolean checkAttributeChanged(String existing, String current) {
-        if (existing == null && current == null) return false; // Both null, no change
-        if ((existing == null) ^ (current == null)) return true; // One null, a change
+        if (existing == null && current == null)
+         {
+            return false; // Both null, no change
+        }
+        if ((existing == null) ^ (current == null))
+         {
+            return true; // One null, a change
+        }
         return (!existing.equalsIgnoreCase(current));
     }
 
     /**
      * Returns true if any fields of significance has been modified.
+     * 
      * @param existing
      * @param current
      * @return false if no updates, true if updated
@@ -324,7 +332,7 @@ public class NetworkDiscoveryWorker {
         boolean updated = false;
         if (existing.getInactive() == true) {
             existing.setInactive(false);
-            updated = true; 
+            updated = true;
         }
         if (checkAttributeChanged(existing.getRemotePortName(), current.getRemotePortName())) {
             existing.setRemotePortName(current.getRemotePortName());
@@ -368,6 +376,7 @@ public class NetworkDiscoveryWorker {
     /**
      * Search all the remote FCEndpoints, remove those having the same RemotePortName
      * that are in a different fabric from a different device.
+     * 
      * @param remoteWwpn RemotePortName of new entry
      * @param fabricWwn FabricWwn of new entry
      * @param deviceId Device that found the updated connections
@@ -381,10 +390,18 @@ public class NetworkDiscoveryWorker {
                 getFCEndpointRemotePortNameConstraint(remoteWwpn), uriList);
         for (URI uri : uriList) {
             FCEndpoint ep = dbClient.queryObject(FCEndpoint.class, uri);
-            if (ep == null) continue;
-            if (ep.getNetworkDevice().equals(deviceId)) continue;
-            if (ep.getRemotePortName().equals(remoteWwpn) == false) continue;
-            if (ep.getFabricWwn().equals(fabricWwn)) continue;
+            if (ep == null) {
+                continue;
+            }
+            if (ep.getNetworkDevice().equals(deviceId)) {
+                continue;
+            }
+            if (ep.getRemotePortName().equals(remoteWwpn) == false) {
+                continue;
+            }
+            if (ep.getFabricWwn().equals(fabricWwn)) {
+                continue;
+            }
             dbClient.removeObject(ep);
             removedCount++;
         }
@@ -394,7 +411,7 @@ public class NetworkDiscoveryWorker {
     /**
      * Given the updated list of end points for one network system, this function will update
      * the transport zones.
-     * Require lock when reconciles vsan in fabrics that are linked through ISL.  Without locking, multiple VSANs
+     * Require lock when reconciles vsan in fabrics that are linked through ISL. Without locking, multiple VSANs
      * could have same native gui id within the same fabric.
      * 
      * @param networkSystem the network system
@@ -403,15 +420,14 @@ public class NetworkDiscoveryWorker {
      */
     private void reconcileTransportZones(NetworkSystem networkSystem, Map<String, Set<String>> routedEndpoints)
             throws ControllerException {
-        
+
         _log.info("reconcileTransportZones for networkSystem {}", networkSystem.getId());
-        ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.DISCOVERY_RECONCILE_TZ);        
+        ControllerServiceImpl.Lock lock = ControllerServiceImpl.Lock.getLock(ControllerServiceImpl.DISCOVERY_RECONCILE_TZ);
         try {
             _log.debug("Acquiring lock to reconcile transport zone for networkSystem {}", networkSystem.getId());
             lock.acquire();
             _log.info("Acquired lock to reconcile transport zone for networkSystem {}", networkSystem.getId());
-            
-            
+
             // get the network system's connections from the database
             Iterator<FCEndpoint> iNewEndPoints = getNetworkSystemEndPoints(networkSystem);
             // get all the transport zones we have in the DB
@@ -433,7 +449,8 @@ public class NetworkDiscoveryWorker {
             }
             for (Network tzone : results.getModified()) {
                 if (results.getRemovedEndPoints().get(tzone) != null) {
-                    NetworkAssociationHelper.handleEndpointsRemoved(tzone, results.getRemovedEndPoints().get(tzone), dbClient, _coordinator);
+                    NetworkAssociationHelper
+                            .handleEndpointsRemoved(tzone, results.getRemovedEndPoints().get(tzone), dbClient, _coordinator);
                 }
                 if (results.getAddedEndPoints().get(tzone) != null) {
                     handleEndpointsAdded(tzone, results.getAddedEndPoints().get(tzone));
@@ -451,29 +468,31 @@ public class NetworkDiscoveryWorker {
                 lock.release();
                 _log.info("Released reconcile transport zone lock for networkSystem {}", networkSystem.getId());
             } catch (Exception e) {
-                _log.error("Failed to release  Lock while reconcile transport zone for network {} -->{}", networkSystem.getId(), e.getMessage());
-            }        
+                _log.error("Failed to release  Lock while reconcile transport zone for network {} -->{}", networkSystem.getId(),
+                        e.getMessage());
+            }
         }
     }
 
     /**
      * Looks in the topology view for endpoints that accessible by routing
+     * 
      * @param networkSystem the network system being refreshed
      * @param updatedNetworks the networks that require updating
      * @param routedEndpoints the routed endpoints map of Fabric-WWN-to-endpoints-WWN
-     * @throws Exception 
+     * @throws Exception
      */
-    private void updateRoutedNetworks(NetworkSystem networkSystem, 
+    private void updateRoutedNetworks(NetworkSystem networkSystem,
             List<Network> updatedNetworks, Map<String, Set<String>> routedEndpoints) throws Exception {
-        //for each network, get the list of routed ports and locate them in other networks
+        // for each network, get the list of routed ports and locate them in other networks
         StringSet routedNetworks = null;
         Network routedNetwork = null;
-        
-        //get the current networks from the database
+
+        // get the current networks from the database
         Map<URI, Network> allNetworks = DataObjectUtils.toMap(getCurrentTransportZones());
         for (Network network : updatedNetworks) {
             // if this network has any routed endpoints
-            Set<String> netRoutedEndpoints =  routedEndpoints.get(NetworkUtil.getNetworkWwn(network));
+            Set<String> netRoutedEndpoints = routedEndpoints.get(NetworkUtil.getNetworkWwn(network));
             if (netRoutedEndpoints == null || netRoutedEndpoints.isEmpty()) {
                 _log.debug("No routed endpoint in network {}", network.getNativeGuid());
                 network.setRoutedNetworks(null);
@@ -483,20 +502,20 @@ public class NetworkDiscoveryWorker {
                 for (String endpoint : netRoutedEndpoints) {
                     // find the source network of the routed endpoint
                     routedNetwork = findNetworkForDiscoveredEndPoint(allNetworks.values(), endpoint, network);
-                    if ( routedNetwork != null ) { // it is possible we did not discover the source
+                    if (routedNetwork != null) { // it is possible we did not discover the source
                         routedNetworks.add(routedNetwork.getId().toString());
                     }
-                 }
-                 network.setRoutedNetworks(routedNetworks);
+                }
+                network.setRoutedNetworks(routedNetworks);
             }
-             dbClient.updateAndReindexObject(network);
-             _log.info("Updated routed networks for {} to {}", network.getNativeGuid(), routedNetworks);
+            dbClient.updateAndReindexObject(network);
+            _log.info("Updated routed networks for {} to {}", network.getNativeGuid(), routedNetworks);
         }
         // clean up transit networks from any one-way associations.
         // Transit networks will show any endpoints routed thru them
-        // which may cause one-way associations in the routedNetworks. 
-        // For example if network A has ep1 and B has ep2 and there is 
-        // a routed zone between A and B, the transit network C will 
+        // which may cause one-way associations in the routedNetworks.
+        // For example if network A has ep1 and B has ep2 and there is
+        // a routed zone between A and B, the transit network C will
         // reports ep1 and ep2 but there is not actual routing between
         // C and A or C and B, so we want to remove these associations.
         for (URI id : allNetworks.keySet()) {
@@ -510,7 +529,8 @@ public class NetworkDiscoveryWorker {
                     Network opNet = allNetworks.get(URI.create(strUri));
                     if (opNet != null // it is possible this network is getting removed - the next discovery cleans up
                             && opNet.getRoutedNetworks() != null // check for null in case the other network routed eps are not yet visible
-                            && !opNet.getRoutedNetworks().contains(net.getId().toString())) { // if the opposite network is not seeing this one
+                            && !opNet.getRoutedNetworks().contains(net.getId().toString())) { // if the opposite network is not seeing this
+                                                                                              // one
                         // remove this association because the opposite network is does not have the matching association
                         routedNetworks.remove(opNet.getId().toString());
                         updated = true;
@@ -523,13 +543,14 @@ public class NetworkDiscoveryWorker {
                 }
             }
         }
-        for (Network network: allNetworks.values()) {
+        for (Network network : allNetworks.values()) {
             NetworkAssociationHelper.setNetworkConnectedVirtualArrays(network, false, dbClient);
         }
     }
 
     /**
-     * Finds the network in the list that has this endpoint. 
+     * Finds the network in the list that has this endpoint.
+     * 
      * @param networks a list of networks
      * @param endpoint the endpoint
      * @parame excludeNetwork - exclude this network from result if provided
@@ -537,11 +558,12 @@ public class NetworkDiscoveryWorker {
      */
     private Network findNetworkForDiscoveredEndPoint(Collection<Network> networks, String endpoint, Network excludeNetwork) {
         for (Network network : networks) {
-            /* if excludeNetwork not provided, look for first one.
+            /*
+             * if excludeNetwork not provided, look for first one.
              * Otherwise, ignore the provided network
              */
-            if ( excludeNetwork == null || !network.getId().equals(excludeNetwork.getId()) ) {
-                if (network.endpointIsDiscovered(endpoint) ) {
+            if (excludeNetwork == null || !network.getId().equals(excludeNetwork.getId())) {
+                if (network.endpointIsDiscovered(endpoint)) {
                     return network;
                 }
             }
@@ -566,7 +588,7 @@ public class NetworkDiscoveryWorker {
         URIQueryResultList uriList = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getNetworkSystemFCPortConnectionConstraint(networkSystem.getId()), uriList);
-        List<URI> uris = new ArrayList<URI>(); 
+        List<URI> uris = new ArrayList<URI>();
         while (uriList.iterator().hasNext()) {
             uris.add(uriList.iterator().next());
         }
@@ -592,17 +614,19 @@ public class NetworkDiscoveryWorker {
     /**
      * Remove the transport zone for a given network system. This typically means
      * to dis-associated it unless this is the last network system associated with the
-     * transport zone. In this case, the transport zone will be deleted if:<ul>
+     * transport zone. In this case, the transport zone will be deleted if:
+     * <ul>
      * <li>It was discovered</li>
      * <li>It does not have any user-created ports</li>
      * <li>It does not have any registered ports</li>
      * </ul>
+     * 
      * @param tzone
      * @param uri
      * @throws IOException
      */
     public List<String> removeNetworkSystemTransportZone(Network tzone, String uri) throws IOException {
-        tzone.removeNetworkSystems(Collections.singletonList(uri)); //dis-associate
+        tzone.removeNetworkSystems(Collections.singletonList(uri)); // dis-associate
         // list of end points getting deleted
         ArrayList<String> toRemove = new ArrayList<String>();
         if (tzone.getNetworkSystems().isEmpty()) {  // if this is the last network system
@@ -632,7 +656,7 @@ public class NetworkDiscoveryWorker {
             }
         } else {
             _log.info("Removing network {} from network system {}",
-                    tzone.getLabel(), uri );
+                    tzone.getLabel(), uri);
             dbClient.persistObject(tzone);
             recordTransportZoneEvent(tzone, OperationTypeEnum.UPDATE_NETWORK.getEvType(true),
                     OperationTypeEnum.UPDATE_NETWORK.getDescription());
@@ -655,7 +679,8 @@ public class NetworkDiscoveryWorker {
     }
 
     /**
-     * Returns the NetworkDevice from the db 
+     * Returns the NetworkDevice from the db
+     * 
      * @param network device URI
      * @return NetworkDevice
      * @throws ControllerException
@@ -694,24 +719,24 @@ public class NetworkDiscoveryWorker {
 
     /**
      * Create a nice event based on the TransportZone
-     *
+     * 
      * @param tz Network for which the event is about
      * @param type Type of event such as updated, created, removed
      * @param description Description for the event if needed
      */
     private void recordTransportZoneEvent(Network tz, String type, String description) {
-        if(tz==null){
+        if (tz == null) {
             _log.error("Invalid Network event");
             return;
         }
         // TODO fix the bogus user ID once we have AuthZ working
-        RecordableBourneEvent event= ControllerUtils.convertToRecordableBourneEvent(tz, type, description,
-                null,dbClient,EVENT_SERVICE_TYPE,RecordType.Event.name(),EVENT_SERVICE_SOURCE);
+        RecordableBourneEvent event = ControllerUtils.convertToRecordableBourneEvent(tz, type, description,
+                null, dbClient, EVENT_SERVICE_TYPE, RecordType.Event.name(), EVENT_SERVICE_SOURCE);
 
         try {
             _evtMgr.recordEvents(event);
-        } catch(Exception ex ) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, ex);
+        } catch (Exception ex) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.", description, ex);
         }
     }
 

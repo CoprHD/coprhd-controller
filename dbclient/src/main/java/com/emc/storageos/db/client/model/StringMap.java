@@ -30,7 +30,7 @@ public class StringMap extends AbstractChangeTrackingMap<String> {
 
     /**
      * Constructs a map with the same mapping as source
-     *
+     * 
      * @param source
      */
     public StringMap(Map<String, String> source) {

@@ -8,10 +8,10 @@ import com.iwave.ext.linux.command.CommandConstants;
 import com.iwave.ext.linux.command.LinuxCommand;
 
 public class PowermtCommand extends LinuxCommand {
-	
-	public PowermtCommand() {
+
+    public PowermtCommand() {
         setCommand(CommandConstants.POWERMT);
         setRunAsRoot(true);
     }
-	
+
 }

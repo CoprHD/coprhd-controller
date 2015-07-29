@@ -40,7 +40,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 /*
  * Based on DataCollectionJobConsumer
  * Modified for standalone testing
- */        
+ */
 public class TestDataCollectionJobConsumer extends DataCollectionJobConsumer {
     private static final Logger _logger = LoggerFactory
             .getLogger(TestDataCollectionJobConsumer.class);
@@ -144,7 +144,7 @@ public class TestDataCollectionJobConsumer extends DataCollectionJobConsumer {
                     triggerDiscoveryNew(storageSystemsCache);
                 }
             } catch (Exception ex) {
-            	_logger.error(ex.getMessage(), ex);
+                _logger.error(ex.getMessage(), ex);
             }
         }
     }

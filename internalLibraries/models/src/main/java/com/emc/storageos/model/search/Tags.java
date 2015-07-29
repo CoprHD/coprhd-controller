@@ -16,17 +16,19 @@ import java.util.Set;
 public class Tags {
     private Set<String> tag;
 
-    public Tags() {}
-    
+    public Tags() {
+    }
+
     public Tags(Set<String> tag) {
         this.tag = tag;
     }
 
     /**
      * A set of tags
+     * 
      * @valid none
      */
-    @XmlElement(name="tag")
+    @XmlElement(name = "tag")
     public Set<String> getTag() {
         if (tag == null) {
             tag = new LinkedHashSet<String>();

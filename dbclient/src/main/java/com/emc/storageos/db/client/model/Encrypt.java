@@ -21,7 +21,7 @@ import java.lang.annotation.*;
  * Encrypted field marker
  */
 @Documented
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Encrypt {
 }

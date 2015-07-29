@@ -38,7 +38,7 @@ public class VNXFSSnapshotsProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("processing snapshot id response" + resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
@@ -49,14 +49,13 @@ public class VNXFSSnapshotsProcessor extends VNXFileProcessor {
                 status = responsePacket.getPacketFault();
                 processErrorStatus(status, keyMap);
             } else {
-                
 
                 List<Object> snapshotList = getQueryResponse(responsePacket);
                 List<Checkpoint> snapsList = new ArrayList<Checkpoint>();
-                
+
                 final String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
                 _logger.info("Looking for all snapshots of filesystem {}", fsId);
-                
+
                 Iterator<Object> snapshotItr = snapshotList.iterator();
                 if (snapshotItr.hasNext()) {
                     status = (Status) snapshotItr.next();
@@ -71,7 +70,7 @@ public class VNXFSSnapshotsProcessor extends VNXFileProcessor {
                                 snapsList.add(point);
                             }
                         }
-                        _logger.info("Number of Snapshots found for FS : {} are : {}", fsId, snapsList.size()) ;
+                        _logger.info("Number of Snapshots found for FS : {} are : {}", fsId, snapsList.size());
                         keyMap.put(VNXFileConstants.SNAPSHOTS_LIST, snapsList);
                         keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
                     } else {

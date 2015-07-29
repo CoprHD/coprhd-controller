@@ -52,8 +52,7 @@ public class ServiceError implements ServiceCoded {
     }
 
     /**
-     * This constructor should only be called from
-     * {@link ExceptionMessagesProxy}
+     * This constructor should only be called from {@link ExceptionMessagesProxy}
      * 
      * @param serviceCode
      * @param detailBase

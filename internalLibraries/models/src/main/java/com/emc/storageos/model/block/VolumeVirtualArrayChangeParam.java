@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
-
 /**
  * Specifies the parameters to change the virtual array
  * for one or more volumes.
@@ -35,18 +34,19 @@ public class VolumeVirtualArrayChangeParam {
     private List<URI> volumes;
     private URI virtualArray;
 
-    public VolumeVirtualArrayChangeParam() {}
-    
+    public VolumeVirtualArrayChangeParam() {
+    }
+
     public VolumeVirtualArrayChangeParam(List<URI> volumes, URI virtualArray) {
         this.volumes = volumes;
         this.virtualArray = virtualArray;
     }
-    
+
     @XmlElementWrapper(required = true, name = "volumes")
     /**
      * List of Volume IDs.
      * @valid example:  list of valid URIs
-     */ 
+     */
     @XmlElement(required = true, name = "volume")
     public List<URI> getVolumes() {
         if (volumes == null) {

@@ -34,13 +34,13 @@ public class RoleAssignmentUtils {
             roleAssignmentEntry.setGroup(name);
         }
         roleAssignmentEntry.getRoles().add(role);
-        
+
         return roleAssignmentEntry;
     }
 
     public static List<RoleAssignmentEntry> getVDCRoleAssignments() {
-    	List<RoleAssignmentEntry> allRollAssignments = Lists.newArrayList();
-    	if (Security.isSecurityAdminOrRestrictedSecurityAdmin()) {
+        List<RoleAssignmentEntry> allRollAssignments = Lists.newArrayList();
+        if (Security.isSecurityAdminOrRestrictedSecurityAdmin()) {
             for (RoleAssignmentEntry vdcRoleAssignment : getViprClient().vdc().getRoleAssignments()) {
                 boolean found = false;
                 for (RoleAssignmentEntry roleAssignment : allRollAssignments) {
@@ -55,24 +55,24 @@ public class RoleAssignmentUtils {
                 }
             }
         }
-    	addRootUserIfRequired(allRollAssignments);        
+        addRootUserIfRequired(allRollAssignments);
         return allRollAssignments;
     }
-    
+
     public static List<RoleAssignmentEntry> getTenantRoleAssignments(URI tenantId) {
-    	List<RoleAssignmentEntry> allRollAssignments = Lists.newArrayList();
+        List<RoleAssignmentEntry> allRollAssignments = Lists.newArrayList();
 
         if (Security.isTenantAdmin() || Security.isSecurityAdmin()) {
             List<RoleAssignmentEntry> tenantRoleAssignments = getViprClient().tenants().getRoleAssignments(tenantId);
             allRollAssignments.addAll(tenantRoleAssignments);
-        }        
+        }
         return allRollAssignments;
     }
-    
+
     public static List<RoleAssignmentEntry> getTenantRoleAssignments(String tenantId) {
         return getTenantRoleAssignments(uri(tenantId));
     }
-    
+
     private static void addRootUserIfRequired(List<RoleAssignmentEntry> roleAssignmentEntries) {
 
         RoleAssignmentEntry rootRoleAssignmentEntry = null;
@@ -94,7 +94,7 @@ public class RoleAssignmentUtils {
         rootRoleAssignmentEntry.getRoles().add(Security.SYSTEM_AUDITOR);
         rootRoleAssignmentEntry.getRoles().add(Security.SECURITY_ADMIN);
     }
-    
+
     private static boolean isSameRoleAssignmentEntry(RoleAssignmentEntry left, RoleAssignmentEntry right) {
         if (StringUtils.isNotBlank(left.getSubjectId()) && StringUtils.equals(left.getSubjectId(), right.getSubjectId())) {
             return true;
@@ -109,7 +109,7 @@ public class RoleAssignmentUtils {
         if (StringUtils.isBlank(name) || type == null) {
             return null;
         }
-        
+
         List<RoleAssignmentEntry> bourneRoleAssignments = getTenantRoleAssignments(tenantId);
         for (RoleAssignmentEntry bourneRoleAssignment : bourneRoleAssignments) {
             if (bourneRoleAssignment != null) {
@@ -120,15 +120,15 @@ public class RoleAssignmentUtils {
                     return bourneRoleAssignment;
                 }
             }
-        }        
+        }
         return null;
     }
-    
+
     public static RoleAssignmentEntry getVDCRoleAssignment(String name, RoleAssignmentType type) {
         if (StringUtils.isBlank(name) || type == null) {
             return null;
         }
-        
+
         List<RoleAssignmentEntry> bourneRoleAssignments = getVDCRoleAssignments();
         for (RoleAssignmentEntry bourneRoleAssignment : bourneRoleAssignments) {
             if (bourneRoleAssignment != null) {
@@ -139,16 +139,16 @@ public class RoleAssignmentUtils {
                     return bourneRoleAssignment;
                 }
             }
-        }        
+        }
         return null;
     }
-    
+
     public static void putTenantRoleAssignmentChanges(String tenantId, List<RoleAssignmentEntry> add, List<RoleAssignmentEntry> remove) {
         getViprClient().tenants().updateRoleAssignments(uri(tenantId), new RoleAssignmentChanges(add, remove));
     }
-    
+
     public static void putVdcRoleAssignmentChanges(List<RoleAssignmentEntry> add, List<RoleAssignmentEntry> remove) {
-        
+
         // disallow removing root vdc roles
         for (RoleAssignmentEntry removeRoleAssignmentEntry : Lists.newArrayList(remove)) {
             if (isRootUser(removeRoleAssignmentEntry)) {
@@ -158,9 +158,9 @@ public class RoleAssignmentUtils {
 
         getViprClient().vdc().updateRoleAssignments(new RoleAssignmentChanges(add, remove));
     }
-    
+
     public static void deleteTenantRoleAssignment(String tenantId, RoleAssignmentType type, String name) {
-        
+
         // disallow deleting root user
         if (isRootUser(type, name)) {
             return;
@@ -176,7 +176,7 @@ public class RoleAssignmentUtils {
     }
 
     public static void deleteVDCRoleAssignment(RoleAssignmentType type, String name) {
-        
+
         // disallow deleting root user
         if (isRootUser(type, name)) {
             return;
@@ -190,13 +190,13 @@ public class RoleAssignmentUtils {
             putVdcRoleAssignmentChanges(new ArrayList<RoleAssignmentEntry>(), vdcRoles);
         }
     }
-    
+
     public static boolean isRootUser(RoleAssignmentType type, String name) {
         return RoleAssignmentType.USER.equals(type) && StringUtils.equalsIgnoreCase(ROOT_USERNAME, name);
     }
-    
+
     public static boolean isRootUser(RoleAssignmentEntry roleAssignmentEntry) {
-       return roleAssignmentEntry != null && StringUtils.equalsIgnoreCase(ROOT_USERNAME, roleAssignmentEntry.getSubjectId()); 
+        return roleAssignmentEntry != null && StringUtils.equalsIgnoreCase(ROOT_USERNAME, roleAssignmentEntry.getSubjectId());
     }
 
     public static List<String> getTenantRoles() {

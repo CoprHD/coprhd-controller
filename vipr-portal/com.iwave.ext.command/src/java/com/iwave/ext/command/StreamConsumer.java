@@ -12,7 +12,6 @@ import java.io.UnsupportedEncodingException;
 
 import org.apache.log4j.Logger;
 
-
 /**
  * Consumes an InputStream, storing the results in a byte array.
  * 
@@ -20,7 +19,7 @@ import org.apache.log4j.Logger;
  */
 public class StreamConsumer {
     public static final String DEFAULT_CHARSET = "UTF-8";
-    
+
     private static Logger log = Logger.getLogger(StreamConsumer.class);
 
     /** The thread to run the consumer. */
@@ -71,16 +70,14 @@ public class StreamConsumer {
             current.interrupt();
             try {
                 current.join();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 // Ignore
             }
         }
 
         try {
             buffer.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // Ignore
         }
     }
@@ -105,9 +102,8 @@ public class StreamConsumer {
             // Flush and close the stream buffer
             buffer.flush();
             buffer.close();
-        }
-        catch (IOException e) {
-        	log.error(e.getMessage(), e);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
         }
     }
 
@@ -117,8 +113,7 @@ public class StreamConsumer {
     public String toString() {
         try {
             return new String(buffer.toByteArray(), charset);
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }

@@ -28,7 +28,7 @@ import controllers.deadbolt.Restrictions;
 
 /**
  * Approvals API
- *
+ * 
  * @author Chris Dail
  */
 @With(Common.class)
@@ -37,7 +37,7 @@ public class ApprovalsApi extends Controller {
     public static void pending() {
         List<Reference> approvals = Lists.newArrayList();
         List<ApprovalRestRep> pendingApprovals = getCatalogClient().approvals().search().byStatus(ApprovalRestRep.PENDING).run();
-        for (ApprovalRestRep request: pendingApprovals) {
+        for (ApprovalRestRep request : pendingApprovals) {
             approvals.add(newApprovalReference(request.getId().toString()));
         }
         renderApi(approvals);
@@ -46,7 +46,7 @@ public class ApprovalsApi extends Controller {
     public static void approvals() {
         List<Reference> approvals = Lists.newArrayList();
         List<NamedRelatedResourceRep> allApprovals = getCatalogClient().approvals().listByUserTenant();
-        for (NamedRelatedResourceRep element: allApprovals) {
+        for (NamedRelatedResourceRep element : allApprovals) {
             approvals.add(newApprovalReference(element.getId().toString()));
         }
         renderApi(approvals);

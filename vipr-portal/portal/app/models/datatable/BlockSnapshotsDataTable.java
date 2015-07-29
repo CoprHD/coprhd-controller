@@ -54,7 +54,7 @@ public class BlockSnapshotsDataTable extends DataTable {
         }
         return results;
     }
-    
+
     private static Map<URI, VolumeRestRep> getParentVolumes(List<BlockSnapshotRestRep> snapshots) {
         // Collect the volume IDs of each block snapshot to query in one shot
         Set<URI> volumeIds = Sets.newHashSet();

@@ -26,12 +26,12 @@ import java.util.List;
  */
 @XmlRootElement(name = "node_health")
 public class NodeHealth {
-    
+
     private String nodeId;
     private String ip;
     private String status;
     private List<ServiceHealth> serviceHealthList;
-    
+
     // Default constructor for JAXB
     public NodeHealth() {
         this.nodeId = HealthMonitorConstants.UNKNOWN;
@@ -44,7 +44,7 @@ public class NodeHealth {
     }
 
     public NodeHealth(String nodeId, String ip, String status,
-                      List<ServiceHealth> serviceHealthList) {
+            List<ServiceHealth> serviceHealthList) {
         this.nodeId = nodeId;
         this.ip = ip;
         this.status = status;

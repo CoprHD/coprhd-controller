@@ -30,24 +30,25 @@ import com.emc.storageos.db.client.model.DataObject;
  * This class an implementation of the QueryEngine interface which represents
  * the low level DB interfaces (here DbClient).
  * Joiner will invoke the database through this class.
+ * 
  * @author watson
- *
+ * 
  */
 class DbClientQueryEngine implements QueryEngine {
     private DbClient _dbClient;
-    
+
     DbClientQueryEngine(DbClient dbClient) {
         this._dbClient = dbClient;
     }
 
     @Override
     public <T extends DataObject> Set<URI> queryByType(Class<T> clazz) {
-       HashSet<URI> returnSet = new HashSet<URI>();
-       List<URI> uris = _dbClient.queryByType(clazz, true);
-       returnSet.addAll(uris);
-       return returnSet;
+        HashSet<URI> returnSet = new HashSet<URI>();
+        List<URI> uris = _dbClient.queryByType(clazz, true);
+        returnSet.addAll(uris);
+        return returnSet;
     }
-    
+
     @Override
     public <T extends DataObject> Iterator<T> queryIterObject(Class<T> clazz, Collection<URI> uris) {
         Iterator<T> iter = _dbClient.queryIterativeObjects(clazz, new ArrayList(uris));
@@ -58,9 +59,10 @@ class DbClientQueryEngine implements QueryEngine {
     public <T extends DataObject> T queryObject(Class<T> clazz, URI uri) {
         return _dbClient.queryObject(clazz, uri);
     }
-    
+
     /**
      * Return the URIs matching a Constraint.
+     * 
      * @param constraint
      * @return
      */

@@ -25,8 +25,9 @@ public class VirtualArrayConnectivityList {
 
     private List<VirtualArrayConnectivityRestRep> connections;
 
-    public VirtualArrayConnectivityList() {}
-    
+    public VirtualArrayConnectivityList() {
+    }
+
     public VirtualArrayConnectivityList(
             List<VirtualArrayConnectivityRestRep> connections) {
         this.connections = connections;

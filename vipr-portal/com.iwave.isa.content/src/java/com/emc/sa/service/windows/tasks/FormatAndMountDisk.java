@@ -17,18 +17,21 @@ public class FormatAndMountDisk extends DiskPartScript<Void> {
     private String mountpoint;
     private String partitionType;
 
-    public FormatAndMountDisk(DiskDrive disk, String fsType, String allocationUnitSize, String label, String mountpoint, String partitionType) {
+    public FormatAndMountDisk(DiskDrive disk, String fsType, String allocationUnitSize, String label, String mountpoint,
+            String partitionType) {
         this(disk.getNumber(), fsType, allocationUnitSize, label, mountpoint, partitionType);
     }
 
-    public FormatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint, String partitionType) {
+    public FormatAndMountDisk(int diskNumber, String fsType, String allocationUnitSize, String label, String mountpoint,
+            String partitionType) {
         this.diskNumber = diskNumber;
         this.fsType = fsType;
         this.label = label;
         this.allocationUnitSize = allocationUnitSize;
         this.mountpoint = mountpoint;
         this.partitionType = partitionType;
-        setDiskPartCommands(WindowsUtils.getFormatAndMountDiskCommands(diskNumber, fsType, allocationUnitSize, label, mountpoint, partitionType));
+        setDiskPartCommands(WindowsUtils.getFormatAndMountDiskCommands(diskNumber, fsType, allocationUnitSize, label, mountpoint,
+                partitionType));
     }
 
     @Override

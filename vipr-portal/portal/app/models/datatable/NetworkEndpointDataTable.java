@@ -53,7 +53,7 @@ public class NetworkEndpointDataTable extends DataTable {
         public String host;
         public boolean discovered;
         public String portGroup;
-        
+
         public EndpointInfo(StoragePortRestRep storagePort, CachedResources<StorageSystemRestRep> storageSystems) {
             this.id = stringId(storagePort);
             this.name = storagePort.getPortName();

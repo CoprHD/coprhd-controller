@@ -14,15 +14,14 @@
  */
 package com.emc.storageos.db.client.util;
 
-
 /**
- * Utility class to validate iSCSI port initiator port name formats. 
+ * Utility class to validate iSCSI port initiator port name formats.
  */
 public class iSCSIUtility {
-    
+
     // Regular Expression to match an iSCSI IQN port name.
     private static final String IQN_PATTERN = "(iqn|IQN)\\.[0-9]{4}-[0-9]{2}\\.[A-Za-z][A-Za-z0-9\\-]*[A-Za-z0-9](.*)?";
-    
+
     // Regular Expression to match an iSCSI EUI port name.
     private static final String EUI_PATTERN = "eui\\.[0-9A-Fa-f]{16}";
 

@@ -20,7 +20,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public abstract class CoordinatorException extends InternalException {
-	private static final long serialVersionUID = 467608245330028808L;
+    private static final long serialVersionUID = 467608245330028808L;
 
     public static FatalCoordinatorExceptions fatals = ExceptionMessagesProxy
             .create(FatalCoordinatorExceptions.class);
@@ -36,6 +36,6 @@ public abstract class CoordinatorException extends InternalException {
 
     protected CoordinatorException(final ServiceCode code, final Throwable cause,
             final String pattern, final Object[] parameters) {
-		super(code, cause, pattern, parameters);
-	}
+        super(code, cause, pattern, parameters);
+    }
 }

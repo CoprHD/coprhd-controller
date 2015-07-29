@@ -73,7 +73,7 @@ public class InputXMLGenerationClient {
                 if (null != operation) {
                     operationInputXMLString = generateXMLString(operation, attributeMap);
                 } else {
-                	log.error("No Operation found with the given model");
+                    log.error("No Operation found with the given model");
                     HDSException.exceptions
                             .unableToGenerateInputXmlDueToUnSupportedModelFound();
                 }
@@ -156,7 +156,7 @@ public class InputXMLGenerationClient {
                 .getXmlElementSequenceAttributeList());
         Iterator<String> sequenceItr = sequenceList.iterator();
         while (sequenceItr.hasNext()) {
-        	String elementName = sequenceItr.next().toString();
+            String elementName = sequenceItr.next().toString();
             if (elementAttributes.containsKey(elementName)) {
                 XmlElementSequenceAttribute sequenceAttrs = elementAttributes
                         .get(elementName);
@@ -180,21 +180,21 @@ public class InputXMLGenerationClient {
                                     Method method = cls.getDeclaredMethod(
                                             XMLConstants.METHOD_TO_INVOKE, noparams);
                                     Object output = method.invoke(object, null);
-                                    
+
                                     xmlNodeWithAttributes.append(XMLConstants.SPACE)
-                                    .append(output.toString())
-                                    .append(XMLConstants.GREATER_THAN_OP);
+                                            .append(output.toString())
+                                            .append(XMLConstants.GREATER_THAN_OP);
                                     log.debug("getChildExists: {}", sequenceAttrs.getChildExists());
                                     if (null != sequenceAttrs.getChildExists() && sequenceAttrs.getChildExists()) {
-	                                    String childNodeStr = processIfChildNodesExists(
-	                                            cls, object, noparams, elementName);
-	                                    if (null != childNodeStr && !childNodeStr.isEmpty()) {
-	                                        xmlNodeWithAttributes.append(childNodeStr);
-	                                    }
+                                        String childNodeStr = processIfChildNodesExists(
+                                                cls, object, noparams, elementName);
+                                        if (null != childNodeStr && !childNodeStr.isEmpty()) {
+                                            xmlNodeWithAttributes.append(childNodeStr);
+                                        }
                                     }
                                     xmlNodeWithAttributes.append(XMLConstants.XML_CLOSING_START_TAG)
-                                    .append(elementName).append(XMLConstants.GREATER_THAN_OP);
-                                    
+                                            .append(elementName).append(XMLConstants.GREATER_THAN_OP);
+
                                 }
                             }
                         } else {
@@ -275,26 +275,27 @@ public class InputXMLGenerationClient {
         }
         return xmlNodeWithAttributes.toString();
     }
-    
+
     /**
      * Process the child nodes if they are present in the object which is passed in.
+     * 
      * @param cls : class to invoke
      * @param object : object in which method exists.
      * @param noparams : method params.
      * @return
      */
-	private static String processIfChildNodesExists(Class cls, Object object,
-			Class[] noparams, String elementName) throws NoSuchMethodException,
-			IllegalAccessException, InvocationTargetException {
+    private static String processIfChildNodesExists(Class cls, Object object,
+            Class[] noparams, String elementName) throws NoSuchMethodException,
+            IllegalAccessException, InvocationTargetException {
         String childNodeOutput = null;
         Method method = cls.getDeclaredMethod(
                 XMLConstants.CHILD_NODE_METHOD, noparams);
         Object output = method.invoke(object, null);
         if (null != output && !output.toString().isEmpty()) {
             log.debug("Processing child nodes of node {}", elementName);
-            childNodeOutput = output.toString(); 
+            childNodeOutput = output.toString();
         }
-        
+
         return childNodeOutput;
     }
 

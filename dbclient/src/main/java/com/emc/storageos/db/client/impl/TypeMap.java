@@ -33,10 +33,10 @@ import com.emc.storageos.db.client.util.KeyspaceUtil;
  */
 public class TypeMap {
     private static ConcurrentMap<Class<? extends DataObject>, DataObjectType> _typeMap =
-        new ConcurrentHashMap<Class<? extends DataObject>, DataObjectType>();
+            new ConcurrentHashMap<Class<? extends DataObject>, DataObjectType>();
     private static ConcurrentHashMap<Class<? extends TimeSeries>, TimeSeriesType> _timeSeriesMap =
             new ConcurrentHashMap<Class<? extends TimeSeries>, TimeSeriesType>();
-    private  static ConcurrentHashMap<String, TimeSeriesType> _tsTypeMap = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, TimeSeriesType> _tsTypeMap = new ConcurrentHashMap<>();
     private static final SchemaRecordType _srType = new SchemaRecordType();
     private static final GlobalLockType _glType = new GlobalLockType();
     private static volatile EncryptionProvider _encryptionProvider;
@@ -59,7 +59,7 @@ public class TypeMap {
 
         /**
          * Overrie TTL configuration
-         *
+         * 
          * @param ttl
          */
         public void setTtl(int ttl) {
@@ -68,7 +68,7 @@ public class TypeMap {
 
         /**
          * TTL configuration
-         *
+         * 
          * @return
          */
         public Integer getTtl() {
@@ -86,7 +86,7 @@ public class TypeMap {
 
         /**
          * DataObject class
-         *
+         * 
          * @param clazz
          */
         public void setDoClass(Class<? extends DataObject> clazz) {
@@ -99,7 +99,7 @@ public class TypeMap {
 
         /**
          * Target data object field
-         *
+         * 
          * @param fieldName
          */
         public void setFieldName(String fieldName) {
@@ -112,7 +112,7 @@ public class TypeMap {
 
         /**
          * Override default TTL configuration
-         *
+         * 
          * @param ttl
          */
         public void setTtl(int ttl) {
@@ -121,7 +121,7 @@ public class TypeMap {
 
         /**
          * TTL configuration
-         *
+         * 
          * @return
          */
         public Integer getTtl() {
@@ -146,7 +146,6 @@ public class TypeMap {
         }
     }
 
-
     /**
      * User may optionally override default time series configuration (like TTL) by calling this method.
      * Note that configuration must be loaded before DbClient is used
@@ -160,10 +159,10 @@ public class TypeMap {
 
     /**
      * Set encryption provider for all local data object types
-     *
+     * 
      * @param encryptionProvider
      */
-    public static void setEncryptionProviders(EncryptionProvider encryptionProvider, 
+    public static void setEncryptionProviders(EncryptionProvider encryptionProvider,
             EncryptionProvider geoEncryptionProvider) {
         _encryptionProvider = encryptionProvider;
         _geoEncryptionProvider = geoEncryptionProvider;
@@ -172,48 +171,47 @@ public class TypeMap {
             setEncryptionProvider(it.next());
         }
     }
-    
+
     private static void setEncryptionProvider(DataObjectType doType) {
         if (KeyspaceUtil.isLocal(doType.getDataObjectClass())) {
             doType.setEncryptionProvider(_encryptionProvider);
         } else {
             doType.setEncryptionProvider(_geoEncryptionProvider);
-        }       
+        }
     }
 
     /**
      * Retrieve time series type
-     *
+     * 
      * @param clazz time series class
      * @param <T>
      * @return
      */
     @SuppressWarnings(value = "unchecked")
     public static <T extends TimeSeriesSerializer.DataPoint>
-        TimeSeriesType<T> getTimeSeriesType(Class<? extends TimeSeries> clazz) {
+            TimeSeriesType<T> getTimeSeriesType(Class<? extends TimeSeries> clazz) {
         TimeSeriesType<T> ttype = _timeSeriesMap.get(clazz);
         if (ttype != null) {
             return ttype;
         }
         ttype = new TimeSeriesType<T>(clazz);
         _timeSeriesMap.putIfAbsent(clazz, ttype);
-        _tsTypeMap.putIfAbsent(ttype.getCf().getName(),ttype);
+        _tsTypeMap.putIfAbsent(ttype.getCf().getName(), ttype);
         return _timeSeriesMap.get(clazz);
     }
 
     /**
      * Retrieve time series type
-     *
+     * 
      * @param cfName time series CF
      * @param <T>
      * @return
      */
     @SuppressWarnings(value = "unchecked")
     public static <T extends TimeSeriesSerializer.DataPoint>
-    TimeSeriesType<T> getTimeSeriesType(String cfName) {
+            TimeSeriesType<T> getTimeSeriesType(String cfName) {
         return _tsTypeMap.get(cfName);
     }
-
 
     /**
      * Retrieve data object type
@@ -221,15 +219,15 @@ public class TypeMap {
      * @param clazz data object class
      * @return
      */
-	public static DataObjectType getDoType(Class<? extends DataObject> clazz) {
+    public static DataObjectType getDoType(Class<? extends DataObject> clazz) {
         DataObjectType doType = _typeMap.get(clazz);
         if (doType != null) {
             return doType;
-        }        
+        }
         doType = new DataObjectType(clazz);
         setEncryptionProvider(doType);
         _typeMap.putIfAbsent(clazz, doType);
-        if (doType.getInstrumentedType()!=null) {
+        if (doType.getInstrumentedType() != null) {
             _typeMap.putIfAbsent(doType.getInstrumentedType(), doType);
         }
         return doType;

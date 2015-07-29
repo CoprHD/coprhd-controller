@@ -14,16 +14,13 @@
  */
 package com.emc.vipr.model.sys.logging;
 
-import java.util.Arrays;
-import java.util.List;
-
 /**
  * Enumeration defines the valid log level scopes.
  */
 public enum LogScopeEnum {
 
-    SCOPE_DEFAULT("0"), //root logger
-    SCOPE_DEPENDENCY("1"); //root logger and the logger of specified dependencies
+    SCOPE_DEFAULT("0"), // root logger
+    SCOPE_DEPENDENCY("1"); // root logger and the logger of specified dependencies
 
     private String value;
 
@@ -35,13 +32,12 @@ public enum LogScopeEnum {
         return this.value;
     }
 
-    public static String getName(String value){
-        for(LogScopeEnum e : LogScopeEnum.values()){
-            if (e.value.equals(value)){
+    public static String getName(String value) {
+        for (LogScopeEnum e : LogScopeEnum.values()) {
+            if (e.value.equals(value)) {
                 return e.name();
             }
         }
         return null;
     }
-} 
-
+}

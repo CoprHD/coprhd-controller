@@ -56,9 +56,9 @@ public abstract class WindowsService extends ViPRService {
         }
         windowsSystems = Lists.newArrayList();
         for (Host mhost : hosts) {
-        	if (mhost == null) {
-        	    ExecutionUtils.fail("failTask.WindowsService.hostNotFound", hostId, hostId);
-        	}
+            if (mhost == null) {
+                ExecutionUtils.fail("failTask.WindowsService.hostNotFound", hostId, hostId);
+            }
             windowsSystems.add(WindowsUtils.createWindowsSystem(mhost, cluster));
         }
     }

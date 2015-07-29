@@ -176,8 +176,8 @@ public class LocalReplicaObject {
 
     public boolean hasReplica() {
         if ((fullCopies != null && !fullCopies.isEmpty()) ||
-            (mirrors != null && !mirrors.isEmpty()) ||
-            (snapshots != null && !snapshots.isEmpty())) {
+                (mirrors != null && !mirrors.isEmpty()) ||
+                (snapshots != null && !snapshots.isEmpty())) {
             return true;
         }
 

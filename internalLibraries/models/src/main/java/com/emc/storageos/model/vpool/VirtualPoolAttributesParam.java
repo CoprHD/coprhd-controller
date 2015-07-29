@@ -39,8 +39,9 @@ public class VirtualPoolAttributesParam {
     private String autoTieringPolicyName;
     private String driveType;
     private Boolean multiVolumeConsistency;
-    
-    public VirtualPoolAttributesParam() {}
+
+    public VirtualPoolAttributesParam() {
+    }
 
     @XmlElementWrapper(name = "protocols")
     /**
@@ -78,7 +79,7 @@ public class VirtualPoolAttributesParam {
     public void setMaxPaths(Integer maxPaths) {
         this.maxPaths = maxPaths;
     }
-    
+
     /**
      * The mininm number of paths to a given storage system for export.
      * 
@@ -88,7 +89,7 @@ public class VirtualPoolAttributesParam {
     public Integer getMinPaths() {
         return minPaths;
     }
-    
+
     public void setMinPaths(Integer minPaths) {
         this.minPaths = minPaths;
     }
@@ -188,13 +189,13 @@ public class VirtualPoolAttributesParam {
 
     /**
      * The system type for the virtual pool.
-     *
+     * 
      * @valid NONE
      * @valid vnxblock (Block)
-     * @valid vmax     (Block)
-     * @valid vnxfile  (File)
-     * @valid isilon   (File)
-     * @valid netapp   (File)
+     * @valid vmax (Block)
+     * @valid vnxfile (File)
+     * @valid isilon (File)
+     * @valid netapp (File)
      */
     @XmlElement(name = "system_type")
     public String getSystemType() {
@@ -233,7 +234,7 @@ public class VirtualPoolAttributesParam {
      * @valid RAID5
      * @valid RAID6
      * @valid RAID10
-     */ 
+     */
     @XmlElement(name = "raid_level")
     public Set<String> getRaidLevels() {
         if (raidLevels == null) {
@@ -254,7 +255,7 @@ public class VirtualPoolAttributesParam {
      * 
      * @valid none
      */
-    @XmlElement(name="auto_tiering_policy_name")
+    @XmlElement(name = "auto_tiering_policy_name")
     public String getAutoTieringPolicyName() {
         return autoTieringPolicyName;
     }
@@ -271,9 +272,9 @@ public class VirtualPoolAttributesParam {
      * @valid SSD = Solid State Drive
      * @valid FC = Fibre Channel
      * @valid SAS = Serial Attached SCSI
-     * @valid SATA = Serial Advanced Technology Attachment 
+     * @valid SATA = Serial Advanced Technology Attachment
      */
-    @XmlElement(name="drive_type")
+    @XmlElement(name = "drive_type")
     public String getDriveType() {
         return driveType;
     }
@@ -298,5 +299,5 @@ public class VirtualPoolAttributesParam {
     public void setMultiVolumeConsistency(Boolean multiVolumeConsistency) {
         this.multiVolumeConsistency = multiVolumeConsistency;
     }
-    
+
 }

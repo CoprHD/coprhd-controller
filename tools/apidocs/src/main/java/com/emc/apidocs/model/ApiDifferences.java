@@ -12,13 +12,13 @@ public class ApiDifferences {
     public List<ApiServiceChanges> modifiedServices;
 
     public Change getChange(String serviceName) {
-        for (ApiService apiService : newServices)  {
+        for (ApiService apiService : newServices) {
             if (apiService.javaClassName.equals(serviceName)) {
                 return Change.NEW;
             }
         }
 
-        for (ApiService apiService : removedServices)  {
+        for (ApiService apiService : removedServices) {
             if (apiService.javaClassName.equals(serviceName)) {
                 return Change.REMOVED;
             }
@@ -31,7 +31,7 @@ public class ApiDifferences {
         Change serviceChange = getChange(serviceName);
 
         if (serviceChange == Change.NOT_CHANGED) {
-            for (ApiServiceChanges serviceChanges : modifiedServices)  {
+            for (ApiServiceChanges serviceChanges : modifiedServices) {
                 if (serviceChanges.service.javaClassName.equals(serviceName)) {
 
                     for (ApiMethod newMethod : serviceChanges.newMethods) {

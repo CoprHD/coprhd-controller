@@ -25,14 +25,15 @@ public class VirtualPoolAvailableAttributesResourceRep {
 
     private String name;
     private Set<String> attributeValues;
-    
-    public VirtualPoolAvailableAttributesResourceRep() {}
-    
+
+    public VirtualPoolAvailableAttributesResourceRep() {
+    }
+
     public VirtualPoolAvailableAttributesResourceRep(String name, Set<String> attributeValues) {
         this.name = name;
         this.attributeValues = attributeValues;
     }
-    
+
     /**
      * The attribute name.
      * 
@@ -49,7 +50,7 @@ public class VirtualPoolAvailableAttributesResourceRep {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     @XmlElementWrapper(name = "values")
     /**
      * The possible values for the attribute.

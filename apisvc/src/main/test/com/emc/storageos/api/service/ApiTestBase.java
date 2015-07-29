@@ -54,7 +54,6 @@ import java.util.*;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.Is.is;
 
-
 /**
  * 
  * Base class for jersey client type tests which includes all the necessary
@@ -74,13 +73,13 @@ public class ApiTestBase {
 
     protected static final String SYSADMIN = "root";
     protected static final String SYSADMIN_PASS_WORD = "ChangeMe";
-    
+
     protected static final String SYSMONITOR = "sysmonitor";
     protected static final String SYSMONITOR_PASS_WORD = "ChangeMe1!";
-    
+
     protected static final String SVCUSER = "svcuser";
     protected static final String SVCUSER_PASS_WORD = "ChangeMe1!";
-    
+
     protected static final String PROXY_USER = "proxyuser";
     protected static final String PROXY_USER_PWD = "ChangeMe1!";
 
@@ -95,7 +94,6 @@ public class ApiTestBase {
     protected static final String ZONEADMINS_GROUP = "ZoneAdmins@sanity.local";
     protected static final String TENANT_ADMINS_GROUP = "RootTenantAdmins@sanity.local";
 
-
     // Subtenant1 configuration
     protected static final String SUBTENANT1_ATTR = "SUBTENANT1";
 
@@ -105,22 +103,22 @@ public class ApiTestBase {
     protected static final String SUBTENANT1_USER = "st1user@sanity.local";
     protected static final String SUBTENANT1_READER = "st1reader@sanity.local";
 
-    // use funky case for these groups to test that role assignments are case-insensitive 
+    // use funky case for these groups to test that role assignments are case-insensitive
     protected static final String SUBTENANT1_ADMINS_GROUP = "sUbTeNaNt1aDmInS@sanity.local";
     protected static final String SUBTENANT1_USERS_GROUP = "subtenant1USERS@sanity.local";
 
-    //Subtenant2 configuration
+    // Subtenant2 configuration
     protected static final String SUBTENANT2_ATTR = "subtenant2";
 
     protected static final String SUBTENANT2_ADMIN = "stadmin2@sanity.local";
-    protected static final String SUBTENANT2_ADMIN2 = "st2admin2@sanity.local"; 
+    protected static final String SUBTENANT2_ADMIN2 = "st2admin2@sanity.local";
     protected static final String SUBTENANT2_ADMINS_GROUP = "Subtenant2Admins@sanity.local";
 
     protected static final String SUBTENANT2_USER = "st2user@sanity.local";
 
     protected static final String SUBTENANT13_USER = "st12user@sanity.local";
 
-    //Subtenant3 Configuration
+    // Subtenant3 Configuration
     protected static final String SUBTENANT3_ATTR = "Test Group";
 
     protected static final String SUBTENANT3_ADMIN = "testuser@sanity.local";
@@ -138,7 +136,7 @@ public class ApiTestBase {
 
     protected static final String AD_PASS_WORD = EnvConfig.get("sanity", "ad.manager.password");
 
-    protected static final String LICENSE_FILE="INCREMENT ViPR_Controller EMCLM 2.0 permanent uncounted " +
+    protected static final String LICENSE_FILE = "INCREMENT ViPR_Controller EMCLM 2.0 permanent uncounted " +
             "VENDOR_STRING=CAPACITY=1024;CAPACITY_UNIT=TB;SWID=PXTYD1DZK59Y4C;PLC=VIPR; " +
             "HOSTID=ANY dist_info=\"ACTIVATED TO 49ers Inn\" ISSUER=EMC " +
             "ISSUED=10-Jan-2014 NOTICE=\"ACTIVATED TO License Site Number: " +
@@ -147,7 +145,7 @@ public class ApiTestBase {
             "VENDOR_STRING=SWID=PXTYD1DZK59Y4C;PLC=VIPR; HOSTID=ANY " +
             "dist_info=\"ACTIVATED TO 49ers Inn\" ISSUER=EMC " +
             "ISSUED=10-Jan-2014 NOTICE=\"ACTIVATED TO License Site Number: " +
-            "PTA06JUN20131086059\" SN=2162734 SIGN=\"0073 059F D54D 7CC9 4ADA 0B13 6160 9100 688E 8167 37DA E911 28F2 CC96 798A\"" + 
+            "PTA06JUN20131086059\" SN=2162734 SIGN=\"0073 059F D54D 7CC9 4ADA 0B13 6160 9100 688E 8167 37DA E911 28F2 CC96 798A\"" +
             "\nINCREMENT ViPR_Object EMCLM 2.0 permanent uncounted " +
             "VENDOR_STRING=SWID=PXTYD1DZK59Y4C;PLC=VIPR; HOSTID=ANY " +
             "dist_info=\"ACTIVATED TO 49ers Inn\" ISSUER=EMC " +
@@ -158,25 +156,25 @@ public class ApiTestBase {
             "HOSTID=ANY dist_info=\"ACTIVATED TO 49ers Inn\" ISSUER=EMC " +
             "ISSUED=10-Jan-2014 NOTICE=\"ACTIVATED TO License Site Number: " +
             "PTA06JUN20131086059\" SN=2162734 SIGN=\"00CF 2080 FDCA D7E1 CA22 5DE7 DA9A 0000 1938 D26C 4AB5 76CB AA43 2662 0FCD\"" +
-            "\nINCREMENT ViPR_CAS EMCLM 2.0 permanent uncounted " + 
+            "\nINCREMENT ViPR_CAS EMCLM 2.0 permanent uncounted " +
             "VENDOR_STRING=SWID=PXTYD1DZK59Y4C;PLC=VIPR; HOSTID=ANY " +
             "dist_info=\"ACTIVATED TO 49ers Inn\" ISSUER=EMC " +
             "ISSUED=10-Jan-2014 NOTICE=\"ACTIVATED TO License Site Number: " +
             "PTA06JUN20131086059\" SN=2162734 SIGN=\"009E 6082 66B8 3D16 69AC 9C84 8FDD DB00 C762 3EBB 52FC 04C8 72A2 A5A9 4CC8\"";
 
     protected BalancedWebResource rSys, rMon, rZAdmin, rZAdminGr, rTAdmin, rTAdminGr,
-    rSTAdmin1, rSTAdminGr1, rSTAdmin2, rSTAdminGr2,
-    rProjRead, rProjUserGr, rUnAuth, rRootUser2, rSTAdmin3, rProxyUser, rLdaps,
-    rST13User, rSTCross, rST2User;
+            rSTAdmin1, rSTAdminGr1, rSTAdmin2, rSTAdminGr2,
+            rProjRead, rProjUserGr, rUnAuth, rRootUser2, rSTAdmin3, rProxyUser, rLdaps,
+            rST13User, rSTCross, rST2User;
 
     protected Map<String, List<ProjectEntry>> expectedProjListResults = new HashMap<String, List<ProjectEntry>>();
-    protected URI rootTenantId, subtenant1Id, subtenant2Id,subtenant3Id;
+    protected URI rootTenantId, subtenant1Id, subtenant2Id, subtenant3Id;
     protected URI _nh, _testProject, _fs, _volume, _group;
-    protected FileVirtualPoolRestRep  _cosFile;
+    protected FileVirtualPoolRestRep _cosFile;
     protected BlockVirtualPoolRestRep _cosBlock;
     protected NetworkRestRep _iptzone;
     protected NetworkRestRep _fctzone;
-    protected String _projectsUrlFormat =  "/tenants/%s/projects";
+    protected String _projectsUrlFormat = "/tenants/%s/projects";
     protected String _projectUrl = "/projects/%s";
     protected String _projectUrlDelete = "/projects/%s/deactivate";
     protected String _projectAclUrl = _projectUrl + "/acl";
@@ -186,7 +184,7 @@ public class ApiTestBase {
     protected static volatile List<String> baseUrls;
 
     /**
-     *  Class to encapsulate a list of WebResources
+     * Class to encapsulate a list of WebResources
      */
     public class BalancedWebResource {
         private int index = 0;
@@ -203,9 +201,9 @@ public class ApiTestBase {
         }
 
         public WebResource getNextHost() {
-            if( index == _hosts.size() -1) { 
+            if (index == _hosts.size() - 1) {
                 index = 0;
-                return _hosts.get(_hosts.size() -1);
+                return _hosts.get(_hosts.size() - 1);
             } else {
                 return _hosts.get(index++);
             }
@@ -218,34 +216,34 @@ public class ApiTestBase {
     }
 
     /**
-     *  initialize the list of hosts based on the APP_HOST_NAMES env. variable
-     *
+     * initialize the list of hosts based on the APP_HOST_NAMES env. variable
+     * 
      * @param isHttps: true for https urls, false otherwise
      */
     protected void initLoadBalancer(boolean isHttps) {
         String baseServiceURLTemplate = new String();
-        if(isHttps) {
+        if (isHttps) {
             baseServiceURLTemplate = "https://%1$s:4443";
         } else {
             baseServiceURLTemplate = "http://%1$s:8080";
         }
         String hostName = System.getenv("APP_HOST_NAMES");
-        String hostNames [] = hostName.split(",");
+        String hostNames[] = hostName.split(",");
         baseUrls = new LinkedList<String>();
-        for(String h : hostNames) {
+        for (String h : hostNames) {
             String disp = String.format(baseServiceURLTemplate, h);
             baseUrls.add(disp);
         }
     }
 
     /**
-     *  Update tenant attributes for the root tenant
+     * Update tenant attributes for the root tenant
      */
     protected void updateRootTenantAttrs() {
         TenantResponse tenantResp = rSys.path("/tenant").get(TenantResponse.class);
         rootTenantId = tenantResp.getTenant();
         /*
-         * PUT the ou=sanity attribute mapping into the root tenant attributes 
+         * PUT the ou=sanity attribute mapping into the root tenant attributes
          */
         TenantUpdateParam tenantUpdate = new TenantUpdateParam();
         tenantUpdate.setUserMappingChanges(new UserMappingChanges());
@@ -258,19 +256,20 @@ public class ApiTestBase {
         rootMapping.setAttributes(Collections.singletonList(rootAttr));
         tenantUpdate.getUserMappingChanges().getAdd().add(rootMapping);
         tenantUpdate.setLabel(ROOTTENANT_NAME); // TODO: FIX: not sure why name is required for update
-        ClientResponse resp = rSys.path("/tenants/"+rootTenantId.toString()).put(ClientResponse.class, tenantUpdate);
+        ClientResponse resp = rSys.path("/tenants/" + rootTenantId.toString()).put(ClientResponse.class, tenantUpdate);
         Assert.assertEquals(200, resp.getStatus());
     }
 
     /**
-     *  Add in the main AD configuration that will be used for the entire test suite
+     * Add in the main AD configuration that will be used for the entire test suite
      */
-    protected URI _goodADConfig = null; 
+    protected URI _goodADConfig = null;
+
     protected void updateADConfig() {
-        if (rSys == null) {  // rSys may get nulled out between 
+        if (rSys == null) {  // rSys may get nulled out between
             // Tests depending on what Junit feels like doing that day
             try {
-                rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);     
+                rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
                 rSys.path("/tenant").get(String.class);
             } catch (Exception e) {
                 Assert.fail();
@@ -291,7 +290,7 @@ public class ApiTestBase {
         param.setManagerPassword("P@ssw0rd");
         param.setSearchBase("DC=sanity,DC=local");
         param.setSearchFilter("userPrincipalName=%u");
-        param.getServerUrls().add("ldap://"+AD_SERVER1_IP);
+        param.getServerUrls().add("ldap://" + AD_SERVER1_IP);
         param.setMode("ad");
         param.setSearchScope("SUBTREE");
         try {
@@ -329,63 +328,63 @@ public class ApiTestBase {
         Assert.assertEquals(200, resp.getStatus());
         Assert.assertTrue(isControllerLicensed());
     }
-    
-    BalancedWebResource getHttpsClient(String userName, String password) throws NoSuchAlgorithmException{
-    	return createHttpsClient(userName, password, baseUrls);
+
+    BalancedWebResource getHttpsClient(String userName, String password) throws NoSuchAlgorithmException {
+        return createHttpsClient(userName, password, baseUrls);
     }
 
     /**
-     *  initialize http resources
+     * initialize http resources
      */
     protected void setupHttpResources() {
         initLoadBalancer(false);
         rSys = createHttpClient(SYSADMIN, "LOCAL_STORAGEOS_USER=true", "", baseUrls);
         rProxyUser = createHttpClient(PROXY_USER, "LOCAL_STORAGEOS_USER=true", "", baseUrls);
         rMon = createHttpClient(SYSMONITOR, "LOCAL_STORAGEOS_USER=true", "", baseUrls);
-        updateADConfig();   
+        updateADConfig();
         updateRootTenantAttrs();
 
-        rZAdmin = createHttpClient(ZONEADMIN,"ou="+ROOTTENANT_ATTR, "", baseUrls);
-        rZAdminGr = createHttpClient(SUPERUSER, "ou="+ROOTTENANT_ATTR, ZONEADMINS_GROUP, baseUrls);
+        rZAdmin = createHttpClient(ZONEADMIN, "ou=" + ROOTTENANT_ATTR, "", baseUrls);
+        rZAdminGr = createHttpClient(SUPERUSER, "ou=" + ROOTTENANT_ATTR, ZONEADMINS_GROUP, baseUrls);
 
-        rTAdmin = createHttpClient(ROOTTENANTADMIN,"ou="+ROOTTENANT_ATTR, "", baseUrls);
-        rTAdminGr = createHttpClient(TENANTADMIN, "ou="+ROOTTENANT_ATTR, TENANT_ADMINS_GROUP, baseUrls);
+        rTAdmin = createHttpClient(ROOTTENANTADMIN, "ou=" + ROOTTENANT_ATTR, "", baseUrls);
+        rTAdminGr = createHttpClient(TENANTADMIN, "ou=" + ROOTTENANT_ATTR, TENANT_ADMINS_GROUP, baseUrls);
 
-        rSTAdmin1 = createHttpClient(SUBTENANT1_ADMIN, "department="+SUBTENANT1_ATTR, "", baseUrls);
-        rSTAdminGr1 = createHttpClient(SUBTENANT1_ADMIN2, "department="+SUBTENANT1_ATTR, SUBTENANT1_ADMINS_GROUP, baseUrls);
+        rSTAdmin1 = createHttpClient(SUBTENANT1_ADMIN, "department=" + SUBTENANT1_ATTR, "", baseUrls);
+        rSTAdminGr1 = createHttpClient(SUBTENANT1_ADMIN2, "department=" + SUBTENANT1_ATTR, SUBTENANT1_ADMINS_GROUP, baseUrls);
 
-        rSTAdmin2 = createHttpClient(SUBTENANT2_ADMIN, "company="+SUBTENANT2_ATTR, "", baseUrls);
-        rSTAdminGr2 = createHttpClient(SUBTENANT2_ADMIN2, "company="+SUBTENANT2_ATTR, SUBTENANT2_ADMINS_GROUP, baseUrls);
+        rSTAdmin2 = createHttpClient(SUBTENANT2_ADMIN, "company=" + SUBTENANT2_ATTR, "", baseUrls);
+        rSTAdminGr2 = createHttpClient(SUBTENANT2_ADMIN2, "company=" + SUBTENANT2_ATTR, SUBTENANT2_ADMINS_GROUP, baseUrls);
 
-        rProjRead = createHttpClient(SUBTENANT1_READER, "company="+SUBTENANT1_ATTR, "", baseUrls);
-        rProjUserGr = createHttpClient(SUBTENANT1_USER, "company="+SUBTENANT1_ATTR, SUBTENANT1_USERS_GROUP + ",Dummy", baseUrls);
+        rProjRead = createHttpClient(SUBTENANT1_READER, "company=" + SUBTENANT1_ATTR, "", baseUrls);
+        rProjUserGr = createHttpClient(SUBTENANT1_USER, "company=" + SUBTENANT1_ATTR, SUBTENANT1_USERS_GROUP + ",Dummy", baseUrls);
 
-        rUnAuth = createHttpClient(ROOTUSER, "ou="+ROOTTENANT_ATTR,"", baseUrls);
-        rRootUser2 = createHttpClient(ROOTUSER2, "ou="+ROOTTENANT_ATTR,"", baseUrls);
+        rUnAuth = createHttpClient(ROOTUSER, "ou=" + ROOTTENANT_ATTR, "", baseUrls);
+        rRootUser2 = createHttpClient(ROOTUSER2, "ou=" + ROOTTENANT_ATTR, "", baseUrls);
 
-        rSTAdmin3 = createHttpClient(SUBTENANT3_ADMIN, "group="+SUBTENANT3_ATTR,"", baseUrls);
+        rSTAdmin3 = createHttpClient(SUBTENANT3_ADMIN, "group=" + SUBTENANT3_ATTR, "", baseUrls);
 
-        rLdaps    = createHttpClient(LDAPS_USER, "postalCode=01748", "", baseUrls);
-        rST13User = createHttpClient(SUBTENANT13_USER, "company="+SUBTENANT1_ATTR, "group="+SUBTENANT3_ATTR, baseUrls);
+        rLdaps = createHttpClient(LDAPS_USER, "postalCode=01748", "", baseUrls);
+        rST13User = createHttpClient(SUBTENANT13_USER, "company=" + SUBTENANT1_ATTR, "group=" + SUBTENANT3_ATTR, baseUrls);
 
         rSTCross = createHttpClient(CROSS_TENANT_USER, "company=crosstenant", "", baseUrls);
 
     }
 
     /*
-     *  initialize https resources
+     * initialize https resources
      */
     @SuppressWarnings("unchecked")
     protected void setupHttpsResources() throws NoSuchAlgorithmException {
         initLoadBalancer(true);
 
         setupLicenseAndInitialPasswords();
-        
+
         rProxyUser = createHttpsClient(PROXY_USER, PROXY_USER_PWD, baseUrls);
         rProxyUser.path("/tenant").get(String.class);
 
         rMon = createHttpsClient(SYSMONITOR, SYSMONITOR_PASS_WORD, baseUrls);
-        
+
         updateADConfig();
         updateRootTenantAttrs();
 
@@ -416,14 +415,14 @@ public class ApiTestBase {
 
         rSTAdmin3 = createHttpsClient(SUBTENANT3_ADMIN, AD_PASS_WORD, baseUrls);
 
-        rLdaps =  createHttpsClient(LDAPS_USER, LDAPS_PASS_WORD, baseUrls);
+        rLdaps = createHttpsClient(LDAPS_USER, LDAPS_PASS_WORD, baseUrls);
 
         rST13User = createHttpsClient(SUBTENANT13_USER, AD_PASS_WORD, baseUrls);
 
         rSTCross = createHttpsClient(CROSS_TENANT_USER, AD_PASS_WORD, baseUrls);
     }
 
-    public void logoutUser (BalancedWebResource resource) {
+    public void logoutUser(BalancedWebResource resource) {
         resource.path("/logout")
                 .queryParam("force", "true")
                 .queryParam("proxytokens", "true")
@@ -454,11 +453,11 @@ public class ApiTestBase {
     }
 
     protected void setupLicenseAndInitialPasswords() throws NoSuchAlgorithmException {
-        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);     
+        rSys = createHttpsClient(SYSADMIN, SYSADMIN_PASS_WORD, baseUrls);
         rSys.path("/tenant").get(String.class);
 
-        //Initialize proxyuser password to ChangeMe
-        String usernames[] = {"sysmonitor", "proxyuser"};
+        // Initialize proxyuser password to ChangeMe
+        String usernames[] = { "sysmonitor", "proxyuser" };
         String pass_word = "ChangeMe1!";
         ClientResponse resp = null;
 
@@ -468,7 +467,7 @@ public class ApiTestBase {
             params.setPassword(pass_word);
             resp = rSys.path("/password/reset").
                     put(ClientResponse.class, params);
-            Assert.assertThat( resp.getStatus(), anyOf(is(200), is(400)));        
+            Assert.assertThat(resp.getStatus(), anyOf(is(200), is(400)));
 
             waitForClusterToBeStable();
         }
@@ -486,12 +485,12 @@ public class ApiTestBase {
         String info = "";
         Boolean notStable = true;
 
-        while(notStable) {
+        while (notStable) {
             try {
                 Thread.sleep(2000);
                 System.out.println("Waiting for stable cluster state.");
             } catch (InterruptedException e) {
-            	_log.error(e.getMessage(),e);
+                _log.error(e.getMessage(), e);
             }
 
             try {
@@ -519,18 +518,20 @@ public class ApiTestBase {
                     Thread.sleep(2000);
                     System.out.println("Waiting apisvc to be up");
                 } catch (InterruptedException e) {
-                	_log.error(e.getMessage(),e);
+                    _log.error(e.getMessage(), e);
                 }
             }
         }
     }
 
     /**
-     *  create the httpclient, returns a BalancedWebResource that can be used the same
-     *  way a WebResource is. */
-    protected BalancedWebResource createHttpClient(final String username, final String attribute, final String groups, List<String> hostNames) {
+     * create the httpclient, returns a BalancedWebResource that can be used the same
+     * way a WebResource is.
+     */
+    protected BalancedWebResource createHttpClient(final String username, final String attribute, final String groups,
+            List<String> hostNames) {
         BalancedWebResource lbw = new BalancedWebResource();
-        for(String h : hostNames) {
+        for (String h : hostNames) {
             final ClientConfig config = new DefaultClientConfig();
             final Client c = Client.create(config);
             c.addFilter(new ClientFilter() {
@@ -538,8 +539,8 @@ public class ApiTestBase {
                 public ClientResponse handle(ClientRequest request) throws ClientHandlerException {
                     ArrayList<Object> headerValue = new ArrayList<Object>();
                     String userAndAttribute = username;
-                    if( !attribute.isEmpty()) {
-                        userAndAttribute+=","+attribute;
+                    if (!attribute.isEmpty()) {
+                        userAndAttribute += "," + attribute;
                     }
                     headerValue.add(userAndAttribute + ";" + groups);
                     request.getHeaders().put(NoAuthHeaderUserFilter.USER_INFO_HEADER_TAG, headerValue);
@@ -557,15 +558,17 @@ public class ApiTestBase {
     protected Map<String, Object> _savedProxyTokens = new HashMap<String, Object>();
 
     /**
-     *  create the httpsclient, returns a BalancedWebResource that can be used the same
-     *  way a WebResource is. */
-    protected BalancedWebResource createHttpsClient(final String username, final String password, List<String> hosts) throws NoSuchAlgorithmException {
+     * create the httpsclient, returns a BalancedWebResource that can be used the same
+     * way a WebResource is.
+     */
+    protected BalancedWebResource createHttpsClient(final String username, final String password, List<String> hosts)
+            throws NoSuchAlgorithmException {
         return createHttpsClient(username, password, hosts, true);
     }
 
     /**
-     *  Use this when you need to toggle authfilters on and off, to test more specific behavior with tokens and
-     *  no credentials
+     * Use this when you need to toggle authfilters on and off, to test more specific behavior with tokens and
+     * no credentials
      */
 
     protected String _lastUsedAuthTokenCookie = null;
@@ -574,7 +577,7 @@ public class ApiTestBase {
             boolean addAuthFilters) throws NoSuchAlgorithmException {
         String verb = System.getenv("API_TEST_VERBOSE");
         boolean verbose = false;
-        if(verb!=null && verb.equalsIgnoreCase("true")) {
+        if (verb != null && verb.equalsIgnoreCase("true")) {
             verbose = true;
         }
 
@@ -583,18 +586,18 @@ public class ApiTestBase {
         disableCertificateValidation();
 
         BalancedWebResource lbw = new BalancedWebResource();
-        for(String h : hosts) {
+        for (String h : hosts) {
             final ClientConfig config = new DefaultClientConfig();
 
             final Client c = Client.create(config);
 
-            if(verbose) {
-                c.addFilter(new LoggingFilter()); 
+            if (verbose) {
+                c.addFilter(new LoggingFilter());
             }
             if (addAuthFilters) {
                 c.setFollowRedirects(false);
                 c.addFilter(new HTTPBasicAuthFilter(username, password));
-                c.addFilter(new ClientFilter() {      
+                c.addFilter(new ClientFilter() {
                     @Override
                     public ClientResponse handle(ClientRequest request) throws ClientHandlerException {
                         if (_savedTokens.containsKey(username)) {
@@ -604,7 +607,7 @@ public class ApiTestBase {
                         }
                         ClientResponse response = getNext().handle(request);
 
-                        // save cookies for post request processing.  Not being used in request itself.
+                        // save cookies for post request processing. Not being used in request itself.
                         // this only used to inspect cookies after the fact.
                         if (null == _lastUsedAuthTokenCookie) {
                             System.out.println("Cookie was null");
@@ -615,7 +618,7 @@ public class ApiTestBase {
                                 if (ck.getName().equals(AUTH_TOKEN_HEADER)) {
                                     _lastUsedAuthTokenCookie = ck.getValue();
                                     break;
-                                } 
+                                }
                             }
                         }
 
@@ -626,25 +629,25 @@ public class ApiTestBase {
                             _savedProxyTokens.put(username, response.getHeaders().getFirst(AUTH_PROXY_TOKEN_HEADER));
                         }
                         if (response.getStatus() == 302) {
-                            WebResource wb = c.resource(response.getLocation()); 
+                            WebResource wb = c.resource(response.getLocation());
                             response = wb.header(AUTH_TOKEN_HEADER, _savedTokens.get(username)).
                                     get(ClientResponse.class);
                         }
                         return response;
                     }
-                } );
+                });
             } else {
                 c.setFollowRedirects(true);
             }
             lbw.addWebResource(c.resource(h));
         }
-        return lbw; 
+        return lbw;
     }
 
     /**
-     *  Use this client if you want to use cookies instead of the http headers for holding the
-     *  auth token
-     *  */
+     * Use this client if you want to use cookies instead of the http headers for holding the
+     * auth token
+     * */
     protected Client createCookieHttpsClient(final String username, final String password)
             throws NoSuchAlgorithmException {
 
@@ -659,6 +662,7 @@ public class ApiTestBase {
         c.addFilter(new HTTPBasicAuthFilter(username, password));
         c.addFilter(new ClientFilter() {
             private ArrayList<Object> cookies;
+
             private ArrayList<Object> getCookiesToSet() {
                 if (cookies != null && !cookies.isEmpty()) {
                     ArrayList<Object> cookiesToSet = new ArrayList<Object>();
@@ -707,23 +711,29 @@ public class ApiTestBase {
 
     public static void disableCertificateValidation() {
         // Create a trust manager that does not validate certificate chains
-        final TrustManager[] trustAllCerts = new TrustManager[] { 
+        final TrustManager[] trustAllCerts = new TrustManager[] {
                 new X509TrustManager() {
                     @Override
-                    public X509Certificate[] getAcceptedIssuers() { 
-                        return new X509Certificate[0]; 
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
                     }
+
                     @Override
-                    public void checkClientTrusted(final X509Certificate[] certs, final String authType) {}
+                    public void checkClientTrusted(final X509Certificate[] certs, final String authType) {
+                    }
+
                     @Override
-                    public void checkServerTrusted(final X509Certificate[] certs, final String authType) {}
+                    public void checkServerTrusted(final X509Certificate[] certs, final String authType) {
+                    }
                 }
         };
 
         // Ignore differences between given hostname and certificate hostname
         final HostnameVerifier hv = new HostnameVerifier() {
             @Override
-            public boolean verify(final String hostname, final SSLSession session) { return true; }
+            public boolean verify(final String hostname, final SSLSession session) {
+                return true;
+            }
         };
 
         // Install the all-trusting trust manager
@@ -733,10 +743,9 @@ public class ApiTestBase {
             HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
         } catch (final Exception e) {
-        	_log.error(e.getMessage(),e);
+            _log.error(e.getMessage(), e);
         }
     }
-
 
     /**
      * Some utilities structures
@@ -761,7 +770,6 @@ public class ApiTestBase {
         public List<ListElement> _subtenants;
     }
 
-
     @XmlRootElement(name = "projects")
     public static class ProjectList {
 
@@ -777,11 +785,14 @@ public class ApiTestBase {
         @XmlElement
         public String name;
 
-        public ProjectEntry() {}
+        public ProjectEntry() {
+        }
+
         public ProjectEntry(URI i, String n) {
             id = i;
-            name =n;
+            name = n;
         }
+
         public ProjectEntry(ProjectEntry el) {
             id = el.id;
             name = el.name;
@@ -834,13 +845,13 @@ public class ApiTestBase {
             for (RoleAssignmentEntry roleAssignment : entries) {
                 PermissionsKey key;
                 if (roleAssignment.getGroup() != null) {
-                    key = new PermissionsKey (PermissionsKey.Type.GROUP, roleAssignment.getGroup());
+                    key = new PermissionsKey(PermissionsKey.Type.GROUP, roleAssignment.getGroup());
                 } else if (roleAssignment.getSubjectId() != null) {
-                    key = new PermissionsKey (PermissionsKey.Type.SID, roleAssignment.getSubjectId());
+                    key = new PermissionsKey(PermissionsKey.Type.SID, roleAssignment.getSubjectId());
                 } else {
                     continue;
                 }
-                for (String role: roleAssignment.getRoles()) {
+                for (String role : roleAssignment.getRoles()) {
                     assignments.put(key.toString(), role);
                 }
             }
@@ -854,15 +865,15 @@ public class ApiTestBase {
             for (ACLEntry acl : entries) {
                 PermissionsKey key;
                 if (acl.getGroup() != null) {
-                    key = new PermissionsKey (PermissionsKey.Type.GROUP, acl.getGroup());
+                    key = new PermissionsKey(PermissionsKey.Type.GROUP, acl.getGroup());
                 } else if (acl.getSubjectId() != null) {
-                    key = new PermissionsKey (PermissionsKey.Type.SID, acl.getSubjectId());
+                    key = new PermissionsKey(PermissionsKey.Type.SID, acl.getSubjectId());
                 } else if (acl.getTenant() != null) {
-                    key = new PermissionsKey (PermissionsKey.Type.TENANT, acl.getTenant());
+                    key = new PermissionsKey(PermissionsKey.Type.TENANT, acl.getTenant());
                 } else {
                     continue;
                 }
-                for (String role: acl.getAces()) {
+                for (String role : acl.getAces()) {
                     assignments.put(key.toString(), role.toUpperCase());
                 }
             }
@@ -897,7 +908,6 @@ public class ApiTestBase {
         }
         return false;
     }
-
 
     protected boolean checkEqualsList(List<ProjectEntry> gotElements, List<ProjectEntry> expected) {
         if (expected != null && gotElements != null) {

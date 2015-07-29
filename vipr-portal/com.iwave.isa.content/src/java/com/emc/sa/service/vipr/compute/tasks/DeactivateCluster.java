@@ -11,7 +11,7 @@ import com.emc.vipr.client.Task;
 
 public class DeactivateCluster extends WaitForTask<ClusterRestRep> {
 
-	private Cluster cluster;
+    private Cluster cluster;
 
     public DeactivateCluster(Cluster cluster) {
         this.cluster = cluster;
@@ -19,8 +19,8 @@ public class DeactivateCluster extends WaitForTask<ClusterRestRep> {
     }
 
     @Override
-    public Task<ClusterRestRep> doExecute() throws Exception {   
-        Task<ClusterRestRep> task = getClient().clusters().deactivate(cluster.getId(),true); 
+    public Task<ClusterRestRep> doExecute() throws Exception {
+        Task<ClusterRestRep> task = getClient().clusters().deactivate(cluster.getId(), true);
         return task;
     }
 }

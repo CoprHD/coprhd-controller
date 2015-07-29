@@ -102,7 +102,7 @@ public class Hosts extends ViprResourceController {
                 HostRestRep host = HostUtils.getHost(uri(id));
                 if (host != null) {
                     Set<URI> dataCenterIds = HostUtils.getDataCenterIds(Lists.newArrayList(host));
-                    Map<URI, VcenterDataCenterRestRep> vcenterDataCenters = HostUtils.getVcenterDataCenters(dataCenterIds);                    
+                    Map<URI, VcenterDataCenterRestRep> vcenterDataCenters = HostUtils.getVcenterDataCenters(dataCenterIds);
                     results.add(new HostInfo(host, clusterMap, vcenterDataCenters));
                 }
             }
@@ -125,7 +125,7 @@ public class Hosts extends ViprResourceController {
         List<ProjectRestRep> projects = getViprClient().projects().getByTenant(ResourceUtils.uri(Models.currentTenant()));
         renderArgs.put("projects", projects);
     }
-    
+
     public static void create() {
         addReferenceData();
         HostForm host = new HostForm();
@@ -139,7 +139,7 @@ public class Hosts extends ViprResourceController {
         if (dbHost != null) {
             addReferenceData();
             HostForm host = new HostForm(dbHost);
-            
+
             List<InitiatorRestRep> initiators = HostUtils.getInitiators(dbHost.getId());
             List<IpInterfaceRestRep> ipInterfaces = HostUtils.getIpInterfaces(dbHost.getId());
 
@@ -166,13 +166,12 @@ public class Hosts extends ViprResourceController {
 
         try {
             Boolean validateConnectionParam = params.get("validateConnection", Boolean.class);
-            boolean validateConnection = validateConnectionParam != null ? validateConnectionParam.booleanValue() : false;            
-            
+            boolean validateConnection = validateConnectionParam != null ? validateConnectionParam.booleanValue() : false;
+
             host.save(validateConnection);
             flash.success(MessagesUtils.get(SAVED, host.name));
             list();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             flashException(e);
             edit(host);
         }
@@ -180,7 +179,7 @@ public class Hosts extends ViprResourceController {
 
     @FlashException("list")
     public static void delete(@As(",") String[] ids, boolean detachStorage) {
-        for (URI id : ResourceUtils.uris(ids)) { 
+        for (URI id : ResourceUtils.uris(ids)) {
             HostUtils.deactivate(id, detachStorage);
         }
         flash.success(MessagesUtils.get(DELETED));
@@ -195,10 +194,10 @@ public class Hosts extends ViprResourceController {
         performSuccess(ids, new DiscoveryOperation(), DISCOVERY_STARTED);
         list();
     }
-    
+
     @FlashException("list")
     public static void detachStorage(@As(",") String[] ids) {
-        for (URI id : ResourceUtils.uris(ids)) { 
+        for (URI id : ResourceUtils.uris(ids)) {
             HostUtils.detachStorage(id);
         }
         flash.success(MessagesUtils.get(DETACH_STORAGE));
@@ -341,9 +340,9 @@ public class Hosts extends ViprResourceController {
          * Clears all other validation error, except for the specified fields.
          * 
          * @param formName
-         *        the form name.
+         *            the form name.
          * @param fieldsToKeep
-         *        the fields to keep.
+         *            the fields to keep.
          */
         protected void clearOtherErrors(String formName, String... fieldsToKeep) {
             Set<play.data.validation.Error> errors = Sets.newHashSet();

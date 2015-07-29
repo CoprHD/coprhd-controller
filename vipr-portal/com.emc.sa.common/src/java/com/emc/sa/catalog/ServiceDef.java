@@ -14,7 +14,7 @@ public class ServiceDef {
     public String image;
     public String description;
     public String baseService;
-    public Map<String,String> lockFields;
+    public Map<String, String> lockFields;
 
     public String getName() {
         return StringUtils.defaultIfBlank(this.label, StringUtils.replace(title, " ", ""));

@@ -29,12 +29,11 @@ public class CreateVmfsDatastoreService extends VMwareHostService {
     @Param(DATASTORE_NAME)
     protected String datastoreName;
 
-    @Param(value=MULTIPATH_POLICY, required=false)
+    @Param(value = MULTIPATH_POLICY, required = false)
     protected String multipathPolicy;
-    
-    @Param(value=STORAGE_IO_CONTROL, required=false)
-    protected Boolean storageIOControl;
 
+    @Param(value = STORAGE_IO_CONTROL, required = false)
+    protected Boolean storageIOControl;
 
     @Bindable
     protected ExportBlockVolumeHelper exportBlockVolumeHelper = new ExportBlockVolumeHelper();
@@ -61,6 +60,6 @@ public class CreateVmfsDatastoreService extends VMwareHostService {
         Datastore datastore = vmware.createVmfsDatastore(host, cluster, hostId, volume, datastoreName);
         vmware.refreshStorage(host, cluster);
         vmware.setMultipathPolicy(host, cluster, multipathPolicy, volume);
-        vmware.setStorageIOControl(datastore,  storageIOControl);
+        vmware.setStorageIOControl(datastore, storageIOControl);
     }
 }

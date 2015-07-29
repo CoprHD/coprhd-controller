@@ -21,16 +21,16 @@ public class WindowsUtils {
     private static final int MAX_DRIVE_LABEL_LENGTH = 11;
     /** NTFS drive labels are limited to 32 chars. */
     private static final int MAX_DRIVE_LABEL_LENGTH_NTFS = 32;
-    
+
     private static final String FS_TYPE_NTFS = "ntfs";
     private static final String FS_TYPE_FAT32 = "fat32";
-    
+
     public static final String PARTITION_TYPE_MBR = "MBR";
     public static final String PARTITION_TYPE_GPT = "GPT";
-    
+
     // 32 GB
     private static final long MAX_BYTES_FAT32 = (32L * 1024 * 1024 * 1024) - 1;
-    
+
     // 2 TB
     private static final long MAX_BYTES_2TB = (2L * 1024 * 1024 * 1024 * 1024) - 1;
 
@@ -67,7 +67,7 @@ public class WindowsUtils {
             return "ASSIGN";
         }
     }
-    
+
     public static String getPartitionType(String partitionType) {
         if (isGPT(partitionType)) {
             return "CONVERT GPT";
@@ -83,7 +83,8 @@ public class WindowsUtils {
     }
 
     private static List<String> getFormatCommands(String fsType, String allocationUnitSize, String label, String partitionType) {
-        return Lists.newArrayList("CLEAN", getPartitionType(partitionType), "CREATE PARTITION PRIMARY", getFormatCommand(fsType, allocationUnitSize, label));
+        return Lists.newArrayList("CLEAN", getPartitionType(partitionType), "CREATE PARTITION PRIMARY",
+                getFormatCommand(fsType, allocationUnitSize, label));
     }
 
     private static String getFormatCommand(String fsType, String allocationUnitSize, String label) {
@@ -122,7 +123,7 @@ public class WindowsUtils {
     public static List<String> getExtendVolumeCommands(String mountpoint) {
         return Lists.newArrayList("SELECT VOLUME " + mountpoint, "EXTEND");
     }
-    
+
     public static List<String> getListDiskCommands() {
         return Lists.newArrayList("LIST DISK");
     }
@@ -148,10 +149,10 @@ public class WindowsUtils {
             String driveLabel = StringUtils.trim(label);
             driveLabel = driveLabel.replaceAll("[^A-Za-z0-9_]", "_");
             if (isNTFS(fsType)) {
-            	driveLabel = StringUtils.substring(driveLabel, 0, MAX_DRIVE_LABEL_LENGTH_NTFS);
+                driveLabel = StringUtils.substring(driveLabel, 0, MAX_DRIVE_LABEL_LENGTH_NTFS);
             }
             else {
-            	driveLabel = StringUtils.substring(driveLabel, 0, MAX_DRIVE_LABEL_LENGTH);
+                driveLabel = StringUtils.substring(driveLabel, 0, MAX_DRIVE_LABEL_LENGTH);
             }
             return driveLabel;
         }
@@ -159,29 +160,29 @@ public class WindowsUtils {
             return null;
         }
     }
-    
+
     public static boolean isNTFS(String fileSystemType) {
         return StringUtils.equals(fileSystemType, FS_TYPE_NTFS);
     }
-    
+
     public static boolean isFat32(String fileSystemType) {
         return StringUtils.equals(fileSystemType, FS_TYPE_FAT32);
     }
-    
+
     public static boolean isFat32CapacityInBytesTooLarge(long capacityInBytes) {
         return capacityInBytes > MAX_BYTES_FAT32;
     }
-    
+
     public static boolean isGPT(String partitionType) {
         return StringUtils.equals(partitionType, PARTITION_TYPE_GPT);
     }
-    
+
     public static boolean isMBR(String partitionType) {
         return StringUtils.equals(partitionType, PARTITION_TYPE_MBR);
     }
-    
+
     public static boolean isMBRCapacityInBytesTooLarge(long capacityInBytes) {
         return capacityInBytes > MAX_BYTES_2TB;
     }
-    
+
 }

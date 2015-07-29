@@ -12,10 +12,11 @@ import com.emc.vipr.client.Task;
 
 public class DeactivateFileSnapshot extends WaitForTask<FileSnapshotRestRep> {
     private URI snapshotId;
-    
+
     public DeactivateFileSnapshot(String snapshotId) {
         this(uri(snapshotId));
     }
+
     public DeactivateFileSnapshot(URI snapshotId) {
         super();
         this.snapshotId = snapshotId;

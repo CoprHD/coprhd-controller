@@ -31,15 +31,16 @@ public class VcenterClusterParam {
     private List<URI> addHosts;
     private List<URI> removeHosts;
 
-    public VcenterClusterParam() {}
+    public VcenterClusterParam() {
+    }
 
     public VcenterClusterParam(URI id) {
         this.id = id;
     }
-    
+
     /**
      * Cluster to be exported to vCenter.
-     */     
+     */
     @XmlElement(required = true)
     public URI getId() {
         return id;

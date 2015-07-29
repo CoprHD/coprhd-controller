@@ -39,8 +39,8 @@ public class VolumesDataTable extends DataTable {
 
         ViPRCoreClient client = getViprClient();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId);
-        Map<URI,String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
-        Map<URI,String> virtualPools = ResourceUtils.mapNames(client.blockVpools().list());
+        Map<URI, String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
+        Map<URI, String> virtualPools = ResourceUtils.mapNames(client.blockVpools().list());
 
         List<Volume> results = Lists.newArrayList();
         for (VolumeRestRep volume : volumes) {
@@ -57,7 +57,7 @@ public class VolumesDataTable extends DataTable {
         public String vpool;
         public Set<String> protocols;
 
-        public Volume(VolumeRestRep volume, Map<URI,String> varrayMap, Map<URI,String> vpoolMap) {
+        public Volume(VolumeRestRep volume, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = volume.getId();
             name = volume.getName();
             capacity = volume.getProvisionedCapacity();

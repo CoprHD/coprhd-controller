@@ -13,19 +13,19 @@ import com.emc.aix.format.MountPointDateFormatter;
 
 @TextObject(startLine = 3)
 public class MountPoint {
-	        
+
     @Position(2)
     private String device;
-    
+
     @Position(3)
     private String path;
-    
+
     @Position(4)
     private String vfs;
-    
-    @MultiPosition(value={5,6,7}, formatter=MountPointDateFormatter.class)
+
+    @MultiPosition(value = { 5, 6, 7 }, formatter = MountPointDateFormatter.class)
     private Date date;
-    
+
     @Position(8)
     private String options;
 

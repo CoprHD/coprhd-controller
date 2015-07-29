@@ -57,7 +57,7 @@ public class IGroupInfo implements Serializable {
     public void addInitiator(String initiator) {
         initiators.add(initiator);
     }
-    
+
     @Override
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);

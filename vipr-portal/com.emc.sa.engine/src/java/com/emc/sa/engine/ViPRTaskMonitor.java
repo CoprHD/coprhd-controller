@@ -10,9 +10,9 @@ import com.emc.vipr.client.exceptions.TimeoutException;
 
 /**
  * Wrapper around a ViPR Task that allows for monitoring progress and updating the execution logs on success/failure.
- *
+ * 
  * @param <T>
- *        the result type of the ViPR task.
+ *            the result type of the ViPR task.
  */
 public class ViPRTaskMonitor<T> {
     private final ExecutionContext context;
@@ -43,7 +43,7 @@ public class ViPRTaskMonitor<T> {
      * Waits until the task completes or the specified timeout (millis), whichever is first.
      * 
      * @param timeout
-     *        the maximum time to wait.
+     *            the maximum time to wait.
      * @return whether the task completed or not.
      */
     public boolean waitFor(long timeout) {
@@ -52,11 +52,9 @@ public class ViPRTaskMonitor<T> {
                 value = task.get(timeout);
                 complete = true;
                 context.updateTaskLog(log, elapsedTime());
-            }
-            catch (TimeoutException e) {
+            } catch (TimeoutException e) {
                 // Ignore
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 error = new ExecutionException(e);
                 complete = true;
                 context.updateTaskLog(log, elapsedTime(), e);
@@ -80,11 +78,9 @@ public class ViPRTaskMonitor<T> {
                     value = task.get();
                 }
                 context.updateTaskLog(log, elapsedTime());
-            }
-            catch (TimeoutException e) {
+            } catch (TimeoutException e) {
                 // Ignore
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 error = new ExecutionException(e);
                 complete = true;
                 context.updateTaskLog(log, elapsedTime(), e);
@@ -144,7 +140,7 @@ public class ViPRTaskMonitor<T> {
      * @return the value
      * 
      * @throws ExecutionException
-     *         if the task failed.
+     *             if the task failed.
      */
     public T getValue() {
         waitFor();

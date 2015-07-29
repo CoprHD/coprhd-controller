@@ -13,5 +13,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 public @interface Position {
     int value();
+
     Class<? extends FieldFormatter> formatter() default NullFormatter.class;
 }

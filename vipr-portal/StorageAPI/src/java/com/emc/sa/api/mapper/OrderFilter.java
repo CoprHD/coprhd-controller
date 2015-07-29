@@ -12,15 +12,15 @@ import com.emc.storageos.api.service.impl.response.BulkList.TenantResourceFilter
 import com.emc.storageos.security.authentication.StorageOSUser;
 
 public class OrderFilter
-    extends TenantResourceFilter<Order> {
+        extends TenantResourceFilter<Order> {
 
     public OrderFilter(StorageOSUser user,
             PermissionsHelper permissionsHelper) {
         super(user, permissionsHelper);
     }
-    
+
     @Override
     public boolean isAccessible(Order resource) {
-            return isTenantResourceAccessible(uri(resource.getTenant()));
+        return isTenantResourceAccessible(uri(resource.getTenant()));
     }
 }

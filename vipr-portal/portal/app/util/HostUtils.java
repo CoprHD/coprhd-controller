@@ -54,8 +54,7 @@ public class HostUtils {
     public static HostRestRep getHost(URI id) {
         try {
             return (id != null) ? getViprClient().hosts().get(id) : null;
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -110,7 +109,7 @@ public class HostUtils {
     public static Task<HostRestRep> deactivate(URI hostId) {
         return getViprClient().hosts().deactivate(hostId);
     }
-    
+
     public static Task<HostRestRep> deactivate(URI hostId, boolean detachStorage) {
         return getViprClient().hosts().deactivate(hostId, detachStorage);
     }
@@ -122,7 +121,7 @@ public class HostUtils {
     public static Task<HostRestRep> discover(URI hostId) {
         return getViprClient().hosts().discover(hostId);
     }
-    
+
     public static Set<URI> getDataCenterIds(List<HostRestRep> hosts) {
         Set<URI> dataCenterIds = Sets.newHashSet();
         if (hosts != null) {
@@ -133,8 +132,8 @@ public class HostUtils {
             }
         }
         return dataCenterIds;
-    }    
-    
+    }
+
     public static Map<URI, VcenterDataCenterRestRep> getVcenterDataCenters(Collection<URI> dataCenterIds) {
         return mapById(getViprClient().vcenterDataCenters().getByIds(dataCenterIds));
     }

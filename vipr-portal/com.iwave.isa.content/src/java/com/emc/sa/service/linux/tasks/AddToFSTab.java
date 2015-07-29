@@ -7,9 +7,9 @@ package com.emc.sa.service.linux.tasks;
 import com.iwave.ext.linux.command.AddToFSTabCommand;
 
 public class AddToFSTab extends LinuxExecutionTask<Void> {
-    
+
     public static final String DEFAULT_OPTIONS = "defaults";
-    
+
     private String device;
     private String path;
     private String fsType;

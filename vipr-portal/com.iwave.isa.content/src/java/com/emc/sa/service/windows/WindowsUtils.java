@@ -12,15 +12,16 @@ import com.iwave.ext.windows.WindowsSystemWinRM;
 
 public class WindowsUtils {
 
-	private static boolean DEFAULT_USE_SSL = false;
-	private static int DEFAULT_PORT_NUMBER = 5985;
-	
+    private static boolean DEFAULT_USE_SSL = false;
+    private static int DEFAULT_PORT_NUMBER = 5985;
+
     public static WindowsSystemWinRM createWindowsSystem(Host host, Cluster cluster) {
 
-    	boolean useSsl = host.getUseSSL() != null ? host.getUseSSL().booleanValue() : DEFAULT_USE_SSL;
-    	int portNumber = host.getPortNumber() != null ? host.getPortNumber().intValue() : DEFAULT_PORT_NUMBER;
-    	
-        WindowsSystemWinRM windowsSystem =  new WindowsSystemWinRM(host.getHostName(), portNumber, useSsl, host.getUsername(), host.getPassword());
+        boolean useSsl = host.getUseSSL() != null ? host.getUseSSL().booleanValue() : DEFAULT_USE_SSL;
+        int portNumber = host.getPortNumber() != null ? host.getPortNumber().intValue() : DEFAULT_PORT_NUMBER;
+
+        WindowsSystemWinRM windowsSystem = new WindowsSystemWinRM(host.getHostName(), portNumber, useSsl, host.getUsername(),
+                host.getPassword());
         windowsSystem.setHostId(host.getId());
 
         if (cluster != null) {
@@ -28,7 +29,7 @@ public class WindowsUtils {
         }
         return windowsSystem;
     }
-    
+
     public static boolean isMountPointDriveLetterOnly(String mountpoint) {
         return mountpoint.length() == 1 || mountpoint.length() == 0;
     }
@@ -41,12 +42,12 @@ public class WindowsUtils {
             return getDriveLetterFromMountPath(mountPath) + mountPath.substring(1);
         }
     }
-    
+
     public static String getDriveLetterFromMountPath(String mountPath) {
         if (mountPath.length() > 0) {
-            return mountPath.toUpperCase().substring(0,1);
+            return mountPath.toUpperCase().substring(0, 1);
         }
         return StringUtils.EMPTY;
     }
-    
+
 }

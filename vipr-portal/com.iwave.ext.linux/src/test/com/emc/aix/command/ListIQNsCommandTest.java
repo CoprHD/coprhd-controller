@@ -19,9 +19,9 @@ import com.iwave.ext.command.CommandOutput;
 public class ListIQNsCommandTest {
 
     static String output = "initiator_name = \"iqn.com.abc.hostid.XYZ\"";
-    
+
     static ListIQNsCommand iqnCommand = null;
-    
+
     @BeforeClass
     public synchronized static void setup() {
         CommandOutput commandOutput = new CommandOutput(output, null, 0);
@@ -29,7 +29,7 @@ public class ListIQNsCommandTest {
         EasyMock.expect(iqnCommand.getOutput()).andReturn(commandOutput).anyTimes();
         EasyMock.replay(iqnCommand);
     }
-    
+
     @Test
     public void testCommand() {
         iqnCommand.parseOutput();

@@ -9,8 +9,8 @@ import com.iwave.ext.linux.command.MultipathCommand;
 import com.iwave.ext.linux.command.MultipathException;
 
 public class CheckForMultipath extends LinuxExecutionTask<String> {
-    
-	@Override
+
+    @Override
     public String executeTask() throws Exception {
         MultipathCommand command = new MultipathCommand();
         command.addArgument("-l");
@@ -22,10 +22,9 @@ public class CheckForMultipath extends LinuxExecutionTask<String> {
                 return getMessage("CheckForMultipath.noMultipath");
             }
             return null;
-        }
-        catch (MultipathException e) {
+        } catch (MultipathException e) {
             return e.getMessage();
         }
     }
-	
+
 }

@@ -37,7 +37,7 @@ public class ConfigProperty {
     public static final String CONNECTEMC_ENCRYPTION = "system_connectemc_encrypt";
     public static final String CONNECTEMC_TARGET_EMAIL = "system_connectemc_smtp_emcto";
     public static final String CONNECTEMC_NOTIFY_EMAIL = "system_connectemc_smtp_to";
-    
+
     public static final String IMAGE_SERVER_ADDRESS = "image_server_address";
     public static final String IMAGE_SERVER_OS_NETWORK_ADDRESS = "image_server_os_network_ip";
     public static final String IMAGE_SERVER_USERNAME = "image_server_username";

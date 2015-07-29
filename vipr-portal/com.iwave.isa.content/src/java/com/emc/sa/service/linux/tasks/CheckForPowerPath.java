@@ -15,8 +15,7 @@ public class CheckForPowerPath extends LinuxExecutionTask<String> {
         try {
             executeCommand(command, SHORT_TIMEOUT);
             return null;
-        }
-        catch (PowerPathException e) {
+        } catch (PowerPathException e) {
             return e.getMessage();
         }
     }

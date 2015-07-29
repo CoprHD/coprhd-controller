@@ -43,15 +43,15 @@ public class BournePatternParser extends PatternParser {
     @Override
     protected void finalizeConverter(char c) {
         switch (c) {
-        case BOURNE_PATTERN_CHAR:
-            // We specify the PatternConverter to use for the
-            // BOURNE_PATTERN_CHAR when it appears in the value
-            // of the ConversionPattern for a BournePatternLayout.
-            currentLiteral.setLength(0);
-            addConverter(new BournePatternConverter());
-            break;
-        default:
-            super.finalizeConverter(c);
+            case BOURNE_PATTERN_CHAR:
+                // We specify the PatternConverter to use for the
+                // BOURNE_PATTERN_CHAR when it appears in the value
+                // of the ConversionPattern for a BournePatternLayout.
+                currentLiteral.setLength(0);
+                addConverter(new BournePatternConverter());
+                break;
+            default:
+                super.finalizeConverter(c);
         }
     }
 }

@@ -45,47 +45,46 @@ public class Dashboard extends Controller {
 
         if (isSystemAdminOrRestrictedSystemAdmin() || isSystemMonitor()) {
             AdminDashboard.dashboard();
-        } 
+        }
         else if (isSecurityAdmin()) {
             LDAPsources.list();
-        } 
+        }
         else if (isSystemAuditor()) {
             AuditLog.list();
-        } 
+        }
         else if (isTenantAdmin()) {
             Hosts.list();
         }
-        
+
         recentActivity();
     }
-        
-        
+
     public static void recentActivity() {
         List<ServiceCatalog.ServiceDef> services = Lists.newArrayList();
-    	
-    	Http.Cookie recentCookie = request.cookies.get(Orders.RECENT_ACTIVITIES);
-    	
-    	List<String> ids = Lists.newArrayList();
-    	List<String> removedIds = Lists.newArrayList();
-    	
-    	if (recentCookie != null && recentCookie.value != null) {
-    		ids.addAll(Arrays.asList(recentCookie.value.split(",")));
-			for (String serviceId : ids) {
-				CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
-				if (service != null) {
-					services.add(ServiceCatalog.createService(service, ""));	
-				} else {
-					removedIds.add(serviceId);
-				}
-			}
-			
-			// handle services that has been deleted by removing them from the cookie
-			if (!removedIds.isEmpty()) {
-				ids.removeAll(removedIds);
-				response.setCookie(Orders.RECENT_ACTIVITIES, StringUtils.join(ids, ","));
-			}
-    	}
-    	
+
+        Http.Cookie recentCookie = request.cookies.get(Orders.RECENT_ACTIVITIES);
+
+        List<String> ids = Lists.newArrayList();
+        List<String> removedIds = Lists.newArrayList();
+
+        if (recentCookie != null && recentCookie.value != null) {
+            ids.addAll(Arrays.asList(recentCookie.value.split(",")));
+            for (String serviceId : ids) {
+                CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
+                if (service != null) {
+                    services.add(ServiceCatalog.createService(service, ""));
+                } else {
+                    removedIds.add(serviceId);
+                }
+            }
+
+            // handle services that has been deleted by removing them from the cookie
+            if (!removedIds.isEmpty()) {
+                ids.removeAll(removedIds);
+                response.setCookie(Orders.RECENT_ACTIVITIES, StringUtils.join(ids, ","));
+            }
+        }
+
         DashboardOrdersDataTable dataTable = new DashboardOrdersDataTable();
         render(dataTable, services);
     }

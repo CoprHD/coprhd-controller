@@ -21,7 +21,7 @@ public class HostNameOrIpAddressCheck extends AbstractAnnotationCheck<HostNameOr
     private static final long serialVersionUID = 1L;
 
     public static final String MESSAGE_KEY = "validation.hostNameOrIpAddress";
-        
+
     private static final Pattern NAME_PART_PATTERN = Pattern.compile("[A-Za-z][A-Za-z0-9_\\-]*");
 
     @Override
@@ -52,21 +52,20 @@ public class HostNameOrIpAddressCheck extends AbstractAnnotationCheck<HostNameOr
     public static boolean isValidIp(String value) {
         return validateInetAddress(value);
     }
-    
-    public static boolean validateInetAddress(final String address){
-        
+
+    public static boolean validateInetAddress(final String address) {
+
         try {
             InetAddress.getByName(address);
-        }
-        catch (UnknownHostException e) {
+        } catch (UnknownHostException e) {
             return false;
         }
-        
+
         return true;
-        
+
     }
-    
-    public static boolean isInetAddressFormat(String address){
+
+    public static boolean isInetAddressFormat(String address) {
         return InetAddressUtils.isIPv4Address(address) || InetAddressUtils.isIPv6Address(address);
     }
 
@@ -79,12 +78,11 @@ public class HostNameOrIpAddressCheck extends AbstractAnnotationCheck<HostNameOr
                 }
             }
             return true;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return false;
         }
     }
-    
+
     public static boolean hasValidPort(String endpoint) {
         try {
             if (endpoint != null && !endpoint.isEmpty()) {
@@ -93,7 +91,7 @@ public class HostNameOrIpAddressCheck extends AbstractAnnotationCheck<HostNameOr
                     if (!StringUtils.isNumeric(port)) {
                         return false;
                     }
-                } else if (endpoint.contains(":") && 
+                } else if (endpoint.contains(":") &&
                         StringUtils.countMatches(endpoint, ":") == 1) {
                     String port = StringUtils.substringAfter(endpoint, ":");
                     if (!StringUtils.isNumeric(port)) {
@@ -101,24 +99,22 @@ public class HostNameOrIpAddressCheck extends AbstractAnnotationCheck<HostNameOr
                     }
                 }
             }
-            
+
             return true;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return false;
         }
     }
-    
+
     public static String trimPortFromEndpoint(String endpoint) {
         if (endpoint != null && !endpoint.isEmpty()) {
             if (endpoint.contains("]:")) {
-                endpoint = StringUtils.substringBefore(endpoint,"]:");
-                endpoint = StringUtils.substringAfter(endpoint,"[");
+                endpoint = StringUtils.substringBefore(endpoint, "]:");
+                endpoint = StringUtils.substringAfter(endpoint, "[");
             } else if (endpoint.contains(":") && StringUtils.countMatches(endpoint, ":") == 1) {
-                endpoint = StringUtils.substringBefore(endpoint,":");
+                endpoint = StringUtils.substringBefore(endpoint, ":");
             }
         }
         return endpoint;
     }
 }
-

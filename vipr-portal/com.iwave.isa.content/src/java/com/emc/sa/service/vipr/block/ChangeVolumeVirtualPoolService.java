@@ -25,8 +25,8 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
 
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
-    
-    @Param(value=ServiceParams.CONSISTENCY_GROUP, required=false)
+
+    @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
 
     @Override
@@ -34,5 +34,5 @@ public class ChangeVolumeVirtualPoolService extends ViPRService {
         Tasks<VolumeRestRep> tasks = execute(new ChangeBlockVolumeVirtualPool(volumeId, targetVirtualPool, consistencyGroup));
         addAffectedResources(tasks);
     }
-    
+
 }

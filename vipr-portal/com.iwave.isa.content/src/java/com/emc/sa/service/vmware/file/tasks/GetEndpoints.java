@@ -33,7 +33,7 @@ public class GetEndpoints extends ViPRExecutionTask<Set<String>> {
             provideDetailArgs(getMessage("GetEndpoints.detail.cluster"), cluster.getName());
         }
         else {
-        	provideDetailArgs(getMessage("GetEndpoints.detail.host"), host.getName());
+            provideDetailArgs(getMessage("GetEndpoints.detail.host"), host.getName());
         }
     }
 

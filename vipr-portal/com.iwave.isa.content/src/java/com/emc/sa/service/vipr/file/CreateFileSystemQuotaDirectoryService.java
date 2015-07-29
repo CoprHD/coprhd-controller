@@ -11,8 +11,8 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("CreateFileSystemQuotaDirectory")
 public class CreateFileSystemQuotaDirectoryService extends ViPRService {
     @Bindable
-    protected CreateFileSystemQuotaDirectoryHelper createFileSystemQuotaDirectoryHelper = 
-        new CreateFileSystemQuotaDirectoryHelper();
+    protected CreateFileSystemQuotaDirectoryHelper createFileSystemQuotaDirectoryHelper =
+            new CreateFileSystemQuotaDirectoryHelper();
 
     @Override
     public void precheck() {

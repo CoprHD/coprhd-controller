@@ -61,8 +61,7 @@ public abstract class RetryableTask<T> extends ExecutionTask<T> {
         try {
             result = tryExecute();
             return true;
-        }
-        catch (VMWareException e) {
+        } catch (VMWareException e) {
             if (!canRetry(e)) {
                 fail(e);
             }

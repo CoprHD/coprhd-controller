@@ -40,7 +40,6 @@ import com.emc.storageos.db.client.TimeSeriesMetadata.TimeBucket;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 
 /**
  * Monitoring event resource implementation
@@ -59,8 +58,8 @@ public class MonitoringService extends ResourceService {
     public static final String MINUTE_BUCKET_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm";
 
     public static final String BAD_TIMEBUCKET_MSG =
-        "Error: time_bucket parameter format supplied is not valid.\n"+
-        "Acceptable formats: yyyy-MM-dd'T'HH , yyyy-MM-dd'T'HH:mm";
+            "Error: time_bucket parameter format supplied is not valid.\n" +
+                    "Acceptable formats: yyyy-MM-dd'T'HH , yyyy-MM-dd'T'HH:mm";
 
     /**
      * getter
@@ -76,17 +75,18 @@ public class MonitoringService extends ResourceService {
         _eventRetriever = eventRetriever;
     }
 
-    /**     
+    /**
      * Retrieves the bulk events and alerts in a specified time bucket (minute or hour).
-     *
-     * @param time_bucket required Time bucket for retrieval of events. Acceptable formats are: yyyy-MM-dd'T'HH for hour bucket, yyyy-MM-dd'T'HH:mm for minute bucket
+     * 
+     * @param time_bucket required Time bucket for retrieval of events. Acceptable formats are: yyyy-MM-dd'T'HH for hour bucket,
+     *            yyyy-MM-dd'T'HH:mm for minute bucket
      * @brief List events and alerts for time period
      * @return Output stream of events or an error status.
      */
     @GET
     @Path("/events")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = {Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN })
     public Response getEvents(
             @QueryParam("time_bucket") final String timeBucketParam,
             @Context HttpHeaders header) {
@@ -107,30 +107,30 @@ public class MonitoringService extends ResourceService {
 
         // try two time formats which are supported
         DateTimeFormatter hourBucketFormat = DateTimeFormat.forPattern(HOUR_BUCKET_TIME_FORMAT)
-        .withZoneUTC();
+                .withZoneUTC();
         DateTimeFormatter minuteBucketFormat = DateTimeFormat.forPattern(MINUTE_BUCKET_TIME_FORMAT)
-        .withZoneUTC();
+                .withZoneUTC();
 
         DateTime timeBucket = null;
         TimeSeriesMetadata.TimeBucket timeBucketGran = TimeSeriesMetadata.TimeBucket.HOUR;
 
         try {
-            //we reduce the length by 2 here to account for single quote in yyyy-MM-dd'T'HH format
-            if ((null != timeBucketParam) && (timeBucketParam.length() == HOUR_BUCKET_TIME_FORMAT.length()-2)) {
+            // we reduce the length by 2 here to account for single quote in yyyy-MM-dd'T'HH format
+            if ((null != timeBucketParam) && (timeBucketParam.length() == HOUR_BUCKET_TIME_FORMAT.length() - 2)) {
                 timeBucket = hourBucketFormat.parseDateTime(timeBucketParam);
                 timeBucketGran = TimeSeriesMetadata.TimeBucket.HOUR;
-            } else if ((null != timeBucketParam) && (timeBucketParam.length() == MINUTE_BUCKET_TIME_FORMAT.length()-2)) {
+            } else if ((null != timeBucketParam) && (timeBucketParam.length() == MINUTE_BUCKET_TIME_FORMAT.length() - 2)) {
                 timeBucket = minuteBucketFormat.parseDateTime(timeBucketParam);
                 timeBucketGran = TimeSeriesMetadata.TimeBucket.MINUTE;
             } else {
-            	throw APIException.badRequests.invalidTimeBucket(timeBucketParam);
+                throw APIException.badRequests.invalidTimeBucket(timeBucketParam);
             }
         } catch (final IllegalArgumentException e) {
-        	throw APIException.badRequests.invalidTimeBucket(timeBucketParam, e);
+            throw APIException.badRequests.invalidTimeBucket(timeBucketParam, e);
         }
 
         if (timeBucket == null) {
-        	throw APIException.badRequests.invalidTimeBucket(timeBucketParam);
+            throw APIException.badRequests.invalidTimeBucket(timeBucketParam);
         }
 
         return Response.ok(
@@ -140,14 +140,15 @@ public class MonitoringService extends ResourceService {
 
     /**
      * Return an output stream object as http response entity so that the client could stream potentially large response.
+     * 
      * @param timeBucket
-     *      - the time bucket to retrieve events.
+     *            - the time bucket to retrieve events.
      * @param timeBucketGran
-     *      - granularity of the time bucket, can be hour or minute.
+     *            - granularity of the time bucket, can be hour or minute.
      * @param mediaType
-     *      - media type of the response.
+     *            - media type of the response.
      * @return
-     *      - the stream object from which client retrieves response message body.
+     *         - the stream object from which client retrieves response message body.
      */
     private StreamingOutput getStreamOutput(final DateTime timeBucket,
             final TimeBucket timeBucketGran, final MediaType mediaType) {
@@ -159,13 +160,13 @@ public class MonitoringService extends ResourceService {
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));
                 try {
                     if (_eventRetriever == null) {
-                    	throw APIException.internalServerErrors.noEventRetriever();                      
+                        throw APIException.internalServerErrors.noEventRetriever();
                     }
                     _eventRetriever.getBulkEvents(timeBucket, timeBucketGran, mediaType, out);
                 } catch (MarshallingExcetion e) {
                     _logger.error("retrieving event error", e);
                 } catch (final Exception e) {
-                    throw APIException.internalServerErrors.eventRetrieverError(e.getMessage(),e);
+                    throw APIException.internalServerErrors.eventRetrieverError(e.getMessage(), e);
                 } finally {
                     try {
                         out.close();

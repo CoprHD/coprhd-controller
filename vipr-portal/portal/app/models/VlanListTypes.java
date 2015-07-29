@@ -11,7 +11,7 @@ import util.StringOption;
 import com.google.common.collect.Lists;
 
 public class VlanListTypes {
-   
+
     public static String NO_OSINSTALL_NONE = "None";
 
     public static StringOption option(String type) {

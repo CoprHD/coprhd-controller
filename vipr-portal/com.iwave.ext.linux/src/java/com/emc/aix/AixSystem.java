@@ -26,39 +26,39 @@ public final class AixSystem extends SecureShellSupport {
     public AixSystem() {
         super();
     }
-    
+
     public AixSystem(String host, int port, String username, String password) {
         super(host, port, username, password);
     }
-        
+
     public AixVersion getVersion() {
         AixVersionCommand command = new GetAixVersionCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
-    public void makeFilesystem(String hdisk, String fsType){
-        executeCommand( new MakeFilesystemCommand(hdisk, fsType) );
+
+    public void makeFilesystem(String hdisk, String fsType) {
+        executeCommand(new MakeFilesystemCommand(hdisk, fsType));
     }
-    
+
     public List<HBAInfo> listInitiators() {
         ListHBAInfoCommand command = new ListHBAInfoCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public List<IPInterface> listIPInterfaces() {
         ListIPInterfacesCommand command = new ListIPInterfacesCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public Set<String> listIQNs() {
         ListIQNsCommand iqnCmd = new ListIQNsCommand();
         executeCommand(iqnCmd);
         return iqnCmd.getResults();
     }
-    
+
     public String getNetworkAdapterMacAddress(String adapter) {
         GetNetworkAdapterMacAddressCommand cmd = new GetNetworkAdapterMacAddressCommand(adapter);
         executeCommand(cmd);

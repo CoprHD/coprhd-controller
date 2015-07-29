@@ -16,7 +16,7 @@ import com.emc.vipr.client.Task;
 import com.google.common.collect.Sets;
 
 public class RemoveBlockResourcesFromExport extends WaitForTask<ExportGroupRestRep> {
-    
+
     private URI exportId;
     private Set<URI> resourceIds;
 

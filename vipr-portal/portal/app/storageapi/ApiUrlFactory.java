@@ -4,8 +4,6 @@
  */
 package storageapi;
 
-import java.net.URL;
-
 public interface ApiUrlFactory {
 
     public String getUrl();

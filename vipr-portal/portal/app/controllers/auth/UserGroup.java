@@ -60,7 +60,7 @@ public class UserGroup extends ViprResourceController {
         List<StringOption> domains = Lists.newArrayList();
         for (AuthnProviderRestRep authProvider : AuthnProviderUtils.getAuthnProviders()) {
             if (!authProvider.getDisable()) {
-                for(String domain : authProvider.getDomains()) {
+                for (String domain : authProvider.getDomains()) {
                     StringOption domainOption = new StringOption(domain, StringOption.getDisplayValue(domain, "Domains"));
                     domains.add(domainOption);
                 }
@@ -71,7 +71,7 @@ public class UserGroup extends ViprResourceController {
 
     /**
      * if it was not redirect from another page, clean flash
-     *
+     * 
      */
     public static void list() {
         renderArgs.put("dataTable", new UserGroupDataTable());
@@ -107,7 +107,7 @@ public class UserGroup extends ViprResourceController {
         edit(new UserGroupForm(userGroup));
     }
 
-    @FlashException(keep=true)
+    @FlashException(keep = true)
     public static void save(UserGroupForm userGroup) {
         userGroup.validate("userGroup");
         if (Validation.hasErrors()) {
@@ -161,7 +161,7 @@ public class UserGroup extends ViprResourceController {
 
             if (!CollectionUtils.isEmpty(userGroupRep.getAttributes())) {
                 for (UserAttributeParam userAttributeMapping : userGroupRep.getAttributes()) {
-                    if (userAttributeMapping != null)  {
+                    if (userAttributeMapping != null) {
                         AttributeMapping mapping = new AttributeMapping();
                         mapping.key = userAttributeMapping.getKey();
                         mapping.values = StringUtils.join(userAttributeMapping.getValues(), "\n");
@@ -183,7 +183,7 @@ public class UserGroup extends ViprResourceController {
             UserGroupCreateParam param = new UserGroupCreateParam();
             param.setLabel(this.name);
             param.setDomain(this.domain);
-            for(AttributeMapping mapping : this.attributes){
+            for (AttributeMapping mapping : this.attributes) {
                 if (mapping != null) {
                     param.getAttributes().add(mapping.createUserAttributeParam());
                 }
@@ -201,7 +201,7 @@ public class UserGroup extends ViprResourceController {
 
             Set<UserAttributeParam> oldAttributes = userGroupRestRep.getAttributes();
             Set<UserAttributeParam> newAttributes = new HashSet<UserAttributeParam>();
-            for(AttributeMapping mapping : this.attributes){
+            for (AttributeMapping mapping : this.attributes) {
                 if (mapping != null) {
                     newAttributes.add(mapping.createUserAttributeParam());
                 }
@@ -234,7 +234,7 @@ public class UserGroup extends ViprResourceController {
             validateAttributeEntries(fieldName);
         }
 
-        public void validateAttributeEntries (String fieldName) {
+        public void validateAttributeEntries(String fieldName) {
             int attributeIndex = 0;
             for (AttributeMapping mapping : this.attributes) {
                 if (mapping != null) {
@@ -243,7 +243,8 @@ public class UserGroup extends ViprResourceController {
                     }
 
                     if (StringUtils.isBlank(mapping.values)) {
-                        Validation.addError(fieldName + ".attributes[" + attributeIndex + "].values", "userGroup.attributes.values.required");
+                        Validation.addError(fieldName + ".attributes[" + attributeIndex + "].values",
+                                "userGroup.attributes.values.required");
                     }
                 }
                 attributeIndex++;

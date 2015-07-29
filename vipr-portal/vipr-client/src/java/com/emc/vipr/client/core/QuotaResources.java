@@ -19,7 +19,7 @@ public interface QuotaResources {
      * API Call: GET <tt><i>baseUrl</i>/{id}/quota
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @return the quota information.
      */
     public QuotaInfo getQuota(URI id);
@@ -30,9 +30,9 @@ public interface QuotaResources {
      * API Call: PUT <tt><i>baseUrl</i>/{id}/quota
      * 
      * @param id
-     *        the resource ID.
+     *            the resource ID.
      * @param quota
-     *        the update to the quota.
+     *            the update to the quota.
      * @return the updated quota information after applying the update.
      */
     public QuotaInfo updateQuota(URI id, QuotaUpdateParam quota);

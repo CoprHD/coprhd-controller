@@ -24,53 +24,53 @@ import charvax.swing.JPanel;
 
 /**
  * Util class for using some charva elements.
- *
+ * 
  */
 public class WidgetElementUtil {
 
-	public static void makeGridElement(int x, int y, Component comp, GridBagConstraints gbc, JPanel pan) {
-		gbc.gridx = x;
+    public static void makeGridElement(int x, int y, Component comp, GridBagConstraints gbc, JPanel pan) {
+        gbc.gridx = x;
         gbc.gridy = y;
         pan.add(comp, gbc);
-	}
-	
-	public static void makeGridEmptyLine(int x, int y, GridBagConstraints gbc, JPanel pan) {
-		gbc.gridx = x;
+    }
+
+    public static void makeGridEmptyLine(int x, int y, GridBagConstraints gbc, JPanel pan) {
+        gbc.gridx = x;
         gbc.gridy = y;
         pan.add(new JLabel(""), gbc);
-	}
-	
-	public static JLabel makeEmptyLabel() {
-		return new JLabel("");
-	}
-	
-	public static void confirmExit(Component component, String message) {
-		int option = JOptionPane.showConfirmDialog(component,
-				message, InstallerConstants.DIALOG_LABEL_CONFIRM,
-				JOptionPane.OK_CANCEL_OPTION);
-		if (option == JOptionPane.OK_OPTION) {
-			System.exit(1);
-		}
-	}
+    }
 
-	public static void showConfirmDialog(Component component, String title, String[] message) {
-		int option = JOptionPane.showConfirmDialog(component,
-				message, title,
-				JOptionPane.OK_CANCEL_OPTION);
-		if (option == JOptionPane.OK_OPTION) {
-			System.exit(0);
-		}
-	}
+    public static JLabel makeEmptyLabel() {
+        return new JLabel("");
+    }
 
-	public static void ShowErrorMessage(Component component, String[] msg) {
-		JOptionPane.showMessageDialog(component, msg, InstallerConstants.DIALOG_LABEL_ERROR, JOptionPane.ERROR_MESSAGE);
-	}
-	
-	public static void ShowInfoMessage(Component component, String[] msg) {
-		JOptionPane.showMessageDialog(component, msg, InstallerConstants.DIALOG_LABEL_INFO, JOptionPane.INFORMATION_MESSAGE);
-	}
-	
-	public static void ShowWarningMessage(Component component, String[] msg) {
-		JOptionPane.showMessageDialog(component, msg, InstallerConstants.DIALOG_LABEL_WARNING, JOptionPane.WARNING_MESSAGE);
-	}
+    public static void confirmExit(Component component, String message) {
+        int option = JOptionPane.showConfirmDialog(component,
+                message, InstallerConstants.DIALOG_LABEL_CONFIRM,
+                JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            System.exit(1);
+        }
+    }
+
+    public static void showConfirmDialog(Component component, String title, String[] message) {
+        int option = JOptionPane.showConfirmDialog(component,
+                message, title,
+                JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            System.exit(0);
+        }
+    }
+
+    public static void ShowErrorMessage(Component component, String[] msg) {
+        JOptionPane.showMessageDialog(component, msg, InstallerConstants.DIALOG_LABEL_ERROR, JOptionPane.ERROR_MESSAGE);
+    }
+
+    public static void ShowInfoMessage(Component component, String[] msg) {
+        JOptionPane.showMessageDialog(component, msg, InstallerConstants.DIALOG_LABEL_INFO, JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public static void ShowWarningMessage(Component component, String[] msg) {
+        JOptionPane.showMessageDialog(component, msg, InstallerConstants.DIALOG_LABEL_WARNING, JOptionPane.WARNING_MESSAGE);
+    }
 }

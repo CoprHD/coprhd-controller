@@ -39,7 +39,7 @@ import com.emc.nas.vnxfile.xmlapi.Status;
 
 /**
  * VNXFileShareProcessor is responsible to process the result received from XML API
- * Server after getting the VNX FileShares Information. 
+ * Server after getting the VNX FileShares Information.
  */
 public class VNXFileSystemInfoProcessor extends VNXFileProcessor {
 
@@ -54,9 +54,9 @@ public class VNXFileSystemInfoProcessor extends VNXFileProcessor {
             Map<String, Object> keyMap) throws BaseCollectionException {
         final PostMethod result = (PostMethod) resultObj;
         try {
-        	ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
-					.getResponseBodyAsStream());
-        	// Extract session information from the response header.
+            ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
+                    .getResponseBodyAsStream());
+            // Extract session information from the response header.
             Header[] headers = result
                     .getResponseHeaders(VNXFileConstants.CELERRA_SESSION);
             if (null != headers && headers.length > 0) {
@@ -64,11 +64,11 @@ public class VNXFileSystemInfoProcessor extends VNXFileProcessor {
                         headers[0].getValue());
                 _logger.info("Received celerra session info from the Server.");
             }
-			if (null != responsePacket.getPacketFault()) {
-				Status status = responsePacket.getPacketFault();
+            if (null != responsePacket.getPacketFault()) {
+                Status status = responsePacket.getPacketFault();
                 processErrorStatus(status, keyMap);
             } else {
-				List<Object> filesystemList = getQueryResponse(responsePacket);
+                List<Object> filesystemList = getQueryResponse(responsePacket);
                 processFilesystemList(filesystemList, keyMap);
             }
         } catch (final Exception ex) {
@@ -80,45 +80,46 @@ public class VNXFileSystemInfoProcessor extends VNXFileProcessor {
         }
 
     }
+
     /**
      * Process the fileSystemList which are received from XMLAPI server.
+     * 
      * @param filesystemList : List of FileSystem objects.
      * @param keyMap : keyMap.
      */
-	private void processFilesystemList(List<Object> filesystemList,
-			Map<String, Object> keyMap) throws VNXFilePluginException{
-		Iterator<Object> iterator = filesystemList.iterator();
-		Map<String, String> volFilesystemMap = new HashMap<String, String>();
-		Set<String> moverIds = new HashSet<String>();
-		if (iterator.hasNext()) {
-			Status status = (Status) iterator.next();
-			if (status.getMaxSeverity() == Severity.OK) {
-				while (iterator.hasNext()) {
-					FileSystem fileSystem = (FileSystem) iterator.next();
-					volFilesystemMap.put(fileSystem.getVolume(), fileSystem.getFileSystem());
-					List<MoverOrVdmRef> roFileSysHosts = fileSystem
-							.getRoFileSystemHosts();
-					Iterator<MoverOrVdmRef> roFileSysHostItr = roFileSysHosts.iterator();
-					while (roFileSysHostItr.hasNext()) {
-						MoverOrVdmRef mover = roFileSysHostItr.next();
-						moverIds.add(mover.getMover());
-					}
-				}
+    private void processFilesystemList(List<Object> filesystemList,
+            Map<String, Object> keyMap) throws VNXFilePluginException {
+        Iterator<Object> iterator = filesystemList.iterator();
+        Map<String, String> volFilesystemMap = new HashMap<String, String>();
+        Set<String> moverIds = new HashSet<String>();
+        if (iterator.hasNext()) {
+            Status status = (Status) iterator.next();
+            if (status.getMaxSeverity() == Severity.OK) {
+                while (iterator.hasNext()) {
+                    FileSystem fileSystem = (FileSystem) iterator.next();
+                    volFilesystemMap.put(fileSystem.getVolume(), fileSystem.getFileSystem());
+                    List<MoverOrVdmRef> roFileSysHosts = fileSystem
+                            .getRoFileSystemHosts();
+                    Iterator<MoverOrVdmRef> roFileSysHostItr = roFileSysHosts.iterator();
+                    while (roFileSysHostItr.hasNext()) {
+                        MoverOrVdmRef mover = roFileSysHostItr.next();
+                        moverIds.add(mover.getMover());
+                    }
+                }
             } else {
                 throw new VNXFilePluginException(
                         "Fault response received from XMLAPI Server.",
                         VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);
             }
-		}
-		keyMap.put(VNXFileConstants.MOVERLIST, moverIds);
-		keyMap.put(VNXFileConstants.VOLFILESHAREMAP, volFilesystemMap);
-	}
-    
+        }
+        keyMap.put(VNXFileConstants.MOVERLIST, moverIds);
+        keyMap.put(VNXFileConstants.VOLFILESHAREMAP, volFilesystemMap);
+    }
+
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
 
     }
-
 
 }

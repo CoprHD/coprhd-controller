@@ -35,7 +35,7 @@ public class Main {
             sysservice.start();
         } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
-            System.exit(1);            
+            System.exit(1);
         }
     }
 }

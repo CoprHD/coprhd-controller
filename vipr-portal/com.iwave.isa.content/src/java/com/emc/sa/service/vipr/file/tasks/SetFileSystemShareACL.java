@@ -20,7 +20,7 @@ public class SetFileSystemShareACL extends WaitForTask<FileShareRestRep> {
     private final String shareName;
     private final URI fileSystemId;
     private final FileSystemACLs[] acls;
-    
+
     public SetFileSystemShareACL(URI fileSystemId, String shareName, FileSystemACLs[] acls) {
         this.shareName = shareName;
         this.fileSystemId = fileSystemId;
@@ -33,6 +33,6 @@ public class SetFileSystemShareACL extends WaitForTask<FileShareRestRep> {
         FileCifsShareACLUpdateParams aclUpdate = new FileCifsShareACLUpdateParams();
         ShareACLs aclsToAdd = FileStorageUtils.createShareACLs(acls);
         aclUpdate.setAclsToAdd(aclsToAdd);
-        return getClient().fileSystems().updateShareACL(fileSystemId,shareName,aclUpdate);
+        return getClient().fileSystems().updateShareACL(fileSystemId, shareName, aclUpdate);
     }
 }

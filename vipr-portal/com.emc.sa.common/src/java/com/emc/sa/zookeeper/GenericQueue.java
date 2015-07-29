@@ -47,8 +47,7 @@ public class GenericQueue<T> {
             try {
                 LOG.info("Starting coordinator for: " + name);
                 coordinatorClient.start();
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException("Error Starting Coordinator Client", e);
             }
         }

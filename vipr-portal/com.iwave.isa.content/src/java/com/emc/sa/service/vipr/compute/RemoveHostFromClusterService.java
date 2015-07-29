@@ -27,9 +27,9 @@ public class RemoveHostFromClusterService extends ViPRService {
 
     @Param(ServiceParams.HOST)
     protected List<String> ids;
-    
+
     private Cluster cluster;
-    
+
     private List<URI> hostIds;
 
     @Override
@@ -38,73 +38,73 @@ public class RemoveHostFromClusterService extends ViPRService {
         hostIds = uris(ids);
         cluster = BlockStorageUtils.getCluster(clusterId);
         if (cluster == null) {
-            preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);                    
+            preCheckErrors.append("Cluster doesn't exist for ID " + clusterId);
         }
-        
-        for (URI hostId : hostIds) {        	
+
+        for (URI hostId : hostIds) {
             if (BlockStorageUtils.getHost(hostId) == null) {
-            	preCheckErrors.append("Host doesn't exist for ID " + hostId);            	
+                preCheckErrors.append("Host doesn't exist for ID " + hostId);
             } else if (!BlockStorageUtils.getHost(hostId).getCluster().equals(clusterId)) {
-            	String hostName = getClient().hosts().get(hostId).getHostName();
-            	preCheckErrors.append("Host " + hostName + " is not associated with cluster: " + cluster.getLabel());
-            }            
+                String hostName = getClient().hosts().get(hostId).getHostName();
+                preCheckErrors.append("Host " + hostName + " is not associated with cluster: " + cluster.getLabel());
+            }
         }
-        
-	    if (preCheckErrors.length() > 0) {
-	        throw new IllegalStateException(preCheckErrors.toString());
-	    }
+
+        if (preCheckErrors.length() > 0) {
+            throw new IllegalStateException(preCheckErrors.toString());
+        }
     }
 
     @Override
     public void execute() throws Exception {
-    	// In order to remove the hosts from cluster
-    	// 1. Set the cluster uri = null on the host itself  - Should be taken care of during deactivate host
-    	// 2. Delete hosts which will also take care of removing
-    	// Boot volumes and dissociate any shared storage that is
-    	// associated with the host.
-    	// Remove host from cluster
-    	// Remove hosts
-        
-        if(hostIds.isEmpty()) {
+        // In order to remove the hosts from cluster
+        // 1. Set the cluster uri = null on the host itself - Should be taken care of during deactivate host
+        // 2. Delete hosts which will also take care of removing
+        // Boot volumes and dissociate any shared storage that is
+        // associated with the host.
+        // Remove host from cluster
+        // Remove hosts
+
+        if (hostIds.isEmpty()) {
             return;
         }
-        
+
         // get boot vols to be deleted (so we can check afterwards)
         List<URI> bootVolsToBeDeleted = Lists.newArrayList();
-        for(URI hostURI:hostIds) {
+        for (URI hostURI : hostIds) {
             URI bootVolURI = BlockStorageUtils.getHost(hostURI).getBootVolumeId();
-            if(bootVolURI != null) {
+            if (bootVolURI != null) {
                 bootVolsToBeDeleted.add(bootVolURI);
             }
         }
 
         // removing hosts also removes associated boot volumes and exports
         List<URI> successfulHostIds = ComputeUtils.deactivateHostURIs(hostIds);
-        
+
         // fail order if no hosts removed
-        if(successfulHostIds.isEmpty()) {           
-            throw new IllegalStateException(ExecutionUtils.getMessage("computeutils.deactivatehost.deactivate.failure",""));
+        if (successfulHostIds.isEmpty()) {
+            throw new IllegalStateException(ExecutionUtils.getMessage("computeutils.deactivatehost.deactivate.failure", ""));
         }
-        
+
         // check all hosts were removed
-        if(successfulHostIds.size() < hostIds.size()) {  
-            for(URI hostURI:hostIds) {
-                if(!successfulHostIds.contains(hostURI)){
-                    logError("computeutils.deactivatehost.failure",hostURI,clusterId);
+        if (successfulHostIds.size() < hostIds.size()) {
+            for (URI hostURI : hostIds) {
+                if (!successfulHostIds.contains(hostURI)) {
+                    logError("computeutils.deactivatehost.failure", hostURI, clusterId);
                 }
             }
             setPartialSuccess();
-        } 
+        }
         else {  // check all boot vols were removed
-            for(URI bootVolURI:bootVolsToBeDeleted) {  
+            for (URI bootVolURI : bootVolsToBeDeleted) {
                 BlockObjectRestRep bootVolRep = BlockStorageUtils.getBlockResource(bootVolURI);
                 if ((bootVolRep != null) && !bootVolRep.getInactive()) {
-                    logError("computeutils.removebootvolumes.failure",bootVolRep.getId());
+                    logError("computeutils.removebootvolumes.failure", bootVolRep.getId());
                     setPartialSuccess();
                 }
             }
         }
-        
-    }    
-    	
+
+    }
+
 }

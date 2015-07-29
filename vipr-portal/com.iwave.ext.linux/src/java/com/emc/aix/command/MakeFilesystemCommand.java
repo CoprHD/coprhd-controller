@@ -8,8 +8,8 @@ import org.apache.commons.lang.StringUtils;
 
 import com.iwave.ext.command.CommandException;
 
-public class MakeFilesystemCommand extends AixCommand{
-    
+public class MakeFilesystemCommand extends AixCommand {
+
     public MakeFilesystemCommand(String hdisk, String fsType) {
         setCommand(String.format("mkfs -V %s -o log=INLINE %s", fsType, hdisk));
         setRunAsRoot(true);

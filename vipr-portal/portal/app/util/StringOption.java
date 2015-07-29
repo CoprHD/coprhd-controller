@@ -106,9 +106,9 @@ public class StringOption implements Comparable<StringOption> {
      * Get given enum's i18n display-able string.
      * 
      * @param value
-     *        the enumeration value
+     *            the enumeration value
      * @param namePrefix
-     *        the prefix of the message key.
+     *            the prefix of the message key.
      * @return the display value.
      */
     public static String getDisplayValue(String value, String namePrefix) {

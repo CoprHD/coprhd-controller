@@ -160,7 +160,7 @@ public abstract class AbstractExecutionService implements ExecutionService {
     public OrderStatus getCompletedOrderStatus() {
         return completedOrderStatus;
     }
-    
+
     /** construct an Object array for passing into the fail task methods **/
     protected Object[] args(Object... args) {
         return args;

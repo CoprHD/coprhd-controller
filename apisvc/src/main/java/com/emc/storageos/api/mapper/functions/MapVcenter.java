@@ -10,7 +10,7 @@ import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 import com.google.common.base.Function;
 
 public class MapVcenter implements Function<Vcenter, VcenterRestRep> {
-	public static final MapVcenter instance = new MapVcenter();
+    public static final MapVcenter instance = new MapVcenter();
 
     public static MapVcenter getInstance() {
         return instance;

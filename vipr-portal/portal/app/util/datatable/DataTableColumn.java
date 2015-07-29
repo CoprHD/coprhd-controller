@@ -81,26 +81,25 @@ public class DataTableColumn {
         this.property = property;
     }
 
-
     public int getSortDataColumn() {
         return sortDataColumn;
     }
 
     /**
-     Sets the data the sort will take place on to a column other than this one.
-     This is useful if you have a text representation of a number, but sorting the text would give the wrong
-     sort order.  You can specify the sort to take place on a column containing the numerical value.
+     * Sets the data the sort will take place on to a column other than this one.
+     * This is useful if you have a text representation of a number, but sorting the text would give the wrong
+     * sort order. You can specify the sort to take place on a column containing the numerical value.
      */
     public void setSortDataColumn(int sortDataColumn) {
         this.sortDataColumn = sortDataColumn;
     }
 
-	public boolean isSearchable() {
-		return searchable;
-	}
+    public boolean isSearchable() {
+        return searchable;
+    }
 
-	public void setSearchable(boolean searchable) {
-		this.searchable = searchable;
-	}
-        
+    public void setSearchable(boolean searchable) {
+        this.searchable = searchable;
+    }
+
 }

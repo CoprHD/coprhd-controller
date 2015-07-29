@@ -11,8 +11,8 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("RemoveFileSystemQuotaDirectory")
 public class RemoveFileSystemQuotaDirectoryService extends ViPRService {
     @Bindable
-    protected RemoveFileSystemQuotaDirectoryHelper removeFileSystemQuotaDirectoryHelper = 
-        new RemoveFileSystemQuotaDirectoryHelper();
+    protected RemoveFileSystemQuotaDirectoryHelper removeFileSystemQuotaDirectoryHelper =
+            new RemoveFileSystemQuotaDirectoryHelper();
 
     @Override
     public void precheck() {

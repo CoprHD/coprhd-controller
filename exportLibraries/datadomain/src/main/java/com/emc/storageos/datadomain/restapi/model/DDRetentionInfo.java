@@ -9,13 +9,13 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.google.gson.annotations.SerializedName;
 
 public class DDRetentionInfo {
-	
+
     @SerializedName("data_interval")
-    @JsonProperty(value="data_interval")
+    @JsonProperty(value = "data_interval")
     private DDStatsIntervalQuery dataInterval;
-	
+
     @SerializedName("retention_days")
-    @JsonProperty(value="retention_days")
+    @JsonProperty(value = "retention_days")
     private long retentionDays;
 
     public DDStatsIntervalQuery getDataInterval() {
@@ -23,7 +23,7 @@ public class DDRetentionInfo {
     }
 
     public void setDataInterval(DDStatsIntervalQuery dataInterval) {
-        this.dataInterval = dataInterval; 
+        this.dataInterval = dataInterval;
     }
 
     public long getRetentionDays() {

@@ -11,12 +11,12 @@ import org.apache.commons.lang.StringUtils;
 public class MultiPathDevice implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    
+
     private String device;
     private String vendor;
     private String product;
     private String wwn;
-    
+
     public String getDevice() {
         return device;
     }
@@ -48,14 +48,14 @@ public class MultiPathDevice implements Serializable {
     public void setWwn(String wwn) {
         this.wwn = wwn;
     }
-    
+
     public String toString() {
         String paddedDevice = StringUtils.rightPad(device, 17);
         String paddedVendor = StringUtils.rightPad(vendor, 8);
         String paddedProduct = StringUtils.rightPad(product, 16);
         return String.format("%s:%s:%s:%s", paddedDevice, paddedVendor, paddedProduct, wwn);
     }
-    
+
     public String dump() {
         StringBuilder sb = new StringBuilder("\nMultiPath Device:\n");
         sb.append("\tDevice:\t").append(device);

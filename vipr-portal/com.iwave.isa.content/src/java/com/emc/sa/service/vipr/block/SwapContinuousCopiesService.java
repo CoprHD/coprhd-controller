@@ -31,7 +31,6 @@ public class SwapContinuousCopiesService extends ViPRService {
     private BlockObjectRestRep targetVolume;
     private String type;
 
-
     @Override
     public void precheck() throws Exception {
         super.precheck();

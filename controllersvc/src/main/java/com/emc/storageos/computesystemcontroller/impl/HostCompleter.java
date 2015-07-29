@@ -34,16 +34,16 @@ public class HostCompleter extends ComputeSystemCompleter {
         super.complete(dbClient, status, coded);
         for (URI id : getIds()) {
             switch (status) {
-            case error:
-                Host host = dbClient.queryObject(Host.class, id);
-                if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
-                    host.setProvisioningStatus(Host.ProvisioningJobStatus.ERROR.toString());
-                    dbClient.persistObject(host);
-                }
-                dbClient.error(Host.class, id, getOpId(), coded);
-                break;
-            default:
-                dbClient.ready(Host.class, id, getOpId());
+                case error:
+                    Host host = dbClient.queryObject(Host.class, id);
+                    if (!NullColumnValueGetter.isNullURI(host.getComputeElement())) {
+                        host.setProvisioningStatus(Host.ProvisioningJobStatus.ERROR.toString());
+                        dbClient.persistObject(host);
+                    }
+                    dbClient.error(Host.class, id, getOpId(), coded);
+                    break;
+                default:
+                    dbClient.ready(Host.class, id, getOpId());
             }
 
             if (deactivateOnComplete && status.equals(Status.ready)) {

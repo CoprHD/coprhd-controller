@@ -21,8 +21,7 @@ public class StorageTierUtils {
     public static StorageTierRestRep getStorageTier(URI id) {
         try {
             return getViprClient().storageTiers().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }

@@ -15,19 +15,19 @@ import com.iwave.ext.text.TextParser;
 
 public class PowerPathInvistaInquiryParser {
 
-    private static Pattern DEVICE_BLOCK_START_PATTERN = 
+    private static Pattern DEVICE_BLOCK_START_PATTERN =
             Pattern.compile("Invista\\sDevice\\s+Array\\sSerial\\s#\\s+SP\\s+IP\\s+Address\\s+LUN\\s+WWN\\s+");
 
-    private static Pattern DEVICE_PATTERN = 
+    private static Pattern DEVICE_PATTERN =
             Pattern.compile("([\\/\\w]+)\\s+(\\w+)\\s+(\\S*)\\s+(\\w+)\\s+(\\w{32})");
-   
+
     private TextParser deviceBlockParser = new TextParser();
-    
+
     public PowerPathInvistaInquiryParser() {
         deviceBlockParser.setStartPattern(DEVICE_BLOCK_START_PATTERN);
         deviceBlockParser.setRepeatPattern(DEVICE_PATTERN);
     }
-    
+
     public List<PowerPathDevice> parseDevices(String output) {
         List<PowerPathDevice> devices = Lists.newArrayList();
         for (String deviceBlock : deviceBlockParser.parseTextBlocks(output)) {
@@ -38,7 +38,7 @@ public class PowerPathInvistaInquiryParser {
 
     private PowerPathDevice parseDevice(String deviceBlock) {
         Matcher deviceMatcher = DEVICE_PATTERN.matcher(deviceBlock);
-        if ( deviceMatcher.find() ) {
+        if (deviceMatcher.find()) {
             PowerPathDevice device = new PowerPathDevice();
             device.setDevice(deviceMatcher.group(1));
             device.setVendor("EMC");

@@ -13,7 +13,7 @@ import com.emc.vipr.client.Task;
 
 public class RemoveHostFromCluster extends WaitForTask<HostRestRep> {
 
-	private URI host;
+    private URI host;
 
     public RemoveHostFromCluster(URI host) {
         this.host = host;
@@ -22,9 +22,9 @@ public class RemoveHostFromCluster extends WaitForTask<HostRestRep> {
 
     @Override
     public Task<HostRestRep> doExecute() throws Exception {
-    	HostUpdateParam hostUpdateParam = new HostUpdateParam();
-    	hostUpdateParam.setCluster(uri("null"));      
-        Task<HostRestRep> task = getClient().hosts().update(host,hostUpdateParam);      
+        HostUpdateParam hostUpdateParam = new HostUpdateParam();
+        hostUpdateParam.setCluster(uri("null"));
+        Task<HostRestRep> task = getClient().hosts().update(host, hostUpdateParam);
         return task;
     }
 }

@@ -16,17 +16,17 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 public class UserPreferenceManagerImpl implements UserPreferenceManager {
 
     private static final Logger log = Logger.getLogger(UserPreferenceManagerImpl.class);
-    
+
     private static final boolean DEFAULT_NOTIFY_BY_EMAIL = false;
     private static final String DEFAULT_EMAIL = null;
-    
+
     @Autowired
     private ModelClient client;
-    
+
     public UserPreferences getPreferences(StorageOSUser user) {
         return getPreferences(user.getUserName());
     }
-    
+
     public UserPreferences getPreferences(String userName) {
         UserPreferences preferences = client.preferences().findByUserId(userName);
         if (preferences == null) {
@@ -37,8 +37,8 @@ public class UserPreferenceManagerImpl implements UserPreferenceManager {
             client.save(preferences);
         }
         return preferences;
-    }    
-    
+    }
+
     public void updatePreferences(UserPreferences userPreferences) {
         client.save(userPreferences);
     }

@@ -61,8 +61,7 @@ public abstract class SingletonService implements Runnable {
             runningThread.interrupt();
             try {
                 runningThread.join();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 log.error("Interrupted waiting for successful termination", e);
             }
         }
@@ -86,19 +85,16 @@ public abstract class SingletonService implements Runnable {
                     try {
                         log.info("Acquired singleton service " + serviceName);
                         runService();
-                    }
-                    catch (RuntimeException e) {
+                    } catch (RuntimeException e) {
                         log.error("Singleton service " + serviceName + " failed", e);
                         error = true;
-                    }
-                    finally {
+                    } finally {
                         releaseLock();
                         log.info("Released singleton service " + serviceName);
                     }
                 }
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             log.warn("Singleton service " + serviceName + " interrupted", e);
         }
     }
@@ -119,8 +115,7 @@ public abstract class SingletonService implements Runnable {
             lock.acquire();
             log.debug("Acquired lock");
             return true;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error acquiring lock", e);
             return false;
         }
@@ -132,8 +127,7 @@ public abstract class SingletonService implements Runnable {
                 lock.release();
                 log.debug("Released lock");
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Error releasing lock", e);
         }
     }

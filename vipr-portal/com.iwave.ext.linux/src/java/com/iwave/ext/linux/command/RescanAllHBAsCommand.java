@@ -4,7 +4,6 @@
  */
 package com.iwave.ext.linux.command;
 
-
 public class RescanAllHBAsCommand extends LinuxCommand {
     private static final String SLEEP_TIME = "sleepTime";
 

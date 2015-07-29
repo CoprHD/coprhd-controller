@@ -72,9 +72,9 @@ public class XIVStoragePortProcessor extends StorageProcessor {
     private static final String ISCSI = "iSCSI";
     private static final String OPERATIONALSTATUS = "OperationalStatus";
     private static final String IDENTIFYING_INFO = "OtherIdentifyingInfo";
-    private static final String IPPORT_CLASS_NAME = "IBMTSDS_EthernetPort";    
+    private static final String IPPORT_CLASS_NAME = "IBMTSDS_EthernetPort";
     private static final int GB = 1024 * 1024 * 1024;
-    
+
     private AccessProfile _profile = null;
     private List<StoragePort> _newPortList = null;
     private List<StoragePort> _updatePortList = null;
@@ -95,7 +95,7 @@ public class XIVStoragePortProcessor extends StorageProcessor {
             _newPortList = new ArrayList<StoragePort>();
             _updatePortList = new ArrayList<StoragePort>();
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            Map<URI,StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
+            Map<URI, StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
             StorageSystem device = _dbClient.queryObject(StorageSystem.class,
                     _profile.getSystemId());
 
@@ -117,7 +117,7 @@ public class XIVStoragePortProcessor extends StorageProcessor {
                     } else if (IPPORT_CLASS_NAME.equals(className)) {
                         port = createStoragePort(null, portInstance, _profile,
                                 false, IP, device);
-                        checkProtocolAlreadyExists(protocols, ISCSI);                        
+                        checkProtocolAlreadyExists(protocols, ISCSI);
                         keyMap.put(portInstance.getObjectPath().toString(), port);
                         addPath(keyMap, operation.getResult(),
                                 portInstance.getObjectPath());
@@ -134,22 +134,24 @@ public class XIVStoragePortProcessor extends StorageProcessor {
             _dbClient.createObject(_newPortList);
             _dbClient.persistObject(_updatePortList);
 
-            //ports used later to run Transport Zone connectivity
+            // ports used later to run Transport Zone connectivity
             List<List<StoragePort>> portsUsedToRunTZoneConnectivity = (List<List<StoragePort>>) keyMap.get(Constants.STORAGE_PORTS);
             portsUsedToRunTZoneConnectivity.add(_newPortList);
             portsUsedToRunTZoneConnectivity.add(_updatePortList);
-            
-            List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(_dbClient, _newPortList, _updatePortList);
+
+            List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(_dbClient, _newPortList,
+                    _updatePortList);
             for (StoragePool pool : modifiedPools) {
                 // pool matcher will be invoked on this pool
                 if (!poolsToMatchWithVpool.containsKey(pool.getId())) {
                     poolsToMatchWithVpool.put(pool.getId(), pool);
                 }
             }
-            
-            _logger.debug("# Pools used in invoking PoolMatcher during StoragePortProcessor {}", Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
-            
-            //discovered ports used later to check for not visible ports
+
+            _logger.debug("# Pools used in invoking PoolMatcher during StoragePortProcessor {}",
+                    Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
+
+            // discovered ports used later to check for not visible ports
             List<StoragePort> discoveredPorts = (List<StoragePort>) keyMap.get(Constants.DISCOVERED_PORTS);
             discoveredPorts.addAll(_newPortList);
             discoveredPorts.addAll(_updatePortList);
@@ -230,7 +232,7 @@ public class XIVStoragePortProcessor extends StorageProcessor {
 
         setPortType(port, portInstance);
         port.setTransportType(transportType);
-    
+
         String[] identifiers = getCIMPropertyArrayValue(portInstance, IDENTIFYING_INFO);
         String moduleName = null;
         if (isFCPort) {
@@ -240,13 +242,13 @@ public class XIVStoragePortProcessor extends StorageProcessor {
         } else {
             moduleName = identifiers[1];
             port.setPortName(identifiers[1] + ":" + identifiers[0]);
-            
+
             // port type is not set for ethernet port in SMI
             if (port.getPortType().equals(StoragePort.PortType.Unknown.name())) {
                 port.setPortType(StoragePort.PortType.frontend.name());
             }
         }
-        
+
         port.setPortGroup(moduleName);
         StorageHADomain adapter = getStorageAdapter(moduleName, device);
         port.setStorageHADomain(adapter.getId());
@@ -275,7 +277,7 @@ public class XIVStoragePortProcessor extends StorageProcessor {
             Long portSpeedInGbps = portSpeedInBitsPerSec / GB;
             port.setPortSpeed(portSpeedInGbps);
         }
-        
+
         return port;
     }
 
@@ -292,7 +294,7 @@ public class XIVStoragePortProcessor extends StorageProcessor {
 
     /**
      * Returns StorageAdapter instance. Create one, if not present already
-     *
+     * 
      * @param name adapter (module) name
      * @param device StorageSystem
      * @return instance of StorageHADomain

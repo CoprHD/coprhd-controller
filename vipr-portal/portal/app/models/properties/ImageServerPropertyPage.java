@@ -35,11 +35,11 @@ public class ImageServerPropertyPage extends CustomPropertyPage {
     public Property getUsername() {
         return username;
     }
-    
+
     public Property getPassword() {
         return password;
     }
-    
+
     public Property getTftpbootDirectory() {
         return tftpbootDirectory;
     }

@@ -4,7 +4,6 @@
  */
 package com.emc.sa.asset.providers;
 
-
 import static com.emc.vipr.client.core.filters.CompatibilityFilter.INCOMPATIBLE;
 import static com.emc.vipr.client.core.filters.RegistrationFilter.REGISTERED;
 
@@ -37,7 +36,7 @@ public class HostProvider extends BaseHostProvider {
             return ResourceUtils.refIds(client.hosts().listByCluster(hostOrClusterId));
         }
     }
-    
+
     public List<HostRestRep> getHosts(AssetOptionsContext context, URI clusterId) {
         return api(context).hosts().getByCluster(clusterId);
     }
@@ -56,7 +55,7 @@ public class HostProvider extends BaseHostProvider {
         debug("getting windowsHosts");
         return api(context).hosts().getByTenant(context.getTenant(), HostTypeFilter.WINDOWS.and(REGISTERED).and(INCOMPATIBLE.not()));
     }
-    
+
     protected List<HostRestRep> getAixHosts(AssetOptionsContext context) {
         debug("getting aixHosts");
         return api(context).hosts().getByTenant(context.getTenant(), HostTypeFilter.AIX.and(REGISTERED).and(INCOMPATIBLE.not()));
@@ -79,7 +78,7 @@ public class HostProvider extends BaseHostProvider {
         debug("getting windowsHosts");
         return createHostOptions(context, getWindowsHosts(context));
     }
-    
+
     @Asset("aixHost")
     public List<AssetOption> getAixHostOptions(AssetOptionsContext context) {
         debug("getting aixHosts");
@@ -103,12 +102,12 @@ public class HostProvider extends BaseHostProvider {
     public List<AssetOption> getWindowsHostsOrClusterOptions(AssetOptionsContext context, String storageType) {
         return getHostOrClusterOptions(context, getWindowsHosts(context), storageType);
     }
-    
+
     @Asset("hostsByCluster")
     @AssetDependencies({ "cluster" })
     public List<AssetOption> getHostsByCluster(AssetOptionsContext context, URI clusterId) {
         debug("getting hosts");
         return createHostOptions(context, getHosts(context, clusterId));
     }
-    
+
 }

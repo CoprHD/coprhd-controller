@@ -40,7 +40,7 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.Models;
 
 @With(Common.class)
-@Restrictions({ @Restrict("TENANT_ADMIN")})
+@Restrictions({ @Restrict("TENANT_ADMIN") })
 public class CatalogImages extends Controller {
     protected static final String SAVED = "CatalogImage.saved";
     protected static final String DELETED = "CatalogImage.deleted";
@@ -54,14 +54,13 @@ public class CatalogImages extends Controller {
         renderBinary(new ByteArrayInputStream(data), name, length, contentType, false);
     }
 
-    
     public static void list() {
         CatalogImageDataTable dataTable = new CatalogImageDataTable();
         render(dataTable);
     }
 
     public static void listJson() {
-        
+
         List<CatalogImageDataTable.ImageInfo> imageInfos = Lists.newArrayList();
         List<CatalogImageRestRep> catalogImages = CatalogImageUtils.getCatalogImages();
         for (CatalogImageRestRep catalogImage : catalogImages) {
@@ -95,12 +94,12 @@ public class CatalogImages extends Controller {
         if (StringUtils.isBlank(id) || file == null) {
             Validation.required("file", file);
         }
-        
+
         if (file != null) {
             String contentType = MimeTypes.getContentType(file.getName());
             if (!StringUtils.startsWith(contentType, "image/")) {
                 Validation.addError("file", Messages.get("catalogImage.invalidContentType", contentType));
-            }     
+            }
         }
 
         if (Validation.hasErrors()) {
@@ -109,13 +108,13 @@ public class CatalogImages extends Controller {
 
         CatalogImageRestRep image = save(id, name, file);
         flash.success(MessagesUtils.get(SAVED, image.getId(), image.getName()));
-        
+
         if (!StringUtils.isEmpty(referrerUrl)) {
             redirect(referrerUrl);
         } else {
             list();
-        }        
-        
+        }
+
     }
 
     public static void saveJson(String name, @Required File file) {
@@ -143,13 +142,13 @@ public class CatalogImages extends Controller {
         }
         return catalogImage;
     }
-    
+
     private static void writeCommon(String name, File file, CatalogImageCommonParam commonParam) {
         if (file != null) {
             String label = StringUtils.defaultIfBlank(name, StringUtils.substringBeforeLast(file.getName(), "."));
             String contentType = MimeTypes.getContentType(file.getName());
             byte[] data = read(file);
-            
+
             commonParam.setName(label);
             commonParam.setContentType(contentType);
             commonParam.setData(data);
@@ -163,8 +162,7 @@ public class CatalogImages extends Controller {
         byte[] data = null;
         try {
             data = FileUtils.readFileToByteArray(file);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             error(e);
         }
         return data;

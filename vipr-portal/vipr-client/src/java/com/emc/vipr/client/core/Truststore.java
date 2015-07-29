@@ -20,7 +20,6 @@ import com.emc.vipr.model.keystore.*;
  */
 public class Truststore {
 
-
     protected final RestClient client;
 
     public Truststore(RestClient client) {

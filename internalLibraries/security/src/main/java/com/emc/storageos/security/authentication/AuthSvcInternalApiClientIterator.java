@@ -24,15 +24,16 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 
 /**
- *   Iterator that uses signature to make internal api calls to authsvc
+ * Iterator that uses signature to make internal api calls to authsvc
  */
 // GEO-TODO: rename this after the merge with the geo branch so it won't include Auth in
 // the name
 public class AuthSvcInternalApiClientIterator extends AuthSvcBaseClientIterator {
-    
+
     /**
      * Constructor when using signature based api calls which will need a
      * signature using the coordinator
+     * 
      * @param authSvcEndPointLocator
      * @param coordinator
      */
@@ -44,21 +45,21 @@ public class AuthSvcInternalApiClientIterator extends AuthSvcBaseClientIterator 
 
     /**
      * Run a get request on the current URI in the list and advance the pointer
+     * 
      * @param uri
      * @return
      */
     public ClientResponse get(URI uri) {
         WebResource webResource = _clientHelper.createRequest(_client, _authSvcEndpoints[_currentIndex++], uri);
-        return _clientHelper.addSignature(webResource).accept(MediaType.TEXT_PLAIN,MediaType.APPLICATION_XML,MediaType.APPLICATION_JSON).
-                get(ClientResponse.class);        
+        return _clientHelper.addSignature(webResource).accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON).
+                get(ClientResponse.class);
     }
 
     public ClientResponse post(URI uri, Object requestBody) {
         WebResource webResource = _clientHelper.createRequest(_client, _authSvcEndpoints[_currentIndex++], uri);
-        return _clientHelper.addSignature(webResource).accept(MediaType.TEXT_PLAIN,MediaType.APPLICATION_XML,MediaType.APPLICATION_JSON).
+        return _clientHelper.addSignature(webResource).accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON).
                 post(ClientResponse.class, requestBody);
     }
-    
 
     /**
      * Run a put request on the current URI in the list and advance the pointer, using
@@ -71,7 +72,7 @@ public class AuthSvcInternalApiClientIterator extends AuthSvcBaseClientIterator 
      */
     public ClientResponse put(URI uri, Object requestBody) {
         WebResource webResource = _clientHelper.createRequest(_client, _authSvcEndpoints[_currentIndex++], uri);
-        return _clientHelper.addSignature(webResource).accept(MediaType.TEXT_PLAIN,MediaType.APPLICATION_XML,MediaType.APPLICATION_JSON).
+        return _clientHelper.addSignature(webResource).accept(MediaType.TEXT_PLAIN, MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON).
                 put(ClientResponse.class, requestBody);
     }
 

@@ -17,7 +17,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 public class UnmountBlockVolumeService extends WindowsService {
     @Param(ServiceParams.VOLUMES)
     protected List<String> volumeIds;
-    
+
     private List<UnmountBlockVolumeHelper> unmountBlockVolumeHelpers;
 
     public void init() throws Exception {
@@ -41,7 +41,7 @@ public class UnmountBlockVolumeService extends WindowsService {
         }
 
         unmountBlockVolumeHelpers.get(0).unmountVolumes();
-        
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

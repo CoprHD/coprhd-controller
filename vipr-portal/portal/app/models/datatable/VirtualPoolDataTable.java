@@ -56,7 +56,7 @@ public class VirtualPoolDataTable extends DataTable {
             this.name = vsp.getName();
             this.poolType = vsp.getType();
             this.provisioningType = vsp.getProvisioningType();
-            
+
             this.poolTypeDisplay = PoolTypes.getDisplayValue(vsp.getType());
             this.provisioningTypeDisplay = ProvisioningTypes.getDisplayValue(vsp.getProvisioningType());
             this.provisionedAs = String.format("%s (%s)", poolTypeDisplay, provisioningTypeDisplay);

@@ -27,7 +27,7 @@ public class WinRMConstants {
     public static final String PULL_URI = ENUMERATION_URI + "/Pull";
 
     public static final XPath XPATH = XmlUtils.createXPath(
-            String.format("f=%s",WSMAN_FAULT_URI),
+            String.format("f=%s", WSMAN_FAULT_URI),
             String.format("s=%s", SOAPConstants.URI_NS_SOAP_1_2_ENVELOPE),
             String.format("w=%s", WSMAN_URI), String.format("a=%s", ADDRESSING_URI),
             String.format("x=%s", TRANSFER_URI), String.format("xsi=%s", SCHEMA_INSTANCE_URI),

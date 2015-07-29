@@ -33,8 +33,8 @@ public class LinuxUtils {
         cli.setHostId(host.getId());
         return cli;
     }
-    
-    public static MountPoint getMountPoint(URI hostId, Map<String, MountPoint> results,  BlockObjectRestRep volume) {
+
+    public static MountPoint getMountPoint(URI hostId, Map<String, MountPoint> results, BlockObjectRestRep volume) {
         String volumeMountPoint = KnownMachineTags.getBlockVolumeMountPoint(hostId, volume);
         if (results.containsKey(volumeMountPoint)) {
             return results.get(volumeMountPoint);
@@ -79,5 +79,5 @@ public class LinuxUtils {
         }
         return normalized;
     }
-    
+
 }

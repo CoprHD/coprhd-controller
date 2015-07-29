@@ -20,7 +20,6 @@ import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumes;
 import com.emc.sa.service.vipr.block.tasks.IngestUnexportedUnmanagedVolumes;
 import com.emc.sa.service.vipr.tasks.CheckStorageSystemDiscoveryStatus;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
-import com.google.common.collect.Lists;
 
 @Service("IngestUnexportedUnmanagedVolumes")
 public class IngestUnexportedUnmanagedVolumesService extends ViPRService {
@@ -35,10 +34,10 @@ public class IngestUnexportedUnmanagedVolumesService extends ViPRService {
 
     @Param(VIRTUAL_ARRAY)
     protected URI virtualArray;
-    
+
     @Param(VOLUMES)
     protected List<String> volumeIds;
-    
+
     @Override
     public void precheck() throws Exception {
         super.precheck();
@@ -48,7 +47,7 @@ public class IngestUnexportedUnmanagedVolumesService extends ViPRService {
     @Override
     public void execute() throws Exception {
         List<UnManagedVolumeRestRep> unmanagedVolumes = execute(new GetUnmanagedVolumes(storageSystem, virtualPool));
-       
+
         execute(new IngestUnexportedUnmanagedVolumes(virtualPool, virtualArray, project, uris(volumeIds)));
 
         // Requery and produce a log of what was ingested or not

@@ -11,7 +11,7 @@ public class CommandConstants {
     public static final String IFCONFIG = "/sbin/ifconfig";
     public static final String MULTIPATH = "/sbin/multipath";
     public static final String POWERMT = "PATH=/sbin:/usr/sbin powermt";
-	public static final String POWERPATHINQUIRY = "/sbin/pp_inq";
+    public static final String POWERPATHINQUIRY = "/sbin/pp_inq";
     public static final String ISCSIADM = "/sbin/iscsiadm";
     public static final String MKE2FS = "/sbin/mke2fs";
     public static final String E2FSCK = "/sbin/e2fsck";

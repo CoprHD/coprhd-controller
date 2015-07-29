@@ -20,7 +20,7 @@ public class FindExportsContainingHost extends ViPRExecutionTask<List<ExportGrou
     }
 
     public FindExportsContainingHost(URI host, URI project, URI varrayId) {
-        this.host =  host;
+        this.host = host;
         this.project = project;
         this.varray = varrayId;
         provideDetailArgs(host, project, varrayId);

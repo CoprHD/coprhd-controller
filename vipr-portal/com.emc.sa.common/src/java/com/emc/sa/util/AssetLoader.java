@@ -43,8 +43,8 @@ public class AssetLoader {
 
     public void loadAssets(InputStream in) throws IOException {
         loadAssets(null, in);
-    }    
-    
+    }
+
     public void loadAssets(String tenant, URL resource) throws IOException {
         Assets assets = readAssets(resource.openStream());
         saveAssets(tenant, assets);
@@ -65,8 +65,7 @@ public class AssetLoader {
             Gson gson = new GsonBuilder().create();
             Assets assets = gson.fromJson(new InputStreamReader(in), Assets.class);
             return assets;
-        }
-        finally {
+        } finally {
             IOUtils.closeQuietly(in);
         }
     }
@@ -131,7 +130,6 @@ public class AssetLoader {
         client.save(vcenter);
         return vcenter;
     }
-
 
     public static class Assets {
         public List<HostDef> hosts;

@@ -17,7 +17,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class OrderFinder extends TenantModelFinder<Order> {
-    
+
     public OrderFinder(DBClientWrapper client) {
         super(Order.class, client);
     }
@@ -25,25 +25,26 @@ public class OrderFinder extends TenantModelFinder<Order> {
     public List<Order> findScheduledByExecutionWindow(String executionWindowId) {
 
         List<Order> results = Lists.newArrayList();
-        
+
         if (StringUtils.isBlank(executionWindowId)) {
             return results;
         }
-        
+
         Set<URI> orderIds = Sets.newHashSet();
         List<NamedElement> scheduledOrderElems = client.findByAlternateId(Order.class, Order.ORDER_STATUS, OrderStatus.SCHEDULED.name());
         for (NamedElement scheduledOrderElem : scheduledOrderElems) {
             Order scheduledOrder = client.findById(Order.class, scheduledOrderElem.getId());
-            if (scheduledOrder.getExecutionWindowId() != null && scheduledOrder.getExecutionWindowId().getURI() != null && executionWindowId.equalsIgnoreCase(scheduledOrder.getExecutionWindowId().getURI().toString())) {
+            if (scheduledOrder.getExecutionWindowId() != null && scheduledOrder.getExecutionWindowId().getURI() != null
+                    && executionWindowId.equalsIgnoreCase(scheduledOrder.getExecutionWindowId().getURI().toString())) {
                 results.add(scheduledOrder);
             }
         }
-        
+
         results.addAll(findByIds(Lists.newArrayList(orderIds)));
-        
-        return results;        
+
+        return results;
     }
-    
+
     public List<Order> findByOrderStatus(String tenant, OrderStatus orderStatus) {
         if (StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
@@ -56,7 +57,7 @@ public class OrderFinder extends TenantModelFinder<Order> {
      * {@link #findByOrderStatus(String, OrderStatus)}.
      * 
      * @param orderStatus
-     *        the order status.
+     *            the order status.
      * @return the list of orders with the given status.
      * 
      * @see #findByOrderStatus(String, OrderStatus)
@@ -88,11 +89,11 @@ public class OrderFinder extends TenantModelFinder<Order> {
         List<NamedElement> orderIds = findIdsByTimeRange(startTime, endTime);
         return findByIds(toURIs(orderIds));
     }
-    
+
     public List<Order> findByTimeRange(URI tenantId, Date startTime, Date endTime) {
         if (tenantId == null) {
             return Lists.newArrayList();
-        }        
+        }
         return TenantUtils.filter(findByTimeRange(startTime, endTime), tenantId.toString());
     }
 }

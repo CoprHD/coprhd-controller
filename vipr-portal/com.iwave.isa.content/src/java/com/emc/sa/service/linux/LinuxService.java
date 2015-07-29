@@ -39,7 +39,6 @@ public abstract class LinuxService extends ViPRService {
         hosts = Lists.newArrayList();
         logInfo("linux.service.target.host", host.getLabel());
 
-
         hostPorts = getModelClient().initiators().findByHost(host.getId());
         linuxSystem = LinuxUtils.convertHost(host);
     }

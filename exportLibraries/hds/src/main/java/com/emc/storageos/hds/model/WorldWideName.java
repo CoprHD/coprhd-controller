@@ -17,9 +17,9 @@ package com.emc.storageos.hds.model;
 import com.emc.storageos.hds.HDSConstants;
 
 public class WorldWideName {
-    
+
     private String wwn;
-    
+
     public WorldWideName(String wwn) {
         this.wwn = wwn;
     }
@@ -41,7 +41,7 @@ public class WorldWideName {
     public void setWwn(String wwn) {
         this.wwn = wwn;
     }
-    
+
     public String toXMLString() {
         StringBuilder xmlString = new StringBuilder();
 

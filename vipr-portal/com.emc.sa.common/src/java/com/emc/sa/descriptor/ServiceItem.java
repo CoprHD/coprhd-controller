@@ -63,7 +63,7 @@ public abstract class ServiceItem implements Serializable {
     public boolean isField() {
         return !(isGroup() || isTable());
     }
-    
+
     public boolean isPassword() {
         return isField() && StringUtils.equals(type, ServiceField.TYPE_PASSWORD);
     }

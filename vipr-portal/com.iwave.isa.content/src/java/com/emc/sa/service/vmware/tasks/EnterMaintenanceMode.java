@@ -18,7 +18,7 @@ public class EnterMaintenanceMode extends VMwareTask<Void> {
 
     public EnterMaintenanceMode(Datastore datastore) {
         this.datastore = datastore;
-		provideDetailArgs(datastore.getName());
+        provideDetailArgs(datastore.getName());
     }
 
     @Override
@@ -27,8 +27,7 @@ public class EnterMaintenanceMode extends VMwareTask<Void> {
         Task task = vcenter.lookupManagedObject(result.getTask());
         try {
             waitForTask(task);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             cancelTask(task);
             throw e;
         }

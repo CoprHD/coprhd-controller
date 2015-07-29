@@ -4,27 +4,13 @@
  */
 package util.builders;
 
-import static com.emc.vipr.client.core.util.ResourceUtils.stringRefIds;
-
 import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-
 import models.PoolAssignmentTypes;
-import models.ProvisioningTypes;
 import models.StorageSystemTypes;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
-import com.emc.storageos.model.pools.VirtualArrayAssignments;
-import com.emc.storageos.model.vpool.ProtocolAssignments;
-import com.emc.storageos.model.vpool.ProtocolChanges;
 import com.emc.storageos.model.vpool.VirtualPoolCommonParam;
-import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
-import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
 import com.google.common.collect.Sets;
 
 public class VirtualPoolBuilder {

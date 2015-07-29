@@ -39,7 +39,7 @@ import com.vmware.vim25.mo.util.MorUtil;
 public class VCenterAPI {
     /** Constant for the apiType for a vCenter. */
     public static final String VCENTER_API_TYPE = "VirtualCenter";
-    
+
     private URL url;
 
     private ServiceInstance service;
@@ -92,11 +92,9 @@ public class VCenterAPI {
         }
         try {
             service = new ServiceInstance(url, username, password, true);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
-        }
-        catch (MalformedURLException e) {
+        } catch (MalformedURLException e) {
             throw new VMWareException(e);
         }
     }
@@ -108,8 +106,7 @@ public class VCenterAPI {
         if (service != null) {
             try {
                 service.getServerConnection().logout();
-            }
-            finally {
+            } finally {
                 service = null;
             }
         }
@@ -263,14 +260,11 @@ public class VCenterAPI {
             InventoryNavigator navigator = new InventoryNavigator(parent);
             ManagedEntity[] entities = navigator.searchManagedEntities(typeInfo, recurse);
             return entities;
-        }
-        catch (InvalidProperty e) {
+        } catch (InvalidProperty e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -305,14 +299,11 @@ public class VCenterAPI {
             InventoryNavigator navigator = new InventoryNavigator(parent);
             ManagedEntity entity = navigator.searchManagedEntity(type, name);
             return (T) entity;
-        }
-        catch (InvalidProperty e) {
+        } catch (InvalidProperty e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -448,14 +439,11 @@ public class VCenterAPI {
     public List<Datastore> listDatastores(HostSystem hostSystem) throws VMWareException {
         try {
             return createList(hostSystem.getDatastores());
-        }
-        catch (InvalidProperty e) {
+        } catch (InvalidProperty e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -475,14 +463,11 @@ public class VCenterAPI {
     public Folder getHostFolder(Datacenter datacenter) throws VMWareException {
         try {
             return datacenter.getHostFolder();
-        }
-        catch (InvalidProperty e) {
+        } catch (InvalidProperty e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -490,14 +475,11 @@ public class VCenterAPI {
     public Folder getVmFolder(Datacenter datacenter) throws VMWareException {
         try {
             return datacenter.getVmFolder();
-        }
-        catch (InvalidProperty e) {
+        } catch (InvalidProperty e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -537,7 +519,7 @@ public class VCenterAPI {
         }
         return findDatastore(datacenter, datastoreName);
     }
-    
+
     public VcenterVersion getVcenterVersion() {
         VcenterVersion result = null;
         AboutInfo info = service.getAboutInfo();
@@ -552,6 +534,7 @@ public class VCenterAPI {
 
     /**
      * Get Esx Version
+     * 
      * @return
      */
     public EsxVersion getEsxVersion() {

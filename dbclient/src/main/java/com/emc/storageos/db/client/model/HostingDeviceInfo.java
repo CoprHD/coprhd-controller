@@ -26,7 +26,7 @@ import java.util.Date;
  */
 @Cf("HostingDeviceInfo")
 @XmlRootElement(name = "hosting_device")
-public class HostingDeviceInfo extends  DataObject {
+public class HostingDeviceInfo extends DataObject {
 
     // Type of physical device on which this is hosted
     private String _deviceType;
@@ -91,9 +91,14 @@ public class HostingDeviceInfo extends  DataObject {
     }
 
     /**
-     * <p>Additional information specific to the protocol and hosting device</p>
-     * <p>read-only, can not modify</p>
-     * @return   XML String
+     * <p>
+     * Additional information specific to the protocol and hosting device
+     * </p>
+     * <p>
+     * read-only, can not modify
+     * </p>
+     * 
+     * @return XML String
      */
     @XmlElement
     @Name("additionalInfo")
@@ -109,6 +114,7 @@ public class HostingDeviceInfo extends  DataObject {
 
     /**
      * IP address of the data node which successfully mounted this device
+     * 
      * @return
      */
     @XmlElement
@@ -124,6 +130,7 @@ public class HostingDeviceInfo extends  DataObject {
 
     /**
      * IP address of the data node which failed to mount this device
+     * 
      * @return
      */
     @XmlElement
@@ -139,6 +146,7 @@ public class HostingDeviceInfo extends  DataObject {
 
     /**
      * Failure message from the data node which ran into failure while mounting this device
+     * 
      * @return
      */
     @XmlElement
@@ -154,6 +162,7 @@ public class HostingDeviceInfo extends  DataObject {
 
     /**
      * Time when this key pool information was last updated
+     * 
      * @return
      */
     @XmlElement
@@ -169,6 +178,7 @@ public class HostingDeviceInfo extends  DataObject {
 
     /**
      * version number associated with additionalInfo
+     * 
      * @return
      */
     @XmlElement
@@ -183,16 +193,17 @@ public class HostingDeviceInfo extends  DataObject {
     }
 
     /**
-     * <p>Type of physical device on which this is hosted</p>
-     * <p>The following device types are known to web storage</p>
-     * <li>UNKNOWN - invalid or not set</li>
-     * <li>LOCAL - reserved, do not use </li>
-     * <li>NFS - NFS file share created on demand</li>
-     * <li>NFS_SERVER - Pre-allocated file share</li>
-     * <li>S3 - Amazon S3 format</li>
-     * <li>FC - Fibre channel or iSCSI</li>
-     * <li>ATMOS - EMC Atmos storage system</li>
-     * @return  web storage device type
+     * <p>
+     * Type of physical device on which this is hosted
+     * </p>
+     * <p>
+     * The following device types are known to web storage
+     * </p>
+     * <li>UNKNOWN - invalid or not set</li> <li>LOCAL - reserved, do not use</li> <li>NFS - NFS file share created on demand</li> <li>
+     * NFS_SERVER - Pre-allocated file share</li> <li>S3 - Amazon S3 format</li> <li>FC - Fibre channel or iSCSI</li> <li>ATMOS - EMC Atmos
+     * storage system</li>
+     * 
+     * @return web storage device type
      */
     @XmlElement
     @Name("deviceType")
@@ -200,19 +211,19 @@ public class HostingDeviceInfo extends  DataObject {
         return _deviceType;
     }
 
-    public void setDeviceType (String deviceType)
+    public void setDeviceType(String deviceType)
     {
         _deviceType = deviceType;
         setChanged("deviceType");
     }
 
     /**
-     * <p>State of the hosting device</p>
-     * <li>uninitialized - has not been initialized, unavailable for use</li>
-     * <li>initializing - being initialized</li>
-     * <li>initialized - initialized, ready for use</li>
-     * <li>deleting - being deleted, can not be used</li>
-     * <li>deleted - deleted, no longer exists</li>
+     * <p>
+     * State of the hosting device
+     * </p>
+     * <li>uninitialized - has not been initialized, unavailable for use</li> <li>initializing - being initialized</li> <li>initialized -
+     * initialized, ready for use</li> <li>deleting - being deleted, can not be used</li> <li>deleted - deleted, no longer exists</li>
+     * 
      * @return
      */
     @XmlElement
@@ -222,12 +233,13 @@ public class HostingDeviceInfo extends  DataObject {
     }
 
     public void setDeviceState(String newState) {
-        _deviceState =  newState;
+        _deviceState = newState;
         setChanged("deviceState");
     }
 
     /**
      * class of service for this hosting device
+     * 
      * @return
      */
     @XmlElement
@@ -308,14 +320,14 @@ public class HostingDeviceInfo extends  DataObject {
         setChanged("encryptedInfo");
     }
 
-    //internal flag, won't be exposed to user.
+    // internal flag, won't be exposed to user.
     @XmlTransient
     @Name("readOnly")
     public Boolean getReadOnly() {
         return (_readOnly != null) && _readOnly;
     }
 
-    public void setReadOnly(Boolean readOnly){
+    public void setReadOnly(Boolean readOnly) {
         _readOnly = readOnly;
         setChanged("readOnly");
     }

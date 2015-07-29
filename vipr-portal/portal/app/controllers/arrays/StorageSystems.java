@@ -162,10 +162,10 @@ public class StorageSystems extends ViprResourceController {
         StorageProviders.edit(id);
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(StorageSystemForm storageArray) {
         storageArray.validate("storageArray");
-        
+
         if (Validation.hasErrors()) {
             Common.handleError();
         }
@@ -249,7 +249,7 @@ public class StorageSystems extends ViprResourceController {
         }
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
-    
+
     public static void metricDetails(String id) {
         StoragePortRestRep port = StoragePortUtils.getStoragePort(id);
         render(port);
@@ -299,7 +299,7 @@ public class StorageSystems extends ViprResourceController {
         render(storageArrayPort, storagePort, storageSystem);
     }
 
-    @FlashException(keep=true, referrer={"ports"})
+    @FlashException(keep = true, referrer = { "ports" })
     public static void savePort(StorageArrayPortForm storageArrayPort) {
         storageArrayPort.validate("storageArrayPort");
         if (Validation.hasErrors()) {
@@ -366,13 +366,13 @@ public class StorageSystems extends ViprResourceController {
         render(storageArrayPool, storagePool, storageSystem);
     }
 
-    @FlashException(keep=true, referrer={"editPool"})
+    @FlashException(keep = true, referrer = { "editPool" })
     public static void savePool(StorageArrayPoolForm storageArrayPool) {
         storageArrayPool.validate("storageArrayPool");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-        
+
         StoragePoolRestRep pool = storageArrayPool.save();
         flash.success(MessagesUtils.get(SAVED_POOL, pool.getPoolName()));
         pools(stringId(pool.getStorageSystem()));
@@ -511,7 +511,7 @@ public class StorageSystems extends ViprResourceController {
         }
     }
 
-    //Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
+    // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
     @SuppressWarnings("squid:S2068")
     public static class StorageSystemForm {
         public String id;
@@ -538,16 +538,16 @@ public class StorageSystems extends ViprResourceController {
 
         @MaxSize(2048)
         public String confirmPassword;
-        
+
         @MaxSize(2048)
         public String secondaryUsername = "";
-        
+
         @MaxSize(2048)
         public String secondaryPassword = "";
-        
+
         @MaxSize(2048)
         public String secondaryPasswordConfirm = "";
-        
+
         public String elementManagerURL;
 
         public boolean useSSL;
@@ -721,7 +721,7 @@ public class StorageSystems extends ViprResourceController {
                     Validation.required(fieldName + ".smisProviderUserPassword", this.smisProviderUserPassword);
                     Validation.required(fieldName + ".smisProviderConfirmPassword", this.smisProviderConfirmPassword);
                 }
-                
+
                 if (isScaleIO() && !isMatchingPasswords(secondaryPassword, secondaryPasswordConfirm)) {
                     Validation.addError(fieldName + ".secondaryPasswordConfirm",
                             MessagesUtils.get("storageArray.secondaryPassword.confirmPassword.not.match"));
@@ -761,9 +761,9 @@ public class StorageSystems extends ViprResourceController {
         private boolean isVnxFile() {
             return StorageSystemTypes.isVnxFile(type);
         }
-        
+
         private boolean isScaleIO() {
-        	return StorageSystemTypes.isScaleIO(type);
+            return StorageSystemTypes.isScaleIO(type);
         }
     }
 

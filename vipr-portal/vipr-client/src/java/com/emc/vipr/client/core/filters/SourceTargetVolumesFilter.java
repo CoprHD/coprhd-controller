@@ -15,7 +15,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 public class SourceTargetVolumesFilter extends DefaultResourceFilter<VolumeRestRep> {
     @Override
     public boolean accept(VolumeRestRep item) {
-        return item.getProtection() == null || 
+        return item.getProtection() == null ||
                 item.getProtection().getRpRep() == null ||
                 item.getProtection().getRpRep().getPersonality() == null ||
                 item.getProtection().getRpRep().getPersonality().equalsIgnoreCase("source") ||

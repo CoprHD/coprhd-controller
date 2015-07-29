@@ -21,25 +21,25 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class ExecutionContext {
-    
+
     /** Provides access to execution locks. */
     private ExecutionLockManager lockManager;
-    
+
     /** Provides access to data objects. */
     private ModelClient modelClient;
-    
+
     /** The state of the current execution. */
     private ExecutionState executionState;
-    
+
     /** The name of the service being executed. */
     private String serviceName;
-    
+
     /** The parameters available to bind to a service. */
     private Map<String, Object> parameters;
-    
+
     /** The injected values available to execution tasks. */
     private Map<Class<?>, Object> injectedValues;
-    
+
     /** The current rollback list to invoke if an error occurs. */
     private List<ExecutionTask<?>> rollback;
     /** The order id that created the execution context. */
@@ -137,14 +137,14 @@ public class ExecutionContext {
 
     protected ExecutionPhase getExecutionPhase() {
         switch (getExecutionStatus()) {
-        case PRECHECK:
-            return ExecutionPhase.PRECHECK;
-        case EXECUTE:
-            return ExecutionPhase.EXECUTE;
-        case ROLLBACK:
-            return ExecutionPhase.ROLLBACK;
-        default:
-            return ExecutionPhase.NONE;
+            case PRECHECK:
+                return ExecutionPhase.PRECHECK;
+            case EXECUTE:
+                return ExecutionPhase.EXECUTE;
+            case ROLLBACK:
+                return ExecutionPhase.ROLLBACK;
+            default:
+                return ExecutionPhase.NONE;
         }
     }
 

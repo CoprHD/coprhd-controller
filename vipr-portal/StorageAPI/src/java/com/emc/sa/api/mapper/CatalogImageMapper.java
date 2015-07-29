@@ -18,17 +18,17 @@ import com.emc.vipr.model.catalog.CatalogImageCreateParam;
 import com.emc.vipr.model.catalog.CatalogImageRestRep;
 import com.google.common.base.Function;
 
-public class CatalogImageMapper implements Function<CatalogImage,CatalogImageRestRep>{
-    
+public class CatalogImageMapper implements Function<CatalogImage, CatalogImageRestRep> {
+
     public static final CatalogImageMapper instance = new CatalogImageMapper();
-    
+
     public static CatalogImageMapper getInstance() {
         return instance;
     }
-    
+
     private CatalogImageMapper() {
     }
-    
+
     public CatalogImageRestRep apply(CatalogImage resource) {
         return map(resource);
     }
@@ -39,27 +39,27 @@ public class CatalogImageMapper implements Function<CatalogImage,CatalogImageRes
         }
         CatalogImageRestRep to = new CatalogImageRestRep();
         mapDataObjectFields(from, to);
-        
+
         if (from.getTenant() != null) {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, uri(from.getTenant())));
-        }  
-        
+        }
+
         to.setContentType(from.getContentType());
         to.setData(from.getData());
 
         return to;
-    }        
-    
+    }
+
     public static CatalogImage createNewObject(URI tenantId, CatalogImageCreateParam param) {
         CatalogImage newObject = new CatalogImage();
         newObject.setId(URIUtil.createId(CatalogImage.class));
         newObject.setTenant(tenantId.toString());
-        
+
         updateObject(newObject, param);
-        
+
         return newObject;
-    }        
-    
+    }
+
     public static void updateObject(CatalogImage object, CatalogImageCommonParam param) {
         if (param.getName() != null) {
             object.setLabel(param.getName());
@@ -70,6 +70,6 @@ public class CatalogImageMapper implements Function<CatalogImage,CatalogImageRes
         if (param.getData() != null) {
             object.setData(param.getData());
         }
-    }        
-    
+    }
+
 }

@@ -27,7 +27,7 @@ public class ConsistencyGroupFilter extends DefaultResourceFilter<BlockConsisten
 
     @Override
     public boolean accept(BlockConsistencyGroupRestRep item) {
-        if ((allowEmptyType && item.getTypes().isEmpty()) 
+        if ((allowEmptyType && item.getTypes().isEmpty())
                 || (type != null && item.getTypes().contains(type))) {
             return true;
         } else {

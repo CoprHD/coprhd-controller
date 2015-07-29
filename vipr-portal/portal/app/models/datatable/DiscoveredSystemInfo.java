@@ -54,7 +54,7 @@ public class DiscoveredSystemInfo {
         this.statusMessage = DiscoveryStatusUtils.getDiscoveryMessage(data);
         this.errorSummary = DiscoveryStatusUtils.getErrorSummary(data);
         this.errorDetails = DiscoveryStatusUtils.getErrorDetails(data);
-    }    
+    }
 
     public DiscoveredSystemInfo(ComputeElementRestRep data) {
         this.lastDiscoveredDate = DiscoveryStatusUtils.getLastDiscoveryDate(data);
@@ -63,7 +63,7 @@ public class DiscoveredSystemInfo {
         this.errorSummary = DiscoveryStatusUtils.getErrorSummary(data);
         this.errorDetails = DiscoveryStatusUtils.getErrorDetails(data);
     }
-    
+
     public static void addDiscoveryColumns(DataTable dataTable) {
         dataTable.addColumn(LAST_DISCOVERED_DATE).setRenderFunction("render.relativeDate").hidden();
         dataTable.addColumn(DISCOVERY_STATUS).setRenderFunction("render.discoveryStatusIcon");

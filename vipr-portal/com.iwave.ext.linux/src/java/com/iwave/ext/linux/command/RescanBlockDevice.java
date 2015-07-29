@@ -30,7 +30,7 @@ public class RescanBlockDevice extends LinuxCommand {
         }
         setVariableValue(DEVICES, sb.toString());
     }
-    
+
     @Override
     protected void validateCommandLine() throws CommandException {
         requireVariableValues(DEVICES);

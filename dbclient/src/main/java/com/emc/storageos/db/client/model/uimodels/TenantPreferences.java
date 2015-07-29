@@ -50,10 +50,10 @@ public class TenantPreferences extends ModelObject implements TenantDataObject {
         this.approvalUrl = approvalUrl;
         setChanged(APPROVAL_URL);
     }
-    
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), 
+        return new Object[] { getLabel(),
                 getApprovalUrl(), getApproverEmail(), getTenant(), getId() };
-    }     
+    }
 }

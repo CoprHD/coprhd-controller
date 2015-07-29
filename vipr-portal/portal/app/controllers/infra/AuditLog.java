@@ -57,8 +57,7 @@ public class AuditLog extends Controller {
                     if (log.getUserId() == null) {
                         try {
                             log.setUserId(new URI(""));
-                        }
-                        catch (URISyntaxException shouldNotHappen) {
+                        } catch (URISyntaxException shouldNotHappen) {
                             Logger.error(shouldNotHappen, "Error setting UserId to blank");
                         }
                     }
@@ -69,8 +68,7 @@ public class AuditLog extends Controller {
             else {
                 renderJSON(Collections.<String> emptyList());
             }
-        }
-        catch (JAXBException e) {
+        } catch (JAXBException e) {
             error(e);
         }
     }

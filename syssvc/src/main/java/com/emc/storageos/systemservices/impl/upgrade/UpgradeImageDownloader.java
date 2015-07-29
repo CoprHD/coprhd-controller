@@ -29,9 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.services.util.AlertsLogger;
-import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 public class UpgradeImageDownloader {
     private static final Logger _log = LoggerFactory.getLogger(UpgradeImageDownloader.class);
@@ -56,18 +54,18 @@ public class UpgradeImageDownloader {
             tryClose(in);
             return;
         }
-        
+
         Future<DownloadTask> future = (Future<DownloadTask>) _executor.submit(new DownloadTask(prefix, file, in, url, version));
         if (future == null) {
             _log.error(prefix + "Failed!");
             tryClose(in);
             return;
         }
-        
+
         _downloads.put(file.getPath(), future);
         _log.info(prefix + "Download started.");
     }
-    
+
     public void shutdownNow() {
         for (String downloadPath : _downloads.keySet()) {
             final Future<DownloadTask> f = _downloads.get(downloadPath);
@@ -105,50 +103,55 @@ public class UpgradeImageDownloader {
         _log.info("gcDownloads(): {} downloads in progress", inProgress);
         return inProgress;
     }
-    
+
     private static File getTmpFile(File file) {
         return new File(file + ".downloading");
     }
-    
+
     private static void tryClose(final InputStream in) {
         try {
-            if (in != null) in.close();
-        } catch(Exception e) {
+            if (in != null) {
+                in.close();
+            }
+        } catch (Exception e) {
             ;
         }
     }
-    
+
     private static void tryClose(final OutputStream out) {
-        try { 
-            if (out != null) out.close(); 
-        } catch(Exception e) {
+        try {
+            if (out != null) {
+                out.close();
+            }
+        } catch (Exception e) {
             ;
         }
     }
-    
+
     public class DownloadTask implements Runnable {
-        private final String      _prefix;
+        private final String _prefix;
         private final InputStream _in;
-        private final File        _file;
-        private final String      _url;
+        private final File _file;
+        private final String _url;
         private final String _version;
+
         public DownloadTask(final String prefix, final File file, final InputStream in, final String url, String version) {
             _prefix = prefix;
-            _in   = in;
+            _in = in;
             _file = file;
             _url = url;
             _version = version;
         }
-        
+
         @Override
         public void run() {
             _log.info(_prefix + "Background download.");
             download();
-            if(_upgradeManager != null) {
+            if (_upgradeManager != null) {
                 _upgradeManager.wakeup();
             }
         }
-        
+
         private void download() {
 
             if (_file.exists()) {
@@ -158,7 +161,7 @@ public class UpgradeImageDownloader {
                     return;
                 }
             }
-            
+
             final File tmp = getTmpFile(_file);
             if (tmp.exists()) {
                 tmp.delete();
@@ -185,10 +188,11 @@ public class UpgradeImageDownloader {
 
                 UpgradeImageCommon upgradeImage = new UpgradeImageCommon(_in, out, _log, _prefix, _upgradeManager, _version);
                 if (!upgradeImage.start()) {
-                    AlertsLogger.getAlertsLogger().error(MessageFormat.format("Unexpected error downloading image from url \"{0}\". See syssvc logs for details", _url));
+                    AlertsLogger.getAlertsLogger().error(
+                            MessageFormat.format("Unexpected error downloading image from url \"{0}\". See syssvc logs for details", _url));
                     return;
                 }
-                
+
                 if (!tmp.renameTo(_file)) {
                     _log.error(_prefix + "Download failed. Can't rename to: " + tmp);
                     return;
@@ -199,19 +203,19 @@ public class UpgradeImageDownloader {
 
                 long end = System.currentTimeMillis();
                 _log.info(_prefix + "Download successful. Time cost: " + (end - start) / 1000 + " seconds.");
-             } catch (Exception e) {
-                 _log.error(_prefix + "Download failed. " + e);
-             } finally {
-                 tryClose(_in);
-                 tryClose(out);
-                 tmp.delete();
+            } catch (Exception e) {
+                _log.error(_prefix + "Download failed. " + e);
+            } finally {
+                tryClose(_in);
+                tryClose(out);
+                tmp.delete();
             }
         }
     }
 
-    private UpgradeImageDownloader() {}
+    private UpgradeImageDownloader() {
+    }
 
     private final Map<String, Future<DownloadTask>> _downloads = new ConcurrentHashMap<String, Future<DownloadTask>>();
-    private final ExecutorService               _executor  = Executors.newFixedThreadPool(1);
+    private final ExecutorService _executor = Executors.newFixedThreadPool(1);
 }
-

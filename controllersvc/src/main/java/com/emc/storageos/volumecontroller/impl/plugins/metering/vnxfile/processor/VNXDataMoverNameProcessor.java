@@ -37,7 +37,7 @@ public class VNXDataMoverNameProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         final PostMethod result = (PostMethod) resultObj;
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
@@ -70,10 +70,10 @@ public class VNXDataMoverNameProcessor extends VNXFileProcessor {
 
     }
 
-    private void processDataMoverList( List<Object> dmList, Map<String, Object> keyMap ) throws VNXFilePluginException {
+    private void processDataMoverList(List<Object> dmList, Map<String, Object> keyMap) throws VNXFilePluginException {
 
         Iterator<Object> iterator = dmList.iterator();
-        String dmId = (String)keyMap.get(VNXFileConstants.DATAMOVER_ID);
+        String dmId = (String) keyMap.get(VNXFileConstants.DATAMOVER_ID);
 
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
@@ -85,8 +85,8 @@ public class VNXDataMoverNameProcessor extends VNXFileProcessor {
                         continue;
                     }
 
-                    if ( dmId.equals( dm.getMover() ) ) {
-                        keyMap.put( VNXFileConstants.DATAMOVER_NAME, dm.getName() );
+                    if (dmId.equals(dm.getMover())) {
+                        keyMap.put(VNXFileConstants.DATAMOVER_NAME, dm.getName());
                         break;
                     }
                 }
@@ -105,4 +105,3 @@ public class VNXDataMoverNameProcessor extends VNXFileProcessor {
     }
 
 }
-

@@ -24,7 +24,6 @@ import com.emc.vipr.client.core.util.CachedResources;
 
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 
-
 public class ComputeSystemUtils {
     private static final String NAME_NOT_AVAILABLE = "ComputeSystems.nameNotAvailable";
 
@@ -39,8 +38,7 @@ public class ComputeSystemUtils {
     public static ComputeSystemRestRep getComputeSystem(URI id) {
         try {
             return getViprClient().computeSystems().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -52,12 +50,9 @@ public class ComputeSystemUtils {
         return getViprClient().computeSystems().getAll();
     }
 
- 
     public static List<ComputeSystemRestRep> getComputeSystems(Collection<URI> ids) {
         return getViprClient().computeSystems().getByIds(ids);
     }
-
-
 
     public static String getName(ComputeSystemRestRep computeSystem) {
         if (StringUtils.isNotBlank(computeSystem.getName())) {
@@ -67,8 +62,6 @@ public class ComputeSystemUtils {
             return MessagesUtils.get(NAME_NOT_AVAILABLE);
         }
     }
-
-
 
     public static Task<ComputeSystemRestRep> create(ComputeSystemCreate param) {
         return getViprClient().computeSystems().create(param);
@@ -93,7 +86,7 @@ public class ComputeSystemUtils {
     public static Task<ComputeSystemRestRep> discover(URI id) {
         return getViprClient().computeSystems().discover(id);
     }
-    
+
     public static List<ComputeElementRestRep> getComputeElements(String id) {
         return getViprClient().computeSystems().getComputeElements(uri(id));
     }
@@ -101,11 +94,11 @@ public class ComputeSystemUtils {
     public static ComputeElementRestRep getComputeElement(String id) {
         return getViprClient().computeElements().get(uri(id));
     }
-    
+
     public static ComputeElementRestRep rediscoverElement(URI id) {
         return getViprClient().computeElements().rediscover(id);
     }
-    
+
     public static ComputeElementRestRep registerElement(URI id) {
         return getViprClient().computeElements().register(id);
     }
@@ -113,8 +106,8 @@ public class ComputeSystemUtils {
     public static ComputeElementRestRep deregisterElement(URI id) {
         return getViprClient().computeElements().deregister(id);
     }
-    
+
     public static List<ComputeElementRestRep> getAllComputeElements() {
         return getViprClient().computeElements().getAll();
-    }    
+    }
 }

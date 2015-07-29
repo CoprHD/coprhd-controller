@@ -17,18 +17,18 @@ package com.emc.storageos.isilon.restapi;
 import com.google.gson.Gson;
 
 public class IsilonClusterInfo {
-    
+
     public class OnefsVersion {
         private String build;
         private String release;
         private String revision;
         private String type;
         private String version;
-        
+
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("[ build: " + build);
-            str.append(", release: " +  release);
+            str.append(", release: " + release);
             str.append(", revision: " + revision);
             str.append(", type: " + type);
             str.append(", version: " + version + "]");
@@ -51,8 +51,8 @@ public class IsilonClusterInfo {
     private String description;
     private OnefsVersion onefs_version_info;
     private LogOn logon;
-    
-    public void setVersion(String versionStr){
+
+    public void setVersion(String versionStr) {
         onefs_version_info = new Gson().fromJson(versionStr, OnefsVersion.class);
     }
 
@@ -65,5 +65,5 @@ public class IsilonClusterInfo {
         str.append(", version: " + ((onefs_version_info != null) ? onefs_version_info.toString() : ""));
         return str.toString();
     }
-    
+
 }

@@ -10,9 +10,10 @@ import java.util.Set;
 
 public class StorageSystemTypeFilter extends DefaultResourceFilter<StorageSystemRestRep> {
 
-    public static final StorageSystemTypeFilter BLOCK = new StorageSystemTypeFilter("vnxblock", "vmax", "vplex", "hds", "xtremio", "vnxe", "ibmxiv");
-    public static final StorageSystemTypeFilter FILE = new StorageSystemTypeFilter("isilon", "vnxfile", "netapp", "datadomain", "vnxe", "netappc");
-
+    public static final StorageSystemTypeFilter BLOCK = new StorageSystemTypeFilter("vnxblock", "vmax", "vplex", "hds", "xtremio", "vnxe",
+            "ibmxiv");
+    public static final StorageSystemTypeFilter FILE = new StorageSystemTypeFilter("isilon", "vnxfile", "netapp", "datadomain", "vnxe",
+            "netappc");
 
     private Set<String> types;
 
@@ -22,7 +23,7 @@ public class StorageSystemTypeFilter extends DefaultResourceFilter<StorageSystem
 
     public StorageSystemTypeFilter(String... types) {
         this.types = new HashSet<String>();
-        for (String type: types) {
+        for (String type : types) {
             this.types.add(type);
         }
     }

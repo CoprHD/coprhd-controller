@@ -8,7 +8,7 @@ import models.deadbolt.Role;
 
 /**
  * Deadbolt 'Role' that is backed by a string containing the role name.
- *
+ * 
  * @author Chris Dail
  */
 public class StringRole implements Role {
@@ -31,16 +31,16 @@ public class StringRole implements Role {
     @Override
     public boolean equals(Object o) {
         if (this == o) {
-        	return true;
+            return true;
         }
         if (o == null || getClass() != o.getClass()) {
-        	return false;
+            return false;
         }
 
         StringRole that = (StringRole) o;
 
         if (roleName != null ? !roleName.equals(that.roleName) : that.roleName != null) {
-        	return false;
+            return false;
         }
 
         return true;

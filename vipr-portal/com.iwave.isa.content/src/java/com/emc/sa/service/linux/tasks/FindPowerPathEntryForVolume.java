@@ -15,32 +15,32 @@ import com.iwave.ext.linux.model.PowerPathDevice;
 
 public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDevice> {
 
-	private BlockObjectRestRep volume;
+    private BlockObjectRestRep volume;
 
-	public FindPowerPathEntryForVolume(BlockObjectRestRep volume) {
+    public FindPowerPathEntryForVolume(BlockObjectRestRep volume) {
         this.volume = volume;
-	}
-	
-	@Override
-	public PowerPathDevice executeTask() throws Exception {
-		PowerPathDevice entry = findPowerPathEntry(volume);
-		if (entry == null) {
-		    throw stateException("FindPowerPathEntryForVolume.illegalState.noEntries",volume.getWwn().toLowerCase());
-		}
-		logInfo("find.powerpath.wwn", entry);
-		return entry;
-   	}
-	
+    }
+
+    @Override
+    public PowerPathDevice executeTask() throws Exception {
+        PowerPathDevice entry = findPowerPathEntry(volume);
+        if (entry == null) {
+            throw stateException("FindPowerPathEntryForVolume.illegalState.noEntries", volume.getWwn().toLowerCase());
+        }
+        logInfo("find.powerpath.wwn", entry);
+        return entry;
+    }
+
     private PowerPathDevice findPowerPathEntry(BlockObjectRestRep blockVolume) {
         List<PowerPathDevice> entries = executeCommand(new PowerPathInquiry(), SHORT_TIMEOUT);
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
-	    logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
+            logDebug("FindPowerPathEntryForVolume.checking", device.getDevice(), deviceWwn, blockVolume.getWwn());
             if (VolumeWWNUtils.wwnMatches(deviceWwn, blockVolume)) {
                 return device;
             }
         }
-        
+
         entries = executeCommand(new PowerPathInvistaInquiry(), SHORT_TIMEOUT);
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
@@ -49,7 +49,7 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
                 return device;
             }
         }
-        
+
         entries = executeCommand(new PowerPathHDSInquiry(), SHORT_TIMEOUT);
         for (PowerPathDevice device : entries) {
             String deviceWwn = device.getWwn();
@@ -58,9 +58,9 @@ public class FindPowerPathEntryForVolume extends LinuxExecutionTask<PowerPathDev
                 return device;
             }
         }
-        
+
         logDebug("FindMultiPathEntryForVolume.noEntries", blockVolume.getWwn());
         return null;
-	}
+    }
 
 }

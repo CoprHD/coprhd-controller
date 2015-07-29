@@ -15,7 +15,7 @@ public interface ServiceDescriptors {
      * Lists the service descriptors, using the provided locale for i18n localization.
      * 
      * @param locale
-     *        the locale.
+     *            the locale.
      * @return the service descriptors.
      */
     public Collection<ServiceDescriptor> listDescriptors(Locale locale);

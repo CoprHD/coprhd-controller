@@ -93,8 +93,7 @@ public class SchedulerDataManager {
                     hasActiveWindows.await();
                 }
                 windows.putAll(activeWindows);
-            }
-            finally {
+            } finally {
                 lock.unlock();
             }
         }
@@ -106,9 +105,9 @@ public class SchedulerDataManager {
      * Determines if the window is active at the given time.
      * 
      * @param window
-     *        the execution window.
+     *            the execution window.
      * @param time
-     *        the time.
+     *            the time.
      * @return true if the window is active.
      */
     protected boolean isActive(ExecutionWindow window, Calendar time) {
@@ -126,8 +125,7 @@ public class SchedulerDataManager {
         lock.lock();
         try {
             currentWindows.putAll(activeWindows);
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
         return currentWindows;
@@ -138,7 +136,7 @@ public class SchedulerDataManager {
      * windows and all waiting objects are notified.
      * 
      * @param window
-     *        the window to activate.
+     *            the window to activate.
      */
     protected void activateWindow(ExecutionWindow window) {
         lock.lock();
@@ -148,8 +146,7 @@ public class SchedulerDataManager {
                 activeWindows.put(window.getId(), window);
                 hasActiveWindows.signalAll();
             }
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -167,8 +164,7 @@ public class SchedulerDataManager {
                 LOG.info("Deactivate window: " + window.getLabel());
                 activeWindows.remove(window.getId());
             }
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -181,7 +177,7 @@ public class SchedulerDataManager {
      * @return the next scheduled order.
      * 
      * @throws InterruptedException
-     *         if the thread is interrupted.
+     *             if the thread is interrupted.
      */
     public Order lockNextScheduledOrder() throws InterruptedException {
         Order order = null;
@@ -199,7 +195,7 @@ public class SchedulerDataManager {
      * Signals that the order is finished, releasing the tenant lock.
      * 
      * @param order
-     *        the order.
+     *            the order.
      */
     public void unlockOrder(Order order) {
         LOG.debug("Unlocking order " + order.getId());
@@ -213,7 +209,7 @@ public class SchedulerDataManager {
      * @return the next order to be run, or null if none are available.
      * 
      * @throws InterruptedException
-     *         if the thread is interrupted.
+     *             if the thread is interrupted.
      */
     protected Order tryGetNextScheduledOrder() throws InterruptedException {
         // This will wait for an execution window to become active
@@ -233,8 +229,7 @@ public class SchedulerDataManager {
                     }
                 }
             }
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
         // No matching orders
@@ -245,15 +240,14 @@ public class SchedulerDataManager {
      * Determines if the order is locked.
      * 
      * @param order
-     *        the order.
+     *            the order.
      * @return true if the order is locked.
      */
     private boolean isLocked(Order order) {
         lock.lock();
         try {
             return activeOrders.contains(order.getId());
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -262,15 +256,14 @@ public class SchedulerDataManager {
      * Attempts the lock the order. If the order is already active this returns false.
      * 
      * @param order
-     *        the order.
+     *            the order.
      * @return true if the order is successfully locked.
      */
     private boolean lockOrder(Order order) {
         lock.lock();
         try {
             return activeOrders.add(order.getId());
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -279,14 +272,13 @@ public class SchedulerDataManager {
      * Unlocks the order.
      * 
      * @param order
-     *        the order.
+     *            the order.
      */
     private void doUnlockOrder(Order order) {
         lock.lock();
         try {
             activeOrders.remove(order.getId());
-        }
-        finally {
+        } finally {
             lock.unlock();
         }
     }
@@ -295,7 +287,7 @@ public class SchedulerDataManager {
      * Gets the set of tenants from the execution windows.
      * 
      * @param windows
-     *        the execution windows.
+     *            the execution windows.
      * @return the set of tenants.
      */
     protected Set<String> getTenants(Collection<ExecutionWindow> windows) {
@@ -321,9 +313,9 @@ public class SchedulerDataManager {
      * Determines if the order can run in any of the given execution windows.
      * 
      * @param order
-     *        the order.
+     *            the order.
      * @param windows
-     *        the execution windows.
+     *            the execution windows.
      * @return true if the order can run in the windows.
      */
     protected boolean canRunInWindow(Order order, Map<URI, ExecutionWindow> windows) {

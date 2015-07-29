@@ -13,7 +13,7 @@ import com.emc.vipr.client.Task;
 public class DeactivateFileSnapshotShare extends WaitForTask<FileSnapshotRestRep> {
     private final URI fileSnapshotId;
     private final String shareName;
-    
+
     public DeactivateFileSnapshotShare(String fileSnapshotId, String shareName) {
         this(uri(fileSnapshotId), shareName);
     }

@@ -10,72 +10,72 @@ import com.emc.storageos.db.client.model.StringSet;
 
 public class RemoteMirrorObject {
 
-	private String copyMode;
-	
-	private URI raGroupUri;
-	
-	//list of target volume uris
-	private StringSet targetVolumenativeGuids;
-	
-	//source Volume Native Guid
-	private String sourceVolumeNativeGuid;
-	
-	private String type;
-	
-	public enum Types{
-		SOURCE,
-		TARGET
-	}
+    private String copyMode;
 
-	public String getCopyMode() {
-		return copyMode;
-	}
+    private URI raGroupUri;
 
-	public void setCopyMode(String copyMode) {
-		this.copyMode = copyMode;
-	}
+    // list of target volume uris
+    private StringSet targetVolumenativeGuids;
 
-	public URI getRaGroupUri() {
-		return raGroupUri;
-	}
+    // source Volume Native Guid
+    private String sourceVolumeNativeGuid;
 
-	public void setRaGroupUri(URI raGroupUri) {
-		this.raGroupUri = raGroupUri;
-	}
+    private String type;
 
-	public StringSet getTargetVolumenativeGuids() {
-		return targetVolumenativeGuids;
-	}
+    public enum Types {
+        SOURCE,
+        TARGET
+    }
 
-	public void setTargetVolumenativeGuids(StringSet targetVolumenativeGuids) {
-		this.targetVolumenativeGuids = targetVolumenativeGuids;
-	}
+    public String getCopyMode() {
+        return copyMode;
+    }
 
-	public String getSourceVolumeNativeGuid() {
-		return sourceVolumeNativeGuid;
-	}
+    public void setCopyMode(String copyMode) {
+        this.copyMode = copyMode;
+    }
 
-	public void setSourceVolumeNativeGuid(String sourceVolumeNativeGuid) {
-		this.sourceVolumeNativeGuid = sourceVolumeNativeGuid;
-	}
+    public URI getRaGroupUri() {
+        return raGroupUri;
+    }
 
-	public String getType() {
-		return type;
-	}
+    public void setRaGroupUri(URI raGroupUri) {
+        this.raGroupUri = raGroupUri;
+    }
 
-	public void setType(String type) {
-		this.type = type;
-	}
-	
-	public String toString() {
-		StringBuffer buffer = new StringBuffer();
-		buffer.append("Remote Group :");
-		buffer.append(raGroupUri);
-		buffer.append(";Type :");
-		buffer.append(type);
-		buffer.append(";Mode :");
-		buffer.append(copyMode);
-		return buffer.toString();
-	}
-	
+    public StringSet getTargetVolumenativeGuids() {
+        return targetVolumenativeGuids;
+    }
+
+    public void setTargetVolumenativeGuids(StringSet targetVolumenativeGuids) {
+        this.targetVolumenativeGuids = targetVolumenativeGuids;
+    }
+
+    public String getSourceVolumeNativeGuid() {
+        return sourceVolumeNativeGuid;
+    }
+
+    public void setSourceVolumeNativeGuid(String sourceVolumeNativeGuid) {
+        this.sourceVolumeNativeGuid = sourceVolumeNativeGuid;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String toString() {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append("Remote Group :");
+        buffer.append(raGroupUri);
+        buffer.append(";Type :");
+        buffer.append(type);
+        buffer.append(";Mode :");
+        buffer.append(copyMode);
+        return buffer.toString();
+    }
+
 }

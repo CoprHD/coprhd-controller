@@ -22,7 +22,7 @@ public class RestoreBlockSnapshotService extends ViPRService {
 
     @Override
     public void execute() {
-        for (String snapshotId: snapshotIds) {
+        for (String snapshotId : snapshotIds) {
             Task<BlockSnapshotRestRep> task = execute(new RestoreBlockSnapshot(snapshotId));
             addAffectedResource(task);
         }

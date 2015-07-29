@@ -115,7 +115,7 @@ public class VirtualPoolUpdateBuilder {
         virtualPool.setProtocolChanges(changes);
         return this;
     }
-    
+
     protected URI defaultURI(URI uri) {
         if (uri != null) {
             return uri;

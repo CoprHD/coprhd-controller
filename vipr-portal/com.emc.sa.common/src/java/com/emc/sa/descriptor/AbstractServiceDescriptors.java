@@ -18,7 +18,7 @@ public abstract class AbstractServiceDescriptors implements ServiceDescriptors {
     protected abstract ServiceDefinition getServiceDefinition(String serviceId);
 
     public String[] getBundleNames() {
-    	return safeArrayCopy(bundleNames);
+        return safeArrayCopy(bundleNames);
     }
 
     public void setBundleNames(String[] bundleNames) {

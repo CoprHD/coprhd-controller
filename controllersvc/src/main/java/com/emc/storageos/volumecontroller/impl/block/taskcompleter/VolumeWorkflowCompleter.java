@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
@@ -43,29 +42,29 @@ public class VolumeWorkflowCompleter extends VolumeTaskCompleter {
     }
 
     @Override
-    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded){
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         switch (status) {
-        case error:
-            for (URI id : getIds()) {
-                dbClient.error(Volume.class, id, getOpId(), serviceCoded);
-            }
-            if (isNotifyWorkflow()) {
-                WorkflowStepCompleter.stepFailed(getOpId(), serviceCoded);
-            }
-            break;
-        case ready:
-            for (URI id : getIds()) {
-                dbClient.ready(Volume.class, id, getOpId());
-            }
-            if (isNotifyWorkflow()) {
-                WorkflowStepCompleter.stepSucceded(getOpId());
-            }
-            break;
-        default:
-            if (isNotifyWorkflow()) {
-                WorkflowStepCompleter.stepExecuting(getOpId());
-            }
-            break;
+            case error:
+                for (URI id : getIds()) {
+                    dbClient.error(Volume.class, id, getOpId(), serviceCoded);
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepFailed(getOpId(), serviceCoded);
+                }
+                break;
+            case ready:
+                for (URI id : getIds()) {
+                    dbClient.ready(Volume.class, id, getOpId());
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSucceded(getOpId());
+                }
+                break;
+            default:
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepExecuting(getOpId());
+                }
+                break;
         }
     }
 }

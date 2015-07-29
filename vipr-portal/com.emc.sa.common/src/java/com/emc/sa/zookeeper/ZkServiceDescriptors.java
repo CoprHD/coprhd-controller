@@ -43,8 +43,7 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
         try {
             coordinatorClient.start();
             dataManager = coordinatorClient.createDistributedDataManager(ZK_SERVICE_DEFINITION_PATH);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             LOG.error(e);
             throw new RuntimeException("Error Starting ServiceDescriptors", e);
         }
@@ -67,14 +66,12 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
                 for (String serviceId : dataManager.getChildren(ZK_SERVICE_DEFINITION_PATH)) {
                     try {
                         serviceDefinitions.add(getServiceDefinition(serviceId));
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         LOG.error("Failed to get definition for service: " + serviceId, e);
                     }
                 }
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Error listing Service definitions", e);
         }
         return serviceDefinitions;
@@ -87,8 +84,7 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
             if (dataManager.checkExists(path) != null) {
                 return (ServiceDefinition) dataManager.getData(path, false);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Error getting service definition: " + serviceId, e);
         }
         throw new IllegalStateException("Service " + serviceId + " not found");
@@ -111,8 +107,7 @@ public class ZkServiceDescriptors extends AbstractServiceDescriptors {
                 nodeUpdated(path, before, after);
                 // Remove the service from the remaining list
                 remainingDescriptors.remove(service.serviceId);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 LOG.error(String.format("Failed to add Service %s into ZK, path: %s", service.serviceId, path), e);
                 throw e;
             }

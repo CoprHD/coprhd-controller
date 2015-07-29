@@ -19,10 +19,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.Scanner;
-import javax.management.Attribute;
 import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
-import javax.management.InvalidAttributeValueException;
 import javax.management.MalformedObjectNameException;
 import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
@@ -32,8 +30,6 @@ import javax.management.remote.JMXServiceURL;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.sun.tools.attach.VirtualMachine;
@@ -52,18 +48,18 @@ public class LoggingOps {
         JMXConnector conn = initJMXConnector(logName);
 
         try {
-            Object[] params = {level, expirInMin, scope};
-            String[] sigs = {"java.lang.String", "int", "java.lang.String"};
-            initMBeanServerConnection(conn).invoke(initObjectName(), LoggingMBean.OPERATION_SET, 
+            Object[] params = { level, expirInMin, scope };
+            String[] sigs = { "java.lang.String", "int", "java.lang.String" };
+            initMBeanServerConnection(conn).invoke(initObjectName(), LoggingMBean.OPERATION_SET,
                     params, sigs);
         } catch (IOException e) {
-            throw new IllegalStateException("IOException",e);
+            throw new IllegalStateException("IOException", e);
         } catch (MBeanException e) {
-            throw new IllegalStateException("MBeanException",e);
+            throw new IllegalStateException("MBeanException", e);
         } catch (InstanceNotFoundException e) {
-            throw new IllegalStateException("InstanceNotFoundException",e);
+            throw new IllegalStateException("InstanceNotFoundException", e);
         } catch (ReflectionException e) {
-            throw new IllegalStateException("ReflectionException",e);
+            throw new IllegalStateException("ReflectionException", e);
         } finally {
             close(conn);
         }
@@ -73,18 +69,18 @@ public class LoggingOps {
         JMXConnector conn = initJMXConnector(logName);
 
         try {
-            return (String) initMBeanServerConnection(conn).getAttribute(initObjectName(), 
+            return (String) initMBeanServerConnection(conn).getAttribute(initObjectName(),
                     LoggingMBean.ATTRIBUTE_NAME);
         } catch (IOException e) {
-            throw new IllegalStateException("IOException",e);
+            throw new IllegalStateException("IOException", e);
         } catch (MBeanException e) {
-            throw new IllegalStateException("MBeanException",e);
+            throw new IllegalStateException("MBeanException", e);
         } catch (AttributeNotFoundException e) {
-            throw new IllegalStateException("AttributeNotFoundException",e);
+            throw new IllegalStateException("AttributeNotFoundException", e);
         } catch (InstanceNotFoundException e) {
-            throw new IllegalStateException("InstanceNotFoundException",e);
+            throw new IllegalStateException("InstanceNotFoundException", e);
         } catch (ReflectionException e) {
-            throw new IllegalStateException("ReflectionException",e);
+            throw new IllegalStateException("ReflectionException", e);
         } finally {
             close(conn);
         }
@@ -105,18 +101,18 @@ public class LoggingOps {
         try {
             scanner = new Scanner(new File(logPidFileName));
             int pid = scanner.nextInt();
-            log.debug("Got pid {} from pid file {}", pid, logPidFileName); 
+            log.debug("Got pid {} from pid file {}", pid, logPidFileName);
 
             vm = VirtualMachine.attach(String.valueOf(pid));
-            String connectorAddress = 
+            String connectorAddress =
                     vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
             if (connectorAddress == null) {
                 String agent = vm.getSystemProperties().getProperty("java.home") +
-                             File.separator + "lib" + File.separator + 
-                             "management-agent.jar";
+                        File.separator + "lib" + File.separator +
+                        "management-agent.jar";
                 vm.loadAgent(agent);
-         
-                connectorAddress = 
+
+                connectorAddress =
                         vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
             }
 
@@ -125,9 +121,9 @@ public class LoggingOps {
         } catch (FileNotFoundException e) {
             throw new IllegalStateException("Cannot find file " + logPidFileName, e);
         } catch (MalformedURLException e) {
-            throw new IllegalStateException("MalformedURLException:",e);
+            throw new IllegalStateException("MalformedURLException:", e);
         } catch (IOException e) {
-            throw new IllegalStateException("IOException when getting the MBean server" 
+            throw new IllegalStateException("IOException when getting the MBean server"
                     + "connection:", e);
         } catch (AttachNotSupportedException e) {
             throw new IllegalStateException("Process cannot be attached:", e);
@@ -136,8 +132,9 @@ public class LoggingOps {
         } catch (AgentInitializationException e) {
             throw new IllegalStateException("Failed to initialize agent:", e);
         } finally {
-            if (scanner != null)
+            if (scanner != null) {
                 scanner.close();
+            }
 
             if (vm != null) {
                 try {
@@ -150,13 +147,15 @@ public class LoggingOps {
     }
 
     private static MBeanServerConnection initMBeanServerConnection(JMXConnector conn) {
-        if (conn == null)
+        if (conn == null) {
             throw new IllegalStateException("null JMXConnector");
+        }
 
         try {
             MBeanServerConnection mbsc = conn.getMBeanServerConnection();
-            if (mbsc == null)
+            if (mbsc == null) {
                 throw new IllegalStateException("null MBeanServerConnection");
+            }
             return mbsc;
         } catch (IOException e) {
             throw new IllegalStateException("Failed to get MBeanServerConnection:", e);

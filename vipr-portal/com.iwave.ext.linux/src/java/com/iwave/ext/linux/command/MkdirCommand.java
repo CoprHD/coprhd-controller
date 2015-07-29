@@ -13,7 +13,7 @@ import com.iwave.ext.linux.command.LinuxCommand;
  */
 public class MkdirCommand extends LinuxCommand {
     public static final String DIR = "dir";
-    
+
     public MkdirCommand(boolean createParents) {
         setCommand("mkdir");
         if (createParents) {
@@ -22,8 +22,8 @@ public class MkdirCommand extends LinuxCommand {
         addVariable(DIR);
         setRunAsRoot(true);
     }
-    
+
     public void setDir(String dir) {
         setVariableValue(DIR, dir);
-    }    
+    }
 }

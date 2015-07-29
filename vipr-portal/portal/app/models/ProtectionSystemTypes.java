@@ -26,7 +26,7 @@ public class ProtectionSystemTypes {
     public static boolean isRecoverPoint(String type) {
         return RECOVERPOINT.equals(type);
     }
-    
+
     public static boolean isRecoverPointOrNone(String type) {
         return StringUtils.isBlank(type) || isRecoverPoint(type);
     }

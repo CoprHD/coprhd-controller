@@ -18,7 +18,7 @@ public class VerifyDriveLetterIsAvailable extends WindowsExecutionTask<Void> {
         this.usedDriveLetters = usedDriveLetters;
         provideDetailArgs(driveLetter);
     }
-    
+
     @Override
     public void execute() throws Exception {
         if (StringUtils.isBlank(driveLetter)) {
@@ -28,7 +28,7 @@ public class VerifyDriveLetterIsAvailable extends WindowsExecutionTask<Void> {
             }
         }
         else {
-            if (usedDriveLetters.contains(driveLetter+":")) {
+            if (usedDriveLetters.contains(driveLetter + ":")) {
                 String hostname = getTargetSystem().getTarget().getHost();
                 throw stateException("illegalState.VerifyDriveLetterIsAvailable.driveLetterUnavailable", driveLetter, hostname);
             }

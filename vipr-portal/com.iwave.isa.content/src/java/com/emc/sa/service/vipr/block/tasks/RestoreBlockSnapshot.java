@@ -20,7 +20,7 @@ public class RestoreBlockSnapshot extends WaitForTask<BlockSnapshotRestRep> {
     public RestoreBlockSnapshot(URI snapshotId) {
         super();
         this.snapshotId = snapshotId;
-        
+
         provideDetailArgs(snapshotId);
     }
 

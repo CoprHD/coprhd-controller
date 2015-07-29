@@ -29,7 +29,7 @@ public class AcquireHostLock extends ExecutionTask<Void> {
 
         String lockName = host.getId().toString();
         if (!ExecutionUtils.acquireLock(lockName)) {
-        	throw stateException("AcquireHostLock.illegalState.failedHostLock", lockName);
+            throw stateException("AcquireHostLock.illegalState.failedHostLock", lockName);
         }
     }
 
@@ -37,7 +37,7 @@ public class AcquireHostLock extends ExecutionTask<Void> {
         if (cluster != null) {
             String lockName = cluster.getId().toString();
             if (!ExecutionUtils.acquireLock(lockName)) {
-            	throw stateException("AcquireHostLock.illegalState.failedClusterLock", lockName);
+                throw stateException("AcquireHostLock.illegalState.failedClusterLock", lockName);
             }
         }
     }

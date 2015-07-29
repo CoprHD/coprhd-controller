@@ -32,7 +32,7 @@ public class ModelClient {
     private DBClientWrapper client;
 
     // JM -- Don't attempt to instantiate the DAO fields directly, this will be called before the client field
-    //       is initialized in the constructor causing NPEs
+    // is initialized in the constructor causing NPEs
     private ApprovalRequestFinder approvalRequestDAO;
     private CatalogCategoryFinder catalogCategoryDAO;
     private CatalogServiceFinder catalogServiceDAO;
@@ -55,7 +55,7 @@ public class ModelClient {
     private InitiatorFinder initiatorDAO;
     private IpInterfaceFinder ipInterfaceDAO;
     private ClusterFinder clusterDAO;
-    
+
     public ModelClient(DBClientWrapper client) {
         this.client = client;
     }
@@ -88,7 +88,7 @@ public class ModelClient {
     public <T extends DataObject> void delete(List<T> models) throws DataAccessException {
         client.delete(models);
     }
-    
+
     public <T extends DataObject> List<URI> findByType(Class<T> clazz) {
         return client.findAllIds(clazz);
     }
@@ -96,16 +96,16 @@ public class ModelClient {
     public <T extends DataObject> List<T> findByIds(Class<T> clazz, List<URI> ids) {
         return client.findByIds(clazz, ids);
     }
-    
+
     public <T extends DataObject> T findById(Class<T> clazz, URI id) {
         return client.findById(clazz, id);
-    }    
-    
+    }
+
     /**
      * Finds an object by ID.
      * 
      * @param id
-     *        the ID of the object.
+     *            the ID of the object.
      * @return the object.
      */
     public <T extends DataObject> T findById(URI id) {
@@ -125,7 +125,7 @@ public class ModelClient {
      * Finds an object by ID.
      * 
      * @param id
-     *        the ID of the object.
+     *            the ID of the object.
      * @return the object.
      */
     public <T extends DataObject> T findById(String id) {
@@ -134,11 +134,11 @@ public class ModelClient {
         }
         return findById(URI.create(id));
     }
-    
+
     public <T extends DataObject> List<NamedElement> findByAlternateId(Class<T> clazz, String columnField, String value) {
         return client.findByAlternateId(clazz, columnField, value);
     }
-    
+
     public <T extends DataObject> List<NamedElement> findByLabel(Class<T> clazz, String label) {
         return client.findByPrefix(clazz, "label", label);
     }
@@ -177,7 +177,7 @@ public class ModelClient {
         }
         return catalogImageDAO;
     }
-    
+
     public DatacenterFinder datacenters() {
         if (datacenterDAO == null) {
             datacenterDAO = new DatacenterFinder(client);
@@ -233,7 +233,7 @@ public class ModelClient {
         }
         return orderParameterDAO;
     }
-	
+
     @Deprecated
     public RecentServiceFinder recentServices() {
         if (recentServiceDAO == null) {
@@ -257,10 +257,10 @@ public class ModelClient {
     }
 
     public PreferencesFinder preferences() {
-    	if (preferencesFinder == null) {
-    		preferencesFinder = new PreferencesFinder(client);
-    	}
-    	return preferencesFinder;
+        if (preferencesFinder == null) {
+            preferencesFinder = new PreferencesFinder(client);
+        }
+        return preferencesFinder;
     }
 
     public HostFinder hosts() {
@@ -269,36 +269,37 @@ public class ModelClient {
         }
         return hostDAO;
     }
-    
+
     public InitiatorFinder initiators() {
         if (initiatorDAO == null) {
             initiatorDAO = new InitiatorFinder(client);
         }
         return initiatorDAO;
     }
-    
+
     public IpInterfaceFinder ipInterfaces() {
         if (ipInterfaceDAO == null) {
             ipInterfaceDAO = new IpInterfaceFinder(client);
         }
         return ipInterfaceDAO;
     }
-    
+
     public ClusterFinder clusters() {
         if (clusterDAO == null) {
             clusterDAO = new ClusterFinder(client);
         }
         return clusterDAO;
     }
-    
+
     private TenantPreferencesFinder tenantPreferencesDAO;
+
     public TenantPreferencesFinder tenantPreferences() {
         if (tenantPreferencesDAO == null) {
             tenantPreferencesDAO = new TenantPreferencesFinder(client);
         }
         return tenantPreferencesDAO;
     }
-    
+
     private <T extends DataObject> boolean isNew(T model) {
         if (model != null) {
             // We automatically set ID/creation time so they will be null for new objects only

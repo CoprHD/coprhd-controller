@@ -22,6 +22,6 @@ public class InMemoryOrderNumberSequence implements OrderNumberSequence {
 
     @Override
     public long nextOrderNumber() {
-    	return currentOrderNumber.getAndIncrement();
+        return currentOrderNumber.getAndIncrement();
     }
 }

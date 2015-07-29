@@ -17,24 +17,23 @@ public class UpdateFileSnapshotExport extends WaitForTask<FileSnapshotRestRep> {
     private final URI fileSystemId;
     private final String subDirectory;
     private final SnapshotExportUpdateParams input;
-    
+
     public UpdateFileSnapshotExport(String fileSystemId, String subDirectory, SnapshotExportUpdateParams input) {
         this(uri(fileSystemId), subDirectory, input);
     }
-    
+
     public UpdateFileSnapshotExport(URI fileSystemId, String subDirectory, SnapshotExportUpdateParams input) {
         this.fileSystemId = fileSystemId;
         this.subDirectory = subDirectory;
         this.input = input;
         provideDetailArgs(fileSystemId, subDirectory, input);
     }
-    
-    
+
     @Override
     protected Task<FileSnapshotRestRep> doExecute() throws Exception {
         // Don't pass a blank sub-directory to getExport
         String subDir = StringUtils.defaultIfEmpty(subDirectory, null);
         return getClient().fileSnapshots().updateExport(fileSystemId, subDir, input);
     }
-    
+
 }

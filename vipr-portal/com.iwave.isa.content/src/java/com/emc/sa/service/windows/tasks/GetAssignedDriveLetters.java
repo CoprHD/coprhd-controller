@@ -18,7 +18,7 @@ public class GetAssignedDriveLetters extends WindowsExecutionTask<Set<String>> {
     public Set<String> executeTask() throws Exception {
         Set<String> driveLetters = Sets.newTreeSet();
         List<Volume> volumes = getTargetSystem().listVolumes();
-        for ( Volume volume : volumes) {
+        for (Volume volume : volumes) {
             driveLetters.add(volume.getDriveLetter());
         }
         return driveLetters;

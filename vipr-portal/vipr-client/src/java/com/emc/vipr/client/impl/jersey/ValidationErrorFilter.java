@@ -34,7 +34,8 @@ public class ValidationErrorFilter extends ClientFilter {
         ClientResponse response = getNext().handle(request);
         int status = response.getStatus();
         if (supportsPortalValidation(request) && status == 400) {
-            List<ValidationError> errorsList = ApiListUtils.getEntityList(config, new GenericType<List<ValidationError>>() {}, response);
+            List<ValidationError> errorsList = ApiListUtils.getEntityList(config, new GenericType<List<ValidationError>>() {
+            }, response);
             ValidationException exception = new ValidationException(response.getStatus(), errorsList);
             LOG.error(exception.getMessage());
             throw exception;

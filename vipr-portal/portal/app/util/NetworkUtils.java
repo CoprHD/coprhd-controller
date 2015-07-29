@@ -50,8 +50,7 @@ public class NetworkUtils {
     public static NetworkRestRep getNetwork(URI id) {
         try {
             return getViprClient().networks().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }

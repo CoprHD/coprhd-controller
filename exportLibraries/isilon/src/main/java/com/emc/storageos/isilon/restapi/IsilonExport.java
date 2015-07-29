@@ -18,13 +18,12 @@ package com.emc.storageos.isilon.restapi;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /*
  * Class representing the isilon export object
  * member names should match the key names in json object
  */
 
-@SuppressWarnings({"squid:S00100"})
+@SuppressWarnings({ "squid:S00100" })
 /*
  * Isilon API return with json fields has underline.
  */
@@ -34,7 +33,8 @@ public class IsilonExport {
         private String user;
         private ArrayList<String> groups;
 
-        public IsilonIdentity() {}
+        public IsilonIdentity() {
+        }
 
         public IsilonIdentity(String u, ArrayList<String> grps) {
             user = u;
@@ -42,7 +42,7 @@ public class IsilonExport {
         }
 
         public String toString() {
-            return "Identity (user: "+user+", groups: "+groups+")";
+            return "Identity (user: " + user + ", groups: " + groups + ")";
         }
 
         public String getUser() {
@@ -54,26 +54,26 @@ public class IsilonExport {
         }
     }
 
-    private Integer             id;
-    private String              description;
-    private ArrayList<String>   paths;
-    private ArrayList<String>   conflicting_paths;
+    private Integer id;
+    private String description;
+    private ArrayList<String> paths;
+    private ArrayList<String> conflicting_paths;
 
-    private ArrayList<String>   clients;
-    private ArrayList<String>   root_clients;
-    private ArrayList<String>   read_only_clients;
-    private ArrayList<String>   read_write_clients;
-    private ArrayList<String>   unresolved_clients;
+    private ArrayList<String> clients;
+    private ArrayList<String> root_clients;
+    private ArrayList<String> read_only_clients;
+    private ArrayList<String> read_write_clients;
+    private ArrayList<String> unresolved_clients;
 
-    private boolean             all_dirs;
-    private boolean             read_only;
-    private IsilonIdentity      map_all;
-    private IsilonIdentity      map_root;
+    private boolean all_dirs;
+    private boolean read_only;
+    private IsilonIdentity map_all;
+    private IsilonIdentity map_root;
 
+    private ArrayList<String> security_flavors;   // security type
 
-    private ArrayList<String>              security_flavors;   // security type
-
-    public IsilonExport () {}
+    public IsilonExport() {
+    }
 
     public Integer getId() {
         return id;
@@ -123,64 +123,68 @@ public class IsilonExport {
         this.paths = paths;
     }
 
-    public void addPath (String path) {
+    public void addPath(String path) {
         if (paths == null) {
-            paths = new ArrayList<String> ();
+            paths = new ArrayList<String>();
         }
         paths.add(path);
     }
 
-    public void addClients (List<String> endpoints) {
+    public void addClients(List<String> endpoints) {
         if (clients == null) {
-            clients = new ArrayList<String> ();
+            clients = new ArrayList<String>();
         }
         clients.addAll(endpoints);
     }
 
-    public void addClient (String endpoint) {
+    public void addClient(String endpoint) {
         if (clients == null) {
-            clients = new ArrayList<String> ();
+            clients = new ArrayList<String>();
         }
         clients.add(endpoint);
     }
 
-    public void addRootClient (String client) {
+    public void addRootClient(String client) {
         if (root_clients == null) {
-            root_clients = new ArrayList<String> ();
+            root_clients = new ArrayList<String>();
         }
         root_clients.add(client);
     }
 
-    public void addRootClients (List<String> endpoints) {
+    public void addRootClients(List<String> endpoints) {
         if (root_clients == null) {
-            root_clients = new ArrayList<String> ();
+            root_clients = new ArrayList<String>();
         }
         root_clients.addAll(endpoints);
     }
 
-    public void addReadWriteClients (List<String> endpoints) {
+    public void addReadWriteClients(List<String> endpoints) {
         if (read_write_clients == null) {
-            read_write_clients = new ArrayList<String> ();
+            read_write_clients = new ArrayList<String>();
         }
         read_write_clients.addAll(endpoints);
     }
 
-    public void addReadOnlyClients (List<String> endpoints) {
+    public void addReadOnlyClients(List<String> endpoints) {
         if (read_only_clients == null) {
-            read_only_clients = new ArrayList<String> ();
+            read_only_clients = new ArrayList<String>();
         }
         read_only_clients.addAll(endpoints);
     }
 
     public void setAllDirs() {
-       all_dirs = true;
+        all_dirs = true;
     }
 
-    public boolean getAllDirs() { return all_dirs; }
+    public boolean getAllDirs() {
+        return all_dirs;
+    }
 
-    public void resetAllDirs() { all_dirs = false; }
+    public void resetAllDirs() {
+        all_dirs = false;
+    }
 
-    public void setReadOnly () {
+    public void setReadOnly() {
         read_only = true;
     }
 
@@ -188,12 +192,12 @@ public class IsilonExport {
         return read_only;
     }
 
-    public void resetReadOnly () {
+    public void resetReadOnly() {
         read_only = false;
     }
 
     // for now, fix this, till we figure out how to deal with this
-    public  void setMapRoot(String user) {
+    public void setMapRoot(String user) {
         ArrayList<String> groups = new ArrayList<String>();
         map_root = new IsilonIdentity(user, groups);
     }
@@ -202,7 +206,7 @@ public class IsilonExport {
         return map_root;
     }
 
-    public  void setMapAll(String user) {
+    public void setMapAll(String user) {
         ArrayList<String> groups = new ArrayList<String>();
         map_all = new IsilonIdentity(user, groups);
     }
@@ -227,7 +231,7 @@ public class IsilonExport {
         this.security_flavors = securityFlavors;
     }
 
-    public String toString () {
+    public String toString() {
         StringBuilder str = new StringBuilder();
         str.append("Export (id: " + id);
         str.append(", description: " + description);
@@ -239,8 +243,8 @@ public class IsilonExport {
         str.append(", security: " + security_flavors);
         str.append(", read_only: " + read_only);
         str.append(", all_dirs: " + all_dirs);
-        str.append(", map_root: " + ((map_root!=null) ? map_root.toString(): ""));
-        str.append(", map_all: " + ((map_all!=null) ? map_all.toString(): ""));
+        str.append(", map_root: " + ((map_root != null) ? map_root.toString() : ""));
+        str.append(", map_all: " + ((map_all != null) ? map_all.toString() : ""));
         str.append(")");
         return str.toString();
     }

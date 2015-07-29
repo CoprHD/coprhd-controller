@@ -61,14 +61,13 @@ public class BootVolumeHelper implements ViPRTaskHandler<VolumeRestRep> {
         for (Host host : hosts) {
             try {
                 tasks.add(createBootVolume(host));
-            }
-            catch (ExecutionException e) {
+            } catch (ExecutionException e) {
                 context.logError("computeutils.makebootvolumes.failure", host.getHostName(), e.getMessage());
             }
         }
         if (!ExecutionUtils.waitForTask(tasks, this)) {
             // TODO: Re-throw the error?
-            //ExecutionUtils.checkForError(tasks);
+            // ExecutionUtils.checkForError(tasks);
         }
     }
 
@@ -76,7 +75,7 @@ public class BootVolumeHelper implements ViPRTaskHandler<VolumeRestRep> {
      * Gets the name to use for the boot volume.
      * 
      * @param host
-     *        the host for the boot volume.
+     *            the host for the boot volume.
      * @return the boot volume name.
      */
     private String getBootVolumeName(Host host) {
@@ -94,7 +93,7 @@ public class BootVolumeHelper implements ViPRTaskHandler<VolumeRestRep> {
      * Determines if the given volume name is already taken.
      * 
      * @param name
-     *        the name to test.
+     *            the name to test.
      * @return true if the volume name is avaiable for use.
      */
     private boolean isVolumeNameTaken(String name) {
@@ -105,7 +104,7 @@ public class BootVolumeHelper implements ViPRTaskHandler<VolumeRestRep> {
      * Creates a boot volume for the given host.
      * 
      * @param host
-     *        the host to create the boot volume for.
+     *            the host to create the boot volume for.
      * @return the task for monitoring the volume creation.
      */
     private ViPRTaskMonitor<VolumeRestRep> createBootVolume(Host host) {
@@ -127,8 +126,7 @@ public class BootVolumeHelper implements ViPRTaskHandler<VolumeRestRep> {
             try {
                 ExecutionUtils.execute(new SetBootVolume(host, volume.getId()));
                 successfulHosts.add(host.getId());
-            }
-            catch (ExecutionException e) {
+            } catch (ExecutionException e) {
                 ExecutionUtils.currentContext().logError(e, "SetBootVolume.failure", host.getHostName(),
                         volume.getName());
             }

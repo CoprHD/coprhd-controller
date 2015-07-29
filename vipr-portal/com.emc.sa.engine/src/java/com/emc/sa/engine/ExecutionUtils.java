@@ -82,8 +82,7 @@ public class ExecutionUtils {
 
             context.updateCurrentTask(log, task, elapsedTime);
             return result;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             long elapsedTime = System.currentTimeMillis() - startTime;
             context.updateCurrentTask(log, task, elapsedTime, e);
             throw new ExecutionException(e);
@@ -103,8 +102,7 @@ public class ExecutionUtils {
             injectValues(task, context);
             Task<T> result = task.executeTask();
             return new ViPRTaskMonitor<T>(context, log, result);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             long elapsedTime = System.currentTimeMillis() - startTime;
             context.updateCurrentTask(log, task, elapsedTime, e);
             throw new ExecutionException(e);
@@ -124,8 +122,7 @@ public class ExecutionUtils {
             injectValues(task, context);
             Tasks<T> result = task.executeTask();
             return new ViPRTasksMonitor<T>(context, log, result);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             long elapsedTime = System.currentTimeMillis() - startTime;
             context.updateCurrentTask(log, task, elapsedTime, e);
             throw new ExecutionException(e);
@@ -136,9 +133,9 @@ public class ExecutionUtils {
      * Injects any values into the execution task.
      * 
      * @param task
-     *        the execution task.
+     *            the execution task.
      * @param context
-     *        the execution context.
+     *            the execution context.
      */
     public static <T> void injectValues(ExecutionTask<T> task, ExecutionContext context) {
         Injector.inject(task, context.getInjectedValues());
@@ -152,7 +149,7 @@ public class ExecutionUtils {
      * Removes a rollback task of a certain type.
      * 
      * @param type
-     *        the type of the rollback task.
+     *            the type of the rollback task.
      */
     public static void removeRollback(Class<? extends ExecutionTask<?>> type) {
         Iterator<ExecutionTask<?>> iter = currentContext().getRollback().iterator();
@@ -205,8 +202,7 @@ public class ExecutionUtils {
             if (StringUtils.isNotBlank(message)) {
                 return message;
             }
-        }
-        catch (MissingResourceException e) {
+        } catch (MissingResourceException e) {
             // fall out and return the original key
         }
 
@@ -219,9 +215,9 @@ public class ExecutionUtils {
      * 
      * 
      * @param tasks
-     *        the tasks to monitor.
+     *            the tasks to monitor.
      * @param handler
-     *        the task handler.
+     *            the task handler.
      * @return true if all tasks completed successfully.
      */
     public static <T> boolean waitForTask(List<ViPRTaskMonitor<T>> tasks, ViPRTaskHandler<T> handler) {
@@ -232,11 +228,11 @@ public class ExecutionUtils {
      * Waits for a list of tasks to complete, handling each as they complete.
      * 
      * @param tasks
-     *        the tasks to monitor.
+     *            the tasks to monitor.
      * @param handler
-     *        the task handler.
+     *            the task handler.
      * @param delay
-     *        the delay between each round of task polling.
+     *            the delay between each round of task polling.
      * @return true if all tasks completed successfully.
      */
     public static <T> boolean waitForTask(List<ViPRTaskMonitor<T>> tasks, ViPRTaskHandler<T> handler, long delay) {
@@ -266,8 +262,7 @@ public class ExecutionUtils {
                 }
             }
             return hasErrors;
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ExecutionException(e);
         }
@@ -277,9 +272,9 @@ public class ExecutionUtils {
      * Completes a task using the given handler.
      * 
      * @param task
-     *        the task that was completed.
+     *            the task that was completed.
      * @param handler
-     *        the task handler.
+     *            the task handler.
      * @return true if the task completed successfully.
      */
     private static <T> boolean completeTask(ViPRTaskMonitor<T> task, ViPRTaskHandler<T> handler) {
@@ -287,8 +282,7 @@ public class ExecutionUtils {
             T value = task.getValue();
             handler.onSuccess(task.getTask(), value);
             return true;
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             handler.onFailure(task.getTask(), e);
             return false;
         }
@@ -298,7 +292,7 @@ public class ExecutionUtils {
      * Checks for any errors in the tasks and throws the first found error.
      * 
      * @param tasks
-     *        the tasks to check.
+     *            the tasks to check.
      */
     public static <T> void checkForError(List<ViPRTaskMonitor<T>> tasks) {
         for (ViPRTaskMonitor<T> task : tasks) {
@@ -312,7 +306,7 @@ public class ExecutionUtils {
      * Interface used to provide common task handling to a group of tasks.
      * 
      * @param <T>
-     *        the return type of the task.
+     *            the return type of the task.
      */
     public static interface ViPRTaskHandler<T> {
         public void onSuccess(Task<T> task, T value);

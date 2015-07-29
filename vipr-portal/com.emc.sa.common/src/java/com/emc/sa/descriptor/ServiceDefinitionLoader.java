@@ -38,8 +38,7 @@ public class ServiceDefinitionLoader {
                 else {
                     LOG.warn("Error reading service definition " + resource.getDescription());
                 }
-            }
-            catch (IOException | RuntimeException e) {
+            } catch (IOException | RuntimeException e) {
                 LOG.error("Error reading service definition: " + resource.getDescription(), e);
             }
         }

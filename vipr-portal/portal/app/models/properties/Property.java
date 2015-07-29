@@ -104,7 +104,7 @@ public class Property {
     public boolean isEncryptedField() {
         return metadata.getType().contains(ENCRYPTED);
     }
-    
+
     public boolean isBooleanField() {
         return booleanField || metadata.getType().equalsIgnoreCase(BOOLEAN);
     }
@@ -137,7 +137,7 @@ public class Property {
     public int getMaxLength() {
         String type = metadata.getType();
         Integer maxLen = metadata.getMaxLen();
-        
+
         Set<String> numericTypes = Sets.newHashSet(PERCENT, UINT8, UINT16, UINT32, UINT64);
         if (numericTypes.contains(type)) {
             if (maxLen == null) {
@@ -257,7 +257,7 @@ public class Property {
     }
 
     public void setBooleanField(boolean b) {
-        this.booleanField = b;        
+        this.booleanField = b;
     }
 
 }

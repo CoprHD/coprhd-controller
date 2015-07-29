@@ -16,24 +16,22 @@ import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsume
 public class OrderCompletionConsumer extends DistributedQueueConsumer<OrderMessage> {
 
     private static final Logger log = Logger.getLogger(OrderCompletionConsumer.class);
-    
+
     private OrderManagerImpl orderManager;
-    
+
     public OrderCompletionConsumer(OrderManagerImpl orderManager) {
         this.orderManager = orderManager;
     }
-    
+
     @Override
     public void consumeItem(OrderMessage message, DistributedQueueItemProcessedCallback callback) throws Exception {
         try {
             log.info("Order completed: " + message.getOrderId());
             Order order = orderManager.getOrderById(uri(message.getOrderId()));
             orderManager.processOrder(order);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Failed to process order completion notification", e);
-        }
-        finally {
+        } finally {
             callback.itemProcessed();
         }
     }

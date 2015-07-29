@@ -11,13 +11,13 @@ public class RestartServiceJob extends Job {
     private ViPRSystemClient client;
     private String serviceName;
     private String nodeId;
-    
-    public RestartServiceJob (ViPRSystemClient client, String serviceName, String nodeId) {
+
+    public RestartServiceJob(ViPRSystemClient client, String serviceName, String nodeId) {
         this.client = client;
         this.serviceName = serviceName;
         this.nodeId = nodeId;
     }
-    
+
     @Override
     public void doJob() throws Exception {
         client.control().restartService(nodeId, serviceName);

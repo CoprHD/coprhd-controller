@@ -19,7 +19,6 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.db.client.model.Cluster;
 
-
 @Service("UpdateVcenterCluster")
 public class UpdateVcenterClusterService extends ViPRService {
 
@@ -29,7 +28,7 @@ public class UpdateVcenterClusterService extends ViPRService {
     @Param(PROJECT)
     protected URI project;
 
-	@Param(VCENTER)
+    @Param(VCENTER)
     protected URI vcenterId;
 
     @Param(DATACENTER)
@@ -39,12 +38,12 @@ public class UpdateVcenterClusterService extends ViPRService {
     public void precheck() throws Exception {
 
         StringBuilder preCheckErrors = new StringBuilder();
-        
+
         Cluster cluster = BlockStorageUtils.getCluster(clusterId);
         if (cluster == null) {
             preCheckErrors.append(
-            		ExecutionUtils.getMessage("compute.vcenter.cluster.does.not.exist.update", clusterId) + " ");
-        }               
+                    ExecutionUtils.getMessage("compute.vcenter.cluster.does.not.exist.update", clusterId) + " ");
+        }
 
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
@@ -53,30 +52,30 @@ public class UpdateVcenterClusterService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-    	Cluster cluster = BlockStorageUtils.getCluster(clusterId);
-    	
-    	// If the cluster already has a datacenter associated with it,
-    	// it needs to be updated, else create.
-    	URI existingDatacenterId = cluster.getVcenterDataCenter();
-    	boolean status = false;
-    	if(existingDatacenterId == null) {
-    		logInfo("vcenter.cluster.create", cluster.getLabel());
-    		status = ComputeUtils.createVcenterCluster(cluster, datacenterId);
-    		if (!status) {
+        Cluster cluster = BlockStorageUtils.getCluster(clusterId);
+
+        // If the cluster already has a datacenter associated with it,
+        // it needs to be updated, else create.
+        URI existingDatacenterId = cluster.getVcenterDataCenter();
+        boolean status = false;
+        if (existingDatacenterId == null) {
+            logInfo("vcenter.cluster.create", cluster.getLabel());
+            status = ComputeUtils.createVcenterCluster(cluster, datacenterId);
+            if (!status) {
                 throw new IllegalStateException(
                         ExecutionUtils.getMessage("vcenter.cluster.create.failed", cluster.getLabel() + " "));
-    		}
-    	}
-    	else {
-    		logInfo("vcenter.cluster.update", cluster.getLabel());
-    		status = ComputeUtils.updateVcenterCluster(cluster, datacenterId);
-    		if (!status) {
+            }
+        }
+        else {
+            logInfo("vcenter.cluster.update", cluster.getLabel());
+            status = ComputeUtils.updateVcenterCluster(cluster, datacenterId);
+            if (!status) {
                 throw new IllegalStateException(
                         ExecutionUtils.getMessage("vcenter.cluster.update.failed", cluster.getLabel() + " "));
-    		}
-    	}
-	}
-    
+            }
+        }
+    }
+
     public URI getClusterId() {
         return clusterId;
     }
@@ -92,20 +91,20 @@ public class UpdateVcenterClusterService extends ViPRService {
     public void setProject(URI project) {
         this.project = project;
     }
- 
+
     public URI getVcenterId() {
-		return vcenterId;
-	}
+        return vcenterId;
+    }
 
-	public void setVcenterId(URI vcenterId) {
-		this.vcenterId = vcenterId;
-	}
+    public void setVcenterId(URI vcenterId) {
+        this.vcenterId = vcenterId;
+    }
 
-	public URI getDatacenterId() {
-		return datacenterId;
-	}
+    public URI getDatacenterId() {
+        return datacenterId;
+    }
 
-	public void setDatacenterId(URI datacenterId) {
-		this.datacenterId = datacenterId;
-	}
+    public void setDatacenterId(URI datacenterId) {
+        this.datacenterId = datacenterId;
+    }
 }

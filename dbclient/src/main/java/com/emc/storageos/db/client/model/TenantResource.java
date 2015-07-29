@@ -26,10 +26,11 @@ public interface TenantResource {
 
     /**
      * Returns the list of parameters used in audit logs for this resource.
+     * 
      * @return the list of parameters used in audit logs for this resource.
      */
     public Object[] auditParameters();
-    
+
     /**
      * Return the data object instance that backs this interface
      * 

@@ -67,11 +67,9 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
             factory.autowireBean(newService);
             factory.initializeBean(newService, serviceName);
             return newService;
-        }
-        catch (InstantiationException e) {
+        } catch (InstantiationException e) {
             throw new UnhandledException(e);
-        }
-        catch (IllegalAccessException e) {
+        } catch (IllegalAccessException e) {
             throw new UnhandledException(e);
         }
     }

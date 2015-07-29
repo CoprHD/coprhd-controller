@@ -35,7 +35,7 @@ import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 
 @With(Common.class)
-@Restrictions({@Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+@Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class Licensing extends Controller {
     public static void index() {
         LicenseFeatureDataTable dataTable = new LicenseFeatureDataTable();
@@ -55,7 +55,7 @@ public class Licensing extends Controller {
         StorageStatsWrapper storageStatsWrapper = getStats();
 
         LicenseFeature lf = null;
-        for (LicenseFeature feature: license.getLicenseFeatures()) {
+        for (LicenseFeature feature : license.getLicenseFeatures()) {
             if (StringUtils.equalsIgnoreCase(feature.getModelId(), id)) {
                 lf = feature;
             }
@@ -67,23 +67,21 @@ public class Licensing extends Controller {
         try {
             StorageStats storageStats = getSysClient().health().getStorageStats();
             return new StorageStatsWrapper(storageStats);
-        }
-        catch(ViPRException e) {
+        } catch (ViPRException e) {
             // gfl - Call will fail if object service isn't running
             flashException(e);
             Logger.warn("Failed to retrieve /monitor/storage");
         }
         return null;
     }
-    
+
     public static void uploadLicense(File newLicenseFile) {
 
         String newLicenseText = null;
         if (newLicenseFile != null) {
             try {
                 newLicenseText = FileUtils.readFileToString(newLicenseFile);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 newLicenseText = null;
                 Validation.addError("newLicenseFile", MessagesUtils.get("license.invalidLicenseFile"));
                 Logger.error(e, "Failed to read license text file");
@@ -92,7 +90,7 @@ public class Licensing extends Controller {
         else {
             Validation.addError("newLicenseFile", MessagesUtils.get("license.licenseFileIsRequired"));
         }
-        
+
         if (StringUtils.isNotBlank(newLicenseText)) {
             LicenseUtils.updateLicenseText(newLicenseText);
             flash.success(MessagesUtils.get("license.licenseFileUpdated"));
@@ -100,11 +98,11 @@ public class Licensing extends Controller {
         else {
             flash.error(MessagesUtils.get("license.uploadFailed"));
         }
-        
+
         if (Validation.hasErrors()) {
             validation.keep();
         }
-        
+
         index();
     }
 }

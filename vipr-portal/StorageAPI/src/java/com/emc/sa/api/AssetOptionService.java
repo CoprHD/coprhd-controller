@@ -58,7 +58,7 @@ public class AssetOptionService extends CatalogResourceService {
         }
         return context;
     }
-    
+
     @POST
     @Path("/{assetType}")
     @Consumes({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
@@ -80,10 +80,10 @@ public class AssetOptionService extends CatalogResourceService {
             response.setOptions(options);
 
             return response;
-        } catch(IllegalStateException e) {
+        } catch (IllegalStateException e) {
             Response response = Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
             throw new WebApplicationException(response);
-        } catch(ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 Response response = Response.status(Response.Status.BAD_REQUEST).entity(e.getMessage()).type(MediaType.TEXT_PLAIN).build();
                 throw new WebApplicationException(response);
@@ -99,11 +99,11 @@ public class AssetOptionService extends CatalogResourceService {
             AssetDependencyRequest request) {
 
         final Set<String> availableAssetTypes = request.getAvailableAssetTypes();
-	final String sanitizedAssetType = SecurityUtils.stripXSS(assetType);
+        final String sanitizedAssetType = SecurityUtils.stripXSS(assetType);
 
         log.info("Retrieving asset dependencies for " + sanitizedAssetType + " with available assets : "
                 + StringUtils.join(availableAssetTypes, ", "));
-        
+
         List<String> dependencies = assetOptionsManager.getAssetDependencies(sanitizedAssetType, availableAssetTypes);
 
         AssetDependencyResponse response = new AssetDependencyResponse();

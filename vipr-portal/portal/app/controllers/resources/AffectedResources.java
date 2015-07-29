@@ -49,24 +49,24 @@ public class AffectedResources extends Controller {
     public static ResourceDetails resourceDetails(String resourceId) {
         URI id = uri(resourceId);
         switch (ResourceType.fromResourceId(resourceId)) {
-        case VOLUME:
-            return new VolumeDetails(id);
-        case EXPORT_GROUP:
-            return new ExportGroupDetails(id);
-        case FILE_SHARE:
-            return new FileSystemDetails(id);
-        case FILE_SNAPSHOT:
-            return new FileSnapshotDetails(id);
-        case BLOCK_SNAPSHOT:
-            return new BlockSnapshotDetails(id);
-        case CONSISTENCY_GROUP:
-            return new BlockConsistencyGroupDetails(id);
-        case HOST:
-            return new HostDetails(id);
-        case CLUSTER:
-            return new ClusterDetails(id);
-        default:
-            return null;
+            case VOLUME:
+                return new VolumeDetails(id);
+            case EXPORT_GROUP:
+                return new ExportGroupDetails(id);
+            case FILE_SHARE:
+                return new FileSystemDetails(id);
+            case FILE_SNAPSHOT:
+                return new FileSnapshotDetails(id);
+            case BLOCK_SNAPSHOT:
+                return new BlockSnapshotDetails(id);
+            case CONSISTENCY_GROUP:
+                return new BlockConsistencyGroupDetails(id);
+            case HOST:
+                return new HostDetails(id);
+            case CLUSTER:
+                return new ClusterDetails(id);
+            default:
+                return null;
         }
     }
 
@@ -77,45 +77,41 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.blockVolumes().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve volume: %s", id);
         }
         return null;
     }
-    
+
     private static HostRestRep getHost(ViPRCoreClient client, URI id) {
         try {
             if (id != null) {
                 return client.hosts().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve host: %s", id);
         }
         return null;
     }
-    
+
     private static ClusterRestRep getCluster(ViPRCoreClient client, URI id) {
         try {
             if (id != null) {
                 return client.clusters().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve host: %s", id);
         }
         return null;
     }
-    
+
     private static List<HostRestRep> getClusterHosts(ViPRCoreClient client, URI id) {
         try {
             if (id != null) {
                 List<NamedRelatedResourceRep> hosts = client.hosts().listByCluster(id);
                 return client.hosts().getByIds(refIds(hosts));
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve hosts for cluster: %s", id);
         }
         return null;
@@ -126,8 +122,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.blockExports().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve export group: %s", id);
         }
         return null;
@@ -183,8 +178,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.varrays().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve virtual array: %s", id);
         }
         return null;
@@ -195,8 +189,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.blockVpools().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve block virtual pool: %s", id);
         }
         return null;
@@ -207,8 +200,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.fileVpools().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve file virtual pool: %s", id);
         }
         return null;
@@ -219,8 +211,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.fileSystems().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve file system: %s", id);
         }
         return null;
@@ -231,8 +222,7 @@ public class AffectedResources extends Controller {
             if (fileSystemId != null) {
                 return client.fileSystems().getExports(fileSystemId);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve exports for file system: %s", fileSystemId);
         }
         return Lists.newArrayList();
@@ -243,8 +233,7 @@ public class AffectedResources extends Controller {
             if (fileSystemId != null) {
                 return client.fileSystems().getShares(fileSystemId);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve shares for file system: %s", fileSystemId);
         }
         return Lists.newArrayList();
@@ -255,8 +244,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.blockSnapshots().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve block snapshot: %s", id);
         }
         return null;
@@ -267,8 +255,7 @@ public class AffectedResources extends Controller {
             if (volumeId != null && mirrorId != null) {
                 return client.blockVolumes().getContinuousCopy(volumeId, mirrorId);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve block continuous copy: %s for volume: %s", mirrorId, volumeId);
         }
         return null;
@@ -279,8 +266,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.blockConsistencyGroups().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve block consistency group: %s", id);
         }
         return null;
@@ -300,8 +286,7 @@ public class AffectedResources extends Controller {
             if (id != null) {
                 return client.fileSnapshots().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve file snapshot: %s", id);
         }
         return null;
@@ -354,19 +339,18 @@ public class AffectedResources extends Controller {
             return null;
         }
     }
-    
+
     private static BlockConsistencyGroupRestRep getBlockConsistencyGroup(ViPRCoreClient client, URI id) {
         try {
             if (id != null) {
                 return client.blockConsistencyGroups().get(id);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.debug(e, "Failed to retrieve block consistency group: %s", id);
         }
         return null;
     }
-    
+
     private static List<VolumeRestRep> getVolumes(ViPRCoreClient client, BlockConsistencyGroupRestRep blockConsistencyGroup) {
         if (blockConsistencyGroup != null) {
             return client.blockVolumes().getByRefs(blockConsistencyGroup.getVolumes());
@@ -392,8 +376,7 @@ public class AffectedResources extends Controller {
             if (this.type == null) {
                 try {
                     this.type = ResourceType.fromResourceId(resourceId.toString());
-                }
-                catch (RuntimeException e) {
+                } catch (RuntimeException e) {
                     Logger.warn(e, "Unable to determine the type of the given resource %s", resourceId);
                     this.type = ResourceType.UNKNOWN;
                 }
@@ -444,7 +427,7 @@ public class AffectedResources extends Controller {
             return copies;
         }
     }
-    
+
     public static class HostDetails extends ResourceDetails {
         public HostRestRep host;
 
@@ -453,7 +436,7 @@ public class AffectedResources extends Controller {
             host = getHost(client, resourceId);
         }
     }
-    
+
     public static class ClusterDetails extends ResourceDetails {
         public ClusterRestRep cluster;
         public List<HostRestRep> hosts;
@@ -464,7 +447,7 @@ public class AffectedResources extends Controller {
             hosts = getClusterHosts(client, resourceId);
         }
     }
-    
+
     public static class ExportGroupDetails extends ResourceDetails {
         public ExportGroupRestRep exportGroup;
         public VirtualArrayRestRep neighborhood;
@@ -541,13 +524,13 @@ public class AffectedResources extends Controller {
             volume = getVolume(client, blockSnapshot);
             neighborhood = getVirtualArray(client, blockSnapshot);
         }
-        
+
         public List<ResourceUtils.HostExport> getHostExports() {
             List<ITLRestRep> itls = client.blockSnapshots().listExports(uri(resourceId));
             return ResourceUtils.getHostExports(itls);
         }
     }
-    
+
     public static class BlockConsistencyGroupDetails extends ResourceDetails {
         public BlockConsistencyGroupRestRep blockConsistencyGroup;
         public List<VolumeRestRep> volumes;
@@ -565,13 +548,13 @@ public class AffectedResources extends Controller {
             volumes = getVolumes(client, blockConsistencyGroup);
             snapshots = getSnapshots();
         }
-        
+
         public List<BlockSnapshotDetails> getSnapshots() {
-	        List<BlockSnapshotDetails> snapshots = Lists.newArrayList();
-	        for (NamedRelatedResourceRep res : client.blockSnapshots().listByConsistencyGroup(blockConsistencyGroup.getId())) {
-	            snapshots.add(new BlockSnapshotDetails(client, res.getId()));
-	        }
-	        return snapshots;
+            List<BlockSnapshotDetails> snapshots = Lists.newArrayList();
+            for (NamedRelatedResourceRep res : client.blockSnapshots().listByConsistencyGroup(blockConsistencyGroup.getId())) {
+                snapshots.add(new BlockSnapshotDetails(client, res.getId()));
+            }
+            return snapshots;
         }
     }
 

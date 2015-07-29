@@ -49,13 +49,13 @@ public class AssetOptionsManagerImpl implements AssetOptionsManager {
             return Collections.emptyList();
         }
     }
-    
+
     public AssetOptionsContext createDefaultContext(StorageOSUser user) {
         AssetOptionsContext context = new AssetOptionsContext();
         context.setAuthToken(user.getToken());
         context.setTenant(URIUtil.uri(user.getTenantId()));
         context.setUserName(user.getUserName());
-        
+
         return context;
     }
 

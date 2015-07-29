@@ -43,7 +43,6 @@ import java.util.regex.Pattern;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
-
 /**
  * Dummy coordinator client for use with dbsvc unit tests
  */
@@ -52,7 +51,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     private DbVersionInfo dbVersionInfo;
     private CoordinatorClientInetAddressMap inetAddessLookupMap;
     private Map<String, Configuration> _configMap = new HashMap<String, Configuration>();
-    private Map<String,InterProcessLock> _locks = new HashMap<String, InterProcessLock>();
+    private Map<String, InterProcessLock> _locks = new HashMap<String, InterProcessLock>();
     private static Properties defaultProperties;
     private static Properties ovfProperties;
 
@@ -63,25 +62,25 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         svc.setName("dbsvc");
         svc.setVersion("1");
         _dbinfo = svc;
-        
-        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-        //Junit test will be called in single thread by default, it's safe to ignore this violation
-        defaultProperties = new Properties(); //NOSONAR ("squid:S2444")
+
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // Junit test will be called in single thread by default, it's safe to ignore this violation
+        defaultProperties = new Properties(); // NOSONAR ("squid:S2444")
         defaultProperties.put("controller_max_pool_utilization_percentage", "300");
     }
 
     public static void setDefaultProperties(Properties defaults) {
-        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-        //Junit test will be called in single thread by default, it's safe to ignore this violation
-        defaultProperties = defaults; //NOSONAR ("squid:S2444")
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // Junit test will be called in single thread by default, it's safe to ignore this violation
+        defaultProperties = defaults; // NOSONAR ("squid:S2444")
     }
 
     public static void setOvfProperties(Properties ovfProps) {
-        //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-        //Junit test will be called in single thread by default, it's safe to ignore this violation
-        ovfProperties = ovfProps; //NOSONAR ("squid:S2444")
+        // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+        // Junit test will be called in single thread by default, it's safe to ignore this violation
+        ovfProperties = ovfProps; // NOSONAR ("squid:S2444")
     }
-    
+
     @Override
     public <T> T locateService(Class<T> clazz, String name, String version, String tag, String endpointKey) throws CoordinatorException {
         throw new UnsupportedOperationException();
@@ -98,12 +97,15 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads, int maxItem) throws CoordinatorException {
+    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer,
+            int maxThreads, int maxItem) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads) throws CoordinatorException {
+    public <T> DistributedQueue<T>
+            getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads)
+                    throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -134,8 +136,8 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
             @Override
             public void acquire() throws Exception {
-                synchronized (_locks){
-                    if(_locks.containsKey(_lockName)){
+                synchronized (_locks) {
+                    if (_locks.containsKey(_lockName)) {
                         throw new Exception("cannot get lock");
                     }
                     _locks.put(_lockName, this);
@@ -150,9 +152,9 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
             @Override
             public void release() throws Exception {
-                synchronized (_locks){
+                synchronized (_locks) {
                     InterProcessLock locked = _locks.get(_lockName);
-                    if(locked == this){
+                    if (locked == this) {
                         _locks.remove(_lockName);
                     }
                 }
@@ -161,10 +163,10 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
             @Override
             public boolean isAcquiredInThisProcess() {
                 InterProcessLock locked;
-                synchronized (_locks){
+                synchronized (_locks) {
                     locked = _locks.get(_lockName);
                 }
-                if(locked == this){
+                if (locked == this) {
                     return true;
                 }
                 return false;
@@ -210,7 +212,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     @Override
     public List<Configuration> queryAllConfiguration(String kind) throws CoordinatorException {
         List<Configuration> configs = new ArrayList<Configuration>();
-        for (String key: _configMap.keySet()) {
+        for (String key : _configMap.keySet()) {
             if (key.startsWith(kind)) {
                 configs.add(_configMap.get(key));
             }
@@ -231,13 +233,13 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     @Override
     public PropertyInfo getPropertyInfo() throws CoordinatorException {
         PropertyInfo info = new PropertyInfo();
-        info.setProperties((Map)defaultProperties);
+        info.setProperties((Map) defaultProperties);
         return info;
     }
 
-    
     /**
      * Merge properties
+     * 
      * @param defaultProps
      * @param overrideProps
      * @return map containing key, value pair
@@ -245,11 +247,11 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     public static Map<String, String> mergeProps(Map<String, String> defaultProps, Map<String, String> overrideProps) {
         Map<String, String> mergedProps = new HashMap<String, String>(defaultProps);
         for (Map.Entry<String, String> entry : overrideProps.entrySet()) {
-                mergedProps.put(entry.getKey(), entry.getValue());
+            mergedProps.put(entry.getKey(), entry.getValue());
         }
         return mergedProps;
     }
-    
+
     @Override
     public boolean isStorageProductLicensed(LicenseType licenseType) {
         // TODO Auto-generated method stub
@@ -259,12 +261,14 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     @Override
     public DistributedDataManager createDistributedDataManager(String basePath)
             throws CoordinatorException {
-        throw new UnsupportedOperationException();    }
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     public DistributedDataManager getWorkflowDataManager()
             throws CoordinatorException {
-        throw new UnsupportedOperationException();    }
+        throw new UnsupportedOperationException();
+    }
 
     @Override
     public LeaderSelector getLeaderSelector(String leaderPath, LeaderSelectorListener listener) throws CoordinatorException {
@@ -278,7 +282,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public DistributedDataManager createDistributedDataManager(String basePath,
-                                                               long maxNodes) throws CoordinatorException {
+            long maxNodes) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -288,7 +292,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)         
+    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
         throw new UnsupportedOperationException();
     }
@@ -305,7 +309,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> Map<Service,
-    T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
         throw new UnsupportedOperationException();
     }
 
@@ -350,12 +354,12 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         Configuration config = queryConfiguration(getVersionedDbConfigPath(Constants.DBSVC_NAME, getTargetDbSchemaVersion()), GLOBAL_ID);
         if (config == null || config.getConfig(MIGRATION_STATUS) == null) {
             return null;
-        } 
+        }
         MigrationStatus status = MigrationStatus.valueOf(config.getConfig(MIGRATION_STATUS));
         return status;
     }
 
-    @Override 
+    @Override
     public String getVersionedDbConfigPath(String serviceName, String version) {
         String kind = DB_CONFIG;
 
@@ -393,9 +397,9 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public String getDbConfigPath(String serviceName) {
-    	return DB_CONFIG;
+        return DB_CONFIG;
     }
-    
+
     @Override
     public boolean isDbSchemaVersionChanged() {
         String currentVersion = getCurrentDbSchemaVersion();

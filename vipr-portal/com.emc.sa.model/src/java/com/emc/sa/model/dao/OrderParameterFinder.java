@@ -22,14 +22,14 @@ public class OrderParameterFinder extends ModelFinder<OrderParameter> {
         if (orderId == null) {
             return Lists.newArrayList();
         }
-        
+
         List<NamedElement> orderParameterIds = client.findBy(OrderParameter.class, OrderParameter.ORDER_ID, orderId);
 
         List<OrderParameter> orderParameters = findByIds(toURIs(orderParameterIds));
-        
+
         SortedIndexUtils.sort(orderParameters);
-        
+
         return orderParameters;
     }
-    
+
 }

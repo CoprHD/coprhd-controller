@@ -12,7 +12,7 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 /**
  * Given a target SRDF volume, this factory will return the strategy appropriate for collecting
  * all of the associated StorageSynchronization instances.
- *
+ * 
  * Created by bibbyi1 on 4/17/2015.
  */
 public class CollectorFactory {

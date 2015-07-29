@@ -12,15 +12,15 @@ import com.iwave.ext.linux.model.PowerPathDevice;
 public class RemovePowerPathDevice extends AixExecutionTask<Void> {
 
     private final PowerPathDevice device;
-    
+
     public RemovePowerPathDevice(PowerPathDevice device) {
         this.device = device;
     }
-    
+
     public void execute() throws Exception {
         executeCommand(new PowermtSetModeStandbyCommand(device));
         executeCommand(new PowermtRemoveCommand(device));
         executeCommand(new PowermtSaveCommand());
     }
-    
+
 }

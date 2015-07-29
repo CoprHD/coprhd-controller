@@ -30,8 +30,8 @@ public abstract class ModelObject extends DataObject {
         this.lastUpdated = lastUpdated;
         setChanged(LAST_UPDATED);
     }
-    
+
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getId()};
+        return new Object[] { getLabel(), getId() };
     }
 }

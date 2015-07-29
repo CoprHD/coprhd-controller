@@ -12,7 +12,7 @@ public class BackupPropertyPage extends CustomPropertyPage {
     private Property externalLocationPassword;
     private Property schedulerEnabled;
     private Property schedulerTime;
-    
+
     public BackupPropertyPage(Map<String, Property> properties) {
         super("Backup");
         setRenderTemplate("backupPage.html");
@@ -22,23 +22,23 @@ public class BackupPropertyPage extends CustomPropertyPage {
         schedulerEnabled = addCustomBooleanProperty(properties, "backup_scheduler_enable");
         schedulerTime = addCustomProperty(properties, "backup_scheduler_time");
     }
-    
+
     public Property getExternalLocationUrl() {
         return externalLocationUrl;
     }
-    
+
     public Property getExternalLocationUsername() {
         return externalLocationUsername;
     }
-    
+
     public Property getExternalLocationPassword() {
         return externalLocationPassword;
     }
-    
+
     public Property getSchedulerEnabled() {
         return schedulerEnabled;
     }
-    
+
     public Property getSchedulerTime() {
         return schedulerTime;
     }

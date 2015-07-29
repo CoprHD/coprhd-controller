@@ -35,10 +35,12 @@ import com.emc.storageos.svcs.errorhandling.utils.MessageUtils;
 /**
  * This is the class that does the actual work of generating the Exceptions and messages.
  * You should only ever create an instance of this class by using {@link #create(Class)} and passing in the interface you want proxy.
- * The specified Interface must be annotated with {@link MessageBundle} and all the methods must be annotated with {@link DeclareServiceCode}.
+ * The specified Interface must be annotated with {@link MessageBundle} and all the methods must be annotated with
+ * {@link DeclareServiceCode}.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
+ * 
  * @author fountt1
  */
 public final class ExceptionMessagesProxy implements InvocationHandler {
@@ -68,7 +70,7 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
         if (ServiceError.class.isAssignableFrom(type)) {
             return contructServiceError(serviceCode, detailBase, detailKey, convertThrowableMessages(args));
         }
-        Exception exception = contructException(type, serviceCode, cause, detailBase, 
+        Exception exception = contructException(type, serviceCode, cause, detailBase,
                 detailKey, convertThrowableMessages(args));
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         // removing the following 3 stack trace elements from the trackstrace:
@@ -78,9 +80,10 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
         exception.setStackTrace(Arrays.copyOfRange(stackTrace, 3, stackTrace.length));
         return exception;
     }
-    
+
     /**
      * Converts all Throwable arguments to its message if the message is not null
+     * 
      * @param args array of arguments
      * @return array of arguments
      */
@@ -88,7 +91,7 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
                 if (args[i] instanceof Throwable) {
-                    Throwable t = (Throwable)args[i];
+                    Throwable t = (Throwable) args[i];
                     if (t.getMessage() != null) {
                         args[i] = t.getMessage();
                     }
@@ -98,11 +101,12 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
         return args;
     }
 
-	/**
-	 * Get the return type of the method and check if it is a valid type
-	 * @param method
-	 * @return
-	 */
+    /**
+     * Get the return type of the method and check if it is a valid type
+     * 
+     * @param method
+     * @return
+     */
     private Class<?> type(final Method method) {
         final Class<?> type = method.getReturnType();
 
@@ -118,11 +122,12 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
         return type;
     }
 
-	/**
-	 * Get the specified {@link ServiceCode} from the {@link DeclareServiceCode} annotation
-	 * @param method
-	 * @return
-	 */
+    /**
+     * Get the specified {@link ServiceCode} from the {@link DeclareServiceCode} annotation
+     * 
+     * @param method
+     * @return
+     */
     private ServiceCode serviceCode(final Method method) {
         final DeclareServiceCode declaredServiceCode = method
                 .getAnnotation(DeclareServiceCode.class);
@@ -134,11 +139,12 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
         return serviceCode;
     }
 
-	/**
-	 * Get the name of the message bundle to use when getting the message for the specified method
-	 * @param method
-	 * @return
-	 */
+    /**
+     * Get the name of the message bundle to use when getting the message for the specified method
+     * 
+     * @param method
+     * @return
+     */
     private String detailBase(final Method method) {
         final Class<?> clazz = method.getDeclaringClass();
         final String detailBase = MessageUtils.bundleNameForClass(clazz);
@@ -148,11 +154,12 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
         return detailBase;
     }
 
-	/**
-	 * Find the cause argument if it has been past into the method
-	 * @param args
-	 * @return
-	 */
+    /**
+     * Find the cause argument if it has been past into the method
+     * 
+     * @param args
+     * @return
+     */
     private Throwable cause(final Object[] args) {
         Throwable t = null;
         if (args != null) {
@@ -168,6 +175,7 @@ public final class ExceptionMessagesProxy implements InvocationHandler {
 
     /**
      * Construct the Exception being returned by the method, using a known standard constructor
+     * 
      * @param type
      * @param serviceCode
      * @param cause

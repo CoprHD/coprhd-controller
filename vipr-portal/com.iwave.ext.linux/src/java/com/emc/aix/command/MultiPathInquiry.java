@@ -13,10 +13,10 @@ public class MultiPathInquiry extends AixResultsCommand<List<MultiPathDevice>> {
 
     public MultiPathInquiry() {
         setCommand("inq");
-        
+
         // add the display of the wwns
         addArgument("-wwn");
-        
+
         // do not display the 'progress' dots
         addArgument("-no_dots");
     }

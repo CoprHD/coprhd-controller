@@ -32,7 +32,7 @@ public class VMWareException extends RuntimeException {
      * Gets a detail message from a method fault, only if the argument is an instance of MethodFault.
      * 
      * @param t
-     *        the throwable.
+     *            the throwable.
      * @return the detail message, or null if the argument is not a MethodFault.
      */
     public static String getDetailMessage(Throwable t) {
@@ -47,7 +47,7 @@ public class VMWareException extends RuntimeException {
      * describe the reason for the method fault.
      * 
      * @param fault
-     *        the method fault.
+     *            the method fault.
      * @return the detail message.
      */
     public static String getDetailMessage(MethodFault fault) {
@@ -80,7 +80,7 @@ public class VMWareException extends RuntimeException {
      * Gets the list of messages as text.
      * 
      * @param messages
-     *        the messages.
+     *            the messages.
      * @return the text value of the messages.
      */
     public static String getAsText(LocalizableMessage[] messages) {
@@ -98,7 +98,7 @@ public class VMWareException extends RuntimeException {
      * Gets the message text from a localizable message.
      * 
      * @param message
-     *        the message.
+     *            the message.
      * @return the message text.
      */
     public static String getAsText(LocalizableMessage message) {

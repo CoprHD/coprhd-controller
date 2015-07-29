@@ -18,14 +18,14 @@ public class VCenterFinder extends TenantResourceFinder<Vcenter> {
     public VCenterFinder(DBClientWrapper client) {
         super(Vcenter.class, client);
     }
-    
+
     public List<Vcenter> findByHostname(String tenant, String hostname) {
         if (StringUtils.isBlank(hostname) || StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
         }
         List<NamedElement> vcenterIds = client.findByAlternateId(Vcenter.class, "ipAddress", hostname);
-        
+
         return TenantUtils.filter(findByIds(toURIs(vcenterIds)), tenant);
     }
-    
+
 }

@@ -32,10 +32,10 @@ public class CreateExportNoWait extends ViPRExecutionTask<Task<ExportGroupRestRe
         this.hostId = hostId;
         this.clusterId = clusterId;
         if (clusterId != null) {
-        	provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
+            provideDetailArgs(name, getMessage("CreateExport.cluster"), hostName, volumeIds, hlu);
         }
         else {
-        	provideDetailArgs(name, getMessage("CreateExport.hostname"), hostName, volumeIds, hlu);
+            provideDetailArgs(name, getMessage("CreateExport.hostname"), hostName, volumeIds, hlu);
         }
     }
 

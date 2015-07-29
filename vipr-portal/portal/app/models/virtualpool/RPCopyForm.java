@@ -44,7 +44,7 @@ public class RPCopyForm {
     public String journalSize;
     public SizeUnit journalSizeUnit;
     public String formattedJournalSize;
-    
+
     public boolean isEnabled() {
         return StringUtils.isNotBlank(virtualArray);
     }
@@ -74,7 +74,7 @@ public class RPCopyForm {
     public VirtualPoolProtectionVirtualArraySettingsParam write() {
         VirtualPoolProtectionVirtualArraySettingsParam param = new VirtualPoolProtectionVirtualArraySettingsParam();
         param.setCopyPolicy(new ProtectionCopyPolicy(getFormattedJournalSize()));
-        param.setCopyPolicy(new ProtectionCopyPolicy(getFormattedJournalSize(),uri(journalVArray),uri(journalVPool)));
+        param.setCopyPolicy(new ProtectionCopyPolicy(getFormattedJournalSize(), uri(journalVArray), uri(journalVPool)));
         param.setVarray(uri(virtualArray));
         param.setVpool(uri(virtualPool));
         return param;
@@ -88,7 +88,7 @@ public class RPCopyForm {
         List<URI> varrayIds = StringUtils.isNotBlank(virtualArray) ? uris(virtualArray) : uris();
         return new ConnectedBlockVirtualPoolsCall(varrayIds);
     }
-    
+
     public ConnectedBlockVirtualPoolsCall recoverPointJournalVirtualPools() {
         List<URI> varrayIds = StringUtils.isNotBlank(journalVArray) ? uris(journalVArray) : uris();
         return new ConnectedBlockVirtualPoolsCall(varrayIds);

@@ -6,13 +6,11 @@ package render;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.util.Calendar;
 
 import play.exceptions.UnexpectedException;
-import play.jobs.Job;
 import play.mvc.Http.Request;
 import play.mvc.Http.Response;
 import play.mvc.results.Result;
@@ -53,8 +51,7 @@ public class RenderSupportPackage extends Result {
             response.contentType = getContentType();
             response.setHeader("Content-Disposition", getContentDisposition());
             response.direct = getContent();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new UnexpectedException(e);
         }
     }

@@ -82,14 +82,11 @@ public class HostStorageAPI {
     public HostStorageSystem getStorageSystem() {
         try {
             return host.getHostStorageSystem();
-        }
-        catch (InvalidProperty e) {
+        } catch (InvalidProperty e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -102,14 +99,11 @@ public class HostStorageAPI {
     public HostDatastoreSystem getDatastoreSystem() {
         try {
             return host.getHostDatastoreSystem();
-        }
-        catch (InvalidProperty e) {
+        } catch (InvalidProperty e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -161,14 +155,11 @@ public class HostStorageAPI {
         try {
             HostStorageSystem storageSystem = getStorageSystem();
             storageSystem.rescanAllHba();
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -181,14 +172,11 @@ public class HostStorageAPI {
             HostStorageSystem storageSystem = getStorageSystem();
             storageSystem.rescanAllHba();
             storageSystem.rescanVmfs();
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -346,8 +334,7 @@ public class HostStorageAPI {
 
     /**
      * Finds the host bus adapter in the system with the specified key. This will query the host
-     * each time, so if many host bus adapters need to be retrieved use
-     * {@link #getHostBusAdapters(HostSystem)} instead.
+     * each time, so if many host bus adapters need to be retrieved use {@link #getHostBusAdapters(HostSystem)} instead.
      * 
      * @param key the adapter key.
      * @return the host bus adapter.
@@ -382,17 +369,13 @@ public class HostStorageAPI {
         try {
             storageSystem.addInternetScsiSendTargets(hba.getDevice(),
                     createInternetScsiSendTargets(addresses));
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (NotFound e) {
+        } catch (NotFound e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -454,17 +437,13 @@ public class HostStorageAPI {
         try {
             Datastore datastore = getDatastoreSystem().createVmfsDatastore(createSpec);
             return datastore;
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (DuplicateName e) {
+        } catch (DuplicateName e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -480,17 +459,13 @@ public class HostStorageAPI {
         VmfsDatastoreExtendSpec extendSpec = getVmfsDatastoreExtendSpec(disk, datastore);
         try {
             return getDatastoreSystem().extendVmfsDatastore(datastore, extendSpec);
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (NotFound e) {
+        } catch (NotFound e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -506,28 +481,24 @@ public class HostStorageAPI {
         VmfsDatastoreExpandSpec expandSpec = getVmfsDatastoreExpandSpec(disk, datastore);
         try {
             return getDatastoreSystem().expandVmfsDatastore(datastore, expandSpec);
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (NotFound e) {
+        } catch (NotFound e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
-    
+
     /**
      * Creates a NAS Datastore
      * 
      * @param datastoreName
      * @param remoteHost host name or IP of the NFS/CIFS server
      * @param remotePath path of the NAS storage. Ex. "/vol/mystorage"
-     * @param accessMode 
+     * @param accessMode
      * @param nasType Type of NAS storage CIFS or NFS
      * @param userName username for CIFS
      * @param password password for CIFS
@@ -541,20 +512,15 @@ public class HostStorageAPI {
 
         try {
             return getDatastoreSystem().createNasDatastore(hnvs);
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (DuplicateName e) {
+        } catch (DuplicateName e) {
             throw new VMWareException(e);
-        }
-        catch (AlreadyExists e) {
+        } catch (AlreadyExists e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -580,20 +546,15 @@ public class HostStorageAPI {
     public void deleteDatastore(Datastore datastore) {
         try {
             getDatastoreSystem().removeDatastore(datastore);
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (ResourceInUse e) {
+        } catch (ResourceInUse e) {
             throw new VMWareException(e);
-        }
-        catch (NotFound e) {
+        } catch (NotFound e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -608,17 +569,13 @@ public class HostStorageAPI {
         HostDatastoreSystem datastoreSystem = getDatastoreSystem();
         try {
             return createList(datastoreSystem.queryVmfsDatastoreCreateOptions(disk.getDevicePath()));
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (NotFound e) {
+        } catch (NotFound e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -664,7 +621,7 @@ public class HostStorageAPI {
 
         return bestSpec;
     }
-        
+
     /**
      * Create a multipath policy based on the passed policy name
      * 
@@ -697,17 +654,13 @@ public class HostStorageAPI {
         try {
             return createList(datastoreSystem.queryVmfsDatastoreExtendOptions(datastore,
                     disk.getDevicePath(), true));
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (NotFound e) {
+        } catch (NotFound e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -752,17 +705,13 @@ public class HostStorageAPI {
         HostDatastoreSystem datastoreSystem = getDatastoreSystem();
         try {
             return createList(datastoreSystem.queryVmfsDatastoreExpandOptions(datastore));
-        }
-        catch (HostConfigFault e) {
+        } catch (HostConfigFault e) {
             throw new VMWareException(e);
-        }
-        catch (NotFound e) {
+        } catch (NotFound e) {
             throw new VMWareException(e);
-        }
-        catch (RuntimeFault e) {
+        } catch (RuntimeFault e) {
             throw new VMWareException(e);
-        }
-        catch (RemoteException e) {
+        } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
@@ -802,7 +751,7 @@ public class HostStorageAPI {
         }
         return null;
     }
-    
+
     /**
      * Creates NAS volume spec required to create a NAS Datastore
      * 

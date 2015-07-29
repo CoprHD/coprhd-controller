@@ -22,13 +22,13 @@ import com.emc.storageos.db.client.model.Relation;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("ClassB")
 public class ClassBOneToMany extends DataObject {
-    
+
     private ClassAOneToMany ainstance;
-    
+
     @Relation(type = ClassAOneToMany.class, mappedBy = "bIds")
     @Name("aInstance")
     public ClassAOneToMany getAinstance() {
@@ -38,6 +38,5 @@ public class ClassBOneToMany extends DataObject {
     public void setAinstance(ClassAOneToMany aInstance) {
         this.ainstance = aInstance;
     }
-
 
 }

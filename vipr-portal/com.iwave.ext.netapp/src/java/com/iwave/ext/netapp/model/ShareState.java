@@ -19,8 +19,9 @@ public enum ShareState {
 
     public static ShareState valueOfLabel(String label) {
         for (ShareState t : values()) {
-            if (label.equals(t.label))
+            if (label.equals(t.label)) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(label + " is not a valid label for ShareState");
     }

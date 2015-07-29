@@ -19,7 +19,7 @@ import com.emc.storageos.db.client.model.Cf;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("BlockSnaphot")
 public class BlockSnapshot extends BlockObject {

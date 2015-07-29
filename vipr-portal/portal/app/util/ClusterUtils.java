@@ -65,8 +65,7 @@ public class ClusterUtils {
     public static ClusterRestRep getCluster(URI id) {
         try {
             return (id != null) ? getViprClient().clusters().get(id) : null;
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -82,7 +81,7 @@ public class ClusterUtils {
     public static Task<ClusterRestRep> deactivate(URI clusterId) {
         return getViprClient().clusters().deactivate(clusterId);
     }
-    
+
     public static Task<ClusterRestRep> deactivate(URI hostId, boolean detachStorage) {
         return getViprClient().clusters().deactivate(hostId, detachStorage);
     }

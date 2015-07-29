@@ -31,7 +31,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     private ModelClient modelClient;
     @Autowired
     private ClientConfig clientConfig;
-    @Autowired 
+    @Autowired
     private EncryptionProvider encryptionProvider;
 
     private ViPRCoreClient client;
@@ -79,7 +79,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     protected void addAffectedResource(Task<? extends DataObjectRestRep> task) {
         if (task.getResourceId() != null) {
             addAffectedResource(task.getResourceId());
-            
+
             if (task.getAssociatedResources() != null
                     && !task.getAssociatedResources().isEmpty()) {
                 for (URI id : ResourceUtils.refIds(task.getAssociatedResources())) {
@@ -143,7 +143,7 @@ public abstract class ViPRService extends AbstractExecutionService {
     }
 
     private void releaseAllLocks() {
-        for (String lock: locks) {
+        for (String lock : locks) {
             logInfo("vipr.service.release.lock", lock);
             ExecutionUtils.releaseLock(lock);
         }

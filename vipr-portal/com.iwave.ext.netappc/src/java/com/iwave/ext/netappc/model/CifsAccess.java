@@ -25,20 +25,22 @@ public enum CifsAccess {
 
     public static CifsAccess valueOfAccess(String access) {
         for (CifsAccess t : values()) {
-            if (access.equalsIgnoreCase(t.access))
+            if (access.equalsIgnoreCase(t.access)) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(access + " is not a valid access for CifsAccess");
     }
 
     public static CifsAccess valueOfLabel(String label) {
         for (CifsAccess t : values()) {
-            if (label.equalsIgnoreCase(t.label))
+            if (label.equalsIgnoreCase(t.label)) {
                 return t;
+            }
         }
         throw new IllegalArgumentException(label + " is not a valid label for CifsAccess");
     }
-    
+
     public String access() {
         return access;
     }

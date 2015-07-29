@@ -5,8 +5,6 @@
 package com.emc.sa.service.windows.tasks;
 
 import com.iwave.ext.windows.model.wmi.MSCluster;
-import com.iwave.ext.windows.model.wmi.MSClusterNetworkInterface;
-
 import java.util.List;
 
 /**

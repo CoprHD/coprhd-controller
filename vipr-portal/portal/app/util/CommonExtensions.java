@@ -142,7 +142,7 @@ public class CommonExtensions extends JavaExtensions {
     public static String formatGBValueOnly(Double gb) {
         return SizeUtils.humanReadableValueOnly(gb * 1024 * 1024 * 1024, false);
     }
-    
+
     public static String formatGBUnits(Double gb) {
         return SizeUtils.humanReadableUnits(gb * 1024 * 1024 * 1024, false);
     }
@@ -158,19 +158,19 @@ public class CommonExtensions extends JavaExtensions {
     public static String formatKBValueOnly(Double kb) {
         return formatByteValueOnly(kb * 1024);
     }
-    
+
     public static String formatKBUnits(Double kb) {
         return formatByteUnits(kb * 1024);
     }
-    
+
     public static String formatByteValueOnly(Double bytes) {
         return SizeUtils.humanReadableValueOnly(bytes, false);
     }
-    
+
     public static String formatByteUnits(Double bytes) {
         return SizeUtils.humanReadableUnits(bytes, false);
-    }        
-    
+    }
+
     public static String formatMB(double megabytes) {
         return formatMB(megabytes, false);
     }

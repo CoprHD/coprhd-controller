@@ -29,7 +29,7 @@ public class CreateFileSystemQuotaDirectoryHelper {
     protected String securityStyle;
     @Param(SIZE_IN_GB)
     protected String size;
-    
+
     private List<FileShareRestRep> fileSystems;
 
     public void precheck() {

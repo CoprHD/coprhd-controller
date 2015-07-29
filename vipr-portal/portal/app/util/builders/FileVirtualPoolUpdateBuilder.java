@@ -67,8 +67,8 @@ public class FileVirtualPoolUpdateBuilder extends VirtualPoolUpdateBuilder {
     public static VirtualPoolProtectionSnapshotsParam getSnapshots(FileVirtualPoolProtectionParam protection) {
         return protection != null ? protection.getSnapshots() : null;
     }
-    
-    public FileVirtualPoolUpdateBuilder setLongTermRetention (Boolean longTermRetention) {
+
+    public FileVirtualPoolUpdateBuilder setLongTermRetention(Boolean longTermRetention) {
         if (!ObjectUtils.equals(longTermRetention, oldVirtualPool.getLongTermRetention())) {
             getVirtualPoolUpdate().setLongTermRetention(longTermRetention);
         }

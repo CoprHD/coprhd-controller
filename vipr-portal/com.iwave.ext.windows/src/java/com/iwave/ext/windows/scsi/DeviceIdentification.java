@@ -19,21 +19,22 @@ public class DeviceIdentification {
     private static final int MIN_LENGTH = 8;
 
     private static final int NAA_IDENTIFIER_TYPE = 3;
-    
+
     private static final int ALTERNATE_IDENTIFIER_TYPE = 2;
 
     public static String getWwid(byte[] deviceIdentifierPage) {
         Map<Integer, String> identifiers = parseIdentifiers(deviceIdentifierPage);
-        
-        String identifier = identifiers.get(NAA_IDENTIFIER_TYPE) == null ? identifiers.get(ALTERNATE_IDENTIFIER_TYPE) : identifiers.get(NAA_IDENTIFIER_TYPE);
-        
+
+        String identifier = identifiers.get(NAA_IDENTIFIER_TYPE) == null ? identifiers.get(ALTERNATE_IDENTIFIER_TYPE) : identifiers
+                .get(NAA_IDENTIFIER_TYPE);
+
         if (identifier == null) {
-        	throw new IllegalArgumentException("No device identifier found in the device identifier page in the registry");
+            throw new IllegalArgumentException("No device identifier found in the device identifier page in the registry");
         }
         return identifier;
     }
 
-    public static Map<Integer,String> parseIdentifiers(byte[] bytes) {
+    public static Map<Integer, String> parseIdentifiers(byte[] bytes) {
         if (bytes.length < MIN_LENGTH) {
             throw new IllegalArgumentException("Not enough data from device identifier page");
         }
@@ -46,16 +47,17 @@ public class DeviceIdentification {
         // bytes[2], bytes[3] are total length
         int totalLength = (bytes[offset++] & 0xFF) << 8 | (bytes[offset++] & 0xFF);
         if (totalLength != bytes.length - offset) {
-            throw new IllegalArgumentException(String.format("Device identifier page size (%s) does not match content size (%s)", totalLength, bytes.length - offset));
+            throw new IllegalArgumentException(String.format("Device identifier page size (%s) does not match content size (%s)",
+                    totalLength, bytes.length - offset));
         }
 
         // bytes[4] starts descriptor list:
-        //   Byte 0 - Protocol Identifier + Code Set          01 = Binary,  02 = Ascii
-        //   Byte 1 - PIV, Association, Designator Type       01 = Vendor ID, 03 = NAA (WWID)
-        //   Byte 2 - Reserved
-        //   Byte 3 - Length
-        //   Byte 4..n - Identifier
-        Map<Integer,String> identifiers = Maps.newLinkedHashMap();
+        // Byte 0 - Protocol Identifier + Code Set 01 = Binary, 02 = Ascii
+        // Byte 1 - PIV, Association, Designator Type 01 = Vendor ID, 03 = NAA (WWID)
+        // Byte 2 - Reserved
+        // Byte 3 - Length
+        // Byte 4..n - Identifier
+        Map<Integer, String> identifiers = Maps.newLinkedHashMap();
         while (offset < totalLength) {
             byte protocolIdentifierAndCodeSet = bytes[offset++];
             int type = bytes[offset++]; // Last half of the byte for the type but PIV for us should always be 0
@@ -76,7 +78,7 @@ public class DeviceIdentification {
                 String identifier = new String(bytes, offset, identifierLength);
                 identifiers.put(type, identifier);
             }
-            offset+=identifierLength;
+            offset += identifierLength;
         }
 
         return identifiers;

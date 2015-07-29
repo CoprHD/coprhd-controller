@@ -4,8 +4,6 @@
  */
 package com.emc.sa.asset;
 
-
-
 public abstract class AbstractAssetOptionsProvider implements AssetOptionsProvider {
-	
+
 }

@@ -66,9 +66,9 @@ public abstract class VMwareHostService extends ViPRService {
 
         host = vmware.getHostSystem(datacenter.getLabel(), esxHost.getLabel());
     }
-    
-    protected void connectAndInitializeHost(){
-    	vmware.connect(vcenterId);
+
+    protected void connectAndInitializeHost() {
+        vmware.connect(vcenterId);
         initHost();
     }
 

@@ -27,7 +27,7 @@ public class ChangeVirtualPoolService extends ViPRService {
     @Param(ServiceParams.TARGET_VIRTUAL_POOL)
     private URI targetVirtualPool;
 
-    @Param(value=ServiceParams.CONSISTENCY_GROUP, required=false)
+    @Param(value = ServiceParams.CONSISTENCY_GROUP, required = false)
     private URI consistencyGroup;
 
     @Override

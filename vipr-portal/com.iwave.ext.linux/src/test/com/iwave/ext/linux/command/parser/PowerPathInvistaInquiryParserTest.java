@@ -41,7 +41,7 @@ public class PowerPathInvistaInquiryParserTest {
         assertEquals(INVISTA, device.getProduct());
         assertEquals("600000000000000000000000000000a1", device.getWwn());
     }
-    
+
     private void assertDevice2(PowerPathDevice device) {
         assertEquals("/dev/emcpowerl", device.getDevice());
         assertEquals(EMC, device.getVendor());
@@ -55,15 +55,14 @@ public class PowerPathInvistaInquiryParserTest {
         assertEquals(INVISTA, device.getProduct());
         assertEquals("600000000000000000000000000000d4", device.getWwn());
     }
-    
+
     protected String readFile(String filename) {
         InputStream diskUtilFile = getClass().getResourceAsStream(filename);
-        
+
         StringWriter writer = new StringWriter();
         try {
             IOUtils.copy(diskUtilFile, writer);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);

@@ -14,10 +14,10 @@ public abstract class LongRunningTasks<T> extends ViPRExecutionTask<Tasks<T>> {
     private int maxErrorDisplay = -1;
 
     public void setMaxErrorDisplay(int maxErrorDisplay) {
-		this.maxErrorDisplay = maxErrorDisplay;
-	}
+        this.maxErrorDisplay = maxErrorDisplay;
+    }
 
-	public boolean isWaitFor() {
+    public boolean isWaitFor() {
         return waitFor;
     }
 
@@ -44,14 +44,14 @@ public abstract class LongRunningTasks<T> extends ViPRExecutionTask<Tasks<T>> {
         }
         if (waitFor) {
             try {
-				tasks.waitFor(timeout);
-			} catch (ServiceErrorsException e) {
-				if(maxErrorDisplay > 0 && e.getServiceErrors().size() > maxErrorDisplay){
-	        		throw new ServiceErrorsException(e.getServiceErrors().subList(0, maxErrorDisplay));
-	        	}else{
-	        		throw e;
-	        	}
-			}
+                tasks.waitFor(timeout);
+            } catch (ServiceErrorsException e) {
+                if (maxErrorDisplay > 0 && e.getServiceErrors().size() > maxErrorDisplay) {
+                    throw new ServiceErrorsException(e.getServiceErrors().subList(0, maxErrorDisplay));
+                } else {
+                    throw e;
+                }
+            }
         }
         return tasks;
     }

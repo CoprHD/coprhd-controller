@@ -18,7 +18,7 @@ import javax.xml.xpath.XPathExpression;
  */
 public class DeleteClusterResourceMethod extends WinRMInvokeOperation<Boolean> {
     public static final String DELETE_CLUSTER_RESOURCE_URI = WinRMConstants.WMI_BASE_URI + "root/mscluster/MSCluster_Resource";
-    public static final String CLUSTER_AVAILABLE_DISKS_ACTION_URI = DELETE_CLUSTER_RESOURCE_URI+"/DeleteResource";
+    public static final String CLUSTER_AVAILABLE_DISKS_ACTION_URI = DELETE_CLUSTER_RESOURCE_URI + "/DeleteResource";
 
     private static final XPath XPATH = XmlUtils.createXPath(String.format("ns=%s", DELETE_CLUSTER_RESOURCE_URI));
     private static final XPathExpression PATH_EXPR = XmlUtils.compileXPath(XPATH, "ns:Path");
@@ -26,7 +26,7 @@ public class DeleteClusterResourceMethod extends WinRMInvokeOperation<Boolean> {
 
     public DeleteClusterResourceMethod(WinRMTarget target, String resourceId) {
         super(target, DELETE_CLUSTER_RESOURCE_URI, CLUSTER_AVAILABLE_DISKS_ACTION_URI);
-        setSelector("name",resourceId);
+        setSelector("name", resourceId);
     }
 
     @Override

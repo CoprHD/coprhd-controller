@@ -10,14 +10,14 @@ package com.iwave.platform;
 public interface StorageAutomatorService {
     /**
      * Starts storage automator service and registers with coordinator cluster
-     *
+     * 
      * @throws Exception
      */
     public void start() throws Exception;
 
     /**
      * Unregisters from coordinator cluster and stops provisioning service
-     *
+     * 
      * @throws Exception
      */
     public void stop() throws Exception;

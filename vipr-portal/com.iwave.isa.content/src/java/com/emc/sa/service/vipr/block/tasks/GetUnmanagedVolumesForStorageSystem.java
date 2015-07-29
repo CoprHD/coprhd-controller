@@ -11,8 +11,8 @@ import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.RelatedResourceRep;
 
 public class GetUnmanagedVolumesForStorageSystem extends ViPRExecutionTask<List<RelatedResourceRep>> {
-private URI storageSystem;
-    
+    private URI storageSystem;
+
     public GetUnmanagedVolumesForStorageSystem(String storageSystem) {
         this(uri(storageSystem));
     }

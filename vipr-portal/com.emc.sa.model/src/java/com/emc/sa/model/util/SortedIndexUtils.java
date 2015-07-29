@@ -16,32 +16,32 @@ import java.util.Iterator;
 import java.util.List;
 
 public class SortedIndexUtils {
-    
+
     public static void moveUp(SortedIndexDataObject sortableDataObject, ModelClient modelClient) {
         move(sortableDataObject, modelClient, true);
     }
 
     public static void moveDown(SortedIndexDataObject sortableDataObject, ModelClient modelClient) {
         move(sortableDataObject, modelClient, false);
-    }    
-    
+    }
+
     public static int getNextSortedIndex(SortedIndexDataObject value, ModelClient modelClient) {
         return getNextSortedIndex(getSortedSiblings(value, modelClient));
     }
-    
+
     public static int getNextSortedIndex(List<? extends SortedIndexDataObject> values) {
         int nextSortedIndex = 1;
         int maxSortedIndex = getMaxSortedIndex(values);
-        if (maxSortedIndex > 0)  {
+        if (maxSortedIndex > 0) {
             nextSortedIndex = maxSortedIndex + 1;
         }
         return nextSortedIndex;
     }
-    
+
     public static int getMaxSortedIndex(SortedIndexDataObject value, ModelClient modelClient) {
         return getMaxSortedIndex(getSortedSiblings(value, modelClient));
     }
-    
+
     public static int getMaxSortedIndex(List<? extends SortedIndexDataObject> values) {
         int maxSortedIndex = Integer.MIN_VALUE;
         if (values != null) {
@@ -52,26 +52,26 @@ public class SortedIndexUtils {
             }
         }
         return maxSortedIndex;
-    }    
-    
+    }
+
     public static void sort(List<? extends SortedIndexDataObject> objects) {
         Collections.sort(objects, new SortedIndexComparator());
     }
-    
+
     public static <T extends SortedIndexRestRep> List<T> createSortedList(Iterator<T> objects) {
         List<T> list = copyIterator(objects);
         Collections.sort(list, new SortedIndexRestRepComparator());
         return list;
-    }   
-    
+    }
+
     private static <T> List<T> copyIterator(Iterator<T> iter) {
         List<T> copy = new ArrayList<T>();
         while (iter.hasNext()) {
             copy.add(iter.next());
         }
         return copy;
-    }    
-    
+    }
+
     private static void move(SortedIndexDataObject sortableDataObject, ModelClient modelClient, boolean up) {
         List<SortedIndexDataObject> values = getSortedSiblings(sortableDataObject, modelClient);
         for (int i = 0; i < values.size(); i++) {
@@ -91,17 +91,17 @@ public class SortedIndexUtils {
                 }
             }
         }
-    }    
-    
+    }
+
     private static void swap(SortedIndexDataObject left, SortedIndexDataObject right) {
         Integer leftSortedIndex = left.getSortedIndex();
         left.setSortedIndex(right.getSortedIndex());
-        right.setSortedIndex(leftSortedIndex);        
+        right.setSortedIndex(leftSortedIndex);
     }
-        
+
     private static void fixSortedIndexValues(List<? extends SortedIndexDataObject> values, ModelClient modelClient) {
         if (values != null) {
-            
+
             // Clean up any nulls
             for (SortedIndexDataObject value : values) {
                 if (value != null) {
@@ -122,28 +122,29 @@ public class SortedIndexUtils {
                     else {
                         // Found Duplicate, reset sorted index
                         value.setSortedIndex(getNextSortedIndex(values));
-                        save(value, modelClient);                 
+                        save(value, modelClient);
                     }
                 }
             }
-            
+
         }
     }
-    
+
     private static void save(SortedIndexDataObject value, ModelClient modelClient) {
         if (value != null && value instanceof DataObject && modelClient != null) {
-            modelClient.save((DataObject)value);
-        }           
+            modelClient.save((DataObject) value);
+        }
     }
-        
+
     private static List<SortedIndexDataObject> getSortedSiblings(SortedIndexDataObject sortableDataObject, ModelClient modelClient) {
         List<SortedIndexDataObject> results = Lists.newArrayList();
-        
+
         if (sortableDataObject != null) {
             if (sortableDataObject instanceof CatalogCategory) {
                 CatalogCategory catalogCategory = (CatalogCategory) sortableDataObject;
                 if (catalogCategory.getCatalogCategoryId() != null) {
-                    results.addAll(modelClient.catalogCategories().findSubCatalogCategories(catalogCategory.getCatalogCategoryId().getURI()));
+                    results.addAll(modelClient.catalogCategories()
+                            .findSubCatalogCategories(catalogCategory.getCatalogCategoryId().getURI()));
                 }
                 else {
                     throw new IllegalStateException("getSortedSiblings: catalogCategoryId is required for CatalogCategory");
@@ -156,16 +157,17 @@ public class SortedIndexUtils {
                 }
                 else {
                     throw new IllegalStateException("getSortedSiblings: catalogCategoryId is required for CatalogService");
-                }                
+                }
             }
             else if (sortableDataObject instanceof CatalogServiceField) {
                 CatalogServiceField catalogServiceField = (CatalogServiceField) sortableDataObject;
                 if (catalogServiceField.getCatalogServiceId() != null) {
-                    results.addAll(modelClient.catalogServiceFields().findByCatalogService(catalogServiceField.getCatalogServiceId().getURI()));
+                    results.addAll(modelClient.catalogServiceFields().findByCatalogService(
+                            catalogServiceField.getCatalogServiceId().getURI()));
                 }
                 else {
                     throw new IllegalStateException("getSortedSiblings: catalogServiceId is required for CatalogServiceField");
-                }                
+                }
             }
             else if (sortableDataObject instanceof OrderParameter) {
                 OrderParameter orderParameter = (OrderParameter) sortableDataObject;
@@ -174,17 +176,17 @@ public class SortedIndexUtils {
                 }
                 else {
                     throw new IllegalStateException("getSortedSiblings: orderId is required for OrderParameter");
-                }                
+                }
             }
             else {
                 throw new IllegalStateException("Unknown SortedIndex Type");
             }
         }
-        
+
         fixSortedIndexValues(results, modelClient);
-        
+
         sort(results);
-        
+
         return results;
     }
 }

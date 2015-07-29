@@ -35,7 +35,6 @@ import util.validation.HostNameOrIpAddressCheck;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -68,7 +67,7 @@ public class Setup extends Controller {
         if (isComplete) {
             return true;
         }
-        isComplete = SetupUtils.isSetupComplete(); 
+        isComplete = SetupUtils.isSetupComplete();
         return isComplete;
     }
 
@@ -94,7 +93,7 @@ public class Setup extends Controller {
             complete();
         }
         // If this user does not have the right roles, redirect to a static page
-        if (Security.isSystemAdminOrRestrictedSystemAdmin() == false && 
+        if (Security.isSystemAdminOrRestrictedSystemAdmin() == false &&
                 Security.isSecurityAdminOrRestrictedSecurityAdmin() == false) {
             notLicensed();
         }
@@ -136,10 +135,11 @@ public class Setup extends Controller {
      * Saves the initial setup form. This is restricted to admin users.
      * 
      * @param setup
-     *        the initial setup form.
+     *            the initial setup form.
      */
-    @Restrictions({@Restrict({"SYSTEM_ADMIN", "SECURITY_ADMIN"}), @Restrict({"RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN"})})
-    public static void save(@Valid SetupForm setup) {
+    @Restrictions({ @Restrict({ "SYSTEM_ADMIN", "SECURITY_ADMIN" }), @Restrict({ "RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN" }) })
+    public static
+            void save(@Valid SetupForm setup) {
         checkCompleteAndLicensed();
         setup.validate();
         if (Validation.hasErrors()) {
@@ -157,7 +157,7 @@ public class Setup extends Controller {
      * Completes initial setup with the given configuration properties.
      * 
      * @param properties
-     *        the properties to update.
+     *            the properties to update.
      */
     private static void completeInitialSetup(Map<String, String> properties) {
         SetupUtils.markSetupComplete();
@@ -176,59 +176,59 @@ public class Setup extends Controller {
         SetupUtils.markSetupComplete();
         license();
     }
-    
-    
+
     public static String getPasswordValidPromptRule() {
-    	String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_VALID_PROMPT);
+        String promptString = PasswordUtil.getPasswordValidPromptRules(Constants.PASSWORD_VALID_PROMPT);
         return promptString;
     }
-    
+
     /**
      * Validate passwords dynamically from the initial setup form, rendering the result as JSON.
      * 
      * @param setup
-     *        the initial setup form.
+     *            the initial setup form.
      */
-    @Restrictions({@Restrict({"SECURITY_ADMIN"}), @Restrict({"RESTRICTED_SECURITY_ADMIN"})})
+    @Restrictions({ @Restrict({ "SECURITY_ADMIN" }), @Restrict({ "RESTRICTED_SECURITY_ADMIN" }) })
     public static void validatePasswordDynamic(String password, String fieldName) {
-    	boolean passed = true;
-    	if(fieldName.contains("root")){
-    		fieldName = "setup.rootPassword";
-    	}
-    	if(fieldName.contains("system")){
-    		fieldName = "setup.systemPasswords";
-    	}
+        boolean passed = true;
+        if (fieldName.contains("root")) {
+            fieldName = "setup.rootPassword";
+        }
+        if (fieldName.contains("system")) {
+            fieldName = "setup.systemPasswords";
+        }
         if (PasswordUtil.isNotValid(password)) {
             Validation.addError(fieldName + ".value", "setup.password.notValid");
             passed = false;
         }
-        if(passed){
-        	String validation = PasswordUtil.validatePassword(password);
+        if (passed) {
+            String validation = PasswordUtil.validatePassword(password);
             if (StringUtils.isNotBlank(validation)) {
                 Validation.addError(fieldName + ".value", validation);
-            } 
+            }
         }
-        
+
         if (Validation.hasErrors()) {
             renderJSON(ValidationResponse.collectErrors());
-        }    
+        }
         else {
             renderJSON(ValidationResponse.valid());
         }
     }
-    
+
     /**
      * Validate passwords from the initial setup form, rendering the result as JSON.
      * 
      * @param setup
-     *        the initial setup form.
+     *            the initial setup form.
      */
-    @Restrictions({@Restrict({"SYSTEM_ADMIN", "SECURITY_ADMIN"}), @Restrict({"RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN"})})
-    public static void validatePasswords(SetupForm setup) {
+    @Restrictions({ @Restrict({ "SYSTEM_ADMIN", "SECURITY_ADMIN" }), @Restrict({ "RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN" }) })
+    public static
+            void validatePasswords(SetupForm setup) {
         setup.validatePasswords();
         if (Validation.hasErrors()) {
             renderJSON(ValidationResponse.collectErrors());
-        }    
+        }
         else {
             renderJSON(ValidationResponse.valid());
         }
@@ -238,10 +238,11 @@ public class Setup extends Controller {
      * Tests the SMTP settings from the initial setup form, rendering the result as JSON.
      * 
      * @param setup
-     *        the initial setup form.
+     *            the initial setup form.
      */
-    @Restrictions({@Restrict({"SYSTEM_ADMIN", "SECURITY_ADMIN"}), @Restrict({"RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN"})})
-    public static void testSmtpSettings(SetupForm setup) {
+    @Restrictions({ @Restrict({ "SYSTEM_ADMIN", "SECURITY_ADMIN" }), @Restrict({ "RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN" }) })
+    public static
+            void testSmtpSettings(SetupForm setup) {
         setup.validateSmtp();
         Validation.required("setup.smtpTo", setup.smtpTo);
         Validation.email("setup.smtpTo", setup.smtpTo);
@@ -250,14 +251,13 @@ public class Setup extends Controller {
         }
 
         MailSettingsValidator.Settings settings = new MailSettingsValidator.Settings();
-        
+
         if (StringUtils.isNotEmpty(setup.nameservers) && !InetAddresses.isInetAddress(setup.smtpServer)) {
             Set<String> ips = Sets.newHashSet(setup.nameservers.split(","));
-            
+
             try {
                 settings.server = DnsUtils.getHostIpAddress(ips, setup.smtpServer).getHostAddress();
-            }
-            catch(ViPRException e) {
+            } catch (ViPRException e) {
                 renderJSON(ValidationResponse.invalid(e.getMessage()));
             }
         }
@@ -273,8 +273,7 @@ public class Setup extends Controller {
 
         try {
             MailSettingsValidator.validate(settings, setup.smtpTo);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             Logger.error(e, "Failed to send email");
             Validation.addError(null, "setup.testEmail.failure", e.getMessage());
             if (StringUtils.isEmpty(setup.nameservers)) {
@@ -315,8 +314,9 @@ public class Setup extends Controller {
     /**
      * Renders the cluster state as JSON.
      */
-    @Restrictions({@Restrict({"SYSTEM_ADMIN", "SECURITY_ADMIN"}), @Restrict({"RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN"})})
-    public static void clusterState() {
+    @Restrictions({ @Restrict({ "SYSTEM_ADMIN", "SECURITY_ADMIN" }), @Restrict({ "RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN" }) })
+    public static
+            void clusterState() {
         renderJSON(Common.getClusterInfo());
     }
 
@@ -324,10 +324,11 @@ public class Setup extends Controller {
      * Uploads a license file. This is restricted to admin users.
      * 
      * @param licenseFile
-     *        the license file.
+     *            the license file.
      */
-    @Restrictions({@Restrict({"SYSTEM_ADMIN", "SECURITY_ADMIN"}), @Restrict({"RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN"})})
-    public static void upload(@Required File licenseFile) {
+    @Restrictions({ @Restrict({ "SYSTEM_ADMIN", "SECURITY_ADMIN" }), @Restrict({ "RESTRICTED_SYSTEM_ADMIN", "RESTRICTED_SECURITY_ADMIN" }) })
+    public static
+            void upload(@Required File licenseFile) {
         if (Validation.hasErrors()) {
             params.flash();
             Validation.keep();
@@ -344,8 +345,7 @@ public class Setup extends Controller {
             }
             LicenseUtils.updateLicenseText(license);
             index();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             Validation.addError("setup.licenseFile", MessagesUtils.get("license.uploadFailed"));
             Logger.error(e, "Failed to read license file");
             Validation.keep();
@@ -374,7 +374,7 @@ public class Setup extends Controller {
         properties.put(ConfigProperty.PROXYUSER_PASSWORD, PasswordUtil.decryptedValue(setup.systemPasswords.value));
         properties.put(ConfigProperty.SVCUSER_PASSWORD, setup.systemPasswords.hashedValue());
         properties.put(ConfigProperty.SYSMONITOR_PASSWORD, setup.systemPasswords.hashedValue());
-        
+
         // SMTP settings
         if (StringUtils.isNotBlank(setup.smtpServer)) {
             properties.put(ConfigProperty.SMTP_SERVER, setup.smtpServer);
@@ -415,7 +415,7 @@ public class Setup extends Controller {
      * Protects a password field by erasing it if there are validation errors, or encrypting it if there aren't.
      * 
      * @param field
-     *        the base password field name.
+     *            the base password field name.
      */
     private static void protectPassword(String field) {
         String passwordFieldName = field + ".value";
@@ -455,17 +455,17 @@ public class Setup extends Controller {
         }
 
         public void validate(String fieldName) {
-            
+
             // If local validations have passed, validate against remote api
-            if(localValidation(fieldName)) {
+            if (localValidation(fieldName)) {
                 remoteValidation(fieldName);
             }
-            
+
         }
-        
+
         private boolean localValidation(String fieldName) {
             boolean passed = true;
-            
+
             if (PasswordUtil.isNotValid(value)) {
                 Validation.addError(fieldName + ".value", "setup.password.notValid");
                 passed = false;
@@ -474,7 +474,7 @@ public class Setup extends Controller {
                 Validation.addError(fieldName + ".confirm", "setup.password.notValid");
                 passed = false;
             }
-            
+
             value = PasswordUtil.decryptedValue(value);
             confirm = PasswordUtil.decryptedValue(confirm);
             Validation.valid(fieldName, this);
@@ -482,15 +482,15 @@ public class Setup extends Controller {
                 Validation.addError(fieldName + ".value", "setup.password.notEqual");
                 passed = false;
             }
-            
+
             return passed;
         }
-        
+
         private void remoteValidation(String fieldName) {
             String validation = PasswordUtil.validatePassword(value);
             if (StringUtils.isNotBlank(validation)) {
                 Validation.addError(fieldName + ".value", validation);
-            }            
+            }
         }
     }
 
@@ -515,13 +515,13 @@ public class Setup extends Controller {
         public String smtpEnableTls;
         // For test email settings
         public String smtpTo;
-        
+
         public String fieldName;
 
         /* ConnectEMC page */
         public String connectEmcTransport;
         public String connectEmcNotifyEmail;
-        
+
         public void loadDefaults() {
             Map<String, String> properties = getProperties();
 
@@ -537,7 +537,7 @@ public class Setup extends Controller {
 
             connectEmcTransport = properties.get(ConfigProperty.CONNECTEMC_TRANSPORT);
             connectEmcNotifyEmail = properties.get(ConfigProperty.CONNECTEMC_NOTIFY_EMAIL);
-            
+
         }
 
         public void validate() {
@@ -563,15 +563,15 @@ public class Setup extends Controller {
                 }
             }
         }
-        
+
         public void validatePasswords() {
             rootPassword.validate("setup.rootPassword");
-            systemPasswords.validate("setup.systemPasswords");            
+            systemPasswords.validate("setup.systemPasswords");
         }
 
         public void validateSmtp() {
             Validation.required("setup.smtpServer", smtpServer);
-                        
+
             if (HostNameOrIpAddressCheck.isValidHostName(smtpServer)) {
                 if (PropertiesConfigurationValidator.validateIpList(nameservers)) {
                     Set<String> ips = Sets.newHashSet(nameservers.split(","));
@@ -583,7 +583,7 @@ public class Setup extends Controller {
                     Validation.addError("setup.nameservers", "setup.smtpServer.invalidNameserver", nameservers);
                 }
             }
-            
+
             if (!HostNameOrIpAddressCheck.isValidHostNameOrIp(smtpServer)) {
                 Validation.addError("setup.smtpServer", "setup.smtpServer.invalid");
             }

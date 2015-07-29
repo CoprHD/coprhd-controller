@@ -44,7 +44,7 @@ public class FileSnapshotsDataTable extends DataTable {
     }
 
     public static class FileSnapshot {
-    	public String rowLink;
+        public String rowLink;
         public URI id;
         public String name;
 

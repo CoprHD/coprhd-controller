@@ -55,12 +55,12 @@ public class BlockSnapshotCreateCompleter extends BlockSnapshotTaskCompleter {
                 BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, thisOne);
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
                 // For VPLEX volume snaps, the snap parent is not the VPLEX volume,
-                // but instead the backend volume that is natively snapped. We need 
+                // but instead the backend volume that is natively snapped. We need
                 // the VPLEX volume to update the task that was created on the VPLEX
                 // volume.
                 URIQueryResultList queryResults = new URIQueryResultList();
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                                .getVolumeByAssociatedVolumesConstraint(volume.getId().toString()),
+                        .getVolumeByAssociatedVolumesConstraint(volume.getId().toString()),
                         queryResults);
                 if (queryResults.iterator().hasNext()) {
                     volume = dbClient.queryObject(Volume.class, queryResults.iterator().next());
@@ -76,15 +76,15 @@ public class BlockSnapshotCreateCompleter extends BlockSnapshotTaskCompleter {
                         setReadyOnDataObject(dbClient, BlockSnapshot.class, thisOne);
                         setReadyOnDataObject(dbClient, Volume.class, volume);
                 }
-                
-         
-                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.CREATE_VOLUME_SNAPSHOT, status, eventMessage(status, volume, snapshot), snapshot, volume);
+
+                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.CREATE_VOLUME_SNAPSHOT, status,
+                        eventMessage(status, volume, snapshot), snapshot, volume);
             }
             if (isNotifyWorkflow()) {
                 // If there is a workflow, update the step to complete.
                 updateWorkflowStatus(status, coded);
             }
-            _log.info("Done SnapshotCreate {}, with Status: {}", getOpId(), status.name());          
+            _log.info("Done SnapshotCreate {}, with Status: {}", getOpId(), status.name());
         } catch (Exception e) {
             _log.error("Failed updating status. SnapshotCreate {}, for task " + getOpId(), getId(), e);
         }

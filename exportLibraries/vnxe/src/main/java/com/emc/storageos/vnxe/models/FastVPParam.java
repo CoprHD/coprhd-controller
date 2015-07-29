@@ -25,6 +25,5 @@ public class FastVPParam {
     public void setTieringPolicy(int tieringPolicy) {
         this.tieringPolicy = tieringPolicy;
     }
-    
-    
+
 }

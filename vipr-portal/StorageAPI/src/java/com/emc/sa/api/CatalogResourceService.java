@@ -11,7 +11,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 public abstract class CatalogResourceService extends ResourceService {
 
     public CatalogResourceService() {
-        
+
     }
 
     protected void auditOpSuccess(OperationTypeEnum opType, Object... params) {
@@ -36,6 +36,6 @@ public abstract class CatalogResourceService extends ResourceService {
 
     protected void auditOpEndFailure(OperationTypeEnum opType, Object... params) {
         auditOp(opType, false, AuditLogManager.AUDITOP_END, params);
-    }    
-    
+    }
+
 }

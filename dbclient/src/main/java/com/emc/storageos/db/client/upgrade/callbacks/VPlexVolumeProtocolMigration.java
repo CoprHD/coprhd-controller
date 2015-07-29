@@ -11,7 +11,8 @@
  * software and the intellectual property contained therein is expressly
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
- */package com.emc.storageos.db.client.upgrade.callbacks;
+ */
+package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.Iterator;
@@ -42,7 +43,7 @@ public class VPlexVolumeProtocolMigration extends BaseCustomMigrationCallback {
             if (!NullColumnValueGetter.isNullURI(systemURI)) {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
                 if ((system != null) &&
-                    (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType()))) {
+                        (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType()))) {
                     // This is a VPLEX volume. If not already set,
                     // set the protocols to FC.
                     StringSet protocols = volume.getProtocol();

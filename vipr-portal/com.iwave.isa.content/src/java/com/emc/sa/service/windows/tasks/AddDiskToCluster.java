@@ -7,7 +7,7 @@ package com.emc.sa.service.windows.tasks;
 public class AddDiskToCluster extends WindowsExecutionTask<String> {
     private final String diskId;
 
-    public  AddDiskToCluster(String diskId) {
+    public AddDiskToCluster(String diskId) {
         this.diskId = diskId;
         provideDetailArgs(diskId);
     }

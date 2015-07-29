@@ -15,8 +15,8 @@ import controllers.catalog.Approvals;
 /**
  * @author Chris Dail
  */
-public class ApprovalsDataTable extends DataTable  {
-    
+public class ApprovalsDataTable extends DataTable {
+
     public ApprovalsDataTable() {
         addColumn("orderNumber");
         addColumn("serviceTitle").setRenderFunction("renderLink");
@@ -28,7 +28,6 @@ public class ApprovalsDataTable extends DataTable  {
         setDefaultSort("createdDate", "desc");
         setRowCallback("createRowLink");
     }
-
 
     public static class ApprovalRequestInfo {
         public String id;
@@ -43,7 +42,8 @@ public class ApprovalsDataTable extends DataTable  {
         public String message;
         public String approvedBy;
 
-        public ApprovalRequestInfo() { }
+        public ApprovalRequestInfo() {
+        }
 
         public ApprovalRequestInfo(ApprovalRestRep approval, OrderRestRep order, CatalogServiceRestRep service) {
             this.id = approval.getId().toString();
@@ -51,14 +51,14 @@ public class ApprovalsDataTable extends DataTable  {
             this.status = approval.getApprovalStatus();
             this.message = approval.getMessage();
             this.approvedBy = approval.getApprovedBy();
-            
+
             if (approval.getCreationTime() != null) {
                 this.createdDate = approval.getCreationTime().getTime().getTime();
             }
             if (approval.getDateActioned() != null) {
                 this.dateActioned = approval.getDateActioned().getTime();
             }
-            
+
             if (order != null) {
                 this.orderNumber = order.getOrderNumber();
                 this.orderUserName = order.getSubmittedBy();

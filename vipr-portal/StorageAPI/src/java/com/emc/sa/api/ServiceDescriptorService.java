@@ -28,17 +28,18 @@ import com.emc.vipr.model.catalog.ServiceDescriptorRestRep;
 import com.google.common.collect.Lists;
 
 @DefaultPermissions(
-        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, 
-        write_roles = { Role.TENANT_ADMIN }, 
+        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        write_roles = { Role.TENANT_ADMIN },
         read_acls = { ACL.ANY })
 @Path("/catalog/service-descriptors")
 public class ServiceDescriptorService extends CatalogResourceService {
 
     @Autowired
     private ServiceDescriptors serviceDescriptors;
-    
-    /**     
+
+    /**
      * List service descriptors
+     * 
      * @prereq none
      * @brief List service descriptors
      * @return List of service descriptors
@@ -48,18 +49,19 @@ public class ServiceDescriptorService extends CatalogResourceService {
     @Path("")
     public ServiceDescriptorList getServiceDescriptors() {
         Collection<ServiceDescriptor> descriptors = this.serviceDescriptors.listDescriptors(Locale.getDefault());
-        
+
         List<ServiceDescriptorRestRep> serviceDescriptors = Lists.newArrayList();
         for (ServiceDescriptor descriptor : descriptors) {
             serviceDescriptors.add(map(descriptor));
         }
-        
+
         ServiceDescriptorList serviceDescriptorList = new ServiceDescriptorList(serviceDescriptors);
         return serviceDescriptorList;
-    }            
-    
-    /**     
+    }
+
+    /**
      * Retrieve service descriptors
+     * 
      * @prereq none
      * @brief Retrieve service descriptor
      * @return Service descriptor
@@ -69,8 +71,8 @@ public class ServiceDescriptorService extends CatalogResourceService {
     @Path("/{serviceId}")
     public ServiceDescriptorRestRep getServiceDescriptor(@PathParam("serviceId") String serviceId) {
         ServiceDescriptor descriptor = this.serviceDescriptors.getDescriptor(Locale.getDefault(), serviceId);
-        
+
         return map(descriptor);
-    }           
-    
+    }
+
 }

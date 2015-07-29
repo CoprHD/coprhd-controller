@@ -28,8 +28,7 @@ public class StoragePoolUtils {
     public static StoragePoolRestRep getStoragePool(URI id) {
         try {
             return getViprClient().storagePools().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }

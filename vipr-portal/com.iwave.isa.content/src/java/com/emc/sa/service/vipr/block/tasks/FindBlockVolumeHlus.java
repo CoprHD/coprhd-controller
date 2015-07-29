@@ -25,7 +25,7 @@ public class FindBlockVolumeHlus extends ViPRExecutionTask<List<ITLRestRep>> {
     @Override
     public List<ITLRestRep> executeTask() throws Exception {
         BulkIdParam bulkParam = new BulkIdParam();
-        for (URI id : volumeIds) { 
+        for (URI id : volumeIds) {
             bulkParam.getIds().add(id);
         }
         return getClient().blockVolumes().getExports(bulkParam).getExportList();

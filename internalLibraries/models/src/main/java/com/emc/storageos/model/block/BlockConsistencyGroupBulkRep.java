@@ -16,7 +16,7 @@ public class BlockConsistencyGroupBulkRep extends BulkRestRep {
 
     /**
      * A block consistency group
-     *
+     * 
      * @valid none
      */
     @XmlElement(name = "consistency_group")

@@ -6,7 +6,7 @@ package storageapi;
 
 /**
  * A URL Factory that gives out the same address everytime
- *
+ * 
  * @author dmaddison
  */
 public class StaticApiUrlFactory implements ApiUrlFactory {

@@ -7,7 +7,7 @@ package util;
 public enum DefaultStorageProviderPortMap {
     smis,
     smis_useSSL,
-    hicommand, 
+    hicommand,
     hicommand_useSSL,
     vplex,
     vplex_useSSL,

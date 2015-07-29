@@ -23,8 +23,8 @@ public class FindExportByCluster extends ViPRExecutionTask<ExportGroupRestRep> {
         this(uri(cluster), uri(project), uri(varray), uri(volume));
     }
 
-    public FindExportByCluster(URI cluster, URI project,  URI varray, URI volume) {
-        this.cluster =  cluster;
+    public FindExportByCluster(URI cluster, URI project, URI varray, URI volume) {
+        this.cluster = cluster;
         this.project = project;
         this.varray = varray;
         this.volume = volume;

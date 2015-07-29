@@ -16,7 +16,7 @@ public class ExtendVolume extends DiskPartScript<Void> {
 
     @Override
     public void execute() throws Exception {
-       String output = getTargetSystem().extendVolume(mountpoint);
-       logDebug(output);
+        String output = getTargetSystem().extendVolume(mountpoint);
+        logDebug(output);
     }
 }

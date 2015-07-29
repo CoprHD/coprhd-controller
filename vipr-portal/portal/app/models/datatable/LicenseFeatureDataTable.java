@@ -31,7 +31,7 @@ public class LicenseFeatureDataTable extends DataTable {
 
     public static List<FeatureInfo> features(License license, StorageStatsWrapper stats) {
         List<FeatureInfo> features = Lists.newArrayList();
-        for (LicenseFeature lf: license.getLicenseFeatures()) {
+        for (LicenseFeature lf : license.getLicenseFeatures()) {
             features.add(new FeatureInfo(lf, stats));
         }
         return features;

@@ -18,7 +18,7 @@ public class CreateFileSystemShare extends WaitForTask<FileShareRestRep> {
     private final String shareComment;
     private final URI fileSystemId;
     private final String subDirectory;
-    
+
     public CreateFileSystemShare(String shareName, String shareComment, String fileSystemId, String subDirectory) {
         this(shareName, shareComment, uri(fileSystemId), subDirectory);
     }
@@ -41,7 +41,7 @@ public class CreateFileSystemShare extends WaitForTask<FileShareRestRep> {
         if (StringUtils.isNotBlank(subDirectory)) {
             fileShare.setSubDirectory(subDirectory);
         }
-        
+
         return getClient().fileSystems().share(fileSystemId, fileShare);
     }
 }

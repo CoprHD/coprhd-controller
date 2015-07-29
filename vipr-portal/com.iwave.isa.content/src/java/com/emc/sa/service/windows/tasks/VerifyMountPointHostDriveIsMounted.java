@@ -14,23 +14,23 @@ public class VerifyMountPointHostDriveIsMounted extends WindowsExecutionTask<Voi
 
     private final Collection<String> assignedMountPoints;
     private final String driveletter;
-    
+
     public VerifyMountPointHostDriveIsMounted(String mountpoint, Collection<String> assignedMountPoints) {
         logDebug("verify.mount.host.drive.letter.mountpoint", mountpoint);
         this.driveletter = WindowsUtils.getDriveLetterFromMountPath(mountpoint);
         logInfo("verify.mount.host.drive.letter", driveletter);
-        
+
         logDebug("verify.mount.host.assigned", StringUtils.join(assignedMountPoints, ", "));
         this.assignedMountPoints = assignedMountPoints;
-        
+
         provideDetailArgs(driveletter);
     }
-    
+
     @Override
     public void execute() throws Exception {
-        if (!assignedMountPoints.contains(driveletter+":")) {
+        if (!assignedMountPoints.contains(driveletter + ":")) {
             throw stateException("illegalState.VerifyMountPointHostDriveIsMounted.notMounted");
         }
     }
-    
+
 }

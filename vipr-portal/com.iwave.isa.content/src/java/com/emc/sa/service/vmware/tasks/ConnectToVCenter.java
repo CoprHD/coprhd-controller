@@ -23,9 +23,9 @@ public class ConnectToVCenter extends ExecutionTask<VCenterAPI> {
         debug("Executing: %s", getDetail());
         String host = vcenter.getIpAddress();
         int port = vcenter.getPortNumber() != null ? vcenter.getPortNumber() : 443;
-   
+
         URL url = new URL("https", host, port, "/sdk");
-        
+
         VCenterAPI vcenterAPI = new VCenterAPI(url);
         vcenterAPI.login(vcenter.getUsername(), vcenter.getPassword());
         logInfo("connect.vcenter.logged", vcenter.getLabel(), vcenterAPI.getAboutInfo().getFullName());

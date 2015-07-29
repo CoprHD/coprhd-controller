@@ -19,11 +19,11 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_folder")
+@JsonRootName(value = "xtremio_folder")
 public class XtremIOFolder {
-	@SerializedName("num-of-vols")
-	@JsonProperty(value = "num-of-vols")
-	private String numberOfVolumes;
+    @SerializedName("num-of-vols")
+    @JsonProperty(value = "num-of-vols")
+    private String numberOfVolumes;
 
     public String getNumberOfVolumes() {
         return numberOfVolumes;

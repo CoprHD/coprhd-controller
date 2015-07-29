@@ -43,8 +43,6 @@ import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
-import controllers.util.ViprResourceController.ResourceIdOperation;
-import controllers.util.ViprResourceController.ResourceValueOperation;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -118,7 +116,7 @@ public class SanSwitches extends ViprResourceController {
         edit(new SanSwitchForm(networkSystem));
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(SanSwitchForm sanSwitch) {
         sanSwitch.validate("sanSwitch");
         if (Validation.hasErrors()) {
@@ -190,10 +188,11 @@ public class SanSwitches extends ViprResourceController {
         public String userName;
 
         @MaxSize(2048)
-        public String userPassword = ""; //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
+        public String userPassword = ""; // NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
         @MaxSize(2048)
-        public String confirmPassword = ""; //NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
+        public String confirmPassword = ""; // NOSONAR
+                                            // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
         public boolean useSSL;
 

@@ -41,7 +41,7 @@ public class ServiceDescriptorBuilder {
         service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX));
         service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX));
         service.addRoles(definition.roles);
-        
+
         // Ensure that a missing resource keys don't cause the service to be hidden in the catalog
         if (StringUtils.isBlank(service.getTitle())) {
             service.setTitle(StringUtils.defaultString(definition.titleKey, definition.serviceId));
@@ -111,7 +111,7 @@ public class ServiceDescriptorBuilder {
         target.setType(source.type);
         target.setLabel(getMessage(source.labelKey, baseKey + LABEL_SUFFIX));
         target.setDescription(getMessage(source.descriptionKey, baseKey + DESCRIPTION_SUFFIX));
-        
+
         // Use the field name if no label is found
         if (StringUtils.isBlank(target.getLabel())) {
             target.setLabel(source.name);
@@ -139,7 +139,7 @@ public class ServiceDescriptorBuilder {
      * is retried until the key is empty or a match is found.
      * 
      * @param key
-     *        the key to find.
+     *            the key to find.
      * @return the message, or null if no match is found.
      */
     private String getMessage(String key) {
@@ -159,16 +159,15 @@ public class ServiceDescriptorBuilder {
      * Gets a message from a resource bundle, returning null if no key is found.
      * 
      * @param bundle
-     *        the resource bundle.
+     *            the resource bundle.
      * @param key
-     *        the message key.
+     *            the message key.
      * @return the message.
      */
     private static String getMessage(ResourceBundle bundle, String key) {
         try {
             return bundle.getString(key);
-        }
-        catch (MissingResourceException e) {
+        } catch (MissingResourceException e) {
             return null;
         }
     }

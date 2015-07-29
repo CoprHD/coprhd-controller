@@ -17,7 +17,7 @@ public class VirtualPoolProtocolFilter<T extends VirtualPoolCommonRestRep> exten
 
     public VirtualPoolProtocolFilter(String... protocols) {
         this.protocols = new HashSet<String>();
-        for (String protocol: protocols) {
+        for (String protocol : protocols) {
             this.protocols.add(protocol);
         }
     }

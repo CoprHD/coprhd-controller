@@ -17,7 +17,7 @@ public class DetachFullCopyService extends ViPRService {
 
     @Param(COPIES)
     protected List<String> copyIds;
-    
+
     @Override
     public void execute() throws Exception {
         BlockStorageUtils.detachFullCopies(uris(copyIds));

@@ -11,10 +11,10 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 
 public class Disk implements Serializable {
-    
+
     private static final long serialVersionUID = 1L;
     private static final String ONLINE = "Online";
-    
+
     private int number;
     private String diskId;
     private String type;
@@ -159,7 +159,7 @@ public class Disk implements Serializable {
     public void setVolumes(List<Volume> volumes) {
         this.volumes = volumes;
     }
-    
+
     public boolean isOnline() {
         return ONLINE.equalsIgnoreCase(getStatus());
     }

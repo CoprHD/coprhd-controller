@@ -23,15 +23,15 @@ import static com.emc.storageos.db.server.upgrade.util.DbSchemaChanger.InjectMod
 
 /**
  * tests dbsvc crashed when migrating in skip upgrade scenarios
- */    
+ */
 
 public class DbCrashAtMigrationHandlerTest extends DbCrashInjectionTestBase {
 
     @Test
     public void runUpgradeNegativeTest() throws Exception {
         Method method = MigrationHandlerImpl.class.getDeclaredMethod(
-                "runMigrationCallbacks", new Class[] {DbSchemasDiff.class, String.class, 
-                String.class});
-        upgradeNegativeTest(method, InjectModeEnum.AFTER);  
+                "runMigrationCallbacks", new Class[] { DbSchemasDiff.class, String.class,
+                        String.class });
+        upgradeNegativeTest(method, InjectModeEnum.AFTER);
     }
 }

@@ -8,8 +8,8 @@ import org.apache.commons.lang.StringUtils;
 
 import com.iwave.ext.command.CommandException;
 
-public class UnmountCommand extends AixCommand{
-    
+public class UnmountCommand extends AixCommand {
+
     public UnmountCommand(String mountPoint) {
         setCommand("unmount");
         this.addArgument(mountPoint);

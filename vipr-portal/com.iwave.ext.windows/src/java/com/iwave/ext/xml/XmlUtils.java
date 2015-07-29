@@ -138,11 +138,9 @@ public class XmlUtils {
         try {
             ByteArrayInputStream xmlStream = new ByteArrayInputStream(xml.getBytes("UTF-8"));
             return getDocumentBuilderFactory().newDocumentBuilder().parse(xmlStream);
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new Error("UTF-8 must be supported");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new XmlException(e);
         }
     }
@@ -177,8 +175,7 @@ public class XmlUtils {
             }
             t.transform(source, result);
             return writer.toString();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new XmlException(e);
         }
     }
@@ -223,24 +220,24 @@ public class XmlUtils {
         for (int i = 0; i < text.length(); i++) {
             char ch = text.charAt(i);
             switch (ch) {
-            case '<':
-                toAppend.append("&lt;");
-                break;
-            case '>':
-                toAppend.append("&gt;");
-                break;
-            case '&':
-                toAppend.append("&amp;");
-                break;
-            case '"':
-                toAppend.append(escapeQuote ? "&quot;" : ch);
-                break;
-            case '\'':
-                toAppend.append(escapeApos ? "&apos;" : ch);
-                break;
-            default:
-                toAppend.append(ch);
-                break;
+                case '<':
+                    toAppend.append("&lt;");
+                    break;
+                case '>':
+                    toAppend.append("&gt;");
+                    break;
+                case '&':
+                    toAppend.append("&amp;");
+                    break;
+                case '"':
+                    toAppend.append(escapeQuote ? "&quot;" : ch);
+                    break;
+                case '\'':
+                    toAppend.append(escapeApos ? "&apos;" : ch);
+                    break;
+                default:
+                    toAppend.append(ch);
+                    break;
             }
         }
     }
@@ -254,8 +251,7 @@ public class XmlUtils {
     public static Templates createTemplates(Source source) {
         try {
             return getTransformerFactory().newTemplates(source);
-        }
-        catch (TransformerConfigurationException e) {
+        } catch (TransformerConfigurationException e) {
             throw new XmlException(e);
         }
     }
@@ -268,8 +264,7 @@ public class XmlUtils {
     public static Transformer createTransformer() {
         try {
             return getTransformerFactory().newTransformer();
-        }
-        catch (TransformerConfigurationException e) {
+        } catch (TransformerConfigurationException e) {
             throw new XmlException(e);
         }
     }
@@ -283,8 +278,7 @@ public class XmlUtils {
     public static Transformer createTransformer(Source source) {
         try {
             return getTransformerFactory().newTransformer(source);
-        }
-        catch (TransformerConfigurationException e) {
+        } catch (TransformerConfigurationException e) {
             throw new XmlException(e);
         }
     }
@@ -299,8 +293,7 @@ public class XmlUtils {
     public static XPathExpression compileXPath(XPath xpath, String expr) {
         try {
             return xpath.compile(expr);
-        }
-        catch (XPathExpressionException e) {
+        } catch (XPathExpressionException e) {
             throw new XmlException(e);
         }
     }
@@ -318,8 +311,7 @@ public class XmlUtils {
     /**
      * Compiles an XPath expression, which is aware of the specified namespaces. This is a
      * convenience method for creating single XPath expressions. If multiple expressions are to be
-     * compiled for the same set of namespaces, create an XPath using
-     * {@link #createXPath(String...)} and compile each expression using
+     * compiled for the same set of namespaces, create an XPath using {@link #createXPath(String...)} and compile each expression using
      * {@link #compileXPath(XPath, String)}.
      * 
      * @param expr the XPath expression.
@@ -343,8 +335,7 @@ public class XmlUtils {
     public static String selectText(XPathExpression expr, Node context) {
         try {
             return (String) expr.evaluate(context, XPathConstants.STRING);
-        }
-        catch (XPathExpressionException e) {
+        } catch (XPathExpressionException e) {
             throw new XmlException(e);
         }
     }
@@ -353,9 +344,9 @@ public class XmlUtils {
      * Evaluates the XPath expression as an Integer.
      * 
      * @param expr
-     *        the expression.
+     *            the expression.
      * @param context
-     *        the context node.
+     *            the context node.
      * @return the integer, or null if the value is not an integer.
      */
     public static Integer selectInteger(XPathExpression expr, Node context) {
@@ -363,8 +354,7 @@ public class XmlUtils {
         if (StringUtils.isNotBlank(value)) {
             try {
                 return Integer.parseInt(value);
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 return null;
             }
         }
@@ -377,9 +367,9 @@ public class XmlUtils {
      * Evaluates the XPath expression as a Long.
      * 
      * @param expr
-     *        the expression.
+     *            the expression.
      * @param context
-     *        the context node.
+     *            the context node.
      * @return the long, or null if the value is not a long.
      */
     public static Long selectLong(XPathExpression expr, Node context) {
@@ -387,8 +377,7 @@ public class XmlUtils {
         if (StringUtils.isNotBlank(value)) {
             try {
                 return Long.parseLong(value);
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 return null;
             }
         }
@@ -416,8 +405,7 @@ public class XmlUtils {
             else {
                 throw new XmlException("Not an element: " + result);
             }
-        }
-        catch (XPathExpressionException e) {
+        } catch (XPathExpressionException e) {
             throw new XmlException(e);
         }
     }
@@ -443,8 +431,7 @@ public class XmlUtils {
                 }
             }
             return elements;
-        }
-        catch (XPathExpressionException e) {
+        } catch (XPathExpressionException e) {
             throw new XmlException(e);
         }
     }
@@ -464,13 +451,13 @@ public class XmlUtils {
                 Node node = children.item(i);
 
                 switch (node.getNodeType()) {
-                case Node.TEXT_NODE:
-                case Node.CDATA_SECTION_NODE:
-                    if (sb == null) {
-                        sb = new StringBuilder();
-                    }
-                    sb.append(node.getNodeValue());
-                    break;
+                    case Node.TEXT_NODE:
+                    case Node.CDATA_SECTION_NODE:
+                        if (sb == null) {
+                            sb = new StringBuilder();
+                        }
+                        sb.append(node.getNodeValue());
+                        break;
                 }
             }
         }

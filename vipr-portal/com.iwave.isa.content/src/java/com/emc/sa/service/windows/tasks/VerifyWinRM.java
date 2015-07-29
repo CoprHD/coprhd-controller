@@ -4,9 +4,8 @@
  */
 package com.emc.sa.service.windows.tasks;
 
-
 public class VerifyWinRM extends WindowsExecutionTask<Void> {
-    
+
     public VerifyWinRM() {
     }
 
@@ -16,5 +15,5 @@ public class VerifyWinRM extends WindowsExecutionTask<Void> {
         provideDetailArgs(url);
         getTargetSystem().getRegistryKeys("HARDWARE\\DEVICEMAP\\Scsi");
     }
-    
+
 }

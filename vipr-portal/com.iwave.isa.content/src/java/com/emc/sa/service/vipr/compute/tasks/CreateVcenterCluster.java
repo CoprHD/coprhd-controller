@@ -13,9 +13,8 @@ import com.emc.vipr.client.Task;
 
 public class CreateVcenterCluster extends WaitForTask<VcenterDataCenterRestRep> {
 
-	private URI cluster;
-	private URI datacenter;
-
+    private URI cluster;
+    private URI datacenter;
 
     public CreateVcenterCluster(URI cluster, URI datacenter) {
         this.cluster = cluster;
@@ -25,8 +24,8 @@ public class CreateVcenterCluster extends WaitForTask<VcenterDataCenterRestRep> 
 
     @Override
     public Task<VcenterDataCenterRestRep> doExecute() throws Exception {
-    	VcenterClusterParam clusterParam = new VcenterClusterParam(cluster);
-        Task<VcenterDataCenterRestRep> task = getClient().vcenterDataCenters().createVcenterCluster(datacenter, clusterParam); 
+        VcenterClusterParam clusterParam = new VcenterClusterParam(cluster);
+        Task<VcenterDataCenterRestRep> task = getClient().vcenterDataCenters().createVcenterCluster(datacenter, clusterParam);
         return task;
     }
 }

@@ -54,7 +54,7 @@ public class LessPlugin extends PlayPlugin {
      * Gets the less source file for this request. If the request should be ignored by the plugin, null is returned.
      * 
      * @param request
-     *        the raw request.
+     *            the raw request.
      * @return the less source, or null.
      */
     private VirtualFile getLessSourceFile(Request request) {
@@ -83,8 +83,7 @@ public class LessPlugin extends PlayPlugin {
         response.contentType = "text/css";
         try {
             processLess(lessFile, request, response);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             error(response, lessFile, e);
         }
         return true;
@@ -94,14 +93,14 @@ public class LessPlugin extends PlayPlugin {
      * Processes a less file and returns the compiled CSS.
      * 
      * @param file
-     *        the less file.
+     *            the less file.
      * @param request
-     *        the HTTP request.
+     *            the HTTP request.
      * @param response
-     *        the HTTP response.
+     *            the HTTP response.
      * 
      * @throws Exception
-     *         if an error occurs (typically LESS compilation).
+     *             if an error occurs (typically LESS compilation).
      */
     private void processLess(VirtualFile file, Request request, Response response) throws Exception {
         long lastModified = getLastModified(file);
@@ -124,12 +123,12 @@ public class LessPlugin extends PlayPlugin {
      * time it will be returned, otherwise the LESS will be compiled and cached for future requests.
      * 
      * @param response
-     *        the HTTP response to write to.
+     *            the HTTP response to write to.
      * @param file
-     *        the LESS file.
+     *            the LESS file.
      * 
      * @throws Exception
-     *         if an error occurs (typically a LESS compilation).
+     *             if an error occurs (typically a LESS compilation).
      */
     private void sendOk(Response response, VirtualFile file) throws Exception {
         LessSource source = new LessSource(file.getRealFile());
@@ -147,11 +146,11 @@ public class LessPlugin extends PlayPlugin {
      * Sends a Not Modified response.
      * 
      * @param response
-     *        the HTTP response to write to.
+     *            the HTTP response to write to.
      * @param etag
-     *        the ETag for the CSS.
+     *            the ETag for the CSS.
      * @param lastModified
-     *        the last modified time of the CSS.
+     *            the last modified time of the CSS.
      */
     private void sendNotModified(Response response, String etag, long lastModified) {
         response.status = Http.StatusCode.NOT_MODIFIED;
@@ -162,11 +161,11 @@ public class LessPlugin extends PlayPlugin {
      * Sends an Internal Server Error response.
      * 
      * @param response
-     *        the HTTP response to write to.
+     *            the HTTP response to write to.
      * @param file
-     *        the requested LESS file.
+     *            the requested LESS file.
      * @param e
-     *        the error that occurred.
+     *            the error that occurred.
      */
     private void error(Response response, VirtualFile file, Exception e) {
         response.status = Http.StatusCode.INTERNAL_ERROR;
@@ -179,7 +178,7 @@ public class LessPlugin extends PlayPlugin {
      * most recently modified in the collection.
      * 
      * @param lessFile
-     *        the LESS file.
+     *            the LESS file.
      * @return the last modified time of all the LESS files, or -1 if no previous modified time is known.
      */
     private long getLastModified(VirtualFile lessFile) {
@@ -197,9 +196,9 @@ public class LessPlugin extends PlayPlugin {
      * Gets the HTTP ETag to use for this LESS file.
      * 
      * @param lessFile
-     *        the LESS file.
+     *            the LESS file.
      * @param lastModified
-     *        the last modified time of all the related LESS files.
+     *            the last modified time of all the related LESS files.
      * @return the ETag header value.
      */
     private String getETag(VirtualFile lessFile, long lastModified) {
@@ -210,7 +209,7 @@ public class LessPlugin extends PlayPlugin {
      * Gets the related files for a given LESS file, if known.
      * 
      * @param lessFile
-     *        the LESS file.
+     *            the LESS file.
      * @return the set of related files, if cached.
      */
     private Set<File> getCachedRelatedFiles(VirtualFile lessFile) {
@@ -221,7 +220,7 @@ public class LessPlugin extends PlayPlugin {
      * Caches all related files for this LESS source. This includes the LESS file and all imports.
      * 
      * @param source
-     *        the LESS source.
+     *            the LESS source.
      */
     private void cacheRelatedFiles(LessSource source) {
         Set<File> files = Sets.newHashSet();
@@ -233,9 +232,9 @@ public class LessPlugin extends PlayPlugin {
      * Adds related files to the set of files. This recursively adds LESS sources and imports.
      * 
      * @param source
-     *        the LESS source.
+     *            the LESS source.
      * @param files
-     *        the files to add to.
+     *            the files to add to.
      */
     private void addRelatedFiles(LessSource source, Set<File> files) {
         files.add(new File(source.getAbsolutePath()));
@@ -248,13 +247,13 @@ public class LessPlugin extends PlayPlugin {
      * Compiles the LESS source into CSS, returning a cached version if possible.
      * 
      * @param source
-     *        the LESS source.
+     *            the LESS source.
      * @param lastModified
-     *        the last modified time of the LESS files.
+     *            the last modified time of the LESS files.
      * @return the compiled CSS.
      * 
      * @throws Exception
-     *         if an error occurs (LESS compilation).
+     *             if an error occurs (LESS compilation).
      */
     private String compileToCss(LessSource source, long lastModified) throws Exception {
         cacheRelatedFiles(source);

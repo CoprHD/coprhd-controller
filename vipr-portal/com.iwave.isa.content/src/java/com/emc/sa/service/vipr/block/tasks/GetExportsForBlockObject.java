@@ -22,12 +22,12 @@ public class GetExportsForBlockObject extends ViPRExecutionTask<List<ITLRestRep>
 
     public GetExportsForBlockObject(URI blockResourceId) {
         this.blockResourceId = blockResourceId;
-        provideDetailArgs(blockResourceId); 
+        provideDetailArgs(blockResourceId);
     }
 
     @Override
     public List<ITLRestRep> executeTask() throws Exception {
-        if (ResourceType.isType(ResourceType.VOLUME, blockResourceId) || 
+        if (ResourceType.isType(ResourceType.VOLUME, blockResourceId) ||
                 ResourceType.isType(ResourceType.BLOCK_CONTINUOUS_COPY, blockResourceId)) {
             return getClient().blockVolumes().getExports(blockResourceId);
         }
@@ -37,6 +37,6 @@ public class GetExportsForBlockObject extends ViPRExecutionTask<List<ITLRestRep>
         else if (ResourceType.isType(ResourceType.VPLEX_CONTINUOUS_COPY, blockResourceId)) {
             return Lists.newArrayList();
         }
-        throw new IllegalStateException("ID does not appear to be a volume or snapshot ["+blockResourceId+"]");
+        throw new IllegalStateException("ID does not appear to be a volume or snapshot [" + blockResourceId + "]");
     }
 }

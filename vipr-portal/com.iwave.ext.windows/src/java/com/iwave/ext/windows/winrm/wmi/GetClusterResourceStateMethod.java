@@ -6,9 +6,7 @@ package com.iwave.ext.windows.winrm.wmi;
 
 import com.iwave.ext.windows.winrm.WinRMConstants;
 import com.iwave.ext.windows.winrm.WinRMGetOperation;
-import com.iwave.ext.windows.winrm.WinRMInvokeOperation;
 import com.iwave.ext.windows.winrm.WinRMTarget;
-import com.iwave.ext.xml.XmlStringBuilder;
 import com.iwave.ext.xml.XmlUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;

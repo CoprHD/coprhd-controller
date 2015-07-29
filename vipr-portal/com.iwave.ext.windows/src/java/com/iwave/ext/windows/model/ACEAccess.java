@@ -31,15 +31,14 @@ public enum ACEAccess implements Serializable {
         }
         throw new IllegalArgumentException(label + " is not a valid label for CifsAccess");
     }
-    
 
     public void setLabel(String label) {
     }
-    
+
     public String getLabel() {
         return label;
     }
-    
+
     @Override
     public String toString() {
         return label;

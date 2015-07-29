@@ -42,7 +42,7 @@ import com.emc.vipr.model.catalog.CatalogPreferencesUpdateParam;
 public class CatalogPreferenceService extends CatalogResourceService {
 
     private static final Logger log = Logger.getLogger(CatalogPreferenceService.class);
-    
+
     private static final String EVENT_SERVICE_TYPE = "catalog-preferences";
 
     @Autowired
@@ -52,12 +52,12 @@ public class CatalogPreferenceService extends CatalogResourceService {
     public void init() {
         log.info("Initializing CatalogPreferenceService");
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
-    }            
-    
+    }
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("")
@@ -68,40 +68,40 @@ public class CatalogPreferenceService extends CatalogResourceService {
             tenantId = user.getTenantId();
         }
         verifyAuthorizedInTenantOrg(uri(tenantId), user);
-        
+
         TenantPreferences catalogPreferences = catalogPreferenceManager.getPreferencesByTenant(tenantId);
 
         return map(catalogPreferences);
-    }        
-    
+    }
+
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("")
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public CatalogPreferencesRestRep update(CatalogPreferencesUpdateParam param) {
-        
+
         String tenantId = param.getTenantId();
         StorageOSUser user = getUserFromContext();
         if (StringUtils.isBlank(tenantId)) {
             tenantId = user.getTenantId();
         }
         verifyAuthorizedInTenantOrg(uri(tenantId), user);
-        
+
         TenantPreferences tenantPreferences = catalogPreferenceManager.getPreferencesByTenant(tenantId);
-        
+
         validateParam(uri(tenantId), param, tenantPreferences);
-        
+
         updateObject(tenantPreferences, param);
 
         catalogPreferenceManager.updatePreferences(tenantPreferences);
-        
+
         auditOpSuccess(OperationTypeEnum.UPDATE_CATALOG_PREFERENCES, tenantPreferences.auditParameters());
-        
+
         tenantPreferences = catalogPreferenceManager.getPreferences(tenantPreferences.getId());
-        
+
         return map(tenantPreferences);
-    }        
+    }
 
     private void validateParam(URI tenantId, CatalogPreferencesUpdateParam input, TenantPreferences existing) {
         if (StringUtils.isNotBlank(input.getApproverEmail())) {
@@ -121,11 +121,10 @@ public class CatalogPreferenceService extends CatalogResourceService {
                 else if (!ValidationUtils.isValidHostNameOrIp(url.getHost())) {
                     throw APIException.badRequests.propertyValueTypeIsInvalid("approval_url", "url");
                 }
-            }
-            catch (MalformedURLException e) {
+            } catch (MalformedURLException e) {
                 throw APIException.badRequests.propertyValueTypeIsInvalid("approval_url", "url");
             }
         }
-    }    
-    
+    }
+
 }

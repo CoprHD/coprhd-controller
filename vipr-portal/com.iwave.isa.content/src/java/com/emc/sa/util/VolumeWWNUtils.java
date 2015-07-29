@@ -14,7 +14,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 public class VolumeWWNUtils {
     public static final int PARTIAL_WWN_LENGTH = 16;
     public static final int HUS_VM_PARTIAL_WWN_LENGTH = 12;
-    
+
     public static final int SUFFIX_LENGTH = 4;
     public static final int HUS_PREFIX_LENGTH = 4;
     public static final int PARTIAL_PREFIX_LENGTH = 5;
@@ -22,28 +22,29 @@ public class VolumeWWNUtils {
     public static boolean wwnMatches(String actualWwn, BlockObjectRestRep blockObject) {
         return partialMatch(actualWwn, blockObject.getWwn());
     }
-    
+
     public static boolean wwnHDSMatches(String actualWwn, BlockObjectRestRep blockObject) {
         String convertedWwn = convertAsciiHDSWwn(actualWwn);
-        
+
         if (convertedWwn == null) {
             return false; // convert failed
         }
-        
+
         String useableWwn = convertedWwn;
-        
-        //check if we need to created HUS compatible wwn
+
+        // check if we need to created HUS compatible wwn
         if (isHusVmPartialWwn(blockObject.getWwn())) {
             useableWwn = createHusPartialWwn(convertedWwn); // 12 char long
         } else {
             useableWwn = createPartialWwn(convertedWwn); // 16 char long
         }
-        
+
         return partialMatch(useableWwn, blockObject.getWwn());
     }
-    
+
     /**
      * Converts ascii encoded wwn returned from powerpath to useable wwn
+     * 
      * @param wwn from powerpath
      * @return converted wwn
      */
@@ -51,17 +52,18 @@ public class VolumeWWNUtils {
         if (wwn.length() % 2 != 0) {
             return null; // can't convert if not an even number
         }
-        
+
         StringBuilder output = new StringBuilder();
-        for (int i = 0; i < wwn.length(); i+=2) {
-            String str = wwn.substring(i, i+2);
-            output.append((char)Integer.parseInt(str, 16));
+        for (int i = 0; i < wwn.length(); i += 2) {
+            String str = wwn.substring(i, i + 2);
+            output.append((char) Integer.parseInt(str, 16));
         }
         return output.toString();
     }
-    
+
     /**
      * Create ViPR compatible 12 char wwn
+     * 
      * @param wwn to modify
      * @return HUS compatible wwn
      */
@@ -71,12 +73,13 @@ public class VolumeWWNUtils {
         }
         String prefix = wwn.substring(wwn.length() - (SUFFIX_LENGTH + HUS_PREFIX_LENGTH), wwn.length() - SUFFIX_LENGTH);
         String sufix = wwn.substring(wwn.length() - SUFFIX_LENGTH);
-        
+
         return (prefix + "0000" + sufix);
     }
-    
+
     /**
      * Create ViPR compatible 16 char wwn
+     * 
      * @param wwn
      * @return HDS compatible 16 char wwn
      */
@@ -86,7 +89,7 @@ public class VolumeWWNUtils {
         }
         String prefix = wwn.substring(wwn.length() - (SUFFIX_LENGTH + PARTIAL_PREFIX_LENGTH), wwn.length() - SUFFIX_LENGTH);
         String sufix = wwn.substring(wwn.length() - SUFFIX_LENGTH);
-        
+
         return ("000" + prefix + "0000" + sufix);
     }
 
@@ -96,7 +99,7 @@ public class VolumeWWNUtils {
         }
         return wwn;
     }
-    
+
     public static boolean isPartialWwn(String wwn) {
         return (wwn.length() == PARTIAL_WWN_LENGTH);
     }
@@ -107,14 +110,14 @@ public class VolumeWWNUtils {
         }
         return wwn;
     }
-    
+
     public static boolean isHusVmPartialWwn(String wwn) {
         return (wwn.length() == HUS_VM_PARTIAL_WWN_LENGTH);
     }
 
     /**
      * Partial match of two WWNs. The partial string may match the end characters of the full WWN.
-     *
+     * 
      * @param actual The actual WWN of a volume. Always 32 characters.
      * @param partial The partial WWN which must match the end part of the actual.
      * @return True if the strings are equal or the partial string is at the end of the actual.

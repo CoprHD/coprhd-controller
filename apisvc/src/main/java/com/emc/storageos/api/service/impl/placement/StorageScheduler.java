@@ -1161,7 +1161,7 @@ public class StorageScheduler implements Scheduler {
      * 
      * @param volume Volume
      * @param vPool
-     * @param recommendedPoolURI Pool that should be used to create the mirror 
+     * @param recommendedPoolURI Pool that should be used to create the mirror
      * @param volumeLabel
      * @param dbClient
      * @return BlockMirror (persisted)

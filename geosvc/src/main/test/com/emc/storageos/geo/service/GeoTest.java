@@ -252,7 +252,7 @@ public class GeoTest extends ApiTestBase {
             ids = geoClient.queryByType(VirtualArray.class, true, startId, 3);
 
             if (ids.isEmpty())
-             {
+            {
                 break; // reach the end
             }
             count += ids.size();
@@ -348,7 +348,7 @@ public class GeoTest extends ApiTestBase {
             Iterator<URI> it = ret.iterator();
 
             if (!it.hasNext())
-             {
+            {
                 break; // reach the end
             }
 

@@ -216,7 +216,7 @@ public abstract class ConstraintImpl implements Constraint {
             columns = query.execute().getResult();
 
             if (columns.isEmpty())
-             {
+            {
                 break; // reach the end
             }
 

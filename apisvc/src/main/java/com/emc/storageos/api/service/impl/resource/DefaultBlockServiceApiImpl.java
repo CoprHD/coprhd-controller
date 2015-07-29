@@ -168,7 +168,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         StorageSystemConnectivityList result = new StorageSystemConnectivityList();
         for (AbstractBlockServiceApiImpl impl : apiMap.values()) {
             if (impl == this)
-             {
+            {
                 continue;     // no infinite recursion
             }
             StorageSystemConnectivityList list = impl.getStorageSystemConnectivity(storageSystem);

@@ -275,7 +275,7 @@ public class PortMetricsProcessor {
         StringMap portMap = port.getMetrics();
         double emaFactor = getEmaFactor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
         if (emaFactor > 1.0)
-         {
+        {
             emaFactor = 1.0;  // in case of invalid user input
         }
         Double portAvgBusy = MetricsKeys.getDouble(MetricsKeys.avgPercentBusy, portMap);
@@ -366,7 +366,7 @@ public class PortMetricsProcessor {
             MetricsKeys.putLong(MetricsKeys.avgStartTime, currentTime, dbMetrics);
             double emaFactor = getEmaFactor(DiscoveredDataObject.Type.valueOf(system.getSystemType()));
             if (emaFactor > 1.0)
-             {
+            {
                 emaFactor = 1.0;  // in case of invalid user input
             }
             if (emaPercentBusy.isNaN() || emaPercentBusy.isInfinite() || emaPercentBusy < 0.0) {

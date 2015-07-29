@@ -1687,7 +1687,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     public CIMObjectPath getZonePath(String zoneName, String fabricWwn,
             Boolean active) {
         if (fabricWwn == null)
-         {
+        {
             fabricWwn = "";      // avoids null check below
         }
 

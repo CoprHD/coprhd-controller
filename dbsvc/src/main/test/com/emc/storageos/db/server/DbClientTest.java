@@ -327,7 +327,7 @@ public class DbClientTest extends DbsvcTestBase {
             ids = _dbClient.queryByType(clazz, activeOnly, nextId, pageSize);
 
             if (ids.isEmpty())
-             {
+            {
                 break; // reach the end
             }
 
@@ -1603,11 +1603,11 @@ public class DbClientTest extends DbsvcTestBase {
             sumCnt++;
             FileShare fShare = fShares.next();
             if (fShare.getLabel().equals("GOLDEN"))
-             {
+            {
                 checkFsIds.remove(fShare.getId());
-            // System.out.println("Id: " + fShare.getId() + " vpool: " +
-            // fShare.getCos()
-            // + " Capacity: " + fShare.getCapacity());
+                // System.out.println("Id: " + fShare.getId() + " vpool: " +
+                // fShare.getCos()
+                // + " Capacity: " + fShare.getCapacity());
             }
         }
         Assert.assertEquals(sumCnt, 110);

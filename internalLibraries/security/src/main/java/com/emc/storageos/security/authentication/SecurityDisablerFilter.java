@@ -15,8 +15,6 @@
 package com.emc.storageos.security.authentication;
 
 import com.emc.storageos.security.authorization.Role;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 

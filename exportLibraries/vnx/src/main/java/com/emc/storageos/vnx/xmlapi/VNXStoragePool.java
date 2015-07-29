@@ -24,7 +24,7 @@ public class VNXStoragePool extends VNXBaseClass {
      * Logger instance to log messages.
      */
     private static final Logger _logger = LoggerFactory.getLogger(VNXStoragePool.class);
-    
+
     private String _name;
     private String _description;
     private String _poolId;
@@ -58,6 +58,7 @@ public class VNXStoragePool extends VNXBaseClass {
 
         return builder.toString();
     }
+
     public VNXStoragePool() {
     }
 

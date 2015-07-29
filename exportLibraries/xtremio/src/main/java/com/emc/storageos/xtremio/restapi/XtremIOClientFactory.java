@@ -22,9 +22,9 @@ import com.sun.jersey.api.client.Client;
 
 public class XtremIOClientFactory extends RestClientFactory {
 
-	@Override
-	protected RestClientItf createNewRestClient(URI endpoint, String username,
-			String password, Client client) {
-	    return new XtremIOClient(endpoint,username,password,client);
-	}
+    @Override
+    protected RestClientItf createNewRestClient(URI endpoint, String username,
+            String password, Client client) {
+        return new XtremIOClient(endpoint, username, password, client);
+    }
 }

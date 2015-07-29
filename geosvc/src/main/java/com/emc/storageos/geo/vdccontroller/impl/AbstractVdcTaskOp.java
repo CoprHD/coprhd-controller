@@ -456,12 +456,12 @@ public abstract class AbstractVdcTaskOp {
         for (VirtualDataCenter vdc : connectedVdc) {
 
             if (vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.DISCONNECTED)
-             {
+            {
                 continue; // skip the disconnected VDC
             }
 
             if (vdc.getId().equals(operatedVdc.getId()))
-             {
+            {
                 continue; // skip the VDC to be disconnected
             }
 

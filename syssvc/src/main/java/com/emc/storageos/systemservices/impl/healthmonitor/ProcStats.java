@@ -95,7 +95,7 @@ public class ProcStats extends ProcModels implements StatConstants {
                     cpuFreq += Float.valueOf(cpuFreqData[1]);
                 }
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             _log.error("Error occurred while getting CPU frequence: {}", e);
         }
         return cpuFreq;
@@ -120,12 +120,12 @@ public class ProcStats extends ProcModels implements StatConstants {
      * etc) name from /proc/{pid}/cmdline file and adds it to the passed
      * in serviceStats object. Service name should be prefixed with
      * ACCEPTABLE_PID_COMMAND_PREFIXES.
-     *
+     * 
      * @param pid process id from which service stats is extracted
      */
     public static String getServiceName(String pid) throws IOException,
             SyssvcInternalException {
-        //validate that CMDLINE file exists.
+        // validate that CMDLINE file exists.
         File cmdLineFile = new File(String.format(CMDLINE_FILE, pid));
         if (cmdLineFile.exists()) {
             // The /proc/[pid]/cmdline file exists and is not the /proc/self/
@@ -152,7 +152,7 @@ public class ProcStats extends ProcModels implements StatConstants {
 
     /**
      * Reads the /proc/diskstats data and builds a map using the desired counters.
-     *
+     * 
      * @return Map with disk id as key.
      */
     public static Map<String, DiskStats> getDiskStats() throws IOException,
@@ -166,7 +166,7 @@ public class ProcStats extends ProcModels implements StatConstants {
                 continue;
             }
 
-            //verify if disk stats array has 13 elements
+            // verify if disk stats array has 13 elements
             if (diskStatArray.length < 13) {
                 throw SyssvcException.syssvcExceptions.syssvcInternalError(
                         "Disk stats file is invalid.");
@@ -201,10 +201,10 @@ public class ProcStats extends ProcModels implements StatConstants {
             matcher = pattern.matcher(fileData[2]);
             String memBuffers = matcher.find() ? matcher.group(1) : null;
             matcher = pattern.matcher(fileData[3]);
-            String memCached =  matcher.find() ? matcher.group(1) : null;
+            String memCached = matcher.find() ? matcher.group(1) : null;
             return new MemoryStats(Long.parseLong(memTotal),
                     Long.parseLong(memFree),
-                    Long.parseLong(memBuffers), 
+                    Long.parseLong(memBuffers),
                     Long.parseLong(memCached));
         } catch (Exception e) {
             _log.error("Error occurred while getting node memory stats: {}", e);
@@ -223,7 +223,7 @@ public class ProcStats extends ProcModels implements StatConstants {
             return new LoadAvgStats(Double.parseDouble(loadAvgData[0]),
                     Double.parseDouble
                             (loadAvgData[1]), Double.parseDouble
-                    (loadAvgData[2]));
+                            (loadAvgData[2]));
         } catch (Exception e) {
             _log.error("Error occurred while getting load avg stats: {}", e);
         }
@@ -234,10 +234,10 @@ public class ProcStats extends ProcModels implements StatConstants {
      * Loads stats from /proc/[pid]/stat and /proc/[pid]/statm files
      */
     public static ProcessStatus getProcStats(String pid) {
-     
+
         // using a space as the delimeter.
         String data;
-     
+
         // get the /proc/[pid]/stat as a string and them split into string array
         // using a space as the delimeter.
         try {
@@ -245,7 +245,7 @@ public class ProcStats extends ProcModels implements StatConstants {
             String[] procStatData = data.split(SPACE_VALUE);
             long startTimeSecs = UnsignedLong.valueOf(procStatData[STAT_STARTTIME]).dividedBy
                     (UnsignedLong.fromLongBits(HZ)).longValue();
-            long currTimeSecs = new Date().getTime()/1000;
+            long currTimeSecs = new Date().getTime() / 1000;
             long upTimeSecs = currTimeSecs - (getBootTime() + startTimeSecs);
             return new ProcessStatus(upTimeSecs,
                     Long.parseLong(procStatData[STAT_NUM_THREADS]),
@@ -263,12 +263,12 @@ public class ProcStats extends ProcModels implements StatConstants {
     /**
      * Returns boot time in seconds since the Epoch
      */
-    private static long getBootTime() throws IOException{
+    private static long getBootTime() throws IOException {
         String[] fileData = FileReadUtil.readLines(PROC_STAT);
         for (String line : fileData) {
             if (line != null && line.startsWith("btime")) {
                 String[] bootLine = line.trim().split(SPACE_VALUE);
-                if(bootLine.length > 1) {
+                if (bootLine.length > 1) {
                     _log.info("Boot time in seconds: {}", bootLine[1]);
                     return Long.parseLong(bootLine[1]);
                 }
@@ -281,7 +281,7 @@ public class ProcStats extends ProcModels implements StatConstants {
      * Gets used, available size for data and root with the help of df command.
      */
     public static DataDiskStats getDataDiskStats() {
-        final String[] cmd = {DF_COMMAND};
+        final String[] cmd = { DF_COMMAND };
         Exec.Result result = Exec.sudo(DF_COMMAND_TIMEOUT, cmd);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             _log.error("getDataDiskStats() is unsuccessful. Command exit value is: {}",
@@ -312,11 +312,13 @@ public class ProcStats extends ProcModels implements StatConstants {
         }
         return dataDiskStats;
     }
+
     /**
      * Returns default page size of 4k for now, need to be enhanced to return actual page size.
+     * 
      * @return
      */
-    private static int getPageSize(){
-    	return DEFAULT_PAGE_SIZE;  	
+    private static int getPageSize() {
+        return DEFAULT_PAGE_SIZE;
     }
 }

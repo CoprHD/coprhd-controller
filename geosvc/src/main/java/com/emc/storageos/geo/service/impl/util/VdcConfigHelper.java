@@ -1018,7 +1018,7 @@ public class VdcConfigHelper {
         Map<String, String> options = dbClient.getGeoStrategyOptions();
 
         if (options.containsKey(shortVdcId))
-         {
+        {
             return; // already added
         }
 
@@ -1031,7 +1031,7 @@ public class VdcConfigHelper {
         Map<String, String> options = dbClient.getGeoStrategyOptions();
 
         if (!options.containsKey(shortVdcId))
-         {
+        {
             return; // already removed
         }
 

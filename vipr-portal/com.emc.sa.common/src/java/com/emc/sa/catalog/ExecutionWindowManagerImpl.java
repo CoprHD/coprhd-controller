@@ -62,5 +62,4 @@ public class ExecutionWindowManagerImpl implements ExecutionWindowManager {
     public List<CatalogService> getCatalogServices(URI executionWindowId) {
         return client.catalogServices().findByExecutionWindow(executionWindowId);
     }
-    
 }

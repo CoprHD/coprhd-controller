@@ -41,7 +41,7 @@ public class VNXFileSystemIdProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("Processing VNX File System ID Query response: {}", resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
@@ -77,14 +77,15 @@ public class VNXFileSystemIdProcessor extends VNXFileProcessor {
 
     /**
      * Process the fileSystemList which are received from XMLAPI server.
+     * 
      * @param filesystemList : List of FileSystem objects.
      * @param keyMap : keyMap.
      */
     private void processFilesystemList(List<Object> filesystemList,
-                                       Map<String, Object> keyMap) throws VNXFilePluginException {
+            Map<String, Object> keyMap) throws VNXFilePluginException {
 
-        String fsName = (String)keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
-        String fsId = (String)keyMap.get(VNXFileConstants.FILESYSTEM_ID);
+        String fsName = (String) keyMap.get(VNXFileConstants.FILESYSTEM_NAME);
+        String fsId = (String) keyMap.get(VNXFileConstants.FILESYSTEM_ID);
         boolean foundId = false;
 
         Iterator<Object> iterator = filesystemList.iterator();
@@ -105,12 +106,12 @@ public class VNXFileSystemIdProcessor extends VNXFileProcessor {
                         break;
                     }
                 }
-                
+
                 if (!foundId) {
                     _logger.error("Did not find file system ID for {}", fsName);
                     keyMap.put(VNXFileConstants.IS_FILESYSTEM_AVAILABLE_ON_ARRAY, Boolean.FALSE);
                 }
-                
+
             } else {
                 throw new VNXFilePluginException(
                         "Fault response received from XMLAPI Server.",

@@ -32,7 +32,8 @@ public class License implements Serializable {
     private List<LicenseFeature> licenseFeatures;
     private String licenseText;
 
-    public License() {}
+    public License() {
+    }
 
     public License(List<LicenseFeature> licenseFeatures, String licenseText) {
         this.licenseFeatures = licenseFeatures;
@@ -49,8 +50,8 @@ public class License implements Serializable {
             licenseFeatures = new ArrayList<LicenseFeature>();
         }
         return licenseFeatures;
-    }    
-    
+    }
+
     public void setLicenseFeatures(List<LicenseFeature> licenseFeatures) {
         this.licenseFeatures = licenseFeatures;
     }
@@ -63,7 +64,7 @@ public class License implements Serializable {
     public String getLicenseText() {
         return licenseText;
     }
-    
+
     /**
      * 
      * @param licenseText
@@ -71,7 +72,7 @@ public class License implements Serializable {
     public void setLicenseText(String licenseText) {
         this.licenseText = licenseText;
     }
-    
+
     /**
      * Add a FeatureList to the collection.
      * 

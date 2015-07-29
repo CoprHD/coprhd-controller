@@ -27,7 +27,7 @@ public abstract class ClientControllerException extends ControllerException {
             .create(FatalClientControllerExceptions.class);
     public static final RetryableClientControllerExceptions retryables = ExceptionMessagesProxy
             .create(RetryableClientControllerExceptions.class);
-    public static final PlacementExceptions placementExceptions = 
+    public static final PlacementExceptions placementExceptions =
             ExceptionMessagesProxy.create(PlacementExceptions.class);
 
     protected ClientControllerException(final boolean retryable, final ServiceCode code,

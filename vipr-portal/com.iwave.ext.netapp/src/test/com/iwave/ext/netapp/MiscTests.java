@@ -22,34 +22,32 @@ import com.iwave.ext.netapp.model.Quota;
 import com.iwave.ext.netapp.model.SecurityRuleInfo;
 import com.emc.storageos.services.util.EnvConfig;
 
-
-@SuppressWarnings({"findbugs:WMI_WRONG_MAP_ITERATOR"})
+@SuppressWarnings({ "findbugs:WMI_WRONG_MAP_ITERATOR" })
 /*
- * Code change for iterator will be made in future release 
+ * Code change for iterator will be made in future release
  */
-
 public class MiscTests {
 
-    static private NetAppFacade netAppFacade = null;
-    static private Server server = null;
+    static private volatile NetAppFacade netAppFacade = null;
+    static private volatile Server server = null;
     private static String host = EnvConfig.get("sanity", "netapp.host");
-    private static String portNumber = EnvConfig.get("sanity", "netapp.port");
-    private static String userName = EnvConfig.get("sanity", "netapp.username");
+    private static volatile String portNumber = EnvConfig.get("sanity", "netapp.port");
+    private static volatile String userName = EnvConfig.get("sanity", "netapp.username");
     private static String password = EnvConfig.get("sanity", "netapp.password");
-    
+
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
         netAppFacade = new NetAppFacade(host, Integer.parseInt(portNumber), userName, password, false);
         server = netAppFacade.server;
-    }  
-    
+    }
+
     @Test
     public void testGetFcWWNN() {
         String nodeName = netAppFacade.getFcWWNN();
         assertNotNull(nodeName);
         System.out.println("WWNN: " + nodeName);
     }
-    
+
     @Test
     public void testDiskListInfo() {
         List<DiskDetailInfo> disks = netAppFacade.listDiskInfo(null, null);
@@ -58,7 +56,7 @@ public class MiscTests {
             System.out.println("Disk Name: " + disk.getName());
         }
     }
-    
+
     @Test
     public void testListAggregates() {
         List<AggregateInfo> aggregates = netAppFacade.listAggregates(null);
@@ -66,49 +64,49 @@ public class MiscTests {
             assertNotNull(aggregateInfo.getName());
         }
     }
-    
+
     @Test
     public void testSystemApiList() {
         NaElement elem = new NaElement("system-api-list");
 
         NaElement resultElem = server.invoke(elem);
-        
+
         List<NaElement> systemApiList = resultElem.getChildByName("apis").getChildren();
         for (NaElement systemApiInfo : systemApiList) {
             System.out.println("API " + systemApiInfo.getChildContent("name") + " License: " + systemApiInfo.getChildContent("license"));
         }
 
     }
-    
+
     @Test
     public void testSystemGetInfo() {
         NaElement result = server.invoke("system-get-info");
-        NetAppUtils.output(result);        
+        NetAppUtils.output(result);
     }
-    
+
     @Test
     public void iscsiNodeGetName() {
         NaElement result = server.invoke("iscsi-node-get-name");
-        NetAppUtils.output(result);        
-    } 
-    
+        NetAppUtils.output(result);
+    }
+
     @Test
     public void testInvokeCliCommand() {
-    	String[] args = new String[4];
-    	args[0] = "qtree";
-    	args[1] = "security";
-    	args[2] = "/vol/scottfs";
-    	args[3] = "unix";
-    	
-    	String result = netAppFacade.invokeCliCommand(args);
-    	System.out.println("QTree Status: " + result);
+        String[] args = new String[4];
+        args[0] = "qtree";
+        args[1] = "security";
+        args[2] = "/vol/scottfs";
+        args[3] = "unix";
+
+        String result = netAppFacade.invokeCliCommand(args);
+        System.out.println("QTree Status: " + result);
     }
-    
+
     @Test
     public void test2() {
-//        NaElement result = server.invoke("nfs-exportfs-list-rules");
-//        NetAppUtils.output(result);
-        
+        // NaElement result = server.invoke("nfs-exportfs-list-rules");
+        // NetAppUtils.output(result);
+
         List<ExportsRuleInfo> bla = netAppFacade.listNFSExportRules(null);
         for (ExportsRuleInfo exportsRuleInfo : bla) {
             System.out.println("Pathname: " + exportsRuleInfo.getPathname());
@@ -118,66 +116,69 @@ public class MiscTests {
                 System.out.println(" -- nosuid: " + securityRuleInfo.getNosuid());
                 System.out.println(" -- sec-flavor: " + securityRuleInfo.getSecFlavor());
                 for (ExportsHostnameInfo exportsHostnameInfo : securityRuleInfo.getReadOnly()) {
-                    System.out.println(" ---- ReadOnly: " + exportsHostnameInfo.getAllHosts() + " " + exportsHostnameInfo.getName() + " " + exportsHostnameInfo.getNegate());
+                    System.out.println(" ---- ReadOnly: " + exportsHostnameInfo.getAllHosts() + " " + exportsHostnameInfo.getName() + " "
+                            + exportsHostnameInfo.getNegate());
                 }
                 for (ExportsHostnameInfo exportsHostnameInfo : securityRuleInfo.getReadWrite()) {
-                    System.out.println(" ---- ReadWrite: " + exportsHostnameInfo.getAllHosts() + " " + exportsHostnameInfo.getName() + " " + exportsHostnameInfo.getNegate());
+                    System.out.println(" ---- ReadWrite: " + exportsHostnameInfo.getAllHosts() + " " + exportsHostnameInfo.getName() + " "
+                            + exportsHostnameInfo.getNegate());
                 }
                 for (ExportsHostnameInfo exportsHostnameInfo : securityRuleInfo.getRoot()) {
-                    System.out.println(" ---- Root: " + exportsHostnameInfo.getAllHosts() + " " + exportsHostnameInfo.getName() + " " + exportsHostnameInfo.getNegate());
-                }                
+                    System.out.println(" ---- Root: " + exportsHostnameInfo.getAllHosts() + " " + exportsHostnameInfo.getName() + " "
+                            + exportsHostnameInfo.getNegate());
+                }
             }
         }
-    }       
-    
+    }
+
     @Test
     public void test3() {
-        List<Map<String,String>> bla = netAppFacade.listIscsiInterfaceInfo(null);
-        for (Map<String,String> b : bla) {
+        List<Map<String, String>> bla = netAppFacade.listIscsiInterfaceInfo(null);
+        for (Map<String, String> b : bla) {
             for (String key : b.keySet()) {
                 System.out.println("iSCSI Interface : " + key + " : " + b.get(key));
             }
         }
     }
-    
+
     @Test
     public void test4() {
         String nodeName = netAppFacade.getNodeName();
         System.out.println("NODE NAME: " + nodeName);
     }
-    
+
     @Test
     public void test5() {
-        List<Map<String,String>> bla = netAppFacade.listIscsiInitiatorInfo();
-        for (Map<String,String> b : bla) {
+        List<Map<String, String>> bla = netAppFacade.listIscsiInitiatorInfo();
+        for (Map<String, String> b : bla) {
             for (String key : b.keySet()) {
                 System.out.println("iSCSI Initiator : " + key + " : " + b.get(key));
             }
         }
-    }    
+    }
 
     @Test
     public void test6() {
-        List<Map<String,String>> bla = netAppFacade.listWWNs(false);
-        for (Map<String,String> b : bla) {
+        List<Map<String, String>> bla = netAppFacade.listWWNs(false);
+        for (Map<String, String> b : bla) {
             System.out.println("WWN:");
             for (String key : b.keySet()) {
                 System.out.println(key + " : " + b.get(key));
             }
         }
-    }    
-    
+    }
+
     @Test
     public void test7() {
-        List<Map<String,String>> bla = netAppFacade.listIscsiPortalInfo();
-        for (Map<String,String> b : bla) {
+        List<Map<String, String>> bla = netAppFacade.listIscsiPortalInfo();
+        for (Map<String, String> b : bla) {
             System.out.println("iSCSI Portal:");
             for (String key : b.keySet()) {
                 System.out.println("  " + key + " : " + b.get(key));
             }
-        } 
+        }
     }
-    
+
     @Test
     public void test8() {
         List<Quota> quotas = netAppFacade.listQuotas();
@@ -196,9 +197,9 @@ public class MiscTests {
             System.out.println("  softFileLimit: " + quota.getSoftFileLimit());
             System.out.println("  vfiler: " + quota.getVfiler());
 
-        } 
-    }    
-    
+        }
+    }
+
     @Test
     public void test9() {
         List<Qtree> qtrees = netAppFacade.listQtrees();
@@ -213,5 +214,5 @@ public class MiscTests {
             System.out.println("  volume:" + qtree.getVolume());
         }
     }
-    
+
 }

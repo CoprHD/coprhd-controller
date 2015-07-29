@@ -18,18 +18,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
-    
+
     // Enumerates the distributed device component attributes we are interested
     // in and parse from the VPlex local device component response. There
     // must be a setter method for each attribute specified. The format of
     // the setter method must be as specified by the base class method
     // getAttributeSetterMethodName.
     public static enum ComponentAttribute {
-        CLUSTER("cluster");       
-        
+        CLUSTER("cluster");
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -38,16 +38,16 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
         ComponentAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-               
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -67,7 +67,7 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The component type.
     private String clusterId;
 
@@ -89,7 +89,7 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
     public void setCluster(String id) {
         clusterId = id;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -112,7 +112,7 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
         str.append(super.toString());
         str.append(", clusterId: " + clusterId);
         str.append(" )");
-        
+
         return str.toString();
     }
 }

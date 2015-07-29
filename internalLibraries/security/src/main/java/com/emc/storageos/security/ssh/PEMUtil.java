@@ -38,7 +38,7 @@ import org.apache.commons.lang.StringUtils;
 public class PEMUtil {
     public static final String PRIVSTE_KEY_HEADER = "-----BEGIN PRIVATE KEY-----\n";
     public static final String PRIVATE_KEY_FOOTER = "-----END PRIVATE KEY-----";
-    static final String PRIVATE_KEY_FOOTER_WITH_NEWLINE = "\n"+ PRIVATE_KEY_FOOTER +"\n";
+    static final String PRIVATE_KEY_FOOTER_WITH_NEWLINE = "\n" + PRIVATE_KEY_FOOTER + "\n";
 
     public static boolean isPKCS8Key(String privateKey) {
         return privateKey.contains(PRIVSTE_KEY_HEADER);
@@ -46,14 +46,14 @@ public class PEMUtil {
 
     public static byte[] extractPKCS8Key(String privateKey) {
         String encodedKey = privateKey.replace(PEMUtil.PRIVSTE_KEY_HEADER, "");
-        encodedKey= encodedKey.replace(PEMUtil.PRIVATE_KEY_FOOTER, "");
+        encodedKey = encodedKey.replace(PEMUtil.PRIVATE_KEY_FOOTER, "");
 
         return Base64.decodeBase64(encodedKey);
     }
 
     public static byte[] decodePKCS8PrivateKey(String privateKey) throws Exception {
         String encodedKey = privateKey.replace(PEMUtil.PRIVSTE_KEY_HEADER, "");
-        encodedKey= encodedKey.replace(PEMUtil.PRIVATE_KEY_FOOTER, "");
+        encodedKey = encodedKey.replace(PEMUtil.PRIVATE_KEY_FOOTER, "");
 
         byte[] buf = Base64.decodeBase64(encodedKey);
 
@@ -64,6 +64,7 @@ public class PEMUtil {
 
     /**
      * encode private key into PKCS8 PEM String
+     * 
      * @param keyBytes
      * @return
      */
@@ -77,7 +78,7 @@ public class PEMUtil {
         out.write(b64Key, 0, b64Key.length);
 
         // if the length of encoded key is multiple of 64, \n is appended by base64 lib. so don't append again.
-        String footer = (b64Key[b64Key.length-1] == '\n') ?
+        String footer = (b64Key[b64Key.length - 1] == '\n') ?
                 PRIVATE_KEY_FOOTER : PRIVATE_KEY_FOOTER_WITH_NEWLINE;
         out.write(footer.getBytes(), 0, footer.length());
 
@@ -90,15 +91,15 @@ public class PEMUtil {
         try {
             publicKey = KeyFactory.getInstance(SSHParam.KeyAlgo.RSA.name()).
                     generatePublic(new X509EncodedKeySpec(keyBytes));
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e ) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw SecurityException.fatals.failedToLoadPublicKey(e);
         }
 
         String publicKeyEncoded;
         try (ByteArrayOutputStream byteOs = new ByteArrayOutputStream();
-             DataOutputStream dos = new DataOutputStream(byteOs)) {
+                DataOutputStream dos = new DataOutputStream(byteOs)) {
 
-            if (! publicKey.getAlgorithm().equals("RSA")) {
+            if (!publicKey.getAlgorithm().equals("RSA")) {
                 throw new IllegalArgumentException("Unknown public key encoding: "
                         + publicKey.getAlgorithm());
             }
@@ -130,12 +131,12 @@ public class PEMUtil {
         try {
             publicKey = KeyFactory.getInstance(SSHParam.KeyAlgo.DSA.name()).
                     generatePublic(new X509EncodedKeySpec(keyBytes));
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e ) {
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw SecurityException.fatals.failedToLoadPublicKey(e);
         }
 
         try (ByteArrayOutputStream byteOs = new ByteArrayOutputStream();
-             DataOutputStream dos = new DataOutputStream(byteOs)) {
+                DataOutputStream dos = new DataOutputStream(byteOs)) {
 
             DSAPublicKey dsaPublicKey = (DSAPublicKey) publicKey;
             DSAParams dsaParams = dsaPublicKey.getParams();
@@ -163,13 +164,13 @@ public class PEMUtil {
         String publicKeyEncoded = "";
 
         try (ByteArrayOutputStream byteOs = new ByteArrayOutputStream();
-             DataOutputStream dos = new DataOutputStream(byteOs)) {
+                DataOutputStream dos = new DataOutputStream(byteOs)) {
 
             PublicKey publicKey = null;
             try {
                 publicKey = KeyFactory.getInstance(SSHParam.KeyAlgo.ECDSA.name()).
                         generatePublic(new X509EncodedKeySpec(keyBytes));
-            } catch (NoSuchAlgorithmException | InvalidKeySpecException e ) {
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 throw SecurityException.fatals.failedToLoadPublicKey(e);
             }
 
@@ -226,7 +227,7 @@ public class PEMUtil {
     private static int dropWhile(byte[] buf, int x) {
         int i = 0;
         for (i = 0; i < buf.length; i++) {
-            if (buf[i] != x)  {
+            if (buf[i] != x) {
                 break;
             }
         }

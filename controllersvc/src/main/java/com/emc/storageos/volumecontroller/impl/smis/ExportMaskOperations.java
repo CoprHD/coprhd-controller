@@ -20,66 +20,66 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 public interface ExportMaskOperations {
 
     public void createExportMask(StorageSystem storage,
-                                 URI exportMask,
-                                 VolumeURIHLU[] volumeURIHLUs,
-                                 List<URI> targetURIList,
-                                 List<Initiator> initiatorList,
-                                 TaskCompleter taskCompleter) throws DeviceControllerException;
+            URI exportMask,
+            VolumeURIHLU[] volumeURIHLUs,
+            List<URI> targetURIList,
+            List<Initiator> initiatorList,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void deleteExportMask(StorageSystem storage,
-                                 URI exportMask,
-                                 List<URI> volumeURIList,
-                                 List<URI> targetURIList,
-                                 List<Initiator> initiatorList,
-                                 TaskCompleter taskCompleter) throws DeviceControllerException;
+            URI exportMask,
+            List<URI> volumeURIList,
+            List<URI> targetURIList,
+            List<Initiator> initiatorList,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void addVolume(StorageSystem storage,
-                          URI exportMask,
-                          VolumeURIHLU[] volumeURIHLUs,
-                          TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+            URI exportMask,
+            VolumeURIHLU[] volumeURIHLUs,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
     public void removeVolume(StorageSystem storage,
-                             URI exportMask,
-                             List<URI> volume,
-                             TaskCompleter taskCompleter) throws DeviceControllerException;
+            URI exportMask,
+            List<URI> volume,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void addInitiator(StorageSystem storage,
-                             URI exportMask,
-                             List<Initiator> initiators,
-                             List<URI> targets,
-                             TaskCompleter taskCompleter) throws DeviceControllerException;
+            URI exportMask,
+            List<Initiator> initiators,
+            List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 
     public void removeInitiator(StorageSystem storage,
-                                URI exportMask,
-                                List<Initiator> initiators,
-                                List<URI> targets,
-                                TaskCompleter taskCompleter) throws DeviceControllerException;
+            URI exportMask,
+            List<Initiator> initiators,
+            List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * This call can be used to look up the passed in initiator/port names and find (if
      * any) to which export masks they belong on the 'storage' array.
-     *
-     *
+     * 
+     * 
      * @param storage [in] - StorageSystem object representing the array
      * @param initiatorNames [in] - Port identifiers (WWPN or iSCSI name)
      * @param mustHaveAllPorts [in] Indicates if true, *all* the passed in initiators
-     *                         have to be in the existing matching mask. If false,
-     *                         a mask with *any* of the specified initiators will be
-     *                         considered a hit.
+     *            have to be in the existing matching mask. If false,
+     *            a mask with *any* of the specified initiators will be
+     *            considered a hit.
      * @return Map of port name to Set of ExportMask URIs
      */
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
-                                                 List<String> initiatorNames,
-                                                 boolean mustHaveAllPorts);
+            List<String> initiatorNames,
+            boolean mustHaveAllPorts);
 
     /**
      * This call will be used to update the ExportMask with the latest data from the
      * array.
-     *
+     * 
      * @param storage [in] - StorageSystem object representing the array
-     * @param mask [in]    - ExportMask object to be refreshed
+     * @param mask [in] - ExportMask object to be refreshed
      * @return instance of ExportMask object that has been refreshed with data from the
-     * array.
+     *         array.
      */
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask);
 

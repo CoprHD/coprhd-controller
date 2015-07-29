@@ -55,7 +55,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
-
 public class DataCollectionJobUtil {
     private DbClient _dbClient;
     private RecordableEventManager _eventManager;
@@ -166,7 +165,6 @@ public class DataCollectionJobUtil {
         }
     }
 
-
     private void populateAccessProfile(AccessProfile profile, ComputeSystem system) {
         profile.setSystemId(system.getId());
         profile.setSystemClazz(system.getClass());
@@ -177,7 +175,6 @@ public class DataCollectionJobUtil {
         profile.setPortNumber(system.getPortNumber());
         profile.setSslEnable("false");
     }
-
 
     private void populateAccessProfile(AccessProfile profile, Host host) {
     	profile.setSystemId(host.getId());
@@ -194,7 +191,6 @@ public class DataCollectionJobUtil {
         profile.setUserName(vcenter.getUsername());
         profile.setPassword(vcenter.getPassword());
     }
-
 
     private void populateAccessProfile(AccessProfile profile, ProtectionSystem system) {
         profile.setSystemId(system.getId());
@@ -370,6 +366,7 @@ public class DataCollectionJobUtil {
 
     /**
      * Return the active StorageProvider for a given storage system.
+     * 
      * @param system
      * @param accessProfile
      * @return
@@ -527,13 +524,13 @@ public class DataCollectionJobUtil {
         }
     }
    
-
     /**
      * Get the AccessProfile details based on the profile Name.
      * For Hitachi, metering is handled thru SMI-S.
      * Hitachi supports two types of providers 
      * 1. Embedded SMI-S running SVP -> supports only HUS VM, VSP, VSP G1000.
      * 2. HiCommand Suite Provider   -> supports only AMS series
+     * 
      * @TODO need to look at HUS series model.
      * @TODO User should create a new user using storage navigator to do metering.
      * 
@@ -585,6 +582,7 @@ public class DataCollectionJobUtil {
 
     /**
      * If storageDevice is not AMS, use embedded provider else HCS ipAddress.
+     * 
      * @param storageDevice
      * @return
      */
@@ -595,6 +593,7 @@ public class DataCollectionJobUtil {
 	
 	/**
 	 * Return the default ports based on the model.
+     * 
 	 * @param storageDevice
 	 * @return
 	 */
@@ -676,9 +675,9 @@ public class DataCollectionJobUtil {
                 getSMISProvidersWithUpdatedSystems(providersToUpdate));
     }
     
-    
     /**
      * Update all the SMISProviders with their actively managed storage systems information.
+     * 
      * @param providersToUpdate : dataStructure holds the provider => list of managed systems.
      */
     private List<StorageProvider> getSMISProvidersWithUpdatedSystems(Map<URI, List<String>> providersToUpdate) {
@@ -712,7 +711,6 @@ public class DataCollectionJobUtil {
         }
         return providerList;
     }
-    
     
     /**
      * Creates a new StorageSystem if there is a new system managed by provider.
@@ -769,9 +767,9 @@ public class DataCollectionJobUtil {
         return newStorageSystem;
     }
 
-
     /**
      * Update the Provider => systems managed.
+     * 
      * @param provider : SMISProvider
      * @param providersToUpdate : dataStructure holds the provider -> list of managed systems.
      * @param storageSystemInDB : StorageDevice
@@ -958,10 +956,10 @@ public class DataCollectionJobUtil {
         }
     }
     
-    
     /**
      * Update the reachable status, ActiveProviderURI & allProviders in system.
      * This method is written to avoid duplicate code.
+     * 
      * @param storageSystemInDb : StorageSystem object.
      * @param allProviders      : allProviders managing this system
      * @param newActiveProviderURI : If provider is down, then new provider to update.
@@ -1016,7 +1014,6 @@ public class DataCollectionJobUtil {
         }
     }
 
-   
     public void setConfigInfo(Map<String, String> configInfo) {
         _configInfo = configInfo;
     }

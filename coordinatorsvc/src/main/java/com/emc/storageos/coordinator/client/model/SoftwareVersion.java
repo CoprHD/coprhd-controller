@@ -15,12 +15,8 @@
 
 package com.emc.storageos.coordinator.client.model;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,15 +32,16 @@ import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
 public class SoftwareVersion implements Comparable<SoftwareVersion> {
     private static final Logger log = LoggerFactory.getLogger(SoftwareVersion.class);
 
-    private static final String SOFTWARE_VERSION_PREFIX         = ProductName.getName() + "-";
+    private static final String SOFTWARE_VERSION_PREFIX = ProductName.getName() + "-";
     private static final String SOFTWARE_VERSION_RELEASE_WILDCARD = "*";
-    private static final String SOFTWARE_VERSION_PATTERN        = "(" + SOFTWARE_VERSION_PREFIX + "|)(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\w+|\\"+SOFTWARE_VERSION_RELEASE_WILDCARD+")";
-    private static final String SOFTWARE_RELEASE_INT_PATTERN    = "\\d+";    
+    private static final String SOFTWARE_VERSION_PATTERN = "(" + SOFTWARE_VERSION_PREFIX + "|)(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\w+|\\"
+            + SOFTWARE_VERSION_RELEASE_WILDCARD + ")";
+    private static final String SOFTWARE_RELEASE_INT_PATTERN = "\\d+";
     private static final Pattern intPattern = Pattern.compile(SOFTWARE_RELEASE_INT_PATTERN);
 
-    private final String   prefix;
-    private final String   release;
-    private final int[]    versionTuple;  
+    private final String prefix;
+    private final String release;
+    private final int[] versionTuple;
 
     public SoftwareVersion(String versionStr) throws InvalidSoftwareVersionException {
         try {
@@ -70,7 +67,7 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
     public static SoftwareVersion toSoftwareVersion(final String versionStr) {
         try {
             return new SoftwareVersion(versionStr);
-        } catch(InvalidSoftwareVersionException e) {
+        } catch (InvalidSoftwareVersionException e) {
             log.error("toSoftwareVersion(): {}: Skipping.", e);
             return null;
         }
@@ -150,56 +147,68 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
         // At this point, the version number sequence is compared to be equal.
         // So compare the release number
         // If both integer, compare as integer.
-        //    if one is integer, integer is greater than string.
-        //    otherwise, compare as strings.
-        if (isValidInteger(this.release) && isValidInteger(version.release))
+        // if one is integer, integer is greater than string.
+        // otherwise, compare as strings.
+        if (isValidInteger(this.release) && isValidInteger(version.release)) {
             return Integer.valueOf(this.release).compareTo(Integer.valueOf(version.release));
-        if (isValidInteger(this.release))
+        }
+        if (isValidInteger(this.release)) {
             return 1;
-        if (isValidInteger(version.release))
+        }
+        if (isValidInteger(version.release)) {
             return -1;
+        }
 
         return this.release.compareTo(version.release);
     }
 
     /**
-     * Check if two versions are equal.  If there is a wild card in the release then the two versions are equal if the
-     * major/minor number matches.  For example 1.0.0.8.* is equal to 1.0.0.8.1 and 1.0.0.8.50
-     * @param v version to compare to this version 
+     * Check if two versions are equal. If there is a wild card in the release then the two versions are equal if the
+     * major/minor number matches. For example 1.0.0.8.* is equal to 1.0.0.8.1 and 1.0.0.8.50
+     * 
+     * @param v version to compare to this version
      * @return true if the versions are equal accepting wild card releases
      */
     public boolean weakEquals(SoftwareVersion v) {
         log.info("Version detail info: version release {}, version prefix {}", v.release, v.prefix);
         if (v.release.equals(SOFTWARE_VERSION_RELEASE_WILDCARD) || this.release.equals(SOFTWARE_VERSION_RELEASE_WILDCARD)) {
-            return this.prefix.equals(v.prefix) && Arrays.equals(versionTuple,v.versionTuple);
+            return this.prefix.equals(v.prefix) && Arrays.equals(versionTuple, v.versionTuple);
         }
         return this.equals(v);
     }
-    
+
     /**
      * Check if it's possible to switch from current version to the target version. The method will check the Version metadata of
-     * the target version image file, if the current version is in the upgradeFromVersionsList or downgradeFromVersionlist, it will return true.
+     * the target version image file, if the current version is in the upgradeFromVersionsList or downgradeFromVersionlist, it will return
+     * true.
      * If the current version is naturally upgradeable to the target version, it returns true as well.
-     * @param to 
+     * 
+     * @param to
      * @return
      * @throws IOException
      */
     public boolean isSwitchableTo(SoftwareVersion to) throws IOException {
         // Must be different from the current version.
-	if (equals(to)) {
-	    return false;
-	}
-	if (isNaturallySwitchableTo(to)) return true;
+        if (equals(to)) {
+            return false;
+        }
+        if (isNaturallySwitchableTo(to)) {
+            return true;
+        }
         try {
-            if (compareTo(to)<0) {
+            if (compareTo(to) < 0) {
                 SoftwareVersionMetadata versionMetadata = SoftwareVersionMetadata.getInstance(to);
-                for(SoftwareVersion v : versionMetadata.upgradeFromVersionsList) {
-                    if (this.weakEquals(v)) return true;
+                for (SoftwareVersion v : versionMetadata.upgradeFromVersionsList) {
+                    if (this.weakEquals(v)) {
+                        return true;
+                    }
                 }
             } else {
                 SoftwareVersionMetadata versionMetadata = SoftwareVersionMetadata.getInstance(this);
-                for(SoftwareVersion v : versionMetadata.downgradeToVersionsList) {
-                    if (v.weakEquals(to)) return true;
+                for (SoftwareVersion v : versionMetadata.downgradeToVersionsList) {
+                    if (v.weakEquals(to)) {
+                        return true;
+                    }
                 }
             }
             return false;
@@ -208,30 +217,31 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
             return false;
         }
     }
-    
+
     /**
      * Check if it's possible to upgrade from current version to the target version naturally.
-     * @param to 
+     * 
+     * @param to
      * @return
      * @throws IOException
      */
     public boolean isNaturallySwitchableTo(SoftwareVersion to) {
-    	// Must be different from the current version.
-	    if (equals(to)) {
-	        return false;
-	    }
-	    
-    	// All major numbers are the same.
-	    int minorIdx = versionTuple.length - 1;
-	    for (int idx = 0; idx < minorIdx; idx++) {
-	        if (to.versionTuple[idx] != versionTuple[idx]) {
-	            return false;
-	        }
-	    }
-	    return true;
+        // Must be different from the current version.
+        if (equals(to)) {
+            return false;
+        }
+
+        // All major numbers are the same.
+        int minorIdx = versionTuple.length - 1;
+        for (int idx = 0; idx < minorIdx; idx++) {
+            if (to.versionTuple[idx] != versionTuple[idx]) {
+                return false;
+            }
+        }
+        return true;
     }
-    
-	/**
+
+    /**
      * Validates whether the version is in valid format.
      * 
      * @param version
@@ -240,18 +250,21 @@ public class SoftwareVersion implements Comparable<SoftwareVersion> {
      */
     public static boolean isValid(String version) {
         try {
-            new SoftwareVersion(version);
+            // This is used to suppress violation of unused instance
+            // Actually, we just detect whether it would throw Exception when instantiating
+            // Exception would be thrown if version is not valid, then return false
+            new SoftwareVersion(version); // NOSONAR("squid:S1848")
             return true;
         } catch (InvalidSoftwareVersionException e) {
             return false;
         }
     }
 
-
     /**
      * Validate whether a string is parseable to integer
-     * @param str   string to match
-     * @return      true if it is an integer string; false otherwise.
+     * 
+     * @param str string to match
+     * @return true if it is an integer string; false otherwise.
      */
     private static boolean isValidInteger(String str) {
         return intPattern.matcher(str).matches();

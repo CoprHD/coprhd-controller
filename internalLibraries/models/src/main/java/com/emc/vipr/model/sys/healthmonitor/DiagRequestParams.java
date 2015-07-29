@@ -23,7 +23,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class DiagRequestParams {
 
     private boolean verbose;
-    
+
     public DiagRequestParams() {
     }
 

@@ -30,28 +30,28 @@ public class ClientHttpRequestFactory implements InitializingBean {
     private AbstractHttpClient httpClient;
     private JAXBContext marshallingJaxbContext;
     private JAXBContext unmarshallingJaxbContext;
-    
-    public ClientHttpRequestFactory(){
-    	
+
+    public ClientHttpRequestFactory() {
+
     }
 
     public JAXBContext getMarshallingJaxbContext() {
-		return marshallingJaxbContext;
-	}
+        return marshallingJaxbContext;
+    }
 
-	public void setMarshallingJaxbContext(JAXBContext marshallingJaxbContext) {
-		this.marshallingJaxbContext = marshallingJaxbContext;
-	}
+    public void setMarshallingJaxbContext(JAXBContext marshallingJaxbContext) {
+        this.marshallingJaxbContext = marshallingJaxbContext;
+    }
 
-	public JAXBContext getUnmarshallingJaxbContext() {
-		return unmarshallingJaxbContext;
-	}
+    public JAXBContext getUnmarshallingJaxbContext() {
+        return unmarshallingJaxbContext;
+    }
 
-	public void setUnmarshallingJaxbContext(JAXBContext unmarshallingJaxbContext) {
-		this.unmarshallingJaxbContext = unmarshallingJaxbContext;
-	}
+    public void setUnmarshallingJaxbContext(JAXBContext unmarshallingJaxbContext) {
+        this.unmarshallingJaxbContext = unmarshallingJaxbContext;
+    }
 
-	public BaseHttpClientFactory getHttpClientFactory() {
+    public BaseHttpClientFactory getHttpClientFactory() {
         return httpClientFactory;
     }
 
@@ -60,22 +60,22 @@ public class ClientHttpRequestFactory implements InitializingBean {
     }
 
     public ClientHttpRequest create() throws ClientGeneralException {
-        return new ClientHttpRequest(httpClient, marshallingJaxbContext,unmarshallingJaxbContext);
-    }    
-        
-    private AbstractHttpClient createUnconfiguredClient() throws ClientGeneralException { 
+        return new ClientHttpRequest(httpClient, marshallingJaxbContext, unmarshallingJaxbContext);
+    }
+
+    private AbstractHttpClient createUnconfiguredClient() throws ClientGeneralException {
         AbstractHttpClient httpClient = null;
         try {
             httpClient = httpClientFactory.createHTTPClient();
             HttpProtocolParams.setUseExpectContinue(httpClient.getParams(), true);
             return httpClient;
-            
+
         } catch (Exception ex) {
             LOGGER.error("Error initializing new HttpClient instance");
             throw new ClientGeneralException(ClientMessageKeys.UNEXPECTED_FAILURE, new String[] { ex.getMessage() });
         }
     }
-        
+
     @Override
     public void afterPropertiesSet() throws Exception {
         StringBuilder errorMessage = new StringBuilder("factory requires injection of non-null ");
@@ -84,21 +84,21 @@ public class ClientHttpRequestFactory implements InitializingBean {
             errorMessage.append("httpClientFactory ");
             error = true;
         }
-        
+
         if (marshallingJaxbContext == null) {
             errorMessage.append("marshallingJaxbContext ");
             error = true;
-        } 
-        
+        }
+
         if (unmarshallingJaxbContext == null) {
             errorMessage.append("unmarshallingJaxbContext ");
             error = true;
-        }  
-        
+        }
+
         if (error) {
             throw new IllegalArgumentException(errorMessage.toString());
         }
-        
+
         this.httpClient = createUnconfiguredClient();
     }
 }

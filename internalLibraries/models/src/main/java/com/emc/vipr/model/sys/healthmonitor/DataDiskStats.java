@@ -27,9 +27,10 @@ public class DataDiskStats {
     private long rootAvailKB;
     private long dataUsedKB;
     private long dataAvailKB;
-    
+
     // Default constructor for JAXB
-    public DataDiskStats() {}
+    public DataDiskStats() {
+    }
 
     public DataDiskStats(long rootUsedKB, long rootAvailKB, long dataUsedKB,
             long dataAvailKB) {

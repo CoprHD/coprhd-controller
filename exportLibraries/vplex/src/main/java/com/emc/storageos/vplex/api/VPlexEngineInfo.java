@@ -21,9 +21,9 @@ import java.util.List;
  * Info for a VPlex engine
  */
 public class VPlexEngineInfo extends VPlexResourceInfo {
-    
+
     List<VPlexDirectorInfo> directorInfoList = new ArrayList<VPlexDirectorInfo>();
-    
+
     /**
      * Getter for the director info for the engine.
      * 
@@ -32,7 +32,7 @@ public class VPlexEngineInfo extends VPlexResourceInfo {
     public List<VPlexDirectorInfo> getDirectorInfo() {
         return directorInfoList;
     }
-    
+
     /**
      * Setter for the director info for the engine.
      * 
@@ -41,7 +41,7 @@ public class VPlexEngineInfo extends VPlexResourceInfo {
     public void setDirectorInfo(List<VPlexDirectorInfo> infoList) {
         directorInfoList = infoList;
     }
-    
+
     /**
      * {@inheritDoc}
      */

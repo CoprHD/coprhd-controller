@@ -22,7 +22,7 @@ public class TaskUtils {
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getTasksByRequestIdConstraint(requestId), results);
 
         Iterator<URI> it = results.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             Task task = dbClient.queryObject(Task.class, it.next());
             if (task.getResource().getURI().equals(resourceId)) {
                 return task;
@@ -38,7 +38,7 @@ public class TaskUtils {
 
         List<Task> tasks = Lists.newArrayList();
         Iterator<URI> it = results.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             Task task = dbClient.queryObject(Task.class, it.next());
             tasks.add(task);
         }
@@ -115,7 +115,7 @@ public class TaskUtils {
         }
 
         public T next() {
-            return (T)dbClient.queryObject(iterator.next());
+            return (T) dbClient.queryObject(iterator.next());
         }
 
         @Override

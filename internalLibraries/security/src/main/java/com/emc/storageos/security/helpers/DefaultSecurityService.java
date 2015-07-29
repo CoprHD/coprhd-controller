@@ -18,7 +18,6 @@ import com.emc.storageos.security.helpers.SecurityService;
 import com.emc.storageos.security.ssh.PEMUtil;
 
 import java.security.*;
-import java.security.interfaces.RSAPrivateKey;
 
 public class DefaultSecurityService implements SecurityService {
 
@@ -27,7 +26,7 @@ public class DefaultSecurityService implements SecurityService {
     @Override
     public byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception {
 
-        if (! PEMUtil.isPKCS8Key(pemKey)) {
+        if (!PEMUtil.isPKCS8Key(pemKey)) {
             throw new Exception("Only PKCS8 is supported");
         }
 
@@ -71,10 +70,12 @@ public class DefaultSecurityService implements SecurityService {
 
     @Override
     public String[] getCipherSuite() {
-        return ciphers;
+        // Not a real issue as no write outside
+        return ciphers; // NOSONAR ("Suppressing: Returning 'ciphers' may expose an internal array")
     }
 
-    public void setCiphers(String[] ciphers) {
+    // Not a real issue as no write in class
+    public void setCiphers(String[] ciphers) { // NOSONAR ("Suppressing: The user-supplied array is stored directly.")
         this.ciphers = ciphers;
     }
 }

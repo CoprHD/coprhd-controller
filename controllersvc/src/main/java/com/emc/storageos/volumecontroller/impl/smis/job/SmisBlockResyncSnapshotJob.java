@@ -25,8 +25,8 @@ public class SmisBlockResyncSnapshotJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisBlockResyncSnapshotJob.class);
 
     public SmisBlockResyncSnapshotJob(CIMObjectPath cimJob,
-                                        URI storageSystem,
-                                        TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "RestoreResyncSnapshot");
     }
 }

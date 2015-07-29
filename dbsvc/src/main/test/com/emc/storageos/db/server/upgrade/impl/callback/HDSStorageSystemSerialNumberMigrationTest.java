@@ -29,15 +29,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 
 /**
- * Test upgrade of HDS storagesystem serialNumber. 
- * In 2.0 HDS storagesystem's serialNumber was populated as "ARRAY.R700.94677" 
+ * Test upgrade of HDS storagesystem serialNumber.
+ * In 2.0 HDS storagesystem's serialNumber was populated as "ARRAY.R700.94677"
  * afterwards it has been changed to "94677".
  * 
  * This tests verify whether we are properly updating the serial number of the HDS systems or not.
@@ -45,9 +44,8 @@ import static junit.framework.Assert.assertTrue;
 public class HDSStorageSystemSerialNumberMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(HDSStorageSystemSerialNumberMigrationTest.class);
 
-    private static StorageSystem hdsStorageSystem;
-    private static StorageSystem otherStorageSystem;
-    
+    private static volatile StorageSystem hdsStorageSystem;
+    private static volatile StorageSystem otherStorageSystem;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -86,12 +84,12 @@ public class HDSStorageSystemSerialNumberMigrationTest extends DbSimpleMigration
         StorageSystem checkOtherStorageSystem = _dbClient.queryObject(StorageSystem.class, otherStorageSystem.getId());
         assertNotNull(checkOtherStorageSystem);
         assertStorageSystemSerialNumberValue("serailNumber", "0001230002300", checkHdsStorageSystem.getSerialNumber());
-       
+
     }
 
     private void assertStorageSystemSerialNumberValue(String name, Object expected, Object actual) {
         assertTrue(String.format("StorageSystem parameter %s should be %s, but is %s", name,
-                        expected.toString(), actual.toString()),
+                expected.toString(), actual.toString()),
                 actual.toString().equals(expected.toString()));
     }
 
@@ -116,5 +114,5 @@ public class HDSStorageSystemSerialNumberMigrationTest extends DbSimpleMigration
         otherStorageSystem.setFirmwareVersion("5977.22");
         _dbClient.createObject(otherStorageSystem);
     }
-   
+
 }

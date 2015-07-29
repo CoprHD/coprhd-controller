@@ -47,22 +47,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class RequestAuditFilter implements Filter {
     private static final Logger _log = LoggerFactory.getLogger(RequestAuditFilter.class);
-    
+
     @Autowired
     RequestStatTracker _requestTracker;
-    
+
     @Override
     public void destroy() {
         // nothing to do.
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response,FilterChain filterChain) throws IOException, ServletException {
-        
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain) throws IOException, ServletException {
+
         beforeRequest();
-             
+
         HttpServletRequest req = (HttpServletRequest) request;
-        
+
         // Request logging
         String srcHost = req.getHeader("X-Real-IP");
         if (srcHost == null) {
@@ -70,16 +70,16 @@ public class RequestAuditFilter implements Filter {
         }
 
         String rqs = req.getQueryString();
-        String basicStr = String.format("Request: %s - %s - %s from %s", req.getMethod(), 
+        String basicStr = String.format("Request: %s - %s - %s from %s", req.getMethod(),
                 req.getRequestURL(), (rqs == null ? "empty-query" : rqs), srcHost);
         _log.info(stripCookieToken(basicStr));
 
-        String detailsStr = String.format("Auth headers: Auth Token: %s - Proxy Token: %s - Basic Auth: %s",  
-                req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER)== null ? "no" : "yes",
-                req.getHeader(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER)== null ? "no" : "yes",
+        String detailsStr = String.format("Auth headers: Auth Token: %s - Proxy Token: %s - Basic Auth: %s",
+                req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER) == null ? "no" : "yes",
+                req.getHeader(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER) == null ? "no" : "yes",
                 req.getHeader(HttpHeaders.AUTHORIZATION) == null ? "no" : "yes");
         _log.info(detailsStr);
-        
+
         // Additional fine grained debugging
         if (_log.isDebugEnabled()) {
             String authT = req.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER);
@@ -95,8 +95,8 @@ public class RequestAuditFilter implements Filter {
 
         // let's look at cookies
         Cookie[] cookies = req.getCookies();
-        if(cookies != null && cookies.length > 0) {
-            for(Cookie c : cookies) {
+        if (cookies != null && cookies.length > 0) {
+            for (Cookie c : cookies) {
                 if (c.getName().equalsIgnoreCase(RequestProcessingUtils.AUTH_TOKEN_HEADER)) {
                     if (c.getValue().equals("")) {
                         _log.debug("Auth token cookie was provided but value was empty.  This will most likely cause a 401.");
@@ -106,47 +106,48 @@ public class RequestAuditFilter implements Filter {
                         _log.debug(cookieStr);
                     }
                 } else {
-                    String cookieStr = (_log.isDebugEnabled())?String.format("Cookie: %s : %s", c.getName(), c.getValue()):String.format("Cookie: %s", c.getName());
+                    String cookieStr = (_log.isDebugEnabled()) ? String.format("Cookie: %s : %s", c.getName(), c.getValue()) : String
+                            .format("Cookie: %s", c.getName());
                     _log.info(cookieStr);
-                }           
+                }
             }
         } else {
             _log.debug("No cookies");
         }
 
         // Follow the rest of the chain
-        HttpServletResponseWrapperWithStatus responseS = new HttpServletResponseWrapperWithStatus((HttpServletResponse)response);
+        HttpServletResponseWrapperWithStatus responseS = new HttpServletResponseWrapperWithStatus((HttpServletResponse) response);
         try {
             filterChain.doFilter(request, responseS);
-        } catch(RuntimeException ex) {
+        } catch (RuntimeException ex) {
             afterRequest();
             throw ex;
         }
         if (responseS.getStatus() >= 500) {
-            _requestTracker.flag500Error(); 
+            _requestTracker.flag500Error();
         }
 
         afterRequest();
-        
+
         // Response logging
         HttpServletResponse resp = (HttpServletResponse) response;
-        String respHeadersStr = String.format("Response headers: %s", resp.toString()); 
-        if (_log.isDebugEnabled() ) {
+        String respHeadersStr = String.format("Response headers: %s", resp.toString());
+        if (_log.isDebugEnabled()) {
             _log.debug(respHeadersStr); // Show the auth cookie in context of the request
         } else {
             _log.info(stripCookieToken(respHeadersStr));
         }
     }
 
-    // Suppressing Sonar violation of Removeing this hard-coded password since it is just a key name
-    @SuppressWarnings({"squid:S2068"})
+    // Suppressing: Removeing this hard-coded password since it is just a key name
+    @SuppressWarnings({ "squid:S2068" })
     public static String stripCookieToken(String str) {
         Pattern p = Pattern.compile("(?s).*(X-SDS-\\S*:|password=)\\s*([^\\r]*)\\s*\\r?\\n?");
         Matcher m = p.matcher(str);
 
         if (m.find()) {
             String ss = m.group(2);
-            return str.replaceAll(ss, " ** masked ** " );
+            return str.replaceAll(ss, " ** masked ** ");
         } else {
             return str;
         }
@@ -156,10 +157,10 @@ public class RequestAuditFilter implements Filter {
     public void init(FilterConfig config) throws ServletException {
         // nothing to do
     }
-    
+
     /**
      * Servlet response wrapper class to extract the response status code
-     * before sending it.  More recent versions of the servlet api have a getStatus
+     * before sending it. More recent versions of the servlet api have a getStatus
      * built in the servletresponse and don't require this.
      */
     private class HttpServletResponseWrapperWithStatus extends HttpServletResponseWrapper {
@@ -182,7 +183,6 @@ public class RequestAuditFilter implements Filter {
             super.sendError(sc, msg);
         }
 
-
         @Override
         public void setStatus(int sc) {
             _httpStatus = sc;
@@ -194,8 +194,7 @@ public class RequestAuditFilter implements Filter {
         }
 
     }
-    
-    
+
     private void beforeRequest() {
         // clear the cache before we do anything else since we sit at the top
         // of the filter chain.
@@ -203,7 +202,7 @@ public class RequestAuditFilter implements Filter {
         _requestTracker.incrementActiveRequests();
         _requestTracker.recordStartTime();
     }
-    
+
     private void afterRequest() {
         _requestTracker.decrementActiveRequests();
         _requestTracker.recordEndTime();

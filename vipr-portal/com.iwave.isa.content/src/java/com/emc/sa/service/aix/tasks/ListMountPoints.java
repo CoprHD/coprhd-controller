@@ -13,10 +13,10 @@ import com.emc.aix.model.MountPoint;
  * Returns a Map of Path -> MountPoint.
  */
 public class ListMountPoints extends AixExecutionTask<Map<String, MountPoint>> {
-    
-    public ListMountPoints(){
+
+    public ListMountPoints() {
     }
-    
+
     @Override
     public Map<String, MountPoint> executeTask() throws Exception {
         ListMountPointsCommand command = new ListMountPointsCommand();

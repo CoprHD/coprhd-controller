@@ -12,16 +12,16 @@ import com.iwave.ext.command.CommandException;
 public class FindMountPointCommand extends LinuxResultsCommand<String> {
     private static final Pattern FSTAB_ENTRY = Pattern.compile("[^\\s]+\\s+([^\\s]+)");
     private static final String DEVICE = "device";
-    
+
     public FindMountPointCommand() {
         setCommand("grep");
         addVariable(DEVICE).addArgument("/etc/fstab");
     }
-    
+
     public void setDevice(String device) {
         setVariableValue(DEVICE, quoteString(device));
     }
-    
+
     @Override
     public void parseOutput() {
         Matcher m = FSTAB_ENTRY.matcher(getOutput().getStdout());
@@ -29,7 +29,7 @@ public class FindMountPointCommand extends LinuxResultsCommand<String> {
             results = m.group(1);
         }
     }
-    
+
     @Override
     protected void processError() throws CommandException {
         if (getOutput().getExitValue() == 1) {

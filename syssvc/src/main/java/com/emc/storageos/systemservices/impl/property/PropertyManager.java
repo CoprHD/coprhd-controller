@@ -47,13 +47,13 @@ public class PropertyManager extends AbstractManager {
     private final static int TIME_LIMIT_FOR_INITIATING_POWEROFF = 60000;
 
     private static final String POWEROFFTOOL_COMMAND = "/etc/powerofftool";
-    private static final String VDC_IDS_KEY= "vdc_ids";
+    private static final String VDC_IDS_KEY = "vdc_ids";
 
     // set to 2.5 minutes since it takes over 2m for ssh to timeout on non-reachable hosts
     private static final long SHUTDOWN_TIMEOUT_MILLIS = 150000;
     private static final int SLEEP_MS = 100;
 
-    private boolean shouldReboot=false;
+    private boolean shouldReboot = false;
 
     // bean properties
     private long powerOffStateChangeTimeout;
@@ -72,7 +72,7 @@ public class PropertyManager extends AbstractManager {
 
     private HashSet<String> poweroffAgreementsKeeper = new HashSet<>();
 
-    public HashSet<String> getPoweroffAgreementsKeeper(){
+    public HashSet<String> getPoweroffAgreementsKeeper() {
         return poweroffAgreementsKeeper;
     }
 
@@ -89,21 +89,22 @@ public class PropertyManager extends AbstractManager {
     }
 
     public boolean initiatePoweroff(boolean forceSet) {
-        final List<String> svcIds  = coordinator.getAllNodes();
-        final String       mySvcId = coordinator.getMySvcId();
+        final List<String> svcIds = coordinator.getAllNodes();
+        final String mySvcId = coordinator.getMySvcId();
         svcIds.remove(mySvcId);
         Set<String> controlerSyssvcIdSet = new HashSet<String>();
-        for (String svcId : svcIds){
-        	if (svcId.matches("syssvc-\\d")) controlerSyssvcIdSet.add(svcId);
+        for (String svcId : svcIds) {
+            if (svcId.matches("syssvc-\\d")) {
+                controlerSyssvcIdSet.add(svcId);
+            }
         }
 
         log.info("Tell other node it's ready to power off");
 
-
         for (String svcId : controlerSyssvcIdSet) {
             try {
                 SysClientFactory.getSysClient(coordinator.getNodeEndpointForSvcId(svcId))
-                        .post(URI.create(SysClientFactory.URI_SEND_POWEROFF_AGREEMENT.getPath() + "?sender=" + mySvcId),null,null);
+                        .post(URI.create(SysClientFactory.URI_SEND_POWEROFF_AGREEMENT.getPath() + "?sender=" + mySvcId), null, null);
             } catch (SysClientException e) {
                 throw APIException.internalServerErrors.poweroffError(svcId, e);
             }
@@ -111,7 +112,7 @@ public class PropertyManager extends AbstractManager {
         long endTime = System.currentTimeMillis() + TIME_LIMIT_FOR_INITIATING_POWEROFF;
         while (true) {
             if (System.currentTimeMillis() > endTime) {
-                if(forceSet){
+                if (forceSet) {
                     return true;
                 } else {
                     log.error("Timeout. initiating poweroff failed.");
@@ -128,9 +129,9 @@ public class PropertyManager extends AbstractManager {
         }
     }
 
-    public void poweroffCluster(){
+    public void poweroffCluster() {
         log.info("powering off the cluster!");
-        final String[] cmd = {POWEROFFTOOL_COMMAND};
+        final String[] cmd = { POWEROFFTOOL_COMMAND };
         Exec.sudo(SHUTDOWN_TIMEOUT_MILLIS, cmd);
     }
 
@@ -212,7 +213,7 @@ public class PropertyManager extends AbstractManager {
             }
 
             log.info("Step4: If VDC configuration is changed update");
-            if ( vdcPropertiesChanged() ) {
+            if (vdcPropertiesChanged()) {
                 log.info("Step4: Current vdc properties are not same as target vdc properties. Updating.");
                 log.debug("Current local vdc properties: " + localVdcPropInfo);
                 log.debug("Target vdc properties: " + targetVdcPropInfo);
@@ -236,21 +237,21 @@ public class PropertyManager extends AbstractManager {
     }
 
     /**
-     *  If target poweroff state is not NONE, that means user has set it to STARTED.
-     *  in the checkAllNodesAgreeToPowerOff, all nodes, including control nodes and data nodes
-     *  will start to publish their poweroff state in the order of [NOTICED, ACKNOWLEDGED, POWEROFF].
-     *  Every node can publish the next state only if it sees the previous state are found on every other nodes.
-     *  By doing this, we can gaurantee that all nodes receive the acknowledgement of powering among each other,
-     *  we can then safely poweroff.
-     *  No matter the poweroff failed or not, at the end, we reset the target poweroff state back to NONE.
-     *  CTRL-11690: the new behavior is if an agreement cannot be reached, a best-effort attempt to poweroff the
-     *  remaining nodes will be made, as if the force parameter is provided.
+     * If target poweroff state is not NONE, that means user has set it to STARTED.
+     * in the checkAllNodesAgreeToPowerOff, all nodes, including control nodes and data nodes
+     * will start to publish their poweroff state in the order of [NOTICED, ACKNOWLEDGED, POWEROFF].
+     * Every node can publish the next state only if it sees the previous state are found on every other nodes.
+     * By doing this, we can gaurantee that all nodes receive the acknowledgement of powering among each other,
+     * we can then safely poweroff.
+     * No matter the poweroff failed or not, at the end, we reset the target poweroff state back to NONE.
+     * CTRL-11690: the new behavior is if an agreement cannot be reached, a best-effort attempt to poweroff the
+     * remaining nodes will be made, as if the force parameter is provided.
      */
     private void gracefulPoweroffCluster() {
         if (targetPowerOffState != null && targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
             boolean forceSet = targetPowerOffState.getPowerOffState() == PowerOffState.State.FORCESTART;
             log.info("Step2: Trying to reach agreement with timeout on cluster poweroff");
-            if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)){
+            if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)) {
                 resetTargetPowerOffState();
                 poweroffCluster();
             } else {
@@ -264,14 +265,14 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Get node scope properties
-     *   UpgradeManager will publish the node scope properties as node information into coordinator
-     *   Node scope properties are invariants.
-     *
+     * UpgradeManager will publish the node scope properties as node information into coordinator
+     * Node scope properties are invariants.
+     * 
      * We check to see if a property is in metadata or not.
-     *    If it is, it is a target property; If not, it is a local property
-     *
-     * @param localPropInfo     local property info read from /etc/config.properties
-     * @return      node scope properties
+     * If it is, it is a target property; If not, it is a local property
+     * 
+     * @param localPropInfo local property info read from /etc/config.properties
+     * @return node scope properties
      */
     private PropertyInfoExt getNodeScopeProperties(final PropertyInfoExt localPropInfo) {
         Map<String, PropertyMetadata> metadata = PropertiesMetadata.getGlobalMetadata();
@@ -291,10 +292,10 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Get local target property info
-     *
+     * 
      * For control node, properties that can be found in metadata are target properties
      * For extra node, not only exist in metadata, but also ControlNodeOnly==false
-     *
+     * 
      * @param localPropInfo
      * @return
      */
@@ -322,10 +323,10 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Combine nodeScopePropInfo with targetPropInfo
-     *
-     * @param targetPropInfo    target property info
+     * 
+     * @param targetPropInfo target property info
      * @param nodeScopePropInfo node scope property info
-     * @return      combined property info
+     * @return combined property info
      */
     private PropertyInfoExt combineProps(final PropertyInfoExt targetPropInfo, final PropertyInfoExt nodeScopePropInfo) {
         PropertyInfoExt combinedProps = new PropertyInfoExt();
@@ -343,12 +344,12 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Initialize local and target info
-     *
+     * 
      * @throws Exception
      */
     private void initializeLocalAndTargetInfo(String svcId) throws Exception {
         // publish config_version which is also a target property
-        //  used as a flag denoting whether target properties have been changed
+        // used as a flag denoting whether target properties have been changed
         PropertyInfoExt localPropInfo = localRepository.getOverrideProperties();
         localConfigVersion = localPropInfo.getProperty(PropertyInfoExt.CONFIG_VERSION);
         if (localConfigVersion == null) {
@@ -363,7 +364,7 @@ public class PropertyManager extends AbstractManager {
         if (localNodePropInfo == null) {
             localNodePropInfo = getNodeScopeProperties(localPropInfo);
             coordinator.setNodeGlobalScopeInfo(localNodePropInfo, "propertyinfo", svcId);
-         // The PropertyInfoExt object can be fetched from the zookeeper path config/propertyinfo/(svcId)
+            // The PropertyInfoExt object can be fetched from the zookeeper path config/propertyinfo/(svcId)
             log.info("Step1a: Local node scope properties: {}", localNodePropInfo);
         }
         // get local target property info
@@ -394,36 +395,36 @@ public class PropertyManager extends AbstractManager {
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
         targetVdcPropInfo = loadVdcConfigFromDatabase();
-        if ( localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE)  == null ) {
+        if (localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE) == null) {
             localRepository.setVdcPropertyInfo(targetVdcPropInfo);
             localVdcPropInfo = localRepository.getVdcPropertyInfo();
-            String vdc_ids= targetVdcPropInfo.getProperty(VDC_IDS_KEY);
+            String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
             String[] vdcIds = vdc_ids.split(",");
-            if ( vdcIds.length > 1) {
+            if (vdcIds.length > 1) {
                 log.info("More than one Vdc, so set reboot flag");
-                shouldReboot=true;
+                shouldReboot = true;
             }
         }
     }
 
     /**
      * Update properties
-     *
-     * @param svcId            node service id
+     * 
+     * @param svcId node service id
      * @throws Exception
      */
     private void updateProperties(String svcId) throws Exception {
         if (targetPropInfo.TARGET_PROPERTY.equals(targetPropInfo.OLD_TARGET_PROPERTY)) {
-        	coordinator.removeTargetInfo(targetPropInfo, true);
+            coordinator.removeTargetInfo(targetPropInfo, true);
         }
         PropertyInfoExt diffProperties = new PropertyInfoExt(targetPropInfo.getDiffProperties(localTargetPropInfo));
         PropertyInfoExt override_properties = new PropertyInfoExt(localRepository.getOverrideProperties().getAllProperties());
         log.info("Step3a: Updating User Changed properties file: {}", override_properties);
         PropertyInfoExt updatedUserChangedProps = combineProps(override_properties, diffProperties);
         if (diffProperties.hasRebootProperty()) {
-            if (! getPropertyLock(svcId)) {
+            if (!getPropertyLock(svcId)) {
                 retrySleep();
-            } else if (! isQuorumMaintained()) {
+            } else if (!isQuorumMaintained()) {
                 try {
                     coordinator.releasePersistentLock(svcId, propertyLockId);
                 } catch (Exception e) {
@@ -436,7 +437,7 @@ public class PropertyManager extends AbstractManager {
                 log.info("Step3a: Updating properties: {}", updatedUserChangedProps);
                 reboot();
             }
-        } else if (diffProperties.hasReconfigProperty() || ! diffProperties.getNotifierTags().isEmpty()) {
+        } else if (diffProperties.hasReconfigProperty() || !diffProperties.getNotifierTags().isEmpty()) {
             log.info("Step3a: Reconfig property found or notifiers specified.");
 
             // CTRL-9860: don't update the local config version until everything is done.
@@ -487,8 +488,9 @@ public class PropertyManager extends AbstractManager {
             log.info("Step3a: Calling notifier {}", notifierTag);
             try {
                 Notifier notifier = Notifier.getInstance(notifierTag);
-                if (notifier != null)
+                if (notifier != null) {
                     notifier.doNotify();
+                }
             } catch (Exception e) {
                 log.error("Step3a: Fail to invoke notifier {}", notifierTag, e);
             }
@@ -497,16 +499,18 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Load the vdc vonfiguration from the database
+     * 
      * @return
      */
     private PropertyInfoExt loadVdcConfigFromDatabase() {
         VdcConfigUtil vdcConfigUtil = new VdcConfigUtil();
         vdcConfigUtil.setDbclient(dbClient);
-        return new PropertyInfoExt((Map)vdcConfigUtil.genVdcProperties());
+        return new PropertyInfoExt((Map) vdcConfigUtil.genVdcProperties());
     }
 
     /**
      * Check if VDC configuration is different in the database vs. what is stored locally
+     * 
      * @return
      */
     private boolean vdcPropertiesChanged() {
@@ -514,28 +518,30 @@ public class PropertyManager extends AbstractManager {
             return false;
         }
 
-        int localVdcConfigHashcode  = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE)  == null ? 0 : Integer.parseInt(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE));
-        int targetVdcConfigHashcode = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE) == null ? 0 : Integer.parseInt(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE));
+        int localVdcConfigHashcode = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE) == null ? 0 : Integer
+                .parseInt(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE));
+        int targetVdcConfigHashcode = targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE) == null ? 0 : Integer
+                .parseInt(targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_HASHCODE));
 
         return localVdcConfigHashcode != targetVdcConfigHashcode;
     }
 
     /**
      * Update vdc properties and reboot the node if
-     *
-     * @param svcId            node service id
+     * 
+     * @param svcId node service id
      * @throws Exception
      */
     private void updateVdcProperties(String svcId) throws Exception {
         // If the change is being done to create a multi VDC configuration or to reduce to a
-        // multi VDC configuration a reboot is needed.  If only operating on a single VDC
+        // multi VDC configuration a reboot is needed. If only operating on a single VDC
         // do not reboot the nodes.
-        if( targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
-            || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
+        if (targetVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")
+                || localVdcPropInfo.getProperty(VdcConfigUtil.VDC_IDS).contains(",")) {
             log.info("Step4: Acquiring property lock for vdc properties change.");
-            if (! getPropertyLock(svcId)) {
+            if (!getPropertyLock(svcId)) {
                 retrySleep();
-            } else if (! isQuorumMaintained()) {
+            } else if (!isQuorumMaintained()) {
                 try {
                     coordinator.releasePersistentLock(svcId, propertyLockId);
                 } catch (Exception e) {
@@ -556,6 +562,7 @@ public class PropertyManager extends AbstractManager {
     /**
      * Try to acquire the property lock, like upgrade lock, this also requires rolling reboot
      * so upgrade lock should be acquired at the same time
+     * 
      * @param svcId
      * @return
      */
@@ -570,7 +577,7 @@ public class PropertyManager extends AbstractManager {
             return false;
         }
 
-        //release the upgrade lock
+        // release the upgrade lock
         try {
             coordinator.releasePersistentLock(svcId, upgradeLockId);
         } catch (Exception e) {
@@ -582,18 +589,19 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Check all nodes agree to power off
-     *  Work flow:
-     *    Each node publishes NOTICED, then wait to see if all other nodes got the NOTICED.
-     *    If true, continue to publish ACKNOWLEDGED; if false, return false immediately. Poweroff will fail.
-     *    Same for ACKNOWLEDGED.
-     *    After a node see others have the ACKNOWLEDGED published, it can power off.
-     *
-     *    If we let the node which first succeeded to see all ACKNOWLEDGED to power off first,
-     *    other nodes may fail to see the ACKNOWLEDGED signal since the 1st node is shutting down.
-     *    So we defined an extra STATE.POWEROFF state, which won't check the count of control nodes.
-     *    Nodes in POWEROFF state are free to poweroff.
+     * Work flow:
+     * Each node publishes NOTICED, then wait to see if all other nodes got the NOTICED.
+     * If true, continue to publish ACKNOWLEDGED; if false, return false immediately. Poweroff will fail.
+     * Same for ACKNOWLEDGED.
+     * After a node see others have the ACKNOWLEDGED published, it can power off.
+     * 
+     * If we let the node which first succeeded to see all ACKNOWLEDGED to power off first,
+     * other nodes may fail to see the ACKNOWLEDGED signal since the 1st node is shutting down.
+     * So we defined an extra STATE.POWEROFF state, which won't check the count of control nodes.
+     * Nodes in POWEROFF state are free to poweroff.
+     * 
      * @param forceSet
-     * @return  true if all node agree to poweroff; false otherwise
+     * @return true if all node agree to poweroff; false otherwise
      */
     private boolean checkAllNodesAgreeToPowerOff(boolean forceSet) {
         while (true) {
@@ -659,6 +667,7 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Publish node power off state
+     * 
      * @param toState
      * @throws com.emc.storageos.systemservices.exceptions.CoordinatorClientException
      */
@@ -669,9 +678,10 @@ public class PropertyManager extends AbstractManager {
 
     /**
      * Wait cluster power off state change to a state not less than specified state
+     * 
      * @param state
      * @param checkNumOfControlNodes
-     * @return  true if all nodes' poweroff state are equal to specified state
+     * @return true if all nodes' poweroff state are equal to specified state
      */
     private boolean waitClusterPowerOffStateNotLessThan(PowerOffState.State state, boolean checkNumOfControlNodes) {
         long expireTime = System.currentTimeMillis() + powerOffStateChangeTimeout;

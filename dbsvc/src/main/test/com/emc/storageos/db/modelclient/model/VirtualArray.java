@@ -24,35 +24,37 @@ import com.emc.storageos.db.client.model.Relation;
 
 /**
  * @author cgarber
- *
+ * 
  */
 @Cf("VirtualArray")
 public class VirtualArray extends DataObject {
-    
+
     private List<StorageSystem> storageSystems;
-    
+
     private List<Volume> volumes;
 
     /**
      * @return the storageSystems
      */
-    @Relation(type=StorageSystem.class, mappedBy="varray")
+    @Relation(type = StorageSystem.class, mappedBy = "varray")
     @Name("storageSystems")
     public List<StorageSystem> getStorageSystems() {
         return storageSystems;
     }
+
     /**
      * @param storageSystems the storageSystems to set
      */
     public void setStorageSystems(List<StorageSystem> storageSystems) {
         this.storageSystems = storageSystems;
     }
-    
-    @Relation(type=Volume.class, mappedBy="varray")
+
+    @Relation(type = Volume.class, mappedBy = "varray")
     @Name("volumes")
     public List<Volume> getVolumes() {
         return volumes;
     }
+
     public void setVolumes(List<Volume> volumes) {
         this.volumes = volumes;
     }

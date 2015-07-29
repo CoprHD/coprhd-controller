@@ -55,7 +55,6 @@ public class ScaleIOCLIHelper {
         volume.setThinlyProvisioned(addVolumeResult.isThinlyProvisioned());
     }
 
-
     public static void updateSnapshotWithSnapshotVolumeResult(DbClient dbClient, BlockObject snapshot, String systemId,
                                                               ScaleIOSnapshotVolumeResult result) throws IOException {
         snapshot.setNativeId(result.getId());

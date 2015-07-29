@@ -22,22 +22,26 @@ import java.util.Set;
  * field contains one of the values.
  * If the field is a collection, when any value in the collection
  * matches any value in values a match is declared.
+ * 
  * @author watson
- *
+ * 
  */
 class JSelection {
     String field;                       // field name selection applied to
     Set<Object> values;                 // values to be selected
-   
+
     String getField() {
         return field;
     }
+
     void setField(String field) {
         this.field = field;
     }
+
     Set<Object> getValues() {
         return values;
     }
+
     void setValues(Set<Object> values) {
         this.values = values;
     }

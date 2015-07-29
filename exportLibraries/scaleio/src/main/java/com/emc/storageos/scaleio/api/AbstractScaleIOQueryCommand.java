@@ -29,10 +29,10 @@ import java.util.regex.Pattern;
  * Abstract class implements processing of the CLI command output.
  * Classes that derive from this should at least implement getOutputPatternSpecification()
  * and processMatch(). These functions will be used in the output processing.
- *
+ * 
  * The expectation is that the overridden routines will be written so
  * that the type T result object can be filled in.
- *
+ * 
  * @param <T>
  */
 abstract public class AbstractScaleIOQueryCommand<T> extends ScaleIOResultsCommand<T> {

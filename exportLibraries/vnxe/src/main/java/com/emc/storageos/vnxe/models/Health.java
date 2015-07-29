@@ -19,44 +19,54 @@ import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Health {
     private int value;
     private List<String> descriptionIds;
     private List<String> descriptions;
     private List<String> resolutionIds;
     private List<String> resolutions;
+
     public int getValue() {
         return value;
     }
+
     public void setValue(int value) {
         this.value = value;
     }
+
     public List<String> getDescriptionIds() {
         return descriptionIds;
     }
+
     public void setDescriptionIds(List<String> descriptionIds) {
         this.descriptionIds = descriptionIds;
     }
+
     public List<String> getDescriptions() {
         return descriptions;
     }
+
     public void setDescriptions(List<String> descriptions) {
         this.descriptions = descriptions;
     }
+
     public List<String> getResolutionIds() {
         return resolutionIds;
     }
+
     public void setResolutionIds(List<String> resolutionIds) {
         this.resolutionIds = resolutionIds;
     }
+
     public List<String> getResolutions() {
         return resolutions;
     }
+
     public void setResolutions(List<String> resolutions) {
         this.resolutions = resolutions;
     }
-    
+
     public static enum HealthEnum {
         UNKNOWN(0),
         OK(5),
@@ -66,7 +76,7 @@ public class Health {
         MAJOR(20),
         CRITICAL(25),
         NON_RECOVERABLE(30);
-        
+
         private int value;
 
         private HealthEnum(int value) {
@@ -76,7 +86,7 @@ public class Health {
         public int getValue() {
             return this.value;
         }
-        
+
     }
 
 }

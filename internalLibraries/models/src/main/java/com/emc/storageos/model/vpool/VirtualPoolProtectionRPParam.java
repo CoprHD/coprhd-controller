@@ -26,8 +26,9 @@ public class VirtualPoolProtectionRPParam {
     private Set<VirtualPoolProtectionVirtualArraySettingsParam> copies;
     private ProtectionSourcePolicy sourcePolicy;
 
-    public VirtualPoolProtectionRPParam() {}
-    
+    public VirtualPoolProtectionRPParam() {
+    }
+
     public VirtualPoolProtectionRPParam(
             Set<VirtualPoolProtectionVirtualArraySettingsParam> copies,
             ProtectionSourcePolicy sourcePolicy) {
@@ -41,7 +42,7 @@ public class VirtualPoolProtectionRPParam {
      * 
      * @valid none
      */
-    @XmlElement(name="protection_varray_vpool", required = false)
+    @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getCopies() {
         if (copies == null) {
             copies = new LinkedHashSet<VirtualPoolProtectionVirtualArraySettingsParam>();
@@ -66,5 +67,5 @@ public class VirtualPoolProtectionRPParam {
     public void setSourcePolicy(ProtectionSourcePolicy sourcePolicy) {
         this.sourcePolicy = sourcePolicy;
     }
-    
+
 }

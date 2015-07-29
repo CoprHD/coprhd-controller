@@ -18,7 +18,6 @@ package com.emc.storageos.vnxe.requests;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.codehaus.jettison.json.JSONException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -31,33 +30,30 @@ import com.emc.storageos.vnxe.models.NfsShareCreateParam;
 import com.emc.storageos.vnxe.models.NfsShareDeleteParam;
 import com.emc.storageos.vnxe.models.NfsShareParam;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
-import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.CreateFileSystemParam;
 import com.emc.storageos.vnxe.models.FileSystemParam;
 import com.emc.storageos.vnxe.models.VNXeBase;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
-import com.emc.storageos.vnxe.models.VNXeFileSystem;
-import com.emc.storageos.vnxe.models.VNXeHost;
-import com.sun.jersey.api.client.WebResource;
 
 public class FileSystemActionRequestTest {
-	private static KHClient _client;
+    private static KHClient _client;
     private static String host = EnvConfig.get("sanity", "vnxe.host");
     private static String userName = EnvConfig.get("sanity", "vnxe.username");
     private static String password = EnvConfig.get("sanity", "vnxe.password");
     private static final Logger logger = LoggerFactory.getLogger(FileSystemActionRequestTest.class);
-	@BeforeClass
+
+    @BeforeClass
     public static void setup() throws Exception {
-		synchronized(_client) {
-		_client = new KHClient(host, userName, password);
-	}
-	}
-	
-	@Test
-	public void createFileSystem() {
-		CreateFileSystemParam parm = new CreateFileSystemParam();
+        synchronized (_client) {
+            _client = new KHClient(host, userName, password);
+        }
+    }
+
+    @Test
+    public void createFileSystem() {
+        CreateFileSystemParam parm = new CreateFileSystemParam();
         parm.setName("test-file-03");
-        
+
         FileSystemParam fsParm = new FileSystemParam();
         fsParm.setIsThinEnabled(true);
         VNXeBase nasServer = new VNXeBase();
@@ -70,7 +66,7 @@ public class FileSystemActionRequestTest {
         fsParm.setSupportedProtocols(0);
         fsParm.setIsCacheDisabled(true);
         fsParm.setSupportedProtocols(VNXeFSSupportedProtocolEnum.NFS_CIFS.getValue());
-        
+
         parm.setFsParameters(fsParm);
         FileSystemActionRequest req = new FileSystemActionRequest(_client);
         VNXeCommandJob response = null;
@@ -78,19 +74,17 @@ public class FileSystemActionRequestTest {
             response = req.createFileSystemAsync(parm);
         } catch (VNXeException e) {
             // TODO Auto-generated catch block
-        	logger.error("VNXeException occured", e);
+            logger.error("VNXeException occured", e);
         }
-       
+
         System.out.println(response.getId() + "state: " + response.getState());
-        
-        
-	}
-	
-	
-	//@Test
-	public void modifyFileSystem() {
-		ModifyFileSystemParam parm = new ModifyFileSystemParam();
-        
+
+    }
+
+    // @Test
+    public void modifyFileSystem() {
+        ModifyFileSystemParam parm = new ModifyFileSystemParam();
+
         NfsShareCreateParam nfsShareParm = new NfsShareCreateParam();
         nfsShareParm.setName("fs-21-share-1");
         nfsShareParm.setPath("/");
@@ -104,18 +98,17 @@ public class FileSystemActionRequestTest {
         List<NfsShareCreateParam> nfsList = new ArrayList<NfsShareCreateParam>();
         nfsList.add(nfsShareParm);
         parm.setNfsShareCreate(nfsList);
-        
+
         FileSystemActionRequest req = new FileSystemActionRequest(_client);
         VNXeCommandJob job = req.modifyFileSystemAsync(parm, "res_4");
         System.out.println(job.getId());
-        
-        
-	}
-	
-	//@Test
-	public void removeNfsShare() {
-		ModifyFileSystemParam parm = new ModifyFileSystemParam();
-        
+
+    }
+
+    // @Test
+    public void removeNfsShare() {
+        ModifyFileSystemParam parm = new ModifyFileSystemParam();
+
         NfsShareDeleteParam nfsShareParm = new NfsShareDeleteParam();
         VNXeBase nfs = new VNXeBase();
         nfs.setId("NFSShare_1");
@@ -123,27 +116,26 @@ public class FileSystemActionRequestTest {
         List<NfsShareDeleteParam> shares = new ArrayList<NfsShareDeleteParam>();
         shares.add(nfsShareParm);
         parm.setNfsShareDelete(shares);
-        
+
         FileSystemActionRequest req = new FileSystemActionRequest(_client);
         VNXeCommandJob job = req.modifyFileSystemAsync(parm, "res_4");
         System.out.println(job.getId());
-        
-        
-	}
-	
-	//@Test
-	public void expandFileSystem() {
-		String resourceId = "res_4";
-		long newSize = 2000000000L;
-    	ModifyFileSystemParam modifyFSParm = new ModifyFileSystemParam();
-        
-    	//set fileSystemParam
+
+    }
+
+    // @Test
+    public void expandFileSystem() {
+        String resourceId = "res_4";
+        long newSize = 2000000000L;
+        ModifyFileSystemParam modifyFSParm = new ModifyFileSystemParam();
+
+        // set fileSystemParam
         FileSystemParam fsParm = new FileSystemParam();
-    	fsParm.setSize(newSize);
-    	modifyFSParm.setFsParameters(fsParm);
-    	FileSystemActionRequest req = new FileSystemActionRequest(_client);
-    	VNXeCommandJob job= req.modifyFileSystemAsync(modifyFSParm, resourceId);
+        fsParm.setSize(newSize);
+        modifyFSParm.setFsParameters(fsParm);
+        FileSystemActionRequest req = new FileSystemActionRequest(_client);
+        VNXeCommandJob job = req.modifyFileSystemAsync(modifyFSParm, resourceId);
         System.out.println(job.getId());
-        
-	}
+
+    }
 }

@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.vmware.block.tasks;
 
+import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -22,7 +23,7 @@ public class AddInternetScsiTargets extends ExecutionTask<Void> {
     public AddInternetScsiTargets(HostSystem host, Map<String, HostHostBusAdapter> hbas, String[] addresses) {
         this.host = host;
         this.hbas = hbas;
-        this.addresses = addresses;
+        this.addresses = safeArrayCopy(addresses);
         provideDetailArgs(StringUtils.join(addresses, ", "), host.getName());
     }
 

@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.scaleio.api.ScaleIOAttributes;
 import com.emc.storageos.scaleio.api.ScaleIOCLI;
 import com.emc.storageos.scaleio.api.ScaleIOHandle;

@@ -33,12 +33,12 @@ public class LocalToGeoMigrationDoneCleanup extends BaseCustomMigrationCallback 
     private static final String LOCAL_TO_GEO_DONE = "localtogeo";
     private static final Logger log = LoggerFactory.getLogger(
             LocalToGeoMigrationDoneCleanup.class);
-    
+
     @Override
     public void process() {
         processZKFlagCleanup();
     }
-    
+
     private void processZKFlagCleanup() {
         Configuration config = coordinatorClient.queryConfiguration(DB_CONFIG, GLOBAL_ID);
         if (config.getConfig(LOCAL_TO_GEO_DONE) != null) {

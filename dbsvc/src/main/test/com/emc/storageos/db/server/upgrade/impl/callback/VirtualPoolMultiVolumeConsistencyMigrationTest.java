@@ -41,20 +41,20 @@ import org.junit.Assert;
  * 
  * Here's the basic execution flow for the test case:
  * - setup() runs, bringing up a "pre-migration" version
- *   of the database, using the DbSchemaScannerInterceptor
- *   you supply to hide your new field or column family
- *   when generating the "before" schema. 
+ * of the database, using the DbSchemaScannerInterceptor
+ * you supply to hide your new field or column family
+ * when generating the "before" schema.
  * - Your implementation of prepareData() is called, allowing
- *   you to use the internal _dbClient reference to create any 
- *   needed pre-migration test data.
+ * you to use the internal _dbClient reference to create any
+ * needed pre-migration test data.
  * - The database is then shutdown and restarted (without using
- *   the interceptor this time), so the full "after" schema
- *   is available.
+ * the interceptor this time), so the full "after" schema
+ * is available.
  * - The dbsvc detects the diffs in the schema and executes the
- *   migration callbacks as part of the startup process.
+ * migration callbacks as part of the startup process.
  * - Your implementation of verifyResults() is called to
- *   allow you to confirm that the migration of your prepared
- *   data went as expected.
+ * allow you to confirm that the migration of your prepared
+ * data went as expected.
  * 
  */
 public class VirtualPoolMultiVolumeConsistencyMigrationTest extends DbSimpleMigrationTestBase {
@@ -62,12 +62,14 @@ public class VirtualPoolMultiVolumeConsistencyMigrationTest extends DbSimpleMigr
     private static final Logger log = LoggerFactory.getLogger(VirtualPoolMultiVolumeConsistencyMigrationTest.class);
     // Used for migrations tests related to RP VirtualPools.
     private static List<URI> rpTestVirtualPoolURIs = new ArrayList<URI>();
-    
+
     @BeforeClass
     public static void setup() throws IOException {
-        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {{
-            add(new VirtualPoolMultiVolumeConsistencyMigration());
-        }});
+        customMigrationCallbacks.put("1.1", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new VirtualPoolMultiVolumeConsistencyMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
@@ -83,7 +85,7 @@ public class VirtualPoolMultiVolumeConsistencyMigrationTest extends DbSimpleMigr
     }
 
     @Override
-    protected void prepareData() throws Exception { 
+    protected void prepareData() throws Exception {
         prepareVirtualPoolData();
     }
 
@@ -91,7 +93,7 @@ public class VirtualPoolMultiVolumeConsistencyMigrationTest extends DbSimpleMigr
     protected void verifyResults() throws Exception {
         verifyVirtualPoolResults();
     }
-    
+
     /**
      * Prepares the data for RP volume tests.
      * 
@@ -104,16 +106,16 @@ public class VirtualPoolMultiVolumeConsistencyMigrationTest extends DbSimpleMigr
         virtualArray.setId(virtualArrayURI);
         virtualArray.setLabel("virtualArray1");
         _dbClient.createObject(virtualArray);
-        
+
         for (int i = 1; i <= 3; i++) {
             VpoolProtectionVarraySettings protectionSettings = new VpoolProtectionVarraySettings();
             URI protectionSettingsURI = URIUtil.createId(VpoolProtectionVarraySettings.class);
             protectionSettings.setId(protectionSettingsURI);
             protectionSettings.setJournalSize("min");
             _dbClient.createObject(protectionSettings);
-            
+
             VirtualPool virtualPool = new VirtualPool();
-            URI virtualPoolURI = URIUtil.createId(VirtualPool.class); 
+            URI virtualPoolURI = URIUtil.createId(VirtualPool.class);
             rpTestVirtualPoolURIs.add(virtualPoolURI);
             virtualPool.setId(virtualPoolURI);
             virtualPool.setLabel("rpVirtualPool" + i);
@@ -123,24 +125,24 @@ public class VirtualPoolMultiVolumeConsistencyMigrationTest extends DbSimpleMigr
             _dbClient.createObject(virtualPool);
         }
     }
-    
+
     /**
      * Verifies the migration results for VirtualPool.
      * 
      * @throws Exception When an error occurs verifying the VirtualPool
-     *         migration results.
+     *             migration results.
      */
     private void verifyVirtualPoolResults() throws Exception {
         log.info("Verifying VirtualPoolMultiVolumeConsistencyMigration.");
         for (URI virtualPoolURI : rpTestVirtualPoolURIs) {
             VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, virtualPoolURI);
-            
+
             // The test VirtualPool should have RP protection specified
-            Assert.assertTrue("VirtualPool %s does not specify RecoverPoint protection", 
+            Assert.assertTrue("VirtualPool %s does not specify RecoverPoint protection",
                     VirtualPool.vPoolSpecifiesProtection(virtualPool));
-            
+
             if (VirtualPool.vPoolSpecifiesProtection(virtualPool)) {
-                Assert.assertTrue("Multi-volume consistency should be set for a RecoverPoint virtual pool", 
+                Assert.assertTrue("Multi-volume consistency should be set for a RecoverPoint virtual pool",
                         virtualPool.getMultivolumeConsistency());
             }
         }

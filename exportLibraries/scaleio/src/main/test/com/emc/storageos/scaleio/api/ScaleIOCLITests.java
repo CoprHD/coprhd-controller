@@ -55,7 +55,6 @@ public class ScaleIOCLITests {
     @BeforeClass
     static public void setUp() {
 
-
         scaleIOCLI = new ScaleIOCLI(sioHostIpAddress, sioHostCLIUsername, sioHostCLIPwd);
         scaleIOVersionUnderTest = scaleIOCLI.getVersion();
         if (scaleIOVersionUnderTest.matches(SIO_V1_3X_REGEX)) {
@@ -125,11 +124,12 @@ public class ScaleIOCLITests {
     @Test
     public void testAddVolume() {
         ScaleIOAddVolumeResult addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1");
-        if (addVolumeResult.isSuccess())
+        if (addVolumeResult.isSuccess()) {
             System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                     addVolumeResult.getActualSize()));
-        else
+        } else {
             System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
+        }
         assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
 
         ScaleIORemoveVolumeResult removeVolumeResult = scaleIOCLI.removeVolume(addVolumeResult.getId());
@@ -139,11 +139,12 @@ public class ScaleIOCLITests {
         if (scaleIOVersionUnderTest.matches(SIO_V1_3X_REGEX)) {
             // Thin volume provisioning (SIO 1.30+)
             addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1", true);
-            if (addVolumeResult.isSuccess())
+            if (addVolumeResult.isSuccess()) {
                 System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                         addVolumeResult.getActualSize()));
-            else
+            } else {
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
+            }
             assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()),
             		addVolumeResult.isSuccess());
             assertTrue(addVolumeResult.isThinlyProvisioned());
@@ -157,11 +158,12 @@ public class ScaleIOCLITests {
     @Test
     public void testModifyVolumeCapacity() {
         ScaleIOAddVolumeResult addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1");
-        if (addVolumeResult.isSuccess())
+        if (addVolumeResult.isSuccess()) {
             System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                     addVolumeResult.getActualSize()));
-        else
+        } else {
             System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
+        }
         assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
 
         String newSize = "50";
@@ -184,11 +186,12 @@ public class ScaleIOCLITests {
     @Test
     public void testSnapshotVolume() {
         ScaleIOAddVolumeResult addVolumeResult = scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, TEST_VOLUME_NAME, "1");
-        if (addVolumeResult.isSuccess())
+        if (addVolumeResult.isSuccess()) {
             System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                     addVolumeResult.getActualSize()));
-        else
+        } else {
             System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
+        }
         assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
 
         final String snapshotName = generateUUID();
@@ -285,11 +288,12 @@ public class ScaleIOCLITests {
         for (int index = 0; index < thisMany; index++) {
             ScaleIOAddVolumeResult addVolumeResult =
                     scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, String.format("%s-%d", TEST_VOLUME_NAME, index), "1");
-            if (addVolumeResult.isSuccess())
+            if (addVolumeResult.isSuccess()) {
                 System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                         addVolumeResult.getActualSize()));
-            else
+            } else {
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
+            }
             assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
         }
 
@@ -330,11 +334,12 @@ public class ScaleIOCLITests {
         for (int index = 0; index < thisMany; index++) {
             ScaleIOAddVolumeResult addVolumeResult =
                     scaleIOCLI.addVolume(TEST_PROTECTION_DOMAIN, TEST_POOL, String.format("%s-%d", TEST_VOLUME_NAME, index), "1");
-            if (addVolumeResult.isSuccess())
+            if (addVolumeResult.isSuccess()) {
                 System.out.println(String.format("Volume %s (%s) size %s", addVolumeResult.getName(), addVolumeResult.getId(),
                         addVolumeResult.getActualSize()));
-            else
+            } else {
                 System.out.println(String.format("FAILED! %s", addVolumeResult.errorString()));
+            }
             assertTrue(String.format("Add volume failed %s%n", addVolumeResult.errorString()), addVolumeResult.isSuccess());
             addedVolumes.add(addVolumeResult.getId());
         }
@@ -443,8 +448,7 @@ public class ScaleIOCLITests {
                     initiatorAttrs.get(ScaleIOQueryAllSCSIInitiatorsResult.INITIATOR_ID)));
             if (result.hasMappedVolumes(iqn)) {
                 System.out.println(" Has mapped volumes");
-                for (Map.Entry<String, ScaleIOAttributes> entry :
-                        result.getMappedVolumes(iqn).entrySet()) {
+                for (Map.Entry<String, ScaleIOAttributes> entry : result.getMappedVolumes(iqn).entrySet()) {
                     ScaleIOAttributes volAttrs = entry.getValue();
                     System.out.println(String.format("Mapped volume: %s %s %s",
                             entry.getKey(),

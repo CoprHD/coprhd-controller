@@ -24,8 +24,9 @@ public class StorageSystemSMISRequestParam {
     private String password;
     private String serialNumber;
     private List<URI> smisProviders;
-    
-    public StorageSystemSMISRequestParam() {}
+
+    public StorageSystemSMISRequestParam() {
+    }
 
     /**
      * Type of the storage system
@@ -172,5 +173,5 @@ public class StorageSystemSMISRequestParam {
     public void setSmisProviders(List<URI> smisProviders) {
         this.smisProviders = smisProviders;
     }
-    
+
 }

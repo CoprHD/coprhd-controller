@@ -37,10 +37,11 @@ public class ApiDescriptor {
     }
 
     public ApiDescriptor(List<String> parameters, String requestElement, String responseElement) {
-        if (parameters == null)
+        if (parameters == null) {
             this.parameters = new ArrayList<String>();
-        else
+        } else {
             this.parameters = parameters;
+        }
         this.requestElement = requestElement;
         this.responseElement = responseElement;
     }

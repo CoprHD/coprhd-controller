@@ -37,14 +37,15 @@ public class SearchResultResourceRep extends RelatedResourceRep {
 
     /**
      * The name or tag of the resource matching the search parameters
+     * 
      * @valid none
      */
     @XmlElement(name = "match")
     public String getMatch() {
         return match;
     }
+
     public void setMatch(String match) {
         this.match = match;
     }
 }
-

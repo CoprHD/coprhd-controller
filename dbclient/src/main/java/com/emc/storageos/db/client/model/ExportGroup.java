@@ -15,7 +15,6 @@
 
 package com.emc.storageos.db.client.model;
 
-
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.collectionString;
 
 import java.net.URI;
@@ -35,29 +34,29 @@ public class ExportGroup extends DataObject implements ProjectResource {
     private NamedURI _project;
     private URI _virtualArray;
     private StringMap _volumes;             // volume/snapshot uri -> lun mapping
-                                            // This mapping is what the user requested.
-                                            // The exportMasks will contain the mappings
-                                            // of volume to LUNs that gets pushed to
-                                            // the device.
+    // This mapping is what the user requested.
+    // The exportMasks will contain the mappings
+    // of volume to LUNs that gets pushed to
+    // the device.
     private StringSet _snapshots;           // Keep track of snapshots used in the exports
-                                            // The main reason for having this seemingly
-                                            // redundant container is that we need some way
-                                            // for the DependencyTracker to know that
-                                            // BlockSnapshots can belong to ExportGroups
+    // The main reason for having this seemingly
+    // redundant container is that we need some way
+    // for the DependencyTracker to know that
+    // BlockSnapshots can belong to ExportGroups
     private StringSet _initiators;
     private StringSet _hosts;
     private StringSet _clusters;
     private NamedURI _tenant;
     private StringSet _exportMasks;         // export-mask uris for all exports that
-                                            // are associated with an ExportGroup. The
-                                            // ExportGroup is a Bourne-level
-                                            // abstraction, the ExportMask represents a
-                                            // lower-level array masking component.
+    // are associated with an ExportGroup. The
+    // ExportGroup is a Bourne-level
+    // abstraction, the ExportMask represents a
+    // lower-level array masking component.
     private String _generatedName;
     private Integer _numPaths;			    // number of paths for each initiator
     private String _exportGroupType;        // instance of #ExportGroupType
     private Boolean _zoneAllInitiators = Boolean.FALSE;     // if true all initiators are zoned.
-    
+
     private StringMap _altVirtualArrays;    // alternate virtual arrays in this ExportGroup (VPlex)
 
     public static final int LUN_UNASSIGNED = -1;
@@ -171,7 +170,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
     }
 
     public boolean hasInitiators() {
-       return _initiators != null && _initiators.size() > 0;
+        return _initiators != null && !_initiators.isEmpty();
     }
 
     public void addInitiators(List<URI> initiators) {
@@ -210,19 +209,19 @@ public class ExportGroup extends DataObject implements ProjectResource {
     }
 
     public void addVolumes(Map<URI, Integer> volumes) {
-    	if (volumes != null) {
-    		for (Map.Entry<URI, Integer> entry : volumes.entrySet()) {
-    			addVolume(entry.getKey(), entry.getValue());
-    		}
-    	}
+        if (volumes != null) {
+            for (Map.Entry<URI, Integer> entry : volumes.entrySet()) {
+                addVolume(entry.getKey(), entry.getValue());
+            }
+        }
     }
-    
+
     public void removeVolumes(Map<URI, Integer> volumesToRemove) {
-    	if (volumesToRemove != null) {
-    		for (Map.Entry<URI, Integer> entry : volumesToRemove.entrySet()) {
-    			removeVolume(entry.getKey());
-    		}
-    	}
+        if (volumesToRemove != null) {
+            for (Map.Entry<URI, Integer> entry : volumesToRemove.entrySet()) {
+                removeVolume(entry.getKey());
+            }
+        }
     }
 
     public void addInitiator(Initiator initiator) {
@@ -245,14 +244,14 @@ public class ExportGroup extends DataObject implements ProjectResource {
             initiators.removeAll(StringSetUtil.uriListToStringSet(initiatorsToRemove));
         }
     }
-    
+
     public void removeInitiator(URI id) {
         StringSet initiators = getInitiators();
         if (initiators != null) {
             initiators.remove(id.toString());
         }
     }
-    
+
     @Name("hosts")
     @AlternateId("ExportGroupHosts")
     public StringSet getHosts() {
@@ -362,8 +361,10 @@ public class ExportGroup extends DataObject implements ProjectResource {
 
     @Name("numPaths")
     public Integer getNumPaths() {
-    	if (_numPaths == null) return 0;
-    	return _numPaths;
+        if (_numPaths == null) {
+            return 0;
+        }
+        return _numPaths;
     }
 
     /**
@@ -373,12 +374,13 @@ public class ExportGroup extends DataObject implements ProjectResource {
      * One place it is used is to over-ride is for VPLEX to back-end volumes,
      * where we want the number of paths to be set up once for all volumes between
      * a VPLEX and one particular back-end array.
+     * 
      * @param numPaths
      */
-	public void setNumPaths(Integer numPaths) {
-		this._numPaths = numPaths;
-		setChanged("numPaths");
-	}
+    public void setNumPaths(Integer numPaths) {
+        this._numPaths = numPaths;
+        setChanged("numPaths");
+    }
 
     @EnumType(ExportGroupType.class)
     @Name("type")
@@ -390,7 +392,7 @@ public class ExportGroup extends DataObject implements ProjectResource {
         _exportGroupType = exportGroupType;
         setChanged("type");
     }
-    
+
     @Name("zoneAllInitiators")
     public Boolean getZoneAllInitiators() {
         return _zoneAllInitiators;
@@ -408,26 +410,24 @@ public class ExportGroup extends DataObject implements ProjectResource {
     }
 
     public boolean hasBlockObject(URI blockObjectId) {
-    	if ((getSnapshots()!=null && getSnapshots().contains(blockObjectId.toString()) || 	
-           	(getVolumes()!=null && getVolumes().containsKey(blockObjectId.toString())))) {
-    		return true;
-    	}
-    	return false;
+        if ((getSnapshots() != null && getSnapshots().contains(blockObjectId.toString()) || (getVolumes() != null && getVolumes()
+                .containsKey(blockObjectId.toString())))) {
+            return true;
+        }
+        return false;
     }
 
     /**
      * The type of export is used to decide how masking views and initiator groups
      * should be created for the export group and what updates are allowable. Types
-     * can be used as follow: <ol>
-     * <li>For creating an initiator type export group where only one host can have 
-     * access to the volumes use {@link ExportGroupType#Initiator}. In this mode
-     * it is expected that the user wants to use specific initiators.</li>
-     * <li>For creating shared-access to same volumes by independent hosts use
-     * {@link ExportGroupType#Host}. All the host's initiators that are connected
-     * to the volumes will be used including those used for initiator type export groups.</li>
-     * <li>For creating shared-access to same volumes and at the same time manage the
-     * hosts as cluster where all hosts would have identical exports use 
-     * {@link ExportGroupType#Cluster}</li>
+     * can be used as follow:
+     * <ol>
+     * <li>For creating an initiator type export group where only one host can have access to the volumes use
+     * {@link ExportGroupType#Initiator}. In this mode it is expected that the user wants to use specific initiators.</li>
+     * <li>For creating shared-access to same volumes by independent hosts use {@link ExportGroupType#Host}. All the host's initiators that
+     * are connected to the volumes will be used including those used for initiator type export groups.</li>
+     * <li>For creating shared-access to same volumes and at the same time manage the hosts as cluster where all hosts would have identical
+     * exports use {@link ExportGroupType#Cluster}</li>
      * </ol>
      * 
      */
@@ -437,39 +437,40 @@ public class ExportGroup extends DataObject implements ProjectResource {
 
     /**
      * If true, it means the ExportGroup.Type == ExportGroupType.Cluster
+     * 
      * @return
      */
     public boolean forCluster() {
-    	if (_exportGroupType!=null) {
-    		return _exportGroupType.equals(ExportGroupType.Cluster.name());
-    	}
-    	return false;
+        if (_exportGroupType != null) {
+            return _exportGroupType.equals(ExportGroupType.Cluster.name());
+        }
+        return false;
     }
 
     public boolean forHost() {
-        return _exportGroupType!=null &&
-               _exportGroupType.equals(ExportGroupType.Host.name());
+        return _exportGroupType != null &&
+                _exportGroupType.equals(ExportGroupType.Host.name());
     }
 
     public boolean forInitiator() {
-        return _exportGroupType!=null &&
+        return _exportGroupType != null &&
                 _exportGroupType.equals(ExportGroupType.Initiator.name());
     }
-    
+
     @Name("altVirtualArrays")
     public StringMap getAltVirtualArrays() {
         return _altVirtualArrays;
     }
-    
+
     public void setAltVirtualArrays(StringMap altVirtualArrays) {
         _altVirtualArrays = altVirtualArrays;
         setChanged("altVirtualArrays");
     }
-    
+
     public boolean hasAltVirtualArray(String storageId) {
         return (_altVirtualArrays != null && _altVirtualArrays.containsKey(storageId));
     }
-    
+
     public void putAltVirtualArray(String storageId, String altVirtualArray) {
         if (_altVirtualArrays == null) {
             _altVirtualArrays = new StringMap();
@@ -477,18 +478,18 @@ public class ExportGroup extends DataObject implements ProjectResource {
         _altVirtualArrays.put(storageId, altVirtualArray);
         setChanged("altVirtualArrays");
     }
-    
+
     public void removeAltVirtualArray(String storageId) {
         if (_altVirtualArrays != null && _altVirtualArrays.containsKey(storageId)) {
             _altVirtualArrays.remove(storageId);
             setChanged("altVirtualArrays");
         }
     }
-    
+
     public boolean hasHost(URI id) {
         return _hosts != null && _hosts.contains(id.toString());
     }
-    
+
     public boolean hasCluster(URI id) {
         return _clusters != null && _clusters.contains(id.toString());
     }
@@ -500,13 +501,13 @@ public class ExportGroup extends DataObject implements ProjectResource {
     @Override
     public String toString() {
         return String.format("ExportGroup %s (%s)\n" +
-                        "\tInactive    : %s\n" +
-                        "\tType        : %s\n" +
-                        "\tVolumes     : %s\n" +
-                        "\tClusters    : %s\n" +
-                        "\tHosts       : %s\n" +
-                        "\tInitiators  : %s\n" +
-                        "\tExportMasks : %s\n",
+                "\tInactive    : %s\n" +
+                "\tType        : %s\n" +
+                "\tVolumes     : %s\n" +
+                "\tClusters    : %s\n" +
+                "\tHosts       : %s\n" +
+                "\tInitiators  : %s\n" +
+                "\tExportMasks : %s\n",
                 getLabel(), getId(),
                 getInactive(), getType(),
                 collectionString(getVolumes()),

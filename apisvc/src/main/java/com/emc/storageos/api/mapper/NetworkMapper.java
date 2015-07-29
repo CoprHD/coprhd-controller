@@ -29,11 +29,11 @@ public class NetworkMapper {
         to.setPortNumber(from.getPortNumber());
         to.setUsername(from.getUsername());
         // CD - This was present in the old model but was XmlTransient
-        //to.setPassword(from.setPassword());
+        // to.setPassword(from.setPassword());
         to.setSmisProviderIP(from.getSmisProviderIP());
         to.setSmisPortNumber(from.getSmisPortNumber());
         to.setSmisUserName(from.getSmisUserName());
-        //to.setSmisPassword();
+        // to.setSmisPassword();
         to.setSmisUseSSL(from.getSmisUseSSL());
         to.setVersion(from.getVersion());
         to.setUptime(from.getUptime());
@@ -54,7 +54,7 @@ public class NetworkMapper {
         to.setFcid(from.getFcid());
         to.setRemoteNodeName(from.getRemoteNodeName());
         to.setRemotePortName(from.getRemotePortName());
-        if ( !StringUtils.isEmpty(from.getRemotePortAlias())) {
+        if (!StringUtils.isEmpty(from.getRemotePortAlias())) {
             to.setRemotePortAlias(from.getRemotePortAlias());
         }
         to.setNetworkDevice(toRelatedResource(ResourceTypeEnum.NETWORK_SYSTEM, from.getNetworkDevice()));

@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.UUID;
 
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.Keyspace;
 
 /**
@@ -33,14 +32,14 @@ public interface Constraint {
     interface QueryResult<T> {
         /**
          * Set query result
-         *
+         * 
          * @param iterator iterator through query results
          */
         void setResult(Iterator<T> iterator);
 
         /**
          * Creates a single query hit
-         *
+         * 
          * @param uri
          * @return
          */
@@ -48,9 +47,9 @@ public interface Constraint {
 
         /**
          * Creates a single query hit
-         *
-         *
-         *
+         * 
+         * 
+         * 
          * @param uri
          * @param name
          * @param timestamp The time the entry was added to the index
@@ -60,7 +59,7 @@ public interface Constraint {
 
         /**
          * Creates a single query hit
-         *
+         * 
          * @param uri
          * @param name
          * @return
@@ -69,20 +68,18 @@ public interface Constraint {
 
     }
 
-
-
     /**
      * Sets keyspace for this constraint based query
-     *
+     * 
      * @param keyspace
      */
     void setKeyspace(Keyspace keyspace);
 
     /**
      * Execute this query
-     *
+     * 
      * todo make it return stuff in chunks
-     *
+     * 
      * @return
      */
     <T> void execute(QueryResult<T> result);

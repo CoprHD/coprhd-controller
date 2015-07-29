@@ -37,8 +37,8 @@ public class DataTableColumnConfiguration {
             column.setSearchable(searchable);
         }
         return this;
-    }    
-    
+    }
+
     public DataTableColumnConfiguration setVisible(boolean visible) {
         for (DataTableColumn column : columns) {
             column.setVisible(visible);

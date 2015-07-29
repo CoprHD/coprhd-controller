@@ -48,16 +48,16 @@ public class DbSchemaDiff extends Diff {
                 fi.setParent(src);
             }
         }
-        
+
         for (AnnotationType at : src.getAnnotations().getAnnotations()) {
             at.setParent(src);
         }
 
-        fieldCT = CollectionChangeTracker.<FieldInfo, FieldInfoDiff>newInstance(
+        fieldCT = CollectionChangeTracker.<FieldInfo, FieldInfoDiff> newInstance(
                 FieldInfo.class, FieldInfoDiff.class, src.getFields(), tgt.getFields());
 
-        annotationCT = CollectionChangeTracker.<AnnotationType, AnnotationTypeDiff>newInstance(
-                AnnotationType.class, AnnotationTypeDiff.class, src.getAnnotations().getAnnotations(), 
+        annotationCT = CollectionChangeTracker.<AnnotationType, AnnotationTypeDiff> newInstance(
+                AnnotationType.class, AnnotationTypeDiff.class, src.getAnnotations().getAnnotations(),
                 tgt.getAnnotations().getAnnotations());
     }
 
@@ -77,34 +77,39 @@ public class DbSchemaDiff extends Diff {
     }
 
     public boolean isUpgradable() {
-        if (fieldCT != null && !fieldCT.isUpgradable())
+        if (fieldCT != null && !fieldCT.isUpgradable()) {
             return false;
+        }
 
-        if (annotationCT != null && !annotationCT.isUpgradable())
+        if (annotationCT != null && !annotationCT.isUpgradable()) {
             return false;
+        }
 
         return true;
     }
 
     public boolean isChanged() {
-        if (fieldCT != null && fieldCT.isChanged())
+        if (fieldCT != null && fieldCT.isChanged()) {
             return true;
+        }
 
-        if (annotationCT != null && annotationCT.isChanged())
+        if (annotationCT != null && annotationCT.isChanged()) {
             return true;
+        }
 
         return false;
     }
 
     /**
      * Return a list of new fields from the target schemas with parent CF information
-     *
+     * 
      * Note that it only includes new fields of EXISITING CF schemas, not fields of
      * new CF schemas
      */
     public List<FieldInfo> getNewFields() {
-        if (fieldCT != null)
+        if (fieldCT != null) {
             return fieldCT.getNewList();
+        }
 
         return new ArrayList<FieldInfo>();
     }
@@ -112,7 +117,7 @@ public class DbSchemaDiff extends Diff {
     /**
      * Return a list of new class annotations from the target schemas with parent CF
      * information
-     *
+     * 
      * Note that it only includes new annotations of EXISITING CF schemas, not annotations
      * of new CF schemas
      */
@@ -129,7 +134,7 @@ public class DbSchemaDiff extends Diff {
     /**
      * Return a list of new field annotations from the target schemas with parent CF/field
      * information
-     *
+     * 
      * Note that it only includes new annotations of EXISITING fields, not annotations of
      * new fields
      */
@@ -148,7 +153,7 @@ public class DbSchemaDiff extends Diff {
     /**
      * Return a list of new annotation values from the target schemas with parent
      * CF/field/annotation information
-     *
+     * 
      * Note that it only includes new annotation values of EXISITING annotations, not
      * annotation values of new annotations
      */

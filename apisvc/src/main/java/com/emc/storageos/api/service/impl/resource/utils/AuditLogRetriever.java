@@ -39,9 +39,9 @@ public interface AuditLogRetriever {
      * @param type
      *            - media type to be streamed
      * @param writer
-     *            - the output writer to stream retrived auditlogs 
-     * @throws MarshallingExcetion 
-     *            - auditlog object marshalling failed
+     *            - the output writer to stream retrived auditlogs
+     * @throws MarshallingExcetion
+     *             - auditlog object marshalling failed
      */
     public void getBulkAuditLogs(DateTime time, TimeSeriesMetadata.TimeBucket bucket,
             MediaType type, String lang, Writer writer) throws MarshallingExcetion;

@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
@@ -74,7 +75,7 @@ public class Documenter {
             "com.emc.storageos.security.exceptions",
             "com.emc.storageos.systemservices.exceptions",
             "com.emc.storageos.volumecontroller.placement",
-	        "com.emc.storageos.vnxe"};
+            "com.emc.storageos.vnxe" };
 
     public static Collection<DocumenterEntry> createEntries() {
         final List<Class<?>> list = getMessageBundleClasses();
@@ -326,7 +327,7 @@ public class Documenter {
         }
 
         public Object[] getParameters() {
-            return parameters;
+            return Arrays.copyOf(parameters, parameters.length);
         }
 
         public String getParametersAsString() {
@@ -350,10 +351,10 @@ public class Documenter {
             this.interfaze = interfaze;
             this.method = method;
             this.status = status;
-            this.parameters = parameters;
             this.code = sce.getServiceCode();
             this.summary = code.getSummary();
             this.message = sce.getMessage();
+            this.parameters = (parameters != null) ? Arrays.copyOf(parameters, parameters.length) : null;
         }
     }
 }

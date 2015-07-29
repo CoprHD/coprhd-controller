@@ -136,7 +136,6 @@ public class StorageProviderService extends TaskResourceService{
          return map(mgmtProvider);
      }
 
-
     @Override
     protected StorageProvider queryResource(URI id) {
         return queryObject(StorageProvider.class, id, true);
@@ -209,7 +208,6 @@ public class StorageProviderService extends TaskResourceService{
             _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new StorageProviderBulkRep(BulkList.wrapping(_dbIterator, MapStorageProvider.getInstance()));
     }
-    
     
     @POST
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
@@ -309,6 +307,7 @@ public class StorageProviderService extends TaskResourceService{
 
     /**     
      * Scan all Storage providers.
+     * 
      * @brief Scan Storage providers
      * @return TasList of all created asynchronous tasks
      */
@@ -381,7 +380,6 @@ public class StorageProviderService extends TaskResourceService{
                 provider.getId().toString(), provider.getLabel(), provider.getIPAddress(),
                 provider.getPortNumber(), provider.getUserName(), provider.getInterfaceType());
         
-        
         return Response.ok().build();
     }
     
@@ -405,8 +403,10 @@ public class StorageProviderService extends TaskResourceService{
         if (null == storageProvider || storageProvider.getInactive()) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         } else {
-            /* Usecase is not to remove the provider instead we can update the old storage provider with
-               new provider details. */
+            /*
+             * Usecase is not to remove the provider instead we can update the old storage provider with
+             * new provider details.
+             */
             if (param.getName() != null && !param.getName().equals("") && !param.getName().equalsIgnoreCase(storageProvider.getLabel())) {
                 checkForDuplicateName(param.getName(), StorageProvider.class);
                 storageProvider.setLabel(param.getName());
@@ -491,6 +491,7 @@ public class StorageProviderService extends TaskResourceService{
 
     /**     
      * Get zone role assignments
+     * 
      * @brief List zone role assignments
      * @return Role assignment details
      */
@@ -531,7 +532,6 @@ public class StorageProviderService extends TaskResourceService{
         StorageProvider provider = _dbClient.queryObject(StorageProvider.class, id);
         ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
 
-
         // Return the list of storage systems for the provider.
         StorageSystemList storageSystemsForProvider = new StorageSystemList();
         StringSet providerSystemURIStrs = provider.getStorageSystems();
@@ -547,8 +547,6 @@ public class StorageProviderService extends TaskResourceService{
 
         return storageSystemsForProvider;
     }
-
-
 
     /**
      * Allows the user to remove a storage system from the list of decommisioned resources

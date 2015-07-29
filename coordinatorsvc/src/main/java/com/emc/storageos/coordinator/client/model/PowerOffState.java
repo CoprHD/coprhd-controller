@@ -14,21 +14,20 @@
  */
 package com.emc.storageos.coordinator.client.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * PowerOffState is used for both target and node level information
  * After user set target state to poweroff, all nodes will go through the
+ * 
  * @see State's steps in order to finish the process
- * If it fails at any step before State.AGREED,
- * any node, which got the lock, can revert the poweroff state back to State.NONE
- *
+ *      If it fails at any step before State.AGREED,
+ *      any node, which got the lock, can revert the poweroff state back to State.NONE
+ * 
  */
 public class PowerOffState implements CoordinatorSerializable {
     private State _powerOffState = null;
 
-    public PowerOffState() {}
+    public PowerOffState() {
+    }
 
     public PowerOffState(State state) {
         _powerOffState = state;

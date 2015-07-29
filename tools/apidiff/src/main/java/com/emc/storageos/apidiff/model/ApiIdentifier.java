@@ -48,12 +48,15 @@ public class ApiIdentifier {
 
     @Override
     public boolean equals(Object apiIdentifier) {
-        if (this == apiIdentifier)
+        if (this == apiIdentifier) {
             return true;
-        if (apiIdentifier == null)
+        }
+        if (apiIdentifier == null) {
             return false;
-        if (this.getClass() != apiIdentifier.getClass())
+        }
+        if (this.getClass() != apiIdentifier.getClass()) {
             return false;
+        }
         return this.path.equals(((ApiIdentifier) apiIdentifier).path) &&
                 this.httpMethod.equals(((ApiIdentifier) apiIdentifier).httpMethod);
     }

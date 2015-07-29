@@ -1,0 +1,193 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import *
+
+#----------------------------------------------------------------------
+# host cli functions
+#----------------------------------------------------------------------
+
+def host_create(args):
+    bourne.connect(args.ip)
+    task = bourne.host_create(args.label, args.tenant, args.type, args.hostname, 
+               args.port, args.username, args.password, args.osversion, args.ssl,
+               args.project, args.cluster, args.datacenter, args.discoverable)
+    print task    
+
+def host_update(args):
+    bourne.connect(args.ip)
+    uri = bourne.host_query(args.name)
+    task = bourne.host_update(uri, args.cluster)
+    print task
+
+def host_delete(args):
+    bourne.connect(args.ip)
+    uri = bourne.host_query(args.name)
+    res = bourne.host_delete(uri)
+    print res
+
+def host_show(args):
+    bourne.connect(args.ip)
+    uri = bourne.host_query(args.name)
+    host = bourne.host_show(uri)
+    print host
+
+def host_query(args):
+    bourne.connect(args.ip)
+    print bourne.host_query(args.name)
+
+def host_list(args):
+    bourne.connect(args.ip)
+    host_display_hdr()
+    res = bourne.host_list(args.tenant)
+    for r in res:
+        host = bourne.host_show(r['id'])
+        host_display(host)
+
+#
+# display host in list form
+#
+host_display_fmt = '{0:16s} {1:28s} {2:6s} {3:s}'
+
+def host_display_hdr():
+    print host_display_fmt.format('name', 'hostname', 'active', 'id')
+
+def host_display(host):
+    print host_display_fmt.format(host['name'], host['host_name'], 'NO' if host['inactive'] else 'YES',
+               host['id'])
+
+# tag
+def host_tag(args):
+    bourne.connect(args.ip)
+    if (args.id == None):
+        args.id = bourne.host_query(args.name)
+    print 'Tagging host', args.id
+    bourne.tag(args.resource_type, args.id, args.tags)
+
+# search
+def host_search(args):
+    bourne.connect(args.ip)
+    if (args.scope != None):
+        # query tenant id from tenant name
+        args.scope = bourne.tenant_query(args.scope)
+    array = bourne.search(args.resource_type, args.scope, args.prefix, args.project, args.tag)
+    print 'Searching host with ' + args.prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with prefix ' + args.prefix)
+    else:
+        print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# host <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne host cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | delete | show | list )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# host create label --tenant tenant
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('label',            help = 'label for the host')
+create.add_argument('tenant',           help = 'tenant name', default = None)
+create.add_argument('type',             help = 'host type: Windows, Unix, Esx, Other ')
+create.add_argument('hostname',         help = 'management interface ip address or host fqdn')
+create.add_argument('--port',             help = 'management interface port', default=0)
+create.add_argument('--username',         help = 'host user name', default='none')
+create.add_argument('--password',         help = 'host password', default='none')
+create.add_argument('--ssl',            help = 'use ssl flag: yes or no')
+create.add_argument('--osversion',      help = 'host OS version')
+create.add_argument('--project',        help = 'host project name when the host is assigned to a project')
+create.add_argument('--cluster',        help = 'host cluster')
+create.add_argument('--datacenter',     help = 'SMIS provider TCP port')
+create.add_argument('--discoverable',   help = 'discoverable: true or false', default='false')
+
+# host update uri
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('name', help = 'name of host')
+update.add_argument('--cluster', help = 'host cluster')
+
+# host delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('name',	help = 'name of host')
+
+# host show uri
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('name',	help = 'name of host')
+
+# host query name
+query = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+query.add_argument('name',	help = 'name of host')
+
+# host list --tenant tenant
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+list.add_argument('tenant',	help = 'tenant name', default = None)
+
+# tag 
+resource_type="host"
+tag = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tag.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+tag.add_argument('--id',     metavar = 'id',     help = 'resource id', default=None)
+tag.add_argument('name',     metavar = 'name',   help = 'resource name')
+tag.add_argument('tags',     metavar = 'tags',   help = 'tags', nargs='+', default=None)
+
+# search
+search = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+search.add_argument('--resource_type',   metavar = 'resource_type',     help = 'resource type', default=resource_type)
+search.add_argument('--scope',   metavar = 'scope',  help = 'scope(global or tenant) for searching', default=None)
+search.add_argument('prefix',    metavar = 'prefix', help = 'prefix for search name or tag')
+search.add_argument('--tag',     metavar = 'tag',    help = 'boolean for search tag or not (search from name)', default=None)
+search.add_argument('--project', metavar = 'project',help = 'search name within project', default=None)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        host_create(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        host_update(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        host_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        host_show(args)
+    elif (cmd == "query"):
+        args = query.parse_args()
+        host_query(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        host_list(args)
+    elif(cmd == "tag"):
+        args = tag.parse_args()
+        host_tag(args)
+    elif (cmd == "search"):
+        args = search.parse_args()
+        host_search(args)
+    else:
+        parser.print_help()
+except:
+    raise

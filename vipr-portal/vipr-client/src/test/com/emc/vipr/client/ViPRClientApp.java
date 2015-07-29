@@ -101,8 +101,7 @@ public class ViPRClientApp {
             application.createBlockVolumeForHost();
 
             application.changeKeyAndCert();
-        }
-        finally {
+        } finally {
             client.auth().logout();
         }
     }
@@ -155,10 +154,9 @@ public class ViPRClientApp {
         if (chain.getChain().equals(newChain.getChain())) {
             throw new IllegalStateException("Certificate hasn't changed");
         }
-       System.out.println("key and certificate updated. New Certificate:"
+        System.out.println("key and certificate updated. New Certificate:"
                 + newChain.getChain());
     }
-
 
     private String removeNewLines(String withNewLines) {
         return withNewLines.replaceAll("\n", "").replaceAll("\r", "");

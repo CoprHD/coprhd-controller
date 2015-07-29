@@ -20,128 +20,128 @@ import com.emc.storageos.model.file.FileExportUpdateParams.ExportSecurityType;
 
 public class UnManagedExportVerificationUtility {
 
-	private static final Logger _log = LoggerFactory
-			.getLogger(UnManagedExportVerificationUtility.class);
-	private DbClient _dbClient;
+    private static final Logger _log = LoggerFactory
+            .getLogger(UnManagedExportVerificationUtility.class);
+    private DbClient _dbClient;
 
-	public UnManagedExportVerificationUtility(DbClient dbClient) {
-		_dbClient = dbClient;
-	}
+    public UnManagedExportVerificationUtility(DbClient dbClient) {
+        _dbClient = dbClient;
+    }
 
-	public boolean validateUnManagedExportRules(
-			List<UnManagedFileExportRule> unManagedExportRules) {
-		
-		 return validateUnManagedExportRules(unManagedExportRules, true);
-	}
-	
-	public boolean validateUnManagedExportRules(
-			List<UnManagedFileExportRule> unManagedExportRules, Boolean checkUMExpRuleInDB) {
+    public boolean validateUnManagedExportRules(
+            List<UnManagedFileExportRule> unManagedExportRules) {
 
-		if (unManagedExportRules == null) {
-			return true;
-		}
+        return validateUnManagedExportRules(unManagedExportRules, true);
+    }
 
-		if(!scanForDuplicateSecFlavor(unManagedExportRules)) {
-			return false;
-		}
-		
-		if(!verifyExportSecurityRule(unManagedExportRules)) {
-			return false;
-		}
-		// Disabling anon temp
-		//isToProceed = verifyExportAnon(unManagedExportRules) && isToProceed;
-		
-		if(checkUMExpRuleInDB){
-			if (!checkUnManagedFsExportRuleExistsInDB(unManagedExportRules)) {
-				return false;
-			}
-		}
-		return true;
-	}
+    public boolean validateUnManagedExportRules(
+            List<UnManagedFileExportRule> unManagedExportRules, Boolean checkUMExpRuleInDB) {
 
-	private boolean scanForDuplicateSecFlavor(
-			List<UnManagedFileExportRule> unManagedExportRules) {
+        if (unManagedExportRules == null) {
+            return true;
+        }
 
-		_log.info("Validating Sec Flavor");
-		List<String> secFlavorsFound = new ArrayList<>();
-		for (UnManagedFileExportRule rule : unManagedExportRules) {
-			String secRuleToValidate = rule.getSecFlavor();
+        if (!scanForDuplicateSecFlavor(unManagedExportRules)) {
+            return false;
+        }
 
-			// MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR
-			if (!secFlavorsFound.contains(secRuleToValidate)) {
-				secFlavorsFound.add(rule.getSecFlavor());
-				_log.info("Secuity rules found as of now {}, size {}", secFlavorsFound, secFlavorsFound.size());
-			} else {
-				_log.warn("Duplicate SecFlavor found {}", secRuleToValidate);
-				return false;
-			}
-		}
-		return true;
-	}
+        if (!verifyExportSecurityRule(unManagedExportRules)) {
+            return false;
+        }
+        // Disabling anon temp
+        // isToProceed = verifyExportAnon(unManagedExportRules) && isToProceed;
 
-	private boolean verifyExportAnon(
-			List<UnManagedFileExportRule> unManagedExportRules) {
-		_log.info("Validating Anon");
-		String anon = null;
-		for (UnManagedFileExportRule exportRule : unManagedExportRules) {
-			anon = exportRule.getAnon();
-			if (anon == null) {
-				_log.warn("No Anon supplied");
-				return false;
-			}
-		}
-		return true;
+        if (checkUMExpRuleInDB) {
+            if (!checkUnManagedFsExportRuleExistsInDB(unManagedExportRules)) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-	}
+    private boolean scanForDuplicateSecFlavor(
+            List<UnManagedFileExportRule> unManagedExportRules) {
 
-	private boolean verifyExportSecurityRule(
-			List<UnManagedFileExportRule> unManagedExportRules) {
-		_log.info("Validating Export Security");
+        _log.info("Validating Sec Flavor");
+        List<String> secFlavorsFound = new ArrayList<>();
+        for (UnManagedFileExportRule rule : unManagedExportRules) {
+            String secRuleToValidate = rule.getSecFlavor();
 
-		for (UnManagedFileExportRule exportRule : unManagedExportRules) {
-			try {
-				// NET APP Can have comma separated sec flavors
-				if(exportRule.getSecFlavor().indexOf(",")!=-1){
-					String[] secs= exportRule.getSecFlavor().split(",");
-					for (String sec : secs){
-						ExportSecurityType.valueOf(sec.toUpperCase());
-					}
-				} else {
-				ExportSecurityType.valueOf(exportRule.getSecFlavor()
-						.toUpperCase());
-				}
-			} catch (Exception e) {
-				_log.info("Invalid Security Type found {}",
-						exportRule.getSecFlavor());
-				return false;
-			}
+            // MULTIPLE_EXPORTS_WITH_SAME_SEC_FLAVOR
+            if (!secFlavorsFound.contains(secRuleToValidate)) {
+                secFlavorsFound.add(rule.getSecFlavor());
+                _log.info("Secuity rules found as of now {}, size {}", secFlavorsFound, secFlavorsFound.size());
+            } else {
+                _log.warn("Duplicate SecFlavor found {}", secRuleToValidate);
+                return false;
+            }
+        }
+        return true;
+    }
 
-		}
-		return true;
+    private boolean verifyExportAnon(
+            List<UnManagedFileExportRule> unManagedExportRules) {
+        _log.info("Validating Anon");
+        String anon = null;
+        for (UnManagedFileExportRule exportRule : unManagedExportRules) {
+            anon = exportRule.getAnon();
+            if (anon == null) {
+                _log.warn("No Anon supplied");
+                return false;
+            }
+        }
+        return true;
 
-	}
+    }
 
-	protected boolean checkUnManagedFsExportRuleExistsInDB(
-			List<UnManagedFileExportRule> unManagedExportRules) {
-		for (UnManagedFileExportRule exportRule : unManagedExportRules) {
-			URIQueryResultList result = new URIQueryResultList();
-			_dbClient.queryByConstraint(AlternateIdConstraint.Factory
-					.getFileExporRuleNativeGUIdConstraint(exportRule
-							.getNativeGuid()), result);
-			List<URI> filesystemUris = new ArrayList<URI>();
-			Iterator<URI> iter = result.iterator();
-			while (iter.hasNext()) {
-				URI unFileSystemtURI = iter.next();
-				filesystemUris.add(unFileSystemtURI);
-			}
-			if (!filesystemUris.isEmpty()) {
-				_log.warn(
-						"Rule with native guid {} already exists in DB.",
-						exportRule.getNativeGuid());
-				return false;
-			}
-		}
+    private boolean verifyExportSecurityRule(
+            List<UnManagedFileExportRule> unManagedExportRules) {
+        _log.info("Validating Export Security");
 
-		return true;
-	}
+        for (UnManagedFileExportRule exportRule : unManagedExportRules) {
+            try {
+                // NET APP Can have comma separated sec flavors
+                if (exportRule.getSecFlavor().indexOf(",") != -1) {
+                    String[] secs = exportRule.getSecFlavor().split(",");
+                    for (String sec : secs) {
+                        ExportSecurityType.valueOf(sec.toUpperCase());
+                    }
+                } else {
+                    ExportSecurityType.valueOf(exportRule.getSecFlavor()
+                            .toUpperCase());
+                }
+            } catch (Exception e) {
+                _log.info("Invalid Security Type found {}",
+                        exportRule.getSecFlavor());
+                return false;
+            }
+
+        }
+        return true;
+
+    }
+
+    protected boolean checkUnManagedFsExportRuleExistsInDB(
+            List<UnManagedFileExportRule> unManagedExportRules) {
+        for (UnManagedFileExportRule exportRule : unManagedExportRules) {
+            URIQueryResultList result = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getFileExporRuleNativeGUIdConstraint(exportRule
+                            .getNativeGuid()), result);
+            List<URI> filesystemUris = new ArrayList<URI>();
+            Iterator<URI> iter = result.iterator();
+            while (iter.hasNext()) {
+                URI unFileSystemtURI = iter.next();
+                filesystemUris.add(unFileSystemtURI);
+            }
+            if (!filesystemUris.isEmpty()) {
+                _log.warn(
+                        "Rule with native guid {} already exists in DB.",
+                        exportRule.getNativeGuid());
+                return false;
+            }
+        }
+
+        return true;
+    }
 }

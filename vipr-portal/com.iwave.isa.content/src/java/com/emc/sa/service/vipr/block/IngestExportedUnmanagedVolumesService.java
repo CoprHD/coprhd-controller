@@ -57,13 +57,13 @@ public class IngestExportedUnmanagedVolumesService extends ViPRService {
                 host == null ? null : host.getId(),
                 cluster == null ? null : cluster.getId(),
                 uris(volumeIds)
-            )).getTasks().size();
+                )).getTasks().size();
         logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
         logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);
-      
+
         int remaining = execute(new GetUnmanagedVolumesByHostOrCluster(
                 host != null ? host.getId() : cluster.getId())).size();
-        
+
         logInfo("ingest.exported.unmanaged.volume.service.remaining", remaining);
     }
 }

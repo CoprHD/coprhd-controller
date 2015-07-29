@@ -17,9 +17,9 @@ public class HostClusterFilter extends DefaultResourceFilter<HostRestRep> {
 
     @Override
     public boolean accept(HostRestRep item) {
-    	if (item.getCluster() == null) {
-    		return false;
-    	}
+        if (item.getCluster() == null) {
+            return false;
+        }
         return id.equals(item.getCluster().getId());
     }
 }

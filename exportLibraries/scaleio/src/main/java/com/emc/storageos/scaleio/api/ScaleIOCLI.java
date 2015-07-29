@@ -32,8 +32,7 @@ import java.util.regex.Pattern;
  * <p/>
  * Expected usage:
  * <p/>
- * ScaleIOCLI cli = new ScaleIOCLI("MDM-IP/host", port, "username", "password");
- * ScaleIOFooResult cli.foo();
+ * ScaleIOCLI cli = new ScaleIOCLI("MDM-IP/host", port, "username", "password"); ScaleIOFooResult cli.foo();
  */
 public class ScaleIOCLI implements ScaleIOHandle {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOCLI.class);
@@ -245,7 +244,8 @@ public class ScaleIOCLI implements ScaleIOHandle {
     public ScaleIOAddVolumeResult addVolume(String protectionDomainName, String storagePoolName,
                                             String volumeName, String volumeSize, boolean thinProvisioned) {
         ScaleIOAddVolumeCommand command =
-                new ScaleIOAddVolumeCommand(commandSemantics, protectionDomainName, storagePoolName, volumeName, volumeSize, thinProvisioned);
+                new ScaleIOAddVolumeCommand(commandSemantics, protectionDomainName, storagePoolName, volumeName, volumeSize,
+                        thinProvisioned);
         command.useCustomInvocationIfSet(customInvocation);
         executeCommand(command);
         return command.getResults();

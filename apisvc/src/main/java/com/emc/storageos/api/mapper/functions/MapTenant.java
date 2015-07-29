@@ -9,7 +9,7 @@ import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.google.common.base.Function;
 
-public class MapTenant implements Function<TenantOrg,TenantOrgRestRep> {
+public class MapTenant implements Function<TenantOrg, TenantOrgRestRep> {
     public static final MapTenant instance = new MapTenant();
 
     public static MapTenant getInstance() {

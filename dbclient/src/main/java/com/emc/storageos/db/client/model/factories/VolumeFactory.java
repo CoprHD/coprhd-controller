@@ -40,7 +40,6 @@ public class VolumeFactory {
         to.setAlternateName(from.getAlternateName());
         to.setRefreshRequired(from.getRefreshRequired());
 
-
         to.setProject(from.getProject());
         to.setCapacity(from.getCapacity());
         to.setThinVolumePreAllocationSize(from.getThinVolumePreAllocationSize());

@@ -5,8 +5,6 @@
 
 package com.emc.storageos.db.client.model;
 
-import java.util.Set;
-
 /**
  */
 @Cf("NodeObj")

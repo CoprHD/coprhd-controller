@@ -19,16 +19,16 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 /**
  * Migration handler to update the internal flags of Export Group
- * and Initiator objects for RecoverPoint. 
+ * and Initiator objects for RecoverPoint.
  */
 public class ProtectionSystemAssocStorageSystemMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(ProtectionSystemAssocStorageSystemMigration.class);
-    
+
     @Override
-    public void process() {        
-        updateAssociatedStorageSystemsForPS();        
+    public void process() {
+        updateAssociatedStorageSystemsForPS();
     }
-        
+
     /**
      * Update ProtectionSystems that need to have the associated storage system blanked out.
      * It will be re-populated during discovery.
@@ -40,11 +40,11 @@ public class ProtectionSystemAssocStorageSystemMigration extends BaseCustomMigra
         while (protectionSystems.hasNext()) {
             ProtectionSystem protectionSystem = protectionSystems.next();
             log.info("ProtectionSystem (id={}) must be upgraded", protectionSystem.getId().toString());
-            clearAssociatedStorageSystems(protectionSystem, dbClient);                   
+            clearAssociatedStorageSystems(protectionSystem, dbClient);
             log.info("ProtectionSystem (id={}) upgraded.", protectionSystem.getId().toString());
         }
     }
-    
+
     private void clearAssociatedStorageSystems(ProtectionSystem protectionSystem, DbClient dbClient) {
         StringSet associatedStorageSystems = protectionSystem.getAssociatedStorageSystems();
         associatedStorageSystems.clear();

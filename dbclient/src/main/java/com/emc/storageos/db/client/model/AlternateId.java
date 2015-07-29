@@ -13,9 +13,9 @@ import java.lang.annotation.*;
  * Alternate ID field marker
  */
 @Documented
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
-@UpgradeAllowed(migrationCallback=AddIndexMigrationCallback.class)
+@UpgradeAllowed(migrationCallback = AddIndexMigrationCallback.class)
 public @interface AlternateId {
     String value() default "";
 }

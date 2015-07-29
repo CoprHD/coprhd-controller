@@ -32,13 +32,13 @@ public abstract class DataObject implements Serializable {
     static final long serialVersionUID = -5278839624050514418L;
     public static final String INACTIVE_FIELD_NAME = "inactive";
 
-    private static final Logger _log = LoggerFactory.getLogger(DataObject.class); 
-    
+    private static final Logger _log = LoggerFactory.getLogger(DataObject.class);
+
     // urn:<zone id>:<record uuid>
     protected URI _id;
 
     // user label
-    private String _label ="";
+    private String _label = "";
 
     // delete marker
     protected Boolean _inactive;
@@ -58,12 +58,12 @@ public abstract class DataObject implements Serializable {
 
     // creation time
     private Calendar _creationTime;
-    
+
     // A bitwise OR of supported internal flags that can be used
     // to control or restrict specific behaviors relative to the
     // data object.
     private Long _internalFlags = new Long(0);
-    
+
     private Boolean _global;
 
     private void writeObject(ObjectOutputStream out) throws IOException {
@@ -71,10 +71,11 @@ public abstract class DataObject implements Serializable {
 
         out.writeObject(_id);
         out.writeObject(_label);
-        if (_inactive == null)
+        if (_inactive == null) {
             out.writeBoolean(false);
-        else
+        } else {
             out.writeBoolean(_inactive);
+        }
         out.writeObject(_creationTime);
         out.writeLong(_internalFlags);
     }
@@ -82,16 +83,17 @@ public abstract class DataObject implements Serializable {
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
 
-        _id = (URI)in.readObject();
-        _label = (String)in.readObject();
+        _id = (URI) in.readObject();
+        _label = (String) in.readObject();
         _inactive = in.readBoolean();
-        _creationTime = (Calendar)in.readObject();
+        _creationTime = (Calendar) in.readObject();
         _internalFlags = in.readLong();
         _initialized = new HashSet<>();
     }
 
     /**
      * get identifier
+     * 
      * @return
      */
     @XmlElement
@@ -102,6 +104,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * set identifier
+     * 
      * @param id
      */
     public void setId(URI id) {
@@ -111,9 +114,10 @@ public abstract class DataObject implements Serializable {
 
     /**
      * get label
+     * 
      * @return
      */
-    @XmlElement(name="name")
+    @XmlElement(name = "name")
     @PrefixIndex(cf = "LabelPrefixIndex")
     @Name("label")
     @Length(min = 2, max = 30)
@@ -123,6 +127,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * set label
+     * 
      * @param label
      */
     public void setLabel(String label) {
@@ -132,6 +137,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * get inactive
+     * 
      * @return
      */
     @DecommissionedIndex("Decommissioned")
@@ -143,6 +149,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * set inactive
+     * 
      * @param inactive
      */
     public void setInactive(Boolean inactive) {
@@ -152,6 +159,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Get status
+     * 
      * @return
      */
     @XmlElementWrapper(name = "operationStatus")
@@ -159,19 +167,20 @@ public abstract class DataObject implements Serializable {
     @Name("status")
     @ClockIndependent(Operation.class)
     public OpStatusMap getOpStatus() {
-        if (_status == null)
+        if (_status == null) {
             _status = new OpStatusMap();
+        }
         return _status;
     }
 
     /**
      * Set status map - overwrites the existing map
-     * @param map  StringMap to set
+     * 
+     * @param map StringMap to set
      */
     public void setOpStatus(OpStatusMap map) {
         _status = map;
     }
-
 
     @Name("tags")
     @XmlElementWrapper(name = "tags")
@@ -182,7 +191,7 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Tag settter
-     *
+     * 
      * @param tags
      */
     public void setTag(ScopedLabelSet tags) {
@@ -198,7 +207,7 @@ public abstract class DataObject implements Serializable {
         _creationTime = creationTime;
         setChanged("creationTime");
     }
-    
+
     /**
      * This accessor is deprecated in favor of the safer
      * enum-based versions and should generally only be
@@ -209,7 +218,7 @@ public abstract class DataObject implements Serializable {
     public Long getInternalFlags() {
         return _internalFlags;
     }
-    
+
     /**
      * This accessor is deprecated in favor of the safer
      * enum-based versions and should generally only be
@@ -222,9 +231,9 @@ public abstract class DataObject implements Serializable {
         }
         // make sure we don't trigger a column update if the flag values aren't actually changed
         if (!flags.equals(_internalFlags)) {
-        _internalFlags = flags;
-            setChanged("internalFlags");            
-    }
+            _internalFlags = flags;
+            setChanged("internalFlags");
+        }
     }
 
     /**
@@ -240,7 +249,7 @@ public abstract class DataObject implements Serializable {
         }
         return (_internalFlags & flag.getMask()) != 0;
     }
-    
+
     /**
      * Clear all supplied bit flags
      */
@@ -253,9 +262,9 @@ public abstract class DataObject implements Serializable {
         for (Flag flag : flags) {
             removeMask |= flag.getMask();
         }
-        setInternalFlags(_internalFlags & ~removeMask);            
+        setInternalFlags(_internalFlags & ~removeMask);
     }
-    
+
     /**
      * Set all supplied bit flags
      */
@@ -268,12 +277,13 @@ public abstract class DataObject implements Serializable {
         for (Flag flag : flags) {
             addMask |= flag.getMask();
         }
-        setInternalFlags(_internalFlags | addMask);            
+        setInternalFlags(_internalFlags | addMask);
     }
-    
+
     /**
      * Mark a field as modified
-     * @param field  name of the field modified
+     * 
+     * @param field name of the field modified
      */
     protected void setChanged(String field) {
         if (_changed != null) {
@@ -284,7 +294,8 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Checks if the field with the given name is marked as changed
-     * @param field   name of the field to check
+     * 
+     * @param field name of the field to check
      * @return true if modified, false otherwise
      */
     public boolean isChanged(String field) {
@@ -293,17 +304,19 @@ public abstract class DataObject implements Serializable {
 
     /**
      * clears changed flag for the given name
-     * @param field   name of the field to check
+     * 
+     * @param field name of the field to check
      */
     public void clearChangedValue(String field) {
-        if (_changed != null ) {
+        if (_changed != null) {
             _changed.remove(field);
         }
     }
 
     /**
      * mark changed flag for the given name
-     * @param field   name of the field to check
+     * 
+     * @param field name of the field to check
      */
     public void markChangedValue(String field) {
         setChanged(field);
@@ -311,13 +324,13 @@ public abstract class DataObject implements Serializable {
 
     /**
      * Checks if the field the given name was instanciated from the DB
-     * @param field   name of the field to check
+     * 
+     * @param field name of the field to check
      * @return true if modified, false otherwise
      */
     public boolean isInitialized(String field) {
         return (_initialized.contains(field));
     }
-
 
     /**
      * Start tracking changes for this object
@@ -330,6 +343,7 @@ public abstract class DataObject implements Serializable {
      * This method will be called to check if this object is safe for deletion
      * overload this method in the derived class if there is anything specific to
      * check for on the object before deletion
+     * 
      * @return null if no active references, otherwise, detail type of the depedency returned
      */
     public String canBeDeleted() {
@@ -343,9 +357,10 @@ public abstract class DataObject implements Serializable {
     /**
      * Static method to create an instance of an object with the specified id
      * used from db deserialize to instantiate objects
-     * @param clazz  DataObject class to create
-     * @param id  URI of the object
-     * @param <T>  DataObject type
+     * 
+     * @param clazz DataObject class to create
+     * @param id URI of the object
+     * @param <T> DataObject type
      * @return Object created
      * @throws InstantiationException
      * @throws IllegalAccessException
@@ -357,7 +372,7 @@ public abstract class DataObject implements Serializable {
         created._changed = null;
         return created;
     }
-    
+
     @Name("global")
     public Boolean isGlobal() {
         return (_global != null) && _global;
@@ -366,20 +381,20 @@ public abstract class DataObject implements Serializable {
     /**
      * Bit flags that can be set on the data object to control or restrict
      * behavior relative to the data object.
-     *  
+     * 
      * We don't yet have the ability to serialize something like an EnumSet into
      * the database, so we'll make do with defining the bits as Enum's and then
      * providing some typesafe setters/getters.
      */
-    public static enum Flag {        
+    public static enum Flag {
         INTERNAL_OBJECT(0),
         NO_METERING(1),
-        NO_PUBLIC_ACCESS(2), 
+        NO_PUBLIC_ACCESS(2),
         SUPPORTS_FORCE(3),
         RECOVERPOINT(4);
-        
+
         private final long mask;
-        
+
         /**
          * Construct an enum, using an explicit bit position rather than just using the ordinal to protect
          * against future add/remove of flags
@@ -392,10 +407,10 @@ public abstract class DataObject implements Serializable {
             }
             this.mask = 1 << bitPosition;
         }
-        
+
         public long getMask() {
             return mask;
-        }        
+        }
     }
 
     public void filterOutNulls(Collection<? extends DataObject> args) {
@@ -410,7 +425,7 @@ public abstract class DataObject implements Serializable {
         }
     }
 
-    public boolean checkForNull(DataObject ... args) {
+    public boolean checkForNull(DataObject... args) {
         boolean isNullFound = false;
         if (args != null) {
             for (DataObject dataObject : args) {

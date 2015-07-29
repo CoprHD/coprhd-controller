@@ -27,6 +27,7 @@ public class AuditLogTimeSeries implements TimeSeries<AuditLog> {
      */
     public static class AuditLogSerializer implements TimeSeriesSerializer<AuditLog> {
         private GenericSerializer _genericSerializer = new GenericSerializer();
+
         @Override
         public byte[] serialize(AuditLog data) {
             return _genericSerializer.toByteArray(AuditLog.class, data);

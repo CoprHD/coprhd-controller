@@ -19,7 +19,7 @@ import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 
 /**
- *  default implementation for full name matcher
+ * default implementation for full name matcher
  */
 public class ContainmentLabelConstraintImpl extends ConstraintImpl implements ContainmentPrefixConstraint {
     private static final Logger log = LoggerFactory.getLogger(ContainmentLabelConstraintImpl.class);
@@ -29,7 +29,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
     private Keyspace _keyspace;
     private ColumnField _field;
 
-    public ContainmentLabelConstraintImpl (URI indexKey, String prefix, ColumnField field) {
+    public ContainmentLabelConstraintImpl(URI indexKey, String prefix, ColumnField field) {
         super(indexKey, prefix, field);
 
         _indexKey = indexKey;

@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represent a Node in zookeeper, 
+ * Represent a Node in zookeeper,
  * only need to care the 2 member variables: path and children list.
  */
 public class ZkNode {
@@ -30,8 +30,9 @@ public class ZkNode {
     }
 
     public String getName() {
-        if (path.equals("/"))
+        if (path.equals("/")) {
             return "/";
+        }
 
         String[] names = path.split("/");
         return names[names.length - 1];
@@ -51,8 +52,9 @@ public class ZkNode {
 
     public boolean hasChild(String child) {
         boolean bHas = false;
-        if (children == null)
+        if (children == null) {
             return bHas;
+        }
 
         for (ZkNode childNode : children) {
             if (childNode.getName().equals(child)) {

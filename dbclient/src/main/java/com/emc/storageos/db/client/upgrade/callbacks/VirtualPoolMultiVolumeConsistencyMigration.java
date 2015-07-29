@@ -23,30 +23,30 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
  */
 public class VirtualPoolMultiVolumeConsistencyMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(VirtualPoolMultiVolumeConsistencyMigration.class);
-    
+
     @Override
     public void process() {
         updateRecoverPointVirtualPools();
     }
 
     /**
-     * Update RecoverPoint VirtualPools.  Ensure the multi volume consistency field
+     * Update RecoverPoint VirtualPools. Ensure the multi volume consistency field
      * is set to true.
      */
     private void updateRecoverPointVirtualPools() {
-        log.info("Updating RecoverPoint VirtualPools to enable multi volume consistency."); 
+        log.info("Updating RecoverPoint VirtualPools to enable multi volume consistency.");
         DbClient dbClient = getDbClient();
         List<URI> virtualPoolURIs = dbClient.queryByType(VirtualPool.class, false);
         Iterator<VirtualPool> virtualPools = dbClient.queryIterativeObjects(VirtualPool.class, virtualPoolURIs);
-        
+
         while (virtualPools.hasNext()) {
             VirtualPool virtualPool = virtualPools.next();
-            
+
             if (VirtualPool.vPoolSpecifiesProtection(virtualPool) &&
-                (virtualPool.getMultivolumeConsistency() == null || !virtualPool.getMultivolumeConsistency())) {
+                    (virtualPool.getMultivolumeConsistency() == null || !virtualPool.getMultivolumeConsistency())) {
                 virtualPool.setMultivolumeConsistency(true);
                 dbClient.persistObject(virtualPool);
-                log.info("Updating VirtualPool (id={}) to enable multi volume consistency.", virtualPool.getId().toString()); 
+                log.info("Updating VirtualPool (id={}) to enable multi volume consistency.", virtualPool.getId().toString());
             }
         }
     }

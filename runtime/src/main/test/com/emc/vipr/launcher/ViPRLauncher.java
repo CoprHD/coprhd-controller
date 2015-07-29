@@ -71,11 +71,9 @@ public class ViPRLauncher {
             }
             AbstractServiceLauncher launcher = (AbstractServiceLauncher) launcherClass.newInstance();
             return launcher;
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new UnhandledException(e);
         }
     }
@@ -97,8 +95,7 @@ public class ViPRLauncher {
             String delay = StringUtils.defaultString(config.getProperty(name + ".delay"), "5000");
             try {
                 Thread.sleep(NumberUtils.toLong(delay, 5000));
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new UnhandledException(e);
             }

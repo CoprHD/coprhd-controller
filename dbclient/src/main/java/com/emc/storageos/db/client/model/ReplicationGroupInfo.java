@@ -10,11 +10,11 @@ import javax.xml.bind.annotation.XmlRootElement;
 @Cf("ReplicationGroupInfo")
 @DbKeyspace(DbKeyspace.Keyspaces.GLOBAL)
 @XmlRootElement(name = "replication_group")
-public class ReplicationGroupInfo extends  DataObject {
+public class ReplicationGroupInfo extends DataObject {
     private StringSet zoneCosSet;
 
     private Long lastStableUpdate;
-    
+
     private String description;
 
     public ReplicationGroupInfo() {
@@ -48,14 +48,13 @@ public class ReplicationGroupInfo extends  DataObject {
 
     @XmlElement
     @Name("description")
-	public String getDescription() {
-		return description;
-	}
+    public String getDescription() {
+        return description;
+    }
 
-	public void setDescription(String description) {
-		this.description = description;
-		setChanged("description");
-	}
-    
-    
+    public void setDescription(String description) {
+        this.description = description;
+        setChanged("description");
+    }
+
 }

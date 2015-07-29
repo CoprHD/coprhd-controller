@@ -20,12 +20,13 @@ import javax.xml.bind.annotation.XmlElement;
  * Class captures add/remove Raid Level details.
  */
 public class RaidLevelChanges {
-   
+
     private RaidLevelAssignments add;
     private RaidLevelAssignments remove;
 
-    public RaidLevelChanges() {}
-    
+    public RaidLevelChanges() {
+    }
+
     public RaidLevelChanges(RaidLevelAssignments add,
             RaidLevelAssignments remove) {
         this.add = add;
@@ -59,5 +60,5 @@ public class RaidLevelChanges {
     public void setRemove(RaidLevelAssignments remove) {
         this.remove = remove;
     }
-    
+
 }

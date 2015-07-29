@@ -30,6 +30,6 @@ public abstract class ModelObjectWithACLs extends DataObjectWithACLs {
         this.lastUpdated = lastUpdated;
         setChanged(LAST_UPDATED);
     }
-    
+
     public abstract Object[] auditParameters();
 }

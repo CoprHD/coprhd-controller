@@ -52,31 +52,32 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Service to perform Token and user lookups to other VDCs, logouts...
- *  */
+ * */
 @Path(InterVDCHMACAuthFilter.INTERVDC_URI + "token")
 public class TokenService {
-    
-    private static Logger log = LoggerFactory.getLogger(TokenService.class);  
-    
+
+    private static Logger log = LoggerFactory.getLogger(TokenService.class);
+
     @Autowired
     private DbClient dbClient;
-    
+
     @Autowired
     private TokenValidator tokenValidator;
-    
+
     @Autowired
     private TokenKeyGenerator tokenKeyGenerator;
-    
+
     @Autowired
     private RequestedTokenHelper tokenMapHelper;
-    
+
     @Autowired
     private InternalLogoutClient internalLogoutClient;
-    
+
     /**
      * Retrieves Token and UserDAO records from a passed in auth token (header)
      * TokenKeysRequest can also contain key ids to look at. If they don't match the local
      * TokenKeysBundle, send the updated bundle in the response
+     * 
      * @param httpRequest
      * @return TokenResponse with token and userDAO records populated.
      */
@@ -87,7 +88,7 @@ public class TokenService {
         String rawToken = httpRequest.getHeader(RequestProcessingUtils.AUTH_TOKEN_HEADER);
         String firstKey = req.getFirstKeyId();
         String secondKey = req.getSecondKeyId();
-        
+
         Token token = null;
         StorageOSUserDAO user = null;
         TokenKeysBundle updatedBundle = null;
@@ -96,7 +97,7 @@ public class TokenService {
         if (StringUtils.isNotBlank(rawToken)) {
             token = (Token) tokenValidator.verifyToken(rawToken);
             if (token != null) {
-                user = tokenValidator.resolveUser(token);     
+                user = tokenValidator.resolveUser(token);
             }
             if (user == null || token == null) {
                 throw APIException.unauthorized.noTokenFoundForUserFromForeignVDC();
@@ -104,37 +105,37 @@ public class TokenService {
             if (user.getIsLocal()) {
                 throw APIException.forbidden.localUsersNotAllowedForSingleSignOn(user.getUserName());
             }
-        } 
+        }
 
         // compare key ids to local tokenkeybundle if provided (prevKey will always be
-        // provided if a bundle was sent.  CurKey may be null.  In other words, there may
+        // provided if a bundle was sent. CurKey may be null. In other words, there may
         // not has been a rotation yet.
-        if (StringUtils.isNotBlank(firstKey)) {         
+        if (StringUtils.isNotBlank(firstKey)) {
             try {
                 updatedBundle = tokenKeyGenerator.readBundle();
             } catch (Exception ex) {
                 log.error("Could not look at local token keys bundle");
             }
-            if (updatedBundle !=null) { // if we found a bundle
+            if (updatedBundle != null) { // if we found a bundle
                 log.debug("Read the local key bundle");
                 // look at its key ids
                 List<String> keyIds = updatedBundle.getKeyEntries();
                 if ((firstKey.equals(keyIds.get(0)) && secondKey == null && keyIds.size() == 1) ||
-                    (firstKey.equals(keyIds.get(0)) && secondKey != null && secondKey.equals(keyIds.get(1)))) {
+                        (firstKey.equals(keyIds.get(0)) && secondKey != null && secondKey.equals(keyIds.get(1)))) {
                     log.info("Key id match.  Not returning a bundle");
                     // if they both match what was passed in, make the bundle null and
-                    //return that. Caller has updated keys and does not need them.
+                    // return that. Caller has updated keys and does not need them.
                     updatedBundle = null;
                 } else {
                     log.info("Key ids do not match.  Returning updated bundle");
                 }
             }
-        }      
-        
-        if (token !=null) {
-            tokenMapHelper.addOrRemoveRequestingVDC(Operation.ADD_VDC, token.getId().toString(), 
+        }
+
+        if (token != null) {
+            tokenMapHelper.addOrRemoveRequestingVDC(Operation.ADD_VDC, token.getId().toString(),
                     req.getRequestingVDC());
-            // update idle time on original token.  Since it is being borrowed by another vdc,
+            // update idle time on original token. Since it is being borrowed by another vdc,
             // it just got accessed.
             token.setLastAccessTime(CassandraTokenValidator.getCurrentTimeInMins());
             try {
@@ -143,12 +144,13 @@ public class TokenService {
                 log.error("failed updating last access time for borrowed token {}", token.getId());
             }
         }
-        return TokenResponseBuilder.buildTokenResponse(token, user, updatedBundle);       
+        return TokenResponseBuilder.buildTokenResponse(token, user, updatedBundle);
     }
-    
+
     /**
      * 
      * Makes an internal api call to authsvc to logout the token present in the request.
+     * 
      * @param httpRequest where to find the token
      * @param force is the force(true/false) parameter that will be relayed to authsvc/logout
      * @param username is the username parameter that will be relayed to authsvc/logout

@@ -60,34 +60,35 @@ public class SRDFControllerImpl extends AbstractDiscoveredSystemController imple
     private void execFS(String method, Object... args) throws InternalException {
         queueTask(dbClient, StorageSystem.class, dispatcher, method, args);
     }
+
     @Override
     public void connect(URI protection) throws InternalException {
         // TODO Auto-generated method stub
-        
+
     }
 
     @Override
     public void disconnect(URI protection) throws InternalException {
         // TODO Auto-generated method stub
-        
+
     }
 
     @Override
     public void discover(AsyncTask[] tasks) throws InternalException {
         // TODO Auto-generated method stub
-        
+
     }
 
     @Override
     public void performProtectionOperation(URI system, URI id, String op, String task) throws InternalException {
         execFS("performProtectionOperation", system, id, op, task);
-        
+
     }
 
     @Override
     public void expandVolume(URI storage, URI pool, URI volumeId, Long size, String token) throws InternalException {
         execFS("expandVolume", storage, pool, volumeId, size, token);
-        
+
     }
 
 }

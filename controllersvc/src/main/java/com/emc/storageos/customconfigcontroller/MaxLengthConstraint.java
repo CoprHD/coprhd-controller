@@ -23,38 +23,39 @@ public class MaxLengthConstraint extends CustomConfigConstraint {
 
     private static final long serialVersionUID = 1061181519310789725L;
     private Map<String, Integer> maxLengthMap;
-	private Integer defaultMaxLength;
-	
-	@Override
-	public String applyConstraint(String dataField, String systemType) {
+    private Integer defaultMaxLength;
+
+    @Override
+    public String applyConstraint(String dataField, String systemType) {
         // TODO - Should we handle null dataField?
-		int endIndex = getMaxLength(systemType);
-		if (dataField.length() > endIndex) {
-		    return dataField.substring(0, endIndex);
-		}
-		return dataField;
-	}
-	
-	@Override
+        int endIndex = getMaxLength(systemType);
+        if (dataField.length() > endIndex) {
+            return dataField.substring(0, endIndex);
+        }
+        return dataField;
+    }
+
+    @Override
     public void validate(String dataField, String systemType) {
-	    // TODO - Should we handle null dataField?
-	    int max = getMaxLength(systemType);
-        if (dataField.length() > max) {        	
-            throw CustomConfigControllerException.exceptions.maxLengthConstraintViolated(dataField, systemType, dataField.length(), max, dataField.substring(0, max));
+        // TODO - Should we handle null dataField?
+        int max = getMaxLength(systemType);
+        if (dataField.length() > max) {
+            throw CustomConfigControllerException.exceptions.maxLengthConstraintViolated(dataField, systemType, dataField.length(), max,
+                    dataField.substring(0, max));
         }
     }
-	
-	private int getMaxLength(String systemType) {
+
+    private int getMaxLength(String systemType) {
         int max = maxLengthMap.get(CustomConfigConstants.DEFAULT_KEY);
         if (maxLengthMap != null && maxLengthMap.containsKey(systemType)) {
             max = maxLengthMap.get(systemType);
         }
         return max;
-	}
+    }
 
     public Map<String, Integer> getMaxLengthMap() {
-		return maxLengthMap;
-	}
+        return maxLengthMap;
+    }
 
     public void setMaxLengthMap(Map<String, Integer> maxLengthMap) {
         this.maxLengthMap = maxLengthMap;

@@ -37,11 +37,11 @@ public class DbRepairRunnable implements Runnable {
 
     private static final String DB_REPAIR_ZPATH = "dbrepair";
     private static final String GEODB_REPAIR_ZPATH = "geodbrepair";
-    //we use DB_REPAIR_LOCK for local/geo db repair both
+    // we use DB_REPAIR_LOCK for local/geo db repair both
     private static final String DB_REPAIR_LOCK = "dbrepair";
 
-	public static final int INTERVAL_TIME_IN_MINUTES = 1*3*60; // 3 hours
-    
+    public static final int INTERVAL_TIME_IN_MINUTES = 1 * 3 * 60; // 3 hours
+
     public static enum StartStatus {
         STARTED, ALREADY_RUNNING, NOT_THE_TIME, NOTHING_TO_RESUME
     }
@@ -63,7 +63,7 @@ public class DbRepairRunnable implements Runnable {
     private StartStatus status;
 
     public DbRepairRunnable(ScheduledExecutorService executor, CoordinatorClient coordinator, String keySpaceName, boolean isGeoDbsvc,
-                            int maxRetryTimes, boolean crossVdc, boolean noNewRepair) {
+            int maxRetryTimes, boolean crossVdc, boolean noNewRepair) {
         this.executor = executor;
         this.coordinator = coordinator;
         this.keySpaceName = keySpaceName;
@@ -106,7 +106,7 @@ public class DbRepairRunnable implements Runnable {
 
     public static String getSelfLockNodeName(InterProcessLock lock) throws Exception {
         if (lock instanceof InterProcessMutex) {
-            Collection<String> nodes = ((InterProcessMutex)lock).getParticipantNodes();
+            Collection<String> nodes = ((InterProcessMutex) lock).getParticipantNodes();
             if (nodes == null || nodes.isEmpty()) {
                 return null;
             }
@@ -145,7 +145,7 @@ public class DbRepairRunnable implements Runnable {
     }
 
     private RepairJobRunner createJobRunner() {
-        RepairJobRunner.ProgressNotificationListener listener = new RepairJobRunner.ProgressNotificationListener(){
+        RepairJobRunner.ProgressNotificationListener listener = new RepairJobRunner.ProgressNotificationListener() {
             @Override
             public void onStartToken(String token, int progress) {
                 try {
@@ -179,30 +179,30 @@ public class DbRepairRunnable implements Runnable {
         }
     }
 
-    public static String getLockName(){
-    	return DB_REPAIR_LOCK;
+    public static String getLockName() {
+        return DB_REPAIR_LOCK;
     }
-    
+
     /*
      * it's trick to set new state here, but we need to use IN_PROGRESS when get db repair status
-     * in RecoveryManager, it's only used by db repair triggered by scheduler, start() will skip 
+     * in RecoveryManager, it's only used by db repair triggered by scheduler, start() will skip
      * db repair job if already did db repair.
-     * */
+     */
     public void preConfig() {
-    	this.state = queryRepairState(this.coordinator, this.keySpaceName, this.isGeoDbsvc);
-    	this.state.inProgress(this.getClusterStateDigest(), this.crossVdc);
-    	log.info("preConfig db repair state:{}", this.state.toString());
-    	this.saveStates();
+        this.state = queryRepairState(this.coordinator, this.keySpaceName, this.isGeoDbsvc);
+        this.state.inProgress(this.getClusterStateDigest(), this.crossVdc);
+        log.info("preConfig db repair state:{}", this.state.toString());
+        this.saveStates();
     }
-    
+
     @Override
     public void run() {
         try (ScopeNotifier notifier = new ScopeNotifier(this)) {
-        	log.info("prepair db repair");
-        	//use same lock:DB_REPAIR_LOCK for both local/geo db to ensure db repair sequentially
-        	try (InterProcessLockHolder holder = new InterProcessLockHolder(this.coordinator, DB_REPAIR_LOCK, log)) {
+            log.info("prepair db repair");
+            // use same lock:DB_REPAIR_LOCK for both local/geo db to ensure db repair sequentially
+            try (InterProcessLockHolder holder = new InterProcessLockHolder(this.coordinator, DB_REPAIR_LOCK, log)) {
                 log.info("get {} lock, start to do db repair", DB_REPAIR_LOCK);
-    			this.status = getRepairStatus(holder.getLock());
+                this.status = getRepairStatus(holder.getLock());
                 if (this.status != StartStatus.STARTED) {
                     return;
                 }
@@ -214,7 +214,8 @@ public class DbRepairRunnable implements Runnable {
 
                     while (true) {
                         if (runner.runRepair()) {
-                            log.info("Repair keyspace {} at cluster state {} completed successfully", keySpaceName, this.state.getCurrentDigest());
+                            log.info("Repair keyspace {} at cluster state {} completed successfully", keySpaceName,
+                                    this.state.getCurrentDigest());
 
                             // Repair succeeded, update state info in ZK
                             if (!this.state.success(getClusterStateDigest())) {
@@ -227,7 +228,8 @@ public class DbRepairRunnable implements Runnable {
                         }
 
                         if (!this.state.retry(this.maxRetryTimes)) {
-                            log.error("Repair job {} for keyspace {} failed due to reach max retry times.", this.state.getCurrentDigest(), keySpaceName);
+                            log.error("Repair job {} for keyspace {} failed due to reach max retry times.", this.state.getCurrentDigest(),
+                                    keySpaceName);
                             saveStates();
                             break;
                         }
@@ -247,29 +249,29 @@ public class DbRepairRunnable implements Runnable {
                 this.threadException = ex;
                 log.error("Exception starting", ex);
             }
-        }catch (Exception ex){
-        	this.threadException = ex;
-        	log.error("Exception starting", ex);
+        } catch (Exception ex) {
+            this.threadException = ex;
+            log.error("Exception starting", ex);
         }
     }
 
     public StartStatus getRepairStatus(String clusterDigest, int maxRetryTimes, boolean crossVdc) {
         log.info(String.format("Trying to start repair with digest: %s, max retries: %d, cross VDC: %s, noNewRepair: %s",
                 clusterDigest, maxRetryTimes, Boolean.toString(crossVdc), this.noNewRepair));
-        
+
         if (this.state.canResume(clusterDigest, maxRetryTimes, crossVdc)) {
             log.info("Resuming previous repair");
             this.state.increaseRetry();
             return StartStatus.STARTED;
-        } 
-        
-        if(this.state.notSuitableForNewRepair(clusterDigest)){
-        	 log.info(String.format("It's not time to repair %s, last successful repair ended at %d, interval is %d minutes, now is %d",
-                     this.keySpaceName, state.getLastSuccessEndTime(), INTERVAL_TIME_IN_MINUTES, System.currentTimeMillis()));
-        	 this.state.cleanCurrentFields();
-             return StartStatus.NOT_THE_TIME;
-        } 
-        
+        }
+
+        if (this.state.notSuitableForNewRepair(clusterDigest)) {
+            log.info(String.format("It's not time to repair %s, last successful repair ended at %d, interval is %d minutes, now is %d",
+                    this.keySpaceName, state.getLastSuccessEndTime(), INTERVAL_TIME_IN_MINUTES, System.currentTimeMillis()));
+            this.state.cleanCurrentFields();
+            return StartStatus.NOT_THE_TIME;
+        }
+
         if (this.noNewRepair) {
             log.info("No matching reapir to resume, and we're not allowed to start a new repair.");
             this.state.cleanCurrentFields();

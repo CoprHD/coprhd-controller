@@ -9,15 +9,15 @@ import java.net.URI;
 import com.emc.storageos.model.valid.EnumType;
 
 @Cf("VpoolRemoteProtectionCopySettings")
-public class VpoolRemoteCopyProtectionSettings extends DataObject{
+public class VpoolRemoteCopyProtectionSettings extends DataObject {
 
     // protection VirtualPool
     private URI virtualPool;
-    
+
     private URI virtualArray;
-    
+
     private String copyMode = CopyModes.ASYNCHRONOUS.toString();
-    
+
     @Name("remoteVirtualPool")
     public URI getVirtualPool() {
         return virtualPool;
@@ -27,7 +27,7 @@ public class VpoolRemoteCopyProtectionSettings extends DataObject{
         this.virtualPool = virtualPool;
         setChanged("remoteVirtualPool");
     }
-    
+
     @Name("remoteVirtualArray")
     public URI getVirtualArray() {
         return virtualArray;
@@ -37,7 +37,7 @@ public class VpoolRemoteCopyProtectionSettings extends DataObject{
         this.virtualArray = virtualArray;
         setChanged("remoteVirtualArray");
     }
-    
+
     @EnumType(CopyModes.class)
     @Name("copyMode")
     public String getCopyMode() {
@@ -48,7 +48,7 @@ public class VpoolRemoteCopyProtectionSettings extends DataObject{
         this.copyMode = copyMode;
         setChanged("copyMode");
     }
-    
+
     public enum CopyModes {
         SYNCHRONOUS, ASYNCHRONOUS;
 
@@ -61,7 +61,5 @@ public class VpoolRemoteCopyProtectionSettings extends DataObject{
             return false;
         }
     }
-    
-    
-    
+
 }

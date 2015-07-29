@@ -8,7 +8,6 @@ package com.emc.storageos.db.client.model;
 import java.util.Calendar;
 import java.util.StringTokenizer;
 
-
 /**
  * Protection System data object
  */
@@ -24,9 +23,9 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     // device OS/firmware minor version
     private String _minorVersion;
 
-	// secondary/backup management interface IP address
-	private String _secondaryIP;
-    
+    // secondary/backup management interface IP address
+    private String _secondaryIP;
+
     // management port number
     private Integer _portNumber;
 
@@ -43,7 +42,7 @@ public class ProtectionSystem extends DiscoveredSystemObject {
 
     // Determining, whether an Array is reachable
     private Boolean _reachable;
-    
+
     // Topology information (<clusterid1>:<clusterid2>:<protocol>)
     private StringSet _clusterTopology;
 
@@ -89,41 +88,41 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     private StringMap _siteVolumesAttachedToSplitterCount;
 
     // For a site ID, total number of volumes able to be attached to the splitter
-    private StringMap _siteVolumesAttachedToSplitterCapacity;    
-    
+    private StringMap _siteVolumesAttachedToSplitterCapacity;
+
     // For a site ID, amount of paths that the site has
     private StringMap _sitePathCount;
 
     // For a site ID, amount of paths that the site can handle
     private StringMap _sitePathCapacity;
-    
+
     // For a site ID, all the site initiators
     private StringSetMap siteInitiators = new StringSetMap();
-    
+
     // VirtualArrays where this Protection System is available
     private StringSet _virtualArrays;
-    
+
     // Storage Systems that are associated to the Protection System.
     // An associatedStorageSystem entry is in the format of: "RPSiteName -space- StorageSystemId"
     // Ex: "0x28829064d5c46b6e urn:storageos:StorageSystem:a00eba65-8a2b-4635-b590-824dfea225c7:vdc1"
     // TODO Need to create a JIRA - convert to this into String Map instead
     private StringSet _associatedStorageSystems;
-    
+
     // Maps the internalSiteName to the siteName (more readable) of the RPSite
     private StringMap rpSiteNames;
-    
+
     // For a site ID, the virtual arrays allowed to use it.
     private StringSetMap siteAssignedVirtualArrays = new StringSetMap();
 
-    // For a site ID, the arrays that are seen by it (serial numbers).  Useful for placement decisions in pre-configured environments
+    // For a site ID, the arrays that are seen by it (serial numbers). Useful for placement decisions in pre-configured environments
     private StringSetMap siteVisibleStorageArrays = new StringSetMap();
-    
+
     // Set of all cluster management IPs for this Protection System excluding the IP that
     // was used to register the ProtectionSystem.
     private StringSet clusterManagementIPs;
-    
+
     private Calendar cgLastCreatedTime;
-    
+
     // The RP constant, used in controller, device type, virtual pool, etc.
     public static final String _RP = "rp";
 
@@ -169,17 +168,17 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     }
 
     @Deprecated
-	@Name("secondaryIP")
-	public String getSecondaryIP() {
-		return _secondaryIP;
-	}
-	
+    @Name("secondaryIP")
+    public String getSecondaryIP() {
+        return _secondaryIP;
+    }
+
     @Deprecated
-	public void setSecondaryIP(String secondaryIP) {
-		_secondaryIP = secondaryIP;
-		setChanged("secondaryIP");
-	}
-    
+    public void setSecondaryIP(String secondaryIP) {
+        _secondaryIP = secondaryIP;
+        setChanged("secondaryIP");
+    }
+
     @Name("portNumber")
     public Integer getPortNumber() {
         return _portNumber;
@@ -360,7 +359,7 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     public void setSiteVolumesAttachedToSplitterCapacity(StringMap _siteVolumesAttachedToSplitterCapacity) {
         this._siteVolumesAttachedToSplitterCapacity = _siteVolumesAttachedToSplitterCapacity;
         setChanged("siteVolumesAttachedToSplitterCapacity");
-    }    
+    }
 
     @Name("sitePathCount")
     public StringMap getSitePathCount() {
@@ -381,7 +380,7 @@ public class ProtectionSystem extends DiscoveredSystemObject {
         this._sitePathCapacity = _sitePathCapacity;
         setChanged("sitePathCapacity");
     }
-    
+
     @Name("virtualArrays")
     @AlternateId("varrayAltIdIndex")
     public StringSet getVirtualArrays() {
@@ -404,71 +403,71 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     }
 
     public String assembleClusterTopology(String cluster1, String cluster2, String protocol) {
-    	return (cluster1 + " " + cluster2 + " " + protocol);
+        return (cluster1 + " " + cluster2 + " " + protocol);
     }
-    
+
     // Helper methods for the topology field
     static public String retrieveClusterTopologyInternalSiteName1(String clusterTopology) {
-    	if (clusterTopology != null) {
-    		StringTokenizer str = new StringTokenizer(clusterTopology);
-    		return (String)str.nextElement();
-    	}
-    	return null;
+        if (clusterTopology != null) {
+            StringTokenizer str = new StringTokenizer(clusterTopology);
+            return (String) str.nextElement();
+        }
+        return null;
     }
-    
+
     static public String retrieveClusterTopologyInternalSiteName2(String clusterTopology) {
-    	if (clusterTopology != null) {
-    		StringTokenizer str = new StringTokenizer(clusterTopology);
-    		str.nextElement();
-    		return (String)str.nextElement();
-    	}
-    	return null;
+        if (clusterTopology != null) {
+            StringTokenizer str = new StringTokenizer(clusterTopology);
+            str.nextElement();
+            return (String) str.nextElement();
+        }
+        return null;
     }
-    
+
     static public String retrieveClusterTopologyProtocol(String clusterTopology) {
-    	if (clusterTopology != null) {
-    		StringTokenizer str = new StringTokenizer(clusterTopology);
-    		str.nextElement();
-    		str.nextElement();
-    		return (String)str.nextElement();
-    	}
-    	return null;
+        if (clusterTopology != null) {
+            StringTokenizer str = new StringTokenizer(clusterTopology);
+            str.nextElement();
+            str.nextElement();
+            return (String) str.nextElement();
+        }
+        return null;
     }
-    
+
     public int canProtectToHowManyClusters(String internalSiteName) {
-		int count = 1; // An internal site can always protect to itself, but that won't appear in the list.
-		if (_clusterTopology != null) {
-			for (String clusterTopology : _clusterTopology) {
-				if ((ProtectionSystem.retrieveClusterTopologyInternalSiteName1(clusterTopology).equals(internalSiteName)) &&
-						(!ProtectionSystem.retrieveClusterTopologyProtocol(clusterTopology).equals("NO_CONNECTION"))) {
-					count++;
-				}
-			}
-		}
-		return count;
-	}
+        int count = 1; // An internal site can always protect to itself, but that won't appear in the list.
+        if (_clusterTopology != null) {
+            for (String clusterTopology : _clusterTopology) {
+                if ((ProtectionSystem.retrieveClusterTopologyInternalSiteName1(clusterTopology).equals(internalSiteName)) &&
+                        (!ProtectionSystem.retrieveClusterTopologyProtocol(clusterTopology).equals("NO_CONNECTION"))) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
 
-	public boolean canProtect(String cluster1, String cluster2) {
-	    if (cluster1.equals(cluster2)) {
-	        return true;
-	    }
-	    
-		if (_clusterTopology != null) {			
-			for (String clusterTopology : _clusterTopology) {
-				if ((ProtectionSystem.retrieveClusterTopologyInternalSiteName1(clusterTopology).equals(cluster1)) &&
-					(ProtectionSystem.retrieveClusterTopologyInternalSiteName2(clusterTopology).equals(cluster2)) &&
-					(!ProtectionSystem.retrieveClusterTopologyProtocol(clusterTopology).equals("NO_CONNECTION"))) {					
-						return true;
-				}
-			}
-		}
-		return false;
-	}
+    public boolean canProtect(String cluster1, String cluster2) {
+        if (cluster1.equals(cluster2)) {
+            return true;
+        }
 
-	@Name("associatedStorageSystems")
+        if (_clusterTopology != null) {
+            for (String clusterTopology : _clusterTopology) {
+                if ((ProtectionSystem.retrieveClusterTopologyInternalSiteName1(clusterTopology).equals(cluster1)) &&
+                        (ProtectionSystem.retrieveClusterTopologyInternalSiteName2(clusterTopology).equals(cluster2)) &&
+                        (!ProtectionSystem.retrieveClusterTopologyProtocol(clusterTopology).equals("NO_CONNECTION"))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    @Name("associatedStorageSystems")
     @AlternateId("AssSystemsAltIdIndex")
     public StringSet getAssociatedStorageSystems() {
-    	if (_associatedStorageSystems == null) {
+        if (_associatedStorageSystems == null) {
             setAssociatedStorageSystems(new StringSet());
         }
         return _associatedStorageSystems;
@@ -478,7 +477,7 @@ public class ProtectionSystem extends DiscoveredSystemObject {
         _associatedStorageSystems = storageSystems;
         setChanged("associatedStorageSystems");
     }
-    
+
     @Name("siteInitiators")
     public StringSetMap getSiteInitiators() {
         return siteInitiators;
@@ -488,14 +487,13 @@ public class ProtectionSystem extends DiscoveredSystemObject {
         this.siteInitiators = siteInitiators;
     }
 
-    
     public void addSiteInitiators(StringSetMap siteInitiatorsEntries) {
         if (this.siteInitiators == null) {
-        	this.siteInitiators = new StringSetMap();
+            this.siteInitiators = new StringSetMap();
         }
         this.siteInitiators.putAll(siteInitiatorsEntries);
     }
-    
+
     public void removeSiteInitiatorsEntry(String key) {
         if (this.siteInitiators != null) {
             // This seemingly contorted logic is to avoid
@@ -505,14 +503,15 @@ public class ProtectionSystem extends DiscoveredSystemObject {
                 StringSet values = new StringSet();
                 values.addAll(set);
                 for (String value : values) {
-                	siteInitiators.remove(key, value);
+                    siteInitiators.remove(key, value);
                 }
             }
         }
     }
-    
+
     /**
      * Add an entry to create a zone between an initiator and port.
+     * 
      * @param internalSiteName URI as String
      * @param initiators site initiators
      */
@@ -524,25 +523,25 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     }
 
     static public String generateAssociatedStorageSystem(String siteName, String serialNumber) {
-    	return (siteName + " " + serialNumber);
+        return (siteName + " " + serialNumber);
     }
-    
+
     static public String getAssociatedStorageSystemSiteName(String associatedStorageSystem) {
-    	if (associatedStorageSystem != null) {
-    		if (associatedStorageSystem.contains(" ")) {
-    			return (associatedStorageSystem.substring(0,associatedStorageSystem.indexOf(' ')));
-    		}
-    	}
-    	return null;
+        if (associatedStorageSystem != null) {
+            if (associatedStorageSystem.contains(" ")) {
+                return (associatedStorageSystem.substring(0, associatedStorageSystem.indexOf(' ')));
+            }
+        }
+        return null;
     }
 
     static public String getAssociatedStorageSystemSerialNumber(String associatedStorageSystem) {
-    	if (associatedStorageSystem != null) {
-    		if (associatedStorageSystem.contains(" ")) {
-    			return (associatedStorageSystem.substring(associatedStorageSystem.indexOf(' ')+1));
-    		}
-    	}
-    	return associatedStorageSystem;
+        if (associatedStorageSystem != null) {
+            if (associatedStorageSystem.contains(" ")) {
+                return (associatedStorageSystem.substring(associatedStorageSystem.indexOf(' ') + 1));
+            }
+        }
+        return associatedStorageSystem;
     }
 
     /**
@@ -556,14 +555,14 @@ public class ProtectionSystem extends DiscoveredSystemObject {
      * @return String containing "RPSiteName -space- Serial Number"
      */
     public String getAssociatedStorageSystemWithString(String filter) {
-    	if (_associatedStorageSystems != null) {
-    		for (String associatedStorageSystem : _associatedStorageSystems) {
-    			if (associatedStorageSystem.contains(filter)) {
-    				return associatedStorageSystem;
-    			}
-    		}
-    	}
-    	return null;
+        if (_associatedStorageSystems != null) {
+            for (String associatedStorageSystem : _associatedStorageSystems) {
+                if (associatedStorageSystem.contains(filter)) {
+                    return associatedStorageSystem;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -577,15 +576,15 @@ public class ProtectionSystem extends DiscoveredSystemObject {
      * @return StringSet containing entries of "RPSiteName -space- StorageSystemId"
      */
     public StringSet getAssociatedStorageSystemsWithString(String filter) {
-    	StringSet associatedStorageSystemsSet = new StringSet();
-    	if (_associatedStorageSystems != null) {
-    		for (String associatedStorageSystem : _associatedStorageSystems) {
-    			if (associatedStorageSystem.contains(filter)) {
-    				associatedStorageSystemsSet.add(associatedStorageSystem);
-    			}
-    		}
-    	}
-    	return associatedStorageSystemsSet;
+        StringSet associatedStorageSystemsSet = new StringSet();
+        if (_associatedStorageSystems != null) {
+            for (String associatedStorageSystem : _associatedStorageSystems) {
+                if (associatedStorageSystem.contains(filter)) {
+                    associatedStorageSystemsSet.add(associatedStorageSystem);
+                }
+            }
+        }
+        return associatedStorageSystemsSet;
     }
 
     @Name("rpSiteNames")
@@ -607,24 +606,24 @@ public class ProtectionSystem extends DiscoveredSystemObject {
         this.siteAssignedVirtualArrays = siteAssignedVirtualArrays;
     }
 
-    
     public void addSiteAssignedVirtualArrays(StringSetMap siteAssignedVirtualArraysEntries) {
         if (this.siteAssignedVirtualArrays == null) {
-        	this.siteAssignedVirtualArrays = new StringSetMap();
+            this.siteAssignedVirtualArrays = new StringSetMap();
         }
         this.siteAssignedVirtualArrays.putAll(siteAssignedVirtualArraysEntries);
     }
-    
+
     public void removeSiteAssignedVirtualArraysEntry(String key) {
         if (this.siteAssignedVirtualArrays != null) {
-        	// If you get a concurrent exception in here, refer to same method in siteInitiators and ask for help at DB level.
-        	// Otherwise remove this comment and change removeSiteInitiatorsEntry above to do the same as this. 
-        	siteAssignedVirtualArrays.remove(key);        	
+            // If you get a concurrent exception in here, refer to same method in siteInitiators and ask for help at DB level.
+            // Otherwise remove this comment and change removeSiteInitiatorsEntry above to do the same as this.
+            siteAssignedVirtualArrays.remove(key);
         }
     }
-    
+
     /**
      * Add an entry to create authorized use between a site and virtual arrays.
+     * 
      * @param internalSiteName URI as String
      * @param virtualArrays virtualArrays the site is assigned to.
      */
@@ -637,6 +636,7 @@ public class ProtectionSystem extends DiscoveredSystemObject {
 
     /**
      * Add an entry to create authorized use between a site and a virtual array
+     * 
      * @param internalSiteName URI as String
      * @param virtualArray virtual array the site is assigned to.
      */
@@ -646,31 +646,32 @@ public class ProtectionSystem extends DiscoveredSystemObject {
         }
 
         if (this.siteAssignedVirtualArrays.get(internalSiteName) == null) {
-        	siteAssignedVirtualArrays.put(internalSiteName, new StringSet());
+            siteAssignedVirtualArrays.put(internalSiteName, new StringSet());
         }
-        
+
         this.siteAssignedVirtualArrays.get(internalSiteName).add(virtualArray);
     }
 
     /**
      * Remove an entry to create authorized use between a site and a virtual array
+     * 
      * @param internalSiteName URI as String
      * @param virtualArray virtual array the site is no longer assigned to.
      */
     public void removeSiteAssignedVirtualArrayEntry(String internalSiteName, String virtualArray) {
         if (this.siteAssignedVirtualArrays == null) {
-        	return;
+            return;
         }
 
         if (this.siteAssignedVirtualArrays.get(internalSiteName) == null) {
-        	return;
+            return;
         }
-        
+
         this.siteAssignedVirtualArrays.get(internalSiteName).remove(virtualArray);
-        
+
         // If this is the last virtual array, remove the whole key.
         if (this.siteAssignedVirtualArrays.get(internalSiteName).isEmpty()) {
-        	this.siteAssignedVirtualArrays.remove(internalSiteName);
+            this.siteAssignedVirtualArrays.remove(internalSiteName);
         }
     }
 
@@ -682,24 +683,25 @@ public class ProtectionSystem extends DiscoveredSystemObject {
     public void setSiteVisibleStorageArrays(StringSetMap siteVisibleStorageArrays) {
         this.siteVisibleStorageArrays = siteVisibleStorageArrays;
     }
-    
+
     public void addSiteVisibleStorageArrays(StringSetMap siteVisibleStorageArraysEntries) {
         if (this.siteVisibleStorageArrays == null) {
-        	this.siteVisibleStorageArrays = new StringSetMap();
+            this.siteVisibleStorageArrays = new StringSetMap();
         }
         this.siteVisibleStorageArrays.putAll(siteVisibleStorageArraysEntries);
     }
-    
+
     public void removeSiteVisibleStorageArraysEntry(String key) {
         if (this.siteVisibleStorageArrays != null) {
-        	// If you get a concurrent exception in here, refer to same method in siteInitiators and ask for help at DB level.
-        	// Otherwise remove this comment and change removeSiteInitiatorsEntry above to do the same as this. 
-        	siteVisibleStorageArrays.remove(key);        	
+            // If you get a concurrent exception in here, refer to same method in siteInitiators and ask for help at DB level.
+            // Otherwise remove this comment and change removeSiteInitiatorsEntry above to do the same as this.
+            siteVisibleStorageArrays.remove(key);
         }
     }
-    
+
     /**
      * Add an entry to create a storage system whose visible array is configured already.
+     * 
      * @param internalSiteName URI as String
      * @param serialNumber storage system the site is assigned to.
      */
@@ -713,21 +715,22 @@ public class ProtectionSystem extends DiscoveredSystemObject {
 
     /**
      * Remove an entry to create a storage system whose visible array is configured already.
+     * 
      * @param internalSiteName URI as String
      * @param serialNumber storage system the site is no longer assigned to.
      */
     public void removeSiteVisibleStorageArrayEntry(String internalSiteName, String serialNumber) {
         if (this.siteVisibleStorageArrays == null) {
-        	return;
+            return;
         }
 
         if (this.siteVisibleStorageArrays.get(internalSiteName) == null) {
-        	return;
+            return;
         }
-        
+
         this.siteVisibleStorageArrays.remove(internalSiteName, serialNumber);
     }
-    
+
     @Name("clusterManagementIPs")
     public StringSet getClusterManagementIPs() {
         if (clusterManagementIPs == null) {

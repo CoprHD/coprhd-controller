@@ -13,9 +13,9 @@ import javax.xml.bind.annotation.XmlTransient;
  * De/deserializer API for time series data
  */
 public interface TimeSeriesSerializer<T extends TimeSeriesSerializer.DataPoint> {
-    //Temporarily, both Stat and Event Models support Java serialization,
-    //hence to serialize timeinMillis, there is necessity to make DataPoint serializable.
-    public abstract class DataPoint implements Serializable{
+    // Temporarily, both Stat and Event Models support Java serialization,
+    // hence to serialize timeinMillis, there is necessity to make DataPoint serializable.
+    public abstract class DataPoint implements Serializable {
         /**
          * Data point time stamp
          */
@@ -23,7 +23,8 @@ public interface TimeSeriesSerializer<T extends TimeSeriesSerializer.DataPoint> 
 
         /**
          * set timestamp
-         * @param time  timestamp in msec as long
+         * 
+         * @param time timestamp in msec as long
          */
         public void setTimeInMillis(long time) {
             _timeInMillis = time;
@@ -31,6 +32,7 @@ public interface TimeSeriesSerializer<T extends TimeSeriesSerializer.DataPoint> 
 
         /**
          * get timestamp
+         * 
          * @return long
          */
         @XmlTransient

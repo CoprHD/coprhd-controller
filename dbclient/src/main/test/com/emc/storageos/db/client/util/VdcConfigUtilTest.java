@@ -94,11 +94,13 @@ public class VdcConfigUtilTest {
                 vdc.setShortId("vdc1");
                 vdc.setHostCount(3);
                 vdc.setLocal(false);
-                vdc.setHostIPv4AddressesMap(new StringMap() {{
-                    put("node1", "1.1.1.1");
-                    put("node2", "1.1.1.2");
-                    put("node3", "1.1.1.3");
-                }});
+                vdc.setHostIPv4AddressesMap(new StringMap() {
+                    {
+                        put("node1", "1.1.1.1");
+                        put("node2", "1.1.1.2");
+                        put("node3", "1.1.1.3");
+                    }
+                });
                 vdcMap.put(vdcId, vdc);
 
                 vdcId = new URI("urn:storageos:VirtualDataCenter:22222222-2222-2222-2222-222222222222:");
@@ -107,13 +109,15 @@ public class VdcConfigUtilTest {
                 vdc.setShortId("vdc2");
                 vdc.setHostCount(5);
                 vdc.setLocal(true);
-                vdc.setHostIPv4AddressesMap(new StringMap() {{
-                    put("node1", "2.1.1.1");
-                    put("node2", "2.1.1.2");
-                    put("node3", "2.1.1.3");
-                    put("node4", "2.1.1.4");
-                    put("node5", "2.1.1.5");
-                }});
+                vdc.setHostIPv4AddressesMap(new StringMap() {
+                    {
+                        put("node1", "2.1.1.1");
+                        put("node2", "2.1.1.2");
+                        put("node3", "2.1.1.3");
+                        put("node4", "2.1.1.4");
+                        put("node5", "2.1.1.5");
+                    }
+                });
                 vdcMap.put(vdcId, vdc);
 
                 vdcId = new URI("urn:storageos:VirtualDataCenter:33333333-3333-3333-3333-333333333333:");
@@ -122,9 +126,11 @@ public class VdcConfigUtilTest {
                 vdc.setShortId("vdc3");
                 vdc.setHostCount(1);
                 vdc.setLocal(false);
-                vdc.setHostIPv4AddressesMap(new StringMap() {{
-                    put("node1", "3.1.1.1");
-                }});
+                vdc.setHostIPv4AddressesMap(new StringMap() {
+                    {
+                        put("node1", "3.1.1.1");
+                    }
+                });
                 vdcMap.put(vdcId, vdc);
             } catch (URISyntaxException e) {
                 throw new RuntimeException(e);
@@ -138,7 +144,7 @@ public class VdcConfigUtilTest {
         @Override
         public <T extends DataObject> T queryObject(Class<T> clazz, URI id)
                 throws DatabaseException {
-            if (! VirtualDataCenter.class.equals(clazz)) {
+            if (!VirtualDataCenter.class.equals(clazz)) {
                 throw new UnsupportedOperationException(String.format("CF %s not supported",
                         clazz.getName()));
             }
@@ -148,7 +154,7 @@ public class VdcConfigUtilTest {
         @Override
         public <T extends DataObject> List<URI> queryByType(Class<T> clazz, boolean activeOnly)
                 throws DatabaseException {
-            if (! VirtualDataCenter.class.equals(clazz)) {
+            if (!VirtualDataCenter.class.equals(clazz)) {
                 throw new UnsupportedOperationException(String.format("CF %s not supported",
                         clazz.getName()));
             }

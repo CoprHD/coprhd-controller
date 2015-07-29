@@ -11,7 +11,7 @@ public class APIException extends RuntimeException {
     private final int statusCode;
     private final String statusText;
     private final String errorMessage;
-    
+
     public APIException(int statusCode, String statusText, String errorMessage) {
         super(constructMessage(statusCode, statusText, errorMessage));
         this.statusCode = statusCode;
@@ -30,7 +30,7 @@ public class APIException extends RuntimeException {
     public String getErrorMessage() {
         return errorMessage;
     }
-    
+
     public static String constructMessage(int statusCode, String statusText, String errorMessage) {
         StringBuilder sb = new StringBuilder();
         sb.append(statusCode);

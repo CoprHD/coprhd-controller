@@ -9,13 +9,13 @@ import java.util.UUID;
 /**
  * This generator will return the user specified label plus the UUID. The label will
  * have non-alphanumeric and whitespace characters removed. The format is:
- *
- *   "[User-Specified-Name]-[UUID]"
- *
+ * 
+ * "[User-Specified-Name]-[UUID]"
+ * 
  * Example:
- *
- *   VOL456-3dc1d55f-b9cc-40d0-bb3f-90b928622cdd
- *
+ * 
+ * VOL456-3dc1d55f-b9cc-40d0-bb3f-90b928622cdd
+ * 
  * If the generated name is longer than maxLength, then the user specified label will
  * be truncated to fit.
  */
@@ -23,7 +23,7 @@ public class ResourceAndUUIDNameGenerator implements NameGenerator {
 
     @Override
     public String generate(String ignore, String resource, String resourceUrn,
-                           char delimiter, int maxLength) {
+            char delimiter, int maxLength) {
         String resourceName = resource.replaceAll("\\s+|[^a-zA-Z0-9]", "");
         String resourceUUID = (resourceUrn == null) ? UUID.randomUUID().toString() :
                 resourceUrn.split(":")[3];

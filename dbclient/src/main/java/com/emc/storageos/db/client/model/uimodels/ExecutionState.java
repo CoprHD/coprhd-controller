@@ -20,7 +20,7 @@ import java.util.Date;
  */
 @Cf("ExecutionState")
 public class ExecutionState extends ModelObject {
-    
+
     public static final String START_DATE = "startDate";
     public static final String END_DATE = "endDate";
     public static final String EXECUTION_STATUS = "executionStatus";
@@ -29,7 +29,7 @@ public class ExecutionState extends ModelObject {
     public static final String EXECUTION_TASK_LOG_IDS = "executionTaskLogIds";
     public static final String AFFECTED_RESOURCES = "affectedResources";
     public static final String PROXY_TOKEN = "proxyToken";
-    
+
     /** The date that execution started. */
     private Date startDate;
     /** The date that execution finished. */
@@ -108,7 +108,7 @@ public class ExecutionState extends ModelObject {
         this.taskLogIds = taskLogIds;
         setChanged(EXECUTION_TASK_LOG_IDS);
     }
-    
+
     @Name(AFFECTED_RESOURCES)
     public StringSet getAffectedResources() {
         return affectedResources;
@@ -133,39 +133,39 @@ public class ExecutionState extends ModelObject {
             this.logIds.add(executionLog.getId().toString());
         }
     }
-    
+
     public void removeExecutionLog(ExecutionLog executionLog) {
         if (executionLog != null) {
             this.logIds.remove(executionLog.getId().toString());
         }
     }
-    
+
     public void addExecutionTaskLog(ExecutionTaskLog executionTaskLog) {
         if (executionTaskLog != null) {
             this.taskLogIds.add(executionTaskLog.getId().toString());
         }
     }
-    
+
     public void removeExecuutionTaskLog(ExecutionTaskLog executionTaskLog) {
         if (executionTaskLog != null) {
             this.taskLogIds.remove(executionTaskLog.getId().toString());
         }
     }
-    
+
     public void addAffectedResource(String affectedResource) {
         if (StringUtils.isNotBlank(affectedResource)) {
             this.affectedResources.add(affectedResource);
         }
     }
-    
+
     public void removeAffectedResource(String affectedResource) {
         if (StringUtils.isNotBlank(affectedResource)) {
             this.affectedResources.remove(affectedResource);
         }
     }
-    
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getId() };
-    }        
+        return new Object[] { getLabel(), getId() };
+    }
 }

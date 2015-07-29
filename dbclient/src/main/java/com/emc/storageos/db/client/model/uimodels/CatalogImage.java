@@ -60,10 +60,10 @@ public class CatalogImage extends ModelObject implements TenantDataObject {
     public String toString() {
         return getLabel();
     }
-    
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), 
+        return new Object[] { getLabel(),
                 getContentType(), getTenant(), getId() };
-    }        
+    }
 }

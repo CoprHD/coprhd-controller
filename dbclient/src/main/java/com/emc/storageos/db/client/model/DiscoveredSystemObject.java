@@ -16,19 +16,19 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
     // type of array e.g. vnxBlock, vnxFile, isilon, vmax, netapp
     private String _systemType;
 
-    //used in finding out whether or not the Array is Compatible
+    // used in finding out whether or not the Array is Compatible
     private String _compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
 
-    //Status of a Discovery Job
+    // Status of a Discovery Job
     private String _discoveryStatus;
 
-    //Status Message of a Last Discovery Job
+    // Status Message of a Last Discovery Job
     private String _lastDiscoveryStatusMessage;
 
-    //Last Scan or Run Time of a Scan Job
+    // Last Scan or Run Time of a Scan Job
     private Long _lastDiscoveryRunTime = 0L;
 
-    //Next Scan or Run Time of a Scan Job
+    // Next Scan or Run Time of a Scan Job
     @Deprecated
     private Long _nextDiscoveryRunTime = 0L;
 
@@ -40,7 +40,7 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
 
     private Long _nextMeteringRunTime = 0L;
 
-    private Long _successMeteringTime  = 0L;
+    private Long _successMeteringTime = 0L;
 
     /**
      * Bourne supports Registered and UnRegistered Elements.
@@ -74,18 +74,19 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
         setChanged("compatibilityStatus");
     }
 
-    public boolean storageSystemIsFile()   {
+    public boolean storageSystemIsFile() {
         return Type.isFileStorageSystem(Type.valueOf(_systemType));
     }
 
     public boolean storageSystemHasProvider() {
-        return   Type.isProviderStorageSystem(Type.valueOf(_systemType));
+        return Type.isProviderStorageSystem(Type.valueOf(_systemType));
     }
 
     public void setDiscoveryStatus(String status) {
         _discoveryStatus = status;
         setChanged("discoveryStatus");
     }
+
     @EnumType(DataCollectionJobStatus.class)
     @Name("discoveryStatus")
     public String getDiscoveryStatus() {
@@ -96,6 +97,7 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
         _lastDiscoveryStatusMessage = statusMessage;
         setChanged("lastDiscoveryStatusMessage");
     }
+
     @Name("lastDiscoveryStatusMessage")
     public String getLastDiscoveryStatusMessage() {
         return _lastDiscoveryStatusMessage;
@@ -105,6 +107,7 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
         _lastDiscoveryRunTime = lastRunTime;
         setChanged("lastDiscoveryRunTime");
     }
+
     @Name("lastDiscoveryRunTime")
     public Long getLastDiscoveryRunTime() {
         return _lastDiscoveryRunTime;
@@ -126,6 +129,7 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
         _meteringStatus = status;
         setChanged("meteringStatus");
     }
+
     @EnumType(DataCollectionJobStatus.class)
     @Name("meteringStatus")
     public String getMeteringStatus() {
@@ -136,6 +140,7 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
         _lastMeteringRunTime = lastMeteringRunTime;
         setChanged("lastMeteringRunTime");
     }
+
     @Name("lastMeteringRunTime")
     public Long getLastMeteringRunTime() {
         return _lastMeteringRunTime;
@@ -166,8 +171,9 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
     public Long getSuccessMeteringTime() {
         return _successMeteringTime;
     }
+
     public void setSuccessMeteringTime(Long time) {
-         _successMeteringTime = time;
+        _successMeteringTime = time;
         setChanged("successMeteringTime");
     }
 
@@ -175,6 +181,7 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
     public Long getSuccessDiscoveryTime() {
         return _successDiscoveryTime;
     }
+
     public void setSuccessDiscoveryTime(Long time) {
         _successDiscoveryTime = time;
         setChanged("successDiscoveryTime");

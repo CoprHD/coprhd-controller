@@ -33,7 +33,7 @@ public class OpStatusMap extends AbstractChangeTrackingMap<Operation> {
 
     /**
      * create a task status for a new
-     *
+     * 
      * @param task task id
      * @param op - operation
      * @throws IllegalArgumentException - if trying to update task with non
@@ -41,14 +41,17 @@ public class OpStatusMap extends AbstractChangeTrackingMap<Operation> {
      */
     public Operation createTaskStatus(String task, Operation op)
             throws IllegalArgumentException {
-        if (containsKey(task))
+        if (containsKey(task)) {
             throw new IllegalArgumentException("task already exists");
+        }
 
-        if (op.getDescription() == null)
+        if (op.getDescription() == null) {
             throw new IllegalArgumentException("missing required parameter: description");
+        }
 
-        if (op.getStartTime() == null)
+        if (op.getStartTime() == null) {
             op.setStartTime(Calendar.getInstance());
+        }
 
         String status = op.getStatus();
         if ((status.equalsIgnoreCase(Operation.Status.ready.name().toUpperCase()))
@@ -61,7 +64,7 @@ public class OpStatusMap extends AbstractChangeTrackingMap<Operation> {
 
     /**
      * Update progress for an existing task status in the map
-     *
+     * 
      * @param task task id
      * @param update
      * @throws IllegalArgumentException - if trying to update task with non
@@ -76,12 +79,14 @@ public class OpStatusMap extends AbstractChangeTrackingMap<Operation> {
             for (String field : updatedFields) {
                 if (field.equals(Operation.PROGRESS_FIELD)) {
                     Integer progress = update.getProgress();
-                    if ((progress > 0) && (progress <= 100))
+                    if ((progress > 0) && (progress <= 100)) {
                         op.setProgress(progress);
+                    }
                 } else if (field.equals(Operation.MESSAGE_FIELD)) {
                     String message = update.getMessage();
-                    if (message != null)
+                    if (message != null) {
                         op.setMessage(message);
+                    }
                 } else if (field.equals(Operation.STATUS_FIELD)) {
                     String status = update.getStatus();
                     if (status != null) {

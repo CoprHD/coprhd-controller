@@ -15,13 +15,13 @@ public class PowerPathInvistaInquiry extends LinuxResultsCommand<List<PowerPathD
 
     public PowerPathInvistaInquiry() {
         setCommand(CommandConstants.POWERPATHINQUIRY);
-        
+
         // add the display of the wwns
         addArgument("-invista_wwn");
-        
+
         // only display powerpath pseudo devices
         addArgument("-f_powerpath");
-        
+
         // do not display the 'progress' dots
         addArgument("-no_dots");
     }

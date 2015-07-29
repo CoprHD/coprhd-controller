@@ -36,7 +36,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     // type of auditlog occurred
     private String _auditType;
 
-    // Descriptor that tells about the auditlog 
+    // Descriptor that tells about the auditlog
     private String _description;
 
     // operation status
@@ -52,6 +52,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public String getProductId() {
         return _productId;
     }
+
     public void setProductId(String productId) {
         _productId = productId;
     }
@@ -62,6 +63,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public URI getTenantId() {
         return _tenantId;
     }
+
     public void setTenantId(URI tenantId) {
         _tenantId = tenantId;
     }
@@ -72,6 +74,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public URI getUserId() {
         return _userId;
     }
+
     public void setUserId(URI userId) {
         _userId = userId;
     }
@@ -82,6 +85,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public String getServiceType() {
         return _serviceType;
     }
+
     public void setServiceType(String serviceType) {
         _serviceType = serviceType;
     }
@@ -92,6 +96,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public String getAuditType() {
         return _auditType;
     }
+
     public void setAuditType(String auditType) {
         _auditType = auditType;
     }
@@ -102,6 +107,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public String getDescription() {
         return _description;
     }
+
     public void setDescription(String description) {
         _description = description;
     }
@@ -112,6 +118,7 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public String getOperationalStatus() {
         return _operationalStatus;
     }
+
     public void setOperationalStatus(String operationalStatus) {
         _operationalStatus = operationalStatus;
     }
@@ -122,9 +129,10 @@ public class AuditLog extends TimeSeriesSerializer.DataPoint {
     public String getAuditlogId() {
         return _auditlogId;
     }
+
     public void setAuditlogId(String auditlogId) {
         _auditlogId = auditlogId;
-    }    
+    }
 
     /**
      * {@inheritDoc}

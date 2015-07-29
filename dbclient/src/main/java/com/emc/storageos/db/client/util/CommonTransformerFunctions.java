@@ -37,7 +37,7 @@ public class CommonTransformerFunctions {
 
     public static final Function<Volume, String> FCTN_VOLUME_URI_TO_STR =
             new Function<Volume,
-                    String>() {
+            String>() {
                 @Override
                 public String apply(Volume volume) {
                     String val = "";
@@ -64,9 +64,8 @@ public class CommonTransformerFunctions {
                 }
             };
 
-
     public static Function<String, Initiator>
-    fctnStringToInitiator(final DbClient dbClient) {
+            fctnStringToInitiator(final DbClient dbClient) {
         return new Function<String, Initiator>() {
             @Override
             public Initiator apply(String uriStr) {
@@ -81,7 +80,7 @@ public class CommonTransformerFunctions {
     }
 
     public static Function<Initiator, String>
-    fctnInitiatorToPortName() {
+            fctnInitiatorToPortName() {
         return new Function<Initiator, String>() {
             @Override
             public String apply(Initiator initiator) {
@@ -94,7 +93,7 @@ public class CommonTransformerFunctions {
     }
 
     public static Function<DataObject, URI>
-    fctnDataObjectToID() {
+            fctnDataObjectToID() {
         return new Function<DataObject, URI>() {
 
             @Override
@@ -105,7 +104,7 @@ public class CommonTransformerFunctions {
     }
 
     public static Function<BlockObject, String>
-    fctnBlockObjectToNativeID() {
+            fctnBlockObjectToNativeID() {
         return new Function<BlockObject, String>() {
 
             @Override
@@ -116,7 +115,7 @@ public class CommonTransformerFunctions {
     }
 
     public static Function<BlockObject, String>
-    fctnBlockObjectToNativeGuid() {
+            fctnBlockObjectToNativeGuid() {
         return new Function<BlockObject, String>() {
 
             @Override
@@ -127,7 +126,7 @@ public class CommonTransformerFunctions {
     }
 
     public static Function<StoragePort, String>
-    fctnStoragePortToPortName() {
+            fctnStoragePortToPortName() {
         return new Function<StoragePort, String>() {
 
             @Override
@@ -136,7 +135,7 @@ public class CommonTransformerFunctions {
             }
         };
     }
-    
+
     public static final Function<VplexMirror, URI> FCTN_VPLEX_MIRROR_TO_URI =
             new Function<VplexMirror, URI>() {
                 @Override
@@ -181,7 +180,7 @@ public class CommonTransformerFunctions {
             collectionAsString = Joiner.on(',').skipNulls().join(collection);
             if (isTruncatedList) {
                 collectionAsString = collectionAsString.concat(String.format("... %d elements skipped",
-                        originalSize-MAX_COLLECTION_SIZE_TO_DISPLAY));
+                        originalSize - MAX_COLLECTION_SIZE_TO_DISPLAY));
             }
         }
         return collectionAsString;

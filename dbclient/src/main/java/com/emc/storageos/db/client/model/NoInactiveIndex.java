@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
 /**
  * Annotation to tag the cf without inactive field
  */
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @UpgradeAllowed
 public @interface NoInactiveIndex {

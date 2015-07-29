@@ -171,7 +171,7 @@ public class ComputeElement extends DiscoveredSystemObject {
         this._slotId = _slotId;
         setChanged("slotId");
     }
-    
+
     @Name("model")
     public String getModel() {
         return _model;

@@ -11,14 +11,11 @@ import java.util.Comparator;
 import com.emc.storageos.db.client.model.RPSiteArray;
 
 /**
- * Comparator class for mainly used for determining equality between
- * <code>RPSiteArray</code> objects.  The URI will be used for
- * equality comparison.  
+ * Comparator class for mainly used for determining equality between <code>RPSiteArray</code> objects. The URI will be used for
+ * equality comparison.
  * <p>
- * Please note that this class is being constructed and used 
- * because the impact of overriding .hashCode and .equals in
- * <code>RPSiteArray</code> and <code>DataObject</code> was not
- * clearly understood.
+ * Please note that this class is being constructed and used because the impact of overriding .hashCode and .equals in
+ * <code>RPSiteArray</code> and <code>DataObject</code> was not clearly understood.
  */
 public class RPSiteArrayComparator implements Comparator<RPSiteArray> {
 

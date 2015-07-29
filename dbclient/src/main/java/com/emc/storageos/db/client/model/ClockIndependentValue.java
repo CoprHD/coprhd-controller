@@ -10,8 +10,8 @@ package com.emc.storageos.db.client.model;
  */
 public interface ClockIndependentValue {
     /**
-     * Get relative order of this value to others.  Higher value wins.
-     *
+     * Get relative order of this value to others. Higher value wins.
+     * 
      * @return
      */
     public int ordinal();

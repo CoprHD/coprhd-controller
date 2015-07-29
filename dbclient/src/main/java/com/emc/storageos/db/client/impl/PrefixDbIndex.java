@@ -2,7 +2,7 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.impl;                                                    
+package com.emc.storageos.db.client.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +29,8 @@ public class PrefixDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-                      String className, RowMutator mutator, Integer ttl, DataObject obj) {
-        String text = (String)value;
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+        String text = (String) value;
         if (text.isEmpty() || text.length() < minPrefixChars) {
             _log.warn("String too short in prefix index field: {}", fieldName);
             return false;
@@ -41,7 +41,7 @@ public class PrefixDbIndex extends DbIndex {
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, rowKey);
 
         IndexColumnName indexEntry =
-            new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
+                new IndexColumnName(className, text.toLowerCase(), text, recordKey, mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 
@@ -50,8 +50,8 @@ public class PrefixDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-                         String className, RowMutator mutator,
-                         Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            String className, RowMutator mutator,
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         String text = column.getStringValue();
         String indexRowKey = getRowKey(column);
 
@@ -60,7 +60,7 @@ public class PrefixDbIndex extends DbIndex {
         CompositeColumnName columnName = column.getName();
 
         IndexColumnName indexEntry =
-              new IndexColumnName(className, text.toLowerCase(), text, recordKey, columnName.getTimeUUID());
+                new IndexColumnName(className, text.toLowerCase(), text, recordKey, columnName.getTimeUUID());
 
         indexColList.deleteColumn(indexEntry);
 
@@ -76,7 +76,7 @@ public class PrefixDbIndex extends DbIndex {
     }
 
     String getRowKey(CompositeColumnName column, Object val) {
-        String value = (String)val;
+        String value = (String) val;
         return getRowKey(value);
     }
 
@@ -86,7 +86,7 @@ public class PrefixDbIndex extends DbIndex {
 
     @Override
     public String toString() {
-        StringBuilder builder  = new StringBuilder("PrefixDbIndex class");
+        StringBuilder builder = new StringBuilder("PrefixDbIndex class");
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");
@@ -96,4 +96,4 @@ public class PrefixDbIndex extends DbIndex {
 
         return builder.toString();
     }
-} 
+}

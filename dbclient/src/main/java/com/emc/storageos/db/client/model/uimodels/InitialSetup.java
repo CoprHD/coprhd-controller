@@ -13,13 +13,13 @@ import java.net.URI;
 @Deprecated
 @Cf("InitialSetup")
 public class InitialSetup extends ModelObject {
-    public static final URI SINGLETON_ID = URI.create("urn:storageos:InitialSetup:SINGLETON:");        
+    public static final URI SINGLETON_ID = URI.create("urn:storageos:InitialSetup:SINGLETON:");
     public static final String COMPLETE = "complete";
 
-    //these fields added here only to help with migration to ZK configuration
+    // these fields added here only to help with migration to ZK configuration
     public static final String CONFIG_KIND = "portalsvc.setup";
     public static final String CONFIG_ID = "singleton";
-        
+
     private boolean complete;
 
     @Name(COMPLETE)
@@ -31,5 +31,5 @@ public class InitialSetup extends ModelObject {
         this.complete = complete;
         setChanged(COMPLETE);
     }
-     
+
 }

@@ -41,7 +41,7 @@ public class TenantResourceFinder<T extends DataObject> extends BaseModelFinder<
     }
 
     public Iterable<T> findByLabel(String tenant, String prefix, boolean activeOnly) {
-    	Iterable<T> objects = findByIds(toURIs(client.findByPrefix(clazz, "label", prefix)), activeOnly);
+        Iterable<T> objects = findByIds(toURIs(client.findByPrefix(clazz, "label", prefix)), activeOnly);
         return TenantUtils.filter(objects, tenant);
     }
 }

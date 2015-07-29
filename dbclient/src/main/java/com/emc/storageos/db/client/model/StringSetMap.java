@@ -11,10 +11,11 @@ public class StringSetMap extends AbstractChangeTrackingSetMap<String> {
     /**
      * Default constructor
      */
-    public StringSetMap() { }
+    public StringSetMap() {
+    }
 
     @Override
-    public AbstractChangeTrackingSet<String> createSetInstance(){
+    public AbstractChangeTrackingSet<String> createSetInstance() {
         return new StringSet();
     }
 

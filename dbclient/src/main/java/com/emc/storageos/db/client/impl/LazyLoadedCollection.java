@@ -16,10 +16,10 @@ import com.emc.storageos.db.client.util.DbClientCallbackEvent;
 
 /**
  * @author cgarber
- *
+ * 
  */
 public abstract class LazyLoadedCollection<E extends DataObject> implements Collection<E> {
-    
+
     protected Collection<E> list;
     protected LazyLoader lazyLoader;
     protected String fieldName;
@@ -28,18 +28,18 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
     protected boolean loaded;
     protected Iterator<E> iterator;
     protected StringSet mappedByUriSet;
-    
+
     protected abstract Collection<E> getNewCollection();
 
     /**
      * @param name
-     * @param mappedBy 
+     * @param mappedBy
      * @param id
      * @param lazyLoader2
      */
     public LazyLoadedCollection(String name, E parentObj, LazyLoader lazyLoader, StringSet mappedBy) {
         this.fieldName = name;
-        this. parentObj = parentObj;
+        this.parentObj = parentObj;
         this.lazyLoader = lazyLoader;
         this.mappedByUriSet = mappedBy;
         loaded = false;
@@ -47,7 +47,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
     }
 
     protected synchronized Collection<E> getCollection() {
-        if (list == null) list = getNewCollection();
+        if (list == null) {
+            list = getNewCollection();
+        }
         if (!loaded || (loaded && iteratorOnly)) {
             list.clear();
             // load collection elements
@@ -57,15 +59,17 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         }
         return list;
     }
-    
+
     protected synchronized Iterator<E> populateIteratorResults() {
-        
-        if (list == null) list = getNewCollection();
-        
+
+        if (list == null) {
+            list = getNewCollection();
+        }
+
         if (loaded && !iteratorOnly) {
             return list.iterator();
         }
-       
+
         if (!loaded) {
             list.clear();
             iterator = lazyLoader.load(fieldName, parentObj, (Collection<E>) null, new InvalidateLazyLoadedListCb<E>(this));
@@ -74,15 +78,17 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
                 iteratorOnly = true;
             }
         }
-        
+
         return iterator;
     }
-    
+
     public synchronized void invalidate() {
         loaded = false;
     }
-    
-    /* (non-Javadoc)
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#size()
      */
     @Override
@@ -90,7 +96,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().size();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#isEmpty()
      */
     @Override
@@ -98,17 +106,22 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().isEmpty();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#contains(java.lang.Object)
      */
     @Override
     public boolean contains(Object o) {
-    	//Inappropriate "Collection" calls should not be made
-    	//it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of DataObject
-        return getCollection().contains(o); //NOSONAR ("squid:S2175")
+        // Inappropriate "Collection" calls should not be made
+        // it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of
+        // DataObject
+        return getCollection().contains(o); // NOSONAR ("squid:S2175")
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#iterator()
      */
     @Override
@@ -116,7 +129,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return populateIteratorResults();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#toArray()
      */
     @Override
@@ -124,7 +139,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().toArray();
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#toArray(java.lang.Object[])
      */
     @Override
@@ -132,7 +149,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().toArray(a);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#add(java.lang.Object)
      */
     @Override
@@ -146,7 +165,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().add(e);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#remove(java.lang.Object)
      */
     @Override
@@ -154,15 +175,18 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         if (mappedByUriSet != null && DataObject.class.isAssignableFrom(o.getClass())) {
             DbClientCallbackEvent cb = mappedByUriSet.getCallback();
             mappedByUriSet.setCallback(null);
-            mappedByUriSet.remove(((DataObject)o).getId().toString());
+            mappedByUriSet.remove(((DataObject) o).getId().toString());
             mappedByUriSet.setCallback(cb);
-       }
-    	//Inappropriate "Collection" calls should not be made
-    	//it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of DataObject
-        return getCollection().remove(o); //NOSONAR ("squid:S2175")
+        }
+        // Inappropriate "Collection" calls should not be made
+        // it's better to comply with Collection.contains(Object o) declare, equals method of DataObject will be invoked if o is instance of
+        // DataObject
+        return getCollection().remove(o); // NOSONAR ("squid:S2175")
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#containsAll(java.util.Collection)
      */
     @Override
@@ -170,7 +194,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().containsAll(c);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#addAll(java.util.Collection)
      */
     @Override
@@ -184,7 +210,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().addAll(c);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#removeAll(java.util.Collection)
      */
     @Override
@@ -198,7 +226,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().removeAll(c);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#retainAll(java.util.Collection)
      */
     @Override
@@ -212,7 +242,9 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         return getCollection().retainAll(c);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see java.util.Collection#clear()
      */
     @Override
@@ -225,16 +257,18 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
         }
         getCollection().clear();
     }
-    
+
     public static class InvalidateLazyLoadedListCb<T extends DataObject> implements DbClientCallbackEvent {
-        
+
         private LazyLoadedCollection<T> list;
-        
+
         public InvalidateLazyLoadedListCb(LazyLoadedCollection<T> lazyLoadedCollection) {
             this.list = lazyLoadedCollection;
         }
-        
-        /* (non-Javadoc)
+
+        /*
+         * (non-Javadoc)
+         * 
          * @see com.emc.storageos.db.client.util.DbClientCallbackEvent#call(java.lang.Object[])
          */
         @Override
@@ -242,7 +276,7 @@ public abstract class LazyLoadedCollection<E extends DataObject> implements Coll
             list.invalidate();
         }
     }
-    
+
     public boolean isLoaded() {
         return loaded;
     }

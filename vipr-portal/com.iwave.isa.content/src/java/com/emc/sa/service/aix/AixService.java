@@ -17,16 +17,16 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.google.common.collect.Lists;
 
 public abstract class AixService extends ViPRService {
-    
+
     @Param(ServiceParams.HOST)
     protected URI hostId;
 
     protected Host host;
-    
+
     protected List<Host> hosts;
-    
+
     protected List<Initiator> hostPorts = Lists.newArrayList();
-    
+
     protected AixSystem aixSystem;
 
     public AixSystem getAixSystem() {
@@ -59,7 +59,7 @@ public abstract class AixService extends ViPRService {
     protected void acquireHostsLock() {
         acquireHostLock(host, null);
     }
-    
+
     public static AixSystem convertHost(Host host) {
         AixSystem cli = new AixSystem();
         cli.setHost(host.getHostName());

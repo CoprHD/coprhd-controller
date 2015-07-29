@@ -19,7 +19,7 @@ public class StringSet extends AbstractChangeTrackingSet<String> {
 
     /**
      * Constructs a new set with the same set as source
-     *
+     * 
      * @param source
      */
     public StringSet(Collection<String> source) {

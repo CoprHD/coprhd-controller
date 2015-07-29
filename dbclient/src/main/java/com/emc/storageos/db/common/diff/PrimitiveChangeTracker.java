@@ -20,9 +20,10 @@ public class PrimitiveChangeTracker<T> extends Diff {
     private SchemaObject changedObj;
 
     public static <T> PrimitiveChangeTracker<T> newInstance(T oldValue, T newValue, SchemaObject changedObj) {
-        if (oldValue.equals(newValue))
+        if (oldValue.equals(newValue)) {
             return null;
-        
+        }
+
         return new PrimitiveChangeTracker<T>(oldValue, newValue, changedObj);
     }
 

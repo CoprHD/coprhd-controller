@@ -7,15 +7,15 @@ import org.junit.Test;
 
 public class ArrayUtilTests {
 
-	@Test
-	public void test() {
-		
-		String[] strings = {"one", "two", "three"};
-		
-		String[] newStrings = safeArrayCopy(strings);
-		
-		assertNotEquals(strings, newStrings);
-		
-	}
+    @Test
+    public void test() {
+
+        String[] strings = { "one", "two", "three" };
+
+        String[] newStrings = safeArrayCopy(strings);
+
+        assertNotEquals(strings, newStrings);
+
+    }
 
 }

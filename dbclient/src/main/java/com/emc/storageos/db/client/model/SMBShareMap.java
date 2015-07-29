@@ -21,4 +21,3 @@ public class SMBShareMap extends AbstractChangeTrackingMap<SMBFileShare> {
         return value.toBytes();
     }
 }
-

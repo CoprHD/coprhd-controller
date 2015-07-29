@@ -51,7 +51,7 @@ public class RowMutator {
 
     /**
      * Get record row for given CF
-     *
+     * 
      * @param cf
      * @param key
      * @return
@@ -73,7 +73,7 @@ public class RowMutator {
 
     /***
      * Get index row for given CF
-     *
+     * 
      * @param cf
      * @param key
      * @return
@@ -94,7 +94,7 @@ public class RowMutator {
     }
 
     /**
-     * Updates record first and index second.  This is used for insertion
+     * Updates record first and index second. This is used for insertion
      */
     public void executeRecordFirst() {
         try {
@@ -105,12 +105,12 @@ public class RowMutator {
                 _indexMutator.execute();
             }
         } catch (ConnectionException e) {
-        	throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 
     /**
-     * Updates index first and record second.  This is used for deletion.
+     * Updates index first and record second. This is used for deletion.
      */
     public void executeIndexFirst() {
         try {
@@ -121,7 +121,7 @@ public class RowMutator {
                 _recordMutator.execute();
             }
         } catch (ConnectionException e) {
-        	throw DatabaseException.retryables.connectionFailed(e);
+            throw DatabaseException.retryables.connectionFailed(e);
         }
     }
 }

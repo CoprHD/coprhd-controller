@@ -10,12 +10,12 @@ import java.lang.annotation.*;
 /**
  * Indicate if corresponding CF should be created with special consideration with regard to reducing disk space footprint
  * Some of those options might include the following
- *      - change compaction strategy
- *      - change gc grace time
- *      - changing ttl for some of the fields/classes.
+ * - change compaction strategy
+ * - change gc grace time
+ * - changing ttl for some of the fields/classes.
  */
 @Documented
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @UpgradeAllowed
 public @interface CompactionOptimized {

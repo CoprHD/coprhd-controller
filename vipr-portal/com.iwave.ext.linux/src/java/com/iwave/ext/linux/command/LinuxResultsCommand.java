@@ -13,15 +13,15 @@ import com.iwave.ext.command.CommandException;
  */
 public abstract class LinuxResultsCommand<T> extends LinuxCommand {
     protected T results;
-    
+
     @Override
     protected void processOutput() throws CommandException {
         parseOutput();
     }
-    
+
     public T getResults() {
         return results;
     }
-    
+
     public abstract void parseOutput();
 }

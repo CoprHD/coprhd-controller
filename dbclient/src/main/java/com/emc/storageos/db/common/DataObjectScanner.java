@@ -32,9 +32,9 @@ import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.netflix.astyanax.model.ColumnFamily;
 
 /**
- *  Scanner for sweeping all DataObject types defined and creates:
- *  - CF Map for building db schema
- *  - DependencyTracker - with all the dependency information between the types
+ * Scanner for sweeping all DataObject types defined and creates:
+ * - CF Map for building db schema
+ * - DependencyTracker - with all the dependency information between the types
  */
 public class DataObjectScanner extends PackageScanner {
     private static final Logger _log = LoggerFactory.getLogger(DataObjectScanner.class);
@@ -43,8 +43,10 @@ public class DataObjectScanner extends PackageScanner {
     private DependencyTracker _dependencyTracker;
     private boolean _dualDbSvcMode;
     private Properties _dbCommonInfo;
+
     /**
      * Get DependencyTracker
+     * 
      * @return
      */
     public DependencyTracker getDependencyTracker() {
@@ -53,6 +55,7 @@ public class DataObjectScanner extends PackageScanner {
 
     /**
      * Get ColumnFamily Map
+     * 
      * @return
      */
     public Map<String, ColumnFamily> getCfMap() {
@@ -61,12 +64,12 @@ public class DataObjectScanner extends PackageScanner {
 
     /**
      * Get geo ColumnFamily Map
+     * 
      * @return
      */
     public Map<String, ColumnFamily> getGeoCfMap() {
         return _geocfMap;
     }
-
 
     // DBSVC config parameters
     public void setDbCommonInfo(Properties dbCommonInfo) {
@@ -91,7 +94,7 @@ public class DataObjectScanner extends PackageScanner {
     /**
      * Processes data object or time series class and extracts CF
      * requirements
-     *
+     * 
      * @param clazz data object or time series class
      */
     @SuppressWarnings("unchecked")
@@ -112,14 +115,14 @@ public class DataObjectScanner extends PackageScanner {
             TimeSeriesType tsType = TypeMap.getTimeSeriesType(clazz);
             ColumnFamily cf = tsType.getCf();
             _cfMap.put(cf.getName(), cf);
-            if(tsType.getCompactOptimized() &&
-               _dbCommonInfo != null     &&
-               Boolean.TRUE.toString().equalsIgnoreCase(
-                       _dbCommonInfo.getProperty(DbClientImpl.DB_STAT_OPTIMIZE_DISK_SPACE, "false"))){
-                //modify TTL for Compaction Enable Series types
+            if (tsType.getCompactOptimized() &&
+                    _dbCommonInfo != null &&
+                    Boolean.TRUE.toString().equalsIgnoreCase(
+                            _dbCommonInfo.getProperty(DbClientImpl.DB_STAT_OPTIMIZE_DISK_SPACE, "false"))) {
+                // modify TTL for Compaction Enable Series types
                 int min_ttl = Integer.parseInt(_dbCommonInfo.getProperty(DbClientImpl.DB_LOG_MINIMAL_TTL,
                         "604800"));
-                if( min_ttl < tsType.getTtl() ) {
+                if (min_ttl < tsType.getTtl()) {
                     _log.info("Setting TTL for the CF {} equal to {}", cf.getName(), min_ttl);
                     tsType.setTtl(min_ttl);
                 }
@@ -133,15 +136,15 @@ public class DataObjectScanner extends PackageScanner {
             ColumnFamily cf = glType.getCf();
             _geocfMap.put(cf.getName(), cf);
         } else {
-            throw new IllegalStateException("Failed to process Class "+clazz.getName());
-        }        
+            throw new IllegalStateException("Failed to process Class " + clazz.getName());
+        }
     }
-    
-    
+
     /**
      * Check to see if dependency is valid for the dataobject, geo-visible resource
      * or global lock. Make sure global and geo-visible objects are not referencing
-     * local objects. 
+     * local objects.
+     * 
      * @param refType referenced dependency
      * @param clazz the dataobject type
      * @return true if validation passes
@@ -149,10 +152,10 @@ public class DataObjectScanner extends PackageScanner {
     private boolean isDependencyValidated(Class refType, Class clazz) {
         _log.debug("Validating reference {} for Class {}", refType, clazz);
         // If this is global dataobject, reference should be global or geo-visible
-        if (DataObject.class.isAssignableFrom(clazz) && KeyspaceUtil.isGlobal(clazz)){
-            if(GeoVisibleResource.class.isAssignableFrom(refType)){
+        if (DataObject.class.isAssignableFrom(clazz) && KeyspaceUtil.isGlobal(clazz)) {
+            if (GeoVisibleResource.class.isAssignableFrom(refType)) {
                 return true;
-            } else if(DataObject.class.isAssignableFrom(refType) && KeyspaceUtil.isGlobal(refType)){
+            } else if (DataObject.class.isAssignableFrom(refType) && KeyspaceUtil.isGlobal(refType)) {
                 return true;
             } else {
                 return false;
@@ -160,7 +163,7 @@ public class DataObjectScanner extends PackageScanner {
         }
         return true;
     }
-    
+
     private void addToTypeMap(Class clazz, Map<String, ColumnFamily> useCfMap) {
         Map<String, List<String>> indexCfTypeMap = new HashMap<String, List<String>>();
         DataObjectType doType = TypeMap.getDoType(clazz);
@@ -175,12 +178,14 @@ public class DataObjectScanner extends PackageScanner {
             useCfMap.put(field.getIndexCF().getName(), field.getIndexCF());
             // for dependency processing
             if (field.getIndexRefType() != null) {
-                _log.info(" index: " + field.getIndex().getClass().getSimpleName() + " class: " + clazz.getSimpleName() + " field: " + field.getName() + " indexCF: " + field.getIndexCF().getName() + " reference: " + field.getIndexRefType());
+                _log.info(" index: " + field.getIndex().getClass().getSimpleName() + " class: " + clazz.getSimpleName() + " field: "
+                        + field.getName() + " indexCF: " + field.getIndexCF().getName() + " reference: " + field.getIndexRefType());
                 if (isDuplicateIndexCf(field, indexCfTypeMap)) {
                     _log.error("Class: {} has muliple indexed columns of the same type configured to use the same index column family: {}",
                             clazz.getName(), field.getIndexCF().getName());
                     throw new IllegalStateException("Class: " + clazz.getName()
-                            + " has muliple indexed columns of the same type configured to use the same index column family: " + field.getIndexCF().getName());
+                            + " has muliple indexed columns of the same type configured to use the same index column family: "
+                            + field.getIndexCF().getName());
                 }
                 // check first before adding the dependency
                 if (!isDependencyValidated(field.getIndexRefType(), clazz)) {

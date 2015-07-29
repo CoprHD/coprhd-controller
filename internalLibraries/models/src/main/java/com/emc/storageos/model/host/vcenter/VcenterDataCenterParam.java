@@ -13,17 +13,19 @@ public class VcenterDataCenterParam {
 
     private String name;
 
-    public VcenterDataCenterParam() {}
-    
+    public VcenterDataCenterParam() {
+    }
+
     public VcenterDataCenterParam(String name) {
         this.name = name;
     }
 
-    /** 
+    /**
      * The name label for this vCenter data center
-     * @valid none 
+     * 
+     * @valid none
      */
-    @XmlElement(required=true)
+    @XmlElement(required = true)
     public String getName() {
         return name;
     }
@@ -31,5 +33,5 @@ public class VcenterDataCenterParam {
     public void setName(String name) {
         this.name = name;
     }
-   
+
 }

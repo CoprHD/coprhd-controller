@@ -14,7 +14,7 @@ import com.emc.storageos.db.client.DbClient;
 
 /**
  * Object that identifies a protection in the system
- *
+ * 
  */
 @SuppressWarnings("serial")
 @Cf("ProtectionSet")
@@ -45,7 +45,7 @@ public class ProtectionSet extends DataObject {
         MIXED,
         PAUSED
     }
-    
+
     @XmlElement
     @RelationIndex(cf = "RelationIndex", type = ProtectionSystem.class)
     @Name("protectionSystem")
@@ -114,11 +114,10 @@ public class ProtectionSet extends DataObject {
         return _protectionSystem.toString() + ":" + _protectionId + ":" + _protectionStatus + ":" + _volumes.toString();
     }
 
- 
     /**
      * Given an internal site name and a source volume, tell us the target volume for that
      * replication set.
-     *
+     * 
      * @param _dbClient DB Client proxy
      * @param protectionSet Protection Set
      * @param volume A Source Volume in the protection set
@@ -131,10 +130,10 @@ public class ProtectionSet extends DataObject {
         for (String volumeStr : protectionSet.getVolumes()) {
             Volume volume = _dbClient.queryObject(Volume.class, new URI(volumeStr));
             // Find the volume that is from the specified site and the source volume's replication set
-            if ((volume.getRSetName()!=null) && // removes any journals.  journals aren't in a replication set.
-                (volume.getRSetName().equals(sourceVolume.getRSetName()) &&
-                (volume.getInternalSiteName().equals(emInternalSiteName)) &&
-                (!volume.getId().equals(sourceVolume.getId())))) {
+            if ((volume.getRSetName() != null) && // removes any journals. journals aren't in a replication set.
+                    (volume.getRSetName().equals(sourceVolume.getRSetName()) &&
+                            (volume.getInternalSiteName().equals(emInternalSiteName)) &&
+                    (!volume.getId().equals(sourceVolume.getId())))) {
                 return volume;
             }
         }
@@ -144,7 +143,7 @@ public class ProtectionSet extends DataObject {
 
     /**
      * Given a target volume, find the source volume.
-     *
+     * 
      * @param _dbClient DB Client proxy
      * @param protectionSet Protection Set
      * @param volume A target Volume in the protection set
@@ -155,10 +154,10 @@ public class ProtectionSet extends DataObject {
             ProtectionSet protectionSet, Volume sourceVolume) {
         for (String volumeStr : protectionSet.getVolumes()) {
             Volume volume = _dbClient.queryObject(Volume.class, URI.create(volumeStr));
-            if ((volume.getRSetName()!=null) && // removes any journals.  journals aren't in a replication set.
-                (volume.getRSetName().equals(sourceVolume.getRSetName()) &&
-                (volume.getPersonality().toString().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.name())) &&
-                (!volume.getId().equals(sourceVolume.getId())))) {
+            if ((volume.getRSetName() != null) && // removes any journals. journals aren't in a replication set.
+                    (volume.getRSetName().equals(sourceVolume.getRSetName()) &&
+                            (volume.getPersonality().toString().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.name())) &&
+                    (!volume.getId().equals(sourceVolume.getId())))) {
                 return volume;
             }
         }

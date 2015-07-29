@@ -25,12 +25,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class CustomConfigPreviewRep {
     private String resolvedValue;
 
-    public CustomConfigPreviewRep() {}
-    
+    public CustomConfigPreviewRep() {
+    }
+
     public CustomConfigPreviewRep(String resolvedValue) {
         this.resolvedValue = resolvedValue;
     }
-    
+
     @XmlElement(name = "resolved_value")
     public String getResolvedValue() {
         return resolvedValue;
@@ -39,6 +40,5 @@ public class CustomConfigPreviewRep {
     public void setResolvedValue(String resolvedValue) {
         this.resolvedValue = resolvedValue;
     }
-    
-    
+
 }

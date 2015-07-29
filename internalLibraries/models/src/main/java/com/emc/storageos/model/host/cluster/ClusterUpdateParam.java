@@ -16,22 +16,23 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ClusterUpdateParam extends ClusterParam {
 
     private String name;
-    
-    public ClusterUpdateParam() {}
-    
+
+    public ClusterUpdateParam() {
+    }
+
     public ClusterUpdateParam(String name) {
         super();
         this.name = name;
     }
-    
+
     public ClusterUpdateParam(URI VcenterDataCenter, URI project,
             String name) {
         super(VcenterDataCenter, project);
         this.name = name;
     }
 
-    /** 
-     * The name label for this cluster.  It must be unique to the tenant. 
+    /**
+     * The name label for this cluster. It must be unique to the tenant.
      * 
      * @valid none
      */

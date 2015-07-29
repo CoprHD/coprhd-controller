@@ -21,17 +21,17 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 public class BlockObjectNormalizeWwnMigration extends BaseCustomMigrationCallback {
-    
+
     public static final Long FLAG_DEFAULT = 2L;
     private static final Logger log = LoggerFactory.getLogger(BlockObjectNormalizeWwnMigration.class);
-    
+
     @Override
     public void process() {
         processType(Volume.class);
         processType(BlockSnapshot.class);
         processType(BlockMirror.class);
     }
-    
+
     private <T extends BlockObject> void processType(Class<T> clazz) {
         DbClient dbClient = getDbClient();
         List<URI> blockObjectKeys = dbClient.queryByType(clazz, true);
@@ -51,4 +51,3 @@ public class BlockObjectNormalizeWwnMigration extends BaseCustomMigrationCallbac
         }
     }
 }
-

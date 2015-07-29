@@ -11,7 +11,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class AssetDependencyResponse {
-    
+
     private String assetType;
     private List<String> assetDependencies;
 

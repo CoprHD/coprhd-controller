@@ -46,10 +46,10 @@ public class OrderNumberSequenceTests {
         orderNumberSequence.setCoordinatorClient(coordinatorService.getCoordinatorClient());
         orderNumberSequence.start();
 
-        assertEquals(1,orderNumberSequence.nextOrderNumber());
-        assertEquals(2,orderNumberSequence.nextOrderNumber());
-        assertEquals(3,orderNumberSequence.nextOrderNumber());
-        assertEquals(4,orderNumberSequence.nextOrderNumber());
+        assertEquals(1, orderNumberSequence.nextOrderNumber());
+        assertEquals(2, orderNumberSequence.nextOrderNumber());
+        assertEquals(3, orderNumberSequence.nextOrderNumber());
+        assertEquals(4, orderNumberSequence.nextOrderNumber());
     }
 
     @Ignore("Removed because TestDbService doesn't work anymore")
@@ -66,24 +66,24 @@ public class OrderNumberSequenceTests {
         final CountDownLatch threadsEndedLatch = new CountDownLatch(NUMBER_OF_THREADS);
 
         final Set<Long> orderNumbers = new ConcurrentSkipListSet<Long>();
-        for (int i=0;i<NUMBER_OF_THREADS;i++) {
+        for (int i = 0; i < NUMBER_OF_THREADS; i++) {
             new Thread(new Runnable() {
                 public void run() {
-                try {
-                    startThreadsLatch.await();
+                    try {
+                        startThreadsLatch.await();
 
-                    for (int i = 0; i < NUMBER_OF_ORDERS; i++) {
-                        Long orderNumber = orderNumberSequence.nextOrderNumber();
-                        LOG.info(Thread.currentThread().getName() + " Order Number = " + orderNumber);
-                        orderNumbers.add(orderNumber);
+                        for (int i = 0; i < NUMBER_OF_ORDERS; i++) {
+                            Long orderNumber = orderNumberSequence.nextOrderNumber();
+                            LOG.info(Thread.currentThread().getName() + " Order Number = " + orderNumber);
+                            orderNumbers.add(orderNumber);
 
-                        Thread.sleep(200);
+                            Thread.sleep(200);
+                        }
+                        threadsEndedLatch.countDown();
                     }
-                    threadsEndedLatch.countDown();
-                }
-                catch (InterruptedException e) {
-                    LOG.error(e);
-                }
+                    catch (InterruptedException e) {
+                        LOG.error(e);
+                    }
                 }
             }).start();
         }

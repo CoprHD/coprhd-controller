@@ -7,9 +7,7 @@ package com.emc.storageos.db.client.model;
 
 import org.codehaus.jackson.annotate.JsonValue;
 
-import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlTransient;
-import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.XmlValue;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;

@@ -8,8 +8,9 @@ import java.net.URI;
 import java.util.Iterator;
 
 /**
- * An Iterator<T> that iterates through the results from 
+ * An Iterator<T> that iterates through the results from
  * a database query term.
+ * 
  * @author watson
  * @param <T>
  */
@@ -17,13 +18,13 @@ class JClassIterator<T> implements Iterator<T> {
     private JClass jc;
     private QueryEngine engine;
     private Iterator<URI> uriIterator;
-    
+
     JClassIterator(JClass jc, QueryEngine engine) {
         this.jc = jc;
         this.engine = engine;
         uriIterator = jc.getUris().iterator();
     }
-    
+
     JClassIterator(JClass jc, QueryEngine engine, Iterator<URI> uriIterator) {
         this.jc = jc;
         this.engine = engine;

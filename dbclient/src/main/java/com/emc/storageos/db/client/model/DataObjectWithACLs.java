@@ -50,7 +50,7 @@ public abstract class DataObjectWithACLs extends DataObject implements Serializa
     private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
         out.writeObject(_acls);
-}
+    }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();

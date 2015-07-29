@@ -17,32 +17,32 @@ package com.emc.storageos.hds.model;
 import com.emc.storageos.hds.HDSConstants;
 
 public class Add {
-    
+
     private String target;
-    
+
     private int numOfLus;
-    
+
     private boolean bulk;
-    
+
     private String formatType;
-    
+
     private boolean force;
-    
+
     private boolean overwrite;
-    
+
     private String option;
-    
+
     public Add(String target, int numOfLus, String formatType) {
         this.target = target;
         this.numOfLus = numOfLus;
         this.formatType = formatType;
     }
-    
+
     public Add(String target, boolean force) {
         this.target = target;
         this.force = force;
     }
-    
+
     public Add(String target) {
         this.target = target;
     }
@@ -88,7 +88,7 @@ public class Add {
     public void setFormatType(String formatType) {
         this.formatType = formatType;
     }
-    
+
     /**
      * @return the force
      */
@@ -102,7 +102,7 @@ public class Add {
     public void setForce(boolean force) {
         this.force = force;
     }
-    
+
     /**
      * @return the overwrite
      */
@@ -116,16 +116,16 @@ public class Add {
     public void setOverwrite(boolean overwrite) {
         this.overwrite = overwrite;
     }
-    
+
     public String getOption() {
-		return option;
-	}
+        return option;
+    }
 
-	public void setOption(String option) {
-		this.option = option;
-	}
+    public void setOption(String option) {
+        this.option = option;
+    }
 
-	/**
+    /**
      * @return the bulk
      */
     public boolean isBulk() {
@@ -170,7 +170,7 @@ public class Add {
             xmlString.append(HDSConstants.SPACE_STR).append("option=\"")
                     .append("overwrite").append("\" ");
         }
-        
+
         if (null != this.option) {
             xmlString.append(HDSConstants.SPACE_STR)
                     .append("option=").append(HDSConstants.QUOTATION_STR)
@@ -178,5 +178,5 @@ public class Add {
         }
         return xmlString.toString();
     }
-    
+
 }

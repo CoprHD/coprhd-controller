@@ -26,7 +26,7 @@ public class ZoneInfo extends AbstractSerializableNestedObject {
     private static final String NETWORK_WWN = "networkWwn";
     private static final String FABRIC_ID = "fabricId";
     private static final String NETWORK_SYSTEM_ID = "networkSystemId";
-    
+
     public ZoneInfo() {
     }
 
@@ -112,6 +112,6 @@ public class ZoneInfo extends AbstractSerializableNestedObject {
     }
 
     public String getZoneReferenceKey() {
-        return FCZoneReference.makeEndpointsKey(Arrays.asList(new String[] {getInitiatorWwn(), getPortWwn()}));
+        return FCZoneReference.makeEndpointsKey(Arrays.asList(new String[] { getInitiatorWwn(), getPortWwn() }));
     }
 }

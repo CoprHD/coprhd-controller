@@ -4,12 +4,6 @@
  */
 package com.emc.storageos.db.client.model;
 
-import java.net.URI;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
-
 /**
  * NetworkDevice data object
  */
@@ -21,14 +15,14 @@ public class NetworkSystem extends DiscoveredSystemObject {
 
     // secondary/backup management interface IP address
     private String _secondaryIP;
-    
+
     // management port number
     private Integer _portNumber;
 
     // management interface user
     // TODO - this needs to be encrypted
     private String _username;
-    
+
     // management interface password
     // TODO - this needs to be encrypted
     private String _password;
@@ -39,21 +33,21 @@ public class NetworkSystem extends DiscoveredSystemObject {
     // SMI-S interface IP address
     private String _smisProviderIP;
 
-    // SMI-S port number  (5989)
+    // SMI-S port number (5989)
     private Integer _smisPortNumber;
-    
+
     // SMI-S user.
     private String _smisUserName;
-    
+
     // SMI-S password.
     private String _smisPassword;
-    
+
     // SMI-S flag indicates whether or not to use SSL protocol.
     private Boolean _smisUseSSL;
-    
+
     // software version
     private String _version;
-    
+
     // system uptime
     private String _uptime;
 
@@ -118,7 +112,7 @@ public class NetworkSystem extends DiscoveredSystemObject {
         setChanged("password");
     }
 
-	@AlternateId("AltIdIndex")
+    @AlternateId("AltIdIndex")
     @Name("smisProviderIP")
     public String getSmisProviderIP() {
         return _smisProviderIP;
@@ -138,7 +132,7 @@ public class NetworkSystem extends DiscoveredSystemObject {
         this._smisPortNumber = smisPortNumber;
         setChanged("smisPortNumber");
     }
-    
+
     @Name("smisUserName")
     public String getSmisUserName() {
         return _smisUserName;
@@ -169,7 +163,7 @@ public class NetworkSystem extends DiscoveredSystemObject {
         this._smisUseSSL = smisUseSSL;
         setChanged("smisUseSSL");
     }
-    
+
     @Name("version")
     public String getVersion() {
         return _version;
@@ -179,7 +173,7 @@ public class NetworkSystem extends DiscoveredSystemObject {
         this._version = version;
         setChanged("version");
     }
-    
+
     @Name("uptime")
     public String getUptime() {
         return _uptime;

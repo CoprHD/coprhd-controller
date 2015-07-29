@@ -17,8 +17,9 @@ public class ServiceProfileTemplateAssignments {
 
     private Set<String> templates;
 
-    public ServiceProfileTemplateAssignments() {}
-    
+    public ServiceProfileTemplateAssignments() {
+    }
+
     public ServiceProfileTemplateAssignments(Set<String> templates) {
         this.templates = templates;
     }
@@ -27,12 +28,12 @@ public class ServiceProfileTemplateAssignments {
     @XmlElement(name = "service_profile_template")
     public Set<String> getServiceProfileTemplates() {
         if (templates == null) {
-        	templates = new HashSet<String>();
+            templates = new HashSet<String>();
         }
         return templates;
     }
 
     public void setServiceProfileTemplates(Set<String> templates) {
         this.templates = templates;
-    }    
+    }
 }

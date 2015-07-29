@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.serializers.StringSerializer;
-import com.emc.storageos.db.client.model.DataObject;
+
 /**
  * Utility class for cleaning out old index entries
  */
@@ -37,28 +37,28 @@ public class IndexCleaner {
     public IndexCleaner(int poolSize) {
         _indexCleanerExe = Executors.newFixedThreadPool(poolSize);
     }
-    
+
     /**
      * Clean out old column / index entries synchronously
-     *
+     * 
      * @param mutator
      * @param doType
      * @param listToClean
      */
     public void cleanIndex(RowMutator mutator, DataObjectType doType, SoftReference<IndexCleanupList> listToCleanRef) {
-    	/*
-    	 * We use SoftReference here instead of Strong Reference to avoid OOM in huge concurrent requests,
-    	 * Objects hold by SoftReference will be cleared if low memory. refer to:CTRL-10228 for detail.
-    	 * */
-    	IndexCleanupList listToClean = listToCleanRef.get();
-    	if(listToClean == null){
-    		_log.warn("clean up list for {} has been recycled by GC, skip it", doType.getClass().getName());
-    		return;
-    	}
-    	
+        /*
+         * We use SoftReference here instead of Strong Reference to avoid OOM in huge concurrent requests,
+         * Objects hold by SoftReference will be cleared if low memory. refer to:CTRL-10228 for detail.
+         */
+        IndexCleanupList listToClean = listToCleanRef.get();
+        if (listToClean == null) {
+            _log.warn("clean up list for {} has been recycled by GC, skip it", doType.getClass().getName());
+            return;
+        }
+
         Map<String, List<Column<CompositeColumnName>>> cleanList = listToClean.getColumnsToClean();
         Iterator<Map.Entry<String, List<Column<CompositeColumnName>>>> entryIt = cleanList.entrySet().iterator();
-        Map<String,ColumnField> dependentFields = new HashMap<>();
+        Map<String, ColumnField> dependentFields = new HashMap<>();
         while (entryIt.hasNext()) {
             Map.Entry<String, List<Column<CompositeColumnName>>> entry = entryIt.next();
 
@@ -68,18 +68,18 @@ public class IndexCleaner {
                 Column<CompositeColumnName> column = cols.get(i);
                 ColumnField field = doType.getColumnField(column.getName().getOne());
                 field.removeColumn(rowKey, column, mutator, listToClean.getAllColumns(rowKey));
-                for(ColumnField depField : field.getDependentFields()) {
+                for (ColumnField depField : field.getDependentFields()) {
                     dependentFields.put(depField.getName(), depField);
                 }
             }
-            for(ColumnField depField : dependentFields.values()) {
-                    depField.removeIndex(rowKey, null, mutator, listToClean.getAllColumns(rowKey),
-                            listToClean.getObject(rowKey));
+            for (ColumnField depField : dependentFields.values()) {
+                depField.removeIndex(rowKey, null, mutator, listToClean.getAllColumns(rowKey),
+                        listToClean.getObject(rowKey));
             }
         }
         // If this is an IndexCleanupList, means we're called because someone changed the object fields
         // We need to check if .inactive is changed to true, if so, we need to hide (remove) related index entries from index CFs
-        removeIndexOfInactiveObjects(mutator, doType, (IndexCleanupList)listToClean, true);
+        removeIndexOfInactiveObjects(mutator, doType, (IndexCleanupList) listToClean, true);
 
         mutator.executeIndexFirst();
     }
@@ -103,7 +103,8 @@ public class IndexCleaner {
         mutator.executeIndexFirst();
     }
 
-    public void removeIndexOfInactiveObjects(RowMutator mutator, DataObjectType doType, IndexCleanupList indexCleanList, boolean forChangedObjectsOnly) {
+    public void removeIndexOfInactiveObjects(RowMutator mutator, DataObjectType doType, IndexCleanupList indexCleanList,
+            boolean forChangedObjectsOnly) {
         // Get list of columns to cleanup for objects has changes on their indexed fields
         Map<String, List<Column<CompositeColumnName>>> indexesToClean = indexCleanList.getIndexesToClean(forChangedObjectsOnly);
 
@@ -120,15 +121,17 @@ public class IndexCleaner {
                     DbIndex index = field.getIndex();
 
                     if (index != null) {
-                        index.removeColumn(rowKey, col, doType.getDataObjectClass().getSimpleName(), mutator, indexCleanList.getAllColumns(rowKey));
+                        index.removeColumn(rowKey, col, doType.getDataObjectClass().getSimpleName(), mutator,
+                                indexCleanList.getAllColumns(rowKey));
                     }
                 }
             }
         }
     }
-    
+
     /**
      * remove index from old index table; used in migration if index cf has changed
+     * 
      * @param mutator
      * @param doType
      * @param cleanList
@@ -142,7 +145,7 @@ public class IndexCleaner {
 
             String rowKey = entry.getKey();
             List<Column<CompositeColumnName>> cols = entry.getValue();
-            Map<String,List<Column<CompositeColumnName>>> fieldColumnMap = buildFieldMapFromColumnList(cols);
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap = buildFieldMapFromColumnList(cols);
             for (Column<CompositeColumnName> column : cols) {
                 ColumnField field = doType.getColumnField(column.getName().getOne());
                 ColumnFamily<String, IndexColumnName> currentIndexCF = field.getIndex().getIndexCF();
@@ -158,14 +161,14 @@ public class IndexCleaner {
 
     /**
      * Clean out old column and its index asynchronously
-     *
+     * 
      * @param mutator
      * @param doType
      * @param listToClean
      */
     public void cleanIndexAsync(final RowMutator mutator,
-                                final DataObjectType doType,
-                                final SoftReference<IndexCleanupList> listToCleanRef) {
+            final DataObjectType doType,
+            final SoftReference<IndexCleanupList> listToCleanRef) {
         _indexCleanerExe.submit(new Callable<Object>() {
             @Override
             public Object call() throws Exception {
@@ -175,9 +178,9 @@ public class IndexCleaner {
         });
     }
 
-    private static Map<String,List<Column<CompositeColumnName>>> buildFieldMapFromColumnList(List<Column<CompositeColumnName>> columns){
-        Map<String,List<Column<CompositeColumnName>>> columnMap = new HashMap<>();
-        for(Column<CompositeColumnName> column : columns) {
+    private static Map<String, List<Column<CompositeColumnName>>> buildFieldMapFromColumnList(List<Column<CompositeColumnName>> columns) {
+        Map<String, List<Column<CompositeColumnName>>> columnMap = new HashMap<>();
+        for (Column<CompositeColumnName> column : columns) {
             String fieldName = column.getName().getOne();
             List<Column<CompositeColumnName>> fieldList = columnMap.get(fieldName);
             if (fieldList == null) {

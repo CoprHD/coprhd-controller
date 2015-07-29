@@ -30,35 +30,35 @@ import com.emc.storageos.db.client.util.StringSetUtil;
  */
 public class DataObjectInternalFlagsInitializer extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(DataObjectInternalFlagsInitializer.class);
-    
+
     @Override
     public void process() {
         updateFlagsAndProjectForInternalFileShares();
         updateInternalVolumes();
     }
-       
+
     /**
      * Convert old-style internal object FileShares (with project == null)
      * into new-style ones with the constant URN and internal flags
      */
     private void updateFlagsAndProjectForInternalFileShares() {
-        DbClient dbClient = this.getDbClient();        
+        DbClient dbClient = this.getDbClient();
         List<URI> fileShareKeys = dbClient.queryByType(FileShare.class, false);
 
         Iterator<FileShare> fileShareObjs =
                 dbClient.queryIterativeObjects(FileShare.class, fileShareKeys);
         while (fileShareObjs.hasNext()) {
             FileShare fs = fileShareObjs.next();
-            log.debug("Examining FileShare (id={}) for upgrade", fs.getId().toString());            
+            log.debug("Examining FileShare (id={}) for upgrade", fs.getId().toString());
             if (fs.getProject() == null) {
                 fs.setProject(new NamedURI(FileShare.INTERNAL_OBJECT_PROJECT_URN, fs.getLabel()));
-                fs.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING);        
+                fs.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING);
                 dbClient.updateAndReindexObject(fs);
-                log.info("Converted internal FileShare (id={}) to use internal flags", fs.getId().toString());                
+                log.info("Converted internal FileShare (id={}) to use internal flags", fs.getId().toString());
             }
         }
     }
-    
+
     /**
      * Update volumes that need to have the INTERNAL_OBJECT flag set.
      */
@@ -68,9 +68,9 @@ public class DataObjectInternalFlagsInitializer extends BaseCustomMigrationCallb
         Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeURIs);
         while (volumes.hasNext()) {
             Volume volume = volumes.next();
-            log.debug("Examining volume (id={}) for upgrade", volume.getId().toString());            
-            
-            // Check if the volume has associated volumes. If so, 
+            log.debug("Examining volume (id={}) for upgrade", volume.getId().toString());
+
+            // Check if the volume has associated volumes. If so,
             // this is a VPLEX volume, and we must mark these
             // associated backend volumes as internal.
             StringSet associatedVolumeIds = volume.getAssociatedVolumes();
@@ -79,31 +79,31 @@ public class DataObjectInternalFlagsInitializer extends BaseCustomMigrationCallb
                 handleVPlexAssociatedVolumes(associatedVolumeIds);
                 continue;
             }
-            
+
             // Check to see if the personality of the volume is of type "METADATA" if so, this is an
             // RP Journal volume and should be marked as internal.
             if (volume.getPersonality() != null && volume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())) {
-            	log.info("RecoverPoint Journal volume (id={}) must be upgraded", volume.getId().toString());
-            	volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-            	volume.addInternalFlags(Flag.SUPPORTS_FORCE);
+                log.info("RecoverPoint Journal volume (id={}) must be upgraded", volume.getId().toString());
+                volume.addInternalFlags(Flag.INTERNAL_OBJECT);
+                volume.addInternalFlags(Flag.SUPPORTS_FORCE);
                 dbClient.persistObject(volume);
-                log.info("Marked RecoverPoint Journal volume (id={}) as internal object that supports force", volume.getId().toString());                
+                log.info("Marked RecoverPoint Journal volume (id={}) as internal object that supports force", volume.getId().toString());
             }
         }
     }
-    
+
     /**
      * Sets the INTERNAL_OBJECT flag for the passed associated backend volumes
      * of a VPLEX volume.
      * 
      * @param associatedVolumes The backend volumes of a VPLEX volume in the
-     *        database.
+     *            database.
      */
     private void handleVPlexAssociatedVolumes(StringSet associatedVolumeIds) {
         List<URI> associatedVolumeURIs = StringSetUtil
-            .stringSetToUriList(associatedVolumeIds);
+                .stringSetToUriList(associatedVolumeIds);
         List<Volume> associatedVolumes = dbClient.queryObject(Volume.class,
-            associatedVolumeURIs);
+                associatedVolumeURIs);
         Iterator<Volume> associatedVolumesIter = associatedVolumes.iterator();
         while (associatedVolumesIter.hasNext()) {
             Volume associatedVolume = associatedVolumesIter.next();

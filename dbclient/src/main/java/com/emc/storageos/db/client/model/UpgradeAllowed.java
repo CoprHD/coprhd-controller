@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 import com.emc.storageos.db.client.upgrade.BaseDefaultMigrationCallback;
 
 @Documented
-@Target({ElementType.ANNOTATION_TYPE})
+@Target({ ElementType.ANNOTATION_TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface UpgradeAllowed {
     Class<? extends BaseDefaultMigrationCallback> migrationCallback() default BaseDefaultMigrationCallback.class;

@@ -15,12 +15,14 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpression;
 import java.util.List;
 
-public class ListClusterToNetworkInterfaceQuery  extends WinRMEnumerateOperation<MSClusterToNetworkInterface> {
-    public static final String CLUSTER_RESOURCE_TO_NETWORK_INTERFACE = WinRMConstants.WMI_BASE_URI + "root/mscluster/MSCluster_ClusterToNetworkInterface";
+public class ListClusterToNetworkInterfaceQuery extends WinRMEnumerateOperation<MSClusterToNetworkInterface> {
+    public static final String CLUSTER_RESOURCE_TO_NETWORK_INTERFACE = WinRMConstants.WMI_BASE_URI
+            + "root/mscluster/MSCluster_ClusterToNetworkInterface";
 
     private static final XPath XPATH = XmlUtils.createXPath(String.format("ns=%s", CLUSTER_RESOURCE_TO_NETWORK_INTERFACE));
 
-    private static final XPathExpression CLUSTER_TO_NETWORK_INTERFACE_EXPR = XmlUtils.compileXPath(XPATH, "ns:MSCluster_ClusterToNetworkInterface");
+    private static final XPathExpression CLUSTER_TO_NETWORK_INTERFACE_EXPR = XmlUtils.compileXPath(XPATH,
+            "ns:MSCluster_ClusterToNetworkInterface");
     private static final XPathExpression GROUP_COMPONENT_EXPR = XmlUtils.compileXPath(XPATH, "ns:GroupComponent");
     private static final XPathExpression PART_COMPONENT_EXPR = XmlUtils.compileXPath(XPATH, "ns:PartComponent");
 
@@ -42,13 +44,13 @@ public class ListClusterToNetworkInterfaceQuery  extends WinRMEnumerateOperation
     }
 
     private String getNetworkInterface(Element parent) {
-        Element partComponent =  XmlUtils.selectElement(PART_COMPONENT_EXPR, parent);
-        Element selector = XmlUtils.selectElement(SELECTOR_EXPR,partComponent);
+        Element partComponent = XmlUtils.selectElement(PART_COMPONENT_EXPR, parent);
+        Element selector = XmlUtils.selectElement(SELECTOR_EXPR, partComponent);
         return selector.getTextContent();
     }
 
     private String getClusterName(Element parent) {
-        Element partComponent =  XmlUtils.selectElement(GROUP_COMPONENT_EXPR, parent);
+        Element partComponent = XmlUtils.selectElement(GROUP_COMPONENT_EXPR, parent);
         return getSelector(partComponent);
     }
 

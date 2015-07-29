@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class ValidationError {
-    
+
     private String field;
     private String error;
 

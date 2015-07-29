@@ -15,13 +15,15 @@ import com.emc.storageos.model.RestLinkRep;
 
 /**
  * Common class to all tenant resource types
+ * 
  * @author elalih
  */
 public abstract class TenantResourceRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
 
-    public TenantResourceRestRep() {}
-    
+    public TenantResourceRestRep() {
+    }
+
     public TenantResourceRestRep(RelatedResourceRep tenant) {
         this.tenant = tenant;
     }
@@ -35,6 +37,7 @@ public abstract class TenantResourceRestRep extends DataObjectRestRep {
 
     /**
      * The tenant associated with the host.
+     * 
      * @valid none
      * @return the tenant associated with the host.
      */

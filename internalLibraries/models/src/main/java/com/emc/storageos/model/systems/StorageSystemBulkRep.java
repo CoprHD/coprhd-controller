@@ -14,12 +14,12 @@ import java.util.List;
 @XmlRootElement(name = "bulk_storage_systems")
 public class StorageSystemBulkRep extends BulkRestRep {
     private List<StorageSystemRestRep> storageSystems;
-    
+
     /**
      * List of storage systems
      * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "storage_system")
     public List<StorageSystemRestRep> getStorageSystems() {
         if (storageSystems == null) {

@@ -13,16 +13,16 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 
 public class KeyspaceUtilsTest {
-    
+
     @Test
     public void test() {
-        
+
         Assert.assertFalse(KeyspaceUtil.isLocal(Project.class));
         Assert.assertTrue(KeyspaceUtil.isLocal(FileShare.class));
-        
+
         Assert.assertTrue(KeyspaceUtil.isGlobal(Project.class));
         Assert.assertFalse(KeyspaceUtil.isGlobal(FileShare.class));
-        
+
     }
 
 }

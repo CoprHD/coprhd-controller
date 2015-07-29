@@ -12,25 +12,25 @@ import java.net.URI;
 @ExcludeFromGarbageCollection
 @Cf("Migration")
 public class Migration extends DataObject {
-    
+
     // The URI of the volume associated with the migration.
     private URI _volume;
-    
+
     // The URI of the migration source.
     private URI _source;
-    
+
     // The URI of the migration target.
     private URI _target;
-    
+
     // The migration start time.
     private String _startTime;
-    
+
     // The status of the migration.
     private String _migrationStatus;
-    
+
     // The percentage done.
     private String _percentDone;
-    
+
     /**
      * Getter for the URI of the volume being migrated.
      * 
@@ -50,7 +50,7 @@ public class Migration extends DataObject {
         _volume = volume;
         setChanged("volume");
     }
-    
+
     /**
      * Getter for the URI of the migration source.
      * 
@@ -70,7 +70,7 @@ public class Migration extends DataObject {
         _source = source;
         setChanged("source");
     }
-    
+
     /**
      * Getter for the URI of the migration target.
      * 
@@ -89,7 +89,7 @@ public class Migration extends DataObject {
     public void setTarget(URI target) {
         _target = target;
         setChanged("target");
-    }    
+    }
 
     /**
      * Getter for the migration start time.
@@ -109,8 +109,8 @@ public class Migration extends DataObject {
     public void setStartTime(String startTime) {
         _startTime = startTime;
         setChanged("startTime");
-    }  
-    
+    }
+
     /**
      * Getter for the migration status.
      * 
@@ -130,7 +130,7 @@ public class Migration extends DataObject {
         _migrationStatus = status;
         setChanged("migrationStatus");
     }
-       
+
     /**
      * Getter for the migration percentage done.
      * 
@@ -149,5 +149,5 @@ public class Migration extends DataObject {
     public void setPercentDone(String percentDone) {
         _percentDone = percentDone;
         setChanged("percentDone");
-    }    
+    }
 }

@@ -21,8 +21,9 @@ import com.emc.storageos.db.client.model.DataObject;
 
 /**
  * This object represents a single Class Query.
+ * 
  * @author watson
- *
+ * 
  * @param <T extends DataObject>
  */
 class JClass<T extends DataObject> {
@@ -41,7 +42,7 @@ class JClass<T extends DataObject> {
     private Map<URI, Set<URI>> joinMap = new HashMap<URI, Set<URI>>();
     Set<JClass> subJClasses = null;
     int index;                      // index in the jClasses list that orders evaluation of queries
-    
+
     JClass(Class<T> clazz, String alias, int index) {
         this.clazz = clazz;
         this.alias = alias;
@@ -53,7 +54,9 @@ class JClass<T extends DataObject> {
             Set<Class<? extends DataObject>> subClasses = md.getSubclasses(clazz);
             time = System.currentTimeMillis() - time;
             _log.info("Subclass calculation time: " + time + " class: " + clazz.getSimpleName());
-            if (subClasses.isEmpty()) throw new JoinerException("No meta-data for: " + clazz.getSimpleName());
+            if (subClasses.isEmpty()) {
+                throw new JoinerException("No meta-data for: " + clazz.getSimpleName());
+            }
             // Process each sub-class and make a JClass for the sub-class.
             subJClasses = new HashSet<JClass>();
             for (Class subClass : subClasses) {
@@ -62,9 +65,10 @@ class JClass<T extends DataObject> {
             }
         }
     }
-    
+
     /**
      * Returns an iterator for the database objects from this query term.
+     * 
      * @param engine QueryEngine used to lookup objects
      * @return Iterator<T> that will iterate through the result objects
      */
@@ -75,11 +79,12 @@ class JClass<T extends DataObject> {
             return new JClassIterator<T>(this, engine);
         }
     }
-    
+
     /**
      * Querys for a particular object given its URI. This method handles
      * subclasses correctly, and will query whatever subclass Column Family
      * is needed for the particular URI.
+     * 
      * @param engine -- the Query Engine to be used for the request
      * @param uri -- The URI of the requested Object, either of type T or a subclass
      * @return
@@ -97,10 +102,11 @@ class JClass<T extends DataObject> {
         }
         return null;
     }
-    
+
     /**
      * Add an object to the cache if the cache is enabled and the cache is not
      * already at maximum capacity. Otherwise disable the cache and clear contents.
+     * 
      * @param object
      */
     void addToCache(T object) {
@@ -114,12 +120,13 @@ class JClass<T extends DataObject> {
             }
         }
     }
-    
+
     /**
      * Add a mapping between an object in the joinTo (i.e. the query
      * results this class is joined to) and an object in this query result.
      * The joinToMap maps each URI in the joinTo result to the set of objects
      * in this result. It is used for constructing output representations.
+     * 
      * @param joinToURI -- URI of object in joinToAlias query result
      * @param thisURI -- URI of result in this query result
      */

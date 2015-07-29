@@ -14,7 +14,7 @@ import com.emc.storageos.db.client.model.StringSet;
 
 /**
  * @author cgarber
- *
+ * 
  */
 public class LazyLoadedSet<E extends DataObject> extends LazyLoadedCollection<E> implements Set<E> {
 
@@ -22,13 +22,15 @@ public class LazyLoadedSet<E extends DataObject> extends LazyLoadedCollection<E>
      * @param name
      * @param parentObj
      * @param lazyLoader
-     * @param mappedBy 
+     * @param mappedBy
      */
     public LazyLoadedSet(String name, E parentObj, LazyLoader lazyLoader, StringSet mappedBy) {
         super(name, parentObj, lazyLoader, mappedBy);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.constraint.LazyLoadedCollection#getNewCollection()
      */
     @Override

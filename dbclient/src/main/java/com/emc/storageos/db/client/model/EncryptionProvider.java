@@ -17,6 +17,7 @@ public interface EncryptionProvider {
 
     /**
      * Encrypt input string
+     * 
      * @param input
      * @return
      */
@@ -24,16 +25,18 @@ public interface EncryptionProvider {
 
     /**
      * Decrypt input string
+     * 
      * @param input
      * @return
      */
     public String decrypt(byte[] input);
 
     /**
-      * Encrypts a string. The returned value is a Base64 encoded string representing the encrypted data.
-      * @param s the string to encrypt.
-      * @return the encrypted (and Base64 encoded) string.
-      */
+     * Encrypts a string. The returned value is a Base64 encoded string representing the encrypted data.
+     * 
+     * @param s the string to encrypt.
+     * @return the encrypted (and Base64 encoded) string.
+     */
     public String getEncryptedString(String s);
 
 }

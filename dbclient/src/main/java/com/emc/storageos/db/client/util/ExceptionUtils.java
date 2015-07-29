@@ -5,9 +5,8 @@
 
 package com.emc.storageos.db.client.util;
 
-
 public class ExceptionUtils {
-    
+
     public static final String EMPTY_STR = "";
     public static final String HIPHEN_STR = "-";
 

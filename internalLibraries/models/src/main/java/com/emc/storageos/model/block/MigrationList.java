@@ -17,8 +17,9 @@ import java.util.List;
 public class MigrationList {
     private List<NamedRelatedResourceRep> migrations;
 
-    public MigrationList() {}
-    
+    public MigrationList() {
+    }
+
     public MigrationList(List<NamedRelatedResourceRep> migrations) {
         this.migrations = migrations;
     }

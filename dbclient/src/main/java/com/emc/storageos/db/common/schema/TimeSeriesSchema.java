@@ -5,11 +5,7 @@
 
 package com.emc.storageos.db.common.schema;
 
-import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.google.common.base.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,13 +40,15 @@ public class TimeSeriesSchema extends DbSchema {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof TimeSeriesSchema)) 
+        if (!(o instanceof TimeSeriesSchema)) {
             return false;
+        }
 
-        TimeSeriesSchema schema = (TimeSeriesSchema)o;
+        TimeSeriesSchema schema = (TimeSeriesSchema) o;
 
-        if (!schema.serializerType.equals(serializerType))
+        if (!schema.serializerType.equals(serializerType)) {
             return false;
+        }
 
         return super.equals(o);
     }

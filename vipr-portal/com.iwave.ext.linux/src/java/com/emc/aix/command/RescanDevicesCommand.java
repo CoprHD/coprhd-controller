@@ -8,8 +8,8 @@ import org.apache.commons.lang.StringUtils;
 
 import com.iwave.ext.command.CommandException;
 
-public class RescanDevicesCommand extends AixCommand{
-    
+public class RescanDevicesCommand extends AixCommand {
+
     public RescanDevicesCommand() {
         setCommand("cfgmgr");
         setRunAsRoot(true);

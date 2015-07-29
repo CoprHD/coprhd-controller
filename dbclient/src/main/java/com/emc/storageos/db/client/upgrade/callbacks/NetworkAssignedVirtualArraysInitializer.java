@@ -25,7 +25,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
  */
 public class NetworkAssignedVirtualArraysInitializer extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(NetworkAssignedVirtualArraysInitializer.class);
-    
+
     @SuppressWarnings("deprecation")
     @Override
     public void process() {
@@ -40,10 +40,10 @@ public class NetworkAssignedVirtualArraysInitializer extends BaseCustomMigration
             if (!NullColumnValueGetter.isNullURI(networkVArrayURI)) {
                 // Update the new field.
                 network.setAssignedVirtualArrays(StringSetUtil
-                    .uriListToStringSet(Collections.singletonList(networkVArrayURI)));
+                        .uriListToStringSet(Collections.singletonList(networkVArrayURI)));
                 dbClient.updateAndReindexObject(network);
                 log.info("Set assigned virtual arrays for network (id={}) to virtual array (id={})",
-                    networkId, networkVArrayURI.toString());
+                        networkId, networkVArrayURI.toString());
             }
         }
     }

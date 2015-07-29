@@ -21,8 +21,8 @@ import java.util.List;
  * In 2.0 we allow expansion of all VMAX/VNX volumes, except volume with local mirrors.
  * Volumes with 'nodDisruptiveExpansion' true, are expanded with 'fastExpansion', otherwise we expand with 'fastExpansion' false.
  * NOTE: due to customer issue, need to set pools with nonDisruptiveExpansion=false to expandable=false.
- *       Customer wants to enable mirroring for 1.1 non expandable pools after upgrade to 2.0. If we set expandable to true after upgrade,
- *       apisvc validation won't allow to enable mirroring.
+ * Customer wants to enable mirroring for 1.1 non expandable pools after upgrade to 2.0. If we set expandable to true after upgrade,
+ * apisvc validation won't allow to enable mirroring.
  */
 public class VirtualPoolExpandableMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(VirtualPoolExpandableMigration.class);
@@ -39,7 +39,7 @@ public class VirtualPoolExpandableMigration extends BaseCustomMigrationCallback 
             if (vp.getNonDisruptiveExpansion()) {
                 vp.setExpandable(true);
                 vp.setFastExpansion(true);
-            } else if (VirtualPool.vPoolSpecifiesMirrors(vp, dbClient)){
+            } else if (VirtualPool.vPoolSpecifiesMirrors(vp, dbClient)) {
                 // As of now, we do not allow expansion of virtual pools with local mirror protection
                 vp.setExpandable(false);
                 vp.setFastExpansion(false);
@@ -48,8 +48,10 @@ public class VirtualPoolExpandableMigration extends BaseCustomMigrationCallback 
                 vp.setExpandable(false);
                 vp.setFastExpansion(false);
             }
-            log.info(String.format("Migrated VirtualPool %s, nonDisruptiveExpansion: %s, local mirrors: %s, expandable: %s, fastExpansion; %s",
-                    vp.getId().toString(), vp.getNonDisruptiveExpansion(), vp.getMaxNativeContinuousCopies(), vp.getExpandable(), vp.getFastExpansion()));
+            log.info(String.format(
+                    "Migrated VirtualPool %s, nonDisruptiveExpansion: %s, local mirrors: %s, expandable: %s, fastExpansion; %s",
+                    vp.getId().toString(), vp.getNonDisruptiveExpansion(), vp.getMaxNativeContinuousCopies(), vp.getExpandable(),
+                    vp.getFastExpansion()));
             dbClient.persistObject(vp);
         }
 

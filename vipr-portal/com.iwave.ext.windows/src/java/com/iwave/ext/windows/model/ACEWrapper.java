@@ -14,14 +14,15 @@ import java.io.Serializable;
  */
 public class ACEWrapper implements Serializable {
     private static final long serialVersionUID = -3090639593197577369L;
-    
+
     private String user;
     private String userId;
     private String access;
     private boolean allow;
-    
-    public ACEWrapper() { }
-    
+
+    public ACEWrapper() {
+    }
+
     public ACEWrapper(String user, String access, boolean allow) {
         this.user = user;
         this.access = access;
@@ -31,36 +32,38 @@ public class ACEWrapper implements Serializable {
     public String getUser() {
         return user;
     }
-    
+
     public void setUser(String user) {
         this.user = user;
     }
-    
+
     public String getUserId() {
         return userId;
     }
-    
+
     public void setUserId(String userId) {
         this.userId = userId;
     }
-    
+
     public String getAccess() {
         return access;
     }
-    
+
     public void setAccess(String access) {
         this.access = access;
     }
-    
+
     public boolean isAllow() {
         return allow;
     }
-    
+
     public void setAllow(boolean allow) {
         this.allow = allow;
     }
-    
-    public void setLabel(String label) { }
+
+    public void setLabel(String label) {
+    }
+
     public String getLabel() {
         StringBuilder sb = new StringBuilder();
         if (allow) {
@@ -74,8 +77,9 @@ public class ACEWrapper implements Serializable {
         sb.append(access);
         return sb.toString();
     }
-    
-    @Override public String toString() {
+
+    @Override
+    public String toString() {
         return getLabel();
     }
 }

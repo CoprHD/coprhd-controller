@@ -5,19 +5,11 @@
 package com.emc.storageos.db.client.model;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.xml.bind.annotation.XmlTransient;
-
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 
 /**
  * Vplex Mirror data object
+ * 
  * @author tahals
  */
 @Cf("VplexMirror")
@@ -40,7 +32,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
     // Total amount of storage space consumed within the StoragePool which is SpaceConsumed of
     // CIM_AllocatedFromStoragePool.
     private Long _allocatedCapacity;
-    // Associated volumes. 
+    // Associated volumes.
     // This captures the backend volume(s) that provide the actual storage.
     private StringSet _associatedVolumes;
     // virtual array where this vplex mirror exists
@@ -53,7 +45,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
     private Long _thinPreAllocationSize;
     // thin or thick mirror type
     Boolean _thinlyProvisioned = false;
-                 
+
     @NamedRelationIndex(cf = "NamedRelation", type = Volume.class)
     @Name("source")
     public NamedURI getSource() {
@@ -64,7 +56,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
         _source = source;
         setChanged("source");
     }
-    
+
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageController() {
@@ -75,71 +67,71 @@ public class VplexMirror extends DataObject implements ProjectResource {
         _storageController = storageController;
         setChanged("storageDevice");
     }
-    
+
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
     }
-    
+
     public void setProject(NamedURI project) {
         _project = project;
         setChanged("project");
     }
-       
+
     @XmlTransient
     @NamedRelationIndex(cf = "NamedRelation")
     @Name("tenant")
     public NamedURI getTenant() {
         return _tenant;
     }
-    
+
     public void setTenant(NamedURI tenant) {
         _tenant = tenant;
         setChanged("tenant");
     }
-    
+
     @Name("capacity")
     public Long getCapacity() {
         return (null == _capacity) ? 0L : _capacity;
     }
-    
+
     public void setCapacity(Long capacity) {
         _capacity = capacity;
         setChanged("capacity");
     }
-           
+
     @RelationIndex(cf = "RelationIndex", type = VirtualPool.class)
     @Name("virtualPool")
     public URI getVirtualPool() {
         return _virtualPool;
     }
-    
+
     public void setVirtualPool(URI virtualPool) {
         _virtualPool = virtualPool;
         setChanged("virtualPool");
     }
-        
+
     @Name("provisionedCapacity")
     public Long getProvisionedCapacity() {
         return (null == _provisionedCapacity) ? 0L : _provisionedCapacity;
     }
-    
+
     public void setProvisionedCapacity(Long provisionedCapacity) {
         _provisionedCapacity = provisionedCapacity;
         setChanged("provisionedCapacity");
     }
-    
+
     @Name("allocatedCapacity")
     public Long getAllocatedCapacity() {
         return (null == _allocatedCapacity) ? 0L : _allocatedCapacity;
     }
-    
+
     public void setAllocatedCapacity(Long allocatedCapacity) {
         _allocatedCapacity = allocatedCapacity;
         setChanged("allocatedCapacity");
     }
-    
+
     /**
      * Getter for the ids of the backend volumes that provide the actual storage for a virtual
      * volume.
@@ -152,7 +144,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
     public StringSet getAssociatedVolumes() {
         return _associatedVolumes;
     }
-    
+
     /**
      * Setter for the ids of the backend volumes that provide the actual storage for a vplex mirror.
      * 
@@ -163,7 +155,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
         _associatedVolumes = volumes;
         setChanged("associatedVolumes");
     }
-    
+
     @Name("varray")
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
     public URI getVirtualArray() {
@@ -174,7 +166,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
         _virtualArray = virtualArray;
         setChanged("varray");
     }
-    
+
     @Name("deviceLabel")
     public String getDeviceLabel() {
         return _deviceLabel;
@@ -184,7 +176,7 @@ public class VplexMirror extends DataObject implements ProjectResource {
         _deviceLabel = deviceLabel;
         setChanged("deviceLabel");
     }
-    
+
     @Name("nativeId")
     public String getNativeId() {
         return _nativeId;
@@ -194,22 +186,22 @@ public class VplexMirror extends DataObject implements ProjectResource {
         _nativeId = nativeId;
         setChanged("nativeId");
     }
-            
+
     @Name("thinPreAllocationSize")
     public Long getThinPreAllocationSize() {
         return (null == _thinPreAllocationSize) ? 0L : _thinPreAllocationSize;
     }
-    
+
     public void setThinPreAllocationSize(Long thinPreAllocationSize) {
         _thinPreAllocationSize = thinPreAllocationSize;
         setChanged("thinPreAllocationSize");
     }
-    
+
     @Name("thinlyProvisioned")
     public Boolean getThinlyProvisioned() {
         return _thinlyProvisioned;
     }
-    
+
     public void setThinlyProvisioned(Boolean thinlyProvisioned) {
         _thinlyProvisioned = thinlyProvisioned;
         setChanged("thinlyProvisioned");

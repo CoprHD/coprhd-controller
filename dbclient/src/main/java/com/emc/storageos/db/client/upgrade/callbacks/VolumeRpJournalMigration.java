@@ -22,30 +22,30 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 /**
- * Migration handler to initialize RecoverPoint BlockConsistencyGroups, 
+ * Migration handler to initialize RecoverPoint BlockConsistencyGroups,
  * RecoverPoint VirtualPools, and RecoverPoint source/target Volume journal
  * references.
  * 
  */
 public class VolumeRpJournalMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(VolumeRpJournalMigration.class);
-    
+
     private static String RP_SRC_JOURNAL_APPEND = "-journal-prod";
     private static String RP_TGT_JOURNAL_APPEND = "-target-journal-";
     private static String RP_JOURNAL = "-journal";
-    
+
     @Override
     public void process() {
         updateVolumeRpJournalRefs();
     }
-       
+
     /**
      * For all RP source/target volumes, identify the associated journal volumes
-     * and add the reference. 
+     * and add the reference.
      */
     private void updateVolumeRpJournalRefs() {
         log.info("Updating RecoverPoint journal references for source/target volumes.");
-        DbClient dbClient = this.getDbClient();        
+        DbClient dbClient = this.getDbClient();
         List<URI> protectionSetURIs = dbClient.queryByType(ProtectionSet.class, false);
 
         Iterator<ProtectionSet> protectionSets =
@@ -55,15 +55,15 @@ public class VolumeRpJournalMigration extends BaseCustomMigrationCallback {
         while (protectionSets.hasNext()) {
             replicationSetVolumes = new HashMap<String, List<Volume>>();
             ProtectionSet ps = protectionSets.next();
-            
-            log.info("Examining ProtectionSet (id={}) for upgrade", ps.getId().toString());  
-            
+
+            log.info("Examining ProtectionSet (id={}) for upgrade", ps.getId().toString());
+
             // Organize the volumes by replication set
             for (String protectionVolumeID : ps.getVolumes()) {
                 URI uri = URI.create(protectionVolumeID);
                 Volume protectionVolume = dbClient.queryObject(Volume.class, uri);
                 replicationSetName = protectionVolume.getRSetName();
-                
+
                 if (replicationSetName != null) {
                     if (replicationSetVolumes.get(replicationSetName) == null) {
                         List<Volume> volumes = new ArrayList<Volume>();
@@ -72,19 +72,19 @@ public class VolumeRpJournalMigration extends BaseCustomMigrationCallback {
                     replicationSetVolumes.get(replicationSetName).add(protectionVolume);
                 }
             }
-            
+
             // For each replication set we need to determine what source or target volume
             // each journal belongs to.
             for (String replicationSet : replicationSetVolumes.keySet()) {
-                log.info("Examining RecoverPoint volumes in Replication Set '{}' for upgrade", replicationSet);  
+                log.info("Examining RecoverPoint volumes in Replication Set '{}' for upgrade", replicationSet);
                 List<Volume> rSetVolumes = replicationSetVolumes.get(replicationSet);
-                
+
                 for (Volume rSetVolume : rSetVolumes) {
                     if (isNonJournalVolume(rSetVolume)) {
                         Volume journalVolume = getAssociatedJournalVolume(rSetVolume, ps.getVolumes());
                         if (journalVolume != null) {
-                            log.info("Updated Volume (id={}) to reference journal Volume (id={})", 
-                                    rSetVolume.getLabel(), journalVolume.getLabel()); 
+                            log.info("Updated Volume (id={}) to reference journal Volume (id={})",
+                                    rSetVolume.getLabel(), journalVolume.getLabel());
                             rSetVolume.setRpJournalVolume(journalVolume.getId());
                             dbClient.persistObject(rSetVolume);
                         }
@@ -93,7 +93,7 @@ public class VolumeRpJournalMigration extends BaseCustomMigrationCallback {
             }
         }
     }
-    
+
     /**
      * Finds the associated journal volume for a source or target RP volume.
      * 
@@ -108,8 +108,8 @@ public class VolumeRpJournalMigration extends BaseCustomMigrationCallback {
                 Volume volume = dbClient.queryObject(Volume.class, URI.create(volumeURIs.next()));
                 // Only consider the protection set volumes that are journals (METADATA)
                 if (volume.getPersonality().equalsIgnoreCase(
-                        Volume.PersonalityTypes.METADATA.toString())) { 
-                    // Find a source/journal match based on an exact volume label match.  Find the target/journal
+                        Volume.PersonalityTypes.METADATA.toString())) {
+                    // Find a source/journal match based on an exact volume label match. Find the target/journal
                     // match based on a volume label match once we remove '-journal' from the journal volume.
                     if (srcTgtVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())
                             && volume.getLabel().equals(srcTgtVolume.getLabel() + RP_SRC_JOURNAL_APPEND)) {
@@ -120,14 +120,14 @@ public class VolumeRpJournalMigration extends BaseCustomMigrationCallback {
                             return volume;
                         }
                     }
-                    
+
                 }
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Determines if a volume is a non journal (source or target)
      * 

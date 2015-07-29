@@ -6,5 +6,5 @@ package com.emc.storageos.db.client.model;
 
 @Cf("ComputeFabricUplinkPort")
 public class ComputeFabricUplinkPort extends ComputeFabricUplink {
-	// all attributes in ComputeFabricUplink
+    // all attributes in ComputeFabricUplink
 }

@@ -14,8 +14,9 @@ import com.emc.vipr.model.catalog.SortedIndexRestRep;
 
 public class SortedIndexRestRepComparator implements Comparator<SortedIndexRestRep> {
 
-    private static final BeanComparator COMPARATOR = new BeanComparator(SortedIndexDataObject.SORTED_INDEX_PROPERTY_NAME, new NullComparator());
-    
+    private static final BeanComparator COMPARATOR = new BeanComparator(SortedIndexDataObject.SORTED_INDEX_PROPERTY_NAME,
+            new NullComparator());
+
     @Override
     public int compare(SortedIndexRestRep o1, SortedIndexRestRep o2) {
         return COMPARATOR.compare(o1, o2);

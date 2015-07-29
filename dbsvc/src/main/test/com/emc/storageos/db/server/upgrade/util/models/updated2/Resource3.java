@@ -18,8 +18,6 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
-import com.emc.storageos.db.server.upgrade.util.callbacks2.Resource3NewFlagsInitializer;
 import java.net.URI;
 
 @Cf("Resource3")
@@ -27,7 +25,7 @@ public class Resource3 extends DataObject {
     private URI res4; // Test custom callback execution order
     private Long extraFlags; // Test custom callback execution order
     private Long newFlags; // Test custom callback execution order
-    
+
     // Deliberately put this up front to make sure that the field order doesn't matter
     @Name("newFlags")
     public Long getNewFlags() {

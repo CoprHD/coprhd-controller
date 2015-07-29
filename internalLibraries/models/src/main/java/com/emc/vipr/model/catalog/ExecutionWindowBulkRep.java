@@ -14,15 +14,16 @@ import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_execution_windows")
 public class ExecutionWindowBulkRep extends BulkRestRep {
-    
+
     private List<ExecutionWindowRestRep> executionWindows;
-    
+
     public ExecutionWindowBulkRep() {
-        
+
     }
 
     /**
      * List of execution windows
+     * 
      * @valid none
      * @return
      */
@@ -37,7 +38,7 @@ public class ExecutionWindowBulkRep extends BulkRestRep {
     public void setExecutionWindows(List<ExecutionWindowRestRep> executionWindows) {
         this.executionWindows = executionWindows;
     }
-    
+
     public ExecutionWindowBulkRep(List<ExecutionWindowRestRep> executionWindows) {
         this.executionWindows = executionWindows;
     }

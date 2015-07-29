@@ -9,9 +9,9 @@ public class AddIndexMigrationCallback extends BaseDefaultMigrationCallback {
 
     @Override
     public void process() {
-        
+
         MigrateIndexHelper.migrateAddedIndex(getInternalDbClient(), cfClass, fieldName, annotation.annotationType().getCanonicalName());
-        
+
     }
 
 }

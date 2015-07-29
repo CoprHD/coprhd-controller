@@ -3,7 +3,8 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.db.client.impl;                                                    
+package com.emc.storageos.db.client.impl;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -31,33 +32,31 @@ import com.netflix.astyanax.retry.BoundedExponentialBackoff;
 
 /**
  * Cassandra and ZK backed distributed global lock implementation.
- *
+ * 
  * - We have three modes for the global lock.
- *   a. Node/Service Shared Mode
- *      Set node or service name as owner for the lock. (e.g. vipr1 or vipr1:dbsvc1 etc.)
- *      1. Only one thread in the node/svc own the lock at one time.
- *   	2. It could be released manually by release() or expired after timeout.
- *   b. VdcShared Shared Mode
- *      Set vdc name as owner for the lock. (e.g. vdc1 etc.)
- *      1. The nodes/svcs within the vdc could share the lock.  
- *      2. After one node acquires the global lock, all the nodes within the VDC own the Lock.  All of 
- *         them could acquire the global lock, enter critical section and release the global lock. 
- *   	3. It could be released manually or expired after timeout.
- *      4. We use local VDC ZK ephemeral nodes as reference count to release the lock in right way.
- *      5. When one node down, other nodes within the VDC could take over the task via leader selector if necessary.
- *   c. Exclusive Mode (Not implemented yet.)
+ * a. Node/Service Shared Mode
+ * Set node or service name as owner for the lock. (e.g. vipr1 or vipr1:dbsvc1 etc.)
+ * 1. Only one thread in the node/svc own the lock at one time.
+ * 2. It could be released manually by release() or expired after timeout.
+ * b. VdcShared Shared Mode
+ * Set vdc name as owner for the lock. (e.g. vdc1 etc.)
+ * 1. The nodes/svcs within the vdc could share the lock.
+ * 2. After one node acquires the global lock, all the nodes within the VDC own the Lock. All of
+ * them could acquire the global lock, enter critical section and release the global lock.
+ * 3. It could be released manually or expired after timeout.
+ * 4. We use local VDC ZK ephemeral nodes as reference count to release the lock in right way.
+ * 5. When one node down, other nodes within the VDC could take over the task via leader selector if necessary.
+ * c. Exclusive Mode (Not implemented yet.)
  */
 public class GlobalLockImpl implements GlobalLockItf {
     private static final Logger _log = LoggerFactory.getLogger(GlobalLockImpl.class);
-    
-    private final String _name;     
+
+    private final String _name;
     private final GlobalLock.GL_Mode _mode;
     private final long _timeout;
     private String _vdc = null;
 
-
-
-    private final DbClientImpl _dbClient;	        // db client 
+    private final DbClientImpl _dbClient;	        // db client
     private final Keyspace _keyspace;			    // geo keyspace
     private final ColumnFamily<String, String> _cf;	// global lock CF
 
@@ -75,18 +74,19 @@ public class GlobalLockImpl implements GlobalLockItf {
 
     /**
      * Constructor
-     *
+     * 
      * @param dbClient db client instance
      * @param name Name of the global lock
      * @param mode Mode of the global lock
-     * @param timeout timeout (in milliseconds) of the global lock; 
-     *                0 means infinite lock
+     * @param timeout timeout (in milliseconds) of the global lock;
+     *            0 means infinite lock
      * @param vdc name of the vdc where the user is from
      */
-    public GlobalLockImpl(final DbClientImpl dbClient, final String name, final GlobalLock.GL_Mode mode, final long timeout, final String vdc) throws Exception {
-        if(dbClient == null
-           || name == null || name.isEmpty() 
-           || vdc == null || vdc.isEmpty()) {
+    public GlobalLockImpl(final DbClientImpl dbClient, final String name, final GlobalLock.GL_Mode mode, final long timeout,
+            final String vdc) throws Exception {
+        if (dbClient == null
+                || name == null || name.isEmpty()
+                || vdc == null || vdc.isEmpty()) {
             throw new IllegalStateException("GlobalLockImpl constructor parameters is incorrect.");
         }
 
@@ -99,19 +99,19 @@ public class GlobalLockImpl implements GlobalLockItf {
         _keyspace = _dbClient.getGeoKeyspace();
         _cf = TypeMap.getGlobalLockType().getCf();
         _cpDistRowlock = new CustomizedDistributedRowLock<String>(_keyspace, _cf, _name)
-            .withBackoff(new BoundedExponentialBackoff(250, 10000, 10))
-            .withConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM)
-            .expireLockAfter(CustomizedDistributedRowLock_Timeout, TimeUnit.SECONDS);
+                .withBackoff(new BoundedExponentialBackoff(250, 10000, 10))
+                .withConsistencyLevel(ConsistencyLevel.CL_EACH_QUORUM)
+                .expireLockAfter(CustomizedDistributedRowLock_Timeout, TimeUnit.SECONDS);
 
-        if(!_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
-            CoordinatorClientImpl _coordinatorClient = (CoordinatorClientImpl)dbClient.getCoordinatorClient();
+        if (!_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
+            CoordinatorClientImpl _coordinatorClient = (CoordinatorClientImpl) dbClient.getCoordinatorClient();
             _zkClient = _coordinatorClient.getZkConnection().curator();
             _holderRoot = String.format("%1$s/%2$s/%3$s", ZkPath.GLOBALLOCK.toString(), _name, HOLDER);
             _localvdcHolderRoot = String.format("%1$s/%2$s", _holderRoot, _vdc);
             try {
                 EnsurePath path = new EnsurePath(_localvdcHolderRoot);
                 path.ensure(_zkClient.getZookeeperClient());
-            } catch(Exception e) {
+            } catch (Exception e) {
                 _log.error("global lock holder root {} could not be created. e={}", _localvdcHolderRoot, e);
                 throw e;
             }
@@ -120,15 +120,15 @@ public class GlobalLockImpl implements GlobalLockItf {
 
     /**
      * Acquire the global lock
-     *
+     * 
      * @param owner the name of the local owner (e.g. node name or svc name etc.)
      */
     @Override
     public boolean acquire(final String owner) throws Exception {
-        // 1. assemble global owner 
+        // 1. assemble global owner
         String localOwner = owner;
         String globalOwner = _vdc;
-        if(_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
+        if (_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
             globalOwner = String.format("%1$s:%2$s", _vdc, owner);
         }
 
@@ -144,7 +144,7 @@ public class GlobalLockImpl implements GlobalLockItf {
             String currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
             String currExpiration = columns.getString(GlobalLock.GL_EXPIRATION_COLUMN, null);
 
-            if(currMode != null && !currMode.equals(_mode.toString())) {
+            if (currMode != null && !currMode.equals(_mode.toString())) {
                 errMsg = String.format("The global lock %s has been acquired by incompatible mode %s.", _name, currMode);
                 _log.error(errMsg);
                 throw new IllegalStateException(errMsg);
@@ -170,7 +170,7 @@ public class GlobalLockImpl implements GlobalLockItf {
 
             m.withRow(_cf, _name).putColumn(GlobalLock.GL_MODE_COLUMN, _mode.toString());
             m.withRow(_cf, _name).putColumn(GlobalLock.GL_OWNER_COLUMN, globalOwner);
-            long expirationTime = (_timeout == 0)? 0: curTimeMicros + _timeout;
+            long expirationTime = (_timeout == 0) ? 0 : curTimeMicros + _timeout;
             m.withRow(_cf, _name).putColumn(GlobalLock.GL_EXPIRATION_COLUMN, String.valueOf(expirationTime));
 
             // add global lock holder in current vdc ZK
@@ -182,7 +182,8 @@ public class GlobalLockImpl implements GlobalLockItf {
 
             bLockAcquired = true;
         } catch (StaleLockException e) {
-            errMsg = String.format("%s failed to acquire global lock %s due to internal distributed row lock becoming stale.", localOwner, _name);
+            errMsg = String.format("%s failed to acquire global lock %s due to internal distributed row lock becoming stale.", localOwner,
+                    _name);
             _log.error(errMsg);
             return bLockAcquired;
         } catch (BusyLockException e) {
@@ -193,30 +194,29 @@ public class GlobalLockImpl implements GlobalLockItf {
             errMsg = String.format("Failed to acquire global lock %s due to unexpected exception : %s.", _name, e.getMessage());
             _log.error("Failed to acquire global lock {} due to unexpected exception {}.", _name, e);
             throw e;
-        }
-        finally {
+        } finally {
             _log.debug("internal distributed row lock released.");
             _cpDistRowlock.release();
         }
 
         _log.info("{} acquired global lock {} successfully.", localOwner, _name);
-        return bLockAcquired; 
+        return bLockAcquired;
     }
 
     /**
      * Release the global lock
      * For VdcShared Mode, the release might just remove zk holder from local VDC ZK.
      * If no other holders, it will remove the global lock from geodb then.
-     *
+     * 
      * @param owner the name of the local owner (e.g. node name or svc name etc.)
      * @param force whether to allow a lock to be released by a different owner in the
-     *              same VDC.
+     *            same VDC.
      */
     public boolean release(final String owner, final boolean force) throws Exception {
-        // 1. assemble global owner 
+        // 1. assemble global owner
         String localOwner = owner;
         String globalOwner = _vdc;
-        if(_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
+        if (_mode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE)) {
             globalOwner = String.format("%1$s:%2$s", _vdc, owner);
         }
 
@@ -231,14 +231,14 @@ public class GlobalLockImpl implements GlobalLockItf {
 
             String currMode = columns.getString(GlobalLock.GL_MODE_COLUMN, null);
             String currOwner = columns.getString(GlobalLock.GL_OWNER_COLUMN, null);
-            
+
             if (currMode == null || currOwner == null) {
                 // the lock is not active; return true
                 _log.error("The global lock {} has is not active.", _name);
                 return true;
             }
 
-            if(!currMode.equals(_mode.toString())) {
+            if (!currMode.equals(_mode.toString())) {
                 errMsg = String.format("The global lock %s has been acquired by incompatible mode %s.", _name, currMode);
                 _log.error(errMsg);
                 throw new IllegalStateException(errMsg);
@@ -273,7 +273,8 @@ public class GlobalLockImpl implements GlobalLockItf {
 
             bLockReleased = true;
         } catch (StaleLockException e) {
-            errMsg = String.format("%s failed to release global lock %s due to internal distributed row lock becoming stale.", localOwner, _name);
+            errMsg = String.format("%s failed to release global lock %s due to internal distributed row lock becoming stale.", localOwner,
+                    _name);
             _log.error(errMsg);
             return bLockReleased;
         } catch (BusyLockException e) {
@@ -299,7 +300,7 @@ public class GlobalLockImpl implements GlobalLockItf {
     }
 
     private boolean isForceReleaseEligible(String lockMode, String releaseOwner,
-                                           String lockOwner) {
+            String lockOwner) {
         return lockMode.equals(GlobalLock.GL_Mode.GL_NodeSvcShared_MODE.toString())
                 && getVdcFromOwner(releaseOwner).equals(getVdcFromOwner(lockOwner));
     }
@@ -314,8 +315,8 @@ public class GlobalLockImpl implements GlobalLockItf {
      * For VdcShared Mode, the owner would be the global owner but not local owner (i.e node name etc.)
      * Also note that in order to call this method successfully, the caller must be able
      * to write to geodbsvc (and acquire the internal distributed row lock).
-     *
-     * @return the global owner name 
+     * 
+     * @return the global owner name
      */
     @Override
     public String getOwner() throws Exception {
@@ -346,13 +347,15 @@ public class GlobalLockImpl implements GlobalLockItf {
                 }
             }
         } catch (StaleLockException e) {
-            errMsg = String.format("Failed to query current owner of global lock %s due to internal distributed row lock becoming stale.", _name);
+            errMsg = String.format("Failed to query current owner of global lock %s due to internal distributed row lock becoming stale.",
+                    _name);
             _log.error(errMsg);
         } catch (BusyLockException e) {
             errMsg = String.format("Failed to query current owner of global lock %s due to locked by others.", _name);
             _log.error(errMsg);
         } catch (Exception e) {
-            errMsg = String.format("Failed to query current owner of global lock %s due to unexpected exception : %s.", _name, e.getMessage());
+            errMsg = String.format("Failed to query current owner of global lock %s due to unexpected exception : %s.", _name,
+                    e.getMessage());
             _log.error(errMsg);
             throw e;
         } finally {
@@ -365,7 +368,7 @@ public class GlobalLockImpl implements GlobalLockItf {
     /**
      * Add local owner to local VDC zk
      * Only validated in VdcShared Mode
-     *
+     * 
      * @param owner the local owner name
      */
     private void addLocalHolder(String owner) throws Exception {
@@ -373,12 +376,12 @@ public class GlobalLockImpl implements GlobalLockItf {
         _log.info("adding global lock holder {}", holderPath);
         try {
             _zkClient.create().withMode(CreateMode.EPHEMERAL).forPath(holderPath);
-        } catch(KeeperException.NodeExistsException e) {
+        } catch (KeeperException.NodeExistsException e) {
             _log.debug("global lock holder {} already exist", holderPath);
-        } catch(KeeperException e) {
+        } catch (KeeperException e) {
             _log.error("failed to add global lock holder {}. e={}", holderPath, e);
             throw e;
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to add global lock holder {} due to unexpected exception {}", holderPath, e);
             throw e;
         }
@@ -388,17 +391,17 @@ public class GlobalLockImpl implements GlobalLockItf {
     /**
      * Get the number of the local VDC holders for the global lock
      * Only validated in VdcShared Mode
-     *
+     * 
      */
     private int getLocalHolderNumber() throws Exception {
         _log.info("getting global lock {} holder number", _name);
         List<String> holders = null;
         try {
             holders = _zkClient.getChildren().forPath(_localvdcHolderRoot);
-        } catch(KeeperException e) {
+        } catch (KeeperException e) {
             _log.error("failed to get global lock {} holder number. e={}", _name, e);
             throw e;
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to get global lock {} holder number. e={}", _name, e);
             throw e;
         }
@@ -409,7 +412,7 @@ public class GlobalLockImpl implements GlobalLockItf {
     /**
      * Remove local owner from local VDC zk
      * Only validated in VdcShared Mode
-     *
+     * 
      * @param owner the local owner name
      */
     private void removeLocalHolder(String owner) throws Exception {
@@ -417,12 +420,12 @@ public class GlobalLockImpl implements GlobalLockItf {
         _log.info("removing global lock holder {}", holderPath);
         try {
             _zkClient.delete().guaranteed().forPath(holderPath);
-        }catch (KeeperException.NoNodeException e) {
+        } catch (KeeperException.NoNodeException e) {
             _log.warn("The global lock holder {} has already been removed. e={}", holderPath, e);
-        } catch(KeeperException e) {
+        } catch (KeeperException e) {
             _log.error("failed to remove global lock holder {}. e={}", holderPath, e);
             throw e;
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to remove global lock holder {} due to unexpected exception {}", holderPath, e);
             throw e;
         }
@@ -433,4 +436,3 @@ public class GlobalLockImpl implements GlobalLockItf {
         return errMsg;
     }
 }
-

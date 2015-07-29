@@ -18,7 +18,7 @@ public class SchemaRecord {
     public void setVersion(String version) {
         this.version = version;
     }
-    
+
     public String getSchema() {
         return schema;
     }

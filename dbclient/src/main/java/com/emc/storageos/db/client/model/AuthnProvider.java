@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.client.model;
 
-
 /**
  * Authentication provider configuration data object
  */
@@ -32,7 +31,7 @@ public class AuthnProvider extends DataObject {
     private String _searchScope;
     private Boolean _validateCertificates;
     private StringSet _groupObjectClassNames;
-	private StringSet _groupMemberAttributeTypeNames;
+    private StringSet _groupMemberAttributeTypeNames;
 
     // names to be used in the 'mode' element of the Provider
     public static enum ProvidersType {
@@ -57,7 +56,7 @@ public class AuthnProvider extends DataObject {
         try {
             _mode = ProvidersType.valueOf(mode);
             setChanged("mode");
-        } catch(IllegalArgumentException ex) {
+        } catch (IllegalArgumentException ex) {
             IllegalArgumentException newex = new IllegalArgumentException("The provided value for <mode> is not correct", ex);
             throw newex;
         }
@@ -232,30 +231,30 @@ public class AuthnProvider extends DataObject {
     @AllowedGeoVersion(version = EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT)
     @Name("groupObjectClassNames")
     public StringSet getGroupObjectClassNames() {
-    	if(_groupObjectClassNames == null){
-    		_groupObjectClassNames = new StringSet();
-    	}
-		return _groupObjectClassNames;
-	}
+        if (_groupObjectClassNames == null) {
+            _groupObjectClassNames = new StringSet();
+        }
+        return _groupObjectClassNames;
+    }
 
-	public void setGroupObjectClassNames(StringSet groupObjectClassNames) {
-		this._groupObjectClassNames = groupObjectClassNames;
+    public void setGroupObjectClassNames(StringSet groupObjectClassNames) {
+        this._groupObjectClassNames = groupObjectClassNames;
         setChanged("groupObjectClassNames");
-	}
+    }
 
     @AllowedGeoVersion(version = EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT)
-	@Name("groupMemberAttributeTypeNames")
-	public StringSet getGroupMemberAttributeTypeNames() {
-		if(_groupMemberAttributeTypeNames == null){
-			_groupMemberAttributeTypeNames = new StringSet();
-    	}
-		return _groupMemberAttributeTypeNames;
-	}
+    @Name("groupMemberAttributeTypeNames")
+    public StringSet getGroupMemberAttributeTypeNames() {
+        if (_groupMemberAttributeTypeNames == null) {
+            _groupMemberAttributeTypeNames = new StringSet();
+        }
+        return _groupMemberAttributeTypeNames;
+    }
 
-	public void setGroupMemberAttributeTypeNames(StringSet groupMemberAttributeTypeNames) {
-		this._groupMemberAttributeTypeNames = groupMemberAttributeTypeNames;
+    public void setGroupMemberAttributeTypeNames(StringSet groupMemberAttributeTypeNames) {
+        this._groupMemberAttributeTypeNames = groupMemberAttributeTypeNames;
         setChanged("groupMemberAttributeTypeNames");
-	}
+    }
 
     @Override
     public String toString() {
@@ -301,10 +300,10 @@ public class AuthnProvider extends DataObject {
 
         sb.append(", maxPageSize=");
         sb.append(_maxPageSize);
-        
+
         sb.append(", objectClassNames=");
         sb.append(_groupObjectClassNames);
-        
+
         sb.append(", groupMemberAttributeTypeNames=");
         sb.append(_groupMemberAttributeTypeNames);
 
@@ -312,7 +311,7 @@ public class AuthnProvider extends DataObject {
 
         return sb.toString();
     }
-    
+
     @Deprecated
     @Name("validateCertificates")
     public Boolean getValidateCertificates() {
@@ -329,7 +328,7 @@ public class AuthnProvider extends DataObject {
     /**
      * Returns the minimum expected version for this API to the
      * consumers of the apisvc (portal).
-     *
+     * 
      * @return minimum expected geo version for this api.
      */
     public static String getExpectedGeoVDCVersionForLDAPGroupSupport() {

@@ -21,7 +21,7 @@ public class LongMap extends AbstractChangeTrackingMap<Long> {
     public Long valFromByte(byte[] value) {
         ByteBuffer buffer = ByteBuffer.allocate(8);
         buffer.put(value);
-        buffer.flip(); 
+        buffer.flip();
         return buffer.getLong();
     }
 

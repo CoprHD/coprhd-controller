@@ -19,17 +19,17 @@ import java.util.List;
 
 import com.emc.storageos.vnxe.models.VNXeStorageTier;
 
-public class StorageTierRequest extends KHRequests<VNXeStorageTier>{
+public class StorageTierRequest extends KHRequests<VNXeStorageTier> {
     private static final String URL = "/api/types/storageTier/instances";
+
     public StorageTierRequest(KHClient client) {
         super(client);
         _url = URL;
     }
 
-    public List<VNXeStorageTier> get(){
+    public List<VNXeStorageTier> get() {
         return getDataForObjects(VNXeStorageTier.class);
-       
+
     }
-    
 
 }

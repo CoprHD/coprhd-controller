@@ -19,9 +19,9 @@ import javax.xml.bind.annotation.*;
 import com.emc.storageos.model.RelatedResourceRep;
 
 /**
- * Information relevant to a file snapshot, returned as a 
+ * Information relevant to a file snapshot, returned as a
  * response to a REST request.
- *
+ * 
  */
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "file_snapshot")
@@ -29,9 +29,10 @@ public class FileSnapshotRestRep extends FileObjectRestRep {
     private String timestamp;
     private RelatedResourceRep parent;
     private String nativeId;
-    
+
     /**
      * ID of the snapshot, as exported by the array.
+     * 
      * @valid none
      */
     @XmlElement(name = "native_id")
@@ -42,10 +43,11 @@ public class FileSnapshotRestRep extends FileObjectRestRep {
     public void setNativeId(String nativeId) {
         this.nativeId = nativeId;
     }
-    
+
     /**
      * URI and reference link to the file share that is the
      * source of the snapshot.
+     * 
      * @valid none
      */
     @XmlElement
@@ -59,6 +61,7 @@ public class FileSnapshotRestRep extends FileObjectRestRep {
 
     /**
      * Time instant when the snapshot was created.
+     * 
      * @valid none
      */
     @XmlElement

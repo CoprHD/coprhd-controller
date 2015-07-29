@@ -24,47 +24,47 @@ public class DomainAccount implements Serializable {
     private String domainControllerHost;
     private String username;
     private String password;
-    
+
     public String getLabel() {
         return label;
     }
-    
+
     public void setLabel(String label) {
         this.label = label;
     }
-    
+
     public String getDomainName() {
         return domainName;
     }
-    
+
     public void setDomainName(String domainName) {
         this.domainName = domainName;
     }
-    
+
     public String getDomainControllerHost() {
         return domainControllerHost;
     }
-    
+
     public void setDomainControllerHost(String domainControllerHost) {
         this.domainControllerHost = domainControllerHost;
     }
-    
+
     public String getUsername() {
         return username;
     }
-    
+
     public void setUsername(String username) {
         this.username = username;
     }
-    
+
     public String getPassword() {
         return password;
     }
-    
+
     public void setPassword(String password) {
         this.password = password;
     }
-    
+
     @Override
     public String toString() {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);

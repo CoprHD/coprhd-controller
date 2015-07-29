@@ -24,7 +24,7 @@ import com.iwave.ext.windows.model.wmi.DiskDrive;
 
 @Service("Windows-MountBlockVolume")
 public class MountBlockVolumeService extends WindowsService {
-    
+
     @Param(ServiceParams.VOLUME)
     protected String volumeId;
 
@@ -44,7 +44,7 @@ public class MountBlockVolumeService extends WindowsService {
         verifyClusterConfiguration();
         for (MountBlockVolumeHelper mountBlockVolumeHelper : mountBlockVolumeHelpers) {
             mountBlockVolumeHelper.precheck();
-        }       
+        }
     }
 
     protected void verifyClusterConfiguration() {
@@ -55,35 +55,34 @@ public class MountBlockVolumeService extends WindowsService {
             mountBlockVolumeHelpers.get(0).verifyClusterHosts(hosts);
         }
     }
-    
+
     private long extractCapacityInBytes(BlockObjectRestRep blockObject) {
-        
+
         long capacityInBytes = 0;
         VolumeRestRep volume = getVolume(blockObject);
-        if (volume ==  null) {
+        if (volume == null) {
             ExecutionUtils.fail("task.fail.extractCapacityInBytes", blockObject.getId(), blockObject.getId());
         }
-        
+
         if (volume != null && StringUtils.isNotBlank(volume.getCapacity())) {
             try {
                 long capacityInGB = Double.valueOf(volume.getCapacity()).longValue();
                 capacityInBytes = capacityInGB * 1024 * 1024 * 1024;
-            }
-            catch (NumberFormatException e) {
+            } catch (NumberFormatException e) {
                 capacityInBytes = -1;
             }
         }
-        
+
         return capacityInBytes;
     }
 
     protected VolumeRestRep getVolume(BlockObjectRestRep blockObject) {
         VolumeRestRep volume = null;
         if (blockObject instanceof VolumeRestRep) {
-           volume = (VolumeRestRep)blockObject;
+            volume = (VolumeRestRep) blockObject;
         }
         else if (blockObject instanceof BlockSnapshotRestRep) {
-            BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep)blockObject;
+            BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep) blockObject;
             volume = getClient().blockVolumes().get(snapshot.getParent());
         }
         return volume;
@@ -99,7 +98,7 @@ public class MountBlockVolumeService extends WindowsService {
         DiskDrive diskDrive = mountBlockVolumeHelpers.get(0).mountVolume(volume);
 
         if (isClustered()) {
-            for (int i=1;i<mountBlockVolumeHelpers.size();i++) {
+            for (int i = 1; i < mountBlockVolumeHelpers.size(); i++) {
                 mountBlockVolumeHelpers.get(i).rescanDisks();
             }
 

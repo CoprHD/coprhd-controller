@@ -15,7 +15,7 @@ import com.emc.storageos.db.client.impl.ColumnField;
 import com.emc.storageos.db.client.model.DataObject;
 
 /**
- * Query constraint for type & prefix matching.  For example, give me FileShare
+ * Query constraint for type & prefix matching. For example, give me FileShare
  * with label "foobar*"
  */
 public interface PrefixConstraint extends Constraint {
@@ -37,8 +37,8 @@ public interface PrefixConstraint extends Constraint {
 
         // prefix indexed field - prefix search
         public static Constraint getConstraint(Class<? extends DataObject> type,
-                                               String columeField,
-                                               String prefix) {
+                String columeField,
+                String prefix) {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new PrefixConstraintImpl(prefix, field);
@@ -46,9 +46,9 @@ public interface PrefixConstraint extends Constraint {
 
         // prefix indexed field - prefix search, scoped to resource uri
         public static Constraint getConstraint(Class<? extends DataObject> type,
-                                               String columeField,
-                                               String prefix,
-                                               URI resourceUri) {
+                String columeField,
+                String prefix,
+                URI resourceUri) {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new PrefixConstraintImpl(resourceUri, prefix, field);
@@ -56,8 +56,8 @@ public interface PrefixConstraint extends Constraint {
 
         // prefix indexed field - full string match
         public static PrefixConstraint getFullMatchConstraint(Class<? extends DataObject> type,
-                                               String columeField,
-                                               String prefix) {
+                String columeField,
+                String prefix) {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new LabelConstraintImpl(prefix, field);

@@ -32,27 +32,28 @@ import java.util.List;
 import junit.framework.Assert;
 
 /**
- * Test upgrade of VirtualPool VNX AutoTierPolicyId format. 
+ * Test upgrade of VirtualPool VNX AutoTierPolicyId format.
  * In ViPR 2.1, UI passes the VNX AutoTierPolicyName as "CLARiiON+APM00140844986+FASTPOLICY+DEFAULT_HIGHEST_AVAILABLE" to APISvc
- * and persists the same where the same has been changed in 2.2 where UI is sending just the policy name "DEFAULT_HIGHEST_AVAILABLE" 
+ * and persists the same where the same has been changed in 2.2 where UI is sending just the policy name "DEFAULT_HIGHEST_AVAILABLE"
  * Hence this migration test script tests the same.
  * 
  */
 public class VirtualPoolVNXAutoTierPolicyIdMigrationTest extends DbSimpleMigrationTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(VirtualPoolVNXAutoTierPolicyIdMigrationTest.class);
-    
+
     @BeforeClass
     public static void setup() throws IOException {
         customMigrationCallbacks.put("2.1", new ArrayList<BaseCustomMigrationCallback>() {
 
-        {
-            add(new VirtualPoolVNXAutoTierPolicyIdMigration());
-        }});
+            {
+                add(new VirtualPoolVNXAutoTierPolicyIdMigration());
+            }
+        });
 
         DbsvcTestBase.setup();
     }
-    
+
     @Override
     protected String getSourceVersion() {
         return "2.1";
@@ -66,13 +67,13 @@ public class VirtualPoolVNXAutoTierPolicyIdMigrationTest extends DbSimpleMigrati
     @Override
     protected void prepareData() throws Exception {
         logger.info("Preparing data for virtual pool auto tiering policy Id migration test.");
-        //vpool with FAST policy set 
+        // vpool with FAST policy set
         VirtualPool vpool1 = new VirtualPool();
         URI vpool1URI = URIUtil.createId(VirtualPool.class);
         vpool1.setId(vpool1URI);
         vpool1.setAutoTierPolicyName("CLARiiON+1234+FASTPOLICY+SILVER");
         _dbClient.createObject(vpool1);
-        
+
     }
 
     @Override
@@ -80,8 +81,8 @@ public class VirtualPoolVNXAutoTierPolicyIdMigrationTest extends DbSimpleMigrati
         logger.info("Verifying results for virtual pool auto tiering policyId migration test.");
         List<URI> vpoolUris = _dbClient.queryByType(VirtualPool.class, true);
         Iterator<VirtualPool> vpools = _dbClient.queryIterativeObjects(VirtualPool.class, vpoolUris, true);
-        
-        while(vpools.hasNext()) {
+
+        while (vpools.hasNext()) {
             VirtualPool vpool = vpools.next();
             if (vpool.getAutoTierPolicyName() != null
                     && !vpool.getAutoTierPolicyName().isEmpty()) {
@@ -91,7 +92,7 @@ public class VirtualPoolVNXAutoTierPolicyIdMigrationTest extends DbSimpleMigrati
                             vpool.getAutoTierPolicyName().equals("SILVER"));
                 }
             }
-            
+
         }
 
     }

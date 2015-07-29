@@ -25,7 +25,7 @@ public class ModelFinder<T extends DataObject> extends BaseModelFinder<T> {
     public List<URI> findByLabel(String prefix) {
         return toURIs(client.findByPrefix(clazz, "label", prefix));
     }
-    
+
     public List<URI> findAllIds(boolean activeOnly) throws DataAccessException {
         return client.findAllIds(clazz, activeOnly);
     }

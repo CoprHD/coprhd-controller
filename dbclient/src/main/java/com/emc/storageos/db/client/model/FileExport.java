@@ -30,21 +30,20 @@ public class FileExport extends AbstractSerializableNestedObject {
     private static final String COMMENTS = "comments";
     private static final String NATIVEID = "nativeId";
     private static final String SUBDIRECTORY = "subDirectory";
-    
 
     /**
      * JAXB requirement
      */
     public FileExport() {
     }
-   
+
     /**
-     *
+     * 
      * FileShareObject constructor
-     *
-     * @param clients     Export clients --- IP, FQN.
-     * @param storagePortName        Port
-     * @param mountPoint  Mount point.
+     * 
+     * @param clients Export clients --- IP, FQN.
+     * @param storagePortName Port
+     * @param mountPoint Mount point.
      * @param securityType
      * @param permissions
      * @param rootUserMapping
@@ -54,8 +53,8 @@ public class FileExport extends AbstractSerializableNestedObject {
      * @param mountPath
      */
     public FileExport(List<String> clients, String storagePortName, String mountPoint,
-                      String securityType, String permissions, String rootUserMapping,
-                      String protocol, String storagePort, String path, String mountPath, String subDirectory, String comments) {
+            String securityType, String permissions, String rootUserMapping,
+            String protocol, String storagePort, String path, String mountPath, String subDirectory, String comments) {
         setClients(clients);
         setStoragePortName(storagePortName);
         setMountPoint(mountPoint);
@@ -70,19 +69,18 @@ public class FileExport extends AbstractSerializableNestedObject {
         setSubDirectory(subDirectory);
     }
 
-
     /**
-     *
+     * 
      * FileShareObject constructor
-     *
-     * @param clients     Export clients --- IP, FQN.
-     * @param storagePortName        Port
+     * 
+     * @param clients Export clients --- IP, FQN.
+     * @param storagePortName Port
      * @param securityType
      * @param permissions
      * @param rootUserMapping
      */
     public FileExport(List<String> clients, String storagePortName, String securityType, String permissions,
-                      String rootUserMapping, String protocol, String storagePort) {
+            String rootUserMapping, String protocol, String storagePort) {
         setClients(clients);
         setStoragePortName(storagePortName);
         setSecurityType(securityType);
@@ -93,17 +91,17 @@ public class FileExport extends AbstractSerializableNestedObject {
     }
 
     /**
-     *
+     * 
      * FileShareObject constructor
-     *
-     * @param clients     Export clients --- IP, FQN.
-     * @param storagePortName        Port
+     * 
+     * @param clients Export clients --- IP, FQN.
+     * @param storagePortName Port
      * @param securityType
      * @param permissions
      * @param rootUserMapping
      */
     public FileExport(List<String> clients, String storagePortName, String securityType, String permissions,
-                      String rootUserMapping, String protocol, String storagePort, String path) {
+            String rootUserMapping, String protocol, String storagePort, String path) {
         setClients(clients);
         setStoragePortName(storagePortName);
         setSecurityType(securityType);
@@ -114,18 +112,18 @@ public class FileExport extends AbstractSerializableNestedObject {
         setPath(path);
     }
 
-
     /**
-     *
+     * 
      * FileShareObject constructor
-     *
-     * @param clients     Export clients --- IP, FQN.
-     * @param storagePortName        Port
+     * 
+     * @param clients Export clients --- IP, FQN.
+     * @param storagePortName Port
      * @param securityType
      * @param permissions
      * @param rootUserMapping
      */
-    public FileExport(List<String> clients, String storagePortName, String securityType, String permissions, String rootUserMapping, String protocol) {
+    public FileExport(List<String> clients, String storagePortName, String securityType, String permissions, String rootUserMapping,
+            String protocol) {
         setClients(clients);
         setStoragePortName(storagePortName);
         setSecurityType(securityType);
@@ -140,7 +138,9 @@ public class FileExport extends AbstractSerializableNestedObject {
     }
 
     public void setClients(List<String> clients) {
-        if(clients == null) clients = new ArrayList<String>();
+        if (clients == null) {
+            clients = new ArrayList<String>();
+        }
         setListOfStringsField(CLIENTS, clients);
     }
 
@@ -150,7 +150,9 @@ public class FileExport extends AbstractSerializableNestedObject {
     }
 
     public void setStoragePortName(String port) {
-        if(port == null) port = "";
+        if (port == null) {
+            port = "";
+        }
         setField(STORAGEPORTNAME, port);
     }
 
@@ -160,121 +162,147 @@ public class FileExport extends AbstractSerializableNestedObject {
     }
 
     public void setMountPoint(String mountpoint) {
-        if(mountpoint == null) mountpoint = "";
+        if (mountpoint == null) {
+            mountpoint = "";
+        }
         setField(MOUNTPOINT, mountpoint);
     }
 
     @XmlElement(name = "isilon_id")
-    public String getIsilonId(){
+    public String getIsilonId() {
         return getStringField(ISILONID);
     }
 
-    public void setIsilonId(String isilonId){
-        if(isilonId == null) isilonId = "";
+    public void setIsilonId(String isilonId) {
+        if (isilonId == null) {
+            isilonId = "";
+        }
         setField(ISILONID, isilonId);
     }
 
     @XmlElement(name = "security_type")
-    public String getSecurityType(){
+    public String getSecurityType() {
         return getStringField(SECURITY_TYPE);
     }
 
-    public void setSecurityType(String securityType){
-        if(securityType == null) securityType = "";
+    public void setSecurityType(String securityType) {
+        if (securityType == null) {
+            securityType = "";
+        }
         setField(SECURITY_TYPE, securityType);
     }
 
     @XmlElement
-    public String getPermissions(){
+    public String getPermissions() {
         return getStringField(PERMISSIONS);
     }
 
-    public void setPermissions(String permissions){
-        if(permissions == null) permissions = "";
+    public void setPermissions(String permissions) {
+        if (permissions == null) {
+            permissions = "";
+        }
         setField(PERMISSIONS, permissions);
     }
 
     @XmlElement
-    public String getProtocol(){
+    public String getProtocol() {
         return getStringField(PROTOCOL);
     }
 
-    public void setProtocol(String protocol){
-        if(protocol == null) protocol = "";
+    public void setProtocol(String protocol) {
+        if (protocol == null) {
+            protocol = "";
+        }
         setField(PROTOCOL, protocol);
     }
 
-
     @XmlElement(name = "root_user_mapping")
-    public String getRootUserMapping(){
+    public String getRootUserMapping() {
         return getStringField(ROOT_USER_MAPPING);
     }
 
-    public void setRootUserMapping(String rootUserMapping){
-        if(rootUserMapping == null) rootUserMapping = "";
+    public void setRootUserMapping(String rootUserMapping) {
+        if (rootUserMapping == null) {
+            rootUserMapping = "";
+        }
         setField(ROOT_USER_MAPPING, rootUserMapping);
     }
 
     @XmlElement(name = "storage_port")
-    public String getStoragePort(){
+    public String getStoragePort() {
         return getStringField(STORAGEPORT);
     }
 
-    public void setStoragePort(String storagePort){
-        if(storagePort == null) storagePort = "";
+    public void setStoragePort(String storagePort) {
+        if (storagePort == null) {
+            storagePort = "";
+        }
         setField(STORAGEPORT, storagePort);
     }
 
     @XmlElement(name = "path")
-    public String getPath(){
+    public String getPath() {
         return getStringField(PATH);
     }
 
-    public void setPath(String path){
-        if(path == null) path = "";
+    public void setPath(String path) {
+        if (path == null) {
+            path = "";
+        }
         setField(PATH, path);
     }
 
     @XmlElement(name = "mountPath")
-    public String getMountPath(){
+    public String getMountPath() {
         return getStringField(MOUNTPATH);
     }
 
-    public void setMountPath(String mountPath){
-        if(mountPath == null) mountPath = "";
+    public void setMountPath(String mountPath) {
+        if (mountPath == null) {
+            mountPath = "";
+        }
         setField(MOUNTPATH, mountPath);
     }
+
     @XmlElement(name = "comments")
-    public String getComments(){
+    public String getComments() {
         return getStringField(COMMENTS);
     }
 
-    public void setComments(String comments){
-        if(comments == null) comments = "";
+    public void setComments(String comments) {
+        if (comments == null) {
+            comments = "";
+        }
         setField(COMMENTS, comments);
     }
+
     @XmlElement(name = "native_id")
     public String getNativeId() {
-    	return getStringField(NATIVEID);
+        return getStringField(NATIVEID);
     }
 
-    public void setNativeId(String nativeId){
-        if(nativeId == null) nativeId = "";
+    public void setNativeId(String nativeId) {
+        if (nativeId == null) {
+            nativeId = "";
+        }
         setField(NATIVEID, nativeId);
     }
-    
+
     @XmlElement(name = "subDirectory")
-    public String getSubDirectory(){
+    public String getSubDirectory() {
         return getStringField(SUBDIRECTORY);
     }
 
-    public void setSubDirectory(String subDirectory){
-        if(subDirectory == null) subDirectory = "";
+    public void setSubDirectory(String subDirectory) {
+        if (subDirectory == null) {
+            subDirectory = "";
+        }
         setField(SUBDIRECTORY, subDirectory);
     }
-    
+
     public String getFileExportKey() {
-        return String.format("%1$s.%2$s.%3$s.%4$s.%5$s", getProtocol(), getSecurityType(), getPermissions(), getRootUserMapping(), getPath());
+        return String.format("%1$s.%2$s.%3$s.%4$s.%5$s", getProtocol(), getSecurityType(), getPermissions(), getRootUserMapping(),
+                getPath());
     }
 
     public static String exportLookupKey(String protocol, String securityType, String permissions, String rootMapping, String path) {

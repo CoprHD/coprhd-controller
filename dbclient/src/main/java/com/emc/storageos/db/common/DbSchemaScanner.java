@@ -25,9 +25,10 @@ import com.emc.storageos.db.common.schema.TimeSeriesSchema;
 
 public class DbSchemaScanner extends PackageScanner {
     private static final Logger log = LoggerFactory.getLogger(DbSchemaScanner.class);
-    
+
     private DbSchemas schemas = new DbSchemas();
     private List<DbSchema> geoSchemas = new ArrayList<>();
+
     public DbSchemaScanner(String[] pkgs) {
         super(pkgs);
     }
@@ -41,7 +42,7 @@ public class DbSchemaScanner extends PackageScanner {
         DbSchema schema = null;
         if (DataObject.class.isAssignableFrom(clazz)) {
             if (_scannerInterceptor != null && _scannerInterceptor.isClassIgnored(clazz.getSimpleName())) {
-                log.warn("{} is ignored in schema due to interceptor", clazz.getSimpleName());                
+                log.warn("{} is ignored in schema due to interceptor", clazz.getSimpleName());
                 return;
             }
             schema = new DataObjectSchema(clazz, _scannerInterceptor);
@@ -52,11 +53,11 @@ public class DbSchemaScanner extends PackageScanner {
                 }
             }
 
-        }else if (TimeSeries.class.isAssignableFrom(clazz)) {
+        } else if (TimeSeries.class.isAssignableFrom(clazz)) {
             schema = new TimeSeriesSchema(clazz);
-        }else if (TimeSeriesSerializer.DataPoint.class.isAssignableFrom(clazz)) {
+        } else if (TimeSeriesSerializer.DataPoint.class.isAssignableFrom(clazz)) {
             schema = new DataPointSchema(clazz);
-        }else {
+        } else {
             return;
         }
         schemas.addSchema(schema);

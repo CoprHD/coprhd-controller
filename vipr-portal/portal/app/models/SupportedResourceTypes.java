@@ -34,7 +34,7 @@ public class SupportedResourceTypes {
     public static boolean supportsThick(String type) {
         return isThickOnly(type) || isThinAndThick(type);
     }
-    
+
     public static StringOption option(String type) {
         return new StringOption(type, getDisplayValue(type));
     }

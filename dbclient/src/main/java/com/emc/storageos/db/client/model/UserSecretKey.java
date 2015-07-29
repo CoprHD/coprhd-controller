@@ -20,7 +20,7 @@ public class UserSecretKey extends DataObject {
     private String _secondKey;
     private String _secondKeyTime;
     private Long _secondKeyExpiryTime;
-    private URI    _tenant;
+    private URI _tenant;
     private String _namespace;
 
     // Since _dbClient does not guarantee support for null values in the String,
@@ -45,7 +45,7 @@ public class UserSecretKey extends DataObject {
     }
 
     @Name("firstKeyTime")
-     public String getFirstKeyTime() {
+    public String getFirstKeyTime() {
         return _firstKeyTime;
     }
 
@@ -135,5 +135,5 @@ public class UserSecretKey extends DataObject {
         sb.append(_secondKeyTime);
         return sb.toString();
     }
- 
+
 }

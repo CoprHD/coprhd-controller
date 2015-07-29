@@ -14,7 +14,7 @@ import com.emc.storageos.db.client.upgrade.MigrationCallback;
 /**
  * this class contains information of reflection type of a schema class
  * this information can be used to locate the specified class/field/annotation
- * this class is named such because this information is avaiable only in the 
+ * this class is named such because this information is avaiable only in the
  * runtime schema instances, not those unmarshalled from XML
  */
 public class RuntimeType {

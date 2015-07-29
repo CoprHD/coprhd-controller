@@ -10,8 +10,9 @@ import java.net.URI;
  * An object to represent a cluster of hosts. A cluster can be a part of a
  * vcenter or a physical cluster. A cluster is a {@link TenantOrg} resource
  * and can be optionally assigned to a project.
+ * 
  * @author elalih
- *
+ * 
  */
 @Cf("Cluster")
 public class Cluster extends AbstractTenantResource {
@@ -42,12 +43,13 @@ public class Cluster extends AbstractTenantResource {
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] {  getLabel(),
-                getVcenterDataCenter(), getId()};
+        return new Object[] { getLabel(),
+                getVcenterDataCenter(), getId() };
     }
 
     /**
      * This field is currently not used. Any values passed into it will be ignored.
+     * 
      * @return null
      */
     @RelationIndex(cf = "RelationIndex", type = Project.class)
@@ -58,11 +60,12 @@ public class Cluster extends AbstractTenantResource {
 
     /**
      * This field is currently not used. Any values passed into it will be ignored.
-     * @param project 
+     * 
+     * @param project
      */
     public void setProject(URI project) {
-//        _project = project;
-//        setChanged("project");
+        // _project = project;
+        // setChanged("project");
     }
 
     /**

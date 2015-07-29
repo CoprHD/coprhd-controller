@@ -6,9 +6,9 @@ package com.iwave.ext.linux.command.powerpath;
 
 public class PowermtSaveCommand extends PowermtCommand {
 
-	public PowermtSaveCommand() {
-		super();
-		addArgument("save");
-	}
+    public PowermtSaveCommand() {
+        super();
+        addArgument("save");
+    }
 
 }

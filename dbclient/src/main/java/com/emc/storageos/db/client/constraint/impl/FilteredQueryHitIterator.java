@@ -11,11 +11,11 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.query.RowQuery;
 
 /**
- *  QueryHitIterator with a filter based on column name
+ * QueryHitIterator with a filter based on column name
  */
 public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
-    private Column<IndexColumnName> _current; 
-    
+    private Column<IndexColumnName> _current;
+
     public FilteredQueryHitIterator(RowQuery<String, IndexColumnName> query) {
         super(query);
     }
@@ -45,7 +45,7 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
      */
     private void moveNext() {
         _current = null;
-        while(_currentIt != null) {
+        while (_currentIt != null) {
             skipToNext();
             if (_current != null) {
                 return;
@@ -71,6 +71,7 @@ public abstract class FilteredQueryHitIterator<T> extends QueryHitIterator<T> {
 
     /**
      * check if a particular column is good or not
+     * 
      * @param column
      * @return true if filter likes column, false otherwise
      */

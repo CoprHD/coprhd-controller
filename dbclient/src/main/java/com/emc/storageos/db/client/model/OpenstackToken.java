@@ -5,11 +5,10 @@
 
 package com.emc.storageos.db.client.model;
 
-
 import java.net.URI;
 
-public class OpenstackToken extends DataObject{
-    //encrypted token
+public class OpenstackToken extends DataObject {
+    // encrypted token
     private String _token;
     // server's end point (i.e., storageUrl)
     private String _serviceEndPoint;
@@ -31,7 +30,9 @@ public class OpenstackToken extends DataObject{
     }
 
     public void setToken(String token) {
-        if(token == null) token = "";
+        if (token == null) {
+            token = "";
+        }
         _token = token;
         setChanged("token");
     }
@@ -42,7 +43,9 @@ public class OpenstackToken extends DataObject{
     }
 
     public void setServiceEndPoint(String serviceEndPoint) {
-        if(serviceEndPoint == null) serviceEndPoint = "";
+        if (serviceEndPoint == null) {
+            serviceEndPoint = "";
+        }
         _serviceEndPoint = serviceEndPoint;
         setChanged("serviceEndPoint");
     }
@@ -73,7 +76,9 @@ public class OpenstackToken extends DataObject{
     }
 
     public void setTokenExpire(String expire) {
-        if (expire == null)  expire = "";
+        if (expire == null) {
+            expire = "";
+        }
         _tokenExpire = expire;
         setChanged("tokenExpire");
     }
@@ -94,7 +99,9 @@ public class OpenstackToken extends DataObject{
     }
 
     public void setNamespace(String namespace) {
-        if (namespace == null)  namespace = "";
+        if (namespace == null) {
+            namespace = "";
+        }
         _namespace = namespace;
         setChanged("namespace");
     }

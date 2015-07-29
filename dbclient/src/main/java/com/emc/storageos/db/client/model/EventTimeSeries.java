@@ -27,6 +27,7 @@ public class EventTimeSeries implements TimeSeries<Event> {
      */
     public static class EventSerializer implements TimeSeriesSerializer<Event> {
         private GenericSerializer _genericSerializer = new GenericSerializer();
+
         @Override
         public byte[] serialize(Event data) {
             return _genericSerializer.toByteArray(Event.class, data);

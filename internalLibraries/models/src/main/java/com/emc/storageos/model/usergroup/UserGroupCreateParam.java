@@ -30,11 +30,11 @@ import java.util.Set;
 public class UserGroupCreateParam extends UserGroupBaseParam {
     private Set<UserAttributeParam> _attributes;
 
-    @XmlElementWrapper(name="attributes")
-    @XmlElement(required=true, name="attribute")
+    @XmlElementWrapper(name = "attributes")
+    @XmlElement(required = true, name = "attribute")
     @JsonProperty("attributes")
     public Set<UserAttributeParam> getAttributes() {
-        if(_attributes == null){
+        if (_attributes == null) {
             _attributes = new HashSet<>();
         }
         return _attributes;

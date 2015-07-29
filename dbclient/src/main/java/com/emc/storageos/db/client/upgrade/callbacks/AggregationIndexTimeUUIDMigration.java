@@ -20,7 +20,6 @@ import com.emc.storageos.services.util.AlertsLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
@@ -42,14 +41,14 @@ public class AggregationIndexTimeUUIDMigration extends BaseCustomMigrationCallba
             removeOldAggregationIndex();
             log.info("Removed old aggregation index");
             removeTimeUUIDIndexedFields(Volume.class);
-        }catch (Exception e) {
+        } catch (Exception e) {
             success = false;
         }
 
         try {
             log.info("Rebuilt aggregated fields for CF Volume");
             removeTimeUUIDIndexedFields(FileShare.class);
-        }catch (Exception e) {
+        } catch (Exception e) {
             success = false;
         }
 
@@ -57,7 +56,7 @@ public class AggregationIndexTimeUUIDMigration extends BaseCustomMigrationCallba
             log.info("Rebuilt aggregated fields for CF FileShare");
             removeTimeUUIDIndexedFields(StoragePool.class);
             log.info("Rebuilt aggregated fields for CF StoragePool");
-        }catch(Exception e) {
+        } catch (Exception e) {
             success = false;
         }
 
@@ -74,17 +73,17 @@ public class AggregationIndexTimeUUIDMigration extends BaseCustomMigrationCallba
         internalDbClient.rebuildCf("AggregatedIndex");
     }
 
-    private void removeTimeUUIDIndexedFields(Class<? extends DataObject> clazz ) throws Exception {
+    private void removeTimeUUIDIndexedFields(Class<? extends DataObject> clazz) throws Exception {
         DataObjectType doType = TypeMap.getDoType(clazz);
-        Collection<ColumnField> fields =  doType.getColumnFields();
-        Map<String,ColumnField> uuidFields = new HashMap<>();
-        for(ColumnField field : fields) {
+        Collection<ColumnField> fields = doType.getColumnFields();
+        Map<String, ColumnField> uuidFields = new HashMap<>();
+        for (ColumnField field : fields) {
             DbIndex index = field.getIndex();
-            if(index != null && index instanceof AggregateDbIndex){
-                uuidFields.put(field.getName(),field);
+            if (index != null && index instanceof AggregateDbIndex) {
+                uuidFields.put(field.getName(), field);
             }
         }
-        getInternalDbClient().resetFields(clazz, uuidFields, true); //true: ignore exception while accessing db
+        getInternalDbClient().resetFields(clazz, uuidFields, true); // true: ignore exception while accessing db
     }
 
     private InternalDbClient getInternalDbClient() {

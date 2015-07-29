@@ -25,8 +25,6 @@ import javax.wbem.WBEMException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -45,7 +43,7 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
     private static final Logger _log = LoggerFactory
             .getLogger(XIVSnapshotOperations.class);
     private XIVSmisCommandHelper _helper;
-	private IBMCIMObjectPathFactory _cimPath;
+    private IBMCIMObjectPathFactory _cimPath;
     private XIVSmisStorageDevicePostProcessor _smisStorageDevicePostProcessor;
 
     public void setCimObjectPathFactory(
@@ -64,8 +62,8 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
 
     // to suppress Spring ambiguous write method warning
     public XIVSmisCommandHelper getSmisCommandHelper() {
-		return _helper;
-	}
+        return _helper;
+    }
 
     public void setSmisStorageDevicePostProcessor(
             XIVSmisStorageDevicePostProcessor smisStorageDevicePostProcessor) {
@@ -373,20 +371,20 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
                     // If the snapshot group doesn't exist, ignore the exception.
                     // This is necessary in case of removing multiple snapshots from UI.
                     // E.g., snapshots v1_s1 and v2_s1 are part of snapshot group 1,
-                    // v1_s2 and v2_s2 are part of snapshot group 2.                    
-                    // When removing the four snapshots from UI in one request, it will create four tasks for deleting 
+                    // v1_s2 and v2_s2 are part of snapshot group 2.
+                    // When removing the four snapshots from UI in one request, it will create four tasks for deleting
                     // the snapshots from the two snapshot groups. Essentially, two tasks will race on the deleting.
                     // SMI-S call will return code 36944 if the groupSynchronized instance doesn't exist anymore.
                     CIMObjectPath snapGroup = (CIMObjectPath) groupSynchronized.getKeyValue(IBMSmisConstants.CP_SYNCED_ELEMENT);
                     if (_helper.checkExists(storage, snapGroup, false, false) != null) {
-                        throw e;     
+                        throw e;
                     }
                 }
             }
 
             // set inactive=true for all snapshots in the snaps set
             List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
-            for(BlockSnapshot snap : snaps) {
+            for (BlockSnapshot snap : snaps) {
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
                 _dbClient.persistObject(snap);
@@ -407,12 +405,12 @@ public class XIVSnapshotOperations extends AbstractSnapshotOperations {
     public void activateSingleVolumeSnapshot(StorageSystem storage,
             URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-    	// not supported by IBM XIV
+        // not supported by IBM XIV
     }
 
     @Override
     public void activateGroupSnapshots(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-    	// not supported by IBM XIV
+        // not supported by IBM XIV
     }
 }

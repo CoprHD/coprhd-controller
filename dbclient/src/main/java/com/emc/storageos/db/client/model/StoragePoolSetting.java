@@ -9,7 +9,7 @@ import java.net.URI;
 @Cf("StoragePoolSetting")
 public class StoragePoolSetting extends DiscoveredDataObject {
     private URI _storageSystem;
-    
+
     private URI _storagePool;
     /**
      * StoragePoolSetting unique identifier.
@@ -57,9 +57,9 @@ public class StoragePoolSetting extends DiscoveredDataObject {
     private String _packageRedundancyMin;
 
     /**********************************************
-     * AlternateIDIndex - poolSettingID           *
-     * RelationIndex - StorageDevice,StoragePool  *
-     *                                            *
+     * AlternateIDIndex - poolSettingID *
+     * RelationIndex - StorageDevice,StoragePool *
+     * *
      **********************************************/
 
     @AlternateId("AltIdIndex")
@@ -72,7 +72,6 @@ public class StoragePoolSetting extends DiscoveredDataObject {
         _poolsettingID = poolsettingID;
         setChanged("poolsettingID");
     }
-
 
     @Name("raidLevel")
     public String getRaidLevel() {

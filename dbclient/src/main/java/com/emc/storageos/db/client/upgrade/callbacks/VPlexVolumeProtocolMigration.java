@@ -32,7 +32,7 @@ public class VPlexVolumeProtocolMigration extends BaseCustomMigrationCallback {
             if (!NullColumnValueGetter.isNullURI(systemURI)) {
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
                 if ((system != null) &&
-                    (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType()))) {
+                        (DiscoveredDataObject.Type.vplex.name().equals(system.getSystemType()))) {
                     // This is a VPLEX volume. If not already set,
                     // set the protocols to FC.
                     StringSet protocols = volume.getProtocol();

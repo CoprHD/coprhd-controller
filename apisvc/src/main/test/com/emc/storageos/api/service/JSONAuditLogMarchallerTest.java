@@ -72,7 +72,7 @@ public class JSONAuditLogMarchallerTest {
                 introspector);
 
         AuditLog auditLog = mapper.readValue(new File(JsonTestOutputFile),
-        		AuditLog.class);
+                AuditLog.class);
 
         Assert.assertEquals("productId.1", auditLog.getProductId().toString());
         Assert.assertEquals("http://tenant.1", auditLog.getTenantId().toString());
@@ -84,7 +84,7 @@ public class JSONAuditLogMarchallerTest {
 
         deleteIfExists(JsonTestOutputFile);
     }
-    
+
     @Test
     public void testJsonAuditLogMarshallingForNullLog() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -92,7 +92,7 @@ public class JSONAuditLogMarchallerTest {
         deleteIfExists(JsonTestOutputFile);
         JSONAuditLogMarshaller jm = new JSONAuditLogMarshaller();
         AuditLog log = null;
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -122,22 +122,19 @@ public class JSONAuditLogMarchallerTest {
         AnnotationIntrospector introspector = new JaxbAnnotationIntrospector();
         mapper.getDeserializationConfig().withAnnotationIntrospector(
                 introspector);
-        
-        try{
+
+        try {
             @SuppressWarnings("unused")
             AuditLog auditLog = mapper.readValue(new File(JsonTestOutputFile),
-            		AuditLog.class);
-        }
-        catch(UnrecognizedPropertyException e){
+                    AuditLog.class);
+        } catch (UnrecognizedPropertyException e) {
             Assert.assertTrue(e.toString().contains("Unrecognized"));
         }
-  
+
         deleteIfExists(JsonTestOutputFile);
 
     }
-    
-    
-    
+
     @Test
     public void testJsonAuditLogMarshallingForIOExceptions() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -152,7 +149,7 @@ public class JSONAuditLogMarchallerTest {
         log.setAuditType("auditType.2");
         log.setDescription("description.2");
         log.setOperationalStatus("operationalStatus.2");
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -165,38 +162,37 @@ public class JSONAuditLogMarchallerTest {
                 return this.string.toString();
             }
         };
-       
-        try{
+
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.header(writer);           
-        } catch(MarshallingExcetion e){
+            jm.header(writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("JSON head Streaming failed"));
         }
 
-        try{
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.marshal(log, writer);           
-        } catch(MarshallingExcetion e){
+            jm.marshal(log, writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("JSON streaming failed"));
         }
-        
-        try{
+
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.tailer(writer);           
-        } catch(MarshallingExcetion e){
+            jm.tailer(writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("JSON tail Streaming failed"));
         }
         deleteIfExists(JsonTestOutputFile);
 
     }
-    
-    
+
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

@@ -2,7 +2,7 @@
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.impl;                                                    
+package com.emc.storageos.db.client.impl;
 
 import java.util.List;
 import java.util.Map;
@@ -29,9 +29,9 @@ public class ScopedLabelDbIndex extends DbIndex {
     }
 
     @Override
-    boolean addColumn(String recordKey, CompositeColumnName column, Object value, 
-                   String className, RowMutator mutator, Integer ttl, DataObject obj) {
-        ScopedLabel scopedLabel = (ScopedLabel)value;
+    boolean addColumn(String recordKey, CompositeColumnName column, Object value,
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
+        ScopedLabel scopedLabel = (ScopedLabel) value;
         String label = scopedLabel.getLabel();
 
         if (label == null || label.length() < minPrefixChars) {
@@ -46,7 +46,7 @@ public class ScopedLabelDbIndex extends DbIndex {
                 mutator.getIndexColumnList(indexCF, scopedRowKey);
 
         IndexColumnName indexEntry = new IndexColumnName(className, label.toLowerCase(),
-                        label, recordKey, mutator.getTimeUUID());
+                label, recordKey, mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 
@@ -54,7 +54,7 @@ public class ScopedLabelDbIndex extends DbIndex {
         String rowKey = getRowKey(label);
         indexColList = mutator.getIndexColumnList(indexCF, rowKey);
         indexEntry = new IndexColumnName(className,
-               label.toLowerCase(), label, recordKey, mutator.getTimeUUID());
+                label.toLowerCase(), label, recordKey, mutator.getTimeUUID());
 
         ColumnValue.setColumn(indexColList, indexEntry, null, ttl);
 
@@ -62,8 +62,8 @@ public class ScopedLabelDbIndex extends DbIndex {
     }
 
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-                         String className, RowMutator mutator,
-                         Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            String className, RowMutator mutator,
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         UUID uuid = column.getName().getTimeUUID();
 
         String text = column.getStringValue();
@@ -74,8 +74,8 @@ public class ScopedLabelDbIndex extends DbIndex {
         ColumnListMutation<IndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, scopedRowKey);
 
-        IndexColumnName indexEntry = 
-           new IndexColumnName(className, label.toLowerCase(), label, recordKey, uuid);
+        IndexColumnName indexEntry =
+                new IndexColumnName(className, label.toLowerCase(), label, recordKey, uuid);
 
         indexColList.deleteColumn(indexEntry);
 
@@ -92,14 +92,15 @@ public class ScopedLabelDbIndex extends DbIndex {
 
     public String getRowKey(String val) {
         if (val.length() < minPrefixChars) {
-            throw new IllegalArgumentException(String.format("Label prefix is \"%s\", shorter than required min length: %d", val, minPrefixChars));
+            throw new IllegalArgumentException(String.format("Label prefix is \"%s\", shorter than required min length: %d", val,
+                    minPrefixChars));
         }
 
         return val.toLowerCase().substring(0, minPrefixChars);
     }
 
     String getRowKey(CompositeColumnName column, Object value) {
-        ScopedLabel val = (ScopedLabel)value;
+        ScopedLabel val = (ScopedLabel) value;
         return getRowKey(val);
     }
 
@@ -118,9 +119,9 @@ public class ScopedLabelDbIndex extends DbIndex {
         }
     }
 
-  @Override
+    @Override
     public String toString() {
-        StringBuilder builder  = new StringBuilder("ScopedLabelDbIndex class");
+        StringBuilder builder = new StringBuilder("ScopedLabelDbIndex class");
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");
@@ -130,4 +131,4 @@ public class ScopedLabelDbIndex extends DbIndex {
 
         return builder.toString();
     }
-} 
+}

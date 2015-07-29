@@ -21,14 +21,14 @@ import java.util.regex.Pattern;
 /**
  * This class should contain common routines that can be used
  * among the ScaleIOXXX classes.
- *
+ * 
  */
 public class ScaleIOUtils {
 
     /**
      * This takes a ScaleIO capacity output that looks like "NNNN GB" or "NNNN MB"
      * to a String byte value.
-     *
+     * 
      * @param capacityString - String capacity value that was scraped from ScaleIO CLI output
      * @return String value representing the the capacity value as bytes
      */

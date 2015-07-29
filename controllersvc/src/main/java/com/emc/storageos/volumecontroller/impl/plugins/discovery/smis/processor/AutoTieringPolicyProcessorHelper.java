@@ -31,7 +31,7 @@ public class AutoTieringPolicyProcessorHelper {
 
     /**
      * Look up AutoTieringPolicy object by the given policyID. If found, return it, otherwise return null
-     *
+     * 
      * @param policyID [in] - Identifier for the policy
      * @param dbClient [in] - Database client
      * @return

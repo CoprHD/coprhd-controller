@@ -5,11 +5,9 @@
 
 package com.emc.storageos.db.client.model;
 
-import javax.xml.bind.annotation.XmlRootElement;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Cf("ObjectNetwork")
 public class ObjectNetwork extends DataObject {
@@ -48,10 +46,10 @@ public class ObjectNetwork extends DataObject {
         setChanged("registeredDataNodes");
     }
 
-    public String serializeRegisteredDataNodes( List<String> registeredDataNodes) {
+    public String serializeRegisteredDataNodes(List<String> registeredDataNodes) {
         StringBuilder registeredDataNodesBuilder = new StringBuilder();
 
-        for( String registeredDataNode : registeredDataNodes) {
+        for (String registeredDataNode : registeredDataNodes) {
             registeredDataNodesBuilder.append(registeredDataNode);
             registeredDataNodesBuilder.append(",");
         }
@@ -59,13 +57,13 @@ public class ObjectNetwork extends DataObject {
         return registeredDataNodesBuilder.toString();
     }
 
-    public List<String> deserializeRegisteredDataNodes( String serializedRegisteredDataNodes ) {
+    public List<String> deserializeRegisteredDataNodes(String serializedRegisteredDataNodes) {
         List<String> registeredDataNodesList = new ArrayList<String>();
 
-        if( serializedRegisteredDataNodes != null &&
+        if (serializedRegisteredDataNodes != null &&
                 serializedRegisteredDataNodes.length() > 0) {
             String nodeIPs[] = serializedRegisteredDataNodes.split(",");
-            for(String nodeIP : nodeIPs) {
+            for (String nodeIP : nodeIPs) {
                 registeredDataNodesList.add(nodeIP);
             }
         }

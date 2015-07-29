@@ -31,26 +31,27 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 
 @Path("/vdc/capacities")
-@DefaultPermissions( read_roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR},
-                     write_roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class VirtualDataCenterCapacityService extends ResourceService {
 
     private final Logger logger = LoggerFactory.getLogger(VirtualDataCenterCapacityService.class);
-    
+
     protected AttributeMatcherFramework _matcherFramework;
-    
+
     public void setMatcherFramework(AttributeMatcherFramework matcherFramework) {
         _matcherFramework = matcherFramework;
     }
-    
-    /**     
+
+    /**
      * List all VirtualPool capacities under the zone grouped by varray
+     * 
      * @brief List VirtualPool capacities in the zone
      * @return List of VirtualPool capacities
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public VDCCapacities getZoneCapacities() {
 
         VDCCapacities zoneCap = new VDCCapacities();
@@ -58,13 +59,13 @@ public class VirtualDataCenterCapacityService extends ResourceService {
 
         // get all varray ids
         final List<URI> ids = _dbClient.queryByType(VirtualArray.class, true);
-        for(URI id : ids) {
+        for (URI id : ids) {
             zoneCap.getArrayCapacities().add(getVirtualArrayVirtualPoolCapacities(id));
         }
 
         return zoneCap;
     }
-    
+
     private VirtualArrayVirtualPoolCapacity getVirtualArrayVirtualPoolCapacities(URI vArrayId) {
         VirtualArrayVirtualPoolCapacity vArrayCap = new VirtualArrayVirtualPoolCapacity();
         vArrayCap.setId(vArrayId);
@@ -74,7 +75,7 @@ public class VirtualDataCenterCapacityService extends ResourceService {
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getVirtualArrayVirtualPoolConstraint(vArrayId),
                 resultList);
-        
+
         Iterator<URI> vPoolIterator = resultList.iterator();
         int c = 0;
         while (vPoolIterator.hasNext()) {
@@ -83,20 +84,20 @@ public class VirtualDataCenterCapacityService extends ResourceService {
             vArrayCap.getVpoolCapacities().add(getVirtualPoolCapacities(vArrayId, vPool));
             c++;
         }
-        
+
         logger.info("{} vpool in varray {}", c, vArrayId);
-        
+
         return vArrayCap;
     }
 
     private VirtualPoolCapacity getVirtualPoolCapacities(URI vArrayId, VirtualPool vPool) {
-        
+
         VirtualPoolCapacity vPoolCap = new VirtualPoolCapacity();
-        
+
         vPoolCap.setId(vPool.getId());
-         
+
         vPoolCap.setCapacity(CapacityUtils.getCapacityForVirtualPoolAndVirtualArray(vPool, vArrayId, _dbClient, _coordinator));
-        
+
         return vPoolCap;
     }
 }

@@ -5,12 +5,6 @@
 
 package com.emc.storageos.db.client.impl;
 
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.annotation.Annotation;
-
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
@@ -22,9 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.Cf;
-import com.emc.storageos.db.client.model.Name;
 import com.emc.storageos.db.client.model.GlobalLock;
-import com.emc.storageos.db.exceptions.DatabaseException;
 
 /**
  * Encapsulate Global Lock
@@ -37,17 +29,17 @@ public class GlobalLockType {
 
     /**
      * Constructor
-     *
+     * 
      * @param clazz
      */
     public GlobalLockType() {
-        cf = new ColumnFamily<String, String>(((Cf)type.getAnnotation(Cf.class)).value(),
+        cf = new ColumnFamily<String, String>(((Cf) type.getAnnotation(Cf.class)).value(),
                 StringSerializer.get(), StringSerializer.get());
     }
 
     /**
-     * Get CF for global lock 
-     *
+     * Get CF for global lock
+     * 
      * @return
      */
     public ColumnFamily<String, String> getCf() {
@@ -61,13 +53,15 @@ public class GlobalLockType {
         batch.execute();
     }
 
-    public GlobalLock deserialize(Row<String, String> row) {  
-        if (row == null)
+    public GlobalLock deserialize(Row<String, String> row) {
+        if (row == null) {
             return null;
+        }
 
         ColumnList<String> columnList = row.getColumns();
-        if (columnList == null || columnList.isEmpty())
+        if (columnList == null || columnList.isEmpty()) {
             return null;
+        }
 
         Column<String> mode = columnList.getColumnByName(GlobalLock.GL_MODE_COLUMN);
         Column<String> owner = columnList.getColumnByName(GlobalLock.GL_OWNER_COLUMN);
@@ -78,7 +72,7 @@ public class GlobalLockType {
         glock.setMode(mode.getStringValue());
         glock.setOwner(owner.getStringValue());
         glock.setExpirationTime(expiration.getStringValue());
-      
+
         return glock;
     }
 }

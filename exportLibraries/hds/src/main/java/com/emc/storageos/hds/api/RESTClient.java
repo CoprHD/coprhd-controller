@@ -85,7 +85,7 @@ public class RESTClient {
      */
     ClientResponse put(URI uri, String body) {
         return setResourceHeaders(_client.resource(uri)).type(MediaType.TEXT_XML)
-            .put(ClientResponse.class, body);
+                .put(ClientResponse.class, body);
     }
 
     /**
@@ -98,7 +98,7 @@ public class RESTClient {
      */
     ClientResponse post(URI uri, String body) {
         return setResourceHeaders(_client.resource(uri)).type(MediaType.TEXT_XML)
-            .post(ClientResponse.class, body);
+                .post(ClientResponse.class, body);
     }
 
     /**

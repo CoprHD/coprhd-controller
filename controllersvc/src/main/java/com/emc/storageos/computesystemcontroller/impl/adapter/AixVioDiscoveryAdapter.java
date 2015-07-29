@@ -55,14 +55,14 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             save(host);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
                     getSupportedType(), version.toString(),
-                    getVersionValidator().getAixVioMinimumVersion(false).toString()); 
+                    getVersionValidator().getAixVioMinimumVersion(false).toString());
         }
     }
-    
+
     protected void validateHost(Host host) {
         getCli(host).executeCommand("pwd");
     }
-    
+
     private AixVioCLI getCli(Host vio) {
         return new AixVioCLI(vio.getHostName(), vio.getPortNumber(), vio.getUsername(), vio.getPassword());
     }
@@ -70,18 +70,18 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     public AixVersion getVersion(Host vio) {
         return getCli(vio).getVersion();
     }
-    
-	public void setDbCLient(DbClient dbClient) {
-		super.setDbClient(dbClient);
-	}
+
+    public void setDbCLient(DbClient dbClient) {
+        super.setDbClient(dbClient);
+    }
 
     @Override
     protected void discoverIpInterfaces(Host host,
             List<IpInterface> oldIpInterfaces) {
         // Unable to discover IP interfaces on AIX VIO
-        
+
     }
-    
+
     private void discoverFCInitiator(Host host, Initiator initiator, HBAInfo hba) {
         setInitiator(initiator, host);
         initiator.setProtocol(Protocol.FC.name());
@@ -90,7 +90,7 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         setHostInterfaceRegistrationStatus(initiator, host);
         save(initiator);
     }
-    
+
     private void discoverISCSIInitiator(Host host, Initiator initiator, String iqn) {
         setInitiator(initiator, host);
         initiator.setInitiatorNode("");
@@ -104,7 +104,7 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected void discoverInitiators(Host host, List<Initiator> oldInitiators, HostStateChange changes) {
         AixVioCLI cli = getCli(host);
         List<Initiator> addedInitiators = Lists.newArrayList();
-        
+
         try {
             for (HBAInfo hba : cli.listInitiators()) {
                 Initiator initiator;
@@ -117,8 +117,7 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 }
                 discoverFCInitiator(host, initiator, hba);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to list FC Ports, skipping");
         }
 
@@ -133,13 +132,13 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 }
                 discoverISCSIInitiator(host, initiator, iqn);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to list iSCSI Ports, skipping");
         }
         // update export groups with new initiators if host is in use.
         if (!addedInitiators.isEmpty()) {
-            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators, CommonTransformerFunctions.fctnDataObjectToID()));
+            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators,
+                    CommonTransformerFunctions.fctnDataObjectToID()));
             changes.setNewInitiators(addedInitiatorIds);
         }
     }
@@ -157,7 +156,7 @@ public class AixVioDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
             }
         } catch (CommandException ex) {
             LOG.warn("Failed to get MAC address of adapter during discovery");
-        }        
+        }
     }
 
 }

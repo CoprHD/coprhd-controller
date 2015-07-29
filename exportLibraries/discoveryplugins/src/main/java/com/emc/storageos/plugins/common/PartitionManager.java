@@ -27,19 +27,21 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.google.common.collect.Lists;
 
 public class PartitionManager {
-   
-    private  Logger  _log = LoggerFactory
-    .getLogger(PartitionManager.class);
+
+    private Logger _log = LoggerFactory
+            .getLogger(PartitionManager.class);
+
     /**
      * insert in batches
+     * 
      * @param records
      * @param partitionSize
      * @param dbClient
      */
-    public  void insertInBatches(List<Stat> records, int partitionSize,
+    public void insertInBatches(List<Stat> records, int partitionSize,
             DbClient dbClient) {
-        List<List<Stat>> stat_partitions =  Lists.partition(records, partitionSize);
-        for(List<Stat> partition : stat_partitions) {
+        List<List<Stat>> stat_partitions = Lists.partition(records, partitionSize);
+        for (List<Stat> partition : stat_partitions) {
             Stat[] statBatch = new Stat[partition.size()];
             statBatch = partition.toArray(statBatch);
             try {
@@ -48,12 +50,13 @@ public class PartitionManager {
             } catch (DatabaseException e) {
                 _log.error("Error inserting time series records into the database", e);
             }
-           
+
         }
     }
-    
+
     /**
      * insert Discovered Objects in batches
+     * 
      * @param records
      * @param partitionSize
      * @param dbClient
@@ -70,44 +73,46 @@ public class PartitionManager {
             }
         }
     }
-    
+
     /**
      * update Discovered Objects in batches
+     * 
      * @param records
      * @param partitionSize
      * @param dbClient
      */
     public <T extends DataObject> void updateInBatches(List<T> records, int partitionSize,
             DbClient dbClient, String type) {
-        List<List<T>> volume_partitions =  Lists.partition(records, partitionSize);
-        for(List<T> partition : volume_partitions) {
+        List<List<T>> volume_partitions = Lists.partition(records, partitionSize);
+        for (List<T> partition : volume_partitions) {
             try {
                 dbClient.persistObject(partition);
-                _log.info("{} {} Records updated to DB",partition.size(), type);
+                _log.info("{} {} Records updated to DB", partition.size(), type);
             } catch (DatabaseException e) {
-                _log.error("Error updating {} records into the database:", type,e);
+                _log.error("Error updating {} records into the database:", type, e);
             }
-           
+
         }
     }
-    
+
     /**
      * update Discovered Objects in batches
+     * 
      * @param records
      * @param partitionSize
      * @param dbClient
      */
     public <T extends DataObject> void updateAndReIndexInBatches(List<T> records, int partitionSize,
             DbClient dbClient, String type) {
-        List<List<T>> volume_partitions =  Lists.partition(records, partitionSize);
-        for(List<T> partition : volume_partitions) {
+        List<List<T>> volume_partitions = Lists.partition(records, partitionSize);
+        for (List<T> partition : volume_partitions) {
             try {
                 dbClient.updateAndReindexObject(partition);
-                _log.info("{} {} Records updated and reindexed to DB",partition.size(), type);
+                _log.info("{} {} Records updated and reindexed to DB", partition.size(), type);
             } catch (DatabaseException e) {
-                _log.error("Error updating {} records into the database:", type,e);
+                _log.error("Error updating {} records into the database:", type, e);
             }
-           
+
         }
     }
 }

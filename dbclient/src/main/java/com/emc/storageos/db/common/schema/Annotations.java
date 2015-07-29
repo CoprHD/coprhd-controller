@@ -5,7 +5,6 @@
 
 package com.emc.storageos.db.common.schema;
 
-
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +30,7 @@ public class Annotations {
     }
 
     public Annotations(RuntimeType runtimeType, Annotation[] annotations, SchemaObject parent) {
-        this(runtimeType, annotations, parent, (DbSchemaScannerInterceptor)null);
+        this(runtimeType, annotations, parent, (DbSchemaScannerInterceptor) null);
     }
 
     public Annotations(RuntimeType runtimeType, Annotation[] annotations, SchemaObject parent, DbSchemaScannerInterceptor scannerInterceptor) {
@@ -39,35 +38,46 @@ public class Annotations {
             Annotation annotation = annotations[i];
 
             if (!annotation.annotationType().getPackage().getName().startsWith(
-                    "com.emc.storageos"))
+                    "com.emc.storageos")) {
                 continue;
+            }
             // Ttl doesn't affect the serialization behavior
-            if (annotation.annotationType().equals(Ttl.class))
+            if (annotation.annotationType().equals(Ttl.class)) {
                 continue;
+            }
             // This will override the field name if present, so no need to record it here
             // Cf annotation will overwrite the name of the DbSchema, so, skip it here
-            if (annotation.annotationType().equals(Name.class) || annotation.annotationType().equals(Cf.class))
+            if (annotation.annotationType().equals(Name.class) || annotation.annotationType().equals(Cf.class)) {
                 continue;
+            }
             // CustomMigrationCallback will be replaced by versioned migration callbacks
-            if (annotation.annotationType().equals(CustomMigrationCallback.class))
+            if (annotation.annotationType().equals(CustomMigrationCallback.class)) {
                 continue;
+            }
             if (scannerInterceptor != null) {
                 boolean isClassAnnotation = runtimeType.getPropertyDescriptor() == null;
-                if (isClassAnnotation && scannerInterceptor.isClassAnnotationIgnored(runtimeType.getCfClass().getSimpleName(), annotations[i].annotationType().getSimpleName())) {
-                    String msg = String.format("Class annotation %s:%s is ignored in schema due to interceptor", runtimeType.getCfClass().getSimpleName(), annotations[i].annotationType().getSimpleName());
-                    log.warn(msg);                
+                if (isClassAnnotation
+                        && scannerInterceptor.isClassAnnotationIgnored(runtimeType.getCfClass().getSimpleName(), annotations[i]
+                                .annotationType().getSimpleName())) {
+                    String msg = String.format("Class annotation %s:%s is ignored in schema due to interceptor", runtimeType.getCfClass()
+                            .getSimpleName(), annotations[i].annotationType().getSimpleName());
+                    log.warn(msg);
                     continue;
-                } else if (!isClassAnnotation && scannerInterceptor.isAnnotationIgnored(runtimeType.getCfClass().getSimpleName(), runtimeType.getPropertyDescriptor().getName(), annotations[i].annotationType())) {
-                    String msg = String.format("Property annotation %s:%s:%s is ignored in schema due to interceptor", runtimeType.getCfClass().getSimpleName(), runtimeType.getPropertyDescriptor().getName(), annotations[i].annotationType().getSimpleName());
-                    log.warn(msg);                    
+                } else if (!isClassAnnotation
+                        && scannerInterceptor.isAnnotationIgnored(runtimeType.getCfClass().getSimpleName(), runtimeType
+                                .getPropertyDescriptor().getName(), annotations[i].annotationType())) {
+                    String msg = String.format("Property annotation %s:%s:%s is ignored in schema due to interceptor", runtimeType
+                            .getCfClass().getSimpleName(), runtimeType.getPropertyDescriptor().getName(), annotations[i].annotationType()
+                            .getSimpleName());
+                    log.warn(msg);
                     continue;
-                }                
+                }
             }
             this.annotations.add(new AnnotationType(runtimeType, annotations[i], parent));
         }
     }
 
-    @XmlElement(name="annotation")
+    @XmlElement(name = "annotation")
     public List<AnnotationType> getAnnotations() {
         return annotations;
     }
@@ -78,10 +88,11 @@ public class Annotations {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof Annotations)) 
+        if (!(o instanceof Annotations)) {
             return false;
+        }
 
-        List<AnnotationType> annotations = ((Annotations)o).getAnnotations();
+        List<AnnotationType> annotations = ((Annotations) o).getAnnotations();
         return Objects.equal(this.annotations, annotations);
     }
 

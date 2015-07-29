@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.db.client.upgrade.AddIndexMigrationCallback;
-
 import java.lang.annotation.*;
 
 /**
@@ -13,7 +11,7 @@ import java.lang.annotation.*;
  * URI strings from key values of the map are used for Relational indexing
  */
 @Documented
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 @UpgradeAllowed()
 public @interface IndexByKey {

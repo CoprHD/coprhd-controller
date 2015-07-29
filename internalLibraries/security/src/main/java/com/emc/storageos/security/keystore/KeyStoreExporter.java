@@ -23,8 +23,9 @@ public interface KeyStoreExporter {
 
     /**
      * Save Keystore as local file
+     * 
      * @throws Exception
      */
     public void export() throws KeyStoreException, IOException, NoSuchAlgorithmException,
-                                CertificateException, InterruptedException;
+            CertificateException, InterruptedException;
 }

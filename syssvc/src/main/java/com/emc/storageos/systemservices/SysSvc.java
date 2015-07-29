@@ -22,22 +22,23 @@ public interface SysSvc {
 
     /**
      * Starts Upgrade Coordinator Service
-     *
+     * 
      * @throws Exception
      */
     public void start() throws Exception;
 
     /**
      * Stops Upgrade Coordinator Service
-     *
+     * 
      * @throws Exception
      */
     public void stop() throws Exception;
 
     /**
      * Fetch Upgrade URL
-     * @return              Returns string containing URL containing upgrade OVF files.
+     * 
+     * @return Returns string containing URL containing upgrade OVF files.
      * @throws Exception
-    public String fetchUpgradeOVFURL() throws Exception;
+     *             public String fetchUpgradeOVFURL() throws Exception;
      */
 }

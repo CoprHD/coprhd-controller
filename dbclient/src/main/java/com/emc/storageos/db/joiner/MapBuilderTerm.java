@@ -11,8 +11,9 @@ import java.util.Set;
 
 /**
  * A Map "term" represents a single push operation.
+ * 
  * @author watson
- *
+ * 
  */
 class MapBuilderTerm {
     MapBuilderTermType type;

@@ -12,13 +12,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * You should mark this annotation for any newly added fields on existing CF or new CF in geodb,   
+ * You should mark this annotation for any newly added fields on existing CF or new CF in geodb,
  * Modification to the new field/CF is not allowed until all VDCs reach the same GeoVersion or beyond.
  */
 
 @Documented
-@Target({ElementType.METHOD,ElementType.TYPE})
+@Target({ ElementType.METHOD, ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface AllowedGeoVersion {
-	String version() default "";
+    String version() default "";
 }

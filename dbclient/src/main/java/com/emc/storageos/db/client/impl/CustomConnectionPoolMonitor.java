@@ -21,9 +21,9 @@ public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
     static final int BUSY_CONNECTION_THRESHOLD = 50;
     static final int SUCCESS_OP_COUNT_THRESHOLD = 5 * 1000;
     private long _monitorIntervalSeconds = 1000; // every min
-    private AtomicLong prevOpFailureCount  = new AtomicLong();
+    private AtomicLong prevOpFailureCount = new AtomicLong();
     private long opFailureDiff = 0;
-    private AtomicLong prevOpSuccessCount  = new AtomicLong();
+    private AtomicLong prevOpSuccessCount = new AtomicLong();
     private long opSuccessDiff = 0;
     private ScheduledExecutorService _exe = Executors.newScheduledThreadPool(1);
 
@@ -34,7 +34,7 @@ public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
             _log.info("Connection pool stats monitoring is disabled.");
             return;
         }
-        // start after 1min,  run every monitorIntervalSeconds
+        // start after 1min, run every monitorIntervalSeconds
         _exe.scheduleWithFixedDelay(new Runnable() {
             private boolean needToDumpStats() {
                 boolean ret = false;
@@ -43,7 +43,7 @@ public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
                 if (opFailureDiff > 0) {
                     ret = true;
                 }
-                // if success count  > SUCCESS_OP_COUNT_THRESHOLD
+                // if success count > SUCCESS_OP_COUNT_THRESHOLD
                 opSuccessDiff = getOperationSuccessCount() - prevOpSuccessCount.get();
                 if (opSuccessDiff > SUCCESS_OP_COUNT_THRESHOLD) {
                     ret = true;
@@ -59,7 +59,8 @@ public class CustomConnectionPoolMonitor extends CountingConnectionPoolMonitor {
             public void run() {
                 if (needToDumpStats()) {
                     _log.info("In the last {}secs: Failed ops: {}, Successful ops {}, Busy connections {}",
-                            new String[] {""+_monitorIntervalSeconds, ""+opFailureDiff, ""+opSuccessDiff, ""+getNumBusyConnections()});
+                            new String[] { "" + _monitorIntervalSeconds, "" + opFailureDiff, "" + opSuccessDiff,
+                                    "" + getNumBusyConnections() });
                     _log.info(dumpStats());
                 }
                 prevOpFailureCount.set(getOperationFailureCount());

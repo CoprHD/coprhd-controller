@@ -23,16 +23,18 @@ public class URIUtil {
     private static final Logger log = LoggerFactory.getLogger(URIUtil.class);
     private static final int VDC_PARTS_COUNT = 4;
 
-	private static final String[] MODEL_PACKAGES = new String[]{"com.emc.storageos.db.client.model", "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects"};
+    private static final String[] MODEL_PACKAGES = new String[] { "com.emc.storageos.db.client.model",
+            "com.emc.storageos.db.client.model.UnManagedDiscoveredObjects" };
 
-	/** Pattern for finding the 'type' from an ID. */
-	private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
-	
-	/** Null URI to use to unassign certain values. */
-	public static final URI NULL_URI = uri("null");	
-	
+    /** Pattern for finding the 'type' from an ID. */
+    private static final Pattern TYPE_PATTERN = Pattern.compile("urn\\:storageos\\:([^\\:]+)");
+
+    /** Null URI to use to unassign certain values. */
+    public static final URI NULL_URI = uri("null");
+
     /**
      * creates a URI for an object of type clazz
+     * 
      * @param clazz
      * @return
      */
@@ -44,9 +46,8 @@ public class URIUtil {
         return newId(clazz, uuid, getLocation(clazz));
     }
 
-
     /**
-     * Creates an ID for a particular class with a well known identifier.  Used for creating identifiers for
+     * Creates an ID for a particular class with a well known identifier. Used for creating identifiers for
      * internal objects that don't change throughout the lifetime of the system.
      */
     public static URI createInternalID(Class<? extends DataObject> clazz, String identifier) {
@@ -55,13 +56,13 @@ public class URIUtil {
 
     /**
      * creates a URI for an VirtualDataCenter object. no vdc short id required
-     *
+     * 
      * @return
      */
     public static URI createVirtualDataCenterId(String vdcId) {
         return newId(VirtualDataCenter.class, vdcId);
     }
-    
+
     private static URI newId(Class<? extends DataObject> clazz, String vdcId) {
         return newId(clazz, UUID.randomUUID().toString(), vdcId);
     }
@@ -76,14 +77,13 @@ public class URIUtil {
 
         for (String modelPackage : MODEL_PACKAGES) {
             try {
-                return Thread.currentThread().getContextClassLoader().loadClass(modelPackage+"."+typeName);
-            }
-            catch (ClassNotFoundException ignore) {
+                return Thread.currentThread().getContextClassLoader().loadClass(modelPackage + "." + typeName);
+            } catch (ClassNotFoundException ignore) {
                 log.warn("load class failed:{}", ignore);
             }
         }
 
-        throw new RuntimeException("Unable to find Model Class for "+id);
+        throw new RuntimeException("Unable to find Model Class for " + id);
     }
 
     @SuppressWarnings("rawtypes")
@@ -98,7 +98,7 @@ public class URIUtil {
     public static boolean isValid(String uri) {
         try {
             return isValid(new URI(uri));
-        } catch(URISyntaxException e) {
+        } catch (URISyntaxException e) {
             return false;
         }
     }
@@ -106,23 +106,23 @@ public class URIUtil {
     /**
      * @return true if the uri represents a valid ViPR URI regardless of class
      */
-    public static boolean isValid(final URI uri){
-	if (uri == null || uri.getScheme() == null || uri.getSchemeSpecificPart() == null
+    public static boolean isValid(final URI uri) {
+        if (uri == null || uri.getScheme() == null || uri.getSchemeSpecificPart() == null
                 || !uri.getScheme().equals("urn")
                 || !uri.getSchemeSpecificPart().startsWith("storageos")) {
             return false;
         }
 
-	/*
-	 * (?i) - ignores case of letters in following parentheses
-	 * urn:storageos: - matches exact stting, this is consistent for all ViPR uris
-	 * [A-Z]+: - This will match the class with any number of letters followed by a colon
-	 * [A-F0-9]{8} - used for matchin UUID, This segment is 8 hex characters.
-	 * The full UUID pattern is all Hex characters seperated by '-' in specific quantities
-	 * (:[A-Z0-9]+)? - (optional) any amount of letters or numbers preceded by a colon
-	 *
-	 * Only legal characters (letters(any case), numbers, '-', ':')
-	 */
+        /*
+         * (?i) - ignores case of letters in following parentheses
+         * urn:storageos: - matches exact stting, this is consistent for all ViPR uris
+         * [A-Z]+: - This will match the class with any number of letters followed by a colon
+         * [A-F0-9]{8} - used for matchin UUID, This segment is 8 hex characters.
+         * The full UUID pattern is all Hex characters seperated by '-' in specific quantities
+         * (:[A-Z0-9]+)? - (optional) any amount of letters or numbers preceded by a colon
+         * 
+         * Only legal characters (letters(any case), numbers, '-', ':')
+         */
 
         return uri.toString().matches("(?i)(urn:storageos:" +
                 "[A-Z]+:" +
@@ -131,26 +131,26 @@ public class URIUtil {
     }
 
     public static List<URI> toURIList(Collection<String> stringList) {
-    	List<URI> uriList = null;
-    	if (stringList != null && !stringList.isEmpty()) {
-    		uriList = new ArrayList<>();
-    		for (String uriStr : stringList) {
-    			uriList.add(URI.create(uriStr));
-    		}
-    	}
-    	return uriList;
+        List<URI> uriList = null;
+        if (stringList != null && !stringList.isEmpty()) {
+            uriList = new ArrayList<>();
+            for (String uriStr : stringList) {
+                uriList.add(URI.create(uriStr));
+            }
+        }
+        return uriList;
     }
-    
+
     public static String getTypeName(URI id) {
-    	return getTypeName(id.toString());
+        return getTypeName(id.toString());
     }
-    
+
     public static String getTypeName(String id) {
-    	Matcher m = TYPE_PATTERN.matcher(id);    	
-    	if (m.find()) {
-    		return m.group(1);
-    	}
-    	return null;
+        Matcher m = TYPE_PATTERN.matcher(id);
+        if (m.find()) {
+            return m.group(1);
+        }
+        return null;
     }
 
     public static String[] splitURI(URI id) {
@@ -161,22 +161,24 @@ public class URIUtil {
     }
 
     /**
-     * Get the VDC Id embedded in the URI string, or null if none 
+     * Get the VDC Id embedded in the URI string, or null if none
+     * 
      * @param id a DataObject URI string
      * @return the vdc id
-     */    
+     */
     public static String parseVdcIdFromURI(URI id) {
         return (id != null) ? parseVdcIdFromURI(id.toString()) : null;
     }
-    
+
     /**
-     * Get the VDC Id embedded in the URI, or null if none 
+     * Get the VDC Id embedded in the URI, or null if none
+     * 
      * @param id a DataObject URI
      * @return the vdc id
      */
     public static String parseVdcIdFromURI(String id) {
         String vdcId = null;
-        
+
         if (id != null) {
             String[] segments = StringUtils.split(id, ':');
             if ((segments.length > VDC_PARTS_COUNT) && StringUtils.isNotBlank(segments[VDC_PARTS_COUNT])) {
@@ -184,17 +186,17 @@ public class URIUtil {
             }
         }
         return vdcId;
-    } 
-    
+    }
+
     public static <T extends DataObject> String getLocation(Class<T> clazz) {
         return KeyspaceUtil.isLocal(clazz) ? VdcUtil.getLocalShortVdcId() : KeyspaceUtil.GLOBAL;
     }
-    
+
     /**
      * Gets the value of the URI as a string, returns null if the URI is null.
      * 
      * @param value
-     *        the URI.
+     *            the URI.
      * @return the string value of the URI.
      */
     public static String asString(URI value) {
@@ -205,7 +207,7 @@ public class URIUtil {
      * Converts a string to a URI, null safe.
      * 
      * @param value
-     *        the string value.
+     *            the string value.
      * @return the URI.
      */
     public static URI uri(String value) {
@@ -216,7 +218,7 @@ public class URIUtil {
      * Converts a collection of strings to a list of URIs, null safe.
      * 
      * @param values
-     *        the string values.
+     *            the string values.
      * @return the URIs.
      */
     public static List<URI> uris(Collection<String> values) {
@@ -236,7 +238,7 @@ public class URIUtil {
      * Converts an array of strings to a list of URIs, null safe.
      * 
      * @param values
-     *        the string values.
+     *            the string values.
      * @return the URIs.
      */
     public static List<URI> uris(String... values) {
@@ -252,9 +254,9 @@ public class URIUtil {
      * Determines if the IDs are equal (and non-null).
      * 
      * @param first
-     *        the first ID.
+     *            the first ID.
      * @param second
-     *        the second ID.
+     *            the second ID.
      * @return true if and only if the IDs are non-null and equal.
      */
     public static boolean identical(URI first, URI second) {
@@ -268,11 +270,11 @@ public class URIUtil {
      * Checks if the ID is null (or matches the NULL_URI).
      * 
      * @param id
-     *        the ID.
+     *            the ID.
      * @return true if the ID is null.
      */
     public static boolean isNull(URI id) {
         return (id == null) || NULL_URI.equals(id);
-    }    
-    
+    }
+
 }

@@ -30,9 +30,8 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.CassandraInsertion;
 
+public class RPInsertion extends CassandraInsertion {
 
-public class RPInsertion extends CassandraInsertion{
-	
     private Logger _logger = LoggerFactory.getLogger(RPInsertion.class);
 
     @Override
@@ -43,24 +42,25 @@ public class RPInsertion extends CassandraInsertion{
         Volume protectedVolume = null;
         URIQueryResultList resultList = new URIQueryResultList();
         client.queryByConstraint(
-            ContainmentConstraint.Factory.getProtectionSystemVolumesConstraint(protectionObj.getId()), resultList);
+                ContainmentConstraint.Factory.getProtectionSystemVolumesConstraint(protectionObj.getId()), resultList);
         for (Iterator<URI> volumeItr = resultList.iterator(); volumeItr.hasNext();) {
             Volume volume = client.queryObject(Volume.class, volumeItr.next());
             if (volume.getProtectionController().equals(protectionObj.getId())) {
-            	protectedVolume = volume;
-            	break;
+                protectedVolume = volume;
+                break;
             }
         }
         if (protectedVolume != null) {
-        	_logger.info("Found volume " + protectedVolume.getWWN() + " protected by this protection controller.  Get the Cos/Project/Tenant.");
-	        statObj.setProject(protectedVolume.getProject().getURI());
-	        statObj.setVirtualPool(protectedVolume.getVirtualPool());
-	        statObj.setTenant(protectedVolume.getTenant().getURI());
+            _logger.info("Found volume " + protectedVolume.getWWN()
+                    + " protected by this protection controller.  Get the Cos/Project/Tenant.");
+            statObj.setProject(protectedVolume.getProject().getURI());
+            statObj.setVirtualPool(protectedVolume.getVirtualPool());
+            statObj.setTenant(protectedVolume.getTenant().getURI());
         } else {
-        	statObj.setProject(null);
-        	statObj.setVirtualPool(null);
-        	statObj.setTenant(null);
-        	throw new SMIPluginException("Cassandra Database Insertion Error.  Cannot identify Project/CoS/Tenant for ProtectionSystem", -1);
+            statObj.setProject(null);
+            statObj.setVirtualPool(null);
+            statObj.setTenant(null);
+            throw new SMIPluginException("Cassandra Database Insertion Error.  Cannot identify Project/CoS/Tenant for ProtectionSystem", -1);
         }
     }
 

@@ -47,7 +47,6 @@ import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.StatusCoded;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.core.provider.jaxb.AbstractRootElementProvider;
 
@@ -78,7 +77,7 @@ public class ServiceCodeExceptionMapper implements ExceptionMapper<Exception> {
 
         // CQs 603808, 603811
         // Check for those WebApplicationExceptions which result from the XML parser
-        // correctly processing its input.  Stack traces are not necessary and should
+        // correctly processing its input. Stack traces are not necessary and should
         // be filtered out in order not to raise undue concerns
         String prefix = "Responding to internal " + code + " with HTTP " + status;
         if (isStackTracePrinted(e)) {
@@ -100,9 +99,9 @@ public class ServiceCodeExceptionMapper implements ExceptionMapper<Exception> {
 
     /**
      * Test if the stack trace should be suppressed for the exception. Currently,
-     * exceptions thrown by Jersey from class AbstractRootElementProvider are 
+     * exceptions thrown by Jersey from class AbstractRootElementProvider are
      * selected for suppression.
-     *
+     * 
      * @param e the exception to be tested
      * @returns true if trace if to be printed, false otherwise.
      */
@@ -110,7 +109,7 @@ public class ServiceCodeExceptionMapper implements ExceptionMapper<Exception> {
         if (e instanceof WebApplicationException) {
             Class<?> cl2check = AbstractRootElementProvider.class;
             StackTraceElement[] ste = e.getStackTrace();
-            
+
             for (int i = 0; i < ste.length; i++) {
                 // use classes so process is not brittle
                 if (ste[i].getClassName().equals(cl2check.getName())) {
@@ -118,7 +117,7 @@ public class ServiceCodeExceptionMapper implements ExceptionMapper<Exception> {
                 }
             }
         }
-        
+
         return true;
     }
 
@@ -217,7 +216,7 @@ public class ServiceCodeExceptionMapper implements ExceptionMapper<Exception> {
     /**
      * Iterate over the acceptable media type from the request and returns
      * XML or JSON type on first occurrence. If not found, return XML type.
-     *
+     * 
      * @param headers request headers
      * @return preferred media type, XML by default.
      */
@@ -228,8 +227,9 @@ public class ServiceCodeExceptionMapper implements ExceptionMapper<Exception> {
                 for (MediaType mediaType : mediaTypes) {
                     // ServiceErrorRestRep can only be serialized in JSON or XML (by default)
                     if (mediaType.equals(MediaType.APPLICATION_JSON_TYPE) ||
-                            mediaType.equals(MediaType.APPLICATION_XML_TYPE))
+                            mediaType.equals(MediaType.APPLICATION_XML_TYPE)) {
                         return mediaType;
+                    }
                 }
             }
         } catch (Exception e) {

@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Persist Data object iterator
  */
-public abstract class BulkDataObjPersistIterator<T> extends BulkDataObjIterator<T, List<T>>{
+public abstract class BulkDataObjPersistIterator<T> extends BulkDataObjIterator<T, List<T>> {
     public BulkDataObjPersistIterator(Iterator<T> resources) {
         super(resources);
     }
@@ -21,10 +21,10 @@ public abstract class BulkDataObjPersistIterator<T> extends BulkDataObjIterator<
         getNextBatch();
 
         return nextBatch;
-}
+    }
 
     @Override
-    public boolean hasNext() { 
+    public boolean hasNext() {
         return _resourceIt.hasNext();
     }
 }

@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
 
-
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
@@ -54,7 +53,9 @@ public class UnManagedSMBFileShare extends AbstractSerializableNestedObject {
     }
 
     public void setName(String name) {
-        if(name == null) name = "";
+        if (name == null) {
+            name = "";
+        }
         setField(NAME, name);
     }
 
@@ -64,7 +65,9 @@ public class UnManagedSMBFileShare extends AbstractSerializableNestedObject {
     }
 
     public void setDescription(String description) {
-        if(description == null) description = "";
+        if (description == null) {
+            description = "";
+        }
         setField(DESCRIPTION, description);
     }
 
@@ -74,7 +77,9 @@ public class UnManagedSMBFileShare extends AbstractSerializableNestedObject {
     }
 
     public void setPermissionType(String permissionType) {
-        if(permissionType == null) permissionType = "";
+        if (permissionType == null) {
+            permissionType = "";
+        }
         setField(PERMISSION_TYPE, permissionType);
     }
 
@@ -84,11 +89,13 @@ public class UnManagedSMBFileShare extends AbstractSerializableNestedObject {
     }
 
     public void setPermission(String permission) {
-        if(permission == null) permission = "";
+        if (permission == null) {
+            permission = "";
+        }
         setField(PERMISSION, permission);
     }
 
-    //@XmlElement(name = "max_users")
+    // @XmlElement(name = "max_users")
     @XmlTransient
     public int getMaxUsers() {
         return getIntField(MAX_USERS);
@@ -104,7 +111,9 @@ public class UnManagedSMBFileShare extends AbstractSerializableNestedObject {
     }
 
     public void setMountPoint(String mountPoint) {
-        if(mountPoint == null) mountPoint = "";
+        if (mountPoint == null) {
+            mountPoint = "";
+        }
         setField(MOUNTPOINT, mountPoint);
     }
 
@@ -114,29 +123,33 @@ public class UnManagedSMBFileShare extends AbstractSerializableNestedObject {
     }
 
     public void setNativeId(String nativeId) {
-        if(nativeId == null) nativeId = "";
+        if (nativeId == null) {
+            nativeId = "";
+        }
         setField(NATIVE_ID, nativeId);
     }
-    
+
     @XmlElement
     public String getPortGroup() {
-    	return getStringField(PORT_GROUP);
+        return getStringField(PORT_GROUP);
     }
-    
+
     public void setPortGroup(String portGroup) {
-    	if (portGroup == null) portGroup = "";
-    	setField(PORT_GROUP, portGroup);
+        if (portGroup == null) {
+            portGroup = "";
+        }
+        setField(PORT_GROUP, portGroup);
     }
-    
+
     public void setPath(String path) {
-    	if(path == null) {
-    		path = "";
-    	}
-    	setField(PATH, path);
+        if (path == null) {
+            path = "";
+        }
+        setField(PATH, path);
     }
-    
+
     @XmlElement
     public String getPath() {
-    	return getStringField(PATH);
+        return getStringField(PATH);
     }
 }

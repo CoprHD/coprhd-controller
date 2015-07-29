@@ -12,29 +12,29 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="mtree_stats_capacity")
+@JsonRootName(value = "mtree_stats_capacity")
 public class DDMtreeCapacityInfos {
-	
-	@SerializedName("data_view")
-    @JsonProperty(value="data_view")
+
+    @SerializedName("data_view")
+    @JsonProperty(value = "data_view")
     private String dataView;
-	
+
     @SerializedName("stats_capacity")
-    @JsonProperty(value="stats_capacity")
+    @JsonProperty(value = "stats_capacity")
     private List<DDStatsCapacityInfo> statsCapacityInfo;
-    
+
     @SerializedName("requested_data_interval")
-    @JsonProperty(value="requested_data_interval")
+    @JsonProperty(value = "requested_data_interval")
     private DDStatsIntervalQuery requestedDataInterval;
-    
+
     @SerializedName("returned_data_interval")
-    @JsonProperty(value="returned_data_interval")
+    @JsonProperty(value = "returned_data_interval")
     private DDStatsIntervalQuery returnedDataInterval;
-    
+
     @SerializedName("paging_info")
-    @JsonProperty(value="paging_info")
+    @JsonProperty(value = "paging_info")
     private DDPaging pagingInfo;
-    
+
     private List<DDRestLinkRep> link;
 
     public List<DDStatsCapacityInfo> getStatsCapacityInfo() {
@@ -76,10 +76,9 @@ public class DDMtreeCapacityInfos {
     public void setLink(List<DDRestLinkRep> link) {
         this.link = link;
     }
-	
+
     public String toString() {
         return new Gson().toJson(this).toString();
     }
 
 }
-

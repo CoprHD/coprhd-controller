@@ -22,7 +22,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
-import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.scaleio.api.ScaleIOAttributes;
 import com.emc.storageos.scaleio.api.ScaleIOCLI;
 import com.emc.storageos.scaleio.api.ScaleIOQueryAllCommand;
@@ -57,7 +56,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
 
     @Override
     public void createSingleClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume, Boolean createInactive,
-                                  TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         try {
             ScaleIOCLI scaleIOCLI = scaleIOCLIFactory.using(dbClient).getCLI(storageSystem);
 
@@ -129,57 +128,57 @@ public class ScaleIOCloneOperations implements CloneOperations {
         ScaleIOQueryAllResult scaleIOQueryAllResult = scaleIOCLI.queryAll();
         return scaleIOQueryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID);
     }
-    
+
     @Override
     public void restoreFromSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
-        //no support
-        
+        // no support
+
     }
-    
+
     @Override
-    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume, 
+    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume,
             URI clone, TaskCompleter completer) {
-        //no support
+        // no support
     }
-    
+
     @Override
     public void resyncSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
-        //no support
+        // no support
     }
-    
+
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
-                                  Boolean createInactive, TaskCompleter taskCompleter) {
+            Boolean createInactive, TaskCompleter taskCompleter) {
     }
 
     @Override
     public void activateGroupClones(StorageSystem storage, List<URI> clone, TaskCompleter taskCompleter) {
-      //no support
-        
+        // no support
+
     }
 
     @Override
-    public void restoreGroupClones(StorageSystem storageSystem, List<URI>clones, TaskCompleter completer) {
-      //no support
-        
+    public void restoreGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
 
     @Override
-    public void fractureGroupClones(StorageSystem storageSystem, List<URI>clones, TaskCompleter completer) {
-      //no support
-        
+    public void fractureGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
 
     @Override
-    public void resyncGroupClones(StorageSystem storageSystem, List<URI>clones, TaskCompleter completer) {
-      //no support
-        
+    public void resyncGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
 
     @Override
-    public void detachGroupClones(StorageSystem storageSystem, List<URI>clones,TaskCompleter completer) {
-      //no support
-        
+    public void detachGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
+        // no support
+
     }
-    
+
 }

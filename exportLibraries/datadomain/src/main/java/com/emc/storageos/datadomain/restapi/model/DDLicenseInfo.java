@@ -14,7 +14,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 public class DDLicenseInfo {
 
     @SerializedName("license_key")
-    @JsonProperty(value="license_key")
+    @JsonProperty(value = "license_key")
     public String licenseKey;
 
     public String feature;
@@ -22,6 +22,5 @@ public class DDLicenseInfo {
     public String toString() {
         return new Gson().toJson(this).toString();
     }
-
 
 }

@@ -5,15 +5,15 @@
 package com.emc.storageos.hds.model;
 
 public class EchoCommand {
-    
+
     private String name;
-    
+
     private String status;
-    
+
     private Integer result;
-    
+
     private String resultSource;
-    
+
     private String messageID;
 
     public String getName() {

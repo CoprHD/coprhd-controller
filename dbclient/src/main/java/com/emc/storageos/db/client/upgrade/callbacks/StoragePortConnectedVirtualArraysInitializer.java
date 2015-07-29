@@ -30,14 +30,14 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
  * Migration handler to initialize the new connected virtual arrays field for a
- * storage port. Note that this will also automatically initialize the new 
+ * storage port. Note that this will also automatically initialize the new
  * tagged virtual arrays field for the storage port, so that we don't need a
  * separate custom callback class for that field.
  */
 public class StoragePortConnectedVirtualArraysInitializer extends BaseCustomMigrationCallback {
 
     private static final Logger log = LoggerFactory.getLogger(StoragePortConnectedVirtualArraysInitializer.class);
-    
+
     @SuppressWarnings("deprecation")
     @Override
     public void process() {
@@ -58,7 +58,7 @@ public class StoragePortConnectedVirtualArraysInitializer extends BaseCustomMigr
                         storagePort.addConnectedVirtualArray(varrayId);
                         dbClient.updateAndReindexObject(storagePort);
                         log.info("Set connected virtual array (id={}) for StoragePort (id={}) for upgrade",
-                            varrayId, storagePortId);
+                                varrayId, storagePortId);
                     }
                 }
             }

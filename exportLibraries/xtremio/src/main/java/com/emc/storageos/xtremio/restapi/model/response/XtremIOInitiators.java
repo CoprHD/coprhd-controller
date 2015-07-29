@@ -9,10 +9,10 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_initiators")
+@JsonRootName(value = "xtremio_initiators")
 public class XtremIOInitiators {
     @SerializedName("content")
-    @JsonProperty(value="content")
+    @JsonProperty(value = "content")
     private XtremIOInitiator content;
 
     public XtremIOInitiator getContent() {

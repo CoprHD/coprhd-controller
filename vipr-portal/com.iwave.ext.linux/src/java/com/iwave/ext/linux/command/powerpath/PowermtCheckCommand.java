@@ -6,10 +6,10 @@ package com.iwave.ext.linux.command.powerpath;
 
 public class PowermtCheckCommand extends PowermtCommand {
 
-	public PowermtCheckCommand() {
-		super();
-		addArgument("check");
-		addArgument("force");
-	}
+    public PowermtCheckCommand() {
+        super();
+        addArgument("check");
+        addArgument("force");
+    }
 
 }

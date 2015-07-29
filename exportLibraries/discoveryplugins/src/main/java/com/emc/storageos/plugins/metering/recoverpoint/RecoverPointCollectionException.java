@@ -18,19 +18,19 @@ public class RecoverPointCollectionException extends BaseCollectionException {
         return -1;
     }
 
-    protected RecoverPointCollectionException(final boolean retryable,  final ServiceCode serviceCode,
+    protected RecoverPointCollectionException(final boolean retryable, final ServiceCode serviceCode,
             final Throwable cause, final String detailBase, final String detailKey,
             final Object[] detailParams) {
         super(retryable, serviceCode, cause, detailBase, detailKey, detailParams);
     }
 
     @Deprecated
-    public  RecoverPointCollectionException(Throwable e) {
+    public RecoverPointCollectionException(Throwable e) {
         super(e);
     }
 
     @Deprecated
-    public  RecoverPointCollectionException(String message) {
+    public RecoverPointCollectionException(String message) {
         super(message);
     }
 }

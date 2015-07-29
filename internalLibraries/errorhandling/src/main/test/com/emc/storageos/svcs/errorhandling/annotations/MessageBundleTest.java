@@ -51,8 +51,8 @@ public class MessageBundleTest extends AbstractBundleTest {
         for (final String key : bundle.keySet()) {
             final String pattern = bundle.getString(key);
             try {
-            	MessageFormat format = new MessageFormat(pattern);
-            	assertNotNull(format);
+                MessageFormat format = new MessageFormat(pattern);
+                assertNotNull(format);
             } catch (final IllegalArgumentException e) {
                 failures.put(key, pattern);
             }

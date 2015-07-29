@@ -5,7 +5,6 @@
 
 package com.emc.storageos.cimadapter.connections;
 
-
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -25,8 +24,6 @@ import com.emc.storageos.cimadapter.connections.cim.CimListener;
 import com.emc.storageos.cimadapter.connections.cim.CimListenerInfo;
 import com.emc.storageos.cimadapter.connections.ecom.EcomConnection;
 import com.emc.storageos.cimadapter.consumers.CimIndicationConsumerList;
-
-
 
 /**
  * The ConnectionManager manages the connections to the storage arrays whose
@@ -55,7 +52,7 @@ public class ConnectionManager {
      * @param configuration A reference to the configuration.
      * 
      * @throws Exception When an error occurs initializing the connection
-     *         manager.
+     *             manager.
      */
     public ConnectionManager(ConnectionManagerConfiguration configuration) throws Exception {
 
@@ -78,21 +75,21 @@ public class ConnectionManager {
      * on the passed connection information.
      * 
      * @param connectionInfo Specifies the information necessary to establish a
-     *        connection.
+     *            connection.
      * 
      * @throws ConnectionManagerException When a error occurs establishing the
-     *         connection.
+     *             connection.
      */
     public synchronized void addConnection(CimConnectionInfo connectionInfo) throws ConnectionManagerException {
         if (connectionInfo == null) {
             throw new ConnectionManagerException("Passed connection information is null.");
         }
-        
+
         // If the listener has yet to be created, then create it now.
         if (_listener == null) {
             createIndicationListener(connectionInfo);
         }
-        
+
         String hostName = connectionInfo.getHost();
 
         // Only add a connection if there is not already a connection to the
@@ -119,9 +116,9 @@ public class ConnectionManager {
                 createCelerraConnection(connectionInfo);
             } else {
                 throw new ConnectionManagerException(MessageFormatter.format("Unsupported connection type {}",
-                    connectionType).getMessage());
+                        connectionType).getMessage());
             }
-            
+
             /**
              * Get client's public certificate and persist them into trustStore.
              */
@@ -130,16 +127,15 @@ public class ConnectionManager {
             throw e;
         } catch (Exception e) {
             throw new ConnectionManagerException(MessageFormatter.format(
-                "Failed establishing a connection to the provider on host {}", hostName).getMessage(), e);
-        }
-        finally {
+                    "Failed establishing a connection to the provider on host {}", hostName).getMessage(), e);
+        } finally {
             // Now resume the listener.
             _listener.resume();
         }
     }
 
     private void createIndicationListener(CimConnectionInfo connectionInfo) throws ConnectionManagerException {
-        
+
         CimListenerInfo listenerInfo = _configuration.getListenerInfo();
         if (listenerInfo == null) {
             throw new ConnectionManagerException("CIM listener configuration is null.");
@@ -147,8 +143,8 @@ public class ConnectionManager {
 
         try {
             // We create a temporary connection to the provider host specified
-            // by the passed connection information. We use this temporary 
-            // connection to extract the IP address of the local host on which 
+            // by the passed connection information. We use this temporary
+            // connection to extract the IP address of the local host on which
             // the connection manager is executing. We need to dynamically get
             // the IP address of the local host to create the CIM listener on
             // that host.
@@ -167,9 +163,9 @@ public class ConnectionManager {
         } catch (IOException ioe) {
             throw new ConnectionManagerException("An error occurred obtaining the listener host IP address", ioe);
         }
-        
+
         // Set the names for the subscription filters. The filters are named
-        // using the IP address for the indication listener host that will 
+        // using the IP address for the indication listener host that will
         // receive indications resulting from the filters.
         CimFilterMap filters = _configuration.getIndicationFilterMap();
         Iterator<CimFilterInfo> filtersIter = filters.getFilters().values().iterator();
@@ -177,7 +173,7 @@ public class ConnectionManager {
             filtersIter.next().setName(listenerInfo.getHostIP());
         }
 
-        // Now create and start the listener.       
+        // Now create and start the listener.
         try {
             CimIndicationConsumerList indicationConsumers = _configuration.getIndicationConsumers();
             _listener = new CimListener(listenerInfo, indicationConsumers);
@@ -192,10 +188,10 @@ public class ConnectionManager {
      * longer desired.
      * 
      * @param hostName Specifies the host for which the CIM connection was
-     *        established.
+     *            established.
      * 
      * @throws ConnectionManagerException When a error occurs removing the
-     *         connection.
+     *             connection.
      */
     public synchronized void removeConnection(String hostName) throws ConnectionManagerException {
         // Verify the passed host is not null or blank.
@@ -207,7 +203,7 @@ public class ConnectionManager {
             // Verify we are managing a connection to the passed host.
             if (!isConnected(hostName)) {
                 throw new ConnectionManagerException(MessageFormatter.format(
-                    "The connection manager is not managing a connection to host {}", hostName).getMessage());
+                        "The connection manager is not managing a connection to host {}", hostName).getMessage());
             }
 
             s_logger.info("Closing connection to the CIM provider on host {}", hostName);
@@ -228,7 +224,7 @@ public class ConnectionManager {
             throw e;
         } catch (Exception e) {
             throw new ConnectionManagerException(MessageFormatter.format(
-                "Failed removing the connection to the provider on host {}", hostName).getMessage(), e);
+                    "Failed removing the connection to the provider on host {}", hostName).getMessage(), e);
         } finally {
             // Now resume the listener.
             _listener.resume();
@@ -275,7 +271,7 @@ public class ConnectionManager {
      * @throws ConnectionManagerException When the passed host is null or blank.
      */
     public synchronized CimConnection getConnection(String hostName)
-        throws ConnectionManagerException {
+            throws ConnectionManagerException {
         // Verify the passed host is not null or blank.
         if ((hostName == null) || (hostName.length() == 0)) {
             throw new ConnectionManagerException("Passed host is null or blank.");
@@ -298,7 +294,7 @@ public class ConnectionManager {
      * Stops the listener (which releases its TCP port).
      * 
      * @throws ConnectionManagerException When an error occurs shutting don the
-     *         connection manager.
+     *             connection manager.
      */
     public synchronized void shutdown() throws ConnectionManagerException {
         s_logger.info("Shutting down CIM adapter.");
@@ -321,10 +317,10 @@ public class ConnectionManager {
      * Creates a connection to a CIM provider using the passed connection info.
      * 
      * @param connectionInfo Contains the information required to establish the
-     *        connection.
+     *            connection.
      * 
      * @throws Exception When an error occurs establishing the connection to the
-     *         CIM provider.
+     *             CIM provider.
      */
     private void createCimConnection(CimConnectionInfo connectionInfo) throws Exception {
         String hostName = connectionInfo.getHost();
@@ -332,13 +328,13 @@ public class ConnectionManager {
 
         try {
             // Create the CIM connection.
-            CimConnection connection = new CimConnection(connectionInfo,_listener,
-                _configuration.getIndicationFilterMap());
+            CimConnection connection = new CimConnection(connectionInfo, _listener,
+                    _configuration.getIndicationFilterMap());
             connection.connect(_configuration.getSubscriptionsIdentifier(), _configuration.getDeleteStaleSubscriptionsOnConnect());
             _connections.add(connection);
         } catch (Exception e) {
             throw new Exception(MessageFormatter.format("Failed creating connection to CIM provider on host {}",
-                hostName).getMessage(), e);
+                    hostName).getMessage(), e);
         }
     }
 
@@ -347,10 +343,10 @@ public class ConnectionManager {
      * info.
      * 
      * @param connectionInfo Contains the information required to establish the
-     *        connection.
+     *            connection.
      * 
      * @throws Exception When an error occurs establishing the connection to the
-     *         ECOM provider.
+     *             ECOM provider.
      */
     private void createECOMConnection(CimConnectionInfo connectionInfo) throws Exception {
         String hostName = connectionInfo.getHost();
@@ -358,13 +354,13 @@ public class ConnectionManager {
 
         try {
             // Create the ECOM connection.
-            EcomConnection connection = new EcomConnection(connectionInfo,_listener,
-                _configuration.getIndicationFilterMap());
+            EcomConnection connection = new EcomConnection(connectionInfo, _listener,
+                    _configuration.getIndicationFilterMap());
             connection.connect(_configuration.getSubscriptionsIdentifier(), _configuration.getDeleteStaleSubscriptionsOnConnect());
             _connections.add(connection);
         } catch (Exception e) {
             throw new Exception(MessageFormatter.format("Failed creating connection to ECOM provider on host {}",
-                hostName).getMessage(), e);
+                    hostName).getMessage(), e);
         }
     }
 
@@ -373,10 +369,10 @@ public class ConnectionManager {
      * passed connection info.
      * 
      * @param connectionInfo Contains the information required to establish the
-     *        connection.
+     *            connection.
      * 
      * @throws Exception When an error occurs establishing the connection to the
-     *         ECOM provider for the Celerra array.
+     *             ECOM provider for the Celerra array.
      */
     private void createCelerraConnection(CimConnectionInfo connectionInfo) throws Exception {
         String hostName = connectionInfo.getHost();
@@ -385,13 +381,13 @@ public class ConnectionManager {
         try {
             // Create the ECOM connection.
             CelerraConnection connection = new CelerraConnection(connectionInfo, _listener,
-                _configuration.getIndicationFilterMap(),
-                _configuration.getCelerraMessageSpecs());
+                    _configuration.getIndicationFilterMap(),
+                    _configuration.getCelerraMessageSpecs());
             connection.connect(_configuration.getSubscriptionsIdentifier(), _configuration.getDeleteStaleSubscriptionsOnConnect());
             _connections.add(connection);
         } catch (Exception e) {
             throw new Exception(MessageFormatter.format(
-                "Failed creating connection to Celerra ECOM provider on host {}", hostName).getMessage(), e);
+                    "Failed creating connection to Celerra ECOM provider on host {}", hostName).getMessage(), e);
         }
     }
 
@@ -406,38 +402,40 @@ public class ConnectionManager {
         }
         _connections.clear();
     }
-    
+
     /**
-     * Make subscription for the given CIM Connection 
+     * Make subscription for the given CIM Connection
+     * 
      * @param cimConnection {@link CimConnection} to make subscription for monitoring
      * @throws Exception Exception
      */
-    public void subscribe(CimConnection cimConnection) throws Exception{
-        s_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
-        s_logger.debug("Subscription Identifier for subscribe action :{}",_configuration.getSubscriptionsIdentifier());
+    public void subscribe(CimConnection cimConnection) throws Exception {
+        s_logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.debug("Subscription Identifier for subscribe action :{}", _configuration.getSubscriptionsIdentifier());
         cimConnection.subscribeForIndications(_configuration.getSubscriptionsIdentifier());
-        s_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
-    
+
     /**
      * Un-Subscribe cimConnection for the given passive SMIS provider connection
+     * 
      * @param cimConnection {@link CimConnection} clear subscription for the given cimConnection
      */
-    public void unsubscribe(CimConnection cimConnection){
-        s_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
-        s_logger.debug("Subscription Identifier for unsubscribe action :{}",_configuration.getSubscriptionsIdentifier());
+    public void unsubscribe(CimConnection cimConnection) {
+        s_logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.debug("Subscription Identifier for unsubscribe action :{}", _configuration.getSubscriptionsIdentifier());
         cimConnection.unsubscribeForIndications(_configuration.getSubscriptionsIdentifier());
-        s_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
-    
+
     /**
      * 
      * @param cimConnection {@link CimConnection} delete stale subscription for the given cimConnection
      */
-    public void deleteStaleSubscriptions(CimConnection cimConnection){
-        s_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
-        s_logger.debug("Subscription Identifier for delete subscription action :{}",_configuration.getSubscriptionsIdentifier());
+    public void deleteStaleSubscriptions(CimConnection cimConnection) {
+        s_logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.debug("Subscription Identifier for delete subscription action :{}", _configuration.getSubscriptionsIdentifier());
         cimConnection.deleteStaleSubscriptions(_configuration.getSubscriptionsIdentifier());
-        s_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 }

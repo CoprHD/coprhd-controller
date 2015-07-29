@@ -24,7 +24,7 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
     protected CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
     @Param(DATASTORE_NAME)
     protected String datastoreName;
-    @Param(value=MULTIPATH_POLICY, required=false)
+    @Param(value = MULTIPATH_POLICY, required = false)
     protected String multipathPolicy;
 
     private Datastore datastore;
@@ -42,10 +42,10 @@ public class CreateVolumeAndExtendVmfsDatastoreService extends VMwareHostService
     public void execute() throws Exception {
         List<BlockObjectRestRep> volumes = createBlockVolumeHelper.createAndExportVolumes();
         if (volumes.isEmpty()) {
-        	ExecutionUtils.fail("CreateVolumeAndExtendVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
+            ExecutionUtils.fail("CreateVolumeAndExtendVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
         }
         BlockObjectRestRep volume = volumes.get(0);
-        
+
         connectAndInitializeHost();
         datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.extendVmfsDatastore(host, cluster, hostId, volume, datastore);

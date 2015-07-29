@@ -43,8 +43,9 @@ public class TierBookKeepingProcessor extends AbstractFASTPolicyProcessor {
             String serialID = (String) keyMap.get(Constants._serialID);
             while (it.hasNext()) {
                 CIMInstance tierInstance = it.next();
-                if (tierInstance.getObjectPath().toString().contains(serialID))
+                if (tierInstance.getObjectPath().toString().contains(serialID)) {
                     _tierNativeGuids.add(getTierNativeGuidFromTierInstance(tierInstance));
+                }
             }
             performStorageTierBookKeeping(profile.getSystemId());
         } catch (Exception e) {
@@ -58,7 +59,8 @@ public class TierBookKeepingProcessor extends AbstractFASTPolicyProcessor {
      * @throws IOException
      */
     private void performStorageTierBookKeeping(URI storageSystemUri) throws IOException {
-        List<URI> storageTierUris = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStorageTierConstraint(storageSystemUri));
+        List<URI> storageTierUris = _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDeviceStorageTierConstraint(storageSystemUri));
         List<StorageTier> storageTiers = _dbClient.queryObject(StorageTier.class,
                 storageTierUris);
         for (StorageTier tier : storageTiers) {

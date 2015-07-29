@@ -63,7 +63,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         Vcenter vcenter = getModelClient().vcenters().findById(targetId);
         discoverVCenter(vcenter);
     }
-    
+
     public void discoverVCenter(Vcenter vcenter) {
         DiscoveryProcessor processor = new DiscoveryProcessor(vcenter);
         VcenterVersion version = getVersion(vcenter);
@@ -75,7 +75,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             List<URI> deletedClusters = Lists.newArrayList();
             processor.discover(changes, deletedHosts, deletedClusters);
             processor.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
-            // only update registration status of hosts if the vcenter is unregistered 
+            // only update registration status of hosts if the vcenter is unregistered
             // to ensure newly discovered hosts are marked as unregistered
             if (vcenter.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
                 processor.setRegistrationStatus(vcenter.getRegistrationStatus());
@@ -87,7 +87,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             processor.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
             save(vcenter);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
-            		"Vcenter", version.toString(), getVersionValidator().getVcenterMinimumVersion(false).toString()); 
+                    "Vcenter", version.toString(), getVersionValidator().getVcenterMinimumVersion(false).toString());
         }
     }
 
@@ -167,7 +167,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
     private void deleteDatacenters(Iterable<VcenterDataCenter> datacenters, List<URI> deletedHosts, List<URI> deletedClusters) {
         for (VcenterDataCenter datacenter : datacenters) {
             for (Cluster cluster : getClusters(datacenter)) {
-                deletedClusters.add(cluster.getId());                
+                deletedClusters.add(cluster.getId());
             }
 
             for (Host host : getHosts(datacenter)) {
@@ -180,12 +180,11 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
     public static VCenterAPI createVCenterAPI(Vcenter vcenter) {
         int port = vcenter.getPortNumber() != null ? vcenter.getPortNumber() : 443;
-        
+
         URL url;
         try {
             url = new URL("https", vcenter.getIpAddress(), port, "/sdk");
-        }
-        catch (MalformedURLException e) {
+        } catch (MalformedURLException e) {
             throw new RuntimeException(e.getMessage());
         }
         String username = vcenter.getUsername();
@@ -216,8 +215,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 checkDuplicateVcenter(vcenter, aboutInfo.getInstanceUuid());
                 vcenter.setNativeGuid(aboutInfo.getInstanceUuid());
                 discoverDatacenters(changes, deletedHosts, deletedClusters);
-            }
-            finally {
+            } finally {
                 vcenterAPI.logout();
             }
         }
@@ -234,7 +232,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
 
         private void discoverDatacenters(List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters) {
-        	List<VcenterDataCenter> oldDatacenters = new ArrayList<VcenterDataCenter>();
+            List<VcenterDataCenter> oldDatacenters = new ArrayList<VcenterDataCenter>();
             Iterables.addAll(oldDatacenters, getDatacenters(vcenter));
 
             for (Datacenter sourceDatacenter : vcenterAPI.listAllDatacenters()) {
@@ -276,7 +274,8 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             return null;
         }
 
-        private void discoverDatacenter(Datacenter source, VcenterDataCenter target, List<HostStateChange> changes, List<URI> deletedHosts, List<URI> deletedClusters) {
+        private void discoverDatacenter(Datacenter source, VcenterDataCenter target, List<HostStateChange> changes, List<URI> deletedHosts,
+                List<URI> deletedClusters) {
             info("processing datacenter %s", source.getName());
             target.setVcenter(vcenter.getId());
             target.setTenant(vcenter.getTenant());
@@ -284,13 +283,13 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             target.setLabel(source.getName());
             save(target);
 
-        	List<Cluster> oldClusters = new ArrayList<Cluster>();
+            List<Cluster> oldClusters = new ArrayList<Cluster>();
             Iterables.addAll(oldClusters, getClusters(target));
             List<Cluster> newClusters = Lists.newArrayList();
             reconcileClusters(source, target, oldClusters, newClusters, vcenter.getTenant());
 
             List<Host> oldHosts = new ArrayList<Host>();
-        	Iterables.addAll(oldHosts, getHosts(target));
+            Iterables.addAll(oldHosts, getHosts(target));
             for (HostSystem sourceHost : vcenterAPI.listHostSystems(source)) {
                 Host targetHost = null;
                 HostHardwareInfo hw = sourceHost.getHardware();
@@ -327,25 +326,26 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 try {
                     discoverHost(source, sourceHost, uuid, target, targetHost, newClusters, changes);
                     DiscoveryStatusUtils.markAsSucceeded(getModelClient(), targetHost);
-                }
-                catch (RuntimeException e) {
+                } catch (RuntimeException e) {
                     warn(e, "Problem discovering host %s", targetHost.getLabel());
                     DiscoveryStatusUtils.markAsFailed(getModelClient(), targetHost, e.getMessage(), e);
                 }
             }
 
-            Collection<URI> oldClusterIds = Lists.newArrayList(Collections2.transform(oldClusters, CommonTransformerFunctions.fctnDataObjectToID()));
+            Collection<URI> oldClusterIds = Lists.newArrayList(Collections2.transform(oldClusters,
+                    CommonTransformerFunctions.fctnDataObjectToID()));
             deletedClusters.addAll(oldClusterIds);
-            
-            Collection<URI> oldHostIds = Lists.newArrayList(Collections2.transform(oldHosts, CommonTransformerFunctions.fctnDataObjectToID()));
+
+            Collection<URI> oldHostIds = Lists.newArrayList(Collections2.transform(oldHosts,
+                    CommonTransformerFunctions.fctnDataObjectToID()));
             deletedHosts.addAll(oldHostIds);
         }
 
         /**
          * Get all clusters for the datacenter.
          * Sort them by host count - descending. The reason for this - if vcenter has more than one
-         * cluster that matches Vipr cluster, then the one with most hosts will be matched first. 
-         * Try find the cluster in Vipr by first by vcenter cluster ID, then by name, then by host membership. 
+         * cluster that matches Vipr cluster, then the one with most hosts will be matched first.
+         * Try find the cluster in Vipr by first by vcenter cluster ID, then by name, then by host membership.
          * If not found create new cluster.
          */
         private void reconcileClusters(Datacenter source, VcenterDataCenter target, List<Cluster> oldClusters,
@@ -390,10 +390,10 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
          * 2) Look among existing clusters by name.
          * 3) Look among clusters belonging to this tenant, that don't belong to any datacenter.
          * 4) Find by host UUID:
-         *   a) Take any host UUID.
-         *   b) Find matching host in Vipr.
-         *   c) Find Cluster that host is in.
-         *   d) Return that Cluster if its externalId is null - because otherwise it is related to another cluster.
+         * a) Take any host UUID.
+         * b) Find matching host in Vipr.
+         * c) Find Cluster that host is in.
+         * d) Return that Cluster if its externalId is null - because otherwise it is related to another cluster.
          */
         private Cluster findCluster(List<Cluster> oldClusters, ClusterComputeResource vcCluster, URI tenant) {
             // 1) find cluster by vcenter cluster id
@@ -440,7 +440,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             target.setVcenterDataCenter(targetDatacenter.getId());
             target.setTenant(targetDatacenter.getTenant());
             target.setDiscoverable(true);
-            
+
             if (target.getId() == null) {
                 target.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
             }
@@ -459,7 +459,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             info("setting host cluster to %s", cluster != null ? cluster.getLabel() : NullColumnValueGetter.getNullURI());
             target.setCluster(cluster != null ? cluster.getId() : NullColumnValueGetter.getNullURI());
 
-            if (target.getType() == null || 
+            if (target.getType() == null ||
                     StringUtils.equalsIgnoreCase(target.getType(), HostType.Other.toString())) {
                 target.setType(Host.HostType.Esx.name());
             }
@@ -478,8 +478,9 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
                 List<Initiator> oldInitiators = new ArrayList<Initiator>();
                 List<Initiator> addedInitiators = new ArrayList<Initiator>();
                 discoverConnectedHostInitiators(source, target, oldInitiators, addedInitiators);
-                
-                boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(target.getCluster()) : target.getCluster() != null && oldClusterURI.toString().equals(target.getCluster().toString()));
+
+                boolean isClusterChanged = !(NullColumnValueGetter.isNullURI(oldClusterURI) ? NullColumnValueGetter.isNullURI(target
+                        .getCluster()) : target.getCluster() != null && oldClusterURI.toString().equals(target.getCluster().toString()));
 
                 if (!oldInitiators.isEmpty() || !addedInitiators.isEmpty() || isClusterChanged) {
                     changes.add(new HostStateChange(target, oldClusterURI, oldInitiators, addedInitiators));
@@ -508,14 +509,14 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
 
         protected void setRegistrationStatus(String status) {
-        	Iterable<VcenterDataCenter> datacenters = getDatacenters(vcenter);
+            Iterable<VcenterDataCenter> datacenters = getDatacenters(vcenter);
             for (VcenterDataCenter datacenter : datacenters) {
                 setRegistrationStatus(datacenter, status);
             }
         }
 
         protected void setRegistrationStatus(VcenterDataCenter datacenter, String status) {
-        	Iterable<Host> hosts = getHosts(datacenter);
+            Iterable<Host> hosts = getHosts(datacenter);
             for (Host host : hosts) {
                 setRegistrationStatus(host, status);
             }
@@ -527,7 +528,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             setRegistrationStatus(getInitiators(host), status);
             setRegistrationStatus(getIpInterfaces(host), status);
         }
-        
+
         protected void setRegistrationStatus(Iterable<? extends HostInterface> hostInterfaces, String status) {
             for (HostInterface hostInterface : hostInterfaces) {
                 hostInterface.setRegistrationStatus(status);
@@ -546,7 +547,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
         }
 
         protected void setCompatibilityStatus(VcenterDataCenter datacenter, String status) {
-        	Iterable<Host> hosts = getHosts(datacenter);
+            Iterable<Host> hosts = getHosts(datacenter);
             for (Host host : hosts) {
                 setCompatibilityStatus(host, status);
             }
@@ -575,16 +576,16 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
             }
         }
     }
-    
-	public void setDbCLient(DbClient dbClient) {
-		super.setDbClient(dbClient);
-	}
+
+    public void setDbCLient(DbClient dbClient) {
+        super.setDbClient(dbClient);
+    }
 
     protected void checkDuplicateVcenter(Vcenter vcenter, String nativeGuid) {
         if (nativeGuid != null && !nativeGuid.isEmpty()) {
-            for(Vcenter existingVcenter : modelClient.vcenters().findByNativeGuid(nativeGuid, true)) {
+            for (Vcenter existingVcenter : modelClient.vcenters().findByNativeGuid(nativeGuid, true)) {
                 if (!existingVcenter.getId().equals(vcenter.getId())) {
-                    ComputeSystemControllerException ex = 
+                    ComputeSystemControllerException ex =
                             ComputeSystemControllerException.exceptions.duplicateSystem("vCenter", existingVcenter.getLabel());
                     DiscoveryStatusUtils.markAsFailed(modelClient, vcenter, ex.getMessage(), ex);
                     throw ex;
@@ -595,7 +596,7 @@ public class VcenterDiscoveryAdapter extends EsxHostDiscoveryAdapter {
 
     /**
      * Sets properties pertaining to the {@link Initiator}
-     *
+     * 
      * @param initiator {@link Initiator}
      * @param host {@link Host}
      */

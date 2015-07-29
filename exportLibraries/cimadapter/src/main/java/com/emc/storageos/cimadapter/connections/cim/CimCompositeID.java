@@ -102,9 +102,9 @@ public class CimCompositeID {
         }
 
         // Trim leading delimiter
-        if (id.length() > 1) {  
-            return id.toString().substring(1);  
-        } 
+        if (id.length() > 1) {
+            return id.toString().substring(1);
+        }
 
         return id.toString();
     }

@@ -7,46 +7,46 @@ package com.emc.storageos.datadomain.restapi.model;
 import com.google.gson.Gson;
 
 public class DDExportClientModify {
-	
-	private String name;
-	
-	private String options;
-	
-	// false: add clients, true: remove clients. Default is add
-	private Boolean delete;
 
-	public DDExportClientModify(String name, String options, Boolean delete) {
-		this.name = name;
-		this.options = options;
-		this.delete = delete;
-	}
+    private String name;
 
-	public String getName() {
-		return name;
-	}
+    private String options;
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    // false: add clients, true: remove clients. Default is add
+    private Boolean delete;
 
-	public String getOptions() {
-		return options;
-	}
+    public DDExportClientModify(String name, String options, Boolean delete) {
+        this.name = name;
+        this.options = options;
+        this.delete = delete;
+    }
 
-	public void setOptions(String options) {
-		this.options = options;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public Boolean getDelete() {
-		return delete;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public void setDelete(Boolean delete) {
-		this.delete = delete;
-	}
+    public String getOptions() {
+        return options;
+    }
 
-	public String toString() {
-		return new Gson().toJson(this).toString();
-	}
+    public void setOptions(String options) {
+        this.options = options;
+    }
+
+    public Boolean getDelete() {
+        return delete;
+    }
+
+    public void setDelete(Boolean delete) {
+        this.delete = delete;
+    }
+
+    public String toString() {
+        return new Gson().toJson(this).toString();
+    }
 
 }

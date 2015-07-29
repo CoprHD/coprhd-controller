@@ -14,7 +14,6 @@ public class ReplicationParam {
 
     public void setIsReplicationDestination(boolean isReplicationDestination) {
         this.isReplicationDestination = isReplicationDestination;
-    } 
-    
+    }
 
 }

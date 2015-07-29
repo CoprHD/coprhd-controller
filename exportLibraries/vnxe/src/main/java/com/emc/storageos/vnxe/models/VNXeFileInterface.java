@@ -9,8 +9,8 @@ import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class VNXeFileInterface extends VNXeBase{
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class VNXeFileInterface extends VNXeBase {
     private VNXeBase nasServer;
     private VNXeBase ethernetPort;
     private Health health;
@@ -25,7 +25,7 @@ public class VNXeFileInterface extends VNXeBase{
     private String macAddress;
     private String name;
     private InterfaceConfigurationEnum configuration;
-    
+
     public VNXeBase getNasServer() {
         return nasServer;
     }

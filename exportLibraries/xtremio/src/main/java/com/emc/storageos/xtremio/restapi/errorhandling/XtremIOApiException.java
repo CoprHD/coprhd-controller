@@ -11,7 +11,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 @SuppressWarnings("serial")
 public class XtremIOApiException extends InternalException {
 
-   
     private XtremIOApiException(final ServiceCode code, final Throwable cause,
             final String detailBase, final String detailKey, final Object[] detailParams) {
         super(false, code, cause, detailBase, detailKey, detailParams);

@@ -22,12 +22,11 @@ import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.params.HttpConnectionParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 
-
 /**
  * Non validating socket factory for use with Isilon REST client
  */
 class NonValidatingSocketFactory implements ProtocolSocketFactory {
-    
+
     private SSLContext _sslContext;
 
     /**
@@ -53,7 +52,7 @@ class NonValidatingSocketFactory implements ProtocolSocketFactory {
     public NonValidatingSocketFactory() {
         try {
             _sslContext = SSLContext.getInstance("SSL");
-            _sslContext.init(null, new TrustManager[]{ new NonValidatingTrustManager() }, null);
+            _sslContext.init(null, new TrustManager[] { new NonValidatingTrustManager() }, null);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

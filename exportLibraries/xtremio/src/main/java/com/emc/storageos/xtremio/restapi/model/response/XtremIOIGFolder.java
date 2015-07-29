@@ -9,10 +9,10 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_ig_folder")
+@JsonRootName(value = "xtremio_ig_folder")
 public class XtremIOIGFolder {
     @SerializedName("num-of-direct-objs")
-    @JsonProperty(value="num-of-direct-objs")
+    @JsonProperty(value = "num-of-direct-objs")
     private String numberOfIGs;
 
     public String getNumberOfIGs() {

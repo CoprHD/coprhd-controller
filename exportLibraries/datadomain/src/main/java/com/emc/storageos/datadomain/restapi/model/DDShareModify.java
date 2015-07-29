@@ -12,103 +12,103 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="share_modify")
+@JsonRootName(value = "share_modify")
 public class DDShareModify {
-	
-	// disable: true: disable share; false: enable share
-	private Boolean disable;
-	
-	@SerializedName("max_connections")
-	@JsonProperty(value="max_connections")
-	private int maxConnections;
-	
-	// browsing: true: enabled; false: disabled
-	private Boolean browsing;
 
-	// writeable: true: enabled; false: disabled
-	private Boolean writeable;
-	
-	private String comment;
+    // disable: true: disable share; false: enable share
+    private Boolean disable;
 
-	// update clients list, each element contains one client config
-	private List<DDShareListModify> clients;
-	
-	// update users list, each element contains one user config
-	private List<DDShareListModify> users;
+    @SerializedName("max_connections")
+    @JsonProperty(value = "max_connections")
+    private int maxConnections;
 
-	// update groups list, each element contains one group config
-	private List<DDShareListModify> groups;
-	
-	public DDShareModify(String comment) {
-		this.comment = comment;
-	}
+    // browsing: true: enabled; false: disabled
+    private Boolean browsing;
 
-	public Boolean getDisable() {
-		return disable;
-	}
+    // writeable: true: enabled; false: disabled
+    private Boolean writeable;
 
-	public void setDisable(Boolean disable) {
-		this.disable = disable;
-	}
+    private String comment;
 
-	public int getMaxConnections() {
-		return maxConnections;
-	}
+    // update clients list, each element contains one client config
+    private List<DDShareListModify> clients;
 
-	public void setMaxConnections(int maxConnections) {
-		this.maxConnections = maxConnections;
-	}
+    // update users list, each element contains one user config
+    private List<DDShareListModify> users;
 
-	public Boolean getBrowsing() {
-		return browsing;
-	}
+    // update groups list, each element contains one group config
+    private List<DDShareListModify> groups;
 
-	public void setBrowsing(Boolean browsing) {
-		this.browsing = browsing;
-	}
+    public DDShareModify(String comment) {
+        this.comment = comment;
+    }
 
-	public Boolean getWriteable() {
-		return writeable;
-	}
+    public Boolean getDisable() {
+        return disable;
+    }
 
-	public void setWriteable(Boolean writeable) {
-		this.writeable = writeable;
-	}
+    public void setDisable(Boolean disable) {
+        this.disable = disable;
+    }
 
-	public String getComment() {
-		return comment;
-	}
+    public int getMaxConnections() {
+        return maxConnections;
+    }
 
-	public void setComment(String comment) {
-		this.comment = comment;
-	}
+    public void setMaxConnections(int maxConnections) {
+        this.maxConnections = maxConnections;
+    }
 
-	public List<DDShareListModify> getClients() {
-		return clients;
-	}
+    public Boolean getBrowsing() {
+        return browsing;
+    }
 
-	public void setClients(List<DDShareListModify> clients) {
-		this.clients = clients;
-	}
+    public void setBrowsing(Boolean browsing) {
+        this.browsing = browsing;
+    }
 
-	public List<DDShareListModify> getUsers() {
-		return users;
-	}
+    public Boolean getWriteable() {
+        return writeable;
+    }
 
-	public void setUsers(List<DDShareListModify> users) {
-		this.users = users;
-	}
+    public void setWriteable(Boolean writeable) {
+        this.writeable = writeable;
+    }
 
-	public List<DDShareListModify> getGroups() {
-		return groups;
-	}
+    public String getComment() {
+        return comment;
+    }
 
-	public void setGroups(List<DDShareListModify> groups) {
-		this.groups = groups;
-	}
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
 
-	public String toString() {
-		return new Gson().toJson(this).toString();
-	}
+    public List<DDShareListModify> getClients() {
+        return clients;
+    }
+
+    public void setClients(List<DDShareListModify> clients) {
+        this.clients = clients;
+    }
+
+    public List<DDShareListModify> getUsers() {
+        return users;
+    }
+
+    public void setUsers(List<DDShareListModify> users) {
+        this.users = users;
+    }
+
+    public List<DDShareListModify> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(List<DDShareListModify> groups) {
+        this.groups = groups;
+    }
+
+    public String toString() {
+        return new Gson().toJson(this).toString();
+    }
 
 }

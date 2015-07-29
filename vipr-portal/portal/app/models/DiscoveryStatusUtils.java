@@ -104,12 +104,12 @@ public class DiscoveryStatusUtils {
             return null;
         }
     }
-    
+
     public static String getCompatibilityStatus(DiscoveredSystemObjectRestRep data) {
-    	return data.getCompatibilityStatus();
+        return data.getCompatibilityStatus();
     }
-    
+
     public static String getCompatibilityStatus(StorageProviderRestRep data) {
-    	return data.getCompatibilityStatus();
+        return data.getCompatibilityStatus();
     }
 }

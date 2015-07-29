@@ -9,11 +9,11 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_ports_info")
+@JsonRootName(value = "xtremio_ports_info")
 public class XtremIOPortsInfo {
-    
+
     @SerializedName("targets")
-    @JsonProperty(value="targets")
+    @JsonProperty(value = "targets")
     private XtremIOPortInfo[] portInfo;
 
     public XtremIOPortInfo[] getPortInfo() {
@@ -21,8 +21,8 @@ public class XtremIOPortsInfo {
     }
 
     public void setPortInfo(XtremIOPortInfo[] portInfo) {
-    	if(portInfo != null){
-    		this.portInfo = portInfo.clone();
-    	}
+        if (portInfo != null) {
+            this.portInfo = portInfo.clone();
+        }
     }
 }

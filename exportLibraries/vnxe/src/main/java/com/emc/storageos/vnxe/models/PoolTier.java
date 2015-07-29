@@ -9,104 +9,110 @@ import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PoolTier {
-	private String name;
-	private int  tierType;
-	private int stripeWidth;
-	private int raidType;
-	private long sizeTotal;
-	private long sizeUsed;
-	private long sizeFree;
-	private long sizeMovingDown;
-	private long sizeMovingUp;
-	private long sizeMovingWithin;
-	private List<RaidGroup> raidGroups;
-	
-	public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
+    private String name;
+    private int tierType;
+    private int stripeWidth;
+    private int raidType;
+    private long sizeTotal;
+    private long sizeUsed;
+    private long sizeFree;
+    private long sizeMovingDown;
+    private long sizeMovingUp;
+    private long sizeMovingWithin;
+    private List<RaidGroup> raidGroups;
 
-	public int getRaidType() {
-		return raidType;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setRaidType(int raidLevel) {
-		this.raidType = raidLevel;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public RaidTypeEnum getRaidTypeEnum() {
-	    return RaidTypeEnum.getEnumValue(raidType);
-	}
-	
-	public long getSizeTotal() {
-		return sizeTotal;
-	}
+    public int getRaidType() {
+        return raidType;
+    }
 
-	public void setSizeTotal(long sizeTotal) {
-		this.sizeTotal = sizeTotal;
-	}
+    public void setRaidType(int raidLevel) {
+        this.raidType = raidLevel;
+    }
 
-	public long getSizeUsed() {
-		return sizeUsed;
-	}
+    public RaidTypeEnum getRaidTypeEnum() {
+        return RaidTypeEnum.getEnumValue(raidType);
+    }
 
-	public void setSizeUsed(long sizeUsed) {
-		this.sizeUsed = sizeUsed;
-	}
+    public long getSizeTotal() {
+        return sizeTotal;
+    }
 
-	public long getSizeFree() {
-		return sizeFree;
-	}
+    public void setSizeTotal(long sizeTotal) {
+        this.sizeTotal = sizeTotal;
+    }
 
-	public void setSizeFree(long sizeFree) {
-		this.sizeFree = sizeFree;
-	}
+    public long getSizeUsed() {
+        return sizeUsed;
+    }
 
-	public long getSizeMovingDown() {
-		return sizeMovingDown;
-	}
+    public void setSizeUsed(long sizeUsed) {
+        this.sizeUsed = sizeUsed;
+    }
 
-	public void setSizeMovingDown(long sizeMovingDown) {
-		this.sizeMovingDown = sizeMovingDown;
-	}
+    public long getSizeFree() {
+        return sizeFree;
+    }
 
-	public long getSizeMovingUp() {
-		return sizeMovingUp;
-	}
+    public void setSizeFree(long sizeFree) {
+        this.sizeFree = sizeFree;
+    }
 
-	public void setSizeMovingUp(long sizeMovingUp) {
-		this.sizeMovingUp = sizeMovingUp;
-	}
+    public long getSizeMovingDown() {
+        return sizeMovingDown;
+    }
 
-	public long getSizeMovingWithin() {
-		return sizeMovingWithin;
-	}
+    public void setSizeMovingDown(long sizeMovingDown) {
+        this.sizeMovingDown = sizeMovingDown;
+    }
 
-	public void setSizeMovingWithin(long sizeMovingWithin) {
-		this.sizeMovingWithin = sizeMovingWithin;
-	}
+    public long getSizeMovingUp() {
+        return sizeMovingUp;
+    }
+
+    public void setSizeMovingUp(long sizeMovingUp) {
+        this.sizeMovingUp = sizeMovingUp;
+    }
+
+    public long getSizeMovingWithin() {
+        return sizeMovingWithin;
+    }
+
+    public void setSizeMovingWithin(long sizeMovingWithin) {
+        this.sizeMovingWithin = sizeMovingWithin;
+    }
+
     public int getTierType() {
         return tierType;
     }
+
     public void setTierType(int tierType) {
         this.tierType = tierType;
     }
+
     public int getStripeWidth() {
         return stripeWidth;
     }
+
     public void setStripeWidth(int stripeWidth) {
         this.stripeWidth = stripeWidth;
     }
+
     public List<RaidGroup> getRaidGroups() {
         return raidGroups;
     }
+
     public void setRaidGroups(List<RaidGroup> raidGroups) {
         this.raidGroups = raidGroups;
     }
-	
-	
+
 }

@@ -27,22 +27,22 @@ public class BackupSetInfo implements Serializable {
     private String name;
     private long size = 0;
     private long createTime = 0;
-  
+
     public BackupSetInfo() {
     }
 
     public String getName() {
         return this.name;
     }
- 
+
     public void setName(String name) {
         this.name = name;
-    } 
+    }
 
     public long getSize() {
         return this.size;
     }
-  
+
     public void setSize(long size) {
         this.size = size;
     }

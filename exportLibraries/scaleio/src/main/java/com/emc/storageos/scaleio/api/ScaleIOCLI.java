@@ -21,8 +21,7 @@ import java.util.regex.Pattern;
  * <p/>
  * Expected usage:
  * <p/>
- * ScaleIOCLI cli = new ScaleIOCLI("MDM-IP/host", port, "username", "password");
- * ScaleIOFooResult cli.foo();
+ * ScaleIOCLI cli = new ScaleIOCLI("MDM-IP/host", port, "username", "password"); ScaleIOFooResult cli.foo();
  */
 public class ScaleIOCLI {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOCLI.class);
@@ -233,7 +232,7 @@ public class ScaleIOCLI {
     }
 
     public ScaleIOAddVolumeResult addVolume(String protectionDomainName, String storagePoolName,
-                                            String volumeName, String volumeSize) {
+            String volumeName, String volumeSize) {
         ScaleIOAddVolumeCommand command =
                 new ScaleIOAddVolumeCommand(protectionDomainName, storagePoolName, volumeName, volumeSize);
         command.useCustomInvocationIfSet(customInvocation);
@@ -242,9 +241,10 @@ public class ScaleIOCLI {
     }
 
     public ScaleIOAddVolumeResult addVolume(String protectionDomainName, String storagePoolName,
-                                            String volumeName, String volumeSize, boolean thinProvisioned) {
+            String volumeName, String volumeSize, boolean thinProvisioned) {
         ScaleIOAddVolumeCommand command =
-                new ScaleIOAddVolumeCommand(commandSemantics, protectionDomainName, storagePoolName, volumeName, volumeSize, thinProvisioned);
+                new ScaleIOAddVolumeCommand(commandSemantics, protectionDomainName, storagePoolName, volumeName, volumeSize,
+                        thinProvisioned);
         command.useCustomInvocationIfSet(customInvocation);
         executeCommand(command);
         return command.getResults();
@@ -271,7 +271,7 @@ public class ScaleIOCLI {
         return command.getResults();
     }
 
-    public ScaleIOSnapshotMultiVolumeResult snapshotMultiVolume(Map<String,String> id2snapshot) {
+    public ScaleIOSnapshotMultiVolumeResult snapshotMultiVolume(Map<String, String> id2snapshot) {
         ScaleIOSnapshotMultiVolumeCommand command = new ScaleIOSnapshotMultiVolumeCommand(id2snapshot);
         command.useCustomInvocationIfSet(customInvocation);
         executeCommand(command);

@@ -9,23 +9,23 @@ import java.util.List;
 import com.google.gson.Gson;
 
 public class DDExportModify {
-	
-	private List<DDExportClientModify> clients;
 
-	public List<DDExportClientModify> getClients() {
-		return clients;
-	}
+    private List<DDExportClientModify> clients;
 
-	public void setClients(List<DDExportClientModify> clients) {
-		this.clients = clients;
-	}
+    public List<DDExportClientModify> getClients() {
+        return clients;
+    }
 
-	public DDExportModify(List<DDExportClientModify> clients) {
-		this.clients = clients;
-	}
+    public void setClients(List<DDExportClientModify> clients) {
+        this.clients = clients;
+    }
 
-	public String toString() {
-		return new Gson().toJson(this).toString();
-	}
+    public DDExportModify(List<DDExportClientModify> clients) {
+        this.clients = clients;
+    }
+
+    public String toString() {
+        return new Gson().toJson(this).toString();
+    }
 
 }

@@ -8,8 +8,8 @@ package com.emc.storageos.vnxe.models;
 import java.util.List;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class VNXeNasServer extends VNXeBase{
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class VNXeNasServer extends VNXeBase {
     private String name;
     private Health health;
     private VNXeBase homeSP;
@@ -19,8 +19,7 @@ public class VNXeNasServer extends VNXeBase{
     private List<Integer> operationalStatus;
     private long sizeUsed;
     private NasServerModeEnum mode;
-    
-    
+
     public String getName() {
         return name;
     }

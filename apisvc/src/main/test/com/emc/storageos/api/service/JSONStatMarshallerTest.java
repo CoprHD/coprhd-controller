@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service;
 
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -80,7 +79,6 @@ public class JSONStatMarshallerTest {
 
     }
 
-    
     @Test
     public void testJsonStatMarshallingForNullEvent() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -88,7 +86,7 @@ public class JSONStatMarshallerTest {
         deleteIfExists(JsonTestOutputFile);
         JSONStatMarshaller jm = new JSONStatMarshaller();
         Stat st = null;
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -103,7 +101,7 @@ public class JSONStatMarshallerTest {
         };
 
         PrintWriter writer = new PrintWriter(output);
-                
+
         jm.header(writer);
         jm.marshall(st, writer);
         jm.tailer(writer);
@@ -118,23 +116,19 @@ public class JSONStatMarshallerTest {
         AnnotationIntrospector introspector = new JaxbAnnotationIntrospector();
         mapper.getDeserializationConfig().withAnnotationIntrospector(
                 introspector);
-        
-        try{
+
+        try {
             @SuppressWarnings("unused")
             Stat stat = mapper.readValue(new File(JsonTestOutputFile),
                     Stat.class);
-        }
-        catch(UnrecognizedPropertyException e){
+        } catch (UnrecognizedPropertyException e) {
             Assert.assertTrue(e.toString().contains("Unrecognized"));
         }
 
-      
         deleteIfExists(JsonTestOutputFile);
 
     }
-    
-    
-    
+
     @Test
     public void testJsonStatMarshallingForError() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -142,7 +136,7 @@ public class JSONStatMarshallerTest {
         deleteIfExists(JsonTestOutputFile);
         JSONStatMarshaller jm = new JSONStatMarshaller();
         Stat st = new Stat();
-        
+
         st.setTenant(new URI("http://tenant.1"));
         st.setProject(new URI("http://project.1"));
         OutputStream output = new OutputStream() {
@@ -157,16 +151,15 @@ public class JSONStatMarshallerTest {
                 return this.string.toString();
             }
         };
-       
+
         PrintWriter writer = new PrintWriter(output);
         String error = "someerror";
-        jm.error(writer, error); 
+        jm.error(writer, error);
         writer.close();
         Assert.assertTrue(output.toString().contains("{ \"error\": [" + "someerror" + "] }"));
         deleteIfExists(JsonTestOutputFile);
     }
-    
-    
+
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

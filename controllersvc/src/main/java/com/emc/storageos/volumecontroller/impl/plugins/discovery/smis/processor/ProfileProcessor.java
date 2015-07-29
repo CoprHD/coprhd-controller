@@ -41,6 +41,7 @@ public class ProfileProcessor extends Processor {
     String highestVersion = "";
     private static final Pattern VERSION_PATTERN = Pattern
             .compile("^(?:(\\d+))?(?:\\.(\\d+))?(?:\\.(\\d+))?$");// "([0-9]+)\\.([0-9]+)\\.([0-9]+)");
+
     /**
      * {@inheritDoc}
      */

@@ -11,7 +11,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 /**
  * Exception class to be used by HDS component to throw respective
  * exceptions based on the functionality failures.
- *
+ * 
  */
 public class HDSException extends InternalException {
 

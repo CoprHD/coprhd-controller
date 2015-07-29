@@ -7,136 +7,136 @@ package com.emc.storageos.vnxe.models;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class PoolFASTVP {
-	private int status;
-	private int relocationRate;
-	private boolean isScheduleEnabled;
-	private String relocationDurationEstimate;
-	private long sizeMovingDown;
-	private long sizeMovingUp;
-	private long sizeMovingWithin;
-	private int percentComplete;
-	private int type;
-	
-	public int getStatus() {
-		return status;
-	}
+    private int status;
+    private int relocationRate;
+    private boolean isScheduleEnabled;
+    private String relocationDurationEstimate;
+    private long sizeMovingDown;
+    private long sizeMovingUp;
+    private long sizeMovingWithin;
+    private int percentComplete;
+    private int type;
 
-	public void setStatus(int status) {
-		this.status = status;
-	}
+    public int getStatus() {
+        return status;
+    }
 
-	public int getRelocationRate() {
-		return relocationRate;
-	}
+    public void setStatus(int status) {
+        this.status = status;
+    }
 
-	public void setRelocationRate(int relocationRate) {
-		this.relocationRate = relocationRate;
-	}
+    public int getRelocationRate() {
+        return relocationRate;
+    }
 
-	public boolean getIsScheduleEnabled() {
-		return isScheduleEnabled;
-	}
+    public void setRelocationRate(int relocationRate) {
+        this.relocationRate = relocationRate;
+    }
 
-	public void setIsScheduleEnabled(boolean isScheduleEnabled) {
-		this.isScheduleEnabled = isScheduleEnabled;
-	}
+    public boolean getIsScheduleEnabled() {
+        return isScheduleEnabled;
+    }
 
-	public String getRelocationDurationEstimate() {
-		return relocationDurationEstimate;
-	}
+    public void setIsScheduleEnabled(boolean isScheduleEnabled) {
+        this.isScheduleEnabled = isScheduleEnabled;
+    }
 
-	public void setRelocationDurationEstimate(String relocationDurationEstimate) {
-		this.relocationDurationEstimate = relocationDurationEstimate;
-	}
+    public String getRelocationDurationEstimate() {
+        return relocationDurationEstimate;
+    }
 
-	public long getSizeMovingDown() {
-		return sizeMovingDown;
-	}
+    public void setRelocationDurationEstimate(String relocationDurationEstimate) {
+        this.relocationDurationEstimate = relocationDurationEstimate;
+    }
 
-	public void setSizeMovingDown(long sizeMovingDown) {
-		this.sizeMovingDown = sizeMovingDown;
-	}
+    public long getSizeMovingDown() {
+        return sizeMovingDown;
+    }
 
-	public long getSizeMovingUp() {
-		return sizeMovingUp;
-	}
+    public void setSizeMovingDown(long sizeMovingDown) {
+        this.sizeMovingDown = sizeMovingDown;
+    }
 
-	public void setSizeMovingUp(long sizeMovingUp) {
-		this.sizeMovingUp = sizeMovingUp;
-	}
+    public long getSizeMovingUp() {
+        return sizeMovingUp;
+    }
 
-	public long getSizeMovingWithin() {
-		return sizeMovingWithin;
-	}
+    public void setSizeMovingUp(long sizeMovingUp) {
+        this.sizeMovingUp = sizeMovingUp;
+    }
 
-	public void setSizeMovingWithin(long sizeMovingWithin) {
-		this.sizeMovingWithin = sizeMovingWithin;
-	}
+    public long getSizeMovingWithin() {
+        return sizeMovingWithin;
+    }
 
-	public int getPercentComplete() {
-		return percentComplete;
-	}
+    public void setSizeMovingWithin(long sizeMovingWithin) {
+        this.sizeMovingWithin = sizeMovingWithin;
+    }
 
-	public void setPercentComplete(int percentComplete) {
-		this.percentComplete = percentComplete;
-	}
+    public int getPercentComplete() {
+        return percentComplete;
+    }
 
-	public int getType() {
-		return type;
-	}
+    public void setPercentComplete(int percentComplete) {
+        this.percentComplete = percentComplete;
+    }
 
-	public void setType(int type) {
-		this.type = type;
-	}
+    public int getType() {
+        return type;
+    }
 
-	public static enum FastVPStatusEnum {
-		NOT_APPLICABLE(1),
-		PAUSED(2),
-		RELOCATING(3),
-		READY(4);
-		
-		private int value;
+    public void setType(int type) {
+        this.type = type;
+    }
 
-	    private FastVPStatusEnum(int value) {
-	        this.value = value;
-	    }
+    public static enum FastVPStatusEnum {
+        NOT_APPLICABLE(1),
+        PAUSED(2),
+        RELOCATING(3),
+        READY(4);
 
-	    public int getValue() {
-	        return this.value;
-	    }
-	}
-	
-	public static enum FastVPRelocationRateEnum {
-		HIGH(1),
-		MEDIUM(2),
-		LOW(3);
-		
-		private int value;
+        private int value;
 
-	    private FastVPRelocationRateEnum(int value) {
-	        this.value = value;
-	    }
+        private FastVPStatusEnum(int value) {
+            this.value = value;
+        }
 
-	    public int getValue() {
-	        return this.value;
-	    }
-	}
-	
-	public static enum PoolDataRelocationTypeEnum {
-		MANUAL(1),
-		SCHEDULED(2),
-		REBALANCE(3);
-		
-		private int value;
+        public int getValue() {
+            return this.value;
+        }
+    }
 
-	    private PoolDataRelocationTypeEnum(int value) {
-	        this.value = value;
-	    }
+    public static enum FastVPRelocationRateEnum {
+        HIGH(1),
+        MEDIUM(2),
+        LOW(3);
 
-	    public int getValue() {
-	        return this.value;
-	    }
-	}
+        private int value;
+
+        private FastVPRelocationRateEnum(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return this.value;
+        }
+    }
+
+    public static enum PoolDataRelocationTypeEnum {
+        MANUAL(1),
+        SCHEDULED(2),
+        REBALANCE(3);
+
+        private int value;
+
+        private PoolDataRelocationTypeEnum(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return this.value;
+        }
+    }
 }

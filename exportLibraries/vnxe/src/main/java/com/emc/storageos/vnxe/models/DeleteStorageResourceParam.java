@@ -9,16 +9,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class DeleteStorageResourceParam extends ParamBase {
-	private boolean forceSnapDeletion;
+    private boolean forceSnapDeletion;
 
-	public boolean getForceSnapDeletion() {
-		return forceSnapDeletion;
-	}
+    public boolean getForceSnapDeletion() {
+        return forceSnapDeletion;
+    }
 
-	public void setForceSnapDeletion(boolean forceSnapDeletion) {
-		this.forceSnapDeletion = forceSnapDeletion;
-	}
-	
-	
+    public void setForceSnapDeletion(boolean forceSnapDeletion) {
+        this.forceSnapDeletion = forceSnapDeletion;
+    }
 
 }

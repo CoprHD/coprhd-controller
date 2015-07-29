@@ -109,17 +109,16 @@ public class ServiceDefinitionReader {
      * Reads a descriptor from an InputStream and injects i18n properties where applicable.
      * 
      * @param in
-     *        the input stream.
+     *            the input stream.
      * @return the JSON descriptor.
      * 
      * @throws IOException
-     *         if an I/O error occurs.
+     *             if an I/O error occurs.
      */
     private JsonObject readDescriptor(InputStream in) throws IOException {
         try {
             return PARSER.parse(new InputStreamReader(in)).getAsJsonObject();
-        }
-        finally {
+        } finally {
             IOUtils.closeQuietly(in);
         }
     }
@@ -129,9 +128,9 @@ public class ServiceDefinitionReader {
      * returned.
      * 
      * @param obj
-     *        the JSON object.
+     *            the JSON object.
      * @param name
-     *        the property name.
+     *            the property name.
      * @return the property value as a string.
      */
     private static String getString(JsonObject obj, String name) {

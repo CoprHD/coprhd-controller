@@ -27,32 +27,32 @@ public class UCSMHttpTransportWrapper implements TransportWrapper {
     @Autowired
     private ClientHttpRequestFactory ucsSSLTransportRequestFactory;
 
-    public <T> T execute(Object device,Object payload,Class<T> returnType) throws ClientGeneralException{
-        return postEntity((String)device, (JAXBElement<T>)payload,returnType);
+    public <T> T execute(Object device, Object payload, Class<T> returnType) throws ClientGeneralException {
+        return postEntity((String) device, (JAXBElement<T>) payload, returnType);
     }
 
-    public <T> T postEntity(String serviceURI,JAXBElement<T> jaxbElement,Class<T> returnType) throws ClientGeneralException{
-        URL ucsmURL =null;
-        ClientHttpRequest httpRequest =null;
+    public <T> T postEntity(String serviceURI, JAXBElement<T> jaxbElement, Class<T> returnType) throws ClientGeneralException {
+        URL ucsmURL = null;
+        ClientHttpRequest httpRequest = null;
 
-        try{
+        try {
             ucsmURL = new URL(serviceURI);
-        }catch (MalformedURLException ex){
+        } catch (MalformedURLException ex) {
             throw new ClientGeneralException(ClientMessageKeys.MALFORMED_URL);
         }
 
-        if(ucsmURL.getProtocol().equalsIgnoreCase("https")){
+        if (ucsmURL.getProtocol().equalsIgnoreCase("https")) {
             httpRequest = ucsSSLTransportRequestFactory.create();
-        }else{
+        } else {
             httpRequest = ucsTransportRequestFactory.create();
         }
 
         T result = null;
 
         try {
-            result = httpRequest.httpPostXMLObject(serviceURI,jaxbElement,returnType);
+            result = httpRequest.httpPostXMLObject(serviceURI, jaxbElement, returnType);
         } catch (ClientGeneralException e) {
-            LOGGER.info(e.getLocalizedMessage(),e);
+            LOGGER.info(e.getLocalizedMessage(), e);
             throw e;
         }
         return result;

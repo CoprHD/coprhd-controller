@@ -42,6 +42,7 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     /**
      * Label assigned to the Block object.
      * An example of a block object is a volume.
+     * 
      * @valid none
      */
     @XmlElement(name = "device_label")
@@ -55,6 +56,7 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
 
     /**
      * Native ID for this Block object.
+     * 
      * @valid none
      */
     @XmlElement(name = "native_id")
@@ -68,6 +70,7 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
 
     /**
      * Virtual array where this Block object exists.
+     * 
      * @valid none
      */
     @XmlElement(name = "varray")
@@ -99,6 +102,7 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
 
     /**
      * Storage controller where this Block object is located.
+     * 
      * @valid none
      */
     @XmlElement(name = "storage_controller")
@@ -112,6 +116,7 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
 
     /**
      * World Wide name of this Block object.
+     * 
      * @valid none
      */
     @XmlElement(name = "wwn")
@@ -122,10 +127,11 @@ public abstract class BlockObjectRestRep extends DataObjectRestRep {
     public void setWwn(String wwn) {
         this.wwn = wwn;
     }
-    
+
     /**
-     * Tag for grouping Block objects that need to have consistent 
+     * Tag for grouping Block objects that need to have consistent
      * snapshots.
+     * 
      * @valid none
      */
     @XmlElement(name = "consistency_group")

@@ -12,7 +12,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 public class DefaultExportGroupServiceApiImpl extends
- AbstractExportGroupServiceApiImpl {
+        AbstractExportGroupServiceApiImpl {
     @Override
     public void validateVarrayStoragePorts(Set<URI> storageSystemURIs,
             VirtualArray varray, List<URI> allHosts) throws InternalException {

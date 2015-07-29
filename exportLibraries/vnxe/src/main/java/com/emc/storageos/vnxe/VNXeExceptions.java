@@ -17,23 +17,22 @@ public interface VNXeExceptions {
 
     @DeclareServiceCode(ServiceCode.VNXE_UNEXPECTED_DATA)
     public VNXeException unexpectedDataError(final String msg, Throwable t);
-    
+
     @DeclareServiceCode(ServiceCode.VNXE_UNEXPECTED_DATA)
     public VNXeException unexpectedDataError(final String msg);
-    
+
     @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
     public VNXeException vnxeCommandFailed(final String msg, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
     public VNXeException vnxeCommandFailed(final String msg, final String code, final String message);
-    
+
     @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
     public VNXeException vnxeCommandFailed(final String message);
-    
+
     @DeclareServiceCode(ServiceCode.VNXE_DISCOVERY_ERROR)
     public VNXeException discoveryError(final String msg, Throwable t);
-    
+
     @DeclareServiceCode(ServiceCode.VNXE_COMMAND_ERROR)
     public VNXeException authenticationFailure(String vnxeUri);
 }
-

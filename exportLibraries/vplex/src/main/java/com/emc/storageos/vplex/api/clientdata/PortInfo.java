@@ -15,16 +15,16 @@ public class PortInfo {
 
     // The port WWN
     private String _portWWN;
-    
+
     // The node WWN is optional
     private String _nodeWWN;
-    
+
     // The port name is optional.
     private String _name;
-    
+
     // The port type is optional.
     private String _type;
-    
+
     /**
      * Constructor.
      * 
@@ -40,9 +40,9 @@ public class PortInfo {
      * @param portWWN The port WWN is required.
      * @param nodeWWN The node WWN is optional.
      * @param name The port name is optional. Typically used to name an
-     *        initiator port when it is registered with the VPlex.
+     *            initiator port when it is registered with the VPlex.
      * @param type The port type is optional. Typically used for initiator ports
-     *        to specify the initiator type when registering a initiator port.
+     *            to specify the initiator type when registering a initiator port.
      */
     public PortInfo(String portWWN, String nodeWWN, String name, String type) {
         _portWWN = portWWN;
@@ -59,7 +59,7 @@ public class PortInfo {
     public String getPortWWN() {
         return _portWWN;
     }
-    
+
     /**
      * Setter for the port WWN.
      * 
@@ -68,7 +68,7 @@ public class PortInfo {
     public void setPortWWN(String portWWN) {
         _portWWN = portWWN;
     }
-    
+
     /**
      * Getter for the node WWN.
      * 
@@ -77,7 +77,7 @@ public class PortInfo {
     public String getNodeWWN() {
         return _nodeWWN;
     }
-    
+
     /**
      * Setter for the node WWN.
      * 
@@ -86,7 +86,7 @@ public class PortInfo {
     public void setNodeWWN(String nodeWWN) {
         _nodeWWN = nodeWWN;
     }
-    
+
     /**
      * Getter for the port name.
      * 
@@ -95,7 +95,7 @@ public class PortInfo {
     public String getName() {
         return _name;
     }
-    
+
     /**
      * Setter for the port name.
      * 
@@ -104,7 +104,7 @@ public class PortInfo {
     public void setName(String name) {
         _name = name;
     }
-    
+
     /**
      * Getter for the port type.
      * 
@@ -113,7 +113,7 @@ public class PortInfo {
     public String getType() {
         return _type;
     }
-    
+
     /**
      * Setter for the port type.
      * 

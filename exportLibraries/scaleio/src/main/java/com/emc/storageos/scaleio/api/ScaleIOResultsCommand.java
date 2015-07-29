@@ -10,7 +10,7 @@ import com.iwave.ext.command.CommandException;
 /**
  * This class represents a command that has results that need to be
  * processed into a T type object.
- *
+ * 
  * @param <T>
  */
 public abstract class ScaleIOResultsCommand<T> extends ScaleIOCLICommand {

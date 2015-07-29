@@ -8,7 +8,7 @@ package com.emc.storageos.vnxe.models;
 public class BlockHostAccess {
     private VNXeBase host;
     private int accessMask;
-    
+
     public VNXeBase getHost() {
         return host;
     }
@@ -25,16 +25,18 @@ public class BlockHostAccess {
         this.accessMask = accessMask;
     }
 
-    public  static enum HostLUNAccessEnum {
+    public static enum HostLUNAccessEnum {
         NOACCESS(0),
         PRODUCTION(1),
         SNAPSHOT(2),
         BOTH(3);
-        
+
         private int value;
+
         private HostLUNAccessEnum(int value) {
             this.value = value;
         }
+
         public int getValue() {
             return value;
         }

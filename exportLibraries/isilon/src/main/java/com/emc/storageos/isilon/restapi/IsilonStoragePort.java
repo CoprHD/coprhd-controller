@@ -11,10 +11,9 @@ public class IsilonStoragePort {
 
     ArrayList<String> zones;
 
-    public ArrayList<String> getZones(){
+    public ArrayList<String> getZones() {
         return zones;
     }
-
 
     private String portName;
     private String ipAddress;

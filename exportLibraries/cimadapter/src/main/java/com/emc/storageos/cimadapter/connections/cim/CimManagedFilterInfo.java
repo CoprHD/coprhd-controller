@@ -25,7 +25,7 @@ public class CimManagedFilterInfo extends CimFilterInfo {
 
     // The query language for the managed filter.
     private String _queryLanguage = CimConstants.DEFAULT_QUERY_LANGUAGE;
-    
+
     // The logger.
     private static final Logger s_logger = LoggerFactory.getLogger(CimManagedFilterInfo.class);
 
@@ -82,12 +82,12 @@ public class CimManagedFilterInfo extends CimFilterInfo {
     public void setQueryLanguage(String value) {
         _queryLanguage = value;
     }
-    
+
     /**
      * Setter for the CIM indication filter name.
      * 
      * @param listenerHostIP The IP address of the host that is listening for
-     *        indications resulting from this filter.
+     *            indications resulting from this filter.
      */
     @Override
     public void setName(String listenerHostIP) {

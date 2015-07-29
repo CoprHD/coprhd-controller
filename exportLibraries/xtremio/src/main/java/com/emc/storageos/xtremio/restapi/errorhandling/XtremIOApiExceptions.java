@@ -7,26 +7,26 @@ package com.emc.storageos.xtremio.restapi.errorhandling;
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+
 @MessageBundle
 public interface XtremIOApiExceptions {
 
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    XtremIOApiException authenticationFailure(String xtremIOUri) ;
-    
+    XtremIOApiException authenticationFailure(String xtremIOUri);
+
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    XtremIOApiException resourceNotFound(String xtremIOUri) ;
-    
+    XtremIOApiException resourceNotFound(String xtremIOUri);
+
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    XtremIOApiException internalError(String xtremIOUri, String message) ;
-    
+    XtremIOApiException internalError(String xtremIOUri, String message);
+
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    XtremIOApiException internaljsonParserError() ;
-    
+    XtremIOApiException internaljsonParserError();
+
     @DeclareServiceCode(ServiceCode.XTREMIO_DISCOVERY_ERROR)
-    XtremIOApiException discoveryFailed(String xtremIO) ;
-    
+    XtremIOApiException discoveryFailed(String xtremIO);
+
     @DeclareServiceCode(ServiceCode.XTREMIO_DISCOVERY_ERROR)
-    XtremIOApiException moreThanOneClusterNotSupported(String xtremIO) ;
-    
+    XtremIOApiException moreThanOneClusterNotSupported(String xtremIO);
 
 }

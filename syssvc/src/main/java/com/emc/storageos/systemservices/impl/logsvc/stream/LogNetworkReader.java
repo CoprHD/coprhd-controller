@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.systemservices.impl.logsvc.LogACKCode;
-import com.emc.storageos.systemservices.impl.logsvc.LogConstants;
 import com.emc.storageos.systemservices.impl.logsvc.LogMessage;
 import com.emc.storageos.systemservices.impl.logsvc.LogStatusInfo;
 import com.emc.storageos.systemservices.impl.logsvc.util.LogUtil;
@@ -36,7 +35,7 @@ public class LogNetworkReader implements LogStream {
     private boolean isFinished;  // record is the logs and status chucks are all finished
     private String nodeId;
     private int logMessageCount = 0;
-    
+
     public LogNetworkReader(String nodeId, InputStream inputStream, LogStatusInfo status) {
         this.nodeId = nodeId;
         this.dis = new DataInputStream(inputStream);
@@ -47,7 +46,7 @@ public class LogNetworkReader implements LogStream {
     @Override
     public LogMessage readNextLogMessage() {
         try {
-            while(true) {
+            while (true) {
                 byte flag = (byte) dis.read();
                 if (flag == LogACKCode.ACK_FIN) {
                     logger.debug("received FIN");
@@ -69,19 +68,20 @@ public class LogNetworkReader implements LogStream {
                 }
             }
         } catch (IOException e) {
-            //TODO: generate a dynamic error log message
+            // TODO: generate a dynamic error log message
             logger.error("IOException:", e);
             return null;
         }
     }
+
     public String getNodeId() {
         return this.nodeId;
     }
-    
+
     public LogStatusInfo getStatus() {
         return this.status;
     }
-    
+
     public boolean isFinished() {
         return this.isFinished;
     }

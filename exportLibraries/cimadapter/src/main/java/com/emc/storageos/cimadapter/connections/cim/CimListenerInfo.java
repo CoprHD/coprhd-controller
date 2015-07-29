@@ -9,7 +9,7 @@ package com.emc.storageos.cimadapter.connections.cim;
  * Spring bean for the listener configuration.
  */
 public class CimListenerInfo {
-    
+
     // The listener host IP address.
     private String _hostIP;
 
@@ -21,10 +21,10 @@ public class CimListenerInfo {
 
     // The listener queue size.
     private int _queueSize = CimConstants.DEFAULT_QUEUE_SIZE;
-    
-    // Default SMI-S's SSL port to pull public certificates from SMI-S 
+
+    // Default SMI-S's SSL port to pull public certificates from SMI-S
     private int defaultSMISSSLPort;
-    
+
     /**
      * Getter for the IP address for the listener host.
      * 
@@ -96,22 +96,24 @@ public class CimListenerInfo {
     public void setQueueSize(int value) {
         _queueSize = value;
     }
-    
+
     /**
      * Returns default smi-s ssl port number
+     * 
      * @return default smi-s ssl port number
      */
     public int getDefaultSMISSSLPort() {
         return defaultSMISSSLPort;
     }
-    
+
     /**
      * Setter for the default smi-s ssl port number
+     * 
      * @param defaultSMISSSLPort
      */
     public void setDefaultSMISSSLPort(int defaultSMISSSLPort) {
         this.defaultSMISSSLPort = defaultSMISSSLPort;
-    }    
+    }
 
     @Override
     /**

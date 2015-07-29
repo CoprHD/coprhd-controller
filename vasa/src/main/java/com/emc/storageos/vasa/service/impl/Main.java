@@ -30,7 +30,7 @@ public class Main {
         try {
             SLF4JBridgeHandler.install();
             FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext(args);
-            VasaServer service = (VasaServer)ctx.getBean(SERVICE_BEAN);
+            VasaServer service = (VasaServer) ctx.getBean(SERVICE_BEAN);
             service.start();
         } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);

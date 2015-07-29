@@ -17,86 +17,91 @@ import com.emc.fapiclient.ws.ClusterUID;
 import com.emc.fapiclient.ws.ConsistencyGroupUID;
 
 /**
- * A RecoverPoint Consistency Group object.  Child of an RPSystem.
+ * A RecoverPoint Consistency Group object. Child of an RPSystem.
  * 
  */
 @XmlAccessorType(XmlAccessType.NONE)
 @XmlRootElement
 public class RPConsistencyGroup {
-	private String _name;
-	private ConsistencyGroupUID _cgUID;
-	private ClusterUID _ClusterUID;
-	private Map<ClusterUID, Set<String>> _siteToArrayIDsMap = new HashMap<ClusterUID, Set<String>>();
- 	
-	public ClusterUID getClusterUID() {
-		return _ClusterUID;
-	}
+    private String _name;
+    private ConsistencyGroupUID _cgUID;
+    private ClusterUID _ClusterUID;
+    private Map<ClusterUID, Set<String>> _siteToArrayIDsMap = new HashMap<ClusterUID, Set<String>>();
 
-	public void setClusterUID(ClusterUID ClusterUID) {
-		this._ClusterUID = ClusterUID;
-	}
+    public ClusterUID getClusterUID() {
+        return _ClusterUID;
+    }
 
-	private Set<RPCopy> copies;
-	
-	@XmlElement
-	public String getName() {
-		return _name;
-	}
+    public void setClusterUID(ClusterUID ClusterUID) {
+        this._ClusterUID = ClusterUID;
+    }
 
-	public void setName(String name) {
-		this._name = name;
-	}
+    private Set<RPCopy> copies;
 
-	@XmlElement
-	public ConsistencyGroupUID getCGUID() {
-		return _cgUID;
-	}
+    @XmlElement
+    public String getName() {
+        return _name;
+    }
 
-	public void setCGUID(ConsistencyGroupUID cGUID) {
-		_cgUID = cGUID;
-	}
+    public void setName(String name) {
+        this._name = name;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o)
-			return true;
-		if (o == null || getClass() != o.getClass())
-			return false;
+    @XmlElement
+    public ConsistencyGroupUID getCGUID() {
+        return _cgUID;
+    }
 
-		RPConsistencyGroup that = (RPConsistencyGroup) o;
+    public void setCGUID(ConsistencyGroupUID cGUID) {
+        _cgUID = cGUID;
+    }
 
-		if (_cgUID == null || that.getCGUID() == null)
-			return false; // null != everything (including null)
-		return _cgUID.getId() == that.getCGUID().getId();
-	}
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
-	@Override
-	public int hashCode() {
-		if (_cgUID != null)
-			// TODO: Danger, loss of precision.
-			return (int) (_cgUID.getId() != 0L ? _cgUID.getId() : 0);
-		return super.hashCode();
-	}
-	
-	public void cloneMe(RPConsistencyGroup clone) {
-		_name = clone._name;
-		_cgUID = clone._cgUID;
-		_ClusterUID = clone._ClusterUID;
-	}
+        RPConsistencyGroup that = (RPConsistencyGroup) o;
 
-	public void setCopies(Set<RPCopy> copies) {
-		this.copies = copies;
-	}
+        if (_cgUID == null || that.getCGUID() == null)
+        {
+            return false; // null != everything (including null)
+        }
+        return _cgUID.getId() == that.getCGUID().getId();
+    }
 
-	public Set<RPCopy> getCopies() {
-		return copies;
-	}
+    @Override
+    public int hashCode() {
+        if (_cgUID != null) {
+            // TODO: Danger, loss of precision.
+            return (int) (_cgUID.getId() != 0L ? _cgUID.getId() : 0);
+        }
+        return super.hashCode();
+    }
 
-	public void setSiteToArrayIDsMap(Map<ClusterUID, Set<String>> siteToArrayIDsMap) {
-		this._siteToArrayIDsMap = siteToArrayIDsMap;
-	}
+    public void cloneMe(RPConsistencyGroup clone) {
+        _name = clone._name;
+        _cgUID = clone._cgUID;
+        _ClusterUID = clone._ClusterUID;
+    }
 
-	public Map<ClusterUID, Set<String>> getSiteToArrayIDsMap() {
-		return _siteToArrayIDsMap;
-	}
+    public void setCopies(Set<RPCopy> copies) {
+        this.copies = copies;
+    }
+
+    public Set<RPCopy> getCopies() {
+        return copies;
+    }
+
+    public void setSiteToArrayIDsMap(Map<ClusterUID, Set<String>> siteToArrayIDsMap) {
+        this._siteToArrayIDsMap = siteToArrayIDsMap;
+    }
+
+    public Map<ClusterUID, Set<String>> getSiteToArrayIDsMap() {
+        return _siteToArrayIDsMap;
+    }
 }

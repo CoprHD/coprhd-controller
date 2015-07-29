@@ -1,0 +1,155 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+# OBJCTRL_INSECURE_PORT           = '9010'
+# OBJCTRL_PORT                    = '9011'
+#----------------------------------------------------------------------
+# namespace cli functions
+#----------------------------------------------------------------------
+
+def namespace_create(args):
+    bourne.connect(args.ip)
+    namespace = bourne.namespace_create(args.tenant, args.namespace, args.project, args.cos, args.rg, args.allowed_vpools_list)
+    bourne.pretty_print_json(namespace)
+
+def namespace_update(args):
+    bourne.connect(args.ip)
+    namespace = bourne.namespace_update(args.tenant, args.namespace, args.project, args.rg, args.vpools_added_to_allowed_vpools_list, args.vpools_added_to_disallowed_vpools_list)
+    bourne.pretty_print_json(namespace)
+
+def namespace_delete(args):
+    bourne.connect(args.ip)
+    bourne.namespace_delete(args.namespace)
+
+def namespace_show(args):
+    bourne.connect(args.ip)
+    namespace = bourne.namespace_show(args.namespace)
+    bourne.pretty_print_json(namespace)
+
+def namespace_show_tenant(args):
+    bourne.connect(args.ip)
+    tenant_namespace = bourne.namespace_show_tenant(args.tenant)
+    bourne.pretty_print_json(tenant_namespace)
+
+def namespace_list(args):
+    bourne.connect(args.ip)
+    uris = bourne.namespace_list()
+    print uris
+    for uri in uris:
+        ns = bourne.namespace_show(uri)
+        bourne.pretty_print_json(ns)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# namespace <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne namespace cli usage.')
+parser.add_argument('cmd', help = 'cmd = (create | update | delete | show | show_tenant | list)')
+parser.add_argument('--ip', metavar = 'ipaddr', help = 'IP address of bourne', default=bourne_ip)
+
+# namespace create namespace project cos 
+create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create.add_argument('--tenant',  metavar = 'tenant',  help = 'tenant id or name', default = None)
+create.add_argument('--namespace',    help = 'namespace name')
+create.add_argument('--project',    help = 'default project name')
+create.add_argument('--cos',    help = 'default objcos name')
+create.add_argument('--rg',    help = 'default replication group name', default=None)
+create.add_argument('--allowed_vpools_list',    help = 'default replication group name', default=None)
+
+
+# namespace update namespace project cos rg
+update = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+update.add_argument('--tenant',  metavar = 'tenant',  help = 'tenant id or name', default = None)
+update.add_argument('--namespace',    help = 'namespace name')
+update.add_argument('--project',    help = 'default project name')
+update.add_argument('--rg',    help = 'default replication group name', default=None)
+update.add_argument('--vpools_added_to_allowed_vpools_list',    help = 'vpool added to allowed list', default=None)
+update.add_argument('--vpools_added_to_disallowed_vpools_list',    help = 'vpool added to disAllowed list', default=None)
+
+# namespace delete uri
+delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+delete.add_argument('namespace',    help = 'namespace name')
+
+# namespace show namespace
+show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show.add_argument('namespace',      help = 'namespace name')
+
+# namespace show_tenant tenant
+show_tenant = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+show_tenant.add_argument('--tenant',  metavar = 'tenant',  help = 'tenant id or name', default = None)
+
+# namespace list
+list = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+  
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+    #bourne.connect(bourne_ip)
+     
+    #uri = bourne.tenant_getid()
+    #print uri    
+
+    if   (cmd == "create"):
+        args = create.parse_args()
+        namespace_create(args)
+    elif (cmd == "update"):
+        args = update.parse_args()
+        namespace_update(args)
+    elif (cmd == "delete"):
+        args = delete.parse_args()
+        namespace_delete(args)
+    elif (cmd == "show"):
+        args = show.parse_args()
+        namespace_show(args)
+    elif (cmd == "show_tenant"):
+        args = show_tenant.parse_args()
+        namespace_show_tenant(args)
+    elif (cmd == "list"):
+        args = list.parse_args()
+        namespace_list(args)
+    elif (cmd == "sanity"):
+        args = create.parse_args()
+        bourne.connect(args.ip)
+
+        # delete namespace if it exists
+        ns_list = bourne.namespace_list()
+        # create namespace if not exists yet
+        if args.namespace in ns_list:
+            print bourne.namespace_delete(args.namespace)
+
+        loops = 1
+        for i in range(loops):
+            print bourne.namespace_create(args.tenant, args.namespace, args.project, args.cos, args.rg, args.allowed_vpools_list)
+            print bourne.namespace_list()
+            print bourne.namespace_show(args.namespace)
+            print bourne.namespace_show_tenant(args.tenant)
+            bourne.namespace_delete(args.namespace)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

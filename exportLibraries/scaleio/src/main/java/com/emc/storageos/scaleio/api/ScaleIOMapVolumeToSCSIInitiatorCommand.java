@@ -13,7 +13,7 @@ public class ScaleIOMapVolumeToSCSIInitiatorCommand extends AbstractScaleIOQuery
 
     private static final String MAPPED_SUCCESSFULLY = "MappedSuccessfully";
     // Successfully mapped volume with ID e9e51f8300000003 to SCSI Initiator with ID 19be524400000000 with LUN number 1
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully mapped volume with ID \\w+ to SCSI Initiator with IQN .*", MAPPED_SUCCESSFULLY)
     };
 
@@ -30,7 +30,7 @@ public class ScaleIOMapVolumeToSCSIInitiatorCommand extends AbstractScaleIOQuery
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

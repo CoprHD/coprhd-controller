@@ -11,18 +11,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
 import util.datatable.DataTable;
 
 import com.emc.storageos.model.file.FileShareRestRep;
-import com.emc.storageos.model.varray.VirtualArrayRestRep;
-import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
 import controllers.resources.FileSystems;
 
 public class FileSystemsDataTable extends DataTable {
@@ -45,8 +39,8 @@ public class FileSystemsDataTable extends DataTable {
 
         ViPRCoreClient client = getViprClient();
         List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(projectId);
-        Map<URI,String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
-        Map<URI,String> virtualPools = ResourceUtils.mapNames(client.fileVpools().list());
+        Map<URI, String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
+        Map<URI, String> virtualPools = ResourceUtils.mapNames(client.fileVpools().list());
 
         List<FileSystem> results = Lists.newArrayList();
         for (FileShareRestRep fileSystem : fileSystems) {
@@ -56,7 +50,7 @@ public class FileSystemsDataTable extends DataTable {
     }
 
     public static class FileSystem {
-    	public String rowLink;
+        public String rowLink;
         public URI id;
         public String name;
         public String capacity;
@@ -64,7 +58,7 @@ public class FileSystemsDataTable extends DataTable {
         public String vpool;
         public Collection<String> protocols;
 
-        public FileSystem(final FileShareRestRep bourneFs, Map<URI,String> varrayMap, Map<URI,String> vpoolMap) {
+        public FileSystem(final FileShareRestRep bourneFs, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = bourneFs.getId();
             rowLink = createLink(FileSystems.class, "fileSystem", "fileSystemId", id);
             name = bourneFs.getName();

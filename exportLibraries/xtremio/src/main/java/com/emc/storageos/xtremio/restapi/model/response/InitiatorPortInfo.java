@@ -9,11 +9,11 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_port_info")
+@JsonRootName(value = "xtremio_port_info")
 public class InitiatorPortInfo {
-    
+
     @SerializedName("name")
-    @JsonProperty(value="name")
+    @JsonProperty(value = "name")
     private String name;
 
     public String getName() {
@@ -23,9 +23,9 @@ public class InitiatorPortInfo {
     public void setName(String name) {
         this.name = name;
     }
-    
+
     @SerializedName("href")
-    @JsonProperty(value="href")
+    @JsonProperty(value = "href")
     public String href;
 
     public String getHref() {
@@ -35,7 +35,5 @@ public class InitiatorPortInfo {
     public void setHref(String href) {
         this.href = href;
     }
-
-   
 
 }

@@ -40,7 +40,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class BeaconTest extends CoordinatorTestBase {
     private static final Logger _log = LoggerFactory.getLogger(BeaconTest.class);
 
-
     /**
      * Dummy service interface
      */
@@ -64,7 +63,7 @@ public class BeaconTest extends CoordinatorTestBase {
             _svc.setId(UUID.randomUUID().toString());
             _svc.setTag(tag);
             Map<String, URI> endpoint = new HashMap<String, URI>();
-            URI endpointUri =  URI.create(String.format("rmi://localhost:%1$d/test", port));
+            URI endpointUri = URI.create(String.format("rmi://localhost:%1$d/test", port));
             endpoint.put(endpointKey, endpointUri);
             _svc.setEndpointMap(endpoint);
             _port = port;

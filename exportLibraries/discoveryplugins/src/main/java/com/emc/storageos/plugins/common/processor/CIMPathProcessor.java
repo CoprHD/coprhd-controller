@@ -16,7 +16,6 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 
-
 /**
  * Responsible for handling Iterators and updating CIMPaths in Map. This
  * processor is responsible for handling Result from providers of type
@@ -44,9 +43,9 @@ public class CIMPathProcessor extends Processor {
                         CIMProperty<?> prop = path.getKey(Constants._Name);
                         serialID = (String) prop.getValue();
                         _logger.info("serial ID Found:" + serialID);
-                        if(serialID.toLowerCase().contains(((String) keyMap
+                        if (serialID.toLowerCase().contains(((String) keyMap
                                 .get(Constants._serialID)).toLowerCase()))
-                         {  
+                        {
                             addPath(keyMap, operation.getResult(), path);
                             break;
                         }

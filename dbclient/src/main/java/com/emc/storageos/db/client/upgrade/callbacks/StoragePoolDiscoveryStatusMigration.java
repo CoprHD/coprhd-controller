@@ -29,7 +29,7 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 public class StoragePoolDiscoveryStatusMigration extends
         BaseCustomMigrationCallback {
-    
+
     private static final Logger log = LoggerFactory.getLogger(StoragePoolDiscoveryStatusMigration.class);
 
     @Override
@@ -45,7 +45,7 @@ public class StoragePoolDiscoveryStatusMigration extends
                     " to " + DiscoveryStatus.VISIBLE);
             pool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
             modifiedPools.add(pool);
-        }        
+        }
         dbClient.persistObject(modifiedPools);
     }
 

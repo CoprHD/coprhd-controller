@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 @BucketGranularity(TimeSeriesMetadata.TimeBucket.HOUR)
 @Ttl(60 * 60 * 24 * 7 /* 7 days */)
 public class StatTimeSeries implements TimeSeries<Stat> {
-    private static final Logger _logger     = LoggerFactory
-                                                    .getLogger(StatTimeSeries.class);
-    private StatSerializer      _serializer = new StatSerializer();
+    private static final Logger _logger = LoggerFactory
+            .getLogger(StatTimeSeries.class);
+    private StatSerializer _serializer = new StatSerializer();
 
     @Override
     public StatSerializer getSerializer() {

@@ -4,19 +4,18 @@
  */
 package com.emc.storageos.cinder.model;
 
-
 public class AuthTokenRequest {
 
-	public Auth auth = new Auth();
-	
-	public class Auth{
-	    public PasswordCredentials passwordCredentials = new PasswordCredentials();
-	    public String tenantName;
-	}
+    public Auth auth = new Auth();
 
-	public class PasswordCredentials{
-	    public String username;
-	    public String password;
-	}
+    public class Auth {
+        public PasswordCredentials passwordCredentials = new PasswordCredentials();
+        public String tenantName;
+    }
+
+    public class PasswordCredentials {
+        public String username;
+        public String password;
+    }
 
 }

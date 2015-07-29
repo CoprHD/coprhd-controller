@@ -33,10 +33,10 @@ public class VpoolProtectionVarraySettings extends DataObject {
 
     // RP target journal size policy
     private String _journalSize;
-    
+
     // RP target journal virtual array
     private URI _journalVarray;
-    
+
     // RP target journal virtual pool
     private URI _journalVpool;
 
@@ -45,6 +45,7 @@ public class VpoolProtectionVarraySettings extends DataObject {
     public NamedURI getParent() {
         return _parent;
     }
+
     public void setParent(NamedURI parent) {
         _parent = parent;
         setChanged("parent");
@@ -80,24 +81,24 @@ public class VpoolProtectionVarraySettings extends DataObject {
     public String getJournalSize() {
         return _journalSize;
     }
-    
+
     @Name("journalVarray")
-	public URI getJournalVarray() {
-		return _journalVarray;
-	}
-    
-	public void setJournalVarray(URI journalVarray) {
-		this._journalVarray = journalVarray;
-		setChanged("journalVarray");
-	}
-	
-	@Name("journalVpool")
-	public URI getJournalVpool() {
-		return _journalVpool;
-	}
-	
-	public void setJournalVpool(URI journalVpool) {
-		this._journalVpool = journalVpool;
-		setChanged("journalVpool");
-	}
+    public URI getJournalVarray() {
+        return _journalVarray;
+    }
+
+    public void setJournalVarray(URI journalVarray) {
+        this._journalVarray = journalVarray;
+        setChanged("journalVarray");
+    }
+
+    @Name("journalVpool")
+    public URI getJournalVpool() {
+        return _journalVpool;
+    }
+
+    public void setJournalVpool(URI journalVpool) {
+        this._journalVpool = journalVpool;
+        setChanged("journalVpool");
+    }
 }

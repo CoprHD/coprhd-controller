@@ -34,48 +34,44 @@ import com.google.common.collect.ImmutableMap;
 @ContextConfiguration(locations = { "classpath:applicationContext.xml" })
 public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
 
-
     private static final String UCSM_SERVICE_PREFIX = "http://";
     private static final String UCSM_SERVICE_PREFIX_SSL = "http://";
     private static final String UCSM_SERVICE_POSTFIX = "/nuova";
     private static final String UCSM_SERVICE_POSTFIX_SSL = ":443/nuova";
-    
+
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    
+
     private static String UCSM_HOST = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host");
     private static String UCSM_HOST_USERNAME = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host.username");
     private static String UCSM_HOST_PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host.password");
-    
+
     private static String UCSM_SERVICE = UCSM_SERVICE_PREFIX + UCSM_HOST + UCSM_SERVICE_POSTFIX;
     private static String UCSM_SERVICE_SSL = UCSM_SERVICE_PREFIX_SSL + UCSM_HOST + UCSM_SERVICE_POSTFIX_SSL;
-    
-    
+
     private static String UCSM_HOST2 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host2");
     private static String UCSM_HOST2_USERNAME = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host2.username");
     private static String UCSM_HOST2_PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host2.password");
-    
+
     private static String UCSM_SERVICE2 = UCSM_SERVICE_PREFIX + UCSM_HOST2 + UCSM_SERVICE_POSTFIX;
-    
-    
+
     private static String UCSM_HOST3 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host3");
     private static String UCSM_HOST3_USERNAME = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host3.username");
     private static String UCSM_HOST3_PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host3.password");
-    
+
     private static String UCSM_SERVICE3 = UCSM_SERVICE_PREFIX + UCSM_HOST3 + UCSM_SERVICE_POSTFIX;
-    
+
     private static String UCSM_HOST4 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host4");
     private static String UCSM_HOST4_USERNAME = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host4.username");
     private static String UCSM_HOST4_PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.host4.password");
-    
+
     private static String UCSM_SERVICE4 = UCSM_SERVICE_PREFIX + UCSM_HOST4 + UCSM_SERVICE_POSTFIX;
-    
-    private static final String  SP_DN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.spdn.ls");
-    private static final String  SP_DN2 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "org-root/ls-janardhan-test");
-    private static final String  SP_DN3 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "org-root/ls-test-janardhan1");
-    private static final String  SP_DN4 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "sys/chassis-1/blade-6");
-    private static final String  SP_DN5 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "sys/chassis-4/blade-1");
-    
-    
+
+    private static final String SP_DN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "ucsm.spdn.ls");
+    private static final String SP_DN2 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "org-root/ls-janardhan-test");
+    private static final String SP_DN3 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "org-root/ls-test-janardhan1");
+    private static final String SP_DN4 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "sys/chassis-1/blade-6");
+    private static final String SP_DN5 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "sys/chassis-4/blade-1");
+
     @Autowired
     UCSMService ucsmService;
 
@@ -265,7 +261,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
 
     }
 
-    @Test(groups = "onDemand50",dependsOnMethods="testSetNoBoot")
+    @Test(groups = "onDemand50", dependsOnMethods = "testSetNoBoot")
     public void testSetLanBoot() throws ClientGeneralException {
 
         LsServer lsServer = ucsmService.setServiceProfileToLanBoot(UCSM_SERVICE3, UCSM_HOST3_USERNAME, UCSM_HOST3_PASSWORD, SP_DN);
@@ -274,7 +270,7 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
         System.out.println("Current State of the lsServer : " + lsServer.getOperState());
 
     }
-    
+
     @Test(groups = "onDemand50")
     public void testSetNoBoot() throws ClientGeneralException {
 
@@ -285,22 +281,22 @@ public class UCSMServiceTest extends AbstractTestNGSpringContextTests {
 
     }
 
-    @Test(groups = "onDemand50",dependsOnMethods="testSetLanBoot")
+    @Test(groups = "onDemand50", dependsOnMethods = "testSetLanBoot")
     public void testSetSanBootTarget() throws ClientGeneralException {
 
         String aSide = "fc0";
         String bside = "fc1";
 
-        Map<String, Map<String,Integer>> hbaToStoragePortMap = new HashMap<String, Map<String,Integer>>();
+        Map<String, Map<String, Integer>> hbaToStoragePortMap = new HashMap<String, Map<String, Integer>>();
 
         hbaToStoragePortMap.put(
                 bside,
-                ImmutableMap.of("50:00:09:73:00:12:9D:60",1, "50:00:09:73:00:12:9D:1C",1,
-                        "50:00:09:73:00:12:9D:7F",1));
+                ImmutableMap.of("50:00:09:73:00:12:9D:60", 1, "50:00:09:73:00:12:9D:1C", 1,
+                        "50:00:09:73:00:12:9D:7F", 1));
         hbaToStoragePortMap.put(
                 aSide,
-                ImmutableMap.of("50:00:09:73:00:12:9D:60",0, "50:00:09:73:00:12:9D:1C",0,
-                        "50:00:09:73:00:12:9D:7F",0));
+                ImmutableMap.of("50:00:09:73:00:12:9D:60", 0, "50:00:09:73:00:12:9D:1C", 0,
+                        "50:00:09:73:00:12:9D:7F", 0));
 
         LsServer lsServer = ucsmService.setServiceProfileToSanBoot(UCSM_SERVICE3, UCSM_HOST3_USERNAME, UCSM_HOST3_PASSWORD, SP_DN,
                 hbaToStoragePortMap);

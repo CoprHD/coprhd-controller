@@ -2,7 +2,7 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.impl;                                                    
+package com.emc.storageos.db.client.impl;
 
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.model.Column;
@@ -37,31 +37,30 @@ public abstract class DbIndex {
     ColumnFamily<String, IndexColumnName> getIndexCF() {
         return indexCF;
     }
-    
+
     public void setIndexCF(ColumnFamily<String, IndexColumnName> cf) {
         indexCF = cf;
     }
 
     abstract boolean addColumn(String recordKey, CompositeColumnName column, Object value, String className,
-                               RowMutator mutator, Integer ttl, DataObject obj);
+            RowMutator mutator, Integer ttl, DataObject obj);
+
     abstract boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className,
-                                  RowMutator mutator, Map<String,List<Column<CompositeColumnName>>> fieldColumnMap);
+            RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap);
 
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column, String className,
-                                  RowMutator mutator, Map<String,List<Column<CompositeColumnName>>> fieldColumnMap,
-                                  DataObject obj){
-        return removeColumn(recordKey,column,className,mutator,fieldColumnMap);
+            RowMutator mutator, Map<String, List<Column<CompositeColumnName>>> fieldColumnMap,
+            DataObject obj) {
+        return removeColumn(recordKey, column, className, mutator, fieldColumnMap);
     }
 
-
-    public boolean needConsistency(){
+    public boolean needConsistency() {
         return true;
     }
 
-
     @Override
     public String toString() {
-        StringBuilder builder  = new StringBuilder(getClass().getSimpleName());
+        StringBuilder builder = new StringBuilder(getClass().getSimpleName());
 
         builder.append("\n");
         builder.append("fieldName:");
@@ -70,4 +69,4 @@ public abstract class DbIndex {
 
         return builder.toString();
     }
-} 
+}

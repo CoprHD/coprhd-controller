@@ -27,7 +27,7 @@ public class VPlexApiConsistencyGroupManager {
 
     // A reference to the API client.
     private VPlexApiClient _vplexApiClient;
-    
+
     /**
      * Package protected constructor.
      * 
@@ -36,7 +36,7 @@ public class VPlexApiConsistencyGroupManager {
     VPlexApiConsistencyGroupManager(VPlexApiClient client) {
         _vplexApiClient = client;
     }
-    
+
     /**
      * Creates a consistency group with the passed name on the cluster with the
      * passed name.
@@ -46,13 +46,13 @@ public class VPlexApiConsistencyGroupManager {
      * @param isDistributed true if the CG will hold distributed volumes.
      * 
      * @throws VPlexApiException When an error occurs creating the consistency
-     *         group.
+     *             group.
      */
     void createConsistencyGroup(String cgName, String clusterName,
-        boolean isDistributed) throws VPlexApiException {
+            boolean isDistributed) throws VPlexApiException {
         s_logger.info("Request to create consistency group {} on cluster {}", cgName,
-            clusterName);
-        
+                clusterName);
+
         // Find the cluster so we can get the cluster path.
         VPlexClusterInfo clusterInfo = null;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
@@ -63,26 +63,26 @@ public class VPlexApiConsistencyGroupManager {
                 break;
             }
         }
-        
+
         // Error if not found.
         if (clusterInfo == null) {
             throw VPlexApiException.exceptions.failedToFindCluster(clusterName);
         }
-        
+
         // Create the consistency group on the cluster.
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_CREATE_CG);
+                    VPlexApiConstants.URI_CREATE_CG);
             s_logger.info("Create consistency group URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_N, cgName);
             argsMap.put(VPlexApiConstants.ARG_DASH_C, clusterInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Create consistency group POST data is {}",
-                postDataObject.toString());
+                    postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Create consistency group response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -92,16 +92,16 @@ public class VPlexApiConsistencyGroupManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions
-                        .createConsistencyGroupFailureStatus(cgName,
-                            String.valueOf(response.getStatus()), cause);
+                            .createConsistencyGroupFailureStatus(cgName,
+                                    String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully created consistency group");
-            
+
             // Find the consistency group
             VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
-                Collections.singletonList(clusterInfo), false, true);
-            
+                    Collections.singletonList(clusterInfo), false, true);
+
             // Set the consistency group properties.
             setAutoResumeAtLoser(cgInfo, true);
             if (isDistributed) {
@@ -121,25 +121,25 @@ public class VPlexApiConsistencyGroupManager {
             throw VPlexApiException.exceptions.failedCreatingConsistencyGroup(cgName, e);
         } finally {
             if (response != null) {
-                response .close();
+                response.close();
             }
         }
     }
-    
+
     /**
      * Sets the visibility of the consistency group to the clusters in the
      * passed list.
      * 
      * @param cgInfo A reference to the consistency group info.
      * @param clusterInfoList The list of clusters for which the CG should have
-     *        visibility.
+     *            visibility.
      * 
      * @throws VPlexApiException When an error occurs setting the consistency
-     *         group visibility.
+     *             group visibility.
      */
     void setConsistencyGroupVisibility(VPlexConsistencyGroupInfo cgInfo,
-        List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
-        
+            List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
+
         ClientResponse response = null;
         try {
             // Build the request path.
@@ -149,7 +149,7 @@ public class VPlexApiConsistencyGroupManager {
             pathBuilder.append(cgInfo.getPath());
             pathBuilder.append("?");
             pathBuilder.append(VPlexConsistencyGroupInfo.CGAttribute.VISIBILITY
-                .getAttributeName());
+                    .getAttributeName());
             pathBuilder.append("=");
             for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 if (count > 0) {
@@ -158,9 +158,9 @@ public class VPlexApiConsistencyGroupManager {
                 pathBuilder.append(clusterInfo.getPath());
                 count++;
             }
-    
+
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                URI.create(pathBuilder.toString()));
+                    URI.create(pathBuilder.toString()));
             s_logger.info("Set CG visibility URI is {}", requestURI.toString());
             response = _vplexApiClient.put(requestURI);
             String responseStr = response.getEntity(String.class);
@@ -172,21 +172,21 @@ public class VPlexApiConsistencyGroupManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.setCGVisibilityFailureStatus(
-                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                            cgInfo.getName(), String.valueOf(response.getStatus()), cause);
                 }
             }
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedSettingCGVisibility(
-                cgInfo.getName(), e);
+                    cgInfo.getName(), e);
         } finally {
             if (response != null) {
                 response.close();
             }
         }
     }
-    
+
     /**
      * Sets the "storage-at-clusters" attribute of the consistency group to the
      * clusters in the passed list.
@@ -195,11 +195,11 @@ public class VPlexApiConsistencyGroupManager {
      * @param clusterInfoList The list of clusters for which the CG has storage.
      * 
      * @throws VPlexApiException When an error occurs setting the clusters
-     *         at which the consistency group has storage.
+     *             at which the consistency group has storage.
      */
     void setConsistencyGroupStorageClusters(VPlexConsistencyGroupInfo cgInfo,
-        List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
-        
+            List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
+
         // Build the request path.
         ClientResponse response = null;
         try {
@@ -209,7 +209,7 @@ public class VPlexApiConsistencyGroupManager {
             pathBuilder.append(cgInfo.getPath());
             pathBuilder.append("?");
             pathBuilder.append(VPlexConsistencyGroupInfo.CGAttribute.STORAGE_AT_CLUSTER
-                .getAttributeName());
+                    .getAttributeName());
             pathBuilder.append("=");
             if (clusterInfoList.isEmpty()) {
                 pathBuilder.append("''");
@@ -222,9 +222,9 @@ public class VPlexApiConsistencyGroupManager {
                     count++;
                 }
             }
-    
+
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                URI.create(pathBuilder.toString()));
+                    URI.create(pathBuilder.toString()));
             s_logger.info("Set CG storage clusters URI is {}", requestURI.toString());
             response = _vplexApiClient.put(requestURI);
             String responseStr = response.getEntity(String.class);
@@ -236,21 +236,21 @@ public class VPlexApiConsistencyGroupManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.setCGStorageAtClustersFailureStatus(
-                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                            cgInfo.getName(), String.valueOf(response.getStatus()), cause);
                 }
             }
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedSettingCGStorageAtClusters(
-                cgInfo.getName(), e);
+                    cgInfo.getName(), e);
         } finally {
             if (response != null) {
                 response.close();
             }
         }
     }
-    
+
     /**
      * Sets the detach rule for the passed consistency group to "winner", where
      * the passed cluster is the winning cluster.
@@ -259,15 +259,15 @@ public class VPlexApiConsistencyGroupManager {
      * @param clusterInfo The info for the cluster to be the winner.
      * 
      * @throws VPlexApiException When an error occurs setting the detach rule to
-     *         winner for the consistency group.
+     *             winner for the consistency group.
      */
     void setDetachRuleWinner(VPlexConsistencyGroupInfo cgInfo, VPlexClusterInfo clusterInfo)
-        throws VPlexApiException {
-        
+            throws VPlexApiException {
+
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_CG_DETACH_RULE_WINNER);
+                    VPlexApiConstants.URI_CG_DETACH_RULE_WINNER);
             s_logger.info("Set CG detach rule winner URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_C, clusterInfo.getPath());
@@ -276,7 +276,7 @@ public class VPlexApiConsistencyGroupManager {
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Set CG detach rule winner is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Set CG detach rule winner response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -286,69 +286,69 @@ public class VPlexApiConsistencyGroupManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.setDetachRuleWinnerFailureStatus(
-                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                            cgInfo.getName(), String.valueOf(response.getStatus()), cause);
                 }
             }
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedSettingDetachRuleWinner(
-                cgInfo.getName(), e);
+                    cgInfo.getName(), e);
         } finally {
             if (response != null) {
                 response.close();
             }
         }
     }
-    
+
     /**
      * Sets the RP enabled tag on the consistency group to the clusters in the
      * passed list.
      * 
      * @param cgName The consistency group to update.
-     * @param clusterInfoList The list of clusters 
+     * @param clusterInfoList The list of clusters
      * 
      * @throws VPlexApiException When an error occurs setting the consistency
-     *         group visibility.
+     *             group visibility.
      */
     void setConsistencyGroupRPEnabled(String cgName,
             List<VPlexClusterInfo> clusterInfoList, boolean isRPEnabled) throws VPlexApiException {
-            
-            // Find the consistency group
-            VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
-            VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
+
+        // Find the consistency group
+        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
                 clusterInfoList, true);
 
-            // Build the request path.           
-            StringBuilder pathBuilder = new StringBuilder();
-            pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
-            pathBuilder.append(cgInfo.getPath());
-            pathBuilder.append("?");
-            pathBuilder.append(VPlexApiConstants.ATTRIBUTE_CG_RP_ENABLED);
-            pathBuilder.append("=");
-            pathBuilder.append(isRPEnabled);
+        // Build the request path.
+        StringBuilder pathBuilder = new StringBuilder();
+        pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
+        pathBuilder.append(cgInfo.getPath());
+        pathBuilder.append("?");
+        pathBuilder.append(VPlexApiConstants.ATTRIBUTE_CG_RP_ENABLED);
+        pathBuilder.append("=");
+        pathBuilder.append(isRPEnabled);
 
-            URI requestURI = _vplexApiClient.getBaseURI().resolve(
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 URI.create(pathBuilder.toString()));
-            s_logger.info("Set RP enabled  URI is {}", requestURI.toString());
-            ClientResponse response = _vplexApiClient.put(requestURI);
-            String responseStr = response.getEntity(String.class);
-            s_logger.info("Set RP enabled response is {}", responseStr);
-            int status = response.getStatus();
-            if (status != VPlexApiConstants.SUCCESS_STATUS) {
-                if (status == VPlexApiConstants.ASYNC_STATUS) {
-                    s_logger.info("Set RP enabled is completing asynchronously");
-                    _vplexApiClient.waitForCompletion(response);
-                    response.close();
-                } else {
-                    response.close();
-                    String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
-                    throw VPlexApiException.exceptions.setRPEnabledFailureStatus(
+        s_logger.info("Set RP enabled  URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.put(requestURI);
+        String responseStr = response.getEntity(String.class);
+        s_logger.info("Set RP enabled response is {}", responseStr);
+        int status = response.getStatus();
+        if (status != VPlexApiConstants.SUCCESS_STATUS) {
+            if (status == VPlexApiConstants.ASYNC_STATUS) {
+                s_logger.info("Set RP enabled is completing asynchronously");
+                _vplexApiClient.waitForCompletion(response);
+                response.close();
+            } else {
+                response.close();
+                String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
+                throw VPlexApiException.exceptions.setRPEnabledFailureStatus(
                         cgInfo.getName(), String.valueOf(response.getStatus()), cause);
-                }
             }
         }
-    
+    }
+
     /**
      * Sets the detach rule for the passed consistency group to
      * "no-automatic-winner".
@@ -357,23 +357,23 @@ public class VPlexApiConsistencyGroupManager {
      * @param clusterInfo The info for the cluster to be the winner.
      * 
      * @throws VPlexApiException When an error occurs setting the detach rule to
-     *         winner for the consistency group.
+     *             winner for the consistency group.
      */
     void setDetachRuleNoAutomaticWinner(VPlexConsistencyGroupInfo cgInfo)
-        throws VPlexApiException {
+            throws VPlexApiException {
         ClientResponse response = null;
         try {
-            // Build the request path.  
+            // Build the request path.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_CG_DETACH_RULE_NO_AUTO_WINNER);
+                    VPlexApiConstants.URI_CG_DETACH_RULE_NO_AUTO_WINNER);
             s_logger.info("Set CG detach rule no automatic winner URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_G, cgInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Set CG detach rule no automatic winner is {}",
-                postDataObject.toString());
+                    postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Set CG detach rule no automatic winner response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -383,39 +383,39 @@ public class VPlexApiConsistencyGroupManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.setDetachRuleNoAutoWinnerFailureStatus(
-                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                            cgInfo.getName(), String.valueOf(response.getStatus()), cause);
                 }
             }
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedSettingDetachRuleNoAutoWinner(
-                cgInfo.getName(), e);
+                    cgInfo.getName(), e);
         } finally {
             if (response != null) {
                 response.close();
             }
         }
     }
-    
+
     /**
      * Sets the auto-resume-at-loser flag under the advanced context
      * of the requested Consistency Group.
      * 
      * NOTE: as of VPLEX API version 5.5, this call is likely no
      * longer necessary because the default value on new CG creation
-     * will be set to true by the VPLEX.  Prior to 5.5, it is false 
-     * by default.  See also CTRL-10193.
+     * will be set to true by the VPLEX. Prior to 5.5, it is false
+     * by default. See also CTRL-10193.
      * 
      * @param cgInfo The consistency group to update.
-     * @param autoResume the value to set auto-resume-at-loser to 
+     * @param autoResume the value to set auto-resume-at-loser to
      * 
-     * @throws VPlexApiException When an error occurs updating 
-     *                           the consistency group visibility.
+     * @throws VPlexApiException When an error occurs updating
+     *             the consistency group visibility.
      */
     void setAutoResumeAtLoser(VPlexConsistencyGroupInfo cgInfo, boolean autoResume) throws VPlexApiException {
-        
-        // Build the request path.           
+
+        // Build the request path.
         StringBuilder pathBuilder = new StringBuilder();
         pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
         pathBuilder.append(cgInfo.getPath());
@@ -426,7 +426,7 @@ public class VPlexApiConsistencyGroupManager {
         pathBuilder.append(autoResume);
 
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
-            URI.create(pathBuilder.toString()));
+                URI.create(pathBuilder.toString()));
         s_logger.info("Set auto-resume-at-loser URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.put(requestURI);
         String responseStr = response.getEntity(String.class);
@@ -441,7 +441,7 @@ public class VPlexApiConsistencyGroupManager {
                 response.close();
                 String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                 throw VPlexApiException.exceptions.setCGAutoResumeFailureStatus(
-                    cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
             }
         }
     }
@@ -451,18 +451,18 @@ public class VPlexApiConsistencyGroupManager {
      * passed name.
      * 
      * @param cgName The name of the consistency group to which the volumes are
-     *        added.
+     *            added.
      * @param virtualVolumeNames The names of the virtual volumes to be added to
-     *        the consistency group.
+     *            the consistency group.
      * 
      * @throws VPlexApiException When an error occurs adding the volumes to the
-     *         consistency group.
+     *             consistency group.
      */
     void addVolumesToConsistencyGroup(String cgName,
-        List<String> virtualVolumeNames) throws VPlexApiException {
+            List<String> virtualVolumeNames) throws VPlexApiException {
         s_logger.info("Request to add volumes {} to a consistency group {}",
-            virtualVolumeNames, cgName);
-        
+                virtualVolumeNames, cgName);
+
         // Find the virtual volumes with the passed names.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
@@ -471,7 +471,7 @@ public class VPlexApiConsistencyGroupManager {
             VPlexVirtualVolumeInfo virtualVolumeInfo = null;
             for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(),
-                    virtualVolumeName, false);
+                        virtualVolumeName, false);
                 if (virtualVolumeInfo != null) {
                     break;
                 }
@@ -481,18 +481,18 @@ public class VPlexApiConsistencyGroupManager {
             }
             virtualVolumeInfoList.add(virtualVolumeInfo);
         }
-        
+
         // Find the consistency group
         VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
-            clusterInfoList, false);
+                clusterInfoList, false);
 
         // Add the virtual volumes to the consistency group.
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_ADD_VOLUMES_TO_CG);
+                    VPlexApiConstants.URI_ADD_VOLUMES_TO_CG);
             s_logger.info("Add volumes to consistency group URI is {}",
-                requestURI.toString());
+                    requestURI.toString());
             StringBuilder argBuilder = new StringBuilder();
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeInfoList) {
                 if (argBuilder.length() != 0) {
@@ -505,9 +505,9 @@ public class VPlexApiConsistencyGroupManager {
             argsMap.put(VPlexApiConstants.ARG_DASH_G, cgInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Add volumes to consistency group POST data is {}",
-                postDataObject.toString());
+                    postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Add volumes to consistency group response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -530,12 +530,12 @@ public class VPlexApiConsistencyGroupManager {
                             if (!areVolumesInCG(cgName, clusterInfoList, virtualVolumeNames)) {
                                 throw ex;
                             }
-                        }                       
+                        }
                     }
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.addVolumesToCGFailureStatus(
-                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                            cgInfo.getName(), String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully added volumes to consistency group");
@@ -552,9 +552,10 @@ public class VPlexApiConsistencyGroupManager {
 
     /**
      * checks for the presence of a list of virtual volumes in a CG
+     * 
      * @param cgName
      * @param clusterInfoList
-     * @param virtualVolumeNames 
+     * @param virtualVolumeNames
      * @return true if all volumes are in the CG
      */
     private boolean areVolumesInCG(String cgName, List<VPlexClusterInfo> clusterInfoList, List<String> virtualVolumeNames) {
@@ -567,7 +568,7 @@ public class VPlexApiConsistencyGroupManager {
         }
         return true;
     }
-    
+
     /**
      * Deletes the consistency group with the passed name.
      * 
@@ -577,38 +578,38 @@ public class VPlexApiConsistencyGroupManager {
      */
     void deleteConsistencyGroup(String cgName) throws VPlexApiException {
         s_logger.info("Request to delete consistency group {}", cgName);
-        
+
         // Find the consistency group.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
         VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
-            clusterInfoList, false);
+                clusterInfoList, false);
         deleteConsistencyGroup(cgInfo);
     }
-    
+
     /**
      * Deletes the passed consistency group.
      * 
      * @param cgInfo A reference to the consistency group info.
      * 
      * @throws VPlexApiException When an error occurs deleting the consistency
-     *         group.
+     *             group.
      */
     private void deleteConsistencyGroup(VPlexConsistencyGroupInfo cgInfo)
-        throws VPlexApiException {
+            throws VPlexApiException {
         // Delete the consistency group.
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_DELETE_CG);
+                    VPlexApiConstants.URI_DELETE_CG);
             s_logger.info("Delete consistency group URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_G, cgInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Delete consistency group POST data is {}",
-                postDataObject.toString());
+                    postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Delete consistency group response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -618,7 +619,7 @@ public class VPlexApiConsistencyGroupManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.deleteCGFailureStatus(
-                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                            cgInfo.getName(), String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully deleted consistency group");
@@ -632,28 +633,28 @@ public class VPlexApiConsistencyGroupManager {
             }
         }
     }
-    
+
     /**
      * Removes the volumes with the passed names from the consistency group with
      * the passed name. If the removal of the volumes results in an empty group,
      * delete the consistency group if the passed flag so indicates.
      * 
      * @param virtualVolumeNames The names of the virtual volumes to be removed
-     *        from the consistency group.
+     *            from the consistency group.
      * @param cgName The name of the consistency group from which the volume is
-     *        removed.
+     *            removed.
      * @param deleteCGWhenEmpty true to delete the consistency group if the
-     *        group is empty after removing the volumes, false otherwise.
+     *            group is empty after removing the volumes, false otherwise.
      * 
      * @return true if the consistency group was deleted, false otherwise.
      * 
      * @throws VPlexApiException When an error occurs removing the volumes from
-     *         the consistency group.
+     *             the consistency group.
      */
     boolean removeVolumesFromConsistencyGroup(List<String> virtualVolumeNames,
-        String cgName, boolean deleteCGWhenEmpty) throws VPlexApiException {
+            String cgName, boolean deleteCGWhenEmpty) throws VPlexApiException {
         s_logger.info("Request to remove volumes {} from consistency group {}",
-            virtualVolumeNames.toString(), cgName);
+                virtualVolumeNames.toString(), cgName);
 
         boolean cgDeleted = false;
 
@@ -665,7 +666,7 @@ public class VPlexApiConsistencyGroupManager {
             VPlexVirtualVolumeInfo virtualVolumeInfo = null;
             for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(),
-                    virtualVolumeName, false);
+                        virtualVolumeName, false);
                 if (virtualVolumeInfo != null) {
                     break;
                 }
@@ -675,18 +676,18 @@ public class VPlexApiConsistencyGroupManager {
             }
             virtualVolumeInfoList.add(virtualVolumeInfo);
         }
-        
+
         // Find the consistency group.
         VPlexConsistencyGroupInfo cgInfo = discoveryMgr.findConsistencyGroup(cgName,
-            clusterInfoList, false);
-        
+                clusterInfoList, false);
+
         // Remove the virtual volume from the consistency group.
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_REMOVE_VOLUMES_FROM_CG);
+                    VPlexApiConstants.URI_REMOVE_VOLUMES_FROM_CG);
             s_logger.info("Remove volumes from consistency group URI is {}",
-                requestURI.toString());
+                    requestURI.toString());
             StringBuilder argBuilder = new StringBuilder();
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeInfoList) {
                 if (argBuilder.length() != 0) {
@@ -699,26 +700,26 @@ public class VPlexApiConsistencyGroupManager {
             argsMap.put(VPlexApiConstants.ARG_DASH_G, cgInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Remove volumes from consistency group POST data is {}",
-                postDataObject.toString());
+                    postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Remove volumes from consistency group response is {}",
-                responseStr);
+                    responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
                 if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
                     s_logger
-                        .info("Remove volumes from consistency group completing asynchronously");
+                            .info("Remove volumes from consistency group completing asynchronously");
                     _vplexApiClient.waitForCompletion(response);
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.removeVolumesFromCGFailureStatus(
-                        cgInfo.getName(), String.valueOf(response.getStatus()), cause);
+                            cgInfo.getName(), String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully removed volumes from consistency group");
-            
-            // If the flag so indicates 
+
+            // If the flag so indicates
             if (deleteCGWhenEmpty) {
                 discoveryMgr.updateConsistencyGroupInfo(cgInfo);
                 if (cgInfo.getVirtualVolumes().isEmpty()) {
@@ -728,7 +729,7 @@ public class VPlexApiConsistencyGroupManager {
                         cgDeleted = true;
                     } catch (Exception e) {
                         s_logger
-                        .error("Exception deleting consistency group {}:{}", cgName, e.getMessage());
+                                .error("Exception deleting consistency group {}:{}", cgName, e.getMessage());
                     }
                 }
             }
@@ -741,7 +742,7 @@ public class VPlexApiConsistencyGroupManager {
                 response.close();
             }
         }
-        
+
         return cgDeleted;
     }
 }

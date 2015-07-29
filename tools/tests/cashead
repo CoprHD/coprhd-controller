@@ -1,0 +1,237 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import time
+from bourne import Bourne
+import random
+import uuid
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+try:
+    bourne_data_ip = os.environ['BOURNE_DATA_IPADDR']
+except:
+    bourne_data_ip = bourne_ip
+
+
+parser = argparse.ArgumentParser(description = 'Bourne cashead cli usage.')
+parser.add_argument('cmd', help = 'cmd = ( provision | create_profile | create_pool )')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+provision = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+provision.add_argument('--namespace', help = 'Namespace to add head metadata to', default = 'cas')
+provision.add_argument('--project', help = 'Project to create a namespace', default = 'casproject')
+
+create_profile_args = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create_profile_args.add_argument('name', help = 'Profile name', default = None)
+create_profile_args.add_argument('--homepool', help = '', default = None)
+create_profile_args.add_argument('--secret', help = 'Secret for profile', default = None)
+create_profile_args.add_argument('--namespace', help = 'Namespace to create profile in', default = 'cas')
+
+create_pool_args = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+create_pool_args.add_argument('name', help = 'Pool name', default = None)
+create_pool_args.add_argument('--namespace', help = 'Namespace to create pool in', default = 'cas')
+
+def verify_response(response):
+    if(int(response.status_code) != 200):
+        print(response.content)
+        raise Exception('Request failed, status code is ' + str(response.status_code))
+
+def is_entity_exists(url):
+    return int(bourne.coreapi('GET', url).status_code) == 200
+
+def is_cluster_exists(namespace):
+    return is_entity_exists('/dataservice/cas-cluster/' + namespace)
+
+def is_profile_exists(namespace, profile):
+    return is_entity_exists('/dataservice/cas-cluster/' + namespace + '/profile/' + profile)
+
+def is_pool_exists(namespace, pool):
+    return is_entity_exists('/dataservice/cas-cluster/' + namespace + '/pool/' + pool)
+
+def toName(e):
+    return e['name']
+
+def setup_namespace(name, project):
+
+    tenant_id = bourne.tenant_getid()
+
+    if name in bourne.namespace_list():
+        print('Namespace ' + name + ' is already created')
+        return
+
+    if project in map(toName, bourne.project_list(tenant_id)):
+        print('Project ' + project + ' is already created')
+    else:
+        bourne.project_create_with_tenant_id(project, tenant_id)
+
+    project_id = bourne.project_query(project)
+
+    rg_id = bourne.repgroup_list()['data_service_vpool'][0]['id']
+
+    bourne.namespace_create(tenant_id, name, None, None, None)
+
+    bourne.namespace_update(tenant_id, name, project_id, rg_id)
+
+    print('Namespace setup is complete')
+
+def create_bucket(name):
+    bucket_params = {
+        'name': name,
+        'head_type': 'CAS',
+        'filesystem_enabled': 'false',
+    }
+
+    verify_response(bourne.coreapi('POST', '/object/bucket', bucket_params))
+
+def create_cluster(namespace, name):
+    cluster_params = {
+        'namespace': namespace,
+        'name': name,
+    }
+
+    verify_response(bourne.coreapi('POST', '/dataservice/cas-cluster', cluster_params))
+
+def create_pool(namespace, bucket):
+    pool_params = {
+        'name': bucket,
+	'mask': ["read",
+            "write",
+            "delete",
+            "exist",
+            "clip-enumeration",
+            "retention-hold",
+            "privileged-delete",
+            "purge"]
+    }
+
+    verify_response(bourne.coreapi('POST', '/dataservice/cas-cluster/' + namespace + '/pool', pool_params))
+
+def create_anonymous_profile(namespace, homepool):
+    profile_params = {
+        'name' : 'anonymous',
+        'homepool': homepool,
+        'enabled': 'true',
+        'capabilities': ["read",
+            "write",
+            "delete",
+            "exist",
+            "clip-enumeration",
+            "retention-hold",
+            "privileged-delete",
+            "purge"] 
+   }
+
+    verify_response(bourne.coreapi('POST', '/dataservice/cas-cluster/' + namespace + '/profile', profile_params))
+
+def create_profile(namespace, profile, homepool, secret):
+    profile_params = {
+        'name' : profile,
+        'homepool': homepool,
+        'enabled': 'true',
+        'secret': secret,
+	    'capabilities': ["read",
+            "write",
+            "delete",
+            "exist",
+            "clip-enumeration",
+            "retention-hold",
+            "privileged-delete",
+            "purge"]
+    }
+
+    verify_response(bourne.coreapi('POST', '/dataservice/cas-cluster/' + namespace + '/profile', profile_params))
+
+def do_provision(args):
+    bourne.connect(bourne_ip)
+
+    print('Performing provision for namespace ' + args.namespace)
+
+    namespace = args.namespace
+    setup_namespace(namespace, args.project)
+
+    pool_name = 'default0'
+
+    if not is_cluster_exists(namespace):
+        print('Creating cluster ' + namespace)
+        create_cluster(namespace, 'cas_cluster')
+    else:
+        print('Cluster ' + namespace + ' exists')
+
+    if not is_pool_exists(namespace, pool_name):
+        print('Creating pool ' + pool_name)
+        create_bucket(pool_name)
+        create_pool(namespace, pool_name)
+    else:
+        print('Pool ' + pool_name + ' exists')
+
+    if not is_profile_exists(namespace, 'profile0'):
+        print('Creating profile profile0 with secret secret0')
+        create_profile(namespace, 'profile0', pool_name, 'secret0')
+    else:
+        print('Profile profile0 exists')
+
+    print('Provision is complete')
+
+def do_create_profile(args):
+    bourne.connect(bourne_ip)
+    namespace = args.namespace
+
+    if not is_profile_exists(namespace, args.name):
+        user_params = {
+            'namespace': namespace,
+            'password': args.secret
+        }
+
+        verify_response(bourne.coreapi('PUT', '/object/user-password/' + args.name, user_params))
+
+        create_profile(namespace, args.name, args.homepool, args.secret)
+    else:
+        print("profile exists")
+
+
+def do_create_pool(args):
+    bourne.connect(bourne_ip)
+
+    namespace = args.namespace
+
+    if not is_pool_exists(namespace, args.name):
+        create_bucket(args.name)
+        create_pool(namespace, args.name)
+    else:
+        print("pool exists")
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if cmd == "provision":
+        args = provision.parse_args()
+        do_provision(args)
+
+    elif cmd == "create_profile":
+        args = create_profile_args.parse_args()
+        do_create_profile(args)
+
+    elif cmd == "create_pool":
+        args = create_pool_args.parse_args()
+        do_create_pool(args)
+
+    else:
+        parser.print_help()
+except:
+    raise

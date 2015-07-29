@@ -11,7 +11,7 @@ import java.util.Map;
  * 
  */
 public class VolumeTypes {
-    public class VolumeType{
+    public class VolumeType {
         public String name;
         public String id;
         public Map<String, String> extra_specs;

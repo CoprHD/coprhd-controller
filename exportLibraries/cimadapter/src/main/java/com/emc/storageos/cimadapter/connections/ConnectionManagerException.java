@@ -16,14 +16,15 @@ public class ConnectionManagerException extends CIMAdapterException {
     // For serializable classes.
     private static final long serialVersionUID = 1L;
 
-    protected ConnectionManagerException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey,
+    protected ConnectionManagerException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase,
+            final String detailKey,
             final Object[] detailParams) {
         super(retryable, code, cause, detailBase, detailKey, detailParams);
     }
 
     /**
      * Constructor.
-     *
+     * 
      * @param msg Exception message.
      */
     @Deprecated
@@ -33,7 +34,7 @@ public class ConnectionManagerException extends CIMAdapterException {
 
     /**
      * Constructor.
-     *
+     * 
      * @param msg Exception message.
      * @param t Source throwable.
      */
@@ -44,7 +45,7 @@ public class ConnectionManagerException extends CIMAdapterException {
 
     /**
      * Constructor.
-     *
+     * 
      * @param t Source throwable.
      */
     @Deprecated

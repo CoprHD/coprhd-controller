@@ -21,7 +21,7 @@ public abstract class CimIndicationProcessor {
      * processor.
      * 
      * @param indication The indication to be processed in the format expected
-     *        by the processor.
+     *            by the processor.
      */
     public abstract Object process(Object indication);
 }

@@ -7,17 +7,18 @@ package com.emc.storageos.hds.model;
 import com.emc.storageos.hds.HDSConstants;
 
 public class ISCSIName {
-    
+
     private String iSCSIName;
-    
+
     private String nickName;
-    
-    public ISCSIName (String iSCSIName, String nickName) {
+
+    public ISCSIName(String iSCSIName, String nickName) {
         this.iSCSIName = iSCSIName;
         this.nickName = nickName;
     }
 
-    public ISCSIName() { }
+    public ISCSIName() {
+    }
 
     /**
      * @return the iSCSIName
@@ -46,7 +47,7 @@ public class ISCSIName {
     public void setNickName(String nickName) {
         this.nickName = nickName;
     }
-    
+
     public String toXMLString() {
         StringBuilder xmlString = new StringBuilder();
         if (null != iSCSIName) {

@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 /*
  * Suppressing these warnings as fix will be made in future release.
  */
-@SuppressWarnings({"findbugs:EQ_GETCLASS_AND_CLASS_CONSTANT","findbugs:MS_EXPOSE_REP","pmd:MethodReturnsInternalArray"})
+@SuppressWarnings({ "findbugs:EQ_GETCLASS_AND_CLASS_CONSTANT", "findbugs:MS_EXPOSE_REP", "pmd:MethodReturnsInternalArray" })
 public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
 
     /**
@@ -59,6 +59,7 @@ public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
 
     /**
      * Create SSLContext using the TrustManager.
+     * 
      * @return
      */
     private static SSLContext createEasySSLContext() {
@@ -123,6 +124,7 @@ public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
             UnknownHostException {
         return getSSLContext().getSocketFactory().createSocket(host, port);
     }
+
     /**
      * 
      */
@@ -130,13 +132,14 @@ public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
         return ((obj != null) && obj.getClass().equals(
                 VNXFileProtocolSocketFactory.class));
     }
+
     /**
      * 
      */
     public int hashCode() {
         return VNXFileProtocolSocketFactory.class.hashCode();
     }
-    
+
     /**
      * @return the _trustManager
      */

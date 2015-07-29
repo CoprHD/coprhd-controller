@@ -12,7 +12,7 @@ import com.google.gson.annotations.SerializedName;
 @JsonRootName(value = "xtremio_volumes")
 public class XtremIOVolumes {
     @SerializedName("content")
-    @JsonProperty(value="content")
+    @JsonProperty(value = "content")
     private XtremIOVolume content;
 
     public XtremIOVolume getContent() {

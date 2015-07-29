@@ -36,9 +36,10 @@ public interface Command {
      * @return Object[]
      */
     Object[] retreiveArguments();
-    
+
     /**
      * Each command Object knows its index in existing List of Commands
+     * 
      * @return int
      */
     int getCommandIndex();

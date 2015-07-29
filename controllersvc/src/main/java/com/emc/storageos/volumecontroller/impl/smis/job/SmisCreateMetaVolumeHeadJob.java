@@ -41,7 +41,8 @@ public class SmisCreateMetaVolumeHeadJob extends SmisJob {
     private List<String> _metaMembers = new ArrayList<String>();
     private MetaVolumeTaskCompleter _metaVolumeTaskCompleter;
 
-    public SmisCreateMetaVolumeHeadJob(CIMObjectPath cimJob, URI storageSystem, MetaVolumeTaskCompleter metaVolumeTaskCompleter, URI metaHeadId) {
+    public SmisCreateMetaVolumeHeadJob(CIMObjectPath cimJob, URI storageSystem, MetaVolumeTaskCompleter metaVolumeTaskCompleter,
+            URI metaHeadId) {
         super(cimJob, storageSystem, metaVolumeTaskCompleter.getVolumeTaskCompleter(), "CreateMetaVolumeHead");
         _metaVolumeTaskCompleter = metaVolumeTaskCompleter;
         _metaHeadId = metaHeadId;
@@ -50,7 +51,7 @@ public class SmisCreateMetaVolumeHeadJob extends SmisJob {
     /**
      * Called to update the job status when the create meta volume head job completes.
      * Sets native device ID to meta head volume.
-     *
+     * 
      * @param jobContext The job context.
      */
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -64,7 +65,8 @@ public class SmisCreateMetaVolumeHeadJob extends SmisJob {
 
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder =
-                    new StringBuilder(String.format("Updating post processing status of job %s to %s, task: %s", this.getJobName(), jobStatus.name(), opId));
+                    new StringBuilder(String.format("Updating post processing status of job %s to %s, task: %s", this.getJobName(),
+                            jobStatus.name(), opId));
 
             CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
             WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
@@ -87,7 +89,7 @@ public class SmisCreateMetaVolumeHeadJob extends SmisJob {
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                        "Task %s failed to create meta head volume: %s caused by: %s", opId,  metaHead.getLabel(), _errorDescription));
+                        "Task %s failed to create meta head volume: %s caused by: %s", opId, metaHead.getLabel(), _errorDescription));
                 Volume volume = dbClient.queryObject(Volume.class, _metaHeadId);
                 volume.setInactive(true);
                 dbClient.persistObject(volume);
@@ -96,13 +98,14 @@ public class SmisCreateMetaVolumeHeadJob extends SmisJob {
             }
         } catch (Exception e) {
             _log.error("Caught an exception while trying to process status for " + this.getJobName(), e);
-            setPostProcessingErrorStatus("Encountered an internal error during " + this.getJobName() + " job status processing : " + e.getMessage());
+            setPostProcessingErrorStatus("Encountered an internal error during " + this.getJobName() + " job status processing : "
+                    + e.getMessage());
         } finally {
             if (iterator != null) {
                 iterator.close();
             }
             _metaVolumeTaskCompleter.setLastStepStatus(jobStatus);
-            if ( isJobInTerminalFailedState() ) {
+            if (isJobInTerminalFailedState()) {
                 super.updateStatus(jobContext);
             }
         }

@@ -34,7 +34,7 @@ public class VPlexApiVirtualVolumeManager {
 
     // A reference to the API client.
     private VPlexApiClient _vplexApiClient;
-    
+
     /**
      * Package protected constructor.
      * 
@@ -43,7 +43,7 @@ public class VPlexApiVirtualVolumeManager {
     VPlexApiVirtualVolumeManager(VPlexApiClient client) {
         _vplexApiClient = client;
     }
-    
+
     /**
      * Creates a VPlex virtual volume using the passed native volume
      * information. The passed native volume information should identify a
@@ -61,50 +61,50 @@ public class VPlexApiVirtualVolumeManager {
      * 
      * @param nativeVolumeInfoList The native volume information.
      * @param isDistributed true for a distributed virtual volume, false
-     *        otherwise.
+     *            otherwise.
      * @param discoveryRequired true if the passed native volumes are newly
-     *        exported and need to be discovered by the VPlex.
+     *            exported and need to be discovered by the VPlex.
      * @param preserveData true if the native volume data should be preserved
-     *        during virtual volume creation.
+     *            during virtual volume creation.
      * @param winningClusterId Used to set detach rules for distributed volumes.
      * 
      * @return The information for the created virtual volume.
      * 
      * @throws VPlexApiException When an error occurs creating the virtual
-     *         volume.
+     *             volume.
      */
     VPlexVirtualVolumeInfo createVirtualVolume(List<VolumeInfo> nativeVolumeInfoList,
-        boolean isDistributed, boolean discoveryRequired, boolean preserveData, 
-        String winningClusterId)
-        throws VPlexApiException {
+            boolean isDistributed, boolean discoveryRequired, boolean preserveData,
+            String winningClusterId)
+            throws VPlexApiException {
 
         s_logger.info("Request to create {} virtual volume.",
-            (isDistributed ? "distributed" : "local"));
-        
+                (isDistributed ? "distributed" : "local"));
+
         if ((isDistributed) && (nativeVolumeInfoList.size() != 2)) {
             throw VPlexApiException.exceptions.twoDevicesRequiredForDistVolume();
         } else if ((!isDistributed) && (nativeVolumeInfoList.size() != 1)) {
             throw VPlexApiException.exceptions.oneDevicesRequiredForLocalVolume();
         }
-        
+
         // Find the storage volumes corresponding to the passed native
         // volume information, discovery them if required.
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
-            nativeVolumeInfoList, discoveryRequired, clusterInfoList);
-        
+                nativeVolumeInfoList, discoveryRequired, clusterInfoList);
+
         // For a distributed virtual volume, verify logging volumes
         // have been configured on each cluster.
         if (isDistributed) {
             for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 if (!clusterInfo.hasLoggingVolume()) {
                     throw VPlexApiException.exceptions
-                        .clusterHasNoLoggingVolumes(clusterInfo.getName());
+                            .clusterHasNoLoggingVolumes(clusterInfo.getName());
                 }
             }
             s_logger.info("Verified logging volumes");
         }
-        
+
         // Claim the storage volumes
         claimStorageVolumes(storageVolumeInfoMap, preserveData);
         s_logger.info("Claimed storage volumes");
@@ -115,30 +115,32 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Create extents
             List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
-            for (VolumeInfo nativeVolumeInfo: nativeVolumeInfoList) {
+            for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
                 storageVolumeInfoList.add(storageVolumeInfoMap.get(nativeVolumeInfo));
             }
             createExtents(storageVolumeInfoList);
             s_logger.info("Created extents on storage volumes");
-     
-            // Find the extents just created and create local devices on 
+
+            // Find the extents just created and create local devices on
             // those extents.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
             List<VPlexExtentInfo> extentInfoList = discoveryMgr.findExtents(storageVolumeInfoList);
             createLocalDevices(extentInfoList);
             s_logger.info("Created local devices on extents");
-    
-            // Find the local devices just created. If the virtual volume is 
+
+            // Find the local devices just created. If the virtual volume is
             // to be distributed, first create a distributed device from the
             // local devices, then create a virtual volumes from the distributed
             // device. Otherwise, create a virtual volume from the local device.
-            String clusterId; String deviceName; String devicePath;
+            String clusterId;
+            String deviceName;
+            String devicePath;
             List<VPlexDeviceInfo> localDevices = discoveryMgr.findLocalDevices(extentInfoList);
             if (isDistributed) {
                 // Create and find the distributed device using the local devices.
                 String distributedDeviceName = createDistributedDevice(localDevices, winningClusterId);
                 VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
-                    .findDistributedDevice(distributedDeviceName, true);
+                        .findDistributedDevice(distributedDeviceName, true);
                 s_logger.info("Created distributed device on local devices");
                 distDeviceInfo.setLocalDeviceInfo(localDevices);
                 clusterId = distDeviceInfo.getClusterId();
@@ -149,13 +151,13 @@ public class VPlexApiVirtualVolumeManager {
                 VPlexDeviceInfo deviceInfo = localDevices.get(0);
                 clusterId = deviceInfo.getClusterId();
                 deviceName = deviceInfo.getName();
-                devicePath = deviceInfo.getPath();            
+                devicePath = deviceInfo.getPath();
             }
-            
+
             // Create virtual volume
             createVirtualVolume(devicePath);
             s_logger.info("Created virtual volume on device {}", devicePath);
-            
+
             // Find virtual volume and return.
             StringBuilder volumeNameBuilder = new StringBuilder();
             volumeNameBuilder.append(deviceName);
@@ -172,28 +174,28 @@ public class VPlexApiVirtualVolumeManager {
                 deleteVirtualVolume(nativeVolumeInfoList);
             } catch (Exception ex) {
                 s_logger.error("Failed attempting to cleanup VPLEX after failed attempt " +
-                    "to create a new virtual volume", ex);                
+                        "to create a new virtual volume", ex);
             }
             throw e;
         }
     }
-    
+
     /**
      * Creates and attaches mirror device to the source device.
      * 
      * @param virtualVolume The virtual volume information to which mirror will be attached
      * @param nativeVolumeInfoList The native volume information.
      * @param discoveryRequired true if the passed native volumes are newly
-     *        exported and need to be discovered by the VPlex.
+     *            exported and need to be discovered by the VPlex.
      * @param preserveData true if the native volume data should be preserved
-     *        during mirror device creation.
-     *        
+     *            during mirror device creation.
+     * 
      * @return The VPlex device info that is attached as a mirror.
      * 
      * @throws VPlexApiException When an error occurs creating and attaching device as a mirror
      */
-    VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume, 
-            List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired, 
+    VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume,
+            List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired,
             boolean preserveData) throws VPlexApiException {
 
         if (nativeVolumeInfoList.size() != 1) {
@@ -217,70 +219,70 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Create extents
             List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
-            for (VolumeInfo nativeVolumeInfo: nativeVolumeInfoList) {
+            for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
                 storageVolumeInfoList.add(storageVolumeInfoMap.get(nativeVolumeInfo));
             }
             createExtents(storageVolumeInfoList);
             s_logger.info("Created extents on storage volumes");
-    
-            // Find the extents just created and create local devices on 
+
+            // Find the extents just created and create local devices on
             // those extents.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
             List<VPlexExtentInfo> extentInfoList = discoveryMgr.findExtents(storageVolumeInfoList);
             createLocalDevices(extentInfoList);
             s_logger.info("Created local devices on extents");
-    
+
             // Find the local devices just created.There will be only one local device
             List<VPlexDeviceInfo> localDevices = discoveryMgr.findLocalDevices(extentInfoList);
-    
+
             String virtualVolumeName = virtualVolume.getName();
             String sourceDeviceName = virtualVolumeName.substring(0,
-        			virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-        	
-            if(virtualVolume.getLocality().equals(VPlexApiConstants.LOCAL_VIRTUAL_VOLUME)){
-            	// Find the source local device.
-            	VPlexDeviceInfo sourceLocalDevice = discoveryMgr.findLocalDevice(sourceDeviceName);
-            	if (sourceLocalDevice == null) {
-            	    throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
-            	}
-            	s_logger.info("Found the local device {}", sourceLocalDevice.getPath());
+                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
 
-            	// Attach mirror device to the source volume device
-            	deviceAttachMirror(sourceLocalDevice.getPath(), localDevices.get(0).getPath(), null);
+            if (virtualVolume.getLocality().equals(VPlexApiConstants.LOCAL_VIRTUAL_VOLUME)) {
+                // Find the source local device.
+                VPlexDeviceInfo sourceLocalDevice = discoveryMgr.findLocalDevice(sourceDeviceName);
+                if (sourceLocalDevice == null) {
+                    throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
+                }
+                s_logger.info("Found the local device {}", sourceLocalDevice.getPath());
 
-            	s_logger.info("Added {} as a mirror to the source device {}", localDevices
-            			.get(0).getPath(), sourceLocalDevice.getPath());
+                // Attach mirror device to the source volume device
+                deviceAttachMirror(sourceLocalDevice.getPath(), localDevices.get(0).getPath(), null);
+
+                s_logger.info("Added {} as a mirror to the source device {}", localDevices
+                        .get(0).getPath(), sourceLocalDevice.getPath());
             } else {
-            	// Find the distributed device
-            	VPlexDistributedDeviceInfo distributedDeviceInfo = discoveryMgr.findDistributedDevice(sourceDeviceName);
-            	if (distributedDeviceInfo == null) {
-            	    throw VPlexApiException.exceptions.cantFindDistDevice(sourceDeviceName);
-            	}
+                // Find the distributed device
+                VPlexDistributedDeviceInfo distributedDeviceInfo = discoveryMgr.findDistributedDevice(sourceDeviceName);
+                if (distributedDeviceInfo == null) {
+                    throw VPlexApiException.exceptions.cantFindDistDevice(sourceDeviceName);
+                }
 
-            	String sourceDevicePath = null;
-            	List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
-            			.getDistributedDeviceComponents(distributedDeviceInfo);
-            	for (VPlexDistributedDeviceComponentInfo ddComponent: ddComponents) {
-            		discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-            		if (ddComponent.getCluster().equals(localDevices.get(0).getClusterId())) {
-            			sourceDevicePath = ddComponent.getPath();
-            			break;
-            		}
-            	}
-            	if (sourceDevicePath == null) {
+                String sourceDevicePath = null;
+                List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
+                        .getDistributedDeviceComponents(distributedDeviceInfo);
+                for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
+                    discoveryMgr.updateDistributedDeviceComponent(ddComponent);
+                    if (ddComponent.getCluster().equals(localDevices.get(0).getClusterId())) {
+                        sourceDevicePath = ddComponent.getPath();
+                        break;
+                    }
+                }
+                if (sourceDevicePath == null) {
                     throw VPlexApiException.exceptions.couldNotFindComponentForDistDevice(
-                        distributedDeviceInfo.getName(), localDevices.get(0)
-                            .getClusterId());
-            	}
+                            distributedDeviceInfo.getName(), localDevices.get(0)
+                                    .getClusterId());
+                }
 
-            	// Attach mirror device to one of the device in the distributed device where
-            	// mirror device and the source device are in the same cluster
-            	deviceAttachMirror(sourceDevicePath, localDevices.get(0).getPath(), null);
+                // Attach mirror device to one of the device in the distributed device where
+                // mirror device and the source device are in the same cluster
+                deviceAttachMirror(sourceDevicePath, localDevices.get(0).getPath(), null);
 
-            	s_logger.info("Added {} as a mirror to the device {}", localDevices
-            			.get(0).getPath(), sourceDevicePath);
+                s_logger.info("Added {} as a mirror to the device {}", localDevices
+                        .get(0).getPath(), sourceDevicePath);
             }
-    
+
             // return mirror device
             return localDevices.get(0);
         } catch (Exception e) {
@@ -297,72 +299,72 @@ public class VPlexApiVirtualVolumeManager {
      * @param mirrorDeviceName Name of the mirror device
      * 
      * @throws VPlexApiException When an error occurs attaching mirror device to the
-     * source volume device
+     *             source volume device
      */
     public void attachMirror(String locality, String sourceVirtualVolumeName, String mirrorDeviceName)
-    		throws VPlexApiException{
-    	String sourceDeviceName = sourceVirtualVolumeName.substring(0,
-    			sourceVirtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+            throws VPlexApiException {
+        String sourceDeviceName = sourceVirtualVolumeName.substring(0,
+                sourceVirtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
 
-    	VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
 
-    	// Find mirror device
-    	VPlexDeviceInfo mirrorLocalDevice = discoveryMgr.findLocalDevice(mirrorDeviceName);
-    	if (mirrorLocalDevice == null) {
-    	    throw VPlexApiException.exceptions.cantFindLocalDevice(mirrorDeviceName);
-    	}
+        // Find mirror device
+        VPlexDeviceInfo mirrorLocalDevice = discoveryMgr.findLocalDevice(mirrorDeviceName);
+        if (mirrorLocalDevice == null) {
+            throw VPlexApiException.exceptions.cantFindLocalDevice(mirrorDeviceName);
+        }
 
-    	String sourceDevicePath = null;
+        String sourceDevicePath = null;
 
-    	if(locality.equals(VPlexApiConstants.LOCAL_VIRTUAL_VOLUME)){
-    		// Find local source device
-    		VPlexDeviceInfo sourceLocalDevice = discoveryMgr.findLocalDevice(sourceDeviceName);
-    		if (sourceLocalDevice == null) {
-    		    throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
-    		}
-    		sourceDevicePath = sourceLocalDevice.getPath();
-    	} else {
-    		// Find the distributed device
-    		VPlexDistributedDeviceInfo distributedDeviceInfo = discoveryMgr.findDistributedDevice(sourceDeviceName);
-    		if (distributedDeviceInfo == null) {
-    		    throw VPlexApiException.exceptions.cantFindDistDevice(sourceDeviceName);
-    		}
+        if (locality.equals(VPlexApiConstants.LOCAL_VIRTUAL_VOLUME)) {
+            // Find local source device
+            VPlexDeviceInfo sourceLocalDevice = discoveryMgr.findLocalDevice(sourceDeviceName);
+            if (sourceLocalDevice == null) {
+                throw VPlexApiException.exceptions.cantFindLocalDevice(sourceDeviceName);
+            }
+            sourceDevicePath = sourceLocalDevice.getPath();
+        } else {
+            // Find the distributed device
+            VPlexDistributedDeviceInfo distributedDeviceInfo = discoveryMgr.findDistributedDevice(sourceDeviceName);
+            if (distributedDeviceInfo == null) {
+                throw VPlexApiException.exceptions.cantFindDistDevice(sourceDeviceName);
+            }
 
-    		List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
-    				.getDistributedDeviceComponents(distributedDeviceInfo);
-    		for (VPlexDistributedDeviceComponentInfo ddComponent: ddComponents) {
-    			discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-    			if (ddComponent.getCluster().equals(mirrorLocalDevice.getClusterId())) {
-    				sourceDevicePath = ddComponent.getPath();
-    				break;
-    			}
-    		}
-    		if (sourceDevicePath == null){
+            List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
+                    .getDistributedDeviceComponents(distributedDeviceInfo);
+            for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
+                discoveryMgr.updateDistributedDeviceComponent(ddComponent);
+                if (ddComponent.getCluster().equals(mirrorLocalDevice.getClusterId())) {
+                    sourceDevicePath = ddComponent.getPath();
+                    break;
+                }
+            }
+            if (sourceDevicePath == null) {
                 throw VPlexApiException.exceptions.couldNotFindComponentForDistDevice(
-                    distributedDeviceInfo.getName(), mirrorLocalDevice.getClusterId());
-    		}
-    	}
+                        distributedDeviceInfo.getName(), mirrorLocalDevice.getClusterId());
+            }
+        }
 
-    	//Attach mirror device to the source volume device
-    	deviceAttachMirror(sourceDevicePath, mirrorLocalDevice.getPath(), null);
+        // Attach mirror device to the source volume device
+        deviceAttachMirror(sourceDevicePath, mirrorLocalDevice.getPath(), null);
 
-    	s_logger.info("Added ", mirrorLocalDevice.getPath() + " as a mirror to the source device "+  sourceDevicePath);
+        s_logger.info("Added ", mirrorLocalDevice.getPath() + " as a mirror to the source device " + sourceDevicePath);
     }
-    
+
     /**
      * Deletes the virtual volume by destroying all the components (i.e,
      * extents, devices) that were created in the process of creating the
      * virtual and unclaiming the storage volume(s).
      * 
      * @param nativeVolumeInfoList The same native volume info that was passed
-     *        when the virtual volume was created.
+     *            when the virtual volume was created.
      * 
      * @throws VPlexApiException When an error occurs deleted the virtual
-     *         volume.
+     *             volume.
      */
     void deleteVirtualVolume(List<VolumeInfo> nativeVolumeInfoList)
-        throws VPlexApiException {
-        
+            throws VPlexApiException {
+
         s_logger.info("Deleting virtual volume using native volume info");
 
         // Get the name(s) of the volume(s) that were used to create
@@ -371,12 +373,12 @@ public class VPlexApiVirtualVolumeManager {
         for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
             nativeVolumeNames.add(nativeVolumeInfo.getVolumeName());
         }
-        
+
         // Build the virtual volume name from the names of the
         // passed volumes and delete it.
         deleteVirtualVolume(buildVirtualVolumeName(nativeVolumeNames), true, false);
     }
-    
+
     /**
      * Deletes the virtual volume by destroying all the components (i.e,
      * extents, devices) that were created in the process of creating the
@@ -385,18 +387,18 @@ public class VPlexApiVirtualVolumeManager {
      * @param virtualVolumeName The name of the virtual volume to be deleted.
      * @param unclaimVolumes true if the storage volumes should be unclaimed.
      * @param retryOnDismantleFailure When true, retries the delete if the
-     *        dismantle of the virtual volume fails, which can occur if the
-     *        volume was distributed and had previously been migrated. This is
-     *        due to a bug in the VPLEX management software (zeph-q24801)
+     *            dismantle of the virtual volume fails, which can occur if the
+     *            volume was distributed and had previously been migrated. This is
+     *            due to a bug in the VPLEX management software (zeph-q24801)
      * 
      * @throws VPlexApiException When an error occurs deleted the virtual
-     *         volume.
+     *             volume.
      */
     void deleteVirtualVolume(String virtualVolumeName,
-        boolean unclaimVolumes, boolean retryOnDismantleFailure) throws VPlexApiException {
-      
+            boolean unclaimVolumes, boolean retryOnDismantleFailure) throws VPlexApiException {
+
         s_logger.info("Deleting virtual volume {}", virtualVolumeName);
-        
+
         // Find the virtual volume. If it exists, we should be able to find it
         // on either cluster.
         VPlexVirtualVolumeInfo virtualVolumeInfo = null;
@@ -404,7 +406,7 @@ public class VPlexApiVirtualVolumeManager {
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(),
-                virtualVolumeName, false);
+                    virtualVolumeName, false);
             if (virtualVolumeInfo != null) {
                 break;
             }
@@ -419,8 +421,8 @@ public class VPlexApiVirtualVolumeManager {
             } catch (VPlexApiException vae) {
                 if (retryOnDismantleFailure) {
                     s_logger.info("Tear down of virtual volume {} failed: {}",
-                        virtualVolumeName, vae.getMessage());
-                    // If the issue is the bug referenced in the javadoc, the 
+                            virtualVolumeName, vae.getMessage());
+                    // If the issue is the bug referenced in the javadoc, the
                     // virtual volume will actually be gone, so in the next
                     // call the volume will not be found, and the else path
                     // will be taken. Note that the distributed device will
@@ -436,30 +438,30 @@ public class VPlexApiVirtualVolumeManager {
             }
         } else {
             // Otherwise, perhaps the virtual volume creation failed and
-            // the delete is being called to cleanup any intermediate 
+            // the delete is being called to cleanup any intermediate
             // resources in the virtual volume stack.
             // Build the distributed device name.
             String deviceName = virtualVolumeName.substring(0,
-                virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
             if (deviceName.startsWith(VPlexApiConstants.DIST_DEVICE_PREFIX)) {
                 s_logger.info("Tearing down distributed device for virtual volume {}",
-                    virtualVolumeName);
+                        virtualVolumeName);
                 deleteDistributedDevice(deviceName);
             } else {
                 s_logger.info("Tearing down local device for virtual volume {}",
-                    virtualVolumeName);
+                        virtualVolumeName);
                 deleteLocalDevice(deviceName);
             }
         }
     }
-    
+
     /**
      * Deletes the virtual volume and leaves the underlying structure intact.
      * 
      * @param virtualVolumeName The name of the virtual volume to be destroyed.
-     *  
+     * 
      * @throws VPlexApiException When an error occurs destroying the virtual
-     *         volume.
+     *             volume.
      */
     void destroyVirtualVolume(String virtualVolumeName) throws VPlexApiException {
         s_logger.info("Destroying virtual volume {}", virtualVolumeName);
@@ -499,7 +501,7 @@ public class VPlexApiVirtualVolumeManager {
                     } else {
                         String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                         throw VPlexApiException.exceptions.deleteVolumeFailureStatus(
-                            virtualVolumeName, String.valueOf(response.getStatus()), cause);
+                                virtualVolumeName, String.valueOf(response.getStatus()), cause);
                     }
                 }
                 s_logger.info("Resource {} successfully destroyed.", virtualVolumeInfo.getPath());
@@ -514,7 +516,7 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Expands the virtual volume with the passed name to its full expandable
      * capacity. This API would be invoked after natively expanding the backend
@@ -526,9 +528,9 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException When an exception occurs expanding the volume.
      */
     VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName)
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Expanding virtual volume {}", virtualVolumeName);
-        
+
         // Find the virtual volume. If it exists, we should be able to find it
         // on either cluster.
         String clusterName = null;
@@ -537,30 +539,30 @@ public class VPlexApiVirtualVolumeManager {
         List<VPlexClusterInfo> clusterInfoList = discoveryMgr.getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(),
-                virtualVolumeName, false);
+                    virtualVolumeName, false);
             if (virtualVolumeInfo != null) {
                 clusterName = clusterInfo.getName();
                 break;
             }
         }
-        
+
         if (virtualVolumeInfo == null) {
             throw VPlexApiException.exceptions.cantFindRequestedVolume(virtualVolumeName);
         }
         s_logger.info("Found virtual volume");
-        
+
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_EXPAND_VIRTUAL_VOLUME);
+                    VPlexApiConstants.URI_EXPAND_VIRTUAL_VOLUME);
             s_logger.info("Expand virtual volume URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_V, virtualVolumeInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Expand virtual volume POST data is {}",
-                postDataObject.toString());
+                    postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Expand virtual volume response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -570,7 +572,7 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.expandVolumeFailureStatus(
-                        virtualVolumeName, String.valueOf(response.getStatus()), cause);
+                            virtualVolumeName, String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully expanded virtual volume");
@@ -583,11 +585,11 @@ public class VPlexApiVirtualVolumeManager {
                 response.close();
             }
         }
-        
+
         // Update the virtual volume info with the new capacity.
         updateVirtualVolumeInfoAfterExpansion(clusterName, virtualVolumeInfo);
         s_logger.info("Updated virtual volume info");
-        
+
         return virtualVolumeInfo;
     }
 
@@ -601,10 +603,10 @@ public class VPlexApiVirtualVolumeManager {
      * @param virtualVolumeInfo A reference to the virtual volume info.
      * 
      * @throws VPlexApiException When an exception occurs attempting to update
-     *         the virtual volume info.
+     *             the virtual volume info.
      */
     private void updateVirtualVolumeInfoAfterExpansion(String clusterName,
-        VPlexVirtualVolumeInfo virtualVolumeInfo) throws VPlexApiException {
+            VPlexVirtualVolumeInfo virtualVolumeInfo) throws VPlexApiException {
 
         int retryCount = 0;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
@@ -613,7 +615,7 @@ public class VPlexApiVirtualVolumeManager {
                 discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
                 s_logger.info("Expansion status is {}", virtualVolumeInfo.getExpansionStatus());
                 if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
-                    virtualVolumeInfo.getExpansionStatus())) {
+                        virtualVolumeInfo.getExpansionStatus())) {
                     s_logger.info("Expansion still in progress");
                     VPlexApiUtils.pauseThread(VPlexApiConstants.EXPANSION_STATUS_SLEEP_TIME_MS);
                 } else {
@@ -621,7 +623,7 @@ public class VPlexApiVirtualVolumeManager {
                 }
             } catch (VPlexApiException vae) {
                 s_logger.error("An error occurred updating the virtual volume info: {}",
-                    vae.getMessage());
+                        vae.getMessage());
                 if (retryCount < VPlexApiConstants.EXPANSION_STATUS_RETRY_COUNT) {
                     s_logger.info("Trying again to get virtual volume info");
                     VPlexApiUtils.pauseThread(VPlexApiConstants.EXPANSION_STATUS_SLEEP_TIME_MS);
@@ -631,22 +633,22 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Find the storage volumes identified by the passed native volume info,
      * discovering the storage volumes if required.
      * 
      * @param nativeVolumeInfoList The native volume information.
      * @param discoveryRequired true if the passed native volumes are newly
-     *        exported and need to be discovered by the VPlex.
+     *            exported and need to be discovered by the VPlex.
      * @param clusterInfoList [OUT] param set to the cluster information.
      * 
      * @throws VPlexApiException When an error occurs finding the storage
-     *         volumes or the storage volumes are not all found.
+     *             volumes or the storage volumes are not all found.
      */
     Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(
-        List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired,
-        List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
+            List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired,
+            List<VPlexClusterInfo> clusterInfoList) throws VPlexApiException {
 
         // If the volume(s) passed are newly exported to the VPlex, they may
         // need to be discovered before they can be used. If the discovery
@@ -663,14 +665,14 @@ public class VPlexApiVirtualVolumeManager {
                 try {
                     // Execute the re-discover command.
                     s_logger.info("Executing storage volume discovery try {} of {}",
-                        retryCount, VPlexApiConstants.FIND_STORAGE_VOLUME_RETRY_COUNT);
+                            retryCount, VPlexApiConstants.FIND_STORAGE_VOLUME_RETRY_COUNT);
                     List<String> storageSystemGuids = new ArrayList<String>();
                     for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
                         String storageSystemGuid = nativeVolumeInfo
-                            .getStorageSystemNativeGuid();
+                                .getStorageSystemNativeGuid();
                         if (!storageSystemGuids.contains(storageSystemGuid)) {
                             s_logger.info("Discover storage volumes on array {}",
-                                storageSystemGuid);
+                                    storageSystemGuid);
                             storageSystemGuids.add(storageSystemGuid);
                         }
                     }
@@ -684,7 +686,7 @@ public class VPlexApiVirtualVolumeManager {
                     // Find the backend storage volumes. If a volume cannot be
                     // found, an exception is thrown.
                     storageVolumeInfoMap = discoveryMgr.findStorageVolumes(
-                        nativeVolumeInfoList, clusterInfoList);
+                            nativeVolumeInfoList, clusterInfoList);
                     s_logger.info("Found storage volumes to use for virtual volume");
 
                     // Exit, no exceptions means all volumes found.
@@ -713,25 +715,25 @@ public class VPlexApiVirtualVolumeManager {
             // Find the backend storage volumes. If a volume cannot be
             // found, then an exception will be thrown.
             storageVolumeInfoMap = discoveryMgr.findStorageVolumes(nativeVolumeInfoList,
-                clusterInfoList);
+                    clusterInfoList);
             s_logger.info("Found storage volumes");
         }
 
         return storageVolumeInfoMap;
     }
-    
+
     /**
      * Claims the VPlex volumes in the passed map.
      * 
      * @param storageVolumeInfoMap The VPlex volumes to claim.
      * @param preserveData true if the native volume data should be preserved
-     *        during virtual volume creation.
+     *            during virtual volume creation.
      * 
      * @throws VPlexApiException When an error occurs claiming the volumes.
      */
     void claimStorageVolumes(
-        Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean preserveData)
-        throws VPlexApiException {
+            Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap, boolean preserveData)
+            throws VPlexApiException {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_CLAIM_VOLUME);
         s_logger.info("Claim storage volumes URI is {}", requestURI.toString());
         Iterator<Entry<VolumeInfo, VPlexStorageVolumeInfo>> volumeIter = storageVolumeInfoMap.entrySet().iterator();
@@ -755,9 +757,9 @@ public class VPlexApiVirtualVolumeManager {
                 }
                 JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
                 s_logger.info("Claim storage volumes POST data is {}",
-                    postDataObject.toString());
+                        postDataObject.toString());
                 response = _vplexApiClient.post(requestURI,
-                    postDataObject.toString());
+                        postDataObject.toString());
                 String responseStr = response.getEntity(String.class);
                 s_logger.info("Claim storage volume response is {}", responseStr);
                 if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -767,8 +769,8 @@ public class VPlexApiVirtualVolumeManager {
                     } else {
                         String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                         throw VPlexApiException.exceptions.claimVolumeFailureStatus(
-                            volumeInfo.getVolumeWWN(),
-                            String.valueOf(response.getStatus()), cause);
+                                volumeInfo.getVolumeWWN(),
+                                String.valueOf(response.getStatus()), cause);
                     }
                 }
 
@@ -782,8 +784,8 @@ public class VPlexApiVirtualVolumeManager {
                 String newPath = currentPath.substring(0, endIndex + 1) + volumeName;
                 storageVolumeInfo.setPath(newPath);
                 s_logger.info("Successfully claimed storage volume {}",
-                    volumeInfo.getVolumeWWN());
-                
+                        volumeInfo.getVolumeWWN());
+
                 // Update storage volumes contexts to be refreshed.
                 String contextPath = currentPath.substring(0, endIndex);
                 if (!storageVolumeContextPaths.contains(contextPath)) {
@@ -793,29 +795,29 @@ public class VPlexApiVirtualVolumeManager {
                 throw vae;
             } catch (Exception e) {
                 throw VPlexApiException.exceptions.failedClaimVolume(
-                    volumeInfo.getVolumeWWN(), e);
+                        volumeInfo.getVolumeWWN(), e);
             } finally {
                 if (response != null) {
                     response.close();
                 }
             }
         }
-        
+
         // Workaround for VPLEX issue zeph-q34217 as seen in Jira 9121
-        _vplexApiClient.getDiscoveryManager().refreshContexts(storageVolumeContextPaths);      
+        _vplexApiClient.getDiscoveryManager().refreshContexts(storageVolumeContextPaths);
     }
-    
+
     /**
      * Creates extents for the passed VPlex storage volumes. The extents so
      * created consume the entire volume.
      * 
      * @param storageVolumeInfoList The VPlex storage volumes on which to create
-     *        extents.
+     *            extents.
      * 
      * @throws VPlexApiException When an error occurs creating the extents,
      */
     void createExtents(List<VPlexStorageVolumeInfo> storageVolumeInfoList)
-        throws VPlexApiException {
+            throws VPlexApiException {
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_CREATE_EXTENT);
@@ -829,7 +831,7 @@ public class VPlexApiVirtualVolumeManager {
                 }
             }
             s_logger.info("Creating extents on storage volumes {}",
-                volumePathsBuilder.toString());
+                    volumePathsBuilder.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, volumePathsBuilder.toString());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
@@ -844,7 +846,7 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.createExtentFailureStatus(
-                        String.valueOf(response.getStatus()), cause);
+                            String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Extent creation successful");
@@ -858,21 +860,21 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Create local devices on the passed extents. The local devices so created
      * consume the entire extent.
      * 
      * @param extentInfoList The list of extents on which to create local
-     *        devices.
+     *            devices.
      * 
      * @throws VPlexApiException When an error occurs creating the local
-     *         devices.
+     *             devices.
      */
     void createLocalDevices(List<VPlexExtentInfo> extentInfoList)
-        throws VPlexApiException {
+            throws VPlexApiException {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
-            VPlexApiConstants.URI_CREATE_LOCAL_DEVICE);
+                VPlexApiConstants.URI_CREATE_LOCAL_DEVICE);
         s_logger.info("Create local device URI is {}", requestURI.toString());
         Iterator<VPlexExtentInfo> extentInfoIter = extentInfoList.iterator();
         while (extentInfoIter.hasNext()) {
@@ -898,7 +900,7 @@ public class VPlexApiVirtualVolumeManager {
                     } else {
                         String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                         throw VPlexApiException.exceptions.createLocalDeviceFailureStatus(
-                            String.valueOf(response.getStatus()), cause);
+                                String.valueOf(response.getStatus()), cause);
                     }
                 }
                 s_logger.info("Successfully created local device");
@@ -913,21 +915,21 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Creates a distributed device from the passed local devices.
      * 
      * @param localDeviceInfoList The local devices to be used to construct the
-     *        distributed device.
+     *            distributed device.
      * @param winningClusterId Used to set detach rules for distributed volumes.
      * 
      * @return The name of the distributed device.
      * 
      * @throws VPlexApiException When an error occurs creating the distributed
-     *         device.
+     *             device.
      */
     private String createDistributedDevice(List<VPlexDeviceInfo> localDeviceInfoList,
-        String winningClusterId) throws VPlexApiException {
+            String winningClusterId) throws VPlexApiException {
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_CREATE_DIST_DEVICE);
@@ -942,15 +944,15 @@ public class VPlexApiVirtualVolumeManager {
                 pathBuilder.append(localDeviceInfo.getPath());
                 nameBuilder.append(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 nameBuilder.append(localDeviceInfo.getName().substring(
-                    VPlexApiConstants.DEVICE_PREFIX.length()));
+                        VPlexApiConstants.DEVICE_PREFIX.length()));
             }
-            
+
             String rulesetName = VPlexApiConstants.CLUSTER_1_DETACHES;
             if (winningClusterId.equals(VPlexApiConstants.CLUSTER_2_ID)) {
                 rulesetName = VPlexApiConstants.CLUSTER_2_DETACHES;
             }
             s_logger.info("Creating distributed device from local devices {}",
-                pathBuilder.toString());
+                    pathBuilder.toString());
             argsMap.put(VPlexApiConstants.ARG_DASH_N, nameBuilder.toString());
             argsMap.put(VPlexApiConstants.ARG_DASH_D, pathBuilder.toString());
             argsMap.put(VPlexApiConstants.ARG_DASH_R, rulesetName);
@@ -966,11 +968,11 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.createDistDeviceFailureStatus(
-                        String.valueOf(response.getStatus()), cause);
+                            String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully created distributed device {}",
-                nameBuilder.toString());
+                    nameBuilder.toString());
             return nameBuilder.toString();
         } catch (VPlexApiException vae) {
             throw vae;
@@ -982,7 +984,7 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Creates a virtual volume for the device with the passed context path.
      * 
@@ -991,12 +993,12 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException When an error occurs creating the virtual volume.
      */
     private void createVirtualVolume(String devicePath)
-        throws VPlexApiException {
+            throws VPlexApiException {
         ClientResponse response = null;
         try {
             s_logger.info("Create virtual volume for device {}", devicePath);
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_CREATE_VIRTUAL_VOLUME);
+                    VPlexApiConstants.URI_CREATE_VIRTUAL_VOLUME);
             s_logger.info("Create virtual volume URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_R, devicePath);
@@ -1012,7 +1014,7 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.createVolumeFailureStatus(
-                        String.valueOf(response.getStatus()), cause);
+                            String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully created virtual volume for device {}", devicePath);
@@ -1026,12 +1028,12 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Creates the name given a virtual volume when it is created.
      * 
      * @param nativeVolumeNames The names of the volume(s) passed when the
-     *        virtual volume is created.
+     *            virtual volume is created.
      * 
      * @return The name of the virtual volume.
      */
@@ -1055,7 +1057,7 @@ public class VPlexApiVirtualVolumeManager {
         s_logger.info("Virtual volume name is {}", nameBuilder.toString());
         return nameBuilder.toString();
     }
-    
+
     /**
      * Tears down a virtual volume, distributed device, or local device.
      * 
@@ -1066,11 +1068,11 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException When an error occurs tearing down the resource.
      */
     private void dismantleResource(String resourcePath, boolean unclaimVolumes, boolean isDevice)
-        throws VPlexApiException {
+            throws VPlexApiException {
         ClientResponse response = null;
         try {
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_DISMANTLE);
+                    VPlexApiConstants.URI_DISMANTLE);
             s_logger.info("Dismantle resource URI is {}", requestURI.toString());
             Map<String, String> argsMap = new HashMap<String, String>();
             if (isDevice) {
@@ -1084,7 +1086,7 @@ public class VPlexApiVirtualVolumeManager {
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Dismantle POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Delete virtual volume response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1094,7 +1096,7 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.dismantleResourceFailureStatus(
-                        resourcePath, String.valueOf(response.getStatus()), cause);
+                            resourcePath, String.valueOf(response.getStatus()), cause);
                 }
             }
             // It has been observed that sometimes the VPlex reports SUCCESS but doesn't actually
@@ -1102,9 +1104,9 @@ public class VPlexApiVirtualVolumeManager {
             // To avoid subsequent silent/unexplained failures, we test for that message and
             // if found throw an Exception.
             if (responseStr.contains(VPlexApiConstants.DISMANTLE_ERROR_MSG)) {
-            	s_logger.info("SUCCESS Response string contains DISMANTLE_ERROR_MSG string: " + responseStr);
-            	throw VPlexApiException.exceptions.dismantleResourceFailureStatus(
-            			resourcePath, String.valueOf(response.getStatus()), responseStr);
+                s_logger.info("SUCCESS Response string contains DISMANTLE_ERROR_MSG string: " + responseStr);
+                throw VPlexApiException.exceptions.dismantleResourceFailureStatus(
+                        resourcePath, String.valueOf(response.getStatus()), responseStr);
             }
             s_logger.info("Resource {} successfully dismantled.", resourcePath);
         } catch (VPlexApiException vae) {
@@ -1117,7 +1119,7 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Attempts to find and delete the passed distributed device. Will attempt
      * to dismantle the distributed device by destroying all components used to
@@ -1126,17 +1128,17 @@ public class VPlexApiVirtualVolumeManager {
      * @param deviceName The name of the distributed device.
      * 
      * @throws VPlexApiException When an error occurs deleting the distributed
-     *         device.
+     *             device.
      */
     private void deleteDistributedDevice(String deviceName)
-        throws VPlexApiException {
-        
+            throws VPlexApiException {
+
         s_logger.info("Deleting distributed device {}", deviceName);
-        
-        // Find the distributed device.        
+
+        // Find the distributed device.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
-            .findDistributedDevice(deviceName);
+                .findDistributedDevice(deviceName);
 
         if (distDeviceInfo != null) {
             // If the distributed device is found, dismantle it.
@@ -1146,10 +1148,10 @@ public class VPlexApiVirtualVolumeManager {
             // Otherwise, delete any locals devices that might exist
             // for the distributed device with the passed name.
             s_logger.info("Tearing down local devices for distributed device {}",
-                deviceName);
+                    deviceName);
             StringTokenizer tokenizer = new StringTokenizer(
-                deviceName.substring(VPlexApiConstants.DIST_DEVICE_PREFIX.length()),
-                VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
+                    deviceName.substring(VPlexApiConstants.DIST_DEVICE_PREFIX.length()),
+                    VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
             while (tokenizer.hasMoreTokens()) {
                 deleteLocalDevice(VPlexApiConstants.DEVICE_PREFIX + tokenizer.nextToken());
             }
@@ -1164,14 +1166,13 @@ public class VPlexApiVirtualVolumeManager {
      * @param deviceInfo the backend storage volume info for the device.
      * 
      * @throws VPlexApiException When an error occurs deleting the local
-     *         device.
+     *             device.
      */
     void deleteLocalDevice(VolumeInfo deviceInfo) throws VPlexApiException {
         String deviceName = VPlexApiConstants.DEVICE_PREFIX + deviceInfo.getVolumeName();
         deleteLocalDevice(deviceName);
     }
-    
-    
+
     /**
      * Attempts to find and delete the local device with the passed name. Will
      * attempt to dismantle the local device by destroying all components used
@@ -1180,7 +1181,7 @@ public class VPlexApiVirtualVolumeManager {
      * @param deviceName The name of the local device.
      * 
      * @throws VPlexApiException When an error occurs deleting the distributed
-     *         device.
+     *             device.
      */
     void deleteLocalDevice(String deviceName) throws VPlexApiException {
 
@@ -1204,7 +1205,7 @@ public class VPlexApiVirtualVolumeManager {
             deleteExtent(nameBuilder.toString());
         }
     }
-    
+
     /**
      * Attempts to find and delete the extent with the passed name. If
      * successfully delete, the method will also unclaim the storage volume from
@@ -1213,21 +1214,21 @@ public class VPlexApiVirtualVolumeManager {
      * @param extentName The name of the extent.
      * 
      * @throws When an error occurs deleting the extent or subsequently
-     *         unclaiming the storage volume.
+     *             unclaiming the storage volume.
      */
     void deleteExtent(String extentName)
-        throws VPlexApiException {
-        
+            throws VPlexApiException {
+
         s_logger.info("Deleting extent {}", extentName);
 
         // Find the extent.
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         VPlexExtentInfo extentInfo = discoveryMgr.findExtent(extentName);
-        
+
         // Get the storage volume name.
         String storageVolumeName = extentName.substring(
-            VPlexApiConstants.EXTENT_PREFIX.length(),
-            extentName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));            
+                VPlexApiConstants.EXTENT_PREFIX.length(),
+                extentName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
 
         // If the extent is found, destroy it.
         if (extentInfo != null) {
@@ -1235,13 +1236,13 @@ public class VPlexApiVirtualVolumeManager {
             try {
                 s_logger.info("Destroying extent {}", extentName);
                 URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                    VPlexApiConstants.URI_DESTROY_EXTENT);
+                        VPlexApiConstants.URI_DESTROY_EXTENT);
                 Map<String, String> argsMap = new HashMap<String, String>();
                 argsMap.put(VPlexApiConstants.ARG_DASH_S, extentInfo.getPath());
                 JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
                 s_logger.info("Destroy extent POST data is {}", postDataObject.toString());
                 response = _vplexApiClient.post(requestURI,
-                    postDataObject.toString());
+                        postDataObject.toString());
                 String responseStr = response.getEntity(String.class);
                 s_logger.info("Destroy extent response is {}", responseStr);
                 if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1251,12 +1252,12 @@ public class VPlexApiVirtualVolumeManager {
                     } else {
                         String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                         throw VPlexApiException.exceptions.deleteExtentFailureStatus(
-                            extentName, String.valueOf(response.getStatus()), cause);
+                                extentName, String.valueOf(response.getStatus()), cause);
                     }
                 }
-                
+
                 s_logger.info("Successfully destroyed extent {}", extentName);
-                
+
                 // Now unclaim the volume.
                 unclaimStorageVolume(storageVolumeName);
             } catch (VPlexApiException vae) {
@@ -1272,16 +1273,16 @@ public class VPlexApiVirtualVolumeManager {
             // Otherwise, unclaim the storage volume that may have been
             // claimed for the extent.
             unclaimStorageVolume(storageVolumeName);
-        }        
+        }
     }
-    
+
     /**
      * Unclaim the storage volume with the passed name.
      * 
      * @param storageVolumeName The storage volume name.
      * 
      * @throws VPlexApiException When an error occurs unclaiming the storage
-     *         volume.
+     *             volume.
      */
     private void unclaimStorageVolume(String storageVolumeName) throws VPlexApiException {
         ClientResponse response = null;
@@ -1289,18 +1290,18 @@ public class VPlexApiVirtualVolumeManager {
             s_logger.info("Unclaim storage volume {}", storageVolumeName);
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
             VPlexStorageVolumeInfo storageVolumeInfo = discoveryMgr
-                .findStorageVolume(storageVolumeName);
+                    .findStorageVolume(storageVolumeName);
             if (storageVolumeInfo != null) {
                 s_logger.info("Found storage volume {} to be unclaimed", storageVolumeName);
                 URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                    VPlexApiConstants.URI_UNCLAIM_VOLUME);
+                        VPlexApiConstants.URI_UNCLAIM_VOLUME);
                 Map<String, String> argsMap = new HashMap<String, String>();
                 argsMap.put(VPlexApiConstants.ARG_DASH_D, storageVolumeInfo.getPath());
                 JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
                 s_logger.info("Unclaim storage volume POST data is {}",
-                    postDataObject.toString());
+                        postDataObject.toString());
                 response = _vplexApiClient.post(requestURI,
-                    postDataObject.toString());
+                        postDataObject.toString());
                 String responseStr = response.getEntity(String.class);
                 s_logger.info("Unclaim storage volume response is {}", responseStr);
                 if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1310,12 +1311,12 @@ public class VPlexApiVirtualVolumeManager {
                     } else {
                         String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                         throw VPlexApiException.exceptions.unclaimVolumeFailureStatus(
-                            storageVolumeName, String.valueOf(response.getStatus()), cause);
+                                storageVolumeName, String.valueOf(response.getStatus()), cause);
                     }
                 }
-                
+
                 s_logger.info("Successfully unclaimed storage volume {}",
-                    storageVolumeName);
+                        storageVolumeName);
             }
         } catch (VPlexApiException vae) {
             throw vae;
@@ -1327,7 +1328,7 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Creates a distributed virtual volume from a non-distributed one plus a new unclaimed
      * remote storage volume.
@@ -1341,12 +1342,12 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException
      */
     VPlexVirtualVolumeInfo createDistributedVirtualVolume(VPlexVirtualVolumeInfo virtualVolume,
-        VolumeInfo newRemoteVolume,  boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
         // Determine the "local" device
         String virtualVolumeName = virtualVolume.getName();
         String localDeviceName = virtualVolumeName.substring(0,
                 virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
-        
+
         // Find the storage volumes corresponding to the passed remote
         // volume information, discovery them if required.
         s_logger.info("Find remote storage volume");
@@ -1354,15 +1355,15 @@ public class VPlexApiVirtualVolumeManager {
         remoteVolumeInfoList.add(newRemoteVolume);
         List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = findStorageVolumes(
-            remoteVolumeInfoList, discoveryRequired, clusterInfoList);
+                remoteVolumeInfoList, discoveryRequired, clusterInfoList);
         if (storageVolumeInfoMap.isEmpty()) {
             throw VPlexApiException.exceptions.cantDiscoverStorageVolume(newRemoteVolume.getVolumeWWN());
         }
-        
+
         // Claim the storage volumes
         claimStorageVolumes(storageVolumeInfoMap, false);
         s_logger.info("Claimed remote storage volume");
-        
+
         // Try and build up the VPLEX local device from the claimed storage
         // volume and attach the local device to the local device of the
         // passed virtual volume to form the local mirror. If we get an error,
@@ -1372,22 +1373,22 @@ public class VPlexApiVirtualVolumeManager {
         try {
             // Create extents
             List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
-            for (VolumeInfo nativeVolumeInfo: remoteVolumeInfoList) {
+            for (VolumeInfo nativeVolumeInfo : remoteVolumeInfoList) {
                 storageVolumeInfoList.add(storageVolumeInfoMap.get(nativeVolumeInfo));
             }
             createExtents(storageVolumeInfoList);
             s_logger.info("Created extent on remote storage volume");
-            
-            // Find the extents just created and create local devices on 
+
+            // Find the extents just created and create local devices on
             // those extents.
             List<VPlexExtentInfo> extentInfoList = discoveryMgr.findExtents(storageVolumeInfoList);
             if (extentInfoList.isEmpty()) {
                 throw VPlexApiException.exceptions
-                    .cantFindExtentForClaimedVolume(storageVolumeInfoList.get(0).getName());
+                        .cantFindExtentForClaimedVolume(storageVolumeInfoList.get(0).getName());
             }
             createLocalDevices(extentInfoList);
             s_logger.info("Created local devices on extents");
-            
+
             // Find the local device for the extent just created.
             List<VPlexDeviceInfo> remoteDevices = discoveryMgr.findLocalDevices(extentInfoList);
             if (remoteDevices.isEmpty()) {
@@ -1395,14 +1396,14 @@ public class VPlexApiVirtualVolumeManager {
             }
             remoteDevice = remoteDevices.get(0);
             s_logger.info("Found the remote device {}", remoteDevice.getPath());
-            
+
             // Find the local device.
             localDevice = discoveryMgr.findLocalDevice(localDeviceName);
             if (localDevice == null) {
                 throw VPlexApiException.exceptions.cantFindLocalDevice(localDeviceName);
             }
             s_logger.info("Found the local device {}", localDevice.getPath());
-            
+
             // Now use "device attach-mirror" to create a distributed device from an already exported volume.
             String rulesetName = VPlexApiConstants.CLUSTER_1_DETACHES;
             if (clusterId.equals(VPlexApiConstants.CLUSTER_2_ID)) {
@@ -1414,7 +1415,7 @@ public class VPlexApiVirtualVolumeManager {
             // An error occurred. Clean up the VPLEX artifacts created for
             // the mirror and unclaim the storage volume.
             s_logger.info("Exception occurred creating and attaching remote mirror " +
-                " to local VPLEX volume, attempting to cleanup VPLEX artifacts");
+                    " to local VPLEX volume, attempting to cleanup VPLEX artifacts");
             try {
                 // This will look for any artifacts, starting with a virtual
                 // volume, that use the passed native volume info and destroy
@@ -1422,43 +1423,42 @@ public class VPlexApiVirtualVolumeManager {
                 deleteVirtualVolume(Collections.singletonList(newRemoteVolume));
             } catch (Exception ex) {
                 s_logger.error("Failed attempting to cleanup VPLEX after failed attempt " +
-                    "to attach a remote mirror to virtual volume {}", virtualVolume.getPath(), ex);                
+                        "to attach a remote mirror to virtual volume {}", virtualVolume.getPath(), ex);
             }
             throw e;
         }
-        
+
         try {
             // Find virtual volume and return.
             StringBuilder volumeNameBuilder = new StringBuilder();
             volumeNameBuilder.append(localDeviceName);
             volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
-            VPlexVirtualVolumeInfo vvInfo =  discoveryMgr.findVirtualVolume(
+            VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
                     localDevice.getClusterId(), volumeNameBuilder.toString(), false);
-            
+
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {
                 String remoteName = remoteDevice.getName().replaceAll(VPlexApiConstants.DEVICE_PREFIX, "");
                 String newVvName = vvInfo.getName();
-                newVvName = newVvName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX, 
+                newVvName = newVvName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
                         VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 newVvName = newVvName.replaceFirst(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX, "");
-                newVvName = newVvName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName 
+                newVvName = newVvName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName
                         + VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
                 vvInfo = renameVPlexResource(vvInfo, newVvName);
-                
+
                 // Update the distributed device name
                 VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
                         .findDistributedDevice(localDevice.getName());
                 String newDdName = distDeviceInfo.getName();
-                newDdName = newDdName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX, 
+                newDdName = newDdName.replaceFirst(VPlexApiConstants.DEVICE_PREFIX,
                         VPlexApiConstants.DIST_DEVICE_PREFIX + VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 newDdName = newDdName + VPlexApiConstants.DIST_DEVICE_NAME_DELIM + remoteName;
                 distDeviceInfo = renameVPlexResource(distDeviceInfo, newDdName);
             }
-            
+
             return vvInfo;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // An error occurred. Detach the mirror and clean up the VPLEX artifacts
             // created for the remote mirror and unclaim the storage volume.
             try {
@@ -1470,23 +1470,24 @@ public class VPlexApiVirtualVolumeManager {
                 deleteVirtualVolume(Collections.singletonList(newRemoteVolume));
             } catch (Exception ex) {
                 s_logger.error("Failed attempting to cleanup VPLEX after failed attempt " +
-                    "to find and rename local virtual volume {} after remote mirror attached.", virtualVolume.getPath(), ex);                
+                        "to find and rename local virtual volume {} after remote mirror attached.", virtualVolume.getPath(), ex);
             }
             throw e;
         }
     }
-    
+
     /**
      * Execute the "device attach-mirror" command.
+     * 
      * @param sourceDevicePath -- Path for the device in the existing virtual volume
      * @param mirrorDevicePath -- Path for the new device that will be attached as a mirror.It can be
-     *                            in the local cluster of the source device or in the remote cluster.
-     * @param rulesetName      -- The rule set name apply when attaching a remote mirror to form a 
-     *                            distributed volume or null when attaching local  mirrors.
+     *            in the local cluster of the source device or in the remote cluster.
+     * @param rulesetName -- The rule set name apply when attaching a remote mirror to form a
+     *            distributed volume or null when attaching local mirrors.
      * @throws VPlexApiException
      */
     private void deviceAttachMirror(String sourceDevicePath, String mirrorDevicePath,
-        String rulesetName) throws VPlexApiException {
+            String rulesetName) throws VPlexApiException {
         ClientResponse response = null;
         try {
             s_logger.info("Device Attach Mirror for devices {} {}", sourceDevicePath, mirrorDevicePath);
@@ -1511,13 +1512,13 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.attachMirrorFailureStatus(
-                        String.valueOf(response.getStatus()), cause);
+                            String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Successfully attached mirror for device {}", sourceDevicePath);
         } catch (VPlexApiException vae) {
             throw vae;
-        } catch (Exception e) {            
+        } catch (Exception e) {
             throw VPlexApiException.exceptions.failedAttachMirror(e);
         } finally {
             if (response != null) {
@@ -1525,7 +1526,7 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Waits for the rebuild of the passed distributed volume to complete.
      * Will wait for up to 4 hours before it stops waiting and returns a
@@ -1534,14 +1535,14 @@ public class VPlexApiVirtualVolumeManager {
      * @param virtualVolumeName The name of the virtual volume.
      * 
      * @return A WaitOnRebuildResult indicating if the rebuild completed successfully,
-     * failed, or we timed out waiting for it to complete.
+     *         failed, or we timed out waiting for it to complete.
      * 
      * @throws VPlexApiException
      */
-    public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolumeName) 
-        throws VPlexApiException {
-        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();       
-        for (int retryCount=0; retryCount < VPlexApiConstants.REBUILD_WAIT_RETRY_COUNT; retryCount++) {
+    public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolumeName)
+            throws VPlexApiException {
+        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        for (int retryCount = 0; retryCount < VPlexApiConstants.REBUILD_WAIT_RETRY_COUNT; retryCount++) {
             try {
                 VPlexVirtualVolumeInfo virtualVolume = discoveryMgr.findVirtualVolume(virtualVolumeName, true);
                 if (!VPlexVirtualVolumeInfo.Locality.distributed.name().equals(virtualVolume.getLocality())) {
@@ -1569,14 +1570,15 @@ public class VPlexApiVirtualVolumeManager {
         s_logger.error("Rebuild timed out for volume: {}", virtualVolumeName);
         return WaitOnRebuildResult.TIMED_OUT;
     }
-    
+
     /**
      * Returns the properties for a Distributed Device as name/value pairs.
+     * 
      * @param deviceName String
      * @return Map of property name to value
      * @throws VPlexApiException
      */
-     Map<String, Object> getDistributedDeviceProperties(String deviceName) 
+    Map<String, Object> getDistributedDeviceProperties(String deviceName)
             throws VPlexApiException {
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(deviceName);
@@ -1590,20 +1592,21 @@ public class VPlexApiVirtualVolumeManager {
         Map<String, Object> resultMap = VPlexApiUtils.getAttributesFromResponse(responseStr);
         return resultMap;
     }
-     
+
     /**
      * Get the device components of a Distributed Device
+     * 
      * @param deviceName -- Distributed Device Name
-     * @return -- List<VPlexResourceInfo> 
+     * @return -- List<VPlexResourceInfo>
      * @throws VPlexApiException
      */
     List<VPlexDistributedDeviceComponentInfo> getDistributedDeviceComponents(
-        String deviceName) throws VPlexApiException {
+            String deviceName) throws VPlexApiException {
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
         VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(deviceName);
         return discoveryMgr.getDistributedDeviceComponents(ddInfo);
     }
-     
+
     /**
      * Get the device components of a Distributed Device.
      * 
@@ -1613,37 +1616,38 @@ public class VPlexApiVirtualVolumeManager {
      *         distributed device.
      * 
      * @throws VPlexApiException When an error occurs finding the components for
-     *         the distributed device.
+     *             the distributed device.
      */
     List<VPlexResourceInfo> getDistributedDeviceComponents(
-        VPlexDistributedDeviceInfo ddInfo) throws VPlexApiException {
-         URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                 URI.create(VPlexApiConstants.VPLEX_PATH + ddInfo.getPath() 
-                         + VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP));
-         s_logger.info("getDistributedDeviceComponents URI is {}", requestURI.toString());
-         ClientResponse response = _vplexApiClient.get(requestURI);
-         String responseStr = response.getEntity(String.class);
-         response.close();
-         s_logger.info("getDistributedDeviceComponents name response is {}", responseStr);
-         List<VPlexResourceInfo> componentList = 
-                 VPlexApiUtils.getChildrenFromResponse(
-                           VPlexApiConstants.URI_DISTRIBUTED_DEVICES 
-                         + ddInfo.getName()
-                         + VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP, 
-                         responseStr, VPlexResourceInfo.class);
-         return componentList;
-     }
-    
+            VPlexDistributedDeviceInfo ddInfo) throws VPlexApiException {
+        URI requestURI = _vplexApiClient.getBaseURI().resolve(
+                URI.create(VPlexApiConstants.VPLEX_PATH + ddInfo.getPath()
+                        + VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP));
+        s_logger.info("getDistributedDeviceComponents URI is {}", requestURI.toString());
+        ClientResponse response = _vplexApiClient.get(requestURI);
+        String responseStr = response.getEntity(String.class);
+        response.close();
+        s_logger.info("getDistributedDeviceComponents name response is {}", responseStr);
+        List<VPlexResourceInfo> componentList =
+                VPlexApiUtils.getChildrenFromResponse(
+                        VPlexApiConstants.URI_DISTRIBUTED_DEVICES
+                                + ddInfo.getName()
+                                + VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP,
+                        responseStr, VPlexResourceInfo.class);
+        return componentList;
+    }
+
     /**
      * Rename a VPlex resource that subclasses VPlexResourceInfo.
      * Adjusts the path and name in the resourceInfo and returns the original object.
+     * 
      * @param resourceInfo - VPlexVirtualVolumeInfo, VPlexDistributedDeviceInfo, etc.
      * @param newName String -- the desired new name.
      * @return -- The original VPlexResourceInfo with updated path and name
      * @throws VPlexApiException
      */
     <T extends VPlexResourceInfo> T renameVPlexResource(T resourceInfo, String newName)
-    throws VPlexApiException {
+            throws VPlexApiException {
         StringBuilder pathBuilder = new StringBuilder();
         pathBuilder.append(VPlexApiConstants.VPLEX_PATH);
         pathBuilder.append(resourceInfo.getPath());
@@ -1652,7 +1656,7 @@ public class VPlexApiVirtualVolumeManager {
         pathBuilder.append("=");
         pathBuilder.append(newName);
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
-            URI.create(pathBuilder.toString()));
+                URI.create(pathBuilder.toString()));
         s_logger.info("Update name URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.put(requestURI);
         String responseStr = response.getEntity(String.class);
@@ -1666,7 +1670,7 @@ public class VPlexApiVirtualVolumeManager {
                 response.close();
                 String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                 throw VPlexApiException.exceptions.renameResourceFailureStatus(
-                    String.valueOf(response.getStatus()), cause);
+                        String.valueOf(response.getStatus()), cause);
             }
         }
         String newPath = resourceInfo.getPath().replaceFirst(resourceInfo.getName(), newName);
@@ -1674,11 +1678,11 @@ public class VPlexApiVirtualVolumeManager {
         resourceInfo.setName(newName);
         return resourceInfo;
     }
-    
+
     /**
      * All cached data associated with the virtual volume with the passed name
-     * is invalidated on all directors of the VPLEX cluster. Subsequent reads 
-     * from host applications will fetch data from storage volume due to cache 
+     * is invalidated on all directors of the VPLEX cluster. Subsequent reads
+     * from host applications will fetch data from storage volume due to cache
      * miss.
      * 
      * NOTE: According to VPLEX engineering, the execution of the cache-invalidate
@@ -1691,34 +1695,34 @@ public class VPlexApiVirtualVolumeManager {
      * 
      * @param virtualVolumeName The name of the virtual volume.
      * 
-     * @return true if the invalidate cache is still in progress when the 
-     * call returns and the status must be monitored until it completes,
-     * false otherwise.
+     * @return true if the invalidate cache is still in progress when the
+     *         call returns and the status must be monitored until it completes,
+     *         false otherwise.
      * 
      * @throws VPlexApiException When an error occurs invalidating the cache.
      */
     public boolean invalidateVirtualVolumeCache(String virtualVolumeName)
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request to invalidate virtual volume cache for volume {}",
-            virtualVolumeName);
-        
+                virtualVolumeName);
+
         ClientResponse response = null;
         try {
             // Find the virtual volume.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
             VPlexVirtualVolumeInfo virtualVolumeInfo = discoveryMgr
-                .findVirtualVolume(virtualVolumeName, false);
-            
+                    .findVirtualVolume(virtualVolumeName, false);
+
             // Invalidate the read cache for the virtual volume.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_INVALIDATE_VOLUME_CACHE);
+                    VPlexApiConstants.URI_INVALIDATE_VOLUME_CACHE);
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_V, virtualVolumeInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Invalidate cache POST data is {}",
-                postDataObject.toString());
+                    postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Invalidate cache response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1728,16 +1732,16 @@ public class VPlexApiVirtualVolumeManager {
                     return false;
                 } else {
                     // For a failure status, the exception message will indicate
-                    // if failure is because the cache invalidation timed out and 
+                    // if failure is because the cache invalidation timed out and
                     // is still in progress. If it is not, then it failed.
                     String exceptionMessage = VPlexApiUtils.getExceptionMessageFromResponse(responseStr);
-                    if ((exceptionMessage != null) && 
-                        (exceptionMessage.contains(VPlexApiConstants.CACHE_INVALIDATE_IN_PROGRESS_MSG))) {
+                    if ((exceptionMessage != null) &&
+                            (exceptionMessage.contains(VPlexApiConstants.CACHE_INVALIDATE_IN_PROGRESS_MSG))) {
                         return true;
                     } else {
                         String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                         throw VPlexApiException.exceptions.invalidateCacheFailureStatus(
-                            virtualVolumeName, String.valueOf(response.getStatus()), cause);
+                                virtualVolumeName, String.valueOf(response.getStatus()), cause);
                     }
                 }
             }
@@ -1752,7 +1756,7 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Get the cache invalidate status information for the virtual volume with
      * the passed name.
@@ -1763,27 +1767,27 @@ public class VPlexApiVirtualVolumeManager {
      *         information.
      */
     public VPlexCacheStatusInfo getCacheStatus(String virtualVolumeName)
-        throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request to get the cache status for for volume {}",
-            virtualVolumeName);
-        
+                virtualVolumeName);
+
         VPlexCacheStatusInfo cacheStatusInfo = new VPlexCacheStatusInfo();
         ClientResponse response = null;
         try {
             // Find the virtual volume.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
             VPlexVirtualVolumeInfo virtualVolumeInfo = discoveryMgr
-                .findVirtualVolume(virtualVolumeName, false);
-            
+                    .findVirtualVolume(virtualVolumeName, false);
+
             // Get the cache invalidate status.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_INVALIDATE_VOLUME_CACHE_STATUS);
+                    VPlexApiConstants.URI_INVALIDATE_VOLUME_CACHE_STATUS);
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_V, virtualVolumeInfo.getPath());
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Get cache status POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Get cache status response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -1793,16 +1797,16 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.getCacheStatusFailureStatus(
-                        virtualVolumeName, String.valueOf(response.getStatus()), cause);
+                            virtualVolumeName, String.valueOf(response.getStatus()), cause);
                 }
             }
-            
+
             // Successful response. Parse the custom-data from the response, which
-            // contains the information to determine the progress of the cache 
+            // contains the information to determine the progress of the cache
             // invalidation. Update the cache status info invalidation status and if
             // it is determined that the cache invalidation failed, set the failure
             // error message.
-            // 
+            //
             // NOTE: TBD once I know how to parse this info.
             cacheStatusInfo.setCacheInvalidateStatus(InvalidateStatus.SUCCESS);
             return cacheStatusInfo;
@@ -1816,9 +1820,9 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-        
+
     /**
-     * Detaches the mirror specified by the passed mirror info from the 
+     * Detaches the mirror specified by the passed mirror info from the
      * local VPLEX volume with the passed name.
      * 
      * @param virtualVolumeName The name of the VPLEX Local volume.
@@ -1844,14 +1848,14 @@ public class VPlexApiVirtualVolumeManager {
             VPlexDeviceInfo sourceDeviceInfo = discoveryMgr.findLocalDevice(sourceDeviceName);
             if (sourceDeviceInfo == null) {
                 throw VPlexApiException.exceptions
-                .cantFindLocalDeviceForVolume(virtualVolumeName);
+                        .cantFindLocalDeviceForVolume(virtualVolumeName);
             }
 
-            // Get components  from the source volume device to check the mirror to be detached
+            // Get components from the source volume device to check the mirror to be detached
             // exist there.
             String mirrorDevicePath = null;
             List<VPlexLocalDeviceComponentInfo> components = discoveryMgr.getLocalDeviceComponents(sourceDeviceInfo);
-            for (VPlexLocalDeviceComponentInfo component: components) {
+            for (VPlexLocalDeviceComponentInfo component : components) {
                 if (component.getName().equals(mirrorDeviceName)) {
                     mirrorDevicePath = component.getPath();
                     break;
@@ -1871,13 +1875,13 @@ public class VPlexApiVirtualVolumeManager {
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, sourceDeviceInfo.getPath());
             argsMap.put(VPlexApiConstants.ARG_DASH_M, mirrorDevicePath);
-            
-            if(discard){
+
+            if (discard) {
                 // If discard is false then without discard option the device will be
                 // converted into virtual volume.
                 argsMap.put(VPlexApiConstants.ARG_DISCARD, "");
             }
-            
+
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Detach mirror for virtual volume POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
@@ -1891,8 +1895,8 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.detachMirrorFailureStatus(
-                        mirrorDeviceName, virtualVolumeName,
-                        String.valueOf(response.getStatus()), cause);
+                            mirrorDeviceName, virtualVolumeName,
+                            String.valueOf(response.getStatus()), cause);
                 }
             }
         } catch (VPlexApiException vae) {
@@ -1906,9 +1910,9 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
-     * Detaches the mirror specified by the passed mirror info from the 
+     * Detaches the mirror specified by the passed mirror info from the
      * Distributed VPLEX volume with the passed name.
      * 
      * @param virtualVolumeName The name of the VPLEX Local volume.
@@ -1931,29 +1935,29 @@ public class VPlexApiVirtualVolumeManager {
             String sourceDeviceName = virtualVolumeName.substring(0,
                     virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
             // Find the distributed device
-        	VPlexDistributedDeviceInfo distributedDeviceInfo = discoveryMgr.findDistributedDevice(sourceDeviceName);
-        	if (distributedDeviceInfo == null) {
-        	    throw VPlexApiException.exceptions.cantFindDistDevice(sourceDeviceName);
-        	}
-        	
-        	String sourceDevicePath = null;
-        	String mirrorDevicePath = null;
-        	List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
-        			.getDistributedDeviceComponents(distributedDeviceInfo);
-        	for (VPlexDistributedDeviceComponentInfo ddComponent: ddComponents) {
-        		discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-        		List<VPlexLocalDeviceComponentInfo> localComponents = discoveryMgr.getLocalDeviceComponents(ddComponent);
-        		for(VPlexLocalDeviceComponentInfo localComponent : localComponents){
-        			if(localComponent.getName().equals(mirrorDeviceName)){
-        				sourceDevicePath = ddComponent.getPath();
-        				mirrorDevicePath = localComponent.getPath();
-        				break;
-        			}
-        		}
-        		if(sourceDevicePath != null && mirrorDevicePath != null) {
-        		    break;
-        		}
-        	}
+            VPlexDistributedDeviceInfo distributedDeviceInfo = discoveryMgr.findDistributedDevice(sourceDeviceName);
+            if (distributedDeviceInfo == null) {
+                throw VPlexApiException.exceptions.cantFindDistDevice(sourceDeviceName);
+            }
+
+            String sourceDevicePath = null;
+            String mirrorDevicePath = null;
+            List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
+                    .getDistributedDeviceComponents(distributedDeviceInfo);
+            for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
+                discoveryMgr.updateDistributedDeviceComponent(ddComponent);
+                List<VPlexLocalDeviceComponentInfo> localComponents = discoveryMgr.getLocalDeviceComponents(ddComponent);
+                for (VPlexLocalDeviceComponentInfo localComponent : localComponents) {
+                    if (localComponent.getName().equals(mirrorDeviceName)) {
+                        sourceDevicePath = ddComponent.getPath();
+                        mirrorDevicePath = localComponent.getPath();
+                        break;
+                    }
+                }
+                if (sourceDevicePath != null && mirrorDevicePath != null) {
+                    break;
+                }
+            }
 
             // Throw an exception if we can't find device component
             // corresponding to the mirror to be updated.
@@ -1968,13 +1972,13 @@ public class VPlexApiVirtualVolumeManager {
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, sourceDevicePath);
             argsMap.put(VPlexApiConstants.ARG_DASH_M, mirrorDevicePath);
-            
-            if(discard){
+
+            if (discard) {
                 // If discard is false then without discard option the device will be
                 // converted into virtual volume.
                 argsMap.put(VPlexApiConstants.ARG_DISCARD, "");
             }
-            
+
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Detach mirror for virtual volume POST data is {}", postDataObject.toString());
             ClientResponse response = _vplexApiClient.post(requestURI,
@@ -1988,8 +1992,8 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.detachMirrorFailureStatus(
-                        mirrorDeviceName, virtualVolumeName,
-                        String.valueOf(response.getStatus()), cause);
+                            mirrorDeviceName, virtualVolumeName,
+                            String.valueOf(response.getStatus()), cause);
                 }
             }
         } catch (VPlexApiException vae) {
@@ -1999,7 +2003,6 @@ public class VPlexApiVirtualVolumeManager {
                     mirrorDeviceName, virtualVolumeName, e);
         }
     }
-
 
     /**
      * Detaches the mirror on the specified cluster from the distributed VPLEX
@@ -2013,33 +2016,33 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
     public String detachMirrorFromDistributedVolume(String virtualVolumeName,
-        String clusterId) throws VPlexApiException {
+            String clusterId) throws VPlexApiException {
         s_logger.info("Request to detach mirror on cluster {} from a distributed volume {}",
-            clusterId, virtualVolumeName);
-        
+                clusterId, virtualVolumeName);
+
         ClientResponse response = null;
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
             discoveryMgr.findVirtualVolume(virtualVolumeName, false);
-            
+
             // Find the distributed device for the virtual volume.
             String ddName = virtualVolumeName.substring(0,
-                virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
             VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions
-                    .cantFindDistributedDeviceForVolume(virtualVolumeName);
+                        .cantFindDistributedDeviceForVolume(virtualVolumeName);
             }
-            
+
             // Get the distributed device components. These are the local devices
             // that were used to build the distributed device. Then find the
             // component corresponding to the mirror to be detached.
             String mirrorDevicePath = null;
             String detachedDeviceName = null;
             List<VPlexDistributedDeviceComponentInfo> ddComponents = discoveryMgr
-                .getDistributedDeviceComponents(ddInfo);
-            for (VPlexDistributedDeviceComponentInfo ddComponent: ddComponents) {
+                    .getDistributedDeviceComponents(ddInfo);
+            for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
                 discoveryMgr.updateDistributedDeviceComponent(ddComponent);
                 if (ddComponent.getCluster().equals(clusterId)) {
                     mirrorDevicePath = ddComponent.getPath();
@@ -2048,17 +2051,17 @@ public class VPlexApiVirtualVolumeManager {
                     break;
                 }
             }
-            
+
             // Throw an exception if we can't find distributed device component
             // corresponding to the mirror to be updated.
             if (mirrorDevicePath == null) {
                 throw VPlexApiException.exceptions.cantFindMirrorForDetach(clusterId,
-                    virtualVolumeName);
+                        virtualVolumeName);
             }
-            
+
             // Detach this component from the distributed device.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_DEVICE_DETACH_MIRROR);
+                    VPlexApiConstants.URI_DEVICE_DETACH_MIRROR);
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, ddInfo.getPath());
             argsMap.put(VPlexApiConstants.ARG_DASH_M, mirrorDevicePath);
@@ -2066,7 +2069,7 @@ public class VPlexApiVirtualVolumeManager {
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Detach mirror for virtual volume POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI,
-                postDataObject.toString());
+                    postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Detach mirror for virtual volume response is {}", responseStr);
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -2076,8 +2079,8 @@ public class VPlexApiVirtualVolumeManager {
                 } else {
                     String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                     throw VPlexApiException.exceptions.detachMirrorFailureStatus(
-                        clusterId, virtualVolumeName,
-                        String.valueOf(response.getStatus()), cause);
+                            clusterId, virtualVolumeName,
+                            String.valueOf(response.getStatus()), cause);
                 }
             }
             s_logger.info("Detached device is {}", detachedDeviceName);
@@ -2086,7 +2089,7 @@ public class VPlexApiVirtualVolumeManager {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedDetachingVPlexVolumeMirror(
-                clusterId, virtualVolumeName, e);
+                    clusterId, virtualVolumeName, e);
         } finally {
             if (response != null) {
                 response.close();
@@ -2102,49 +2105,49 @@ public class VPlexApiVirtualVolumeManager {
      * @param detachedDeviceName The local device name of the mirror previously detached.
      * 
      * @throws VPlexApiException When an error occurs reattaching the mirror to
-     *         the volume.
+     *             the volume.
      */
     public void reattachMirrorToDistributedVolume(String virtualVolumeName,
-        String detachedDeviceName) throws VPlexApiException {
+            String detachedDeviceName) throws VPlexApiException {
         s_logger.info("Request to reattach mirror {} to distributed volume {}",
-            detachedDeviceName, virtualVolumeName);
-        
+                detachedDeviceName, virtualVolumeName);
+
         try {
             // Find the virtual volume to make sure it exists.
             VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
             discoveryMgr.findVirtualVolume(virtualVolumeName, false);
-            
+
             // Find the distributed device for the virtual volume.
             String ddName = virtualVolumeName.substring(0,
-                virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
+                    virtualVolumeName.indexOf(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX));
             VPlexDistributedDeviceInfo ddInfo = discoveryMgr.findDistributedDevice(ddName);
             if (ddInfo == null) {
                 throw VPlexApiException.exceptions
-                    .cantFindDistributedDeviceForVolume(virtualVolumeName);
+                        .cantFindDistributedDeviceForVolume(virtualVolumeName);
             }
-            
+
             // Find the local device for the passed mirror. Note that when
             // the mirror is detached from the distributed device, the
-            // local devices that comprise the distributed device are no 
+            // local devices that comprise the distributed device are no
             // longer listed as components of the distributed device. We
             // must find the local device on the cluster on which it resides.
             VPlexDeviceInfo mirrorDeviceInfo = discoveryMgr.findLocalDevice(detachedDeviceName);
             if (mirrorDeviceInfo == null) {
                 throw VPlexApiException.exceptions.cantFindMirrorForAttach(
-                    detachedDeviceName, virtualVolumeName);
+                        detachedDeviceName, virtualVolumeName);
             }
             String mirrorDevicePath = mirrorDeviceInfo.getPath();
-            
+
             // Reattach this local device to the distributed device.
             URI requestURI = _vplexApiClient.getBaseURI().resolve(
-                VPlexApiConstants.URI_DEVICE_ATTACH_MIRROR);
+                    VPlexApiConstants.URI_DEVICE_ATTACH_MIRROR);
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_D, ddInfo.getPath());
             argsMap.put(VPlexApiConstants.ARG_DASH_M, mirrorDevicePath);
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Reattach mirror for virtual volume POST data is {}",
-                postDataObject.toString());
-            
+                    postDataObject.toString());
+
             // We'll retry a failed reattach in case some transitive issue
             // caused the reattach to fail. We want to do our best to recreate
             // the distributed volume.
@@ -2153,7 +2156,7 @@ public class VPlexApiVirtualVolumeManager {
                 ClientResponse response = null;
                 try {
                     response = _vplexApiClient.post(requestURI,
-                        postDataObject.toString());
+                            postDataObject.toString());
                     String responseStr = response.getEntity(String.class);
                     s_logger.info("Attach mirror for virtual volume response is {}", responseStr);
                     if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
@@ -2165,11 +2168,11 @@ public class VPlexApiVirtualVolumeManager {
                         } else {
                             String cause = VPlexApiUtils.getCauseOfFailureFromResponse(responseStr);
                             throw VPlexApiException.exceptions.reattachMirrorFailureStatus(
-                                detachedDeviceName, virtualVolumeName,
-                                String.valueOf(response.getStatus()), cause);
+                                    detachedDeviceName, virtualVolumeName,
+                                    String.valueOf(response.getStatus()), cause);
                         }
                     }
-                    
+
                     // Reattach succeeded.
                     break;
                 } catch (Exception e) {
@@ -2178,7 +2181,7 @@ public class VPlexApiVirtualVolumeManager {
                             throw e;
                         } else {
                             throw VPlexApiException.exceptions.failedAttachingVPlexVolumeMirror(
-                                detachedDeviceName, virtualVolumeName, e);
+                                    detachedDeviceName, virtualVolumeName, e);
                         }
                     } else {
                         VPlexApiUtils.pauseThread(VPlexApiConstants.REATTACH_HA_MIRROR_SLEEP_TIME_MS);
@@ -2187,12 +2190,13 @@ public class VPlexApiVirtualVolumeManager {
                     if (response != null) {
                         response.close();
                     }
-                }            }
+                }
+            }
         } catch (VPlexApiException vae) {
             throw vae;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedAttachingVPlexVolumeMirror(
-                detachedDeviceName, virtualVolumeName, e);
+                    detachedDeviceName, virtualVolumeName, e);
         }
     }
 }

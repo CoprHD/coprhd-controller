@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
  * Info for a VPlex resource
  */
 public class VPlexResourceInfo {
-    
+
     // Resource type enum
     public static enum ResourceType {
         EXTENT("extent"),
@@ -24,7 +24,7 @@ public class VPlexResourceInfo {
 
         // The VPlex type.
         private String _type;
-        
+
         /**
          * Constructor.
          * 
@@ -33,16 +33,16 @@ public class VPlexResourceInfo {
         ResourceType(String type) {
             _type = type;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getResourceType() {
-             return _type;
+            return _type;
         }
-               
+
         /**
          * Returns the enum whose type matches the passed type, else null when
          * not found.
@@ -62,19 +62,19 @@ public class VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // A logger reference.
     protected static Logger s_logger = LoggerFactory.getLogger(VPlexResourceInfo.class);
-    
+
     // Resource type
     private String type;
-    
+
     // Resource name
     private String name;
-    
+
     // Resource path
     private String contextPath;
-    
+
     /**
      * Getter for the resource type.
      * 
@@ -83,7 +83,7 @@ public class VPlexResourceInfo {
     public String getType() {
         return type;
     }
-    
+
     /**
      * Setter for the resource type.
      * 
@@ -101,7 +101,7 @@ public class VPlexResourceInfo {
     public String getName() {
         return name;
     }
-    
+
     /**
      * Setter for the resource name.
      * 
@@ -110,7 +110,7 @@ public class VPlexResourceInfo {
     public void setName(String strVal) {
         name = strVal;
     }
-    
+
     /**
      * Getter for the resource path.
      * 
@@ -119,7 +119,7 @@ public class VPlexResourceInfo {
     public String getPath() {
         return contextPath;
     }
-    
+
     /**
      * Returns the names of the desired attributes for the resource. A resource
      * will always have a name and a type. These are the names of additional
@@ -141,7 +141,7 @@ public class VPlexResourceInfo {
     public void setPath(String path) {
         contextPath = path;
     }
-    
+
     public String getAttributeSetterMethodName(String attributeName) {
         StringBuilder methodBuilder = new StringBuilder("set");
         StringTokenizer tokenizer = new StringTokenizer(attributeName, "-");
@@ -151,7 +151,7 @@ public class VPlexResourceInfo {
             String startsWithUC = startsWith.toUpperCase();
             methodBuilder.append(token.replaceFirst(startsWith, startsWithUC));
         }
-        
+
         return methodBuilder.toString();
     }
 

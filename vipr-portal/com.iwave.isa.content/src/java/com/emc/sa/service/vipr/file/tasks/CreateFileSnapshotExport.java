@@ -26,7 +26,8 @@ public class CreateFileSnapshotExport extends WaitForTask<FileSnapshotRestRep> {
 
     // Security Types: sys, krb5, krb5i, krb5p
     // Permissions: ro, rw, root
-    public CreateFileSnapshotExport(String fileSnapshotId, String comment, String protocol, String security, String permissions, String user,
+    public CreateFileSnapshotExport(String fileSnapshotId, String comment, String protocol, String security, String permissions,
+            String user,
             List<String> hosts, String subDirectory) {
         this(uri(fileSnapshotId), comment, protocol, security, permissions, user, hosts, subDirectory);
     }
@@ -58,7 +59,7 @@ public class CreateFileSnapshotExport extends WaitForTask<FileSnapshotRestRep> {
         if (StringUtils.isNotBlank(subDirectory)) {
             export.setSubDirectory(subDirectory);
         }
-        
+
         return getClient().fileSnapshots().export(fileSnapshotId, export);
     }
 }

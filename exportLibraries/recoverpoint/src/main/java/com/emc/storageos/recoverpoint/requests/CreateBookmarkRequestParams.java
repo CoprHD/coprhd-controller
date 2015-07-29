@@ -13,19 +13,22 @@ import java.util.Set;
  */
 @SuppressWarnings("serial")
 public class CreateBookmarkRequestParams implements Serializable {
-		private Set <String> volumeWWNSet;
-		private String bookmark;
-		
-		public Set <String> getVolumeWWNSet() {
-			return volumeWWNSet;
-		}
-		public void setVolumeWWNSet(Set <String> volumeWWNSet) {
-			this.volumeWWNSet = volumeWWNSet;
-		}
-		public String getBookmark() {
-			return bookmark;
-		}
-		public void setBookmark(String bookmark) {
-			this.bookmark = bookmark;
-		}
+    private Set<String> volumeWWNSet;
+    private String bookmark;
+
+    public Set<String> getVolumeWWNSet() {
+        return volumeWWNSet;
+    }
+
+    public void setVolumeWWNSet(Set<String> volumeWWNSet) {
+        this.volumeWWNSet = volumeWWNSet;
+    }
+
+    public String getBookmark() {
+        return bookmark;
+    }
+
+    public void setBookmark(String bookmark) {
+        this.bookmark = bookmark;
+    }
 }

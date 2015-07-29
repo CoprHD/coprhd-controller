@@ -6,6 +6,6 @@ package com.emc.cloud.platform.clientlib;
 
 public class ClientTimeoutException extends ClientGeneralException {
     ClientTimeoutException(String message) {
-        super(ClientMessageKeys.TIMED_OUT, new String[]{message});
+        super(ClientMessageKeys.TIMED_OUT, new String[] { message });
     }
 }

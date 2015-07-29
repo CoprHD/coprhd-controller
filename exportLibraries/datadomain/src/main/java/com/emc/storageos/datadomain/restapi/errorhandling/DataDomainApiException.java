@@ -16,13 +16,13 @@ public class DataDomainApiException extends InternalException {
 
     /** Holds the methods used to create DataDomain related exceptions */
     public static final DataDomainApiExceptions exceptions = ExceptionMessagesProxy.create(DataDomainApiExceptions.class);
-    
+
     /** Holds the methods used to create DataDomain related error conditions */
     public static DataDomainApiErrors errors = ExceptionMessagesProxy.create(DataDomainApiErrors.class);
 
     private DataDomainApiException(final ServiceCode code, final Throwable cause,
-                                   final String detailBase, final String detailKey,
-                                   final Object[] params) {
-        super(code.isRetryable(),code, cause, detailBase, detailKey, params);
+            final String detailBase, final String detailKey,
+            final Object[] params) {
+        super(code.isRetryable(), code, cause, detailBase, detailKey, params);
     }
 }

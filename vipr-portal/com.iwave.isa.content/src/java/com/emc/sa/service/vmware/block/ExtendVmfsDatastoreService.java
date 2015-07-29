@@ -24,7 +24,7 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
     protected URI volumeId;
     @Param(DATASTORE_NAME)
     protected String datastoreName;
-    @Param(value=MULTIPATH_POLICY, required=false)
+    @Param(value = MULTIPATH_POLICY, required = false)
     protected String multipathPolicy;
 
     private BlockObjectRestRep volume;
@@ -43,8 +43,8 @@ public class ExtendVmfsDatastoreService extends VMwareHostService {
 
     @Override
     public void execute() throws Exception {
-    	connectAndInitializeHost();
-    	datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+        connectAndInitializeHost();
+        datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
         vmware.extendVmfsDatastore(host, cluster, hostId, volume, datastore);
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());

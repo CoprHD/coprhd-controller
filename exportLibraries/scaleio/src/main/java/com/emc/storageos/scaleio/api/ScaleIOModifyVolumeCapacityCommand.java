@@ -13,9 +13,9 @@ public class ScaleIOModifyVolumeCapacityCommand extends AbstractScaleIOQueryComm
 
     private static final String MODIFY_CAPACITY_SUCCESS = "ModifyCapacitySuccess";
 
-    //Rounding up volume size to 56 GB
-//Successfully modified volume size to 56 GB
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    // Rounding up volume size to 56 GB
+    // Successfully modified volume size to 56 GB
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully modified volume size to (\\d+\\s+\\w+)", MODIFY_CAPACITY_SUCCESS),
     };
 
@@ -28,7 +28,7 @@ public class ScaleIOModifyVolumeCapacityCommand extends AbstractScaleIOQueryComm
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

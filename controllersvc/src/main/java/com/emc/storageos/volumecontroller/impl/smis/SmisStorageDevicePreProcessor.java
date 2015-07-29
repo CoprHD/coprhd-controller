@@ -51,10 +51,11 @@ public class SmisStorageDevicePreProcessor {
      * Here are the steps to create a new PoolSetting.
      * 1. First find the storagePoolCapability for a given storagepool.
      * 2. Use the capability to create a new StoragePool Setting.
-     * 3. Update instance to set the 
+     * 3. Update instance to set the
      * 
      * 
      * creating a volume.
+     * 
      * @param storageSystem
      * @param storagePool
      * @param thinVolumePreAllocateSize

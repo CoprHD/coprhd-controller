@@ -12,31 +12,31 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 import com.google.common.base.Joiner;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_volume")
+@JsonRootName(value = "xtremio_volume")
 public class XtremIOVolume {
-    
+
     @SerializedName("vol-id")
-    @JsonProperty(value="vol-id")
+    @JsonProperty(value = "vol-id")
     private List<String> volInfo;
-    
+
     @SerializedName("naa-name")
-    @JsonProperty(value="naa-name")
+    @JsonProperty(value = "naa-name")
     private String wwn;
-    
+
     @SerializedName("vol-size")
-    @JsonProperty(value="vol-size")
+    @JsonProperty(value = "vol-size")
     private String allocatedCapacity;
-    
+
     @SerializedName("lun-mapping-list")
-    @JsonProperty(value="lun-mapping-list")
+    @JsonProperty(value = "lun-mapping-list")
     private List<List<Object>> lunMaps;
-    
+
     @SerializedName("dest-snap-list")
-    @JsonProperty(value="dest-snap-list")
+    @JsonProperty(value = "dest-snap-list")
     private List<List<Object>> snaps;
-    
+
     @SerializedName("ancestor-vol-id")
-    @JsonProperty(value="ancestor-vol-id")
+    @JsonProperty(value = "ancestor-vol-id")
     private List<String> ancestoVolInfo;
 
     public List<String> getVolInfo() {
@@ -62,7 +62,7 @@ public class XtremIOVolume {
     public void setAllocatedCapacity(String allocatedCapacity) {
         this.allocatedCapacity = allocatedCapacity;
     }
-    
+
     public List<List<Object>> getLunMaps() {
         return lunMaps;
     }

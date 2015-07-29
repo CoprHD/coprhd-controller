@@ -5,35 +5,35 @@
 package com.emc.storageos.datadomain.restapi.model;
 
 public class DDServiceStatus {
-	
-	private String details;
-	
-	private int code;
-	
-	DDRestLinkRep link;
 
-	public String getDetails() {
-		return details;
-	}
+    private String details;
 
-	public void setDetails(String details) {
-		this.details = details;
-	}
+    private int code;
 
-	public int getCode() {
-		return code;
-	}
+    DDRestLinkRep link;
 
-	public void setCode(int code) {
-		this.code = code;
-	}
+    public String getDetails() {
+        return details;
+    }
 
-	public DDRestLinkRep getLink() {
-		return link;
-	}
+    public void setDetails(String details) {
+        this.details = details;
+    }
 
-	public void setLink(DDRestLinkRep link) {
-		this.link = link;
-	}
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(int code) {
+        this.code = code;
+    }
+
+    public DDRestLinkRep getLink() {
+        return link;
+    }
+
+    public void setLink(DDRestLinkRep link) {
+        this.link = link;
+    }
 
 }

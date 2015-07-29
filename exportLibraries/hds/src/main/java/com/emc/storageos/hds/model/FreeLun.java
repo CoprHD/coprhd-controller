@@ -5,11 +5,11 @@
 package com.emc.storageos.hds.model;
 
 public class FreeLun {
-    
+
     private String lun;
-    
+
     public FreeLun() {
-        
+
     }
 
     /**

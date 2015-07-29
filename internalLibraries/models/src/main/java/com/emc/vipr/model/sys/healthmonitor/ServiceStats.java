@@ -36,7 +36,7 @@ public class ServiceStats {
     }
 
     public ServiceStats(String serviceName, String command, int fileDescriptors,
-                        ProcessStatus processStatus) {
+            ProcessStatus processStatus) {
         this.serviceName = serviceName;
         this.command = command;
         this.fileDescriptors = fileDescriptors;
@@ -47,7 +47,7 @@ public class ServiceStats {
     private String serviceName;
     // proc/[pid]/comm
     private String command;
-    // proc/[pid]/stat and  proc/[pid]/statm
+    // proc/[pid]/stat and proc/[pid]/statm
     private ProcessStatus processStatus;
     // proc/[pid/fd
     private int fileDescriptors;

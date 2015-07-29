@@ -20,10 +20,10 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
     public static enum VolumeAttribute {
         TYPE("volume-type"),
         CAPACITY("capacity");
-        
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -32,16 +32,16 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
         VolumeAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-               
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -61,13 +61,13 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The type of the system volume.
     private String volumeType;
-    
+
     // The capacity
     private String capacity;
-    
+
     /**
      * Getter for the volume type.
      * 
@@ -76,7 +76,7 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
     public String getVolumeType() {
         return volumeType;
     }
-    
+
     /**
      * Setter for the volume type.
      * 
@@ -85,7 +85,7 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
     public void setVolumeType(String strVal) {
         volumeType = strVal;
     }
-    
+
     /**
      * Getter for the volume capacity.
      * 
@@ -94,7 +94,7 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
     public String getCapacity() {
         return capacity;
     }
-    
+
     /**
      * Setter for the volume capacity.
      * 
@@ -103,7 +103,7 @@ public class VPlexSystemVolumeInfo extends VPlexResourceInfo {
     public void setCapacity(String strVal) {
         capacity = strVal;
     }
-    
+
     /**
      * {@inheritDoc}
      */

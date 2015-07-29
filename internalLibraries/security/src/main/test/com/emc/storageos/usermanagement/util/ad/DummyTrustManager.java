@@ -14,6 +14,7 @@ public class DummyTrustManager implements X509TrustManager {
     {
         // do nothing
     }
+
     public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException
     {
         // do nothing

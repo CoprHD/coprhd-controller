@@ -65,7 +65,7 @@ public class ScaleIOQueryAllSCSIInitiatorsResult {
     }
 
     public Set<String> getAllInitiatorIds() {
-        return (!initiators.isEmpty()) ? initiators.keySet() : Collections.<String>emptySet();
+        return (!initiators.isEmpty()) ? initiators.keySet() : Collections.<String> emptySet();
     }
 
     public boolean isVolumeMappedToInitiator(String volumeId, String iqn) {

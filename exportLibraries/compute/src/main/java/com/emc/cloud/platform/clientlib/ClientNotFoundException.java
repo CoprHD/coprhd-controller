@@ -8,6 +8,7 @@ public class ClientNotFoundException extends ClientGeneralException {
     public ClientNotFoundException(String type, String entityName) {
         super(ClientMessageKeys.NOT_FOUND_EXCEPTION, new String[] { type, entityName });
     }
+
     public ClientNotFoundException(String type, String entityName, Throwable cause) {
         super(ClientMessageKeys.NOT_FOUND_EXCEPTION, new String[] { type, entityName }, cause);
     }

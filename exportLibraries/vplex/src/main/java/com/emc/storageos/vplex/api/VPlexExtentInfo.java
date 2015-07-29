@@ -8,13 +8,13 @@ package com.emc.storageos.vplex.api;
  * Info for a VPlex extent.
  */
 public class VPlexExtentInfo extends VPlexResourceInfo {
-    
+
     // Info about the storage volume for this extent.
     private VPlexStorageVolumeInfo storageVolumeInfo = null;
-    
+
     // The cluster id.
     private String clusterId = null;
-    
+
     /**
      * Getter for the storage volume info for the extent.
      * 
@@ -23,7 +23,7 @@ public class VPlexExtentInfo extends VPlexResourceInfo {
     public VPlexStorageVolumeInfo getStorageVolumeInfo() {
         return storageVolumeInfo;
     }
-    
+
     /**
      * Setter for the storage volume info for the extent.
      * 
@@ -32,7 +32,7 @@ public class VPlexExtentInfo extends VPlexResourceInfo {
     public void setStorageVolumeInfo(VPlexStorageVolumeInfo volumeInfo) {
         storageVolumeInfo = volumeInfo;
     }
-    
+
     /**
      * Getter for the extent cluster id.
      * 
@@ -41,7 +41,7 @@ public class VPlexExtentInfo extends VPlexResourceInfo {
     public String getClusterId() {
         return clusterId;
     }
-    
+
     /**
      * Setter for the extent cluster id.
      * 

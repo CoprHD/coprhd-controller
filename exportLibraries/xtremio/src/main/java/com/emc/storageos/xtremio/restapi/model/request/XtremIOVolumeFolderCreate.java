@@ -8,18 +8,18 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
-	
-@JsonRootName(value="volume_folder_create")
+
+@JsonRootName(value = "volume_folder_create")
 public class XtremIOVolumeFolderCreate {
-	      
-	@SerializedName("caption")
-	@JsonProperty(value="caption")
-	private String caption;
-	 
-	@SerializedName("parent-folder-id")
-	@JsonProperty(value="parent-folder-id")
-	private String parentFolderId;
-	
+
+    @SerializedName("caption")
+    @JsonProperty(value = "caption")
+    private String caption;
+
+    @SerializedName("parent-folder-id")
+    @JsonProperty(value = "parent-folder-id")
+    private String parentFolderId;
+
     public String getCaption() {
         return caption;
     }

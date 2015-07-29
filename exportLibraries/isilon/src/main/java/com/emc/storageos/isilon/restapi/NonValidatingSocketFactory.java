@@ -8,8 +8,6 @@ package com.emc.storageos.isilon.restapi;
 import org.apache.commons.httpclient.ConnectTimeoutException;
 import org.apache.commons.httpclient.params.HttpConnectionParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
-import org.apache.commons.httpclient.protocol.SecureProtocolSocketFactory;
-
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -47,7 +45,7 @@ class NonValidatingSocketFactory implements ProtocolSocketFactory {
     public NonValidatingSocketFactory() {
         try {
             _sslContext = SSLContext.getInstance("SSL");
-            _sslContext.init(null, new TrustManager[]{ new NonValidatingTrustManager() }, null);
+            _sslContext.init(null, new TrustManager[] { new NonValidatingTrustManager() }, null);
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

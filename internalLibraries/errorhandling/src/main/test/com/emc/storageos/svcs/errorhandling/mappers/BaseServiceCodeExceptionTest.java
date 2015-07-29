@@ -167,10 +167,11 @@ public abstract class BaseServiceCodeExceptionTest {
     protected static URI knownId;
 
     @BeforeClass
-    //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
-    //Junit test will be called in single thread by default, it's safe to ignore this violation
-    @SuppressWarnings("squid:S2444")
-    public static void setUpBeforeClass() {
+    // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+    // Junit test will be called in single thread by default, it's safe to ignore this violation
+            @SuppressWarnings("squid:S2444")
+            public static
+            void setUpBeforeClass() {
         uriInfo = new TestUriInfo();
         mapper = new ServiceCodeExceptionMapper();
         mapper.info = uriInfo;
@@ -219,12 +220,14 @@ public abstract class BaseServiceCodeExceptionTest {
     }
 
     protected void assertServiceUnavailable(final String message, final InternalException exception) {
-        assertException(message, API_SERVICE_UNAVAILABLE.getCode(), "Unable to connect to the service. The service is unavailable, try again later",
+        assertException(message, API_SERVICE_UNAVAILABLE.getCode(),
+                "Unable to connect to the service. The service is unavailable, try again later",
                 SERVICE_UNAVAILABLE.getStatusCode(), exception);
     }
 
     protected void assertDbsvcServiceUnavailable(final String message, final InternalException exception) {
-        assertException(message, DBSVC_CONNECTION_ERROR.getCode(), "Unable to connect to the dbsvc service. The service is unavailable, try again later",
+        assertException(message, DBSVC_CONNECTION_ERROR.getCode(),
+                "Unable to connect to the dbsvc service. The service is unavailable, try again later",
                 SERVICE_UNAVAILABLE.getStatusCode(), exception);
     }
 
@@ -249,7 +252,8 @@ public abstract class BaseServiceCodeExceptionTest {
     }
 
     protected void assertApiBadParameters(final String message, final ServiceCodeException exception) {
-        assertException(message, API_PARAMETER_INVALID.getCode(), "Parameter was provided but invalid", BAD_REQUEST.getStatusCode(), exception);
+        assertException(message, API_PARAMETER_INVALID.getCode(), "Parameter was provided but invalid", BAD_REQUEST.getStatusCode(),
+                exception);
     }
 
     protected void assertApiInsufficientPermissions(final String message,
@@ -279,8 +283,9 @@ public abstract class BaseServiceCodeExceptionTest {
     protected static URI createTestId(String type) {
         return URI.create(format("urn:storageos:{0}:{1}:", type, randomUUID()));
     }
-    
-    protected void assertInternalException(final StatusType expectedStatus, final ServiceCode expectedCode, final String expectedMessage, final InternalException actualServiceCoded) {
+
+    protected void assertInternalException(final StatusType expectedStatus, final ServiceCode expectedCode, final String expectedMessage,
+            final InternalException actualServiceCoded) {
         final Response response = mapper.toResponse(actualServiceCoded);
         assertResponse(expectedStatus.getStatusCode(), response);
         Object entity = response.getEntity();

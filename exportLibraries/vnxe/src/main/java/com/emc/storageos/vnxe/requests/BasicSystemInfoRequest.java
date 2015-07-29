@@ -9,8 +9,9 @@ import java.util.List;
 import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.BasicSystemInfo;
 
-public class BasicSystemInfoRequest extends KHRequests<BasicSystemInfo>{
-	private static final String URL = "/api/types/basicSystemInfo/instances";
+public class BasicSystemInfoRequest extends KHRequests<BasicSystemInfo> {
+    private static final String URL = "/api/types/basicSystemInfo/instances";
+
     public BasicSystemInfoRequest(KHClient client) {
         super(client);
         _url = URL;
@@ -18,18 +19,21 @@ public class BasicSystemInfoRequest extends KHRequests<BasicSystemInfo>{
 
     /*
      * get vnxe basic system info
+     * 
      * @param resource WebResource
+     * 
      * @param client vnxe client
+     * 
      * @throws VnxeException unexpectedDataError
      */
-    public BasicSystemInfo get() throws VNXeException{
+    public BasicSystemInfo get() throws VNXeException {
         List<BasicSystemInfo> allSystems = getDataForObjects(BasicSystemInfo.class);
-        //we only expect to get one system.
+        // we only expect to get one system.
         if (allSystems == null || allSystems.isEmpty()) {
             return null;
         }
         return allSystems.get(0);
-        
+
     }
 
 }

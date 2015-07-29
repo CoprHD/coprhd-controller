@@ -11,16 +11,16 @@ import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointReturn
  * 
  */
 public class RecoverPointCGResponse {
-	private RecoverPointReturnCode returnCode;
-	private Long cgId;
+    private RecoverPointReturnCode returnCode;
+    private Long cgId;
 
-	public RecoverPointReturnCode getReturnCode() {
-		return returnCode;
-	}
+    public RecoverPointReturnCode getReturnCode() {
+        return returnCode;
+    }
 
-	public void setReturnCode(RecoverPointReturnCode returnCode) {
-		this.returnCode = returnCode;
-	}
+    public void setReturnCode(RecoverPointReturnCode returnCode) {
+        this.returnCode = returnCode;
+    }
 
     public Long getCgId() {
         return cgId;

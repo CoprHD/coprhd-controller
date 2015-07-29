@@ -54,14 +54,15 @@ public class HDSApiExportManager {
 
     /**
      * Register the given host with HiCommand Device Manager.
+     * 
      * @param hostName
      * @param ipAddress
      * @param portWWN
      * @return
      * @throws Exception
      */
-    public HDSHost registerHost(HDSHost hdshost, List<String> portWWNList, 
-    		String initiatorType) throws Exception {
+    public HDSHost registerHost(HDSHost hdshost, List<String> portWWNList,
+            String initiatorType) throws Exception {
         String addHostQueryWithParams = null;
         InputStream responseStream = null;
         HDSHost registeredhost = null;
@@ -87,7 +88,7 @@ public class HDSApiExportManager {
                         log.info("The host {} already exists on DeviceManager", hdshost.getName());
                         return registeredhost;
                     }
-                    else if(error.getCode() == HDSConstants.HOST_PORT_WWN_ALREADY_EXISTS) {
+                    else if (error.getCode() == HDSConstants.HOST_PORT_WWN_ALREADY_EXISTS) {
                         log.info("The WWN is already in use by another host");
                         return registeredhost;
                     } else {
@@ -95,21 +96,21 @@ public class HDSApiExportManager {
                         log.error("command failed with error code: {} with message {}",
                                 error.getCode(), error.getDescription());
                         throw HDSException.exceptions.notAbleToAddHostToDeviceManager(
-                        		hdshost.getName());
+                                hdshost.getName());
                     }
-                    
+
                 }
                 registeredhost = javaResult.getBean(HDSHost.class);
                 if (null == registeredhost) {
                     throw HDSException.exceptions.notAbleToAddHostToDeviceManager(String
                             .format("Not able to add host:%1$s to Device manager",
-                            		hdshost.getName()));
+                                    hdshost.getName()));
                 }
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Add Host to Device Manager failed due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Add Host to Device Manager failed due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -122,9 +123,10 @@ public class HDSApiExportManager {
         }
         return registeredhost;
     }
-    
+
     /**
      * Gets host registered with HiCommand Device Manager.
+     * 
      * @return
      * @throws Exception
      */
@@ -136,12 +138,12 @@ public class HDSApiExportManager {
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             Get getOp = new Get("Host");
             attributeMap.put("Get", getOp);
-            
+
             String getHostQuery = InputXMLGenerationClient
                     .getInputXMLString("getHostsInfo", attributeMap,
                             HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                             HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
+
             log.info("Query to Add host: {}", getHostQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -176,6 +178,7 @@ public class HDSApiExportManager {
 
     /**
      * Constructs the addHostQuery.
+     * 
      * @param hostName
      * @param ipAddress
      * @param portWWNList
@@ -203,9 +206,10 @@ public class HDSApiExportManager {
 
         return addHostWithWorldWideNamesQuery;
     }
-    
+
     /**
      * Constructs the addHostQuery.
+     * 
      * @param hostName
      * @param ipAddress
      * @param portWWNList
@@ -235,6 +239,7 @@ public class HDSApiExportManager {
 
     /**
      * Add WWN to the HostStorageDomain means enable LUN security by adding WWN.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
@@ -259,7 +264,7 @@ public class HDSApiExportManager {
                 if (null == hsd) {
                     throw HDSException.exceptions
                             .notAbleToAddInitiatorToHostStorageDomain("FC",
-                                            hsdId, systemId);
+                                    hsdId, systemId);
                 }
 
             } else {
@@ -279,9 +284,10 @@ public class HDSApiExportManager {
         }
         return hsd;
     }
-    
+
     /**
      * Remove given WWN's from HostStorageDomain means disable LUN security by removing these WWN's.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
@@ -304,9 +310,9 @@ public class HDSApiExportManager {
                 log.info("Remove fc initiators: {} from HSD: {}", wwnList, hsdId);
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Deleting initiator from HostStorageDomain failed due to response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Deleting initiator from HostStorageDomain failed due to response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -318,10 +324,10 @@ public class HDSApiExportManager {
             }
         }
     }
-    
-    
+
     /**
      * Add WWN to the HostStorageDomain means enable LUN security by adding WWN.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
@@ -351,9 +357,9 @@ public class HDSApiExportManager {
 
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Add iSCSI initiator to HostStorageDomain failed due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Add iSCSI initiator to HostStorageDomain failed due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -366,9 +372,10 @@ public class HDSApiExportManager {
         }
         return hsd;
     }
-    
+
     /**
      * Remove ISCSIName from the HostStorageDomain means disable LUN security by to the given iSCSIName.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
@@ -391,9 +398,9 @@ public class HDSApiExportManager {
                 log.info("Remove iscsi initiators: {} from HSD: {}", scsiNameList, hsdId);
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Remove iSCSI initiator From HostStorageDomain failed due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Remove iSCSI initiator From HostStorageDomain failed due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -408,6 +415,7 @@ public class HDSApiExportManager {
 
     /**
      * Utility method to check if there are any errors or not.
+     * 
      * @param javaResult
      * @throws Exception
      */
@@ -418,7 +426,7 @@ public class HDSApiExportManager {
             Error error = javaResult.getBean(Error.class);
             log.info("Error response received from Hitachi server for messageID", command.getMessageID());
             log.info("Hitachi command failed with error code:{} with message:{} for request:{}",
-                    new Object[] {error.getCode().toString(), error.getDescription(), error.getSource() });
+                    new Object[] { error.getCode().toString(), error.getDescription(), error.getSource() });
             throw HDSException.exceptions.errorResponseReceived(
                     error.getCode(), error.getDescription());
         }
@@ -426,6 +434,7 @@ public class HDSApiExportManager {
 
     /**
      * Return the existing HSD's configured on the storage array.
+     * 
      * @param systemId
      * @param type
      * @return
@@ -445,12 +454,12 @@ public class HDSApiExportManager {
             attributeMap.put(HDSConstants.GET, getOp);
             HostStorageDomain hsd = new HostStorageDomain();
             attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
-            
+
             String getAllHSDQuery = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.GET_HSD_INFO_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
+
             log.info("Query to get HostStorageDomain: {}", getAllHSDQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, getAllHSDQuery);
@@ -465,9 +474,9 @@ public class HDSApiExportManager {
                 }
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to query HostStorageDomain's due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to query HostStorageDomain's due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -480,9 +489,10 @@ public class HDSApiExportManager {
         }
         return hsdList;
     }
-    
+
     /**
      * Return the existing HSD's configured on the storage array.
+     * 
      * @param systemId
      * @param type
      * @return
@@ -500,12 +510,11 @@ public class HDSApiExportManager {
             attributeMap.put(HDSConstants.GET, getOp);
             HostStorageDomain inputHsd = new HostStorageDomain(hsdId);
             attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, inputHsd);
-            
+
             String getHSDQuery = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.GET_HSD_INFO_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
 
             log.info("Query to get HostStorageDomain: {}", getHSDQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
@@ -518,9 +527,9 @@ public class HDSApiExportManager {
                 hsd = javaResult.getBean(HostStorageDomain.class);
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to query HostStorageDomain due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to query HostStorageDomain due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -537,6 +546,7 @@ public class HDSApiExportManager {
     /**
      * Construct the WWN Query by adding multiple WWNs.
      * This query should be used to add FC initiators to the FC HSD.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
@@ -552,7 +562,7 @@ public class HDSApiExportManager {
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<WorldWideName> wwnObjList = new ArrayList<WorldWideName>();
-        
+
         if (null != wwnList && !wwnList.isEmpty()) {
             for (String initiatorWWN : wwnList) {
                 WorldWideName wwn = new WorldWideName(initiatorWWN);
@@ -560,18 +570,19 @@ public class HDSApiExportManager {
             }
         }
         attributeMap.put(HDSConstants.WWN_LIST, wwnObjList);
-        
+
         String addWWNQuery = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.ADD_WWN_TO_HSD_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         return addWWNQuery;
     }
-    
+
     /**
      * Construct the WWN Query by adding multiple WWNs.
      * This query should be used to add FC initiators to the FC HSD.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
@@ -587,7 +598,7 @@ public class HDSApiExportManager {
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<WorldWideName> wwnObjList = new ArrayList<WorldWideName>();
-        
+
         if (null != wwnList && !wwnList.isEmpty()) {
             for (String initiatorWWN : wwnList) {
                 WorldWideName wwn = new WorldWideName(initiatorWWN);
@@ -595,28 +606,26 @@ public class HDSApiExportManager {
             }
         }
         attributeMap.put(HDSConstants.WWN_LIST, wwnObjList);
-        
+
         String deleteWWNFromHSDQuery = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.DELETE_WWN_FROM_HSD_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         return deleteWWNFromHSDQuery;
     }
-    
-    
-    
-    
+
     /**
-     * Construct the iSCSINames Query by adding multiple WWNs. 
-     * This query should be used to add the iSCSI initiators to the iSCSI HSD. 
+     * Construct the iSCSINames Query by adding multiple WWNs.
+     * This query should be used to add the iSCSI initiators to the iSCSI HSD.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
      * @return
      */
     private String constructISCSIQuery(String systemId, String hsdId, List<String> scsiNameList) {
-        
+
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         List<Path> pathList = new ArrayList<Path>();
         StorageArray array = new StorageArray(systemId);
@@ -626,7 +635,7 @@ public class HDSApiExportManager {
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<ISCSIName> iSCSIObjList = new ArrayList<ISCSIName>();
-        
+
         if (null != scsiNameList && !scsiNameList.isEmpty()) {
             for (String iScsiName : scsiNameList) {
                 ISCSIName iSCSIName = new ISCSIName(iScsiName, null);
@@ -634,25 +643,26 @@ public class HDSApiExportManager {
             }
         }
         attributeMap.put(HDSConstants.ISCSINAME_LIST, iSCSIObjList);
-        
+
         String addISCSINamesToHSDQuery = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.ADD_ISCSI_NAME_TO_HSD_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         return addISCSINamesToHSDQuery;
     }
-    
+
     /**
-     * Construct the iSCSINames Query by adding multiple WWNs. 
-     * This query should be used to add the iSCSI initiators to the iSCSI HSD. 
+     * Construct the iSCSINames Query by adding multiple WWNs.
+     * This query should be used to add the iSCSI initiators to the iSCSI HSD.
+     * 
      * @param systemId
      * @param hsdId
      * @param wwnList
      * @return
      */
     private String constructRemoveISCSIQuery(String systemId, String hsdId, List<String> scsiNameList) {
-        
+
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Delete deleteOp = new Delete(HDSConstants.ISCSI_NAME_FOR_HSD_TARGET);
@@ -661,7 +671,7 @@ public class HDSApiExportManager {
         HostStorageDomain hsd = new HostStorageDomain(hsdId);
         attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
         List<ISCSIName> iSCSIObjList = new ArrayList<ISCSIName>();
-        
+
         if (null != scsiNameList && !scsiNameList.isEmpty()) {
             for (String iScsiName : scsiNameList) {
                 ISCSIName iSCSIName = new ISCSIName(iScsiName, null);
@@ -669,18 +679,18 @@ public class HDSApiExportManager {
             }
         }
         attributeMap.put(HDSConstants.ISCSINAME_LIST, iSCSIObjList);
-        
+
         String removeISCSINamesToHSDQuery = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.REMOVE_ISCSI_NAME_FROM_HSD_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         return removeISCSINamesToHSDQuery;
     }
-    
 
     /**
      * Add new HostStorageDomain.
+     * 
      * @param systemId
      * @param targetPortID
      * @param hsdNickName
@@ -689,12 +699,12 @@ public class HDSApiExportManager {
      * @throws Exception
      */
     public HostStorageDomain addHostStorageDomain(String systemId, String targetPortID,
-            String domainType, String hsdName, String hsdNickName, String hostMode, 
+            String domainType, String hsdName, String hsdNickName, String hostMode,
             String hostModeOption) throws Exception {
         InputStream responseStream = null;
         HostStorageDomain hsd = null;
         try {
-            
+
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             StorageArray array = new StorageArray(systemId);
             Add addOp = new Add(HDSConstants.HOST_STORAGE_DOMAIN);
@@ -704,7 +714,7 @@ public class HDSApiExportManager {
             inputHsd.setHostMode(hostMode);
             inputHsd.setHostModeOption(hostModeOption);
             attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, inputHsd);
-            
+
             String addHSDToSystemQuery = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.ADD_HSD_TO_SYSTEM_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -724,9 +734,9 @@ public class HDSApiExportManager {
                 }
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to add HostStorageDomain due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to add HostStorageDomain due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -743,19 +753,20 @@ public class HDSApiExportManager {
     /**
      * API call to addLun to the storage array.
      * Once the client makes the call, the luns should be visible to the host.
+     * 
      * @param systemId
      * @param targetPortId
      * @param domainId
      * @param lunList
      * @param devNum
-     * @throws Exception 
+     * @throws Exception
      */
     public List<Path> addLUN(String systemId, String targetPortId, String domainId,
             Map<String, String> deviceLunList) throws Exception {
         InputStream responseStream = null;
         Path path = null;
         List<Path> pathList = new ArrayList<Path>();
-        
+
         try {
             String addLUNQuery = constructAddLUNQuery(systemId, targetPortId, domainId,
                     deviceLunList, pathList);
@@ -774,9 +785,9 @@ public class HDSApiExportManager {
                 }
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to add Volume to HostStorageDomain due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to add Volume to HostStorageDomain due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -803,23 +814,23 @@ public class HDSApiExportManager {
      */
     private String constructAddLUNQuery(String systemId, String targetPortId,
             String domainId, Map<String, String> deviceLunList, List<Path> pathList) throws Exception {
-        
+
         Map<String, Object> attributeMap = new HashMap<String, Object>();
         StorageArray array = new StorageArray(systemId);
         Add addOp = new Add(HDSConstants.LUN_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.ADD, addOp);
-        
+
         if (null != deviceLunList && !deviceLunList.isEmpty()) {
             for (String device : deviceLunList.keySet()) {
                 String lun = deviceLunList.get(device);
                 Path path = new Path(targetPortId, domainId, null, lun, device);
                 pathList.add(path);
-                log.info("Device :{} lun:{}",device,lun);
+                log.info("Device :{} lun:{}", device, lun);
             }
         }
         attributeMap.put(HDSConstants.PATH_LIST, pathList);
-        
+
         String addLunInputXML = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.ADD_PATH_TO_HSD_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -829,7 +840,8 @@ public class HDSApiExportManager {
 
     /**
      * Return the Free Lun's available for a Given HSD in a System.
-     * @throws Exception 
+     * 
+     * @throws Exception
      * 
      */
     public List<FreeLun> getFreeLUNInfo(String systemId, String hsdId) throws Exception {
@@ -848,12 +860,12 @@ public class HDSApiExportManager {
             attributeMap.put(HDSConstants.GET, getOp);
             attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, hsd);
             attributeMap.put(HDSConstants.FREELUN, freeLun);
-            
+
             String getFreeLunQueryInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.GET_FREE_LUN_INFO_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-          
+
             log.info("Query to get FreeLUN's of a HostStorageDomain: {}", getFreeLunQueryInputXML);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI,
@@ -868,13 +880,13 @@ public class HDSApiExportManager {
                     freeLunList = hostStorageDomain.getFreeLunList();
                 } else {
                     throw HDSException.exceptions
-                    .notAbleToGetFreeLunInfoForHSD(hsdId, systemId);
+                            .notAbleToGetFreeLunInfoForHSD(hsdId, systemId);
                 }
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to get FreeLun info for HostStorageDomain due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to get FreeLun info for HostStorageDomain due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -890,6 +902,7 @@ public class HDSApiExportManager {
 
     /**
      * Delete the Host Storage Domain for a given storage array.
+     * 
      * @param systemObjectId
      * @param hsdObjectId
      * @throws Exception
@@ -904,7 +917,7 @@ public class HDSApiExportManager {
             attributeMap.put(HDSConstants.DELETE, deleteOp);
             HostStorageDomain inputHsd = new HostStorageDomain(hsdObjectId);
             attributeMap.put(HDSConstants.HOST_STORAGE_DOMAIN, inputHsd);
-            
+
             String deleteHSDFromSystemQuery = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.DELETE_HSD_FROM_SYSTEM_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -921,23 +934,24 @@ public class HDSApiExportManager {
                 log.info("Deleted HSD {} from system {}", hsdObjectId, systemObjectId);
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to delete HostStorageDomain due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to delete HostStorageDomain due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
                 try {
                     responseStream.close();
                 } catch (IOException e) {
-                   log.warn("IOException occurred while closing the response stream");
+                    log.warn("IOException occurred while closing the response stream");
                 }
             }
         }
     }
-    
+
     /**
      * Delete the LUN Path from HSD of a given storage array.
+     * 
      * @param systemObjectId
      * @param hsdObjectId
      * @throws Exception
@@ -967,15 +981,16 @@ public class HDSApiExportManager {
                 try {
                     responseStream.close();
                 } catch (IOException e) {
-                   log.warn("IOException occurred while closing the response stream");
+                    log.warn("IOException occurred while closing the response stream");
                 }
             }
         }
     }
-    
+
     /**
      * Construct the WWN Query by adding multiple WWNs.
      * This query should be used to add FC initiators to the FC HSD.
+     * 
      * @param systemId
      * @param hsdId
      * @param lunPathObjectIdList
@@ -988,7 +1003,7 @@ public class HDSApiExportManager {
         Delete deleteOp = new Delete(HDSConstants.LUN_TARGET);
         attributeMap.put(HDSConstants.STORAGEARRAY, array);
         attributeMap.put(HDSConstants.DELETE, deleteOp);
-        
+
         if (null != lunPathObjectIdList && !lunPathObjectIdList.isEmpty()) {
             for (String pathObjectId : lunPathObjectIdList) {
                 Path path = new Path(pathObjectId);
@@ -996,12 +1011,12 @@ public class HDSApiExportManager {
             }
         }
         attributeMap.put(HDSConstants.PATH_LIST, pathList);
-        
+
         String deleteLunInputXML = InputXMLGenerationClient.getInputXMLString(
                 HDSConstants.DELETE_PATH_FROM_HSD_OP, attributeMap,
                 HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                 HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-        
+
         return deleteLunInputXML;
     }
 

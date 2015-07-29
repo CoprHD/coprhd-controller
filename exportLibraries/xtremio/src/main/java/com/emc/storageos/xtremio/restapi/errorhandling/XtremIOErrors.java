@@ -12,15 +12,15 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 @MessageBundle
 public interface XtremIOErrors {
-	@DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     public ServiceError createVolumeFailure(final String errMsg);
-	
-	@DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     public ServiceError deleteVolumeFailure(final String errMsg);
-	
-	@DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     public ServiceError expandVolumeFailure(final Throwable cause);
-	
-	@DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    public ServiceError createSnapshotFailure(final Throwable cause); 
+
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    public ServiceError createSnapshotFailure(final Throwable cause);
 }

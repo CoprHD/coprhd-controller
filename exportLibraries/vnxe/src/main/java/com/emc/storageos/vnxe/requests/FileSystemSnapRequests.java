@@ -20,19 +20,20 @@ import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
 import com.emc.storageos.vnxe.models.VNXeSnapRestoreParam;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
-
-public class FileSystemSnapRequests  extends KHRequests<VNXeFileSystemSnap>{
+public class FileSystemSnapRequests extends KHRequests<VNXeFileSystemSnap> {
     private static final Logger _logger = LoggerFactory.getLogger(FileSystemSnapRequests.class);
     private static final String URL = "/api/types/filesystemSnap/instances";
     private static final String URL_INSTANCE = "/api/instances/filesystemSnap/";
-    private static final String URL_RESTORE="/action/restore";
+    private static final String URL_RESTORE = "/action/restore";
+
     public FileSystemSnapRequests(KHClient client) {
         super(client);
         _url = URL;
-    } 
-    
+    }
+
     /**
      * create file system snap in async mode
+     * 
      * @param param: FileSystemSnapCreateParam
      * @return VNXeCommandJob
      * @throws VNXeException
@@ -41,32 +42,34 @@ public class FileSystemSnapRequests  extends KHRequests<VNXeFileSystemSnap>{
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
         queryParams.add(VNXeConstants.TIMEOUT, "0");
         setQueryParameters(queryParams);
-        
+
         return postRequestAsync(param);
     }
-    
+
     /**
      * Get snapshot details by its name
+     * 
      * @param name
      * @return
      */
     public VNXeFileSystemSnap getByName(String name) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER,VNXeConstants.NAME_FILTER+name);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + name);
         setQueryParameters(queryParams);
         VNXeFileSystemSnap result = null;
         List<VNXeFileSystemSnap> snapList = getDataForObjects(VNXeFileSystemSnap.class);
-        //it should just return 1
-        if (snapList!= null && !snapList.isEmpty()) {
-            result =snapList.get(0);
+        // it should just return 1
+        if (snapList != null && !snapList.isEmpty()) {
+            result = snapList.get(0);
         } else {
-            _logger.info("No file system snapshot found using the name: " +name);
+            _logger.info("No file system snapshot found using the name: " + name);
         }
         return result;
     }
 
     /**
      * Delete file system snap
+     * 
      * @param snapId
      * @return
      * @throws VNXeException
@@ -75,28 +78,29 @@ public class FileSystemSnapRequests  extends KHRequests<VNXeFileSystemSnap>{
         _url = URL_INSTANCE + snapId;
         setQueryParameters(null);
         if (getDataForOneObject(VNXeFileSystemSnap.class) != null) {
-            return deleteRequestAsync (null);
+            return deleteRequestAsync(null);
         } else {
             throw VNXeException.exceptions.vnxeCommandFailed(String.format("No filesystem snap %s found",
                     snapId));
         }
-        
-        
+
     }
-           
+
     /**
      * Get the specific file system snap's details
+     * 
      * @return
      */
-    public VNXeFileSystemSnap getFileSystemSnap(String snapId) throws VNXeException{
-    	_url = URL_INSTANCE + snapId;
+    public VNXeFileSystemSnap getFileSystemSnap(String snapId) throws VNXeException {
+        _url = URL_INSTANCE + snapId;
         setQueryParameters(null);
         return getDataForOneObject(VNXeFileSystemSnap.class);
 
     }
-    
+
     /**
      * Restore FS snapshot
+     * 
      * @param snapId snapshot VNXe Id
      * @param restoreParam
      * @return VNXeCommandJob
@@ -110,19 +114,19 @@ public class FileSystemSnapRequests  extends KHRequests<VNXeFileSystemSnap>{
         urlBuilder.append(URL_RESTORE);
         _url = urlBuilder.toString();
 
-        return postRequestAsync (restoreParam);
+        return postRequestAsync(restoreParam);
 
-    
     }
-    
+
     /**
      * Get a file system's snaps by its storageResource id.
+     * 
      * @param fsId file system Id
      * @return list of VNXeFileSystemSnap
      */
     public List<VNXeFileSystemSnap> getFileSystemSnaps(String resourceId) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER+resourceId);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.STORAGE_RESOURCE_FILTER + resourceId);
         setQueryParameters(queryParams);
         return getDataForObjects(VNXeFileSystemSnap.class);
     }

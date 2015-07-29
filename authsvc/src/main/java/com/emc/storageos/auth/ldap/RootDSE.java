@@ -16,14 +16,13 @@ package com.emc.storageos.auth.ldap;
 
 import java.util.Arrays;
 
-
 /**
  * RootDSE. Requires LDAP v3 support.
  * 
  */
 
 // Suppress the following two sonar warnings. the arrays are not modified outside of the class.
-@SuppressWarnings({"pmd:ArrayIsStoredDirectly","pmd:MethodReturnsInternalArray"})
+@SuppressWarnings({ "pmd:ArrayIsStoredDirectly", "pmd:MethodReturnsInternalArray" })
 public class RootDSE {
 
     private String rootDomainNamingContext;
@@ -83,7 +82,7 @@ public class RootDSE {
             return;
         }
         this.supportedLDAPVersion = new int[supportedLDAPVersion.length];
-        for (int i = 0; i<supportedLDAPVersion.length; i++) {
+        for (int i = 0; i < supportedLDAPVersion.length; i++) {
             try {
                 this.supportedLDAPVersion[i] = Integer.parseInt(supportedLDAPVersion[i]);
             } catch (NumberFormatException ex) {

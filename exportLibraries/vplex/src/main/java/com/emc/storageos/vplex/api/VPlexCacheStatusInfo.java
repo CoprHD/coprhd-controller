@@ -13,20 +13,20 @@ package com.emc.storageos.vplex.api;
  * with the information contained within the response.
  */
 public class VPlexCacheStatusInfo {
-    
+
     // The status of the request.
     InvalidateStatus invalidateStatus = InvalidateStatus.IN_PROGRESS;
-    
+
     // The reason why the cache invalidate failed, when it does fail.
     String invalidateFailedError = "";
-    
+
     // Enum captures the states.
     public static enum InvalidateStatus {
         SUCCESS,
         FAILED,
         IN_PROGRESS
     };
-    
+
     /**
      * Getter for the cache invalidate status.
      * 
@@ -35,7 +35,7 @@ public class VPlexCacheStatusInfo {
     public InvalidateStatus getCacheInvalidateStatus() {
         return invalidateStatus;
     }
-    
+
     /**
      * Setter for the cache invalidate status.
      * 
@@ -44,7 +44,7 @@ public class VPlexCacheStatusInfo {
     public void setCacheInvalidateStatus(InvalidateStatus status) {
         invalidateStatus = status;
     }
-    
+
     /**
      * Getter for the failure message when the cache invalidate fails.
      * 
@@ -53,7 +53,7 @@ public class VPlexCacheStatusInfo {
     public String getCacheInvalidateFailedMessage() {
         return invalidateFailedError;
     }
-    
+
     /**
      * Setter for the failure message when the cache invalidate fails.
      * 
@@ -74,7 +74,7 @@ public class VPlexCacheStatusInfo {
         str.append(", invalidateStatus: " + invalidateStatus.name());
         str.append(", invalidateFailedError: " + invalidateFailedError);
         str.append(" )");
-        
+
         return str.toString();
     }
 }

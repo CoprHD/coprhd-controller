@@ -13,7 +13,7 @@ public class ScaleIOUnMapVolumeToSDCCommand extends AbstractScaleIOQueryCommand<
 
     private static final String UNMAPPED_SUCCESSFULLY = "UnmappedSuccessfully";
     // Successfully un-mapped volume with ID e9e5163500000000 from SDC with ID 5509377100000000.
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully un-mapped volume with ID \\w+ from SDC with ID \\w+\\.", UNMAPPED_SUCCESSFULLY)
     };
 
@@ -34,7 +34,7 @@ public class ScaleIOUnMapVolumeToSDCCommand extends AbstractScaleIOQueryCommand<
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

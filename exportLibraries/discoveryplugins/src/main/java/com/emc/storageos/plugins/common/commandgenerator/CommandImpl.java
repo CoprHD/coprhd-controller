@@ -20,16 +20,16 @@ public final class CommandImpl implements Command {
     /**
      * Instance reference on which method needs to get executed.
      */
-    private Object              _instance;
+    private Object _instance;
     /**
      * Method to execute.
      */
-    private Method              _method;
+    private Method _method;
     /**
      * Input Argument Array.
      */
-    private Object[]            _inputArgs;
-    
+    private Object[] _inputArgs;
+
     private int _commandIndex;
     /**
      * Logger.

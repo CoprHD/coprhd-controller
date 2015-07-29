@@ -11,84 +11,89 @@ import com.emc.fapiclient.ws.ConsistencyGroupCopyUID;
  * 
  */
 public class RPCopy {
-	private ConsistencyGroupCopyUID _cgGroupCopyUID;
-	private String _cgGroupCopyName;
-	private boolean _CGGroupCopyEnabled;			// Note that this refers to the copy, NOT a copy image
-	private boolean _isProductionCopy;
-	private long _mostRecentProtectionWindow;
-	
-	public void cloneMe(RPCopy clone) {
-		this.setCGGroupCopyUID(clone.getCGGroupCopyUID());
-		this.setCGGroupCopyEnabled(clone.isCGGroupCopyEnabled());
-		this.setProductionCopy(clone.isProductionCopy());
-		this.setMostRecentProtectionWindow(clone.getMostRecentProtectionWindow());
-	}
+    private ConsistencyGroupCopyUID _cgGroupCopyUID;
+    private String _cgGroupCopyName;
+    private boolean _CGGroupCopyEnabled;			// Note that this refers to the copy, NOT a copy image
+    private boolean _isProductionCopy;
+    private long _mostRecentProtectionWindow;
 
-	public void setCGGroupCopyName(String name) {
-		this._cgGroupCopyName = name;
-	}
+    public void cloneMe(RPCopy clone) {
+        this.setCGGroupCopyUID(clone.getCGGroupCopyUID());
+        this.setCGGroupCopyEnabled(clone.isCGGroupCopyEnabled());
+        this.setProductionCopy(clone.isProductionCopy());
+        this.setMostRecentProtectionWindow(clone.getMostRecentProtectionWindow());
+    }
 
-	public String getCGGroupCopyName() {
-		return _cgGroupCopyName;
-	}
+    public void setCGGroupCopyName(String name) {
+        this._cgGroupCopyName = name;
+    }
 
-	public void setCGGroupCopyEnabled(boolean enabled) {
-		this._CGGroupCopyEnabled = enabled;
-	}
+    public String getCGGroupCopyName() {
+        return _cgGroupCopyName;
+    }
 
-	public boolean isCGGroupCopyEnabled() {
-		return _CGGroupCopyEnabled;
-	}
+    public void setCGGroupCopyEnabled(boolean enabled) {
+        this._CGGroupCopyEnabled = enabled;
+    }
 
-	public void setCGGroupCopyUID(ConsistencyGroupCopyUID cGGroupCopyUID) {
-		_cgGroupCopyUID = cGGroupCopyUID;
-	}
+    public boolean isCGGroupCopyEnabled() {
+        return _CGGroupCopyEnabled;
+    }
 
-	public ConsistencyGroupCopyUID getCGGroupCopyUID() {
-		return _cgGroupCopyUID;
-	}
+    public void setCGGroupCopyUID(ConsistencyGroupCopyUID cGGroupCopyUID) {
+        _cgGroupCopyUID = cGGroupCopyUID;
+    }
 
-	public void setProductionCopy(boolean isProductionCopy) {
-		this._isProductionCopy = isProductionCopy;
-	}
+    public ConsistencyGroupCopyUID getCGGroupCopyUID() {
+        return _cgGroupCopyUID;
+    }
 
-	public boolean isProductionCopy() {
-		return _isProductionCopy;
-	}
+    public void setProductionCopy(boolean isProductionCopy) {
+        this._isProductionCopy = isProductionCopy;
+    }
 
-	public long getMostRecentProtectionWindow() {
-		return _mostRecentProtectionWindow;
-	}
+    public boolean isProductionCopy() {
+        return _isProductionCopy;
+    }
 
-	public void setMostRecentProtectionWindow(long mostRecentProtectionWindow) {
-		this._mostRecentProtectionWindow = mostRecentProtectionWindow;
-	}
+    public long getMostRecentProtectionWindow() {
+        return _mostRecentProtectionWindow;
+    }
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o)
-			return true;
-		if (o == null || getClass() != o.getClass())
-			return false;
+    public void setMostRecentProtectionWindow(long mostRecentProtectionWindow) {
+        this._mostRecentProtectionWindow = mostRecentProtectionWindow;
+    }
 
-		RPCopy that = (RPCopy) o;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
-		boolean CGCopyEqual = false;
-		if ((_cgGroupCopyUID.getGlobalCopyUID().getCopyUID() == that._cgGroupCopyUID.getGlobalCopyUID().getCopyUID()) &&
-			(_cgGroupCopyUID.getGroupUID().getId() == that._cgGroupCopyUID.getGroupUID().getId()) &&
-			(_cgGroupCopyUID.getGlobalCopyUID().getClusterUID().getId() == that._cgGroupCopyUID.getGlobalCopyUID().getClusterUID().getId())) {
-			CGCopyEqual = true;
-		}
-		return CGCopyEqual;
-	}
+        RPCopy that = (RPCopy) o;
 
-	@Override
-	public int hashCode() {
-		if (_cgGroupCopyUID.getGlobalCopyUID().getCopyUID() > 0) {
-			return _cgGroupCopyUID.getGlobalCopyUID().getCopyUID();
-		}
+        boolean CGCopyEqual = false;
+        if ((_cgGroupCopyUID.getGlobalCopyUID().getCopyUID() == that._cgGroupCopyUID.getGlobalCopyUID().getCopyUID())
+                &&
+                (_cgGroupCopyUID.getGroupUID().getId() == that._cgGroupCopyUID.getGroupUID().getId())
+                &&
+                (_cgGroupCopyUID.getGlobalCopyUID().getClusterUID().getId() == that._cgGroupCopyUID.getGlobalCopyUID().getClusterUID()
+                        .getId())) {
+            CGCopyEqual = true;
+        }
+        return CGCopyEqual;
+    }
 
-		return super.hashCode();
-	}
-	
+    @Override
+    public int hashCode() {
+        if (_cgGroupCopyUID.getGlobalCopyUID().getCopyUID() > 0) {
+            return _cgGroupCopyUID.getGlobalCopyUID().getCopyUID();
+        }
+
+        return super.hashCode();
+    }
+
 }

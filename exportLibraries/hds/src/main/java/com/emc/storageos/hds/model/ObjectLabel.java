@@ -7,18 +7,19 @@ package com.emc.storageos.hds.model;
 import com.emc.storageos.hds.HDSConstants;
 
 public class ObjectLabel {
-    
+
     private String targetID;
-    
+
     private String label;
-    
+
     public ObjectLabel(String targetID, String label) {
         this.targetID = targetID;
         this.label = label;
     }
 
-    public ObjectLabel() {}
-    
+    public ObjectLabel() {
+    }
+
     /**
      * @return the targetID
      */
@@ -46,8 +47,10 @@ public class ObjectLabel {
     public void setLabel(String label) {
         this.label = label;
     }
+
     /**
      * Returns this object in XMLString format.
+     * 
      * @return
      */
     public String toXMLString() {
@@ -62,5 +65,5 @@ public class ObjectLabel {
         }
         return xmlString.toString();
     }
-    
+
 }

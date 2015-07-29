@@ -7,7 +7,7 @@ package com.emc.storageos.vnxe.models;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ParametersOut {
     private VNXeBase storageResource;
     private String id;
@@ -21,20 +21,20 @@ public class ParametersOut {
         this.storageResource = storageResource;
     }
 
-	public String getId() {
-		return id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public VNXeBase getBackup() {
-		return backup;
-	}
+    public VNXeBase getBackup() {
+        return backup;
+    }
 
-	public void setBackup(VNXeBase backup) {
-		this.backup = backup;
-	}	
+    public void setBackup(VNXeBase backup) {
+        this.backup = backup;
+    }
 
 }

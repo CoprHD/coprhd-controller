@@ -15,12 +15,12 @@ import org.codehaus.jackson.map.JsonDeserializer;
 import com.emc.storageos.vnxe.models.VNXePool.PoolSystemDefinedEnum;
 
 public final class PoolSystemDefinedEnumDeserializer extends JsonDeserializer<PoolSystemDefinedEnum> {
-    
-    public PoolSystemDefinedEnum deserialize(final JsonParser parser, final DeserializationContext context) 
-        throws IOException, JsonProcessingException    {
+
+    public PoolSystemDefinedEnum deserialize(final JsonParser parser, final DeserializationContext context)
+            throws IOException, JsonProcessingException {
         final int jsonValue = parser.getIntValue();
         for (final PoolSystemDefinedEnum enumValue : PoolSystemDefinedEnum.values()) {
-            if (enumValue.getValue() ==jsonValue) {
+            if (enumValue.getValue() == jsonValue) {
                 return enumValue;
             }
         }

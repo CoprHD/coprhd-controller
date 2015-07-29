@@ -10,60 +10,60 @@ import javax.cim.UnsignedInteger32;
 import java.util.regex.Pattern;
 
 public class Constants {
-    public static final String _computerSystem     = "ComputerSystem";
-    public static final String _cimClient          = "cimClient";
-    public static final String _cimSystem          = "CIM_ComputerSystem";
-    public static final String _serialID           = "serialID";
-    public static final String _softwareVersion    = "softwareVer";
-    public static final String dbClient            = "dbClient";
-    public static final String COORDINATOR_CLIENT  = "coordinator";
+    public static final String _computerSystem = "ComputerSystem";
+    public static final String _cimClient = "cimClient";
+    public static final String _cimSystem = "CIM_ComputerSystem";
+    public static final String _serialID = "serialID";
+    public static final String _softwareVersion = "softwareVer";
+    public static final String dbClient = "dbClient";
+    public static final String COORDINATOR_CLIENT = "coordinator";
     public static final String networkDeviceController = "networkDeviceController";
-    public static final String _Volumes            = "Volumes";
-    public static final String _Volume             = "Volume";
-    public static final String _SystemName         = "SystemName";
-    public static final String _DeviceID           = "DeviceID";
-    public static final String _Stats              = "Stats";
-    public static final String _plusDelimiter      = "+";
-    public static final String _InteropNamespace   = "InteropNamespace";
-    public static final String SV_BLOCK_SIZE       = "SVBlockSize";
-    public static final String SV_NUMBER_BLOCKS    = "SVConsumableBlocks";
-    public static final String BLOCK_SIZE          = "BlockSize";
-    public static final String NUMBER_OF_BLOCKS    = "ConsumableBlocks";
-    public static final String _SystemElement      = "SystemElement";
-    public static final String _SyncedElement      = "SyncedElement";
-    public static final String _SyncType           = "SyncType";
-    public static final String _Seven              = "7";
-    public static final String _Name               = "Name";
-    public static final String _enum               = "enum";
-    public static final String _CreationClassName  = "CreationClassName";
-    public static final String _StorageSystem      = "StorageSystem";
-    public static final String _Block              = "block";
-    public static final String _RP                 = "rp";
-    public static final String _File               = "file";
-    public static final String _Object             = "object";
-    public static final String _TimeLastSampled    = "TimeLastSampled";
-    public static final String _TimeCollected      = "TimeCollected";
-    public static final String _TimeLastMeasured   = "TimeLastMeasured";
-    public static final String _FilePreCompressionBytesWritten    = "FilePreCompBytesWritten";
-    public static final String _FilePostCompressionBytesWritten   = "FilePostCompBytesWritten";
-    public static final String _CompressionRatio   = "CompressionRatio";
-    public static final String _Granularity        = "Granularity";
-    public static final String _minusDelimiter     = "-";
-    public static final String _datepattern        = "yyyyMMddHHmmss.SSSSSSZ";
-    public static final String _debug              = "debug";
-    public static final String _cache              = "Cache";
-    public static final String _cachedData         = "CachedData";
-    public static final String _nativeGUIDs        = "nativeGUIDs";
-    public static final String _globalCacheKey     = "globalCacheKey";
-    public static final String _cachePools         = "cachepools";
+    public static final String _Volumes = "Volumes";
+    public static final String _Volume = "Volume";
+    public static final String _SystemName = "SystemName";
+    public static final String _DeviceID = "DeviceID";
+    public static final String _Stats = "Stats";
+    public static final String _plusDelimiter = "+";
+    public static final String _InteropNamespace = "InteropNamespace";
+    public static final String SV_BLOCK_SIZE = "SVBlockSize";
+    public static final String SV_NUMBER_BLOCKS = "SVConsumableBlocks";
+    public static final String BLOCK_SIZE = "BlockSize";
+    public static final String NUMBER_OF_BLOCKS = "ConsumableBlocks";
+    public static final String _SystemElement = "SystemElement";
+    public static final String _SyncedElement = "SyncedElement";
+    public static final String _SyncType = "SyncType";
+    public static final String _Seven = "7";
+    public static final String _Name = "Name";
+    public static final String _enum = "enum";
+    public static final String _CreationClassName = "CreationClassName";
+    public static final String _StorageSystem = "StorageSystem";
+    public static final String _Block = "block";
+    public static final String _RP = "rp";
+    public static final String _File = "file";
+    public static final String _Object = "object";
+    public static final String _TimeLastSampled = "TimeLastSampled";
+    public static final String _TimeCollected = "TimeCollected";
+    public static final String _TimeLastMeasured = "TimeLastMeasured";
+    public static final String _FilePreCompressionBytesWritten = "FilePreCompBytesWritten";
+    public static final String _FilePostCompressionBytesWritten = "FilePostCompBytesWritten";
+    public static final String _CompressionRatio = "CompressionRatio";
+    public static final String _Granularity = "Granularity";
+    public static final String _minusDelimiter = "-";
+    public static final String _datepattern = "yyyyMMddHHmmss.SSSSSSZ";
+    public static final String _debug = "debug";
+    public static final String _cache = "Cache";
+    public static final String _cachedData = "CachedData";
+    public static final String _nativeGUIDs = "nativeGUIDs";
+    public static final String _globalCacheKey = "globalCacheKey";
+    public static final String _cachePools = "cachepools";
     public static final String _cassandraInsertion = "cassandraInsertion";
-    public static final char   STAT_ID_SEPARATOR   = '-';
-    public static final String _storagePool        = "storagePool";
-    public static final String STORAGEPOOLS       = "storagePools";
-    public static final String _cimPool            = "CIM_StoragePool";
-    public static final String _rpClient           = "rpClient";
-    public static final String _rpSystem           = "RP_ProtectionSystem";
-    public static final String EmcStorageSystem   = "EMC_StorageSystem";
+    public static final char STAT_ID_SEPARATOR = '-';
+    public static final String _storagePool = "storagePool";
+    public static final String STORAGEPOOLS = "storagePools";
+    public static final String _cimPool = "CIM_StoragePool";
+    public static final String _rpClient = "rpClient";
+    public static final String _rpSystem = "RP_ProtectionSystem";
+    public static final String EmcStorageSystem = "EMC_StorageSystem";
     public static final String ACCESSPROFILE = "accessProfile";
     public static final String DETECTED = "detected";
     public static final String REGISTEREDPROFILE = "profile";
@@ -112,9 +112,9 @@ public class Constants {
     public static final String CLARIION = "clariion";
     public static final String IBMXIV_PROVIDER_VERSION = "controller_ibmxiv_provider_version";
     public static final String IBMXIV_CLASS_PREFIX = "IBMTSDS_";
-    public static final String IBM_NAMESPACE = "root/ibm"; 
+    public static final String IBM_NAMESPACE = "root/ibm";
     public static final String IBM_STORAGE_SYSTEM = "IBMTSDS_StorageSystem";
-    public static final String XIV = "xiv";    
+    public static final String XIV = "xiv";
     public static final String USED_IN_CHECKING_THICK_GROUPNAMES_EXISTENCE = "thickdeviceGroupNamesExistence";
     public static final String USED_IN_CHECKING_THIN_GROUPNAMES_EXISTENCE = "thindeviceGroupNamesExistence";
     public static final String USED_IN_CHECKING_ALL_GROUPNAMES_EXISTENCE = "thinandthickdeviceGroupNamesExistence";
@@ -226,7 +226,7 @@ public class Constants {
     /* TODO: Block size should be read from the array, if possible. */
     public static final int NETAPP_BYTES_PER_BLOCK = 1024;
     public static final String SIZE_TOTAL = "size-total";
-    public static final String STORAGE_GROUPS= "storageGroups";
+    public static final String STORAGE_GROUPS = "storageGroups";
     public static final String AUTO_TIER_VOLUMES = "autoTierVolumes";
     public static final String SIZE_USED = "size-used";
     public static final String SNAPSHOT_BLOCKS_RESERVED = "snapshot-blocks-reserved";
@@ -259,20 +259,20 @@ public class Constants {
     public static final String SOFTWARE_IDENTITY = "softwareIdentity";
     public static final String EMC_SOFTWARE_IDENTITY = "EMC_StorageSystemSoftwareIdentity";
     public static final String POLICY_STORAGE_GROUP_MAPPING = "policyToGroup";
-	public static final String ACCESS = "Access";
+    public static final String ACCESS = "Access";
     public static final String EVENT_MANAGER = "EventManager";
     public static final String STORAGE_SYNCHRONIZED_SV_SV = "SE_StorageSynchronized_SV_SV";
     public static final String DISCOVERED_PORTS = "discoveredPorts";
-    public static final CIMObjectPath SYNC_PATH =  new CIMObjectPath(null, null, null, Constants.EMC_NAMESPACE,
+    public static final CIMObjectPath SYNC_PATH = new CIMObjectPath(null, null, null, Constants.EMC_NAMESPACE,
             Constants.STORAGE_SYNCHRONIZED_SV_SV, null);
     private static final String EMC_LUNMASKING_PROTOCOL_CONTROLLER = "EMC_LunMaskingSCSIProtocolController";
-    
-    public static final CIMObjectPath MASKING_PATH =  new CIMObjectPath(null, null, null, Constants.EMC_NAMESPACE,
+
+    public static final CIMObjectPath MASKING_PATH = new CIMObjectPath(null, null, null, Constants.EMC_NAMESPACE,
             Constants.EMC_LUNMASKING_PROTOCOL_CONTROLLER, null);
     public static final UnsignedInteger32 SYNC_BATCH_SIZE = new UnsignedInteger32(200);
     public static final String STORAGE_VOLUME = "CIM_StorageVolume";
-    
-    /*Compute System Related Constants*/
+
+    /* Compute System Related Constants */
     public static final String COMPUTE = "compute";
     public static final String USING_SMIS80_DELIMITERS = "Using SMI-S 8.0 Delimiters";
     public static final String SMIS80_DELIMITER = "-+-";
@@ -289,13 +289,11 @@ public class Constants {
     public static final String STORAGEOS_FEADAPT_MANIFEST = "StorageOS_FEAdapt";
     public static final String CLOCK_TICK_INTERVAL = "ClockTickInterval";
     public static final String SMIS_80_STYLE = "\\-\\+\\-";
-    
+
     public static final String VERSION = "VERSION";
     public static final String IS_NEW_SMIS_PROVIDER = "isNewSMIS";
     public static final String STORAGE_GROUPS_PROCESSED = "StorageGroupsProccessed";
 
     public static final String WORKLOAD = "Workload";
-    
+
 }
-
-

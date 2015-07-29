@@ -12,7 +12,7 @@ import java.util.List;
  * device migrations.
  */
 public class VPlexMigrationInfo extends VPlexResourceInfo {
-    
+
     // Enumerates the migration attributes we are interested in and
     // parse from the VPlex migration response. There must be a setter
     // method for each attribute specified. The format of the setter
@@ -24,10 +24,10 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
         TARGET_NAME("target"),
         PERCENTAGE_DONE("percentage-done"),
         START_TIME("start-time");
-        
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -36,16 +36,16 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
         MigrationAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-        
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -65,7 +65,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // Enumerates the VPlex migration status values
     public static enum MigrationStatus {
         IN_PROGRESS("in-progress"),
@@ -78,10 +78,10 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
         PARTIALLY_COMMITTED("partially-committed"),
         PARTIALLY_CANCELLED("partially-cancelled"),
         QUEUED("queued");
-        
+
         // The VPlex value for the status.
         private String _status;
-        
+
         /**
          * Constructor.
          * 
@@ -90,40 +90,40 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
         MigrationStatus(String status) {
             _status = status;
         }
-        
+
         /**
          * Getter for the VPlex value for the status.
          * 
          * @return The VPlex value for the status.
          */
         public String getStatusValue() {
-             return _status;
+            return _status;
         }
     }
-    
+
     // A reference to the virtual volume info associated with the migration
     // when the migration is created.
     private VPlexVirtualVolumeInfo virtualVolumeInfo;
-    
+
     // The status of the migration.
     private String status;
-    
+
     // The name of the source device/extent.
     private String sourceName;
 
     // The name of the target device/extent.
     private String targetName;
-    
+
     // The percentage done for the migration.
     private String percentageDone;
-    
+
     // The start time of the migration.
     private String startTime;
-    
+
     // Flag indicates if the migration is a device migration (true), or
     // extent migration (false).
     private boolean isDeviceMigration;
-    
+
     /**
      * Setter for the virtual volume info for the migration.
      * 
@@ -141,7 +141,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public void setVirtualVolumeInfo(VPlexVirtualVolumeInfo volumeInfo) {
         virtualVolumeInfo = volumeInfo;
     }
-    
+
     /**
      * Getter for the migration status.
      * 
@@ -150,7 +150,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public String getStatus() {
         return status;
     }
-    
+
     /**
      * Setter for the migration status.
      * 
@@ -159,7 +159,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public void setStatus(String strVal) {
         status = strVal;
     }
-    
+
     /**
      * Getter for the name of the migration source device/extent.
      * 
@@ -168,7 +168,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public String getSource() {
         return sourceName;
     }
-    
+
     /**
      * Setter for the name of the migration source device/extent.
      * 
@@ -177,7 +177,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public void setSource(String strVal) {
         sourceName = strVal;
     }
-    
+
     /**
      * Getter for the name of the migration target device/extent.
      * 
@@ -186,7 +186,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public String getTarget() {
         return targetName;
     }
-    
+
     /**
      * Setter for the name of the migration target device/extent.
      * 
@@ -195,7 +195,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public void setTarget(String strVal) {
         targetName = strVal;
     }
-    
+
     /**
      * Getter for the percentage done.
      * 
@@ -204,7 +204,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public String getPercentageDone() {
         return percentageDone;
     }
-    
+
     /**
      * Setter for the percentage done.
      * 
@@ -222,7 +222,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public String getStartTime() {
         return startTime;
     }
-    
+
     /**
      * Setter for the migration start time.
      * 
@@ -231,7 +231,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public void setStartTime(String strVal) {
         startTime = strVal;
     }
-    
+
     /**
      * Getter for the is device migration flag.
      * 
@@ -240,7 +240,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
     public boolean getIsDeviceMigration() {
         return isDeviceMigration;
     }
-    
+
     /**
      * Setter for the is device migration flag.
      * 
@@ -261,7 +261,7 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
         }
         return attFilters;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -273,11 +273,11 @@ public class VPlexMigrationInfo extends VPlexResourceInfo {
         str.append(", status: " + status);
         str.append(", sourceName: " + sourceName);
         str.append(", targetName: " + targetName);
-        str.append(", percentageDone: " + percentageDone);        
+        str.append(", percentageDone: " + percentageDone);
         str.append(", startTime: " + startTime);
-        str.append(", isDeviceMigration: " +String.valueOf(isDeviceMigration));
+        str.append(", isDeviceMigration: " + String.valueOf(isDeviceMigration));
         str.append(" )");
-        
+
         return str.toString();
     }
 }

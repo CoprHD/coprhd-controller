@@ -10,14 +10,14 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_cluster")
+@JsonRootName(value = "xtremio_cluster")
 public class XtremIOCluster {
-	
-	@SerializedName("name")
-	@JsonProperty(value="name")
-	private String name;
 
-	public String getName() {
+    @SerializedName("name")
+    @JsonProperty(value = "name")
+    private String name;
+
+    public String getName() {
         return name;
     }
 
@@ -26,10 +26,10 @@ public class XtremIOCluster {
     }
 
     @SerializedName("href")
-	@JsonProperty(value="href")
-	private String href;
-	
-	public String getHref() {
+    @JsonProperty(value = "href")
+    private String href;
+
+    public String getHref() {
         return href;
     }
 
@@ -38,6 +38,6 @@ public class XtremIOCluster {
     }
 
     public String toString() {
-		return new Gson().toJson(this).toString();
-	}
+        return new Gson().toJson(this).toString();
+    }
 }

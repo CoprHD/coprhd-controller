@@ -22,5 +22,5 @@ public class ExecutionWindowCreateParam extends ExecutionWindowCommonParam {
     public void setTenant(URI tenant) {
         this.tenant = tenant;
     }
-    
+
 }

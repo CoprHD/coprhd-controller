@@ -13,7 +13,7 @@ import java.net.URI;
 
 @Cf("OrderParameter")
 public class OrderParameter extends ModelObject implements SortedIndexDataObject {
-    
+
     public static final String LABEL = "label";
     public static final String VALUE = "value";
     public static final String FRIENDLY_LABEL = "friendlyLabel";
@@ -24,17 +24,17 @@ public class OrderParameter extends ModelObject implements SortedIndexDataObject
     public static final String ORDER_ID = "orderId";
 
     private String value;
-    
-    private String friendlyLabel;    
-    
-    private String friendlyValue;    
-    
-    private Boolean userInput = Boolean.TRUE; 
-    
+
+    private String friendlyLabel;
+
+    private String friendlyValue;
+
+    private Boolean userInput = Boolean.TRUE;
+
     private Boolean encrypted = Boolean.FALSE;
-    
+
     private Integer sortedIndex;
-    
+
     private URI orderId;
 
     @Name(VALUE)
@@ -76,12 +76,12 @@ public class OrderParameter extends ModelObject implements SortedIndexDataObject
         this.userInput = userInput;
         setChanged(USER_INPUT);
     }
-    
+
     @Name(ENCRYPTED)
     public Boolean getEncrypted() {
         return encrypted;
     }
-    
+
     public void setEncrypted(Boolean encrypted) {
         this.encrypted = encrypted;
         setChanged(ENCRYPTED);
@@ -106,11 +106,11 @@ public class OrderParameter extends ModelObject implements SortedIndexDataObject
     public void setOrderId(URI orderId) {
         this.orderId = orderId;
         setChanged(ORDER_ID);
-    }    
-    
+    }
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getId() };
-    }        
-    
+        return new Object[] { getLabel(), getId() };
+    }
+
 }

@@ -11,104 +11,104 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.google.gson.annotations.SerializedName;
 
 public class DDShareInfoDetail {
-	
-	private String id;
-	
-	private String name; // minOccurs="0"
-	
-	private String path; // minOccurs="0"
-	
-	@SerializedName("mtree_id")
-	private String mtreeId; // minOccurs="0"
-	
-	@SerializedName("mtree_name")
-	private String mtreeName; // minOccurs="0"
-	
-	// Access control entry
-	private String aces; // minOccurs="0"
-	
-	private List<DDKeyValuePair> option; // minOccurs="0" maxOccurs="unbounded"
-	
-	// -1: error; 0: path (mtree/subdirectory) does not exist; 1: path exists
-	@SerializedName("path_status")
-    @JsonProperty(value="path_status")
-	private int pathStatus; // minOccurs="0"
-	
-	private List<DDRestLinkRep> link; // minOccurs="0" maxOccurs="unbounded"
 
-	public String getId() {
-		return id;
-	}
+    private String id;
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    private String name; // minOccurs="0"
 
-	public String getName() {
-		return name;
-	}
+    private String path; // minOccurs="0"
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    @SerializedName("mtree_id")
+    private String mtreeId; // minOccurs="0"
 
-	public String getPath() {
-		return path;
-	}
+    @SerializedName("mtree_name")
+    private String mtreeName; // minOccurs="0"
 
-	public void setPath(String path) {
-		this.path = path;
-	}
+    // Access control entry
+    private String aces; // minOccurs="0"
 
-	@JsonProperty(value="mtree_id")
-	public String getMtreeId() {
-		return mtreeId;
-	}
+    private List<DDKeyValuePair> option; // minOccurs="0" maxOccurs="unbounded"
 
-	public void setMtreeId(String mtreeId) {
-		this.mtreeId = mtreeId;
-	}
+    // -1: error; 0: path (mtree/subdirectory) does not exist; 1: path exists
+    @SerializedName("path_status")
+    @JsonProperty(value = "path_status")
+    private int pathStatus; // minOccurs="0"
 
-	@JsonProperty(value="mtree_name")
-	public String getMtreeName() {
-		return mtreeName;
-	}
+    private List<DDRestLinkRep> link; // minOccurs="0" maxOccurs="unbounded"
 
-	public void setMtreeName(String mtreeName) {
-		this.mtreeName = mtreeName;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public String getAces() {
-		return aces;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public void setAces(String aces) {
-		this.aces = aces;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public List<DDKeyValuePair> getOption() {
-		return option;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public void setOption(List<DDKeyValuePair> option) {
-		this.option = option;
-	}
+    public String getPath() {
+        return path;
+    }
 
-	@JsonProperty(value="path_status")
-	public int getPathStatus() {
-		return pathStatus;
-	}
+    public void setPath(String path) {
+        this.path = path;
+    }
 
-	public void setPathStatus(int pathStatus) {
-		this.pathStatus = pathStatus;
-	}
+    @JsonProperty(value = "mtree_id")
+    public String getMtreeId() {
+        return mtreeId;
+    }
 
-	public List<DDRestLinkRep> getLink() {
-		return link;
-	}
+    public void setMtreeId(String mtreeId) {
+        this.mtreeId = mtreeId;
+    }
 
-	public void setLink(List<DDRestLinkRep> link) {
-		this.link = link;
-	}
-	
+    @JsonProperty(value = "mtree_name")
+    public String getMtreeName() {
+        return mtreeName;
+    }
+
+    public void setMtreeName(String mtreeName) {
+        this.mtreeName = mtreeName;
+    }
+
+    public String getAces() {
+        return aces;
+    }
+
+    public void setAces(String aces) {
+        this.aces = aces;
+    }
+
+    public List<DDKeyValuePair> getOption() {
+        return option;
+    }
+
+    public void setOption(List<DDKeyValuePair> option) {
+        this.option = option;
+    }
+
+    @JsonProperty(value = "path_status")
+    public int getPathStatus() {
+        return pathStatus;
+    }
+
+    public void setPathStatus(int pathStatus) {
+        this.pathStatus = pathStatus;
+    }
+
+    public List<DDRestLinkRep> getLink() {
+        return link;
+    }
+
+    public void setLink(List<DDRestLinkRep> link) {
+        this.link = link;
+    }
+
 }

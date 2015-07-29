@@ -15,7 +15,6 @@
 
 package com.emc.storageos.systemservices.impl.propertyhandler;
 
-
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 
 import java.util.ArrayList;
@@ -35,7 +34,7 @@ public class PropertyHandlers {
 
     /**
      * get called before any system properties updated
-     *
+     * 
      * @param oldProps
      * @param newProps
      */
@@ -47,7 +46,7 @@ public class PropertyHandlers {
 
     /**
      * get called after system properties updated
-     *
+     * 
      * @param oldProps
      * @param newProps
      */

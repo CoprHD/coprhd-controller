@@ -22,7 +22,7 @@ public class BlockConsistencyGroupDataTable extends DataTable {
         public String name;
 
         public BlockConsistencyGroup() {
-            //NA
+            // NA
         }
 
         public BlockConsistencyGroup(BlockConsistencyGroupRestRep blockConsistencyGroup) {

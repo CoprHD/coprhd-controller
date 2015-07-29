@@ -7,18 +7,16 @@ package com.emc.storageos.vnxe.models;
 
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-@JsonSerialize(include=JsonSerialize.Inclusion.NON_NULL)
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class NfsShareDeleteParam {
-	private VNXeBase nfsShare;
+    private VNXeBase nfsShare;
 
-	public VNXeBase getNfsShare() {
-		return nfsShare;
-	}
+    public VNXeBase getNfsShare() {
+        return nfsShare;
+    }
 
-	public void setNfsShare(VNXeBase nfsShare) {
-		this.nfsShare = nfsShare;
-	}
-	
-	
+    public void setNfsShare(VNXeBase nfsShare) {
+        this.nfsShare = nfsShare;
+    }
 
 }

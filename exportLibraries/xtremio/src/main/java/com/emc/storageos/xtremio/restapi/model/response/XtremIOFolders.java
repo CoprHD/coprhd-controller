@@ -9,7 +9,7 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_folders")
+@JsonRootName(value = "xtremio_folders")
 public class XtremIOFolders {
     @SerializedName("content")
     @JsonProperty(value = "content")

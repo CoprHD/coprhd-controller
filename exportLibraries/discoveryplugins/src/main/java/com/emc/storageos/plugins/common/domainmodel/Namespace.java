@@ -17,5 +17,4 @@ public class Namespace {
         return _operations;
     }
 
-   
 }

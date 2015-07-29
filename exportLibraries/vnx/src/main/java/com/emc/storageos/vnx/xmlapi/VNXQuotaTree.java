@@ -15,78 +15,83 @@ public class VNXQuotaTree extends VNXBaseClass {
     public void setName(String name) {
         this.name = name;
     }
-    public String getName(){
+
+    public String getName() {
         return name;
     }
-    
+
     public void setPath(String path) {
         this.path = path;
     }
-    public String getPath(){
+
+    public String getPath() {
         return path;
     }
-    
-    public void setSize(Long size){
+
+    public void setSize(Long size) {
         this.size = size;
     }
+
     public Long getSize() {
         return size;
     }
-    
-    public void setId(int id){
+
+    public void setId(int id) {
         this.id = id;
     }
+
     public int getId() {
         return id;
     }
 
-    public void setFileSystemId(int id){
+    public void setFileSystemId(int id) {
         this.fsId = id;
     }
 
-    public int getFsId(){
+    public int getFsId() {
         return fsId;
     }
 
-    public VNXQuotaTree() {}
+    public VNXQuotaTree() {
+    }
 
-    public VNXQuotaTree(String name, int id){
+    public VNXQuotaTree(String name, int id) {
         this.name = name;
         this.id = id;
     }
 
-    public VNXQuotaTree(String name, int id, int fsId){
+    public VNXQuotaTree(String name, int id, int fsId) {
         this.name = name;
         this.id = id;
         this.fsId = fsId;
     }
-    
+
     public String createQuotaTreeXML() {
         String xml = requestHeader +
-                "\t<StartTask timeout=\""+ timeout +"\">\n" +
-                "\t<NewTree fileSystem=\""+ fsId + "\" path=\""+ path +"\"/>\n" +
+                "\t<StartTask timeout=\"" + timeout + "\">\n" +
+                "\t<NewTree fileSystem=\"" + fsId + "\" path=\"" + path + "\"/>\n" +
                 "\t</StartTask>\n" +
                 requestFooter;
 
         return xml;
     }
-    
+
     public String modifyQuotaTreeXML() {
         String xml = requestHeader +
-                "\t<StartTask timeout=\""+ timeout +"\">\n" +
-                "\t<ModifyTreeQuota fileSystem=\""+ fsId + "\" path=\""+ path +"\">\n" +
-                "\t<Limits spaceHardLimit=\""+ size +"\"/>\n" +
+                "\t<StartTask timeout=\"" + timeout + "\">\n" +
+                "\t<ModifyTreeQuota fileSystem=\"" + fsId + "\" path=\"" + path + "\">\n" +
+                "\t<Limits spaceHardLimit=\"" + size + "\"/>\n" +
                 "\t</ModifyTreeQuota>\n" +
                 "\t</StartTask>\n" +
                 requestFooter;
 
         return xml;
-    } 
-    
+    }
+
     public String deleteQuotaTreeXML() {
         String xml = requestHeader +
-                "\t<StartTask timeout=\""+ timeout +"\">\n" +
-                "\t<DeleteTree fileSystem=\""+ fsId + "\" path=\""+ path +"\"/>\n" +
+                "\t<StartTask timeout=\"" + timeout + "\">\n" +
+                "\t<DeleteTree fileSystem=\"" + fsId + "\" path=\"" + path + "\"/>\n" +
                 "\t</StartTask>\n" +
                 requestFooter;
 

@@ -7,11 +7,12 @@ package com.emc.storageos.hds.model;
 import com.emc.storageos.hds.HDSConstants;
 
 public class Get {
-    
+
     private String target;
-    
-    public Get() {}
-    
+
+    public Get() {
+    }
+
     public Get(String target) {
         this.target = target;
     }

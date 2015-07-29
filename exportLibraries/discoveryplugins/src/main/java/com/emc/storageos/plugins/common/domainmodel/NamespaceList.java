@@ -4,17 +4,16 @@
  */
 package com.emc.storageos.plugins.common.domainmodel;
 
-
 import java.util.Map;
 
 public class NamespaceList {
-    private Map<String,Object> _nsList;
+    private Map<String, Object> _nsList;
 
-    public void setNsList(Map<String,Object> nsList) {
+    public void setNsList(Map<String, Object> nsList) {
         this._nsList = nsList;
     }
 
-    public Map<String,Object> getNsList() {
+    public Map<String, Object> getNsList() {
         return _nsList;
     }
 }

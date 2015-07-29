@@ -11,11 +11,11 @@ import com.google.gson.annotations.SerializedName;
 
 @JsonRootName(value = "auth_info")
 public class XtremIOAuthInfo {
-    
+
     @SerializedName("username")
-    @JsonProperty(value="username")
+    @JsonProperty(value = "username")
     private String username;
-    
+
     public String getUsername() {
         return username;
     }
@@ -33,7 +33,7 @@ public class XtremIOAuthInfo {
     }
 
     @SerializedName("password")
-    @JsonProperty(value="password")
+    @JsonProperty(value = "password")
     private String password;
 
 }

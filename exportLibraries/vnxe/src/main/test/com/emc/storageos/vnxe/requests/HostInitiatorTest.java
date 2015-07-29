@@ -19,15 +19,16 @@ public class HostInitiatorTest {
     private static String host = EnvConfig.get("sanity", "vnxe.host");
     private static String userName = EnvConfig.get("sanity", "vnxe.username");
     private static String password = EnvConfig.get("sanity", "vnxe.password");
+
     @BeforeClass
     public static void setup() throws Exception {
-    	synchronized (_client) {
-    	_client = new KHClient(host, userName, password);
+        synchronized (_client) {
+            _client = new KHClient(host, userName, password);
+        }
+
     }
-    
-    }
-    
-    //@Test
+
+    // @Test
     public void createHostInititaor() {
         String hostId = "Host_1";
         String wwn = "20:00:00:25:b5:5d:00:04:20:00:00:25:b5:5d:00:e5";
@@ -40,7 +41,7 @@ public class HostInitiatorTest {
         HostInitiatorRequest req = new HostInitiatorRequest(_client);
         req.createHostInitiator(initCreateParam);
     }
-    
+
     @Test
     public void getHostInitiator() {
         String wwn = "20:00:00:25:b5:5d:00:04:20:00:00:25:b5:5d:00:e5";

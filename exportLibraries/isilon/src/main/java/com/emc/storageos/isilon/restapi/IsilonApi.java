@@ -189,7 +189,7 @@ public class IsilonApi {
 
         try {
             IsilonList<String> ret = new IsilonList<String>();
-            String query = (resumeToken == null)? "?type=container" : "?type=container&resume="+resumeToken;
+            String query = (resumeToken == null) ? "?type=container" : "?type=container&resume=" + resumeToken;
             clientResp = _client.get(_baseUrl.resolve(URI_IFS.resolve(fspath + query)));
 
             if (clientResp.getStatus() != 200) {
@@ -523,7 +523,7 @@ public class IsilonApi {
         } catch (IsilonException ie) {
             throw ie;
         } catch (Exception e) {
-            String response = String.format("%1$s", (resp == null) ? "": resp);
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
             throw IsilonException.exceptions.getResourceFailedOnIsilonArrayExc(key, id, response, e);
         } finally {
             if (resp != null) {
@@ -559,9 +559,9 @@ public class IsilonApi {
         } catch (IsilonException ie) {
             throw ie;
         } catch (Exception e) {
-            String response = String.format("%1$s", (resp == null) ? "": resp);
-            throw IsilonException.exceptions.modifyResourceFailedOnIsilonArray(key, id, 
-        			response, e);
+            String response = String.format("%1$s", (resp == null) ? "" : resp);
+            throw IsilonException.exceptions.modifyResourceFailedOnIsilonArray(key, id,
+                    response, e);
         } finally {
             if (resp != null) {
                 resp.close();
@@ -680,20 +680,20 @@ public class IsilonApi {
 
     /**
      * Create a smartquota
-     *
+     * 
      * @param path directory to set quota for
      * @param thresholds optional long values for the thresholds if none
      *            specified, an un-enforced quota will be created otherwise, the
      *            first value is used for hard limit and rest ignored for now
      * @param bThresholdsIncludeOverhead value to indicate if overhead is
-     *                    to be included in the quota
+     *            to be included in the quota
      * @param bIncludeSnapshots value to indicate if snapshot size is to be included
-     *                    in the quota
+     *            in the quota
      * @return Identifier for the quota created
      * @throws IsilonException
      */
-    public String createQuota(String path, boolean bThresholdsIncludeOverhead ,
-                                                  boolean bIncludeSnapshots, long... thresholds) throws IsilonException {
+    public String createQuota(String path, boolean bThresholdsIncludeOverhead,
+            boolean bIncludeSnapshots, long... thresholds) throws IsilonException {
         IsilonSmartQuota quota;
         // Isilon does not allow to create zero quota directory.
         if (thresholds != null && thresholds.length > 0 && thresholds[0] > 0) {
@@ -708,7 +708,6 @@ public class IsilonApi {
         sLogger.debug("IsilonApi createQuota {} - complete", path);
         return quotaId;
     }
-
 
     /**
      * Modify a smartquota
@@ -908,7 +907,7 @@ public class IsilonApi {
                     IsilonSmartConnectInfo.class);
             return info;
         } catch (Exception e) {
-            String response = String.format("%1$s", (clientResp == null) ? "": clientResp);
+            String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
             throw IsilonException.exceptions.getStorageConnectionInfoFailedOnIsilonArrayExc(response, e);
         } finally {
             if (clientResp != null) {
@@ -917,14 +916,13 @@ public class IsilonApi {
         }
     }
 
-
     public IsilonSmartConnectInfoV2 getSmartConnectInfoV2() throws IsilonException {
         ClientResponse clientResp = null;
         try {
             clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_PORTS));
             if (clientResp.getStatus() != 200) {
                 sLogger.debug("Response: Exception :" + clientResp.toString());
-                throw new IsilonException(clientResp.getStatus()+"");
+                throw new IsilonException(clientResp.getStatus() + "");
             }
 
             IsilonSmartConnectInfoV2 info = null;
@@ -933,7 +931,7 @@ public class IsilonApi {
                 responseString = clientResp.getEntity(String.class);
                 sLogger.debug("Response:" + responseString);
                 info = new Gson().fromJson(responseString,
-                   IsilonSmartConnectInfoV2.class);
+                        IsilonSmartConnectInfoV2.class);
             } catch (Exception e) {
                 sLogger.debug("Got Exception trying to get Json out of it " + e);
                 sLogger.debug("Response:String:" + responseString);
@@ -944,7 +942,7 @@ public class IsilonApi {
             }
             return info;
         } catch (Exception e) {
-            String response = String.format("%1$s", (clientResp == null) ? "": clientResp);
+            String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
             throw new IsilonException(response, e);
         } finally {
             if (clientResp != null) {
@@ -952,7 +950,6 @@ public class IsilonApi {
             }
         }
     }
-
 
     /**
      * Get list of events from the url
@@ -1051,7 +1048,7 @@ public class IsilonApi {
                     statValueCurrent.error.add(jsonArray.get(i).toString());
                 }
                 if (!entryObj.has("value")) {
-                    throw IsilonException.exceptions.getCurrentStatisticsFailedOnIsilonArrayErr(key, 
+                    throw IsilonException.exceptions.getCurrentStatisticsFailedOnIsilonArrayErr(key,
                             statValueCurrent.error.toString());
                 }
                 statValueCurrent.value = new Gson()
@@ -1184,17 +1181,17 @@ public class IsilonApi {
     private void processErrorResponse(String operationKey, String objectKey, int httpStatus,
             JSONObject errorEntity) throws IsilonException, JSONException {
         if (errorEntity == null) {
-            throw IsilonException.exceptions.processErrorResponseFromIsilon(operationKey, 
-          		objectKey, httpStatus, _baseUrl);
+            throw IsilonException.exceptions.processErrorResponseFromIsilon(operationKey,
+                    objectKey, httpStatus, _baseUrl);
         } else if (errorEntity.has("errors")) {
-            throw IsilonException.exceptions.processErrorResponseFromIsilonMsg(operationKey, 
-                objectKey, httpStatus, _baseUrl, errorEntity.getString("errors"));
+            throw IsilonException.exceptions.processErrorResponseFromIsilonMsg(operationKey,
+                    objectKey, httpStatus, _baseUrl, errorEntity.getString("errors"));
         } else if (errorEntity.has("message")) {
-            throw IsilonException.exceptions.processErrorResponseFromIsilonMsg(operationKey, 
-                objectKey, httpStatus, _baseUrl, errorEntity.getString("message"));
+            throw IsilonException.exceptions.processErrorResponseFromIsilonMsg(operationKey,
+                    objectKey, httpStatus, _baseUrl, errorEntity.getString("message"));
         } else {
-            throw IsilonException.exceptions.processErrorResponseFromIsilon(operationKey, 
-                objectKey, httpStatus, _baseUrl);
+            throw IsilonException.exceptions.processErrorResponseFromIsilon(operationKey,
+                    objectKey, httpStatus, _baseUrl);
         }
     }
 }

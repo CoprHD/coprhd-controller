@@ -9,15 +9,15 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_initiator_info")
+@JsonRootName(value = "xtremio_initiator_info")
 public class XtremIOInitiatorInfo {
-    
+
     @SerializedName("name")
-    @JsonProperty(value="name")
+    @JsonProperty(value = "name")
     private String name;
 
     @SerializedName("href")
-    @JsonProperty(value="href")
+    @JsonProperty(value = "href")
     private String href;
 
     public String getName() {

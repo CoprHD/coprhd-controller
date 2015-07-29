@@ -9,8 +9,8 @@ import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class VNXeLun extends VNXeBase{
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class VNXeLun extends VNXeBase {
     private Integer lunNumber;
     private List<Integer> operationalStatus;
     private Health health;
@@ -43,7 +43,7 @@ public class VNXeLun extends VNXeBase{
     private Long snapsSizeAllocated;
     private List<BlockHostAccess> hostAccess;
     private Integer snapCount;
-    
+
     public Integer getLunNumber() {
         return lunNumber;
     }
@@ -305,14 +305,14 @@ public class VNXeLun extends VNXeBase{
         AUTOTIER,
         HIGHEST,
         LOWEST,
-        NO_DATA_MOVEMENT; 
+        NO_DATA_MOVEMENT;
     }
-    
+
     public static enum LUNTypeEnum {
         GenericStorage(1),
         Standalone(2),
         VmWareISCSI(3);
-        
+
         private int value;
 
         private LUNTypeEnum(int value) {

@@ -26,24 +26,24 @@ import charvax.swing.JTextField;
 
 /**
  * Class implements text input from an input map.
- *
+ * 
  */
 public class TextInputPanel extends JPanel {
-	
-	private LinkedHashMap<String, JTextField> fieldMap = new LinkedHashMap<String, JTextField>();
-	private LinkedHashMap<String, String> map;
-	private String label;
-	private int textLength;
-	
-	public TextInputPanel(String label, LinkedHashMap<String, String> map, int textLenght) {
-		this.map = map;
-		this.label = label;
-		this.textLength = textLenght;
-		initComponents();
-	}
-	
-	private void initComponents() {
-		setLayout(new GridBagLayout());
+
+    private LinkedHashMap<String, JTextField> fieldMap = new LinkedHashMap<String, JTextField>();
+    private LinkedHashMap<String, String> map;
+    private String label;
+    private int textLength;
+
+    public TextInputPanel(String label, LinkedHashMap<String, String> map, int textLenght) {
+        this.map = map;
+        this.label = label;
+        this.textLength = textLenght;
+        initComponents();
+    }
+
+    private void initComponents() {
+        setLayout(new GridBagLayout());
         GridBagConstraints c = new GridBagConstraints();
         int left = 2;
         int right = 2;
@@ -52,32 +52,32 @@ public class TextInputPanel extends JPanel {
         c.gridwidth = 2;
         c.insets = new Insets(1, left, 1, right);
         WidgetElementUtil.makeGridElement(x, y++, (new JLabel(label)), c, this);
-        
+
         c.gridwidth = 1;
         for (String key : map.keySet()) {
-        	c.anchor = GridBagConstraints.EAST;
-			c.insets = new Insets(0, left, 0, 0);
-			x =0;
-			WidgetElementUtil.makeGridElement(x, y, new JLabel(key), c, this);
-			JTextField field = new JTextField(map.get(key), textLength);
-			x = 1;
-			c.anchor = GridBagConstraints.WEST;
-			c.insets = new Insets(0, 0, 0, right);
-			WidgetElementUtil.makeGridElement(x, y++, field, c, this);
-			fieldMap.put(key, field);
-		}
+            c.anchor = GridBagConstraints.EAST;
+            c.insets = new Insets(0, left, 0, 0);
+            x = 0;
+            WidgetElementUtil.makeGridElement(x, y, new JLabel(key), c, this);
+            JTextField field = new JTextField(map.get(key), textLength);
+            x = 1;
+            c.anchor = GridBagConstraints.WEST;
+            c.insets = new Insets(0, 0, 0, right);
+            WidgetElementUtil.makeGridElement(x, y++, field, c, this);
+            fieldMap.put(key, field);
+        }
         c.gridwidth = 2;
         c.insets = new Insets(0, left, 0, right);
         WidgetElementUtil.makeGridEmptyLine(x, y++, c, this);
-	}
-	
-	public LinkedHashMap<String, JTextField> getFieldMap() {
-		return fieldMap;
-	}
+    }
 
-	public void fieldSelectListener(ActionListener listenForFieldInput) {
-		for (JTextField field: fieldMap.values()) {
-			field.addActionListener(listenForFieldInput);
-		}
-	}
+    public LinkedHashMap<String, JTextField> getFieldMap() {
+        return fieldMap;
+    }
+
+    public void fieldSelectListener(ActionListener listenForFieldInput) {
+        for (JTextField field : fieldMap.values()) {
+            field.addActionListener(listenForFieldInput);
+        }
+    }
 }

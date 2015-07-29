@@ -6,16 +6,16 @@
 package com.emc.storageos.vplex.api;
 
 /**
- * Enumeration of supported backend storage 
+ * Enumeration of supported backend storage
  * array types that can be connected to the VPLEX.
  */
 public enum VPlexApiBackendSystemType {
 
-    HDS("hds"), 
-    OPENSTACK("openstack"), 
-    SCALEIO("scaleio"), 
-    VMAX("vmax"), 
-    VNXBLOCK("vnxblock"), 
+    HDS("hds"),
+    OPENSTACK("openstack"),
+    SCALEIO("scaleio"),
+    VMAX("vmax"),
+    VNXBLOCK("vnxblock"),
     XTREMIO("xtremio");
 
     private String _type;
@@ -39,12 +39,12 @@ public enum VPlexApiBackendSystemType {
     }
 
     /**
-     * Returns the enum whose type matches the passed type, 
+     * Returns the enum whose type matches the passed type,
      * else null when not found.
      * 
      * @param type The system type to match.
      * 
-     * @return The enum whose type matches the passed type, 
+     * @return The enum whose type matches the passed type,
      *         else null when not found.
      */
     public static VPlexApiBackendSystemType valueOfType(String type) {

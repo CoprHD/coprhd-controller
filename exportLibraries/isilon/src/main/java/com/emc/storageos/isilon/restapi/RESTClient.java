@@ -5,18 +5,9 @@
 package com.emc.storageos.isilon.restapi;
 
 import com.sun.jersey.api.client.*;
-import com.sun.jersey.api.client.config.ClientConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.net.URI;
-import java.security.GeneralSecurityException;
-import java.util.concurrent.Future;
 
 /**
  * Generic REST client over HTTP
@@ -26,7 +17,7 @@ public class RESTClient {
 
     /**
      * Constructor
-     *
+     * 
      * @param client Jersey client to use
      */
     public RESTClient(Client client) {
@@ -35,9 +26,9 @@ public class RESTClient {
 
     /**
      * Get resource as a ClientResponse
-     *
-     * @param   url             url for the resource to get
-     * @return  ClientResponse  response
+     * 
+     * @param url url for the resource to get
+     * @return ClientResponse response
      */
     public ClientResponse get(URI url) {
         return _client.resource(url).get(ClientResponse.class);
@@ -45,35 +36,39 @@ public class RESTClient {
 
     /**
      * Get attribute information about resource.
-     *
-     * @param   url   url for the resource to execute head
-     * @return  ClientResponse  response
+     * 
+     * @param url url for the resource to execute head
+     * @return ClientResponse response
      */
     public ClientResponse head(URI url) {
         return _client.resource(url).head();
     }
 
     /**
-     *  Put resource at url
-     * @param   url             url for the resource to put
-     * @param   queryParams     if any parameters supplied
-     * @param   body            body for the put
-     * @return  ClientResponse  response
+     * Put resource at url
+     * 
+     * @param url url for the resource to put
+     * @param queryParams if any parameters supplied
+     * @param body body for the put
+     * @return ClientResponse response
      */
     public ClientResponse put(URI url, MultivaluedMap<String, String> queryParams, String body) {
         WebResource r = _client.resource(url);
         if (queryParams != null && queryParams.size() > 0) {
-            WebResource.Builder rb = r.queryParams(queryParams).header("x-isi-ifs-target-type", "container").header("x-isi-ifs-access-control", "0755");
+            WebResource.Builder rb = r.queryParams(queryParams).header("x-isi-ifs-target-type", "container")
+                    .header("x-isi-ifs-access-control", "0755");
             return rb.put(ClientResponse.class, body);
         } else {
-            return r.header("x-isi-ifs-target-type", "container").header("x-isi-ifs-access-control", "0755").put(ClientResponse.class, body);
+            return r.header("x-isi-ifs-target-type", "container").header("x-isi-ifs-access-control", "0755")
+                    .put(ClientResponse.class, body);
         }
     }
 
     /**
      * Delete resource at url
-     * @param   url             url for the resource to delete
-     * @return  ClientResponse
+     * 
+     * @param url url for the resource to delete
+     * @return ClientResponse
      */
     public ClientResponse delete(URI url) {
         return _client.resource(url).delete(ClientResponse.class);
@@ -81,9 +76,10 @@ public class RESTClient {
 
     /**
      * Post resource at url
-     * @param   url             url to post to
-     * @param   body            content to post
-     * @return  ClientResponse  response
+     * 
+     * @param url url to post to
+     * @param body content to post
+     * @return ClientResponse response
      */
     public ClientResponse post(URI url, String body) {
         return _client.resource(url).type(MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
@@ -95,4 +91,4 @@ public class RESTClient {
     public void close() {
         _client.destroy();
     }
- }
+}

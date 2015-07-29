@@ -17,68 +17,70 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 public class ClientHttpMethodsFactory implements ApplicationContextAware {
-	
-	@Autowired
-	ApplicationContext applicationContext;
-	
-	private String httpMethodsBeanNameRef;
-	
-	/**
-	 * @return the httpMethodsBeanNameRef
-	 */
-	public String getHttpMethodsBeanNameRef() {
-		return httpMethodsBeanNameRef;
-	}
 
-	/**
-	 * @param httpMethodsBeanNameRef the httpMethodsBeanNameRef to set
-	 */
-	public void setHttpMethodsBeanNameRef(String httpMethodsBeanNameRef) {
-		this.httpMethodsBeanNameRef = httpMethodsBeanNameRef;
-	}
+    @Autowired
+    ApplicationContext applicationContext;
 
-	/**
-	 * Implement timeout and expiration
-	 */
-	private static final Map<String, ClientHttpMethods> uriToHttpMethodsMap = Collections.synchronizedMap(new HashMap<String, ClientHttpMethods>());
-	
-	public ClientHttpMethods createClientHttpMethods(String serviceURI,String username,String password) throws ClientGeneralException{
-		
-		
-		String mapKey = new StringBuffer().append(serviceURI).append(username).append(password).toString();
-		
-		if(uriToHttpMethodsMap.get(mapKey) != null){
-			if(SecurityContextHolder.getContext().getAuthentication() == null || !SecurityContextHolder.getContext().getAuthentication().isAuthenticated()){
-				SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(username, password));
-			}
-			return uriToHttpMethodsMap.get(mapKey);
-		}
-		
-		ClientHttpMethods clientHttpMethods = (ClientHttpMethods)applicationContext.getBean(httpMethodsBeanNameRef,serviceURI,username,password);
-		uriToHttpMethodsMap.put(mapKey, clientHttpMethods);
-		return clientHttpMethods;
-	}
+    private String httpMethodsBeanNameRef;
 
-	@Override
-	public void setApplicationContext(ApplicationContext arg0)
-			throws BeansException {
-		this.applicationContext = arg0;
+    /**
+     * @return the httpMethodsBeanNameRef
+     */
+    public String getHttpMethodsBeanNameRef() {
+        return httpMethodsBeanNameRef;
+    }
 
-	}
-	
-	public void closeClientHttpMethods(ClientHttpMethods clientHttpMethods) throws ClientGeneralException{
-		clientHttpMethods.close();
-		// clear cache
-		String key = null;
-		for (Entry<String, ClientHttpMethods> entry : uriToHttpMethodsMap.entrySet()) {
-			if (entry.getValue().equals(clientHttpMethods)) {
-				key = entry.getKey();
-				break;
-			}
-		}
-		if (key != null) {
-			uriToHttpMethodsMap.remove(key);
-		}
-	}
+    /**
+     * @param httpMethodsBeanNameRef the httpMethodsBeanNameRef to set
+     */
+    public void setHttpMethodsBeanNameRef(String httpMethodsBeanNameRef) {
+        this.httpMethodsBeanNameRef = httpMethodsBeanNameRef;
+    }
+
+    /**
+     * Implement timeout and expiration
+     */
+    private static final Map<String, ClientHttpMethods> uriToHttpMethodsMap = Collections
+            .synchronizedMap(new HashMap<String, ClientHttpMethods>());
+
+    public ClientHttpMethods createClientHttpMethods(String serviceURI, String username, String password) throws ClientGeneralException {
+
+        String mapKey = new StringBuffer().append(serviceURI).append(username).append(password).toString();
+
+        if (uriToHttpMethodsMap.get(mapKey) != null) {
+            if (SecurityContextHolder.getContext().getAuthentication() == null
+                    || !SecurityContextHolder.getContext().getAuthentication().isAuthenticated()) {
+                SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(username, password));
+            }
+            return uriToHttpMethodsMap.get(mapKey);
+        }
+
+        ClientHttpMethods clientHttpMethods = (ClientHttpMethods) applicationContext.getBean(httpMethodsBeanNameRef, serviceURI, username,
+                password);
+        uriToHttpMethodsMap.put(mapKey, clientHttpMethods);
+        return clientHttpMethods;
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext arg0)
+            throws BeansException {
+        this.applicationContext = arg0;
+
+    }
+
+    public void closeClientHttpMethods(ClientHttpMethods clientHttpMethods) throws ClientGeneralException {
+        clientHttpMethods.close();
+        // clear cache
+        String key = null;
+        for (Entry<String, ClientHttpMethods> entry : uriToHttpMethodsMap.entrySet()) {
+            if (entry.getValue().equals(clientHttpMethods)) {
+                key = entry.getKey();
+                break;
+            }
+        }
+        if (key != null) {
+            uriToHttpMethodsMap.remove(key);
+        }
+    }
 
 }

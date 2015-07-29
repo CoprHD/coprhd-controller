@@ -79,7 +79,8 @@ public class ApiMapperUtils {
         it.setDescription(service.getDescription());
         it.setApprovalRequired(service.isApprovalRequired());
         it.setExecutionWindowRequired(service.isExecutionWindowRequired());
-        it.setDefaultExecutionWindowId(service.getDefaultExecutionWindow() == null ? null : service.getDefaultExecutionWindow().getId().toString());
+        it.setDefaultExecutionWindowId(service.getDefaultExecutionWindow() == null ? null : service.getDefaultExecutionWindow().getId()
+                .toString());
         it.setBaseService(service.getBaseService());
         it.setMaxSize(service.getMaxSize());
         return it;
@@ -98,7 +99,8 @@ public class ApiMapperUtils {
         it.setDateCompleted(order.getDateCompleted());
         it.setSubmittedBy(order.getSubmittedBy());
         it.setStatus(order.getOrderStatus());
-        it.setExecutionWindow(order.getExecutionWindow() != null && order.getExecutionWindow().getId() != null ? order.getExecutionWindow().getId().toString() : null);
+        it.setExecutionWindow(order.getExecutionWindow() != null && order.getExecutionWindow().getId() != null ? order.getExecutionWindow()
+                .getId().toString() : null);
         it.setExecution(newExecutionReference(order.getId().toString()));
         it.setTags(getTags(order));
         if (order.getParameters() != null) {
@@ -106,25 +108,26 @@ public class ApiMapperUtils {
         }
         return it;
     }
-    
+
     public static Tags getTags(DataObjectRestRep object) {
         Tags tags = new Tags();
         if (object.getTags() != null) {
-            for (String tag: object.getTags()) {
+            for (String tag : object.getTags()) {
                 tags.getTag().add(tag);
             }
         }
         return tags;
-    }    
+    }
 
-    public static ExecutionInfo newExecutionInfo(ExecutionStateRestRep state, List<OrderLogRestRep> logs, List<ExecutionLogRestRep> taskLogs) {
+    public static ExecutionInfo
+            newExecutionInfo(ExecutionStateRestRep state, List<OrderLogRestRep> logs, List<ExecutionLogRestRep> taskLogs) {
         ExecutionInfo it = new ExecutionInfo();
         it.setStartDate(state.getStartDate());
         it.setEndDate(state.getEndDate());
         it.setExecutionStatus(state.getExecutionStatus());
         it.setCurrentTask(state.getCurrentTask());
         it.getAffectedResources().addAll(state.getAffectedResources());
-        for (OrderLogRestRep log: logs) {
+        for (OrderLogRestRep log : logs) {
             ExecutionLogInfo info = new ExecutionLogInfo();
             info.setDate(log.getDate());
             info.setLevel(log.getLevel());
@@ -133,7 +136,7 @@ public class ApiMapperUtils {
             info.setStackTrace(log.getStackTrace());
             it.getExecutionLogs().add(info);
         }
-        for (ExecutionLogRestRep log: taskLogs) {
+        for (ExecutionLogRestRep log : taskLogs) {
             ExecutionTaskInfo info = new ExecutionTaskInfo();
             info.setDate(log.getDate());
             info.setLevel(log.getLevel());
@@ -163,13 +166,13 @@ public class ApiMapperUtils {
 
     public static List<Parameter> newParameters(List<Parameter> parameters) {
         List<Parameter> options = Lists.newArrayList();
-        for (Parameter parameter: parameters) {
+        for (Parameter parameter : parameters) {
             options.add(new Parameter(parameter.getFriendlyLabel(), parameter.getValue(), parameter.getFriendlyValue()));
         }
         return options;
     }
 
-	private static Reference newServiceReference(String id) {
+    private static Reference newServiceReference(String id) {
         return new Reference(id, serviceUrl(id));
     }
 
@@ -204,17 +207,17 @@ public class ApiMapperUtils {
     private static String approvalUrl(String id) {
         return reverse("api.ApprovalsApi.approval", "approvalId", id);
     }
-    
+
     static String reverse(String action, String key, Object value) {
         return Router.reverse(action, Collections.singletonMap(key, value)).url;
     }
-    
+
     public static List<ValidationError> getValidationErrors() {
         List<ValidationError> errors = Lists.newArrayList();
-        for (play.data.validation.Error error: Validation.errors()) {
+        for (play.data.validation.Error error : Validation.errors()) {
             errors.add(new ValidationError(error.getKey(), error.message()));
         }
         return errors;
     }
-    
+
 }

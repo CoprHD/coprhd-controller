@@ -4,22 +4,20 @@
  */
 package com.emc.storageos.vplex.api;
 
-import java.util.StringTokenizer;
-
 /**
  * Info for a storage system accessible by the VPlex
  */
 public class VPlexStorageSystemInfo extends VPlexResourceInfo {
-    
+
     // Constants used in forming the native guids for storage systems.
     private static final String VPLEX_NAME_DELIM = "-";
-    
+
     // The unique id for the storage system
     private String uniqueId;
-    
+
     // The id of the VPlex cluster to which the array is attached.
     private String clusterId;
-    
+
     /**
      * Getter for the storage system unique id, which could be the
      * serial number if it could be determined, or the whole nativeId
@@ -30,23 +28,20 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
     public String getUniqueId() {
         return uniqueId;
     }
-    
-   
 
-    public boolean matches( String storageSystemNativeGuid ) {
-
+    public boolean matches(String storageSystemNativeGuid) {
 
         if (storageSystemNativeGuid.endsWith(getUniqueId())) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Creates a unique id for the storage system based on the VPlex system
-     * name.  If the serial number can be determined (the information after the
-     * last "-" character), it will be used.  Otherwise, the whole nativeId
+     * name. If the serial number can be determined (the information after the
+     * last "-" character), it will be used. Otherwise, the whole nativeId
      * from the VPLEX will be used.
      */
     public void buildUniqueId() throws VPlexApiException {
@@ -63,7 +58,7 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
         s_logger.info("setting unique id for {} to {}", name, suffix);
         uniqueId = suffix;
     }
-    
+
     /**
      * Getter for the storage system cluster id.
      * 
@@ -72,7 +67,7 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
     public String getClusterId() {
         return clusterId;
     }
-    
+
     /**
      * Setter for the storage system cluster id.
      * 
@@ -81,7 +76,7 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
     public void setClusterId(String id) {
         clusterId = id;
     }
-   
+
     /**
      * {@inheritDoc}
      */

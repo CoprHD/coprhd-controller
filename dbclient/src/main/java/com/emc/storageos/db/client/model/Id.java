@@ -21,7 +21,7 @@ import java.lang.annotation.*;
  * Record key marker
  */
 @Documented
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Id {
 }

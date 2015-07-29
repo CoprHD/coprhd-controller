@@ -9,16 +9,16 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_ig_folder_create")
+@JsonRootName(value = "xtremio_ig_folder_create")
 public class XtremIOInitiatorGroupFolderCreate {
     @SerializedName("caption")
-    @JsonProperty(value="caption")
+    @JsonProperty(value = "caption")
     private String caption;
-     
+
     @SerializedName("parent-folder-id")
-    @JsonProperty(value="parent-folder-id")
+    @JsonProperty(value = "parent-folder-id")
     private String parentFolderId;
-    
+
     public String getCaption() {
         return caption;
     }

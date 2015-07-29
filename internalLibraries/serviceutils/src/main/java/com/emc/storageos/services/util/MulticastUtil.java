@@ -76,7 +76,7 @@ public class MulticastUtil {
     }
 
     public static MulticastUtil create(String networkInterfaceName) throws IOException {
-    	JmDNS jmdns = JmDNS.create(MulticastUtil.getLinkLocalAddress(networkInterfaceName));
+        JmDNS jmdns = JmDNS.create(MulticastUtil.getLinkLocalAddress(networkInterfaceName));
         return new MulticastUtil(jmdns);
     }
 
@@ -94,11 +94,11 @@ public class MulticastUtil {
 
     /**
      * Publish local node configuration via multicast
-     *
-     * @param  serviceName   name of service to be published. (e.g. release version for installation)
-     *         instanceName  name of instance which is publishing. (e.g. the local node id etc.)
-     *         nodeConfig    info to be published
-     *         publishTime   how long the info would be published
+     * 
+     * @param serviceName name of service to be published. (e.g. release version for installation)
+     *            instanceName name of instance which is publishing. (e.g. the local node id etc.)
+     *            nodeConfig info to be published
+     *            publishTime how long the info would be published
      */
     public void publish(String serviceName, String instanceName, Map<String, String> values, long publishTime) throws IOException {
         ServiceInfo info = ServiceInfo.create("_" + serviceName + "._tcp.local.", instanceName, 9999, 0, 0, values);
@@ -112,15 +112,15 @@ public class MulticastUtil {
 
     /**
      * List published node(s) configuration in the network via multicast
-     *
-     * @param  serviceName   name of service published. (e.g. release version for installation)
-     * @return               node(s) configuration list 
+     * 
+     * @param serviceName name of service published. (e.g. release version for installation)
+     * @return node(s) configuration list
      */
     public Map<String, Map<String, String>> list(String serviceName) {
         Map<String, Map<String, String>> results = new HashMap<String, Map<String, String>>();
         ServiceInfo[] infos = jmdns.list("_" + serviceName + "._tcp.local.");
         for (ServiceInfo info : infos) {
-            _log.info("ServiceInfo:{}",info);
+            _log.info("ServiceInfo:{}", info);
 
             // Construct the key
             final String[] hostAddrs = info.getHostAddresses();
@@ -130,14 +130,14 @@ public class MulticastUtil {
                 buf.append(';');
             }
             final String key = buf.toString();
-            _log.info("\tkey:{}",key);
+            _log.info("\tkey:{}", key);
 
             // Construct the values
             final Map<String, String> values = new HashMap<String, String>();
             for (Enumeration<String> e = info.getPropertyNames(); e.hasMoreElements();) {
                 final String prop = e.nextElement();
                 final String value = new String(info.getPropertyBytes(prop));
-                _log.info("\tprop:{}, value:{}",prop,value);
+                _log.info("\tprop:{}, value:{}", prop, value);
                 values.put(prop, value);
             }
 
@@ -152,6 +152,7 @@ public class MulticastUtil {
 
     /*
      * Broadcast local configuration to others over the network.
+     * 
      * @return true if broadcast successful, false if failed.
      */
     public static boolean doBroadcast(String releaseVersion, Configuration config, long publishTime) {
@@ -175,10 +176,10 @@ public class MulticastUtil {
     private static void server(String nodeId, Map<String, String> clusterConfig) {
         final String serviceName = "vipr-2.2.0.0.1";
         try {
-             MulticastUtil.create().publish(serviceName, nodeId, clusterConfig, 10000);
+            MulticastUtil.create().publish(serviceName, nodeId, clusterConfig, 10000);
         } catch (Exception e) {
-             e.printStackTrace();
-             System.exit(1);
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 

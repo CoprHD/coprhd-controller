@@ -13,7 +13,7 @@ public class ScaleIORemoveVolumeCommand extends AbstractScaleIOQueryCommand<Scal
     public static final String REMOVED_VOLUME_SUCCESS = "RemovedVolumeSuccess";
     public static final String REMOVED_VOLUME_FAILED = "RemovedVolumeFailed";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully removed volume ID (\\w+)", REMOVED_VOLUME_SUCCESS)
     };
 
@@ -36,7 +36,7 @@ public class ScaleIORemoveVolumeCommand extends AbstractScaleIOQueryCommand<Scal
 
     @Override
     ParsePattern[] getOutputPatternSpecification() {
-        return PARSING_CONFIG.clone(); //No need to check not null condition here
+        return PARSING_CONFIG.clone(); // No need to check not null condition here
     }
 
     @Override

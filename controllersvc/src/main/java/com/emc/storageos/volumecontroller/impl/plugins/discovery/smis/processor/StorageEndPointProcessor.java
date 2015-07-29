@@ -29,9 +29,10 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 public abstract class StorageEndPointProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(StorageEndPointProcessor.class);
-    
+
     /**
      * return a StorageSystem object for a given systemId.
+     * 
      * @param dbClient
      * @param systemId
      * @return
@@ -40,6 +41,7 @@ public abstract class StorageEndPointProcessor extends Processor {
     protected StorageSystem getStorageSystem(DbClient dbClient, URI systemId) throws IOException {
         return dbClient.queryObject(StorageSystem.class, systemId);
     }
+
     /**
      * find if Storage Port already present in DB, via SCSI Address
      * 
@@ -64,6 +66,5 @@ public abstract class StorageEndPointProcessor extends Processor {
         }
         return port;
     }
-    
-    
+
 }

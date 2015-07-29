@@ -13,28 +13,28 @@ class ClientHttpResponseException extends HttpResponseException {
     public String bmessage;     // Human readable synopsis of the error.
     public String brequest;     // Request operation that caused the error
     public String bpayload;     // Request payload that cause the error
-    
-	public ClientHttpResponseException(Integer errorCode, String message) {
-		super(errorCode, message);        // no detailed Bourne information available
-	}
-	
-	public ClientHttpResponseException(Integer errorCode, String message, 
-	        String btype, String bcode, String bmessage, String brequest, String bpayload) {
-	    super(errorCode, message);  
-	    this.btype = btype;
-	    this.bcode = bcode;
-	    this.bmessage = bmessage;
-	    this.brequest = brequest;
-	    this.bpayload = bpayload;
-	}
-	
-	public ClientHttpResponseException(Integer errorCode, String message, 
+
+    public ClientHttpResponseException(Integer errorCode, String message) {
+        super(errorCode, message);        // no detailed Bourne information available
+    }
+
+    public ClientHttpResponseException(Integer errorCode, String message,
+            String btype, String bcode, String bmessage, String brequest, String bpayload) {
+        super(errorCode, message);
+        this.btype = btype;
+        this.bcode = bcode;
+        this.bmessage = bmessage;
+        this.brequest = brequest;
+        this.bpayload = bpayload;
+    }
+
+    public ClientHttpResponseException(Integer errorCode, String message,
             String brequest, String bpayload) {
-        super(errorCode, message);  
+        super(errorCode, message);
         this.btype = "unspecified";
         this.bcode = errorCode.toString();
         this.bmessage = message;
         this.brequest = brequest;
         this.bpayload = bpayload;
-    }	
+    }
 }

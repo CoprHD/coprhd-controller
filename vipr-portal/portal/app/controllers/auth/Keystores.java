@@ -39,10 +39,10 @@ public class Keystores extends ViprResourceController {
     public static void updateCertificate() {
         KeystoreForm keystore = new KeystoreForm();
         String viewChain = viewChain(keystore);
-        render(viewChain,keystore);
+        render(viewChain, keystore);
     }
 
-    @FlashException(value="updateCertificate", keep=true)
+    @FlashException(value = "updateCertificate", keep = true)
     public static void save(KeystoreForm keystore) {
         keystore.validate("keystore");
         if (Validation.hasErrors()) {
@@ -54,7 +54,7 @@ public class Keystores extends ViprResourceController {
 
             String key = null;
             String cert = null;
-            
+
             try {
                 key = FileUtils.readFileToString(keystore.certKey);
             } catch (Exception e) {
@@ -62,7 +62,7 @@ public class Keystores extends ViprResourceController {
                         .get("keystore.certKey.invalid.error"));
                 handleError(keystore);
             }
-            
+
             try {
                 cert = FileUtils.readFileToString(keystore.certChain);
             } catch (Exception e) {
@@ -70,7 +70,7 @@ public class Keystores extends ViprResourceController {
                         .get("keystore.certChain.invalid.error"));
                 handleError(keystore);
             }
-            
+
             KeyAndCertificateChain keyAndCertChain = new KeyAndCertificateChain();
             keyAndCertChain.setCertificateChain(cert);
             keyAndCertChain.setPrivateKey(key);
@@ -81,14 +81,14 @@ public class Keystores extends ViprResourceController {
         Maintenance.maintenance(Common.reverseRoute(Keystores.class, "updateCertificate"));
     }
 
-    public static String viewChain(KeystoreForm keystore){
-    	CertificateChain chain = BourneUtil.getViprClient().keystore().getCertificateChain();
-    	if (chain ==null||chain.getChain() == null || chain.getChain().isEmpty()){
-    		flash.error(MessagesUtils.get("vdc.certChain.empty.error"));
-    	}
-    	return chain.getChain();
+    public static String viewChain(KeystoreForm keystore) {
+        CertificateChain chain = BourneUtil.getViprClient().keystore().getCertificateChain();
+        if (chain == null || chain.getChain() == null || chain.getChain().isEmpty()) {
+            flash.error(MessagesUtils.get("vdc.certChain.empty.error"));
+        }
+        return chain.getChain();
     }
-    
+
     private static void handleError(KeystoreForm form) {
         params.flash();
         Validation.keep();
@@ -105,7 +105,7 @@ public class Keystores extends ViprResourceController {
 
             if (!this.rotate) {
                 Validation.required(formName + ".certKey", certKey);
-                Validation.required(formName + ".certChain", certChain);  
+                Validation.required(formName + ".certChain", certChain);
             }
 
         }

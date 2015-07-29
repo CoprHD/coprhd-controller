@@ -17,23 +17,23 @@ import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
  */
 @SuppressWarnings("serial")
 public class GetBookmarksResponse implements Serializable {
-		private RecoverPointReturnCode _returnCode;
-		private Map<Integer, List<RPBookmark>> _cgBookmarkMap;
+    private RecoverPointReturnCode _returnCode;
+    private Map<Integer, List<RPBookmark>> _cgBookmarkMap;
 
-		public Map<Integer, List<RPBookmark>> getCgBookmarkMap() {
-			return _cgBookmarkMap;
-		}
+    public Map<Integer, List<RPBookmark>> getCgBookmarkMap() {
+        return _cgBookmarkMap;
+    }
 
-		public void setCgBookmarkMap(
-				Map<Integer, List<RPBookmark>> cgBookmarkMap) {
-			this._cgBookmarkMap = cgBookmarkMap;
-		}
+    public void setCgBookmarkMap(
+            Map<Integer, List<RPBookmark>> cgBookmarkMap) {
+        this._cgBookmarkMap = cgBookmarkMap;
+    }
 
-		public RecoverPointReturnCode getReturnCode() {
-			return _returnCode;
-		}
+    public RecoverPointReturnCode getReturnCode() {
+        return _returnCode;
+    }
 
-		public void setReturnCode(RecoverPointReturnCode returnCode) {
-			this._returnCode = returnCode;
-		}
+    public void setReturnCode(RecoverPointReturnCode returnCode) {
+        this._returnCode = returnCode;
+    }
 }

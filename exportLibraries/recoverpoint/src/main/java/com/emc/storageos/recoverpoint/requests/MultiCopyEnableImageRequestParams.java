@@ -14,31 +14,36 @@ import java.util.Set;
  */
 @SuppressWarnings("serial")
 public class MultiCopyEnableImageRequestParams implements Serializable {
-		private Set <String> volumeWWNSet;
-		private Date apitTime;
-		private String bookmark;
-		
-		public MultiCopyEnableImageRequestParams() {
-			apitTime = null;
-			bookmark = null;
-		}
-		
-		public Set <String> getVolumeWWNSet() {
-			return volumeWWNSet;
-		}
-		public void setVolumeWWNSet(Set <String> volumeWWNSet) {
-			this.volumeWWNSet = volumeWWNSet;
-		}
-		public String getBookmark() {
-			return bookmark;
-		}
-		public void setBookmark(String bookmark) {
-			this.bookmark = bookmark;
-		}
-		public Date getAPITTime() {
-			return apitTime;
-		}
-		public void setAPITTime(Date aPITTime) {
-			apitTime = aPITTime;
-		}
+    private Set<String> volumeWWNSet;
+    private Date apitTime;
+    private String bookmark;
+
+    public MultiCopyEnableImageRequestParams() {
+        apitTime = null;
+        bookmark = null;
+    }
+
+    public Set<String> getVolumeWWNSet() {
+        return volumeWWNSet;
+    }
+
+    public void setVolumeWWNSet(Set<String> volumeWWNSet) {
+        this.volumeWWNSet = volumeWWNSet;
+    }
+
+    public String getBookmark() {
+        return bookmark;
+    }
+
+    public void setBookmark(String bookmark) {
+        this.bookmark = bookmark;
+    }
+
+    public Date getAPITTime() {
+        return apitTime;
+    }
+
+    public void setAPITTime(Date aPITTime) {
+        apitTime = aPITTime;
+    }
 }

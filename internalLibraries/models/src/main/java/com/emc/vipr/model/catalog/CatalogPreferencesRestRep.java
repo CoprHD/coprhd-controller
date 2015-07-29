@@ -21,8 +21,8 @@ import com.emc.storageos.model.RestLinkRep;
 public class CatalogPreferencesRestRep extends DataObjectRestRep {
 
     private String approverEmail;
-    private String approvalUrl;    
-    
+    private String approvalUrl;
+
     public CatalogPreferencesRestRep() {
 
     }

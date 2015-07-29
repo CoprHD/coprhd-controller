@@ -10,54 +10,54 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="nfs_export")
+@JsonRootName(value = "nfs_export")
 public class DDExportInfo {
-	
-	private String id;
-	
-	private String path;
-	
-	// -1: error; 0: path does not exist; 1: path exists
-	@SerializedName("path_status")
-    @JsonProperty(value="path_status")
-	private int pathStatus;
-	
-	private DDRestLinkRep link;
 
-	public String getId() {
-		return id;
-	}
+    private String id;
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    private String path;
 
-	public String getPath() {
-		return path;
-	}
+    // -1: error; 0: path does not exist; 1: path exists
+    @SerializedName("path_status")
+    @JsonProperty(value = "path_status")
+    private int pathStatus;
 
-	public void setPath(String path) {
-		this.path = path;
-	}
+    private DDRestLinkRep link;
 
-	public int getPathStatus() {
-		return pathStatus;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public void setPathStatus(int pathStatus) {
-		this.pathStatus = pathStatus;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public DDRestLinkRep getLink() {
-		return link;
-	}
+    public String getPath() {
+        return path;
+    }
 
-	public void setLink(DDRestLinkRep link) {
-		this.link = link;
-	}
-	
-	public String toString() {
-    	return new Gson().toJson(this).toString();
+    public void setPath(String path) {
+        this.path = path;
+    }
+
+    public int getPathStatus() {
+        return pathStatus;
+    }
+
+    public void setPathStatus(int pathStatus) {
+        this.pathStatus = pathStatus;
+    }
+
+    public DDRestLinkRep getLink() {
+        return link;
+    }
+
+    public void setLink(DDRestLinkRep link) {
+        this.link = link;
+    }
+
+    public String toString() {
+        return new Gson().toJson(this).toString();
     }
 
 }

@@ -49,8 +49,8 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
     public static VirtualPoolProtectionSnapshotsParam getSnapshots(FileVirtualPoolProtectionParam protection) {
         return protection != null ? protection.getSnapshots() : null;
     }
-    
-    public FileVirtualPoolBuilder setLongTermRetention (Boolean longTermRetention) {
+
+    public FileVirtualPoolBuilder setLongTermRetention(Boolean longTermRetention) {
         virtualPool.setLongTermRetention(longTermRetention);
         return this;
     }

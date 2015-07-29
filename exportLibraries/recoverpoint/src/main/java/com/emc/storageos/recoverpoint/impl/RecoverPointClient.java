@@ -113,17 +113,18 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 
 /**
  * Client implementation of the RecoverPoint controller
- *
+ * 
  */
 
 public class RecoverPointClient {
 
-	// 10s, for RP between RP operations that adds/sets things on the RP. in RP 4.1 SP1 we started encountering an issue which resulted in conflicts 
-	// between the RPAs when things ran too quickly.
-    private static final int RP_OPERATION_WAIT_TIME = 10000; 
+    // 10s, for RP between RP operations that adds/sets things on the RP. in RP 4.1 SP1 we started encountering an issue which resulted in
+    // conflicts
+    // between the RPAs when things ran too quickly.
+    private static final int RP_OPERATION_WAIT_TIME = 10000;
 
-	FunctionalAPIImpl functionalAPI;
-    
+    FunctionalAPIImpl functionalAPI;
+
     public enum RecoverPointReturnCode {
         FAIL,
         SUCCESS,
@@ -133,7 +134,7 @@ public class RecoverPointClient {
     public enum RecoverPointCGState {
         READY,	// All CG copies ready
         PAUSED,	// All CG copies paused
-        STOPPED,// All CG copies stopped
+        STOPPED,        // All CG copies stopped
         MIXED,	// CG copies are in different states
         GONE	// CG no longer exists
     }
@@ -149,24 +150,24 @@ public class RecoverPointClient {
         PRODUCTION(0, "production"),
         LOCAL(1, "local"),
         REMOTE(0, "remote");
-        
+
         // copy number is the number of the copy that goes into the GlobalCopyUID
         private final int copyNumber;
         private final String asString;
-        
+
         private RecoverPointCGCopyType(int copyNumber, String str) {
             this.copyNumber = copyNumber;
             this.asString = str;
         }
-        
+
         public int getCopyNumber() {
             return copyNumber;
         }
-        
+
         public boolean isRemote() {
             return this.equals(RecoverPointCGCopyType.REMOTE);
         }
-        
+
         public String toString() {
             return asString;
         }
@@ -184,7 +185,7 @@ public class RecoverPointClient {
     private URI _endpoint;
     private String _username;
     private String _password;
-    
+
     /**
      * Default constructor.
      */
@@ -198,16 +199,16 @@ public class RecoverPointClient {
     }
 
     public void setFunctionalAPI(FunctionalAPIImpl functionalAPI) {
-    	this.functionalAPI = functionalAPI;
+        this.functionalAPI = functionalAPI;
     }
 
     public URI getEndpoint() {
-    	return _endpoint;
+        return _endpoint;
     }
-    
+
     /**
      * tests credentials to ensure they are correct, and that the RP site is up and running
-     *
+     * 
      * @return 0 for success
      * @throws RecoverPointException
      **/
@@ -228,37 +229,41 @@ public class RecoverPointClient {
     }
 
     public Set<String> getClusterTopology() throws RecoverPointException {
-    	Set<String> clusterTopology = new HashSet<String>();
-    	String mgmtIPAddress = _endpoint.toASCIIString();
-    	if (null == mgmtIPAddress) {
-    		throw RecoverPointException.exceptions.noRecoverPointEndpoint();
-    	}
-    	try {
-    		Map<Long, String> clusterSiteNameMap = new HashMap<Long, String>();
-    		for (ClusterConfiguration clusterInfo : functionalAPI.getFullRecoverPointSettings().getSystemSettings().getGlobalSystemConfiguration().getClustersConfigurations()) {
-    			clusterSiteNameMap.put(clusterInfo.getCluster().getId(), clusterInfo.getInternalClusterName());
-    		}
-    		logger.info("RecoverPoint service: Returning all RP Sites associated with endpoint: " + _endpoint);
-    		for (ClusterConfiguration clusterInfo : functionalAPI.getFullRecoverPointSettings().getSystemSettings().getGlobalSystemConfiguration().getClustersConfigurations()) {
-    			for (RemoteClusterConnectionInformation connectionInfo : clusterInfo.getRemoteClustersConnectionInformations()) {
-    				// Find the internal site name associated with the cluster name 
-    				clusterTopology.add(clusterInfo.getInternalClusterName() + " " + clusterSiteNameMap.get(connectionInfo.getCluster().getId()) + " " + connectionInfo.getConnectionType().toString());
-    			}
-    		}
-    		return clusterTopology;
-    	} catch (RecoverPointException e) {
-    		throw e;
-    	} catch (Exception e) {
-    		throw RecoverPointException.exceptions.failedToPingMgmtIP(mgmtIPAddress, getCause(e));
-    	}
+        Set<String> clusterTopology = new HashSet<String>();
+        String mgmtIPAddress = _endpoint.toASCIIString();
+        if (null == mgmtIPAddress) {
+            throw RecoverPointException.exceptions.noRecoverPointEndpoint();
+        }
+        try {
+            Map<Long, String> clusterSiteNameMap = new HashMap<Long, String>();
+            for (ClusterConfiguration clusterInfo : functionalAPI.getFullRecoverPointSettings().getSystemSettings()
+                    .getGlobalSystemConfiguration().getClustersConfigurations()) {
+                clusterSiteNameMap.put(clusterInfo.getCluster().getId(), clusterInfo.getInternalClusterName());
+            }
+            logger.info("RecoverPoint service: Returning all RP Sites associated with endpoint: " + _endpoint);
+            for (ClusterConfiguration clusterInfo : functionalAPI.getFullRecoverPointSettings().getSystemSettings()
+                    .getGlobalSystemConfiguration().getClustersConfigurations()) {
+                for (RemoteClusterConnectionInformation connectionInfo : clusterInfo.getRemoteClustersConnectionInformations()) {
+                    // Find the internal site name associated with the cluster name
+                    clusterTopology.add(clusterInfo.getInternalClusterName() + " "
+                            + clusterSiteNameMap.get(connectionInfo.getCluster().getId()) + " "
+                            + connectionInfo.getConnectionType().toString());
+                }
+            }
+            return clusterTopology;
+        } catch (RecoverPointException e) {
+            throw e;
+        } catch (Exception e) {
+            throw RecoverPointException.exceptions.failedToPingMgmtIP(mgmtIPAddress, getCause(e));
+        }
     }
-    
+
     /**
      * Returns a list of sites associated with any given site (or RPA). The user can/should enter a site mgmt IP addr, but they can also
      * support the mgmt IP addr of an RPA. This method will return sites, not RPAs
-     *
+     * 
      * @return set of discovered RP sites
-     *
+     * 
      * @throws RecoverPointException
      **/
     public Set<RPSite> getAssociatedRPSites() throws RecoverPointException {
@@ -274,7 +279,7 @@ public class RecoverPointClient {
             String localSiteName = "unknown";
             FullRecoverPointSettings fullRecoverPointSettings = functionalAPI.getFullRecoverPointSettings();
             SortedSet<String> siteNames = new TreeSet<String>();
-            
+
             for (ClusterSettings siteSettings : fullRecoverPointSettings.getSystemSettings().getClustersSettings()) {
                 String siteName = siteSettings.getClusterName();
                 siteNames.add(siteName);
@@ -282,21 +287,22 @@ public class RecoverPointClient {
 
             Iterator<String> iter = siteNames.iterator();
             String installationId = "";
-            while (iter.hasNext()) { 
-            	installationId += (String)iter.next();
-            	if (iter.hasNext()) {
-            		installationId += "_";
-            	}
+            while (iter.hasNext()) {
+                installationId += (String) iter.next();
+                if (iter.hasNext()) {
+                    installationId += "_";
+                }
             }
-                
-            for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration().getClustersConfigurations()) {
-            	// TODO: Support multiple management IPs per site
+
+            for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
+                    .getClustersConfigurations()) {
+                // TODO: Support multiple management IPs per site
                 String siteIP = siteSettings.getManagementIPs().get(0).getIp();
                 String siteName = siteSettings.getClusterName();
                 if (siteIP == null) {
                     throw RecoverPointException.exceptions.cannotDetermineMgmtIPSite(siteName);
                 }
-                
+
                 List<RpaConfiguration> rpaList = siteSettings.getRpasConfigurations();
                 discoveredSite = new RPSite();
                 discoveredSite.setSiteName(siteName);
@@ -314,14 +320,16 @@ public class RecoverPointClient {
                 logger.info("SITE GUID:  " + siteGUID);
                 discoveredSite.setSiteGUID(siteGUID);
                 if (localClusterUID.getId() == siteSettings.getCluster().getId()) {
-                    logger.info("Discovered local site name: " + siteName + ", site IP: " + siteIP + ", RP version: " + discoveredSite.getSiteVersion() + ", num RPAs: "
+                    logger.info("Discovered local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
+                            + discoveredSite.getSiteVersion() + ", num RPAs: "
                             + discoveredSite.getNumRPAs());
 
                 } else {
-                    logger.info("Discovered non-local site name: " + siteName + ", site IP: " + siteIP + ", RP version: " + discoveredSite.getSiteVersion()
+                    logger.info("Discovered non-local site name: " + siteName + ", site IP: " + siteIP + ", RP version: "
+                            + discoveredSite.getSiteVersion()
                             + ", num RPAs: " + discoveredSite.getNumRPAs());
                 }
-                
+
                 returnSiteSet.add(discoveredSite);
             }
 
@@ -349,60 +357,61 @@ public class RecoverPointClient {
      */
     public boolean doesCgExist(String cgName) throws RecoverPointException {
         String mgmtIPAddress = _endpoint.toASCIIString();
-        
+
         if (null == mgmtIPAddress) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
-        
+
         try {
-            //Make sure the CG name is unique.
-            List<ConsistencyGroupUID> allCgs =  functionalAPI.getAllConsistencyGroups();
+            // Make sure the CG name is unique.
+            List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
                 if (settings.getName().toString().equalsIgnoreCase(cgName)) {
                     return true;
                 }
-            }  
+            }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             throw RecoverPointException.exceptions.failedToLookupConsistencyGroup(cgName, getCause(e));
         }
-        
+
         return false;
     }
-    
+
     /**
      * scans all sites until all volumes involved in the Recoverpoint protection are visible
+     * 
      * @param request
      */
     public void waitForVolumesToBeVisible(CGRequestParams request) {
-        scan(request.getCopies(), request.getRsets()); 
+        scan(request.getCopies(), request.getRsets());
     }
-    
+
     /**
      * Updates an existing CG by adding new replication sets.
-     *
+     * 
      * @param request - contains all the information required to create the consistency group
-     *
+     * 
      * @return RecoverPointCGResponse - response as to success or fail of creating the consistency group
-     *
+     * 
      * @throws RecoverPointException
      **/
     public RecoverPointCGResponse addReplicationSetsToCG(CGRequestParams request, boolean metropoint) throws RecoverPointException {
-        
+
         if (null == _endpoint.toASCIIString()) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
-        
+
         List<String> replicationSetsRollback = new ArrayList<String>();
         RecoverPointCGResponse response = new RecoverPointCGResponse();
         List<ConsistencyGroupCopySettings> groupCopySettings = null;
         ConsistencyGroupUID cgUID = null;
-        
+
         try {
 
-            //Make sure the CG name is unique.
-            List<ConsistencyGroupUID> allCgs =  functionalAPI.getAllConsistencyGroups();
+            // Make sure the CG name is unique.
+            List<ConsistencyGroupUID> allCgs = functionalAPI.getAllConsistencyGroups();
             for (ConsistencyGroupUID cg : allCgs) {
                 ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
                 if (settings.getName().toString().equalsIgnoreCase(request.getCgName())) {
@@ -411,26 +420,26 @@ public class RecoverPointClient {
                     break;
                 }
             }
-            
+
             if (cgUID == null) {
                 // The CG does not exist so we cannot add replication sets
                 throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());
             }
-            
+
             response.setCgId(cgUID.getId());
-            
+
             // caches site names to cluster id's to reduce calls to fapi for the same information
             Map<String, ClusterUID> clusterIdCache = new HashMap<String, ClusterUID>();
             // prodSites is used for logging and to determine if a non-production copy is local or remote
             List<ClusterUID> prodSites = new ArrayList<ClusterUID>();
-            
+
             // used to set the copy uid on the rset volume when adding rsets
             Map<Long, ConsistencyGroupCopyUID> productionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
             Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
-            
+
             for (ConsistencyGroupCopySettings copySettings : groupCopySettings) {
                 GlobalCopyUID globalCopyUID = copySettings.getCopyUID().getGlobalCopyUID();
-                if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole()) || 
+                if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole()) ||
                         ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
                     productionCopiesUID.put(Long.valueOf(globalCopyUID.getClusterUID().getId()), copySettings.getCopyUID());
                     prodSites.add(globalCopyUID.getClusterUID());
@@ -438,39 +447,41 @@ public class RecoverPointClient {
                     nonProductionCopiesUID.put(Long.valueOf(globalCopyUID.getClusterUID().getId()), copySettings.getCopyUID());
                 }
             }
-            
+
             StringBuffer sb = new StringBuffer();
             for (ClusterUID prodSite : prodSites) {
                 sb.append(prodSite.getId());
                 sb.append(" ");
             }
-            
-            logger.info("RecoverPointClient: Adding replication set(s) to consistency group " + request.getCgName() + " for endpoint: " + _endpoint.toASCIIString() + " and production sites: " + sb.toString());
-            
-            ConsistencyGroupSettingsChangesParam cgSettingsParam = configureCGSettingsChangeParams(request, cgUID, prodSites, clusterIdCache,
+
+            logger.info("RecoverPointClient: Adding replication set(s) to consistency group " + request.getCgName() + " for endpoint: "
+                    + _endpoint.toASCIIString() + " and production sites: " + sb.toString());
+
+            ConsistencyGroupSettingsChangesParam cgSettingsParam = configureCGSettingsChangeParams(request, cgUID, prodSites,
+                    clusterIdCache,
                     productionCopiesUID, nonProductionCopiesUID);
-            
+
             logger.info("Adding journals and rsets for CG " + request.getCgName());
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
-            
+
             // Sometimes the CG is still active when we start polling for link state and then
-            // starts initializing some time afterwards. Adding this sleep to make sure the CG 
+            // starts initializing some time afterwards. Adding this sleep to make sure the CG
             // starts initializing before we check the link states
             logger.info("Sleeping for 10s after enabling the consistency group link");
             try {
                 Thread.sleep(RP_OPERATION_WAIT_TIME);
-            } catch (InterruptedException e) {  
+            } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            
+
             logger.info("Waiting for links to become active for CG " + request.getCgName());
             (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
             logger.info(String.format("Replication sets have been added to consistency group %s.", request.getCgName()));
-            
+
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
-            
+
             return response;
-            
+
         } catch (Exception e) {
             for (CreateRSetParams rsetParam : request.getRsets()) {
                 replicationSetsRollback.add(rsetParam.getName());
@@ -479,33 +490,33 @@ public class RecoverPointClient {
             throw RecoverPointException.exceptions.failedToAddReplicationSetToConsistencyGroup(request.getCgName(), getCause(e));
         }
     }
-    
+
     /**
      * Creates a consistency group
-     *
+     * 
      * @param request - contains all the information required to create the consistency group
-     *
+     * 
      * @return CreateCGResponse - response as to success or fail of creating the consistency group
-     *
+     * 
      * @throws RecoverPointException
      **/
     public RecoverPointCGResponse createCG(CGRequestParams request, boolean metropoint) throws RecoverPointException {
-        
+
         if (null == _endpoint.toASCIIString()) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
-        
+
         RecoverPointCGResponse response = new RecoverPointCGResponse();
         ConsistencyGroupUID cgUID = null;
         try {
 
-            //Make sure the CG name is unique.
-            int cgSuffix=0;
+            // Make sure the CG name is unique.
+            int cgSuffix = 0;
             String cgName = request.getCgName();
             while (doesCgExist(request.getCgName())) {
                 request.setCgName(String.format("%s-%d", cgName, ++cgSuffix));
             }
-            
+
             // caches site names to cluster id's to reduce calls to fapi for the same information
             Map<String, ClusterUID> clusterIdCache = new HashMap<String, ClusterUID>();
 
@@ -516,13 +527,14 @@ public class RecoverPointClient {
                 sb.append(prodSite.getId());
                 sb.append(" ");
             }
-            
-            logger.info("RecoverPointClient: Creating recoverPoint consistency group " + request.getCgName() + " for endpoint: " + _endpoint.toASCIIString() + " and production sites: " + sb.toString()); 
-            
+
+            logger.info("RecoverPointClient: Creating recoverPoint consistency group " + request.getCgName() + " for endpoint: "
+                    + _endpoint.toASCIIString() + " and production sites: " + sb.toString());
+
             // used to set the copy uid on the rset volume when adding rsets
             Map<Long, ConsistencyGroupCopyUID> productionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
             Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID = new HashMap<Long, ConsistencyGroupCopyUID>();
-            
+
             FullConsistencyGroupPolicy fullConsistencyGroupPolicy = configureCGPolicy(request, prodSites, clusterIdCache,
                     productionCopiesUID, nonProductionCopiesUID);
 
@@ -531,33 +543,34 @@ public class RecoverPointClient {
             functionalAPI.validateAddConsistencyGroupAndCopies(fullConsistencyGroupPolicy);
             cgUID = functionalAPI.addConsistencyGroupAndCopies(fullConsistencyGroupPolicy);
             response.setCgId(cgUID.getId());
-            
-            ConsistencyGroupSettingsChangesParam cgSettingsParam = configureCGSettingsChangeParams(request, cgUID, prodSites, clusterIdCache,
+
+            ConsistencyGroupSettingsChangesParam cgSettingsParam = configureCGSettingsChangeParams(request, cgUID, prodSites,
+                    clusterIdCache,
                     productionCopiesUID, nonProductionCopiesUID);
-            
+
             logger.info("Adding journals and rsets for CG " + request.getCgName());
             functionalAPI.validateSetConsistencyGroupSettings(cgSettingsParam);
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
-            
+
             logger.info("Waiting for links to become active for CG " + request.getCgName());
             (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
             logger.info(String.format("Consistency group %s has been created.", request.getCgName()));
-            
+
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
-            
+
             return response;
         } catch (Exception e) {
             if (cgUID != null) {
                 try {
-                    RecoverPointUtils.cleanupCG (functionalAPI, cgUID);  
+                    RecoverPointUtils.cleanupCG(functionalAPI, cgUID);
                 } catch (Exception e1) {
                     logger.error("Error removing CG " + request.getCgName() + " after create CG failure");
                     logger.error(e1.getMessage(), e1);
                 }
             }
             throw RecoverPointException.exceptions.failedToCreateConsistencyGroup(request.getCgName(), getCause(e));
-        } 
-        
+        }
+
     }
 
     /**
@@ -578,24 +591,27 @@ public class RecoverPointClient {
         }
         return prodSites;
     }
-    
+
     /**
      * returns cluster uid for a copy
+     * 
      * @param copyParam
      * @param clusterIdCache
      * @return
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
      */
-    private ClusterUID getClusterUid(CreateCopyParams copyParam, Map<String, ClusterUID> clusterIdCache) throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
+    private ClusterUID getClusterUid(CreateCopyParams copyParam, Map<String, ClusterUID> clusterIdCache)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
         if (copyParam.getJournals() != null && !copyParam.getJournals().isEmpty()) {
             return getRPSiteID(copyParam.getJournals().iterator().next().getInternalSiteName(), clusterIdCache);
         }
         return null;
     }
-    
+
     /**
      * get copy type (local, remote, production)
+     * 
      * @param copyParam
      * @param prodSites
      * @param clusterUID
@@ -607,18 +623,19 @@ public class RecoverPointClient {
             if (volume.isProduction()) {
                 return RecoverPointCGCopyType.PRODUCTION;
             } else {
-                if (isLocalCopy(prodSites, clusterUID)) {                
+                if (isLocalCopy(prodSites, clusterUID)) {
                     return RecoverPointCGCopyType.LOCAL;
                 } else {
                     return RecoverPointCGCopyType.REMOTE;
-                }                   
+                }
             }
         }
         return null;
     }
-    
+
     /**
      * construct a CG copy UID
+     * 
      * @param clusterUID
      * @param copyType
      * @param cgUID
@@ -626,28 +643,30 @@ public class RecoverPointClient {
      */
     private ConsistencyGroupCopyUID getCGCopyUid(ClusterUID clusterUID, RecoverPointCGCopyType copyType, ConsistencyGroupUID cgUID) {
         ConsistencyGroupCopyUID cgCopyUID = new ConsistencyGroupCopyUID();
-        GlobalCopyUID globalCopyUID = new GlobalCopyUID();              
+        GlobalCopyUID globalCopyUID = new GlobalCopyUID();
         globalCopyUID.setClusterUID(clusterUID);
         globalCopyUID.setCopyUID(copyType.getCopyNumber());
         cgCopyUID.setGlobalCopyUID(globalCopyUID);
         cgCopyUID.setGroupUID(cgUID);
         return cgCopyUID;
     }
-    
+
     /**
      * @param request
      * @param prodSites
      * @param clusterIdCache
      * @return
-     * @throws FunctionalAPIInternalError_Exception 
-     * @throws FunctionalAPIActionFailedException_Exception 
+     * @throws FunctionalAPIInternalError_Exception
+     * @throws FunctionalAPIActionFailedException_Exception
      */
-    private ConsistencyGroupSettingsChangesParam configureCGSettingsChangeParams(CGRequestParams request, ConsistencyGroupUID cgUID, List<ClusterUID> prodSites,
+    private ConsistencyGroupSettingsChangesParam configureCGSettingsChangeParams(CGRequestParams request, ConsistencyGroupUID cgUID,
+            List<ClusterUID> prodSites,
             Map<String, ClusterUID> clusterIdCache, Map<Long, ConsistencyGroupCopyUID> productionCopiesUID,
-            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID) throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
-        
+            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID) throws FunctionalAPIActionFailedException_Exception,
+            FunctionalAPIInternalError_Exception {
+
         Set<RPSite> allSites = getAssociatedRPSites();
-        
+
         // used to set journal volumes and RSets after the CG is created
         ConsistencyGroupSettingsChangesParam cgSettingsParam = new ConsistencyGroupSettingsChangesParam();
         ActivationSettingsChangesParams cgActivationSettings = new ActivationSettingsChangesParams();
@@ -655,35 +674,35 @@ public class RecoverPointClient {
         cgActivationSettings.setStartTransfer(true);
         cgSettingsParam.setActivationParams(cgActivationSettings);
         cgSettingsParam.setGroupUID(cgUID);
-        
-        for (CreateCopyParams copyParam : request.getCopies()){
-            
+
+        for (CreateCopyParams copyParam : request.getCopies()) {
+
             ClusterUID clusterUID = getClusterUid(copyParam, clusterIdCache);
             if (clusterUID != null) {
-                
+
                 RecoverPointCGCopyType copyType = getCopyType(copyParam, prodSites, clusterUID);
-            
+
                 if (copyType != null) {
-                    
+
                     ConsistencyGroupCopyUID cgCopyUID = getCGCopyUid(clusterUID, copyType, cgUID);
-                    
+
                     // set up journal params
                     ConsistencyGroupCopySettingsChangesParam copySettingsParam = new ConsistencyGroupCopySettingsChangesParam();
                     copySettingsParam.setCopyUID(cgCopyUID);
-                    
+
                     ActivationSettingsChangesParams copyActivationSettings = new ActivationSettingsChangesParams();
                     copyActivationSettings.setEnable(true);
                     copyActivationSettings.setStartTransfer(true);
                     copySettingsParam.setActivationParams(copyActivationSettings);
-                    
+
                     for (CreateVolumeParams journalVolume : copyParam.getJournals()) {
                         logger.info("Configuring Journal : \n" + journalVolume.toString() + "\n for copy: " + copyParam.getName() +
                                 "; CG " + request.getCgName());
                         copySettingsParam.getNewJournalVolumes().add(RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));
                     }
-                    
+
                     cgSettingsParam.getCopiesChanges().add(copySettingsParam);
-                    
+
                 } else {
                     logger.warn("No journal volumes specified for CG: " + copyParam.getName());
                 }
@@ -691,26 +710,26 @@ public class RecoverPointClient {
                 logger.warn("No journal volumes specified for CG: " + copyParam.getName());
             }
         }
-        
+
         String previousProdCopyName = null;
 
-        // configure replication sets                   
-        for (CreateRSetParams rsetParam : request.getRsets()) {  
-            
+        // configure replication sets
+        for (CreateRSetParams rsetParam : request.getRsets()) {
+
             logger.info("Configuring replication set: " + rsetParam.toString() + " for cg " + request.getCgName());
-            
+
             ReplicationSetSettingsChangesParam repSetSettings = new ReplicationSetSettingsChangesParam();
             repSetSettings.setName(rsetParam.getName());
             repSetSettings.setShouldAttachAsClean(false);
-            
+
             Set<String> sourceWWNsInRset = new HashSet<String>();
             for (CreateVolumeParams volume : rsetParam.getVolumes()) {
-                
+
                 UserVolumeSettingsChangesParam volSettings = new UserVolumeSettingsChangesParam();
                 volSettings.setNewVolumeID(RecoverPointUtils.getDeviceID(allSites, volume.getWwn()));
-                
+
                 ClusterUID volSiteId = getRPSiteID(volume.getInternalSiteName(), clusterIdCache);
-                
+
                 if (volume.isProduction()) {
                     // for metropoint, the same production volume will appear twice; we only want to add it once
                     if (sourceWWNsInRset.contains(volume.getWwn())) {
@@ -719,16 +738,17 @@ public class RecoverPointClient {
                     if (previousProdCopyName == null) {
                         previousProdCopyName = volume.getRpCopyName();
                     } else if (!previousProdCopyName.equals(volume.getRpCopyName())) {
-                        logger.info(String.format("will not add rset for volume %s to prod copy %s because another rset has already been added to prod copy %s", 
-                                rsetParam.getName(), volume.getRpCopyName(), previousProdCopyName));
+                        logger.info(String
+                                .format("will not add rset for volume %s to prod copy %s because another rset has already been added to prod copy %s",
+                                        rsetParam.getName(), volume.getRpCopyName(), previousProdCopyName));
                         continue;
                     }
                     sourceWWNsInRset.add(volume.getWwn());
-                    logger.info("Configuring production copy volume : \n" + volume.toString());  
+                    logger.info("Configuring production copy volume : \n" + volume.toString());
                     ConsistencyGroupCopyUID copyUID = productionCopiesUID.get(Long.valueOf(volSiteId.getId()));
                     volSettings.setCopyUID(copyUID);
                 } else {
-                    logger.info("Configuring non-production copy volume : \n" + volume.toString());  
+                    logger.info("Configuring non-production copy volume : \n" + volume.toString());
                     ConsistencyGroupCopyUID copyUID = nonProductionCopiesUID.get(Long.valueOf(volSiteId.getId()));
                     volSettings.setCopyUID(copyUID);
                 }
@@ -737,138 +757,146 @@ public class RecoverPointClient {
             }
             cgSettingsParam.getReplicationSetsChanges().add(repSetSettings);
         }
-        
+
         return cgSettingsParam;
     }
 
     /**
      * @param request
      * @return
-     * @throws FunctionalAPIInternalError_Exception 
-     * @throws FunctionalAPIActionFailedException_Exception 
+     * @throws FunctionalAPIInternalError_Exception
+     * @throws FunctionalAPIActionFailedException_Exception
      */
-    private FullConsistencyGroupPolicy configureCGPolicy(CGRequestParams request, List<ClusterUID> prodSites, Map<String, ClusterUID> clusterIdCache, Map<Long, ConsistencyGroupCopyUID> productionCopiesUID,
-            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID) throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
-            
-            logger.info("Requesting preferred RPA for cluster " + prodSites.get(0).getId());
-            RpaUID preferredRPA = RecoverPointUtils.getPreferredRPAForNewCG(functionalAPI, prodSites.get(0));
-            logger.info("Preferred RPA for cluster " + preferredRPA.getClusterUID().getId() + " is RPA " + preferredRPA.getRpaNumber());
-            
-            // used to create the CG; contains CG settings, copies and links
-            FullConsistencyGroupPolicy fullConsistencyGroupPolicy = new FullConsistencyGroupPolicy();
-            fullConsistencyGroupPolicy.setGroupName(request.getCgName());
-            fullConsistencyGroupPolicy.setGroupPolicy(functionalAPI.getDefaultConsistencyGroupPolicy());
-            fullConsistencyGroupPolicy.getGroupPolicy().setPrimaryRPANumber(preferredRPA.getRpaNumber());
-            
-            for (CreateCopyParams copyParam : request.getCopies()){
-                
-                ClusterUID clusterUID = getClusterUid(copyParam, clusterIdCache);
-                if (clusterUID != null) {
-                    
-                    RecoverPointCGCopyType copyType = getCopyType(copyParam, prodSites, clusterUID);
-                
-                    if (copyType != null) {
-                    
-                        logger.info(String.format("Configuring %s copy %s for CG %s", copyType.toString(), copyParam.getName(), request.getCgName()));
-                        
-                        ConsistencyGroupCopyUID cgCopyUID = getCGCopyUid(clusterUID, copyType, null);
-                        
-                        FullConsistencyGroupCopyPolicy copyPolicy = new FullConsistencyGroupCopyPolicy();
-                        copyPolicy.setCopyName(copyParam.getName());
-                        copyPolicy.setCopyPolicy(functionalAPI.getDefaultConsistencyGroupCopyPolicy());
-                        copyPolicy.setCopyUID(cgCopyUID);
-                        
-                        fullConsistencyGroupPolicy.getCopiesPolicies().add(copyPolicy);
-                        
-                        if (copyType.isProduction()) {
-                            fullConsistencyGroupPolicy.getProductionCopies().add(copyPolicy.getCopyUID());
-                            productionCopiesUID.put(Long.valueOf(clusterUID.getId()), copyPolicy.getCopyUID());
-                        } else {
-                            nonProductionCopiesUID.put(Long.valueOf(clusterUID.getId()), copyPolicy.getCopyUID());
-                        }
-                        
+    private FullConsistencyGroupPolicy configureCGPolicy(CGRequestParams request, List<ClusterUID> prodSites,
+            Map<String, ClusterUID> clusterIdCache, Map<Long, ConsistencyGroupCopyUID> productionCopiesUID,
+            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID) throws FunctionalAPIActionFailedException_Exception,
+            FunctionalAPIInternalError_Exception {
+
+        logger.info("Requesting preferred RPA for cluster " + prodSites.get(0).getId());
+        RpaUID preferredRPA = RecoverPointUtils.getPreferredRPAForNewCG(functionalAPI, prodSites.get(0));
+        logger.info("Preferred RPA for cluster " + preferredRPA.getClusterUID().getId() + " is RPA " + preferredRPA.getRpaNumber());
+
+        // used to create the CG; contains CG settings, copies and links
+        FullConsistencyGroupPolicy fullConsistencyGroupPolicy = new FullConsistencyGroupPolicy();
+        fullConsistencyGroupPolicy.setGroupName(request.getCgName());
+        fullConsistencyGroupPolicy.setGroupPolicy(functionalAPI.getDefaultConsistencyGroupPolicy());
+        fullConsistencyGroupPolicy.getGroupPolicy().setPrimaryRPANumber(preferredRPA.getRpaNumber());
+
+        for (CreateCopyParams copyParam : request.getCopies()) {
+
+            ClusterUID clusterUID = getClusterUid(copyParam, clusterIdCache);
+            if (clusterUID != null) {
+
+                RecoverPointCGCopyType copyType = getCopyType(copyParam, prodSites, clusterUID);
+
+                if (copyType != null) {
+
+                    logger.info(String.format("Configuring %s copy %s for CG %s", copyType.toString(), copyParam.getName(),
+                            request.getCgName()));
+
+                    ConsistencyGroupCopyUID cgCopyUID = getCGCopyUid(clusterUID, copyType, null);
+
+                    FullConsistencyGroupCopyPolicy copyPolicy = new FullConsistencyGroupCopyPolicy();
+                    copyPolicy.setCopyName(copyParam.getName());
+                    copyPolicy.setCopyPolicy(functionalAPI.getDefaultConsistencyGroupCopyPolicy());
+                    copyPolicy.setCopyUID(cgCopyUID);
+
+                    fullConsistencyGroupPolicy.getCopiesPolicies().add(copyPolicy);
+
+                    if (copyType.isProduction()) {
+                        fullConsistencyGroupPolicy.getProductionCopies().add(copyPolicy.getCopyUID());
+                        productionCopiesUID.put(Long.valueOf(clusterUID.getId()), copyPolicy.getCopyUID());
                     } else {
-                        logger.error("No journal volumes specified for create CG: " + copyParam.getName());
+                        nonProductionCopiesUID.put(Long.valueOf(clusterUID.getId()), copyPolicy.getCopyUID());
                     }
+
                 } else {
                     logger.error("No journal volumes specified for create CG: " + copyParam.getName());
                 }
+            } else {
+                logger.error("No journal volumes specified for create CG: " + copyParam.getName());
             }
-            
-            // set links between production and remote/local copies
-            configureLinkPolicies(fullConsistencyGroupPolicy, request);
-            
-            return fullConsistencyGroupPolicy;
+        }
+
+        // set links between production and remote/local copies
+        configureLinkPolicies(fullConsistencyGroupPolicy, request);
+
+        return fullConsistencyGroupPolicy;
     }
-    
+
     /**
      * configure links between each production and each local and/or remote copy in a new CG
      * configured links are added to fullConsistencyGroupPolicy
+     * 
      * @param fullConsistencyGroupPolicy cg policy with copies populated
      * @param copyType prod, local or remote
      * @param request create cg request used for copy mode and rpo
      */
     private void configureLinkPolicies(FullConsistencyGroupPolicy fullConsistencyGroupPolicy, CGRequestParams request) {
         for (FullConsistencyGroupCopyPolicy copyPolicy : fullConsistencyGroupPolicy.getCopiesPolicies()) {
-            
+
             if (!fullConsistencyGroupPolicy.getProductionCopies().contains(copyPolicy.getCopyUID())) {
-                
+
                 for (ConsistencyGroupCopyUID productionCopyUID : fullConsistencyGroupPolicy.getProductionCopies()) {
-                        
-                    logger.info("Configuring link policy between production copy and local or remote copy on cluster(id) : " + copyPolicy.getCopyUID().getGlobalCopyUID().getClusterUID().getId());
-                    
+
+                    logger.info("Configuring link policy between production copy and local or remote copy on cluster(id) : "
+                            + copyPolicy.getCopyUID().getGlobalCopyUID().getClusterUID().getId());
+
                     ConsistencyGroupLinkUID linkUid = new ConsistencyGroupLinkUID();
                     linkUid.setFirstCopy(productionCopyUID.getGlobalCopyUID());
                     linkUid.setSecondCopy(copyPolicy.getCopyUID().getGlobalCopyUID());
-                    
-                    boolean isLocal = productionCopyUID.getGlobalCopyUID().getClusterUID().equals(copyPolicy.getCopyUID().getGlobalCopyUID().getClusterUID());
+
+                    boolean isLocal = productionCopyUID.getGlobalCopyUID().getClusterUID()
+                            .equals(copyPolicy.getCopyUID().getGlobalCopyUID().getClusterUID());
                     RecoverPointCGCopyType copyType = isLocal ? RecoverPointCGCopyType.LOCAL : RecoverPointCGCopyType.REMOTE;
-                    
-                    ConsistencyGroupLinkPolicy linkPolicy = createLinkPolicy(copyType, request.cgPolicy.copyMode, request.cgPolicy.rpoType, request.cgPolicy.rpoValue);
+
+                    ConsistencyGroupLinkPolicy linkPolicy = createLinkPolicy(copyType, request.cgPolicy.copyMode, request.cgPolicy.rpoType,
+                            request.cgPolicy.rpoValue);
                     ConsistencyGroupLinkSettings linkSettings = new ConsistencyGroupLinkSettings();
                     linkSettings.setGroupLinkUID(linkUid);
                     linkSettings.setLinkPolicy(linkPolicy);
                     linkSettings.setLocalLink(isLocal);
                     linkSettings.setTransferEnabled(false);
-                    
+
                     FullConsistencyGroupLinkPolicy fullLinkPolicy = new FullConsistencyGroupLinkPolicy();
                     fullLinkPolicy.setLinkPolicy(linkPolicy);
                     fullLinkPolicy.setLinkUID(linkUid);
-                   
+
                     fullConsistencyGroupPolicy.getLinksPolicies().add(fullLinkPolicy);
                 }
             }
         }
-        
+
     }
-  
+
     /**
      * @param prodSites - List of production sites
      * @param siteID - current site that is being validated for if its on the same site as a production copy
      * @return boolean
      */
     private boolean isLocalCopy(List<ClusterUID> prodSites, ClusterUID siteID) {
-    	for (ClusterUID prodSite : prodSites) {
-    		if (prodSite.getId() == siteID.getId()){
-    			return true;
-    		}
-    	}
-    	return false;
+        for (ClusterUID prodSite : prodSites) {
+            if (prodSite.getId() == siteID.getId()) {
+                return true;
+            }
+        }
+        return false;
     }
-      
+
     /**
      * Get the root cause of the failure, if available
+     * 
      * @param e the base exception
      * @return the exception with valuable information in it
      */
     public static Throwable getCause(Exception e) {
-		if (e.getCause() != null) {
-			return e.getCause();
-		}
-		return e;
-	}
+        if (e.getCause() != null) {
+            return e.getCause();
+        }
+        return e;
+    }
 
-	/**
+    /**
      * Walk through the journals and source/target volumes to see where the WWNS lie.
      * 
      * @param copies
@@ -877,22 +905,27 @@ public class RecoverPointClient {
      */
     private Set<RPSite> scan(List<CreateCopyParams> copies, List<CreateRSetParams> rSets) {
         // Setting the MAX_SCAN_WAIT_TOTAL_TRIES = 240
-    	// so that we loop for a max of 1 hour (240 * 15000 = 1 hour)
-    	final int MAX_SCAN_WAIT_TOTAL_TRIES = 240;
+        // so that we loop for a max of 1 hour (240 * 15000 = 1 hour)
+        final int MAX_SCAN_WAIT_TOTAL_TRIES = 240;
         final int MAX_SCAN_WAIT_RETRY_MILLISECONDS = 15000;
-        
+
         int rescanTries = MAX_SCAN_WAIT_TOTAL_TRIES;
         boolean needsScan = true; // set to true to stay in the loop
-        
+
         Set<RPSite> allSites = null;
-        
+
         while (needsScan && rescanTries-- > 0) {
-            // Reset scan flag.  If something goes wrong, it'll get set to true.
+            // Reset scan flag. If something goes wrong, it'll get set to true.
             needsScan = false;
-            
+
             if ((MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries) != 1) {
-                logger.info("RecoverPointClient: Briefly sleeping to accomodate export group latencies (Attempt #{} / {})", MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries, MAX_SCAN_WAIT_TOTAL_TRIES);
-                try { Thread.sleep(MAX_SCAN_WAIT_RETRY_MILLISECONDS); } catch (InterruptedException e1) { Thread.currentThread().interrupt(); }
+                logger.info("RecoverPointClient: Briefly sleeping to accomodate export group latencies (Attempt #{} / {})",
+                        MAX_SCAN_WAIT_TOTAL_TRIES - rescanTries, MAX_SCAN_WAIT_TOTAL_TRIES);
+                try {
+                    Thread.sleep(MAX_SCAN_WAIT_RETRY_MILLISECONDS);
+                } catch (InterruptedException e1) {
+                    Thread.currentThread().interrupt();
+                }
             }
 
             // Rescan the san
@@ -919,7 +952,8 @@ public class RecoverPointClient {
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                             String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                             if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
-                                logger.info("Found site and volume ID for journal: " + volumeParam.getWwn() + " for copy: " + copy.getName());
+                                logger.info("Found site and volume ID for journal: " + volumeParam.getWwn() + " for copy: "
+                                        + copy.getName());
                                 found = true;
                                 break;
                             }
@@ -932,16 +966,17 @@ public class RecoverPointClient {
                         needsScan = true; // set that we still need to scan.
 
                         if (rescanTries <= 0) {
-                        	 for (RPSite rpSite : allSites) {
-                                 logger.error(String.format("Could not find voume %s on any RP site", volumeParam.getWwn()));
-                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
-                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                                     logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(), RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
-                                 }
-                             }
+                            for (RPSite rpSite : allSites) {
+                                logger.error(String.format("Could not find voume %s on any RP site", volumeParam.getWwn()));
+                                ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
+                                for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
+                                    logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
+                                            RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
+                                }
+                            }
                             throw RecoverPointException.exceptions
-                            .couldNotFindSiteAndVolumeIDForJournal(volumeParam.getWwn(), copy.getName(),
-                                    volumeParam.getInternalSiteName());
+                                    .couldNotFindSiteAndVolumeIDForJournal(volumeParam.getWwn(), copy.getName(),
+                                            volumeParam.getInternalSiteName());
                         }
                     }
                 }
@@ -957,8 +992,10 @@ public class RecoverPointClient {
                         ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                         for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                             String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
-                            if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {                                
-                                logger.info(String.format("Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)", volumeParam.getWwn(), rset.getName(), rpSite.getSiteName(), volumeParam.getInternalSiteName()));
+                            if (siteVolUID.equalsIgnoreCase(volumeParam.getWwn())) {
+                                logger.info(String.format(
+                                        "Found site and volume ID for volume: %s for replication set: %s on site: %s (%s)",
+                                        volumeParam.getWwn(), rset.getName(), rpSite.getSiteName(), volumeParam.getInternalSiteName()));
                                 found = true;
                                 break;
                             }
@@ -971,25 +1008,26 @@ public class RecoverPointClient {
                         needsScan = true; // set that we still need to scan
 
                         if (rescanTries <= 0) {
-                        	for (RPSite rpSite : allSites) {
+                            for (RPSite rpSite : allSites) {
                                 logger.error(String.format("Could not find voume %s on any RP site", volumeParam.getWwn()));
                                 ClusterSANVolumes siteSANVolumes = rpSite.getSiteVolumes();
                                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
-                                    logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(), RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
+                                    logger.info(String.format("RP Site: %s; volume from RP: %s", rpSite.getSiteName(),
+                                            RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false)));
                                 }
                             }
                             throw RecoverPointException.exceptions
-                            .couldNotFindSiteAndVolumeIDForVolume(volumeParam.getWwn(), rset.getName(),
-                                    volumeParam.getInternalSiteName());
+                                    .couldNotFindSiteAndVolumeIDForVolume(volumeParam.getWwn(), rset.getName(),
+                                            volumeParam.getInternalSiteName());
                         }
                     }
                 }
             }
         }
-        
+
         return allSites;
-    }    
-    
+    }
+
     /**
      * Convenience method to set the link policy.
      * 
@@ -1000,10 +1038,11 @@ public class RecoverPointClient {
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
      */
-    private void setLinkPolicy(boolean remote, ConsistencyGroupCopyUID prodCopyUID, 
-    		ConsistencyGroupCopyUID targetCopyUID, ConsistencyGroupUID cgUID) throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
+    private void setLinkPolicy(boolean remote, ConsistencyGroupCopyUID prodCopyUID,
+            ConsistencyGroupCopyUID targetCopyUID, ConsistencyGroupUID cgUID) throws FunctionalAPIActionFailedException_Exception,
+            FunctionalAPIInternalError_Exception {
         ConsistencyGroupLinkUID groupLink = new ConsistencyGroupLinkUID();
-        
+
         ConsistencyGroupLinkPolicy linkPolicy = new ConsistencyGroupLinkPolicy();
         linkPolicy.setAdvancedPolicy(new LinkAdvancedPolicy());
         linkPolicy.getAdvancedPolicy().setPerformLongInitialization(true);
@@ -1020,34 +1059,38 @@ public class RecoverPointClient {
         linkPolicy.getProtectionPolicy().getRpoPolicy().setMaximumAllowedLag(getQuantity(QuantityType.MICROSECONDS, 25000000));
         linkPolicy.getProtectionPolicy().getRpoPolicy().setMinimizationType(RpoMinimizationType.IRRELEVANT);
         linkPolicy.getProtectionPolicy().setSyncReplicationLatencyThresholds(new SyncReplicationThreshold());
-        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds().setResumeSyncReplicationBelow(getQuantity(QuantityType.MICROSECONDS, 3000));
-        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds().setStartAsyncReplicationAbove(getQuantity(QuantityType.MICROSECONDS, 5000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds()
+                .setResumeSyncReplicationBelow(getQuantity(QuantityType.MICROSECONDS, 3000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds()
+                .setStartAsyncReplicationAbove(getQuantity(QuantityType.MICROSECONDS, 5000));
         linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds().setThresholdEnabled(false);
         linkPolicy.getProtectionPolicy().setSyncReplicationThroughputThresholds(new SyncReplicationThreshold());
-        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds().setResumeSyncReplicationBelow(getQuantity(QuantityType.KB, 35000));
-        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds().setStartAsyncReplicationAbove(getQuantity(QuantityType.KB, 45000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds()
+                .setResumeSyncReplicationBelow(getQuantity(QuantityType.KB, 35000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds()
+                .setStartAsyncReplicationAbove(getQuantity(QuantityType.KB, 45000));
         linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds().setThresholdEnabled(false);
         linkPolicy.getProtectionPolicy().setWeight(1);
-		groupLink.setFirstCopy(prodCopyUID.getGlobalCopyUID());
-		groupLink.setSecondCopy(targetCopyUID.getGlobalCopyUID());
-		groupLink.setGroupUID(cgUID);
-		functionalAPI.addConsistencyGroupLink(groupLink, linkPolicy);		
-		logger.info("Sleeping for 10s after enabling the consistency group link");
-		try {
-			Thread.sleep(RP_OPERATION_WAIT_TIME);
-		} catch (InterruptedException e) {	
-			//do nothing.
-			Thread.currentThread().interrupt();
-		}
+        groupLink.setFirstCopy(prodCopyUID.getGlobalCopyUID());
+        groupLink.setSecondCopy(targetCopyUID.getGlobalCopyUID());
+        groupLink.setGroupUID(cgUID);
+        functionalAPI.addConsistencyGroupLink(groupLink, linkPolicy);
+        logger.info("Sleeping for 10s after enabling the consistency group link");
+        try {
+            Thread.sleep(RP_OPERATION_WAIT_TIME);
+        } catch (InterruptedException e) {
+            // do nothing.
+            Thread.currentThread().interrupt();
+        }
     }
-    
+
     /**
      * Convenience method for creating a link policy object
      * 
      * @param remote whether to set the "protect over wan" to true
      */
     private ConsistencyGroupLinkPolicy createLinkPolicy(RecoverPointCGCopyType copyType, String copyMode, String rpoType, Long rpoValue) {
-        
+
         ConsistencyGroupLinkPolicy linkPolicy = new ConsistencyGroupLinkPolicy();
         linkPolicy.setAdvancedPolicy(new LinkAdvancedPolicy());
         linkPolicy.getAdvancedPolicy().setPerformLongInitialization(true);
@@ -1064,15 +1107,19 @@ public class RecoverPointClient {
         linkPolicy.getProtectionPolicy().getRpoPolicy().setMaximumAllowedLag(getQuantity(QuantityType.MICROSECONDS, 25000000));
         linkPolicy.getProtectionPolicy().getRpoPolicy().setMinimizationType(RpoMinimizationType.IRRELEVANT);
         linkPolicy.getProtectionPolicy().setSyncReplicationLatencyThresholds(new SyncReplicationThreshold());
-        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds().setResumeSyncReplicationBelow(getQuantity(QuantityType.MICROSECONDS, 3000));
-        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds().setStartAsyncReplicationAbove(getQuantity(QuantityType.MICROSECONDS, 5000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds()
+                .setResumeSyncReplicationBelow(getQuantity(QuantityType.MICROSECONDS, 3000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds()
+                .setStartAsyncReplicationAbove(getQuantity(QuantityType.MICROSECONDS, 5000));
         linkPolicy.getProtectionPolicy().getSyncReplicationLatencyThresholds().setThresholdEnabled(false);
         linkPolicy.getProtectionPolicy().setSyncReplicationThroughputThresholds(new SyncReplicationThreshold());
-        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds().setResumeSyncReplicationBelow(getQuantity(QuantityType.KB, 35000));
-        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds().setStartAsyncReplicationAbove(getQuantity(QuantityType.KB, 45000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds()
+                .setResumeSyncReplicationBelow(getQuantity(QuantityType.KB, 35000));
+        linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds()
+                .setStartAsyncReplicationAbove(getQuantity(QuantityType.KB, 45000));
         linkPolicy.getProtectionPolicy().getSyncReplicationThroughputThresholds().setThresholdEnabled(false);
         linkPolicy.getProtectionPolicy().setWeight(1);
-        
+
         LinkProtectionPolicy linkProtectionPolicy = linkPolicy.getProtectionPolicy();
         if (copyMode != null) {
             logger.info("Setting CG policy of: " + copyMode);
@@ -1087,21 +1134,21 @@ public class RecoverPointClient {
         if (rpoValue != null && rpoType != null) {
             logger.info("Setting CG RPO policy of: " + rpoValue.toString() + " " + rpoType);
             Quantity rpoQuantity = new Quantity();
-            QuantityType quantityType = QuantityType.valueOf(rpoType); 
+            QuantityType quantityType = QuantityType.valueOf(rpoType);
             rpoQuantity.setType(quantityType);
             rpoQuantity.setValue(rpoValue);
             rpoPolicy.setMaximumAllowedLag(rpoQuantity);
         } else if ((rpoValue == null && rpoType != null) ||
-                   (rpoValue != null && rpoType == null)) {
+                (rpoValue != null && rpoType == null)) {
             logger.warn("RPO Policy specified only one of value and type, both need to be specified for RPO policy to be applied.  Ignoring RPO policy.");
         }
         linkProtectionPolicy.setRpoPolicy(rpoPolicy);
         linkPolicy.setProtectionPolicy(linkProtectionPolicy);
-        
+
         return linkPolicy;
-        
+
     }
-    
+
     /**
      * Rollback the replication sets for a CG.
      * 
@@ -1109,18 +1156,18 @@ public class RecoverPointClient {
      * @param cgUID
      * @param replicationSetsRollback
      */
-    private void cleanupReplicationSets(FunctionalAPIImpl functionalAPI, ConsistencyGroupUID cgUID, 
+    private void cleanupReplicationSets(FunctionalAPIImpl functionalAPI, ConsistencyGroupUID cgUID,
             List<String> replicationSetsRollback) {
         logger.info("Rolling back any replication sets that were created.");
         // Do not delete the CG because it was already existed before we started messing around with it.
-        // Remove the replication sets that were created.  No need to worry about copies since if the
+        // Remove the replication sets that were created. No need to worry about copies since if the
         // CG was existing, we are re-using the copies (journals).
         if (replicationSetsRollback != null) {
             for (String replicationSetName : replicationSetsRollback) {
                 try {
                     ReplicationSetUID replicationSetUID = getReplicationSetUID(functionalAPI, cgUID, replicationSetName);
                     if (replicationSetUID == null) {
-                        // If we cannot find the replication set, do not fail.  Rollback what we can.
+                        // If we cannot find the replication set, do not fail. Rollback what we can.
                         logger.error("Cannot rollback replication set.  Unable to find replication set UID for " + replicationSetName);
                         continue;
                     }
@@ -1134,7 +1181,7 @@ public class RecoverPointClient {
             }
         }
     }
-    
+
     /**
      * Gets a ReplicationSetUID given the name of the replication set.
      * 
@@ -1145,7 +1192,7 @@ public class RecoverPointClient {
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
      */
-    private ReplicationSetUID getReplicationSetUID(FunctionalAPIImpl functionalAPI, ConsistencyGroupUID cgUID, String replicationSetName) 
+    private ReplicationSetUID getReplicationSetUID(FunctionalAPIImpl functionalAPI, ConsistencyGroupUID cgUID, String replicationSetName)
             throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
         ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgUID);
         for (ReplicationSetSettings replicationSet : groupSettings.getReplicationSetsSettings()) {
@@ -1153,17 +1200,17 @@ public class RecoverPointClient {
                 return replicationSet.getReplicationSetUID();
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * Creates a bookmark against one or more consistency group
-     *
+     * 
      * @param CreateBookmarkRequestParams request - contains the information about which CGs to create bookmarks on
-     *
+     * 
      * @return CreateBookmarkResponse - response as to success or fail of creating the bookmarks
-     *
+     * 
      * @throws RecoverPointException
      **/
     public CreateBookmarkResponse createBookmarks(CreateBookmarkRequestParams request) throws RecoverPointException {
@@ -1172,36 +1219,37 @@ public class RecoverPointClient {
         if (null == mgmtIPAddress) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
-        
-        Set<String>wwnSet = request.getVolumeWWNSet();
+
+        Set<String> wwnSet = request.getVolumeWWNSet();
         if (wwnSet == null) {
             throw RecoverPointException.exceptions.noWWNsFoundInRequest();
         }
-        
+
         Set<String> unmappedWWNs = new HashSet<String>();
         RecoverPointBookmarkManagementUtils bookmarkManager = new RecoverPointBookmarkManagementUtils();
         Map<String, RPConsistencyGroup> rpCGMap = bookmarkManager.mapCGsForWWNs(functionalAPI, request, unmappedWWNs);
-        
+
         if (!unmappedWWNs.isEmpty()) {
             throw RecoverPointException.exceptions.couldNotMapWWNsToAGroup(unmappedWWNs);
         }
-        
+
         if (rpCGMap == null) {
             throw RecoverPointException.exceptions.couldNotMapWWNsToAGroup(wwnSet);
         }
-        
+
         return bookmarkManager.createCGBookmarks(functionalAPI, rpCGMap, request);
     }
 
     private Quantity getQuantity(QuantityType type, long value) {
-    	Quantity quantity1 = new Quantity();
+        Quantity quantity1 = new Quantity();
         quantity1.setType(type);
         quantity1.setValue(value);
         return quantity1;
     }
+
     /**
      * Get all RP bookmarks for all CGs specified
-     *
+     * 
      * @param request - set of CG integer IDs
      * @return GetBookmarkResponse - a map of CGs to bookmarks for that CG
      * @throws RecoverPointException
@@ -1221,18 +1269,18 @@ public class RecoverPointClient {
             cgUID.setId(cgID);
             response.getCgBookmarkMap().put(cgID, bookmarkManager.getRPBookmarksForCG(functionalAPI, cgUID));
         }
-        
+
         response.setReturnCode(RecoverPointReturnCode.SUCCESS);
         return response;
     }
 
     /**
      * Enables copy images for one or more consistency group copies
-     *
+     * 
      * @param MultiCopyEnableImageRequestParams request - contains the information about which CG copies to enable
-     *
+     * 
      * @return MultiCopyEnableImageResponse - response as to success or fail of enabling the image copies
-     *
+     * 
      * @throws RecoverPointException
      **/
     public MultiCopyEnableImageResponse enableImageCopies(MultiCopyEnableImageRequestParams request) throws RecoverPointException {
@@ -1244,7 +1292,7 @@ public class RecoverPointClient {
         if (null == mgmtIPAddress) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
-        Set<String>wwnSet = request.getVolumeWWNSet();
+        Set<String> wwnSet = request.getVolumeWWNSet();
         if (wwnSet == null) {
             throw RecoverPointException.exceptions.noWWNsFoundInRequest();
         }
@@ -1253,7 +1301,7 @@ public class RecoverPointClient {
         mapRequest.setBookmark(request.getBookmark());
         mapRequest.setVolumeWWNSet(wwnSet);
         Map<String, RPConsistencyGroup> rpCGMap = bookmarkManager.mapCGsForWWNs(functionalAPI, mapRequest, unmappedWWNs);
-        if(!unmappedWWNs.isEmpty()) {
+        if (!unmappedWWNs.isEmpty()) {
             throw RecoverPointException.exceptions.couldNotMapWWNsToAGroup(unmappedWWNs);
         }
         if (rpCGMap == null) {
@@ -1261,44 +1309,45 @@ public class RecoverPointClient {
         }
         Set<RPConsistencyGroup> cgSetToEnable = new HashSet<RPConsistencyGroup>();
         for (String volume : rpCGMap.keySet()) {
-            //logger.info("Get RPCG for volume: " + volume);
+            // logger.info("Get RPCG for volume: " + volume);
             cgSetToEnable.add(rpCGMap.get(volume));
         }
 
         // Make sure your copies are OK to enable.
         for (RPConsistencyGroup rpcg : cgSetToEnable) {
-        	Set<RPCopy>copies = rpcg.getCopies();
-        	for (RPCopy copy : copies) {
-        		try {
-        			String cgCopyName = functionalAPI.getGroupCopyName(copy.getCGGroupCopyUID());
-        			String cgName = functionalAPI.getGroupName(copy.getCGGroupCopyUID().getGroupUID());
-        			if (!imageManager.verifyCopyCapableOfEnableImageAccess(functionalAPI, copy.getCGGroupCopyUID(), false)) {
-        				logger.info("Copy " + cgCopyName + " of group " + cgName + " is in a mode that disallows enabling the CG copy.");
-        				throw RecoverPointException.exceptions.notAllowedToEnableImageAccessToCG(
-        						cgName, cgCopyName);
-        			}
-        		} catch (FunctionalAPIActionFailedException_Exception e) {
-        			throw RecoverPointException.exceptions
-        			.notAllowedToEnableImageAccessToCGException(e);
-        		} catch (FunctionalAPIInternalError_Exception e) {
-        			throw RecoverPointException.exceptions
-        			.notAllowedToEnableImageAccessToCGException(e);
-        		}
-        	}
+            Set<RPCopy> copies = rpcg.getCopies();
+            for (RPCopy copy : copies) {
+                try {
+                    String cgCopyName = functionalAPI.getGroupCopyName(copy.getCGGroupCopyUID());
+                    String cgName = functionalAPI.getGroupName(copy.getCGGroupCopyUID().getGroupUID());
+                    if (!imageManager.verifyCopyCapableOfEnableImageAccess(functionalAPI, copy.getCGGroupCopyUID(), false)) {
+                        logger.info("Copy " + cgCopyName + " of group " + cgName + " is in a mode that disallows enabling the CG copy.");
+                        throw RecoverPointException.exceptions.notAllowedToEnableImageAccessToCG(
+                                cgName, cgCopyName);
+                    }
+                } catch (FunctionalAPIActionFailedException_Exception e) {
+                    throw RecoverPointException.exceptions
+                            .notAllowedToEnableImageAccessToCGException(e);
+                } catch (FunctionalAPIInternalError_Exception e) {
+                    throw RecoverPointException.exceptions
+                            .notAllowedToEnableImageAccessToCGException(e);
+                }
+            }
         }
-        
+
         try {
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
-                Set<RPCopy>copies = rpcg.getCopies();
+                Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
                     boolean waitForLinkState = true;
-                    imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS, request.getBookmark(), request.getAPITTime());
+                    imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
+                            request.getBookmark(), request.getAPITTime());
                 }
             }
         } catch (RecoverPointException e) {
             logger.error("Caught RecoverPointException exception while enabling CG copies.  Return copies to previous state");
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
-                Set<RPCopy>copies = rpcg.getCopies();
+                Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
                     imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
                 }
@@ -1311,11 +1360,11 @@ public class RecoverPointClient {
 
     /**
      * Disables copy images for one or more consistency group copies
-     *
+     * 
      * @param MultiCopyDisableImageRequestParams request - contains the information about which CG copies to disable
-     *
+     * 
      * @return MultiCopyDisableImageResponse - response as to success or fail of disabling the image copies
-     *
+     * 
      * @throws RecoverPointException
      **/
     public MultiCopyDisableImageResponse disableImageCopies(MultiCopyDisableImageRequestParams request) throws RecoverPointException {
@@ -1326,7 +1375,7 @@ public class RecoverPointClient {
         if (null == mgmtIPAddress) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
-        Set<String>wwnSet = request.getVolumeWWNSet();
+        Set<String> wwnSet = request.getVolumeWWNSet();
         if (wwnSet == null) {
             throw RecoverPointException.exceptions.noWWNsFoundInRequest();
         }
@@ -1334,7 +1383,7 @@ public class RecoverPointClient {
         CreateBookmarkRequestParams mapRequest = new CreateBookmarkRequestParams();
         mapRequest.setVolumeWWNSet(wwnSet);
         Map<String, RPConsistencyGroup> rpCGMap = bookmarkManager.mapCGsForWWNs(functionalAPI, mapRequest, unmappedWWNs);
-        if(!unmappedWWNs.isEmpty()) {
+        if (!unmappedWWNs.isEmpty()) {
             throw RecoverPointException.exceptions.couldNotMapWWNsToAGroup(unmappedWWNs);
         }
         if (rpCGMap == null) {
@@ -1344,14 +1393,14 @@ public class RecoverPointClient {
         for (String volume : rpCGMap.keySet()) {
             cgSetToDisable.add(rpCGMap.get(volume));
         }
-        
+
         for (RPConsistencyGroup rpcg : cgSetToDisable) {
-            Set<RPCopy>copies = rpcg.getCopies();
+            Set<RPCopy> copies = rpcg.getCopies();
             for (RPCopy copy : copies) {
-                ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, copy.getCGGroupCopyUID());             
+                ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, copy.getCGGroupCopyUID());
                 if (copyState != null && copyState.getAccessedImage() != null && copyState.getAccessedImage().getDescription() != null &&
-            			copyState.getAccessedImage().getDescription().equals(request.getEmName())) {                	
-                    imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());                	
+                        copyState.getAccessedImage().getDescription().equals(request.getEmName())) {
+                    imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
                 }
             }
         }
@@ -1362,11 +1411,11 @@ public class RecoverPointClient {
 
     /**
      * Restore copy images for one or more consistency group copies
-     *
+     * 
      * @param MultiCopyRestoreImageRequestParams request - contains the information about which CG copies to restore
-     *
+     * 
      * @return MultiCopyRestoreImageResponse - response as to success or fail of restoring the image copies
-     *
+     * 
      * @throws RecoverPointException
      **/
     public MultiCopyRestoreImageResponse restoreImageCopies(MultiCopyRestoreImageRequestParams request) throws RecoverPointException {
@@ -1378,7 +1427,7 @@ public class RecoverPointClient {
         if (null == mgmtIPAddress) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
         }
-        Set<String>wwnSet = request.getVolumeWWNSet();
+        Set<String> wwnSet = request.getVolumeWWNSet();
         if (wwnSet == null) {
             throw RecoverPointException.exceptions.noWWNsFoundInRequest();
         }
@@ -1387,7 +1436,7 @@ public class RecoverPointClient {
         mapRequest.setBookmark(request.getBookmark());
         mapRequest.setVolumeWWNSet(wwnSet);
         Map<String, RPConsistencyGroup> rpCGMap = bookmarkManager.mapCGsForWWNs(functionalAPI, mapRequest, unmappedWWNs);
-        if(!unmappedWWNs.isEmpty()) {
+        if (!unmappedWWNs.isEmpty()) {
             throw RecoverPointException.exceptions.couldNotMapWWNsToAGroup(unmappedWWNs);
         }
         if (rpCGMap == null) {
@@ -1395,13 +1444,13 @@ public class RecoverPointClient {
         }
         Set<RPConsistencyGroup> cgSetToEnable = new HashSet<RPConsistencyGroup>();
         for (String volume : rpCGMap.keySet()) {
-            //logger.info("Get RPCG for volume: " + volume);
+            // logger.info("Get RPCG for volume: " + volume);
             cgSetToEnable.add(rpCGMap.get(volume));
         }
         ClusterUID siteToRestore = null;
         // Verify that we are not restoring from different sites
         for (RPConsistencyGroup rpcg : cgSetToEnable) {
-            Set<RPCopy>copies = rpcg.getCopies();
+            Set<RPCopy> copies = rpcg.getCopies();
             for (RPCopy copy : copies) {
                 if (siteToRestore == null) {
                     siteToRestore = copy.getCGGroupCopyUID().getGlobalCopyUID().getClusterUID();
@@ -1410,12 +1459,13 @@ public class RecoverPointClient {
                             .cannotRestoreVolumesFromDifferentSites(wwnSet);
                 }
                 try {
-                    List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(copy.getCGGroupCopyUID().getGroupUID()).getProductionCopiesUIDs();
+                    List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(
+                            copy.getCGGroupCopyUID().getGroupUID()).getProductionCopiesUIDs();
                     for (ConsistencyGroupCopyUID productionCopyUID : productionCopiesUIDs) {
-	                    if (RecoverPointUtils.cgCopyEqual(productionCopyUID, copy.getCGGroupCopyUID())) {
-	                        throw RecoverPointException.exceptions
-	                                .cannotRestoreVolumesInConsistencyGroup(wwnSet);
-	                    }
+                        if (RecoverPointUtils.cgCopyEqual(productionCopyUID, copy.getCGGroupCopyUID())) {
+                            throw RecoverPointException.exceptions
+                                    .cannotRestoreVolumesInConsistencyGroup(wwnSet);
+                        }
                     }
                 } catch (FunctionalAPIActionFailedException_Exception e) {
                     logger.error(e.getMessage());
@@ -1430,18 +1480,20 @@ public class RecoverPointClient {
         }
         try {
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
-                Set<RPCopy>copies = rpcg.getCopies();
+                Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
                     // For restore, just wait for link state of the copy being restored
-                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(), copy.getCGGroupCopyUID(), PipeState.ACTIVE);
+                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(), copy.getCGGroupCopyUID(),
+                            PipeState.ACTIVE);
                     boolean waitForLinkState = false;
-                    imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS, request.getBookmark(), request.getAPITTime());
+                    imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
+                            request.getBookmark(), request.getAPITTime());
                 }
             }
         } catch (RecoverPointException e) {
             logger.error("Caught exception while enabling CG copies for restore.  Return copies to previous state");
             for (RPConsistencyGroup rpcg : cgSetToEnable) {
-                Set<RPCopy>copies = rpcg.getCopies();
+                Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
                     imageManager.disableCGCopy(functionalAPI, copy.getCGGroupCopyUID());
                 }
@@ -1449,7 +1501,7 @@ public class RecoverPointClient {
             throw e;
         }
         for (RPConsistencyGroup rpcg : cgSetToEnable) {
-            Set<RPCopy>copies = rpcg.getCopies();
+            Set<RPCopy> copies = rpcg.getCopies();
             for (RPCopy copy : copies) {
                 imageManager.restoreEnabledCGCopy(functionalAPI, copy.getCGGroupCopyUID());
             }
@@ -1460,36 +1512,37 @@ public class RecoverPointClient {
 
     /**
      * Get a list of WWNs given a site ID
-     *
+     * 
      * @param int siteID - Site ID to get WWNs for
-     *
+     * 
      * @return Map<String, String> - a list of WWNs
-     *
+     * 
      * @throws RecoverPointException
      */
-    public Map<String, String>  getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
+    public Map<String, String> getInitiatorWWNs(String internalSiteName) throws RecoverPointException {
         Map<String, String> wwns = new HashMap<String, String>();
         try {
             FullRecoverPointSettings fullRecoverPointSettings = functionalAPI.getFullRecoverPointSettings();
-            for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration().getClustersConfigurations()) {
+            for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
+                    .getClustersConfigurations()) {
                 if (!siteSettings.getInternalClusterName().equals(internalSiteName)) {
                     continue;
                 }
                 ClusterRPAsState clusterRPAState = functionalAPI.getRPAsStateFromCluster(siteSettings.getCluster());
                 for (RpaState rpaState : clusterRPAState.getRpasStates()) {
                     for (InitiatorInformation rpaPortState : rpaState.getInitiatorsStates()) {
-                    	if (rpaPortState instanceof FiberChannelInitiatorInformation) {
-                    		FiberChannelInitiatorInformation initiator = (FiberChannelInitiatorInformation)rpaPortState;
-                    		String nodeWWN = WwnUtils.convertWWN(initiator.getNodeWWN(), WwnUtils.FORMAT.COLON);
-                    		String portWWN = WwnUtils.convertWWN(initiator.getPortWWN(), WwnUtils.FORMAT.COLON);
-                    		wwns.put(portWWN, nodeWWN);
-                    		logger.info("RPA Node WWN: " + nodeWWN + ". Port WWN: " + portWWN);
-                    	}
+                        if (rpaPortState instanceof FiberChannelInitiatorInformation) {
+                            FiberChannelInitiatorInformation initiator = (FiberChannelInitiatorInformation) rpaPortState;
+                            String nodeWWN = WwnUtils.convertWWN(initiator.getNodeWWN(), WwnUtils.FORMAT.COLON);
+                            String portWWN = WwnUtils.convertWWN(initiator.getPortWWN(), WwnUtils.FORMAT.COLON);
+                            wwns.put(portWWN, nodeWWN);
+                            logger.info("RPA Node WWN: " + nodeWWN + ". Port WWN: " + portWWN);
+                        }
                     }
                 }
             }
             return wwns;
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             logger.error(e.getMessage());
             logger.error("Received FunctionalAPIActionFailedException_Exception. Get port information");
             throw RecoverPointException.exceptions.failureGettingInitiatorWWNs();
@@ -1504,17 +1557,17 @@ public class RecoverPointClient {
      * The getProtectionInfoForVolume method takes the WWN, and looks for it in the RP site protection environment.
      * If it finds the WWN as a member of a consistency group, it fills in the information, and returns it to the caller.
      * If it does not find the WWN as a member of a consistency group, it returns null
-     *
+     * 
      * @param String volumeWWN - The WWN being checked for RecoverPoint protection
-     *
+     * 
      * @return RecoverPointVolumeProtectionInfo - description of protection information about the WWN, or null if not protected in CG
-     *
+     * 
      * @throws RecoverPointException
      **/
     public RecoverPointVolumeProtectionInfo getProtectionInfoForVolume(String volumeWWN) throws RecoverPointException {
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         try {
-            //logger.info("getProtectionInfoForVolume called for: " + volumeWWN);
+            // logger.info("getProtectionInfoForVolume called for: " + volumeWWN);
             protectionInfo = new RecoverPointVolumeProtectionInfo();
             List<ConsistencyGroupSettings> cgsSettings = functionalAPI.getAllGroupsSettings();
             for (ConsistencyGroupSettings cgSettings : cgsSettings) {
@@ -1522,9 +1575,10 @@ public class RecoverPointClient {
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
                         String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
-                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)){
+                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                             ConsistencyGroupUID cgID = uvSettings.getGroupCopyUID().getGroupUID();
-                            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID).getProductionCopiesUIDs();                                                                       
+                            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID)
+                                    .getProductionCopiesUIDs();
                             String cgName = cgSettings.getName();
                             String cgCopyName = functionalAPI.getGroupCopyName(uvSettings.getGroupCopyUID());
                             protectionInfo.setRpProtectionName(cgName);
@@ -1535,12 +1589,14 @@ public class RecoverPointClient {
                             protectionInfo.setRpVolumeWWN(volumeWWN);
                             if (RecoverPointUtils.isProductionCopy(uvSettings.getGroupCopyUID(), productionCopiesUIDs)) {
                                 logger.info("Production volume: " + volumeWWN + " is on copy " + cgCopyName + " of CG " + cgName);
-                                protectionInfo.setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE);
+                                protectionInfo
+                                        .setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE);
                             } else {
                                 logger.info("Target volume: " + volumeWWN + " is on copy " + cgCopyName + " of CG " + cgName);
-                                protectionInfo.setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET);
+                                protectionInfo
+                                        .setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET);
                             }
-                            return protectionInfo;                         
+                            return protectionInfo;
                         }
                     }
                 }
@@ -1551,9 +1607,10 @@ public class RecoverPointClient {
                     for (JournalVolumeSettings journalVolumeSettings : journalVolumeSettingsList) {
                         String journalVolUID =
                                 RecoverPointUtils.getGuidBufferAsString(journalVolumeSettings.getVolumeInfo().getRawUids(), false);
-                        if (journalVolUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)){
-                            ConsistencyGroupUID cgID = journalVolumeSettings.getGroupCopyUID().getGroupUID();                         
-                            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID).getProductionCopiesUIDs();                            
+                        if (journalVolUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+                            ConsistencyGroupUID cgID = journalVolumeSettings.getGroupCopyUID().getGroupUID();
+                            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID)
+                                    .getProductionCopiesUIDs();
                             String cgName = cgSettings.getName();
                             String cgCopyName = functionalAPI.getGroupCopyName(journalVolumeSettings.getGroupCopyUID());
                             protectionInfo.setRpProtectionName(cgName);
@@ -1563,18 +1620,20 @@ public class RecoverPointClient {
                             protectionInfo.setRpVolumeWWN(volumeWWN);
                             if (RecoverPointUtils.isProductionCopy(journalVolumeSettings.getGroupCopyUID(), productionCopiesUIDs)) {
                                 logger.info("Production journal: " + volumeWWN + " is on copy " + cgCopyName + " of CG " + cgName);
-                                protectionInfo.setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.SOURCE_JOURNAL);
+                                protectionInfo
+                                        .setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.SOURCE_JOURNAL);
                             } else {
-                                logger.info("Target journal: "+ volumeWWN + " is on copy " + cgCopyName + " of CG " + cgName);
-                                protectionInfo.setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.TARGET_JOURNAL);
+                                logger.info("Target journal: " + volumeWWN + " is on copy " + cgCopyName + " of CG " + cgName);
+                                protectionInfo
+                                        .setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.TARGET_JOURNAL);
                             }
-                            return protectionInfo;                  
+                            return protectionInfo;
                         }
                     }
 
                 }
             }
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failureGettingProtectionInfoForVolume(volumeWWN,
                     e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -1588,11 +1647,11 @@ public class RecoverPointClient {
      * Disable (stop) the consistency group protection specified by the input volume info.
      * If a target volume is specified, disable the copy associated with the target.
      * Disable requires a full sweep when enabled
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to disable
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public void disableProtection(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1601,10 +1660,10 @@ public class RecoverPointClient {
             cgUID.setId(volumeInfo.getRpVolumeGroupID());
             if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
                 // Disable the whole CG
-            	functionalAPI.disableConsistencyGroup(cgUID);
+                functionalAPI.disableConsistencyGroup(cgUID);
                 String cgName = functionalAPI.getGroupName(cgUID);
                 logger.info("Protection disabled on CG: " + cgName);
-                
+
                 // Weakness: When disabling the entire CG, we are not waiting for the link to be in a stopped (UNKNOWN) state.
                 RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
                 imageManager.waitForCGLinkState(functionalAPI, cgUID, null, PipeState.UNKNOWN);
@@ -1612,7 +1671,7 @@ public class RecoverPointClient {
                 // Disable the CG copy associated with the target
                 ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(volumeInfo);
                 functionalAPI.disableConsistencyGroupCopy(cgCopyUID);
-                String cgCopyName=functionalAPI.getGroupCopyName(cgCopyUID);
+                String cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
                 String cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
                 logger.info("Protection disabled on CG copy " + cgCopyName + " on CG " + cgName);
 
@@ -1621,7 +1680,7 @@ public class RecoverPointClient {
                 imageManager.waitForCGLinkState(functionalAPI, cgUID, cgCopyUID, PipeState.UNKNOWN);
                 logger.info("Protection disabled on CG copy " + cgCopyName + " on CG " + cgName);
             }
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDisableProtection(
                     volumeInfo.getRpVolumeGroupID(), e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -1633,11 +1692,11 @@ public class RecoverPointClient {
     /**
      * Enable (start) the consistency group protection specified by the input volume info
      * Requires a full sweep.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to enable
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public void enableProtection(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1648,10 +1707,10 @@ public class RecoverPointClient {
             cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(volumeInfo);
             if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
                 // Enable the whole CG
-            	functionalAPI.enableConsistencyGroup(cgUID, true);
+                functionalAPI.enableConsistencyGroup(cgUID, true);
             } else {
                 // Enable the CG copy associated with the target
-            	functionalAPI.enableConsistencyGroupCopy(cgCopyUID, true);
+                functionalAPI.enableConsistencyGroupCopy(cgCopyUID, true);
             }
             // Make sure the CG is ready
             RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
@@ -1659,7 +1718,7 @@ public class RecoverPointClient {
             String cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
             String cgName = functionalAPI.getGroupName(cgUID);
             logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableProtection(
                     volumeInfo.getRpVolumeGroupID(), e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -1670,11 +1729,11 @@ public class RecoverPointClient {
 
     /**
      * Return the state of a consistency group.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to get CG state for
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public RecoverPointCGState getCGState(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1685,7 +1744,7 @@ public class RecoverPointClient {
         try {
             cgSettings = functionalAPI.getGroupSettings(cgUID);
             cgState = functionalAPI.getGroupState(cgUID);
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             // No longer exists
             return RecoverPointCGState.GONE;
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -1698,7 +1757,7 @@ public class RecoverPointClient {
         // First check for disabled copies
         boolean someCopiesEnabled = false;
         boolean someCopiesDisabled = false;
-        for (ConsistencyGroupCopyState cgCopyState : cgState.getGroupCopiesStates()){
+        for (ConsistencyGroupCopyState cgCopyState : cgState.getGroupCopiesStates()) {
             if (cgCopyState.isEnabled()) {
                 someCopiesEnabled = true;
             } else {
@@ -1745,11 +1804,11 @@ public class RecoverPointClient {
 
     /**
      * Pause (suspend) the consistency group protection specified by the input volume info.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to pause
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public void pauseTransfer(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1758,7 +1817,7 @@ public class RecoverPointClient {
             cgUID.setId(volumeInfo.getRpVolumeGroupID());
             if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
                 // Pause the whole CG
-            	functionalAPI.pauseGroupTransfer(cgUID);
+                functionalAPI.pauseGroupTransfer(cgUID);
                 String cgName = functionalAPI.getGroupName(cgUID);
                 logger.info("Protection paused on CG " + cgName);
             } else {
@@ -1769,7 +1828,7 @@ public class RecoverPointClient {
                 String cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
                 logger.info("Protection paused on CG copy " + cgCopyName + " on CG " + cgName);
             }
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToPauseProtection(
                     volumeInfo.getRpVolumeGroupID(), e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -1780,11 +1839,11 @@ public class RecoverPointClient {
 
     /**
      * Resume the consistency group protection specified by the input volume info.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to resume
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public void resumeTransfer(RecoverPointVolumeProtectionInfo volumeInfo) throws RecoverPointException {
@@ -1804,7 +1863,7 @@ public class RecoverPointClient {
                 String cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
                 logger.info("Protection resumed on CG copy " + cgCopyName + " on CG " + cgName);
             }
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToResumeProtection(
                     volumeInfo.getRpVolumeGroupID(), e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -1815,14 +1874,15 @@ public class RecoverPointClient {
 
     /**
      * Perform a failover test to the consistency group copy specified by the input request params.
-     *
-     * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a failover test to. Also contains bookmark and APIT info. If no bookmark or APIT specified, failover test to most recent image.
-     *
+     * 
+     * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a failover test to. Also contains bookmark and APIT
+     *            info. If no bookmark or APIT specified, failover test to most recent image.
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
-    public void failoverCopyTest (RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
+    public void failoverCopyTest(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
         // Check the params
         // If bookmark != null, enable the bookmark on the copy, and failover to that copy
         // If APITTime != null, enable the specified APIT on the copy, and failover to that copy
@@ -1838,21 +1898,21 @@ public class RecoverPointClient {
         }
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         imageManager.enableCopyImage(functionalAPI, copyToFailoverTo, false);
-        //RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyToFailoverTo.getCopyVolumeInfo());
+        // RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyToFailoverTo.getCopyVolumeInfo());
         RecoverPointVolumeProtectionInfo failoverCopyInfo = copyToFailoverTo.getCopyVolumeInfo();
         pauseTransfer(failoverCopyInfo);
     }
 
     /**
      * Cancel a failover test for a consistency group copy specified by the input request params.
-     *
+     * 
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG that a previous failover test was performed on
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
-    public void failoverCopyTestCancel (RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
+    public void failoverCopyTestCancel(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
         RecoverPointVolumeProtectionInfo failoverCopyInfo = copyToFailoverTo.getCopyVolumeInfo();
         resumeTransfer(failoverCopyInfo);
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
@@ -1861,11 +1921,12 @@ public class RecoverPointClient {
 
     /**
      * Perform a failover to the consistency group copy specified by the input request params.
-     *
-     * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a failover to. Also contains bookmark and APIT info.  If no bookmark or APIT specified, failover to most recent image.
-     *
+     * 
+     * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a failover to. Also contains bookmark and APIT info.
+     *            If no bookmark or APIT specified, failover to most recent image.
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public void failoverCopy(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
@@ -1891,48 +1952,48 @@ public class RecoverPointClient {
 
     /**
      * Cancel a failover operation, usually a failover after a failover without a swap.
-     *
+     * 
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG that a previous failover test was performed on
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
-    public void failoverCopyCancel (RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
+    public void failoverCopyCancel(RPCopyRequestParams copyToFailoverTo) throws RecoverPointException {
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         imageManager.disableCopyImage(functionalAPI, copyToFailoverTo);
     }
 
     /**
      * Perform a swap to the consistency group copy specified by the input request params.
-     *
+     * 
      * @param RPCopyRequestParams copyToFailoverTo - Volume info for the CG to perform a swap to.
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
-	public void swapCopy(RPCopyRequestParams copyParams) throws RecoverPointException {
-		logger.info("Swap copy to current or most recent image");
-		// Make sure the copy is already enabled or RP will fail the operation.  If it isn't enabled, enable it.
+    public void swapCopy(RPCopyRequestParams copyParams) throws RecoverPointException {
+        logger.info("Swap copy to current or most recent image");
+        // Make sure the copy is already enabled or RP will fail the operation. If it isn't enabled, enable it.
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyParams.getCopyVolumeInfo());
         ConsistencyGroupCopyState copyState = imageManager.getCopyState(functionalAPI, cgCopyUID);
-        
+
         if (copyState != null && copyState.getAccessedImage() == null) {
-        	// Enable to the latest image
-        	failoverCopy(copyParams);
+            // Enable to the latest image
+            failoverCopy(copyParams);
         }
 
         // Perform the failover
         imageManager.failoverCGCopy(functionalAPI, cgCopyUID);
-        
+
         // Prepare the link settings for new links
-        prepareLinkSettings(cgCopyUID); 
-        
+        prepareLinkSettings(cgCopyUID);
+
         // Set the failover copy as production to resume data flow
         imageManager.setCopyAsProduction(functionalAPI, cgCopyUID);
-        
+
         // wait for links to become active
         ConsistencyGroupUID cgUID = cgCopyUID.getGroupUID();
         String cgName = null;
@@ -1942,43 +2003,44 @@ public class RecoverPointClient {
             // benign error -- cgName is only used for logging
             logger.error(e.getMessage(), e);
         }
-        
-        logger.info("Waiting for links to become active for CG " + (cgName==null?"unknown CG name":cgName));
+
+        logger.info("Waiting for links to become active for CG " + (cgName == null ? "unknown CG name" : cgName));
         (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
-        logger.info(String.format("Replication sets have been added to consistency group %s.", (cgName==null?"unknown CG name":cgName)));
-	}
+        logger.info(String.format("Replication sets have been added to consistency group %s.",
+                (cgName == null ? "unknown CG name" : cgName)));
+    }
 
     /**
-	 * Find the link settings corresponding to the given production and target copy identifiers.
-	 * 
-	 * @param linkSettings the consistency group link settings
-	 * @param prodCopyUID the production copy
-	 * @param targetCopyUID the target copy 
-	 * @param prodCopyName the name of the production copy
-	 * @param targetCopyName the name of the target copy
-	 * @return the consistency group settings matching the prod/target copy relationship
-	 */
-	private ConsistencyGroupLinkSettings findLinkSettings(List<ConsistencyGroupLinkSettings> cgLinkSettings, GlobalCopyUID prodCopyUID, 
-	        GlobalCopyUID targetCopyUID, String prodCopyName, String targetCopyName) {
-	    ConsistencyGroupLinkSettings toRet = null;
+     * Find the link settings corresponding to the given production and target copy identifiers.
+     * 
+     * @param linkSettings the consistency group link settings
+     * @param prodCopyUID the production copy
+     * @param targetCopyUID the target copy
+     * @param prodCopyName the name of the production copy
+     * @param targetCopyName the name of the target copy
+     * @return the consistency group settings matching the prod/target copy relationship
+     */
+    private ConsistencyGroupLinkSettings findLinkSettings(List<ConsistencyGroupLinkSettings> cgLinkSettings, GlobalCopyUID prodCopyUID,
+            GlobalCopyUID targetCopyUID, String prodCopyName, String targetCopyName) {
+        ConsistencyGroupLinkSettings toRet = null;
 
-	    if (cgLinkSettings != null && !cgLinkSettings.isEmpty()
-	            && prodCopyUID != null && targetCopyUID != null) {
-	        for (ConsistencyGroupLinkSettings linkSetting : cgLinkSettings) {
-	            if (isMatchingLinkSettings(linkSetting, prodCopyUID, targetCopyUID)) {
-	                logger.info("Found existing link settings between {} and {}.", prodCopyName, targetCopyName);
-	                toRet = linkSetting;
-	                break;
-	            }
-	        }
-	    }
-	    
-	    if (toRet == null) {
-	        logger.info("Unable to find existing link settings between {} and {}.", prodCopyName, targetCopyName);
-	    }
-	    
-	    return toRet;
-	}
+        if (cgLinkSettings != null && !cgLinkSettings.isEmpty()
+                && prodCopyUID != null && targetCopyUID != null) {
+            for (ConsistencyGroupLinkSettings linkSetting : cgLinkSettings) {
+                if (isMatchingLinkSettings(linkSetting, prodCopyUID, targetCopyUID)) {
+                    logger.info("Found existing link settings between {} and {}.", prodCopyName, targetCopyName);
+                    toRet = linkSetting;
+                    break;
+                }
+            }
+        }
+
+        if (toRet == null) {
+            logger.info("Unable to find existing link settings between {} and {}.", prodCopyName, targetCopyName);
+        }
+
+        return toRet;
+    }
 
     /**
      * Convenience method used to determine if the provided production copy and target copy
@@ -1989,140 +2051,146 @@ public class RecoverPointClient {
      * @param targetCopyUID the target copy end of the link settings.
      * @return
      */
-    private boolean isMatchingLinkSettings(ConsistencyGroupLinkSettings linkSettings, 
+    private boolean isMatchingLinkSettings(ConsistencyGroupLinkSettings linkSettings,
             GlobalCopyUID prodCopyUID, GlobalCopyUID targetCopyUID) {
-        
+
         GlobalCopyUID firstCopy = null;
         GlobalCopyUID secondCopy = null;
-        
+
         if (linkSettings.getGroupLinkUID() != null) {
             firstCopy = linkSettings.getGroupLinkUID().getFirstCopy();
             secondCopy = linkSettings.getGroupLinkUID().getSecondCopy();
-            
+
             // Compare both ends of the link to the provided prod and target copies passed in.
             // A link is a match if the prod and target copy are both found, regardless of which
             // end of the link they belong.
-            if ((RecoverPointUtils.cgCopyEqual(firstCopy, prodCopyUID) 
+            if ((RecoverPointUtils.cgCopyEqual(firstCopy, prodCopyUID)
                     && RecoverPointUtils.cgCopyEqual(secondCopy, targetCopyUID))
-                    || (RecoverPointUtils.cgCopyEqual(firstCopy, targetCopyUID) 
-                            && RecoverPointUtils.cgCopyEqual(secondCopy, prodCopyUID))) {
+                    || (RecoverPointUtils.cgCopyEqual(firstCopy, targetCopyUID)
+                    && RecoverPointUtils.cgCopyEqual(secondCopy, prodCopyUID))) {
                 return true;
             }
         }
-        
+
         return false;
     }
-	
-	/**
-	 * Prepares the link settings between the new production copy and all other copies.
-	 * 
-	 * @param cgCopyUID the failover/new production copy
-	 * @throws RecoverPointException
-	 */
-	private void prepareLinkSettings(ConsistencyGroupCopyUID cgCopyUID) throws RecoverPointException {    
-	    String cgCopyName = null;
-	    String cgName = null;
-	    
-	    logger.info("Preparing link settings between new production copy and local/remote copies after failover.");
-	    
-	    try {
-	        cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
-	        cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
-	        
-	        ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID());
-	        List<ConsistencyGroupLinkSettings> cgLinkSettings = groupSettings.getActiveLinksSettings();
+
+    /**
+     * Prepares the link settings between the new production copy and all other copies.
+     * 
+     * @param cgCopyUID the failover/new production copy
+     * @throws RecoverPointException
+     */
+    private void prepareLinkSettings(ConsistencyGroupCopyUID cgCopyUID) throws RecoverPointException {
+        String cgCopyName = null;
+        String cgName = null;
+
+        logger.info("Preparing link settings between new production copy and local/remote copies after failover.");
+
+        try {
+            cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
+            cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
+
+            ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID());
+            List<ConsistencyGroupLinkSettings> cgLinkSettings = groupSettings.getActiveLinksSettings();
             List<ConsistencyGroupLinkSettings> oldProdCgLinkSettings = groupSettings.getPassiveLinksSettings();
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = groupSettings.getProductionCopiesUIDs();
             for (ConsistencyGroupCopyUID prodCopyUID : productionCopiesUIDs) {
-            
-	            String prodCopyName = functionalAPI.getGroupCopyName(prodCopyUID);
-	            
-	            List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
-	    
-	            ConsistencyGroupLinkSettings linkSettings = null;
-	            
-	            for (ConsistencyGroupCopySettings copySetting : copySettings) {
-	                // We need to set the link settings for all orphaned copies.  Orphaned copies
-	                // are identified by not being the production copy or the current copy.
-	                if (!copySetting.getName().equalsIgnoreCase(prodCopyName) 
-	                        && !copySetting.getName().equalsIgnoreCase(cgCopyName)) {
-	
+
+                String prodCopyName = functionalAPI.getGroupCopyName(prodCopyUID);
+
+                List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
+
+                ConsistencyGroupLinkSettings linkSettings = null;
+
+                for (ConsistencyGroupCopySettings copySetting : copySettings) {
+                    // We need to set the link settings for all orphaned copies. Orphaned copies
+                    // are identified by not being the production copy or the current copy.
+                    if (!copySetting.getName().equalsIgnoreCase(prodCopyName)
+                            && !copySetting.getName().equalsIgnoreCase(cgCopyName)) {
+
                         String copyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());
-	                    // Check to see if a link setting already exists for the link between the 2 copies
-	                    linkSettings = findLinkSettings(
-	                            cgLinkSettings, cgCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
-	                            cgCopyName, copyName);
-	
-	                    if (linkSettings == null) {
-	                        // Link settings for the source/target copies does not exist so we need to create one
-	                        // Find the corresponding link settings prior to the failover.
-	                        linkSettings = findLinkSettings(
-	                                oldProdCgLinkSettings, prodCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
-	                                prodCopyName, copyName);
-	                     
-	                        if (linkSettings != null) {
-	                            logger.info(String.format("Generate new link settings between %s and %s based on existing link settings between the current production copy %s and %s.",
-	                                    cgCopyName, copyName, prodCopyName, copyName));
-	                            ConsistencyGroupLinkUID cgLinkUID = linkSettings.getGroupLinkUID();
-	                            // Set the link copies appropriately
-	                            GlobalCopyUID sourceCopy = cgCopyUID.getGlobalCopyUID();
-	                            GlobalCopyUID targetCopy = copySetting.getCopyUID().getGlobalCopyUID();
-	                            
-	                            cgLinkUID.setFirstCopy(sourceCopy);
-	                            cgLinkUID.setSecondCopy(targetCopy);
-	                            
-	                            ConsistencyGroupLinkPolicy linkPolicy = linkSettings.getLinkPolicy();
-	                            
-	                            // Check the copy cluster information to determine if this is a local or remote copy
-	                            if (sourceCopy.getClusterUID().getId() == targetCopy.getClusterUID().getId()) {
-	                                // local copy
-	                                logger.info(String.format("Creating new local copy link settings between %s and %s, for consistency group %s.", cgCopyName, copyName, cgName));
-	                                linkPolicy.getProtectionPolicy().setReplicatingOverWAN(false);
-	                            } else {
-	                                // remote copy
-	                                logger.info(String.format("Creating new remote copy link settings between %s and %s, for consistency group %s.", cgCopyName, copyName, cgName));
-	                                linkPolicy.getProtectionPolicy().setReplicatingOverWAN(true);
-	                            }
-	           
-	                            functionalAPI.addConsistencyGroupLink(cgLinkUID, linkPolicy);
-	                        }
-	                    }
-	                }
-	            }
+                        // Check to see if a link setting already exists for the link between the 2 copies
+                        linkSettings = findLinkSettings(
+                                cgLinkSettings, cgCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
+                                cgCopyName, copyName);
+
+                        if (linkSettings == null) {
+                            // Link settings for the source/target copies does not exist so we need to create one
+                            // Find the corresponding link settings prior to the failover.
+                            linkSettings = findLinkSettings(
+                                    oldProdCgLinkSettings, prodCopyUID.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(),
+                                    prodCopyName, copyName);
+
+                            if (linkSettings != null) {
+                                logger.info(String
+                                        .format("Generate new link settings between %s and %s based on existing link settings between the current production copy %s and %s.",
+                                                cgCopyName, copyName, prodCopyName, copyName));
+                                ConsistencyGroupLinkUID cgLinkUID = linkSettings.getGroupLinkUID();
+                                // Set the link copies appropriately
+                                GlobalCopyUID sourceCopy = cgCopyUID.getGlobalCopyUID();
+                                GlobalCopyUID targetCopy = copySetting.getCopyUID().getGlobalCopyUID();
+
+                                cgLinkUID.setFirstCopy(sourceCopy);
+                                cgLinkUID.setSecondCopy(targetCopy);
+
+                                ConsistencyGroupLinkPolicy linkPolicy = linkSettings.getLinkPolicy();
+
+                                // Check the copy cluster information to determine if this is a local or remote copy
+                                if (sourceCopy.getClusterUID().getId() == targetCopy.getClusterUID().getId()) {
+                                    // local copy
+                                    logger.info(String.format(
+                                            "Creating new local copy link settings between %s and %s, for consistency group %s.",
+                                            cgCopyName, copyName, cgName));
+                                    linkPolicy.getProtectionPolicy().setReplicatingOverWAN(false);
+                                } else {
+                                    // remote copy
+                                    logger.info(String.format(
+                                            "Creating new remote copy link settings between %s and %s, for consistency group %s.",
+                                            cgCopyName, copyName, cgName));
+                                    linkPolicy.getProtectionPolicy().setReplicatingOverWAN(true);
+                                }
+
+                                functionalAPI.addConsistencyGroupLink(cgLinkUID, linkPolicy);
+                            }
+                        }
+                    }
+                }
             }
-	    } catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(cgCopyName, cgName, e);
-        } 
-	}
-	
+        }
+    }
+
     /**
      * Delete the consistency group copy specified by the input volume info.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG copy to delete (can't be production)
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
-    public void deleteCopy (RecoverPointVolumeProtectionInfo copyToDelete) throws RecoverPointException {
+    public void deleteCopy(RecoverPointVolumeProtectionInfo copyToDelete) throws RecoverPointException {
         ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyToDelete);
         String copyName = null;
         String cgName = null;
         try {
             copyName = functionalAPI.getGroupCopyName(cgCopyUID);
-            cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());        
-            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID()).getProductionCopiesUIDs();
+            cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
+            List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgCopyUID.getGroupUID())
+                    .getProductionCopiesUIDs();
             for (ConsistencyGroupCopyUID productionCopyUID : productionCopiesUIDs) {
-	            if (RecoverPointUtils.cgCopyEqual(productionCopyUID, cgCopyUID)) {
-	                // Can't call delete copy using the production CG copy
-	                throw RecoverPointException.exceptions.cantCallDeleteCopyUsingProductionVolume(copyName, cgName);
-	            }
-	            functionalAPI.removeConsistencyGroupCopy(cgCopyUID);
-	            logger.info ("Deleted copy " + copyName + " for consistency group " + cgName);
+                if (RecoverPointUtils.cgCopyEqual(productionCopyUID, cgCopyUID)) {
+                    // Can't call delete copy using the production CG copy
+                    throw RecoverPointException.exceptions.cantCallDeleteCopyUsingProductionVolume(copyName, cgName);
+                }
+                functionalAPI.removeConsistencyGroupCopy(cgCopyUID);
+                logger.info("Deleted copy " + copyName + " for consistency group " + cgName);
             }
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteCopy(copyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteCopy(copyName, cgName, e);
@@ -2131,14 +2199,14 @@ public class RecoverPointClient {
 
     /**
      * Delete the consistency group specified by the input volume info.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volumeInfo - Volume info for the CG to delete
-     *
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
-    public void deleteCG (RecoverPointVolumeProtectionInfo cgToDelete) throws RecoverPointException {
+    public void deleteCG(RecoverPointVolumeProtectionInfo cgToDelete) throws RecoverPointException {
         ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(cgToDelete);
         String cgName = null;
         try {
@@ -2147,40 +2215,41 @@ public class RecoverPointClient {
             List<ConsistencyGroupCopyUID> productionCopiesUIDs = groupSettings.getProductionCopiesUIDs();
 
             for (ConsistencyGroupCopyUID productionCopyUID : productionCopiesUIDs) {
-	            if (!cgToDelete.isMetroPoint() && !RecoverPointUtils.cgCopyEqual(productionCopyUID, cgCopyUID)) {
-	                // Can't call delete CG using anything but the production CG copy
-	                throw RecoverPointException.exceptions
-	                        .cantCallDeleteCGUsingProductionCGCopy(cgName);
-	            }
+                if (!cgToDelete.isMetroPoint() && !RecoverPointUtils.cgCopyEqual(productionCopyUID, cgCopyUID)) {
+                    // Can't call delete CG using anything but the production CG copy
+                    throw RecoverPointException.exceptions
+                            .cantCallDeleteCGUsingProductionCGCopy(cgName);
+                }
             }
             functionalAPI.removeConsistencyGroup(cgCopyUID.getGroupUID());
-            logger.info ("Deleted consistency group " + cgName);
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+            logger.info("Deleted consistency group " + cgName);
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteConsistencyGroup(cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteConsistencyGroup(cgName, e);
         }
     }
-    
+
     /**
      * Delete a journal volume (WWN) from the consistency group copy specified by the input volume info.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo copyToModify - Volume info for the CG to add a journal volume to
-     *
+     * 
      * @param String journalWWNToDelete - WWN of the journal volume to delete
-
+     * 
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
-    public void deleteJournalFromCopy (RecoverPointVolumeProtectionInfo copyToModify, String journalWWNToDelete) throws RecoverPointException {
+    public void deleteJournalFromCopy(RecoverPointVolumeProtectionInfo copyToModify, String journalWWNToDelete)
+            throws RecoverPointException {
         ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(copyToModify);
         String copyName = null;
         String cgName = null;
         try {
             copyName = functionalAPI.getGroupCopyName(cgCopyUID);
             cgName = functionalAPI.getGroupName(cgCopyUID.getGroupUID());
-            logger.info("Request to delete journal " +  journalWWNToDelete +  " from copy " + copyName + " for consistency group " + cgName);
+            logger.info("Request to delete journal " + journalWWNToDelete + " from copy " + copyName + " for consistency group " + cgName);
 
             Set<RPSite> allSites = getAssociatedRPSites();
             DeviceUID journalDeviceUIDToDelete = RecoverPointUtils.getDeviceID(allSites, journalWWNToDelete);
@@ -2189,7 +2258,7 @@ public class RecoverPointClient {
             }
             functionalAPI.removeJournalVolume(cgCopyUID, journalDeviceUIDToDelete);
 
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteJournal(journalWWNToDelete,
                     copyName, cgName, e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -2200,11 +2269,11 @@ public class RecoverPointClient {
 
     /**
      * Delete a replication set based on the volume info sent in.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volume - Volume info for the CG to remove the replication set from
      * @param String volumeWWNToDelete - WWN of the volume to delete the entire replication set for
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public void deleteReplicationSet(RecoverPointVolumeProtectionInfo volume, String volumeWWNToDelete) throws RecoverPointException {
@@ -2218,8 +2287,9 @@ public class RecoverPointClient {
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgID);
             for (ReplicationSetSettings replicationSet : groupSettings.getReplicationSetsSettings()) {
                 if (replicationSet.getReplicationSetUID().getId() == repSetUID.getId()) {
-                	functionalAPI.removeReplicationSet(cgID, replicationSet.getReplicationSetUID());
-                    logger.info("Request to delete replication set" +  replicationSet.getReplicationSetName() +  " from consistency group " + cgID);
+                    functionalAPI.removeReplicationSet(cgID, replicationSet.getReplicationSetUID());
+                    logger.info("Request to delete replication set" + replicationSet.getReplicationSetName() + " from consistency group "
+                            + cgID);
                     rsetRemoved = true;
                 }
             }
@@ -2227,7 +2297,7 @@ public class RecoverPointClient {
             if (!rsetRemoved) {
                 throw RecoverPointException.exceptions.cannotFindReplicationSet(volumeWWNToDelete);
             }
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToDeleteReplicationSet(volumeWWNToDelete,
                     e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -2238,23 +2308,23 @@ public class RecoverPointClient {
 
     /**
      * Get RP site statistics for use in collectStatisticsInformation
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo copyToModify - Volume info for the CG to add a journal volume to
-     *
+     * 
      * @param String journalWWNToDelete - WWN of the journal volume to delete
-
+     * 
      * @return RecoverPointStatisticsResponse
-     *
+     * 
      * @throws RecoverPointException
      **/
-    public RecoverPointStatisticsResponse getRPSystemStatistics () throws RecoverPointException {
-    	logger.info("Collecting RecoverPoint System Statistics.");
+    public RecoverPointStatisticsResponse getRPSystemStatistics() throws RecoverPointException {
+        logger.info("Collecting RecoverPoint System Statistics.");
         RecoverPointStatisticsResponse response = new RecoverPointStatisticsResponse();
         try {
-            Map<Long,Double> siteAvgCPUUsageMap = new HashMap<Long,Double>();
-            Map<Long,Long> siteInputAvgThroughput = new HashMap<Long,Long>();
-            Map<Long,Long> siteOutputAvgThroughput = new HashMap<Long,Long>();
-            Map<Long,Long> siteIncomingAvgWrites = new HashMap<Long,Long>();
+            Map<Long, Double> siteAvgCPUUsageMap = new HashMap<Long, Double>();
+            Map<Long, Long> siteInputAvgThroughput = new HashMap<Long, Long>();
+            Map<Long, Long> siteOutputAvgThroughput = new HashMap<Long, Long>();
+            Map<Long, Long> siteIncomingAvgWrites = new HashMap<Long, Long>();
             SystemStatistics systemStatistics = functionalAPI.getSystemStatistics();
             Set<ClusterUID> ClusterUIDList = new HashSet<ClusterUID>();
             List<RpaStatistics> rpaStatisticsList = systemStatistics.getRpaStatistics();
@@ -2281,9 +2351,11 @@ public class RecoverPointClient {
                 for (RpaStatistics rpaStatistics : rpaStatisticsList) {
                     if (rpaStatistics.getRpaUID().getClusterUID().getId() == ClusterUID.getId()) {
                         rpaCPUList.add(Double.valueOf(rpaStatistics.getCpuUsage()));
-                        rpaSiteInputAvgThroughputList.add(rpaStatistics.getTraffic().getApplicationThroughputStatistics().getInThroughput());
-                        for (ConnectionOutThroughput cot : rpaStatistics.getTraffic().getApplicationThroughputStatistics().getConnectionsOutThroughputs()) {
-                        	rpaSiteOutputAvgThroughputList.add(cot.getOutThroughput());
+                        rpaSiteInputAvgThroughputList
+                                .add(rpaStatistics.getTraffic().getApplicationThroughputStatistics().getInThroughput());
+                        for (ConnectionOutThroughput cot : rpaStatistics.getTraffic().getApplicationThroughputStatistics()
+                                .getConnectionsOutThroughputs()) {
+                            rpaSiteOutputAvgThroughputList.add(cot.getOutThroughput());
                         }
                         rpaSiteInputAvgIncomingWritesList.add(rpaStatistics.getTraffic().getApplicationIncomingWrites());
                     }
@@ -2306,9 +2378,12 @@ public class RecoverPointClient {
                     incomingWritesTotal += incomingWrites;
                 }
                 logger.info("Average CPU usage for site: " + ClusterUID.getId() + " is " + cpuTotalUsage / rpaCPUList.size());
-                logger.info("Average input throughput for site: " + ClusterUID.getId() + " is " + inputThoughputTotal / rpaCPUList.size() + " kb/s");
-                logger.info("Average output throughput for site: " + ClusterUID.getId() + " is " + outputThoughputTotal / rpaCPUList.size() + " kb/s");
-                logger.info("Average incoming writes for site: " + ClusterUID.getId() + " is " + incomingWritesTotal / rpaCPUList.size() + " writes/s");
+                logger.info("Average input throughput for site: " + ClusterUID.getId() + " is " + inputThoughputTotal / rpaCPUList.size()
+                        + " kb/s");
+                logger.info("Average output throughput for site: " + ClusterUID.getId() + " is " + outputThoughputTotal / rpaCPUList.size()
+                        + " kb/s");
+                logger.info("Average incoming writes for site: " + ClusterUID.getId() + " is " + incomingWritesTotal / rpaCPUList.size()
+                        + " writes/s");
 
                 siteAvgCPUUsageMap.put(ClusterUID.getId(), cpuTotalUsage / rpaCPUList.size());
                 siteInputAvgThroughput.put(ClusterUID.getId(), inputThoughputTotal / rpaCPUList.size());
@@ -2329,11 +2404,11 @@ public class RecoverPointClient {
                 param.parameterName = monitoredParameter.getKey().getParameterType().value();
                 param.parameterLimit = monitoredParameter.getValue().getParameterWaterMarks().getLimit();
                 param.currentParameterValue = monitoredParameter.getValue().getValue();
-                
+
                 if (monitoredParameter.getKey().getClusterUID() != null) {
-                	param.siteID = monitoredParameter.getKey().getClusterUID().getId();
-                } 
-                
+                    param.siteID = monitoredParameter.getKey().getClusterUID().getId();
+                }
+
                 systemParameterList.add(param);
             }
             response.setParamList(systemParameterList);
@@ -2344,7 +2419,7 @@ public class RecoverPointClient {
                 logger.info("Max Value: " + monitoredParameter.parameterLimit);
             }
             return response;
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToGetStatistics(e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToGetStatistics(e);
@@ -2363,7 +2438,8 @@ public class RecoverPointClient {
      * @throws FunctionalAPIActionFailedException_Exception
      * @throws FunctionalAPIInternalError_Exception
      */
-    private ClusterUID getRPSiteID(String internalSiteName, Map<String, ClusterUID> clusterIdCache) throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception  {
+    private ClusterUID getRPSiteID(String internalSiteName, Map<String, ClusterUID> clusterIdCache)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
         if (clusterIdCache != null && clusterIdCache.containsKey(internalSiteName)) {
             return clusterIdCache.get(internalSiteName);
         } else {
@@ -2374,40 +2450,39 @@ public class RecoverPointClient {
             return clusterId;
         }
     }
-    
+
     /**
      * Find the transient site ID, given the permanent/unchanging unique internal site name.
      * Needed for some external operations, like filling in proper copy info in a snapshot.
      * 
      * @param internalSiteName internal site name, never changes
      * @return ClusterUID corresponding to the site that has that internal site name.
-     * @throws RecoverPointException 
+     * @throws RecoverPointException
      */
-    public ClusterUID getRPSiteID(String internalSiteName) throws RecoverPointException  {
+    public ClusterUID getRPSiteID(String internalSiteName) throws RecoverPointException {
         try {
             return RecoverPointUtils.getRPSiteID(functionalAPI, internalSiteName);
-        }
-        catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToGetRPSiteID(e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToGetRPSiteID(e);
         }
     }
-    
+
     /**
-     * Get the replication set information associated with this volume.  This is important when assembling a workflow to 
+     * Get the replication set information associated with this volume. This is important when assembling a workflow to
      * recreate the replication set for the purpose of expanding volumes.
      * 
      * Steps are as follows:
-     *    This method: Get the state information associated with the replication set
-     *    Delete method below: Delete the replication set
-     *    RP Controller: Expand volumes
-     *    Recreate method below: Perform a rescan_san
-     *    Recreate method below: Create the replication set
-     *
+     * This method: Get the state information associated with the replication set
+     * Delete method below: Delete the replication set
+     * RP Controller: Expand volumes
+     * Recreate method below: Perform a rescan_san
+     * Recreate method below: Create the replication set
+     * 
      * @param RecoverPointVolumeProtectionInfo volume - Volume info for the CG to remove the replication set from
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public RecreateReplicationSetRequestParams getReplicationSet(RecoverPointVolumeProtectionInfo volume) throws RecoverPointException {
@@ -2418,12 +2493,12 @@ public class RecoverPointClient {
             cgID.setId(volume.getRpVolumeGroupID());
             ReplicationSetUID repSetUID = new ReplicationSetUID();
             repSetUID.setId(volume.getRpVolumeRSetID());
-            rsetSettings = getReplicationSetSettings(functionalAPI, rsetSettings, cgID,	repSetUID);
+            rsetSettings = getReplicationSetSettings(functionalAPI, rsetSettings, cgID, repSetUID);
 
             if (rsetSettings == null) {
                 throw RecoverPointException.exceptions.cannotFindReplicationSet(volume
                         .getRpVolumeWWN());
-            }               
+            }
 
             RecreateReplicationSetRequestParams response = new RecreateReplicationSetRequestParams();
             response.cgName = volume.getRpProtectionName();
@@ -2431,14 +2506,14 @@ public class RecoverPointClient {
             response.setConsistencyGroupUID(cgID);
             response.volumes = new ArrayList<CreateRSetVolumeParams>();
             for (UserVolumeSettings volumeSettings : rsetSettings.getVolumes()) {
-            	CreateRSetVolumeParams volumeParams = new CreateRSetVolumeParams();
-            	volumeParams.setDeviceUID(volumeSettings.getVolumeInfo().getVolumeID());
-            	volumeParams.setConsistencyGroupCopyUID(volumeSettings.getGroupCopyUID());
-            	response.volumes.add(volumeParams);
+                CreateRSetVolumeParams volumeParams = new CreateRSetVolumeParams();
+                volumeParams.setDeviceUID(volumeSettings.getVolumeInfo().getVolumeID());
+                volumeParams.setConsistencyGroupCopyUID(volumeSettings.getGroupCopyUID());
+                response.volumes.add(volumeParams);
             }
-            
+
             return response;
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.cannotFindReplicationSet(
                     volume.getRpVolumeWWN(), e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -2446,14 +2521,14 @@ public class RecoverPointClient {
                     volume.getRpVolumeWWN(), e);
         }
     }
-    
+
     /**
-     * Delete the Replication Set associated with the volume sent in.  This is useful when volumes are resized.
+     * Delete the Replication Set associated with the volume sent in. This is useful when volumes are resized.
      * It is step one of a multi-step process.
-     *
+     * 
      * @param RecoverPointVolumeProtectionInfo volume - Volume info for the CG to remove the replication set from
      * @return void
-     *
+     * 
      * @throws RecoverPointException
      **/
     public void deleteReplicationSet(RecoverPointVolumeProtectionInfo volume) throws RecoverPointException {
@@ -2469,13 +2544,13 @@ public class RecoverPointClient {
             if (rsetSettings == null) {
                 throw RecoverPointException.exceptions.cannotFindReplicationSet(volume
                         .getRpVolumeWWN());
-            }               
+            }
 
             // Remove the replication set
             disableProtection(volume);
             functionalAPI.removeReplicationSet(cgID, rsetSettings.getReplicationSetUID());
-            logger.info("Request to delete replication set" +  rsetSettings.getReplicationSetName() +  " from consistency group " + cgID);
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+            logger.info("Request to delete replication set" + rsetSettings.getReplicationSetName() + " from consistency group " + cgID);
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToRecreateReplicationSet(
                     volume.getRpVolumeWWN(), e);
         } catch (FunctionalAPIInternalError_Exception e) {
@@ -2483,7 +2558,6 @@ public class RecoverPointClient {
                     volume.getRpVolumeWWN(), e);
         }
     }
-
 
     /**
      * Perform Step 2 of expanding a volume, Recreate a replication set that was previously removed.
@@ -2493,76 +2567,77 @@ public class RecoverPointClient {
      * @throws RecoverPointException
      */
     public void recreateReplicationSet(String wwn, RecreateReplicationSetRequestParams rsetParams) throws RecoverPointException {
-        
+
         try {
-        	ConsistencyGroupUID cgID = rsetParams.getConsistencyGroupUID();
+            ConsistencyGroupUID cgID = rsetParams.getConsistencyGroupUID();
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgID);
-            
+
             // Rescan the SAN
             functionalAPI.rescanSANVolumesInAllClusters(true);
-           
+
             // Create replication set
             logger.info("Adding replication set: " + rsetParams.name);
             functionalAPI.addReplicationSet(cgID, rsetParams.name);
 
             // Update the group settings after new RSet has been created
             groupSettings = functionalAPI.getGroupSettings(cgID);
-            
+
             // Find the new replication set and add the volumes.
-            
+
             for (ReplicationSetSettings replicationSet : groupSettings.getReplicationSetsSettings()) {
-            	Set<Long> deviceUIDSet = new HashSet<Long>();
+                Set<Long> deviceUIDSet = new HashSet<Long>();
                 if (replicationSet.getReplicationSetName().equalsIgnoreCase(rsetParams.name)) {
-                	// Get the new replication set identifier
+                    // Get the new replication set identifier
                     ReplicationSetUID rSetUID = replicationSet.getReplicationSetUID();
-                for (CreateRSetVolumeParams volumeParam : rsetParams.volumes) {   
-                	    if (deviceUIDSet.contains(volumeParam.getDeviceUID().getId())) {
-                	    	// Add the volumes only once, in the case of MetroPoint the source volume is exposed via both the legs of the VPLEX cluster, 
-                	    	// this ensures that we are trying to add them twice to the replication set.
-                	    	logger.info("Skipping adding the volume to the CG, already added. ");
-                	    	continue;
-                	    }
-                    	functionalAPI.addUserVolume(volumeParam.getConsistencyGroupCopyUID(), rSetUID, volumeParam.getDeviceUID());
-                    	deviceUIDSet.add(volumeParam.getDeviceUID().getId());
-                    }                    
+                    for (CreateRSetVolumeParams volumeParam : rsetParams.volumes) {
+                        if (deviceUIDSet.contains(volumeParam.getDeviceUID().getId())) {
+                            // Add the volumes only once, in the case of MetroPoint the source volume is exposed via both the legs of the
+                            // VPLEX cluster,
+                            // this ensures that we are trying to add them twice to the replication set.
+                            logger.info("Skipping adding the volume to the CG, already added. ");
+                            continue;
+                        }
+                        functionalAPI.addUserVolume(volumeParam.getConsistencyGroupCopyUID(), rSetUID, volumeParam.getDeviceUID());
+                        deviceUIDSet.add(volumeParam.getDeviceUID().getId());
+                    }
                     break;
                 }
             }
-            
+
             RecoverPointVolumeProtectionInfo volume = getProtectionInfoForVolume(wwn);
             enableProtection(volume);
             logger.info("Checking for volumes unattached to splitters");
             RecoverPointUtils.verifyCGVolumesAttachedToSplitter(functionalAPI, cgID);
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToRecreateReplicationSet(wwn, e);
         } catch (FunctionalAPIInternalError_Exception e) {
             throw RecoverPointException.exceptions.failedToRecreateReplicationSet(wwn, e);
         }
     }
 
-	private ReplicationSetSettings getReplicationSetSettings(FunctionalAPIImpl impl, 
-			ReplicationSetSettings rsetSettings,
-			ConsistencyGroupUID cgID, ReplicationSetUID repSetUID)
-			throws FunctionalAPIActionFailedException_Exception,
-			FunctionalAPIInternalError_Exception {
-		ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgID);
-		for (ReplicationSetSettings replicationSet : groupSettings.getReplicationSetsSettings()) {
-		    if (replicationSet.getReplicationSetUID().getId() == repSetUID.getId()) {
-		        rsetSettings = replicationSet;
-		        break;
-		    }
-		}
-		return rsetSettings;
-	}
+    private ReplicationSetSettings getReplicationSetSettings(FunctionalAPIImpl impl,
+            ReplicationSetSettings rsetSettings,
+            ConsistencyGroupUID cgID, ReplicationSetUID repSetUID)
+            throws FunctionalAPIActionFailedException_Exception,
+            FunctionalAPIInternalError_Exception {
+        ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgID);
+        for (ReplicationSetSettings replicationSet : groupSettings.getReplicationSetsSettings()) {
+            if (replicationSet.getReplicationSetUID().getId() == repSetUID.getId()) {
+                rsetSettings = replicationSet;
+                break;
+            }
+        }
+        return rsetSettings;
+    }
 
-	/**
-	 * Returns the array serial numbers associated with each RP Cluster.
-	 * That is, all arrays that have "visibility" according to the RP Cluster.
-	 * 
-	 * @return a Map of RP Cluster ID -> a Set of array serial numbers
-	 * @throws RecoverPointException
-	 */
-	public Map<String, Set<String>> getArraysForClusters() throws RecoverPointException {
+    /**
+     * Returns the array serial numbers associated with each RP Cluster.
+     * That is, all arrays that have "visibility" according to the RP Cluster.
+     * 
+     * @return a Map of RP Cluster ID -> a Set of array serial numbers
+     * @throws RecoverPointException
+     */
+    public Map<String, Set<String>> getArraysForClusters() throws RecoverPointException {
         String mgmtIPAddress = _endpoint.toASCIIString();
         if (null == mgmtIPAddress) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
@@ -2571,49 +2646,52 @@ public class RecoverPointClient {
             logger.info("RecoverPoint service: Returning all RP Clusters associated with endpoint: " + _endpoint);
             FullRecoverPointSettings fullRecoverPointSettings = functionalAPI.getFullRecoverPointSettings();
             Map<String, Set<String>> clusterStorageSystems = new HashMap<String, Set<String>>();
-            
-            for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration().getClustersConfigurations()) {
+
+            for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
+                    .getClustersConfigurations()) {
                 String siteName = siteSettings.getInternalClusterName();
                 clusterStorageSystems.put(siteName, RecoverPointUtils.getArraysForCluster(functionalAPI, siteSettings.getCluster()));
             }
 
             return clusterStorageSystems;
-		} catch (FunctionalAPIActionFailedException_Exception e) {
-			logger.error(e.getMessage(), e);
-			throw RecoverPointException.exceptions.exceptionGettingArrays(e);
-		} catch (FunctionalAPIInternalError_Exception e) {			
-			logger.error(e.getMessage(), e);
-			throw RecoverPointException.exceptions.exceptionGettingArrays(e);
-		} 
-	}
+        } catch (FunctionalAPIActionFailedException_Exception e) {
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.exceptionGettingArrays(e);
+        } catch (FunctionalAPIInternalError_Exception e) {
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.exceptionGettingArrays(e);
+        }
+    }
 
-	public String getUsername() {
-		return _username;
-	}
+    public String getUsername() {
+        return _username;
+    }
 
-	public void setUsername(String _username) {
-		this._username = _username;
-	}
+    public void setUsername(String _username) {
+        this._username = _username;
+    }
 
-	public String getPassword() {
-		return _password;
-	}
+    public String getPassword() {
+        return _password;
+    }
 
-	public void setPassword(String _password) {
-		this._password = _password;
-	}
-    
+    public void setPassword(String _password) {
+        this._password = _password;
+    }
+
     /**
-     * in a Metropoint environment, adds a link between the standby production copy and the remote/DR copy 
+     * in a Metropoint environment, adds a link between the standby production copy and the remote/DR copy
+     * 
      * @param activeProdCopy the CG copy uid of the active production copy
      * @param standbyProdCopy the CG copy uid of the standby production copy
-     * @throws FunctionalAPIInternalError_Exception 
-     * @throws FunctionalAPIActionFailedException_Exception 
-     * @throws FunctionalAPIValidationException_Exception 
+     * @throws FunctionalAPIInternalError_Exception
+     * @throws FunctionalAPIActionFailedException_Exception
+     * @throws FunctionalAPIValidationException_Exception
      * @throws RecoverPointException
      */
     private void addStandbyCopyLinkSettings(ConsistencyGroupCopyUID activeProdCopy, ConsistencyGroupCopyUID standbyProdCopy)
-            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception, FunctionalAPIValidationException_Exception {
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
+            FunctionalAPIValidationException_Exception {
 
         logger.info("Preparing link settings between standby production copy and remote copy after Metropoint swap production copies.");
 
@@ -2635,7 +2713,7 @@ public class RecoverPointClient {
             if (copyClusterId.getId() != activeClusterId.getId() && copyClusterId.getId() != standbyClusterId.getId()) {
 
                 String targetCopyName = functionalAPI.getGroupCopyName(copySetting.getCopyUID());
-                
+
                 // get the link settings for the active production copy and remote copy
                 ConsistencyGroupLinkSettings linkSettings = findLinkSettings(groupSettings.getActiveLinksSettings(),
                         activeProdCopy.getGlobalCopyUID(), copySetting.getCopyUID().getGlobalCopyUID(), activeCgCopyName, targetCopyName);
@@ -2668,11 +2746,12 @@ public class RecoverPointClient {
             }
         }
     }
-    
+
     /**
      * adds one copy to an existing CG
+     * 
      * @param cgUID CG uid where new copy should be added
-     * @param allSites list of sites that see journal and copy file WWN's 
+     * @param allSites list of sites that see journal and copy file WWN's
      * @param copyParams the copy to be added
      * @param clusterUid the uid of the cluster the copy should be added to
      * @param rSetUid replication set uid where copy files should be added to
@@ -2684,44 +2763,44 @@ public class RecoverPointClient {
      * @throws FunctionalAPIValidationException_Exception
      */
     private ConsistencyGroupCopyUID addCopyToCG(ConsistencyGroupUID cgUID, Set<RPSite> allSites, CreateCopyParams copyParams,
-            ClusterUID clusterUid, List<CreateRSetParams> rSets, RecoverPointCGCopyType copyType) 
-                    throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
+            ClusterUID clusterUid, List<CreateRSetParams> rSets, RecoverPointCGCopyType copyType)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception,
             FunctionalAPIValidationException_Exception {
-  
+
         boolean isProduction = copyType == RecoverPointCGCopyType.PRODUCTION;
         String copyTypeStr = copyType.toString();
-        
+
         logger.info(String.format("Adding new copy %s to cg", copyParams.getName()));
-        
+
         ConsistencyGroupCopyUID copyUid = new ConsistencyGroupCopyUID();
         ConsistencyGroupCopySettingsParam copySettingsParam = new ConsistencyGroupCopySettingsParam();
-        
-        GlobalCopyUID globalCopyUID = new GlobalCopyUID();              
+
+        GlobalCopyUID globalCopyUID = new GlobalCopyUID();
         globalCopyUID.setClusterUID(clusterUid);
         globalCopyUID.setCopyUID(copyType.getCopyNumber());
-        
+
         copyUid.setGroupUID(cgUID);
         copyUid.setGlobalCopyUID(globalCopyUID);
-                       
+
         copySettingsParam.setCopyName(copyParams.getName());
         copySettingsParam.setCopyPolicy(null);
         copySettingsParam.setEnabled(false);
         copySettingsParam.setGroupCopy(copyUid);
         copySettingsParam.setProductionCopy(isProduction);
-        copySettingsParam.setTransferEnabled(false); 
-        
+        copySettingsParam.setTransferEnabled(false);
+
         // we can't call validateAddConsistencyGroupCopy here because during a swap operation, it throws an exception
         // which is just a warning that a full sweep will be required. There didn't seem to be a way to catch
         // just the warning and let other errors propegate as errors.
         logger.info("Add Production copy (no validation): " + copyParams.toString());
         functionalAPI.addConsistencyGroupCopy(copySettingsParam);
-        
+
         // add journals
         for (CreateVolumeParams journalVolume : copyParams.getJournals()) {
             logger.info("Adding Journal : " + journalVolume.toString() + " for Production copy : " + copyParams.getName());
             functionalAPI.addJournalVolume(copyUid, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));
         }
-        
+
         if (rSets != null) {
             ConsistencyGroupSettings groupSettings = functionalAPI.getGroupSettings(cgUID);
             for (CreateRSetParams rSet : rSets) {
@@ -2736,21 +2815,21 @@ public class RecoverPointClient {
                 }
                 if (rSetUid != null) {
                     for (CreateVolumeParams volume : rSet.getVolumes()) {
-                        if ( (isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())) {
-                            logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, copyParams.toString()));    
+                        if ((isProduction && volume.isProduction()) || (!isProduction && !volume.isProduction())) {
+                            logger.info(String.format("Adding %s copy volume : %s", copyTypeStr, copyParams.toString()));
                             functionalAPI.addUserVolume(copyUid, rSetUid, RecoverPointUtils.getDeviceID(allSites, volume.getWwn()));
                         }
                     }
                 }
             }
         }
-        
+
         return copyUid;
     }
-    
+
     /**
-     * In a metropoint environment, adds the standby production and CDP copies to the CG after failover  
-     * and set as production back to the original vplex metro 
+     * In a metropoint environment, adds the standby production and CDP copies to the CG after failover
+     * and set as production back to the original vplex metro
      * 
      * @param standbyProdCopy has info about the standby production copy to be added
      * @param standbyLocalCopyParams local standby copies
@@ -2758,23 +2837,24 @@ public class RecoverPointClient {
      * @param activeProdCopy has info about the active production copy
      * 
      */
-    public void addStandbyProductionCopy(CreateCopyParams standbyProdCopy, 
-            CreateCopyParams standbyLocalCopyParams, List<CreateRSetParams> rSets, 
+    public void addStandbyProductionCopy(CreateCopyParams standbyProdCopy,
+            CreateCopyParams standbyLocalCopyParams, List<CreateRSetParams> rSets,
             RPCopyRequestParams activeProdCopy) {
 
         String cgName = "";
         String activeCgCopyName = "";
-        
+
         try {
-            ConsistencyGroupCopyUID activeProdCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(activeProdCopy.getCopyVolumeInfo());
+            ConsistencyGroupCopyUID activeProdCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(activeProdCopy
+                    .getCopyVolumeInfo());
             ConsistencyGroupUID cgUID = activeProdCopyUID.getGroupUID();
             cgName = functionalAPI.getGroupName(cgUID);
-            
+
             logger.info(String.format("Adding Standby production and local volumes to Metropoint CG %s", cgName));
-            
+
             activeCgCopyName = functionalAPI.getGroupCopyName(activeProdCopyUID);
             List<CreateCopyParams> copies = new ArrayList<CreateCopyParams>();
-            copies.add(standbyProdCopy);            
+            copies.add(standbyProdCopy);
             if (standbyLocalCopyParams != null) {
                 copies.add(standbyLocalCopyParams);
             }
@@ -2783,46 +2863,48 @@ public class RecoverPointClient {
             ClusterUID clusterUid = RecoverPointUtils.getRPSiteID(functionalAPI, volume.getInternalSiteName());
 
             // add the standby production copy
-            ConsistencyGroupCopyUID standbyProdCopyUID = addCopyToCG(cgUID, allSites, standbyProdCopy, clusterUid, 
+            ConsistencyGroupCopyUID standbyProdCopyUID = addCopyToCG(cgUID, allSites, standbyProdCopy, clusterUid,
                     null, RecoverPointCGCopyType.PRODUCTION);
-            
+
             // set up a link between the newly added standby prod copy and the remote copy
             addStandbyCopyLinkSettings(activeProdCopyUID, standbyProdCopyUID);
-            
+
             // add the standby local copies if we have any
             ConsistencyGroupCopyUID standbyLocalCopyUID = null;
             if (standbyLocalCopyParams != null) {
                 standbyLocalCopyUID = addCopyToCG(cgUID, allSites, standbyLocalCopyParams, clusterUid,
                         rSets, RecoverPointCGCopyType.LOCAL);
-                
-                logger.info("Setting link policy between production copy and local copy on standby cluster(id) : " + standbyLocalCopyUID.getGlobalCopyUID().getClusterUID().getId());
+
+                logger.info("Setting link policy between production copy and local copy on standby cluster(id) : "
+                        + standbyLocalCopyUID.getGlobalCopyUID().getClusterUID().getId());
                 setLinkPolicy(false, standbyProdCopyUID, standbyLocalCopyUID, cgUID);
             }
-            
+
             // enable the local copy
             if (standbyLocalCopyUID != null) {
                 logger.info("enable standby local copy for CG ", cgName);
                 functionalAPI.enableConsistencyGroupCopy(standbyLocalCopyUID, true);
             }
-            
+
             // enable the production copy
             logger.info("enable production standby copy for CG ", cgName);
             functionalAPI.enableConsistencyGroupCopy(standbyProdCopyUID, true);
-            
+
             // enable the CG
             logger.info("enable CG " + cgName + " after standby copies added");
             functionalAPI.startGroupTransfer(cgUID);
-            
+
             RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
             rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
-            
+
         } catch (Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(activeCgCopyName, cgName, e);
         }
     }
-    
+
     /**
      * checks to see if there is a protection volume with a given wwn
+     * 
      * @param volumeWWN the WWN of the volume being checked for existence
      * @return
      */
@@ -2834,13 +2916,13 @@ public class RecoverPointClient {
                 for (ReplicationSetSettings rsSettings : cgSettings.getReplicationSetsSettings()) {
                     for (UserVolumeSettings uvSettings : rsSettings.getVolumes()) {
                         String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
-                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)){
-                         return true;                         
+                        if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
+                            return true;
                         }
                     }
                 }
             }
-        }  catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
             logger.error(e.getMessage(), e);
             return false;
         } catch (FunctionalAPIInternalError_Exception e) {

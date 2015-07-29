@@ -13,19 +13,22 @@ import java.util.Set;
  */
 @SuppressWarnings("serial")
 public class MultiCopyDisableImageRequestParams implements Serializable {
-		private String emName;
-		private Set <String> volumeWWNSet;
-		
-		public Set <String> getVolumeWWNSet() {
-			return volumeWWNSet;
-		}
-		public void setVolumeWWNSet(Set <String> volumeWWNSet) {
-			this.volumeWWNSet = volumeWWNSet;
-		}
-		public String getEmName() {
-			return emName;
-		}
-		public void setEmName(String emName) {
-			this.emName = emName;
-		}
+    private String emName;
+    private Set<String> volumeWWNSet;
+
+    public Set<String> getVolumeWWNSet() {
+        return volumeWWNSet;
+    }
+
+    public void setVolumeWWNSet(Set<String> volumeWWNSet) {
+        this.volumeWWNSet = volumeWWNSet;
+    }
+
+    public String getEmName() {
+        return emName;
+    }
+
+    public void setEmName(String emName) {
+        this.emName = emName;
+    }
 }

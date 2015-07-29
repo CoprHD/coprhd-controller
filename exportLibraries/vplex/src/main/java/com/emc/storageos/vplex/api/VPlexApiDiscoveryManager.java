@@ -413,28 +413,33 @@ public class VPlexApiDiscoveryManager {
      * 
      * @throws VPlexApiException When an error occurs find the volumes.
      */
-    Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(
-        List<VolumeInfo> volumeInfoList, List<VPlexClusterInfo> clusterInfoList)
-        throws VPlexApiException {
+    Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(List<VolumeInfo> volumeInfoList,
+    		                                                   List<VPlexClusterInfo> clusterInfoList)
+    		                                                   throws VPlexApiException
+   {
 
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = new HashMap<VolumeInfo, VPlexStorageVolumeInfo>();
         Iterator<VolumeInfo> volumeInfoIter = volumeInfoList.iterator();
-        while (volumeInfoIter.hasNext()) {
+        while (volumeInfoIter.hasNext())
+        {
             boolean volumeFound = false;
             VolumeInfo volumeInfo = volumeInfoIter.next();
             String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
             String volumeWWN = volumeInfo.getVolumeWWN().toLowerCase();
             s_logger.info("Volume WWN is {}", volumeWWN);
-            for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                if (clusterInfo.containsStorageSystem(storageSystemNativeGuid)) {
-                    s_logger.info("Found storage system {} in cluster {}",
-                        storageSystemNativeGuid, clusterInfo.getName());
+            for (VPlexClusterInfo clusterInfo : clusterInfoList)
+            {
+                if (clusterInfo.containsStorageSystem(storageSystemNativeGuid))
+                {
+                    s_logger.info("Found storage system {} in cluster {}", storageSystemNativeGuid, clusterInfo.getName());
                     VPlexStorageVolumeInfo storageVolumeInfo = clusterInfo.getStorageVolume(volumeInfo);
-                    if (storageVolumeInfo == null) {
+                    if (storageVolumeInfo == null)
+                    {
                         s_logger.info("Storage volume with WWN {} was not found in cluster {}", volumeWWN, clusterInfo.getName());
                         String volumeName = volumeInfo.getVolumeName();
                         storageVolumeInfo = clusterInfo.getStorageVolume(volumeInfo);
-                        if (storageVolumeInfo != null) {
+                        if (storageVolumeInfo != null)
+                        {
                             // The storage volume requested for an operation is
                             // already claimed. For now, we just log a warning so 
                             // that stale VPLEX artifacts associated with this 
@@ -451,10 +456,10 @@ public class VPlexApiDiscoveryManager {
                 }
             }
 
-            if (!volumeFound) {
-                throw new VPlexApiException(String.format(
-                    "Could not find storage volume %s on array %s", volumeWWN,
-                    storageSystemNativeGuid));
+            if (!volumeFound)
+            {
+                throw new VPlexApiException(String.format("Could not find storage volume %s on array %s", volumeWWN,
+                		                    storageSystemNativeGuid));
             }
         }
 

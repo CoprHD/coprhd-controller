@@ -139,22 +139,22 @@ public class BackupOps {
     }
 
     private synchronized Map<String, String> initHosts() {
-            if (hosts != null && !hosts.isEmpty()) {
-                return hosts;
+        if (hosts != null && !hosts.isEmpty()) {
+            return hosts;
+        }
+        CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
+        hosts = new TreeMap<>();
+        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+            try {
+                String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
+                DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
+                String host = normalizeDualInetAddress(inetAddress);
+                hosts.put(nodeName, host);
+            } catch (Exception ex) {
+                throw BackupException.fatals.failedToGetHost(nodeName, ex);
             }
-            CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-            hosts = new TreeMap<>();
-            for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-                try {
-                    String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
-                    DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
-                    String host = normalizeDualInetAddress(inetAddress);
-                    hosts.put(nodeName, host);
-                } catch (Exception ex) {
-                    throw BackupException.fatals.failedToGetHost(nodeName, ex);
-                }
-            }
-            this.quorumSize = hosts.size() / 2 + 1;
+        }
+        this.quorumSize = hosts.size() / 2 + 1;
         return hosts;
     }
 
